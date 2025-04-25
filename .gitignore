@@ -1,0 +1,19 @@
+# Ignorar arquivos de ambiente específicos do backend
+backend/.env
+
+# (Opcional, mas bom) Ignorar arquivos de ambiente do frontend também
+frontend/.env
+frontend/.env.local
+frontend/.env.development
+frontend/.env.test
+frontend/.env.production
+
+# Outros arquivos comuns a ignorar (Node, Python, OS)
+node_modules/
+*.pyc
+__pycache__/
+db.sqlite3
+staticfiles/
+*.log
+.DS_Store
+# Adicione outras coisas que não devem ir para o Git
