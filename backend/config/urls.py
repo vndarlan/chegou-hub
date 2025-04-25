@@ -16,13 +16,6 @@ from core.views import (
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 
-# Adicione esta função depois dos imports
-def create_admin(request):
-    if not User.objects.filter(username="admin").exists():
-        User.objects.create_superuser("adminchegouhub", "admchegouhub@grupochegou.com", "AdmChegouHub2025@!")
-        return HttpResponse("Superusuário 'admin' criado com sucesso! Agora você pode fazer login no admin.")
-    return HttpResponse("Superusuário 'admin' já existe!")
-
 # Configuração do Router para a API de Estilos
 router = DefaultRouter()
 router.register(r'styles', ImageStyleViewSet, basename='imagestyle') # Endpoint /api/styles/
@@ -36,7 +29,6 @@ urlpatterns = [
     path('api/current-state/', CurrentStateView.as_view(), name='api_current_state'),
     path('api/register/', RegisterView.as_view(), name='api_register'),
     path('api/select-area/', SelectAreaView.as_view(), name='api_select_area'),
-    path('setup-admin/', create_admin, name='setup_admin'),
 
     # API para Operacional (Imagens)
     path('api/operacional/generate-image/', GenerateImageView.as_view(), name='api_generate_image'),
