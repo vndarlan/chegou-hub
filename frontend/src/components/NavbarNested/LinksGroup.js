@@ -1,22 +1,20 @@
 // frontend/src/components/NavbarNested/LinksGroup.js
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Group, Box, Collapse, ThemeIcon, Text, UnstyledButton, rem, Popover } from '@mantine/core';
+// --- IMPORTAR useNavigate ---
+import { useNavigate, useLocation } from 'react-router-dom'; // Adiciona useLocation
+import { Group, Box, Collapse, ThemeIcon, Text, UnstyledButton, rem } from '@mantine/core';
 import { IconChevronRight } from '@tabler/icons-react';
 import classes from './LinksGroup.module.css';
 
+
+// Props: icon, label, initiallyOpened, links, activePage, setActivePage, collapsed, link (link direto)
 export function LinksGroup({ icon: Icon, label, initiallyOpened, links, activePage, setActivePage, collapsed, link: directLink }) {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate = useNavigate(); // Hook para navegação
+  const location = useLocation(); // Hook para localização atual
   const hasLinks = Array.isArray(links) && links.length > 0;
   const [opened, setOpened] = useState(initiallyOpened || false);
-  const [popoverOpened, setPopoverOpened] = useState(false);
 
-  // Verifica se o item está ativo (selecionado)
-  const isActive = location.pathname === directLink ||
-                   (hasLinks && links.some(subLink => location.pathname === subLink.link));
-  
-  // Gera os itens de sublink com ícones
+  // Gera os itens de sublink (páginas)
   const items = (hasLinks ? links : []).map((subLink) => (
     <Text
       component="a"
@@ -26,84 +24,45 @@ export function LinksGroup({ icon: Icon, label, initiallyOpened, links, activePa
       onClick={(event) => {
         event.preventDefault();
         setActivePage(subLink.label);
+        // Se sublinks devem navegar, use navigate(subLink.link)
         if (subLink.link && subLink.link !== '#') {
-          navigate(subLink.link);
+             navigate(subLink.link);
         }
-        if (collapsed) {
-          setPopoverOpened(false);
-        }
+        console.log(`Sublink clicado: ${subLink.label}`);
       }}
+      // Verifica se a ROTA do sublink corresponde à rota atual
       data-active={location.pathname === subLink.link || undefined}
     >
-      {subLink.icon && (
-        <span className={classes.sublinkIcon}>
-          <subLink.icon size={16} stroke={1.5} />
-        </span>
-      )}
-      <span>{subLink.label}</span>
+      {subLink.label}
     </Text>
   ));
 
   // Handler para clicar no item principal
   const handleControlClick = () => {
-    if (hasLinks) {
-      if (collapsed) {
-        // No modo colapsado, não abre/fecha
-        setPopoverOpened((o) => !o);
+      if (hasLinks) {
+          setOpened((o) => !o);
+      } else if (directLink) {
+          // --- NAVEGA SE FOR LINK DIRETO ---
+          // setActivePage(label); // A ativação visual vem da rota agora
+          navigate(directLink);
+          console.log(`Link direto clicado: ${label}, navegando para ${directLink}`);
       } else {
-        // Modo normal, abre/fecha o submenu
-        setOpened((o) => !o);
+          // setActivePage(label); // A ativação visual vem da rota agora
+          console.log(`Item clicado (sem sublinks/link direto): ${label}`);
       }
-    } else if (directLink) {
-      navigate(directLink);
-    }
   };
 
-  // Se estiver colapsado e tiver subitens, usar Popover
-  if (collapsed && hasLinks) {
-    return (
-      <Popover
-        opened={popoverOpened}
-        onClose={() => setPopoverOpened(false)}
-        position="right"
-        withArrow
-        shadow="md"
-        width={220}
-        withinPortal
-      >
-        <Popover.Target>
-          <div 
-            onMouseEnter={() => setPopoverOpened(true)}
-            onMouseLeave={() => setPopoverOpened(false)}
-            className={classes.popoverWrapper}
-          >
-            <UnstyledButton
-              onClick={handleControlClick}
-              className={`${classes.control} ${classes.controlCollapsed} ${isActive ? classes.controlActive : ''}`}
-            >
-              <Box className={classes.iconContainer}>
-                <ThemeIcon variant="light" size={30} color="orange">
-                  <Icon style={{ width: rem(18), height: rem(18) }} color='var(--mantine-color-orange-filled)'/>
-                </ThemeIcon>
-              </Box>
-            </UnstyledButton>
-          </div>
-        </Popover.Target>
-        <Popover.Dropdown>
-          <Text weight={500} size="sm" mb="xs">{label}</Text>
-          <div className={classes.popoverLinks}>
-            {items}
-          </div>
-        </Popover.Dropdown>
-      </Popover>
-    );
-  }
+   // Verifica se a ROTA direta corresponde à rota atual
+   // ou se a ROTA de algum sublink corresponde à rota atual
+   const isActive = location.pathname === directLink ||
+                    (hasLinks && links.some(subLink => location.pathname === subLink.link));
 
-  // Versão normal (não colapsada ou sem subitens)
+
   return (
     <>
       <UnstyledButton
         onClick={handleControlClick}
+        // Aplica classe 'controlActive' se a rota corresponder
         className={`${classes.control} ${collapsed ? classes.controlCollapsed : ''} ${isActive ? classes.controlActive : ''}`}
       >
         <Group justify="space-between" gap={0} wrap="nowrap">
@@ -120,13 +79,13 @@ export function LinksGroup({ icon: Icon, label, initiallyOpened, links, activePa
               style={{
                 width: rem(16),
                 height: rem(16),
-                transform: (opened || isActive) ? 'rotate(90deg)' : 'none',
+                transform: opened ? 'rotate(90deg)' : 'none',
               }}
-              data-rotate={opened || isActive || undefined}
             />
           )}
         </Group>
       </UnstyledButton>
+      {/* Expande o grupo se um dos seus filhos estiver ativo */}
       {hasLinks ? <Collapse in={opened || isActive}>{items}</Collapse> : null}
     </>
   );
