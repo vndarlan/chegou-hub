@@ -147,25 +147,34 @@ function LoginPage({ setIsLoggedIn }) {
         event.preventDefault();
         setNotification(null);
         setLoading(true);
-
+    
         if (mode === 'login') {
             // --- Lógica de LOGIN ---
             try {
-                const response = axios.post('/login/', {
+                console.log("Tentando login com:", {email, password: "***"});
+                const response = await axios.post('/login/', {
                     email: email, password: password
                 }, { withCredentials: true });
-
+    
                 if (response.status === 200) {
                     console.log("Login bem-sucedido!", response.data);
                     setIsLoggedIn(true);
                 }
             } catch (err) {
+                console.error("Erro detalhado:", {
+                    status: err.response?.status,
+                    statusText: err.response?.statusText,
+                    data: err.response?.data,
+                    headers: err.response?.headers,
+                    baseURL: axios.defaults.baseURL
+                });
+                
                 console.error("Erro no login:", err.response || err.message);
                 let errorMessage = 'Erro ao tentar conectar ao servidor.';
                 if (err.response && err.response.status === 401) {
                     errorMessage = err.response.data?.error || 'Credenciais inválidas ou conta inativa.';
                 }
-                 setNotification({ type: 'error', message: errorMessage });
+                setNotification({ type: 'error', message: errorMessage });
                 setIsLoggedIn(false);
             } finally {
                 setLoading(false);
@@ -173,11 +182,18 @@ function LoginPage({ setIsLoggedIn }) {
         } else {
             // --- Lógica de REGISTRO ---
             if (!name || !email || !timeSelecionado || !password) {
-                 setNotification({ type: 'error', message: 'Todos os campos são obrigatórios para o registro.' });
-                 setLoading(false);
-                 return;
+                setNotification({ type: 'error', message: 'Todos os campos são obrigatórios para o registro.' });
+                setLoading(false);
+                return;
             }
             try {
+                console.log("Tentando registro com:", {
+                    name, 
+                    email, 
+                    area: timeSelecionado, 
+                    password: "***"
+                });
+                
                 // Envia 'timeSelecionado' como 'area' para o backend
                 const response = await axios.post('/register/', {
                     name: name,
@@ -185,7 +201,7 @@ function LoginPage({ setIsLoggedIn }) {
                     area: timeSelecionado,
                     password: password
                 });
-
+    
                 if (response.status === 201) {
                     console.log("Registro bem-sucedido!", response.data);
                     // 1. Define a notificação para ser exibida
@@ -193,24 +209,25 @@ function LoginPage({ setIsLoggedIn }) {
                         type: 'success',
                         message: 'Conta criada! Em breve vamos confirmar seu acesso na plataforma.'
                     });
-
-                    // 2. REMOVA a linha abaixo:
-                    // handleModeChange('login');
-
-                    // 3. (Opcional, mas recomendado) Limpe apenas a senha após o sucesso
+    
+                    // 2. Limpe apenas a senha após o sucesso
                     setPassword('');
-
-                    // O formulário de registro continuará visível, mas com a
-                    // mensagem de sucesso acima e a senha limpa. O usuário
-                    // poderá então clicar no link "Faça login".
                 }
             } catch (err) {
+                console.error("Erro detalhado:", {
+                    status: err.response?.status,
+                    statusText: err.response?.statusText,
+                    data: err.response?.data,
+                    headers: err.response?.headers,
+                    baseURL: axios.defaults.baseURL
+                });
+                
                 console.error("Erro no registro:", err.response || err.message);
                 let errorMessage = 'Erro ao tentar criar a conta.';
                 if (err.response && err.response.data?.error) {
                     errorMessage = err.response.data.error;
                 }
-                 setNotification({ type: 'error', message: errorMessage });
+                setNotification({ type: 'error', message: errorMessage });
             } finally {
                 setLoading(false);
             }
