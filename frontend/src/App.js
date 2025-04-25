@@ -29,7 +29,7 @@ function App() {
       setIsLoading(true); // Garante que loading seja true no início
       try {
         // Chama a API /api/current-state/
-        const response = await axios.get('http://localhost:8000/api/current-state/', { withCredentials: true });
+        const response = await axios.get('/current-state/', { withCredentials: true });
 
         // Se a resposta for OK e a API disser que está logado...
         if (response.status === 200 && response.data.logged_in) {

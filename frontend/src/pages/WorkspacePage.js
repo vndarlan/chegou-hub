@@ -99,7 +99,7 @@ function WorkspacePage({ setIsLoggedIn }) {
             setErrorSession('');
             try {
                 // Axios já configurado globalmente com withCredentials
-                const response = await axios.get('http://localhost:8000/api/current-state/');
+                const response = await axios.get('/current-state/');
                 if (response.status === 200 && response.data?.logged_in) {
                     setUserName(response.data.name || response.data.email || 'Usuário');
                     setUserEmail(response.data.email || '');
@@ -124,7 +124,7 @@ function WorkspacePage({ setIsLoggedIn }) {
         setLoadingSession(true);
         try {
             // Axios já configurado globalmente com withCredentials
-            await axios.post('http://localhost:8000/api/logout/', {});
+            await axios.post('/logout/', {});
             console.log("API de logout chamada com sucesso.");
         } catch (err) {
             console.error("Erro ao chamar API de logout:", err.response || err.message);

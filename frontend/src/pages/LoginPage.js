@@ -151,7 +151,7 @@ function LoginPage({ setIsLoggedIn }) {
         if (mode === 'login') {
             // --- Lógica de LOGIN ---
             try {
-                const response = await axios.post('http://localhost:8000/api/login/', {
+                const response = axios.post('/login/', {
                     email: email, password: password
                 }, { withCredentials: true });
 
@@ -179,7 +179,7 @@ function LoginPage({ setIsLoggedIn }) {
             }
             try {
                 // Envia 'timeSelecionado' como 'area' para o backend
-                const response = await axios.post('http://localhost:8000/api/register/', {
+                const response = await axios.post('/register/', {
                     name: name,
                     email: email,
                     area: timeSelecionado,

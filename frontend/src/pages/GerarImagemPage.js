@@ -73,7 +73,7 @@ function GerarImagemPage() {
         console.log("Buscando estilos...");
         try {
             const csrfToken = getCookie('csrftoken');
-            const response = await axios.get('http://localhost:8000/api/styles/', {
+            const response = await axios.get('/styles/', {
                 headers: { 'X-CSRFToken': csrfToken }
             });
             setStylesList(response.data || []);
@@ -177,7 +177,7 @@ function GerarImagemPage() {
             }
         }
 
-        handleApiCall('http://localhost:8000/api/operacional/generate-image/', payload);
+        handleApiCall('/operacional/generate-image/', payload);
     };
 
     // Edição
@@ -199,9 +199,9 @@ function GerarImagemPage() {
             formData.append('mask', maskImageEdit, maskImageEdit.name);
         }
 
-        handleApiCall('http://localhost:8000/api/operacional/edit-image/', formData, {
-             headers: { 'Content-Type': 'multipart/form-data' }
-        }, true); // Indica que é FormData
+        handleApiCall('/operacional/edit-image/', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        }, true);
     };
 
     // Variação
@@ -213,9 +213,9 @@ function GerarImagemPage() {
         formData.append('n', nImagesVar);
         formData.append('image', baseImageVar, baseImageVar.name);
 
-        handleApiCall('http://localhost:8000/api/operacional/create-variation/', formData, {
+        handleApiCall('/operacional/create-variation/', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
-        }, true); // Indica que é FormData
+        }, true);
     };
 
 
@@ -246,7 +246,7 @@ function GerarImagemPage() {
         setIsLoading(true); // Usar loading geral ou um específico para o modal
 
         const csrfToken = getCookie('csrftoken');
-        const url = currentStyle ? `http://localhost:8000/api/styles/${currentStyle.id}/` : 'http://localhost:8000/api/styles/';
+        const url = currentStyle ? `/styles/${currentStyle.id}/` : '/styles/';
         const method = currentStyle ? 'patch' : 'post'; // Usar PATCH para atualização parcial
 
         try {
@@ -277,7 +277,7 @@ function GerarImagemPage() {
         setIsLoading(true);
         const csrfToken = getCookie('csrftoken');
         try {
-            await axios.delete(`http://localhost:8000/api/styles/${styleId}/`, {
+            await axios.delete(`/styles/${styleId}/`, {
                 headers: { 'X-CSRFToken': csrfToken }
             });
             console.log("Estilo deletado:", styleId);
