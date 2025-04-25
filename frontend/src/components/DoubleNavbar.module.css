@@ -1,0 +1,100 @@
+/* frontend/src/components/DoubleNavbar.module.css */
+.navbar {
+    height: 100vh; /* Ocupa toda a altura */
+    width: 300px; /* Largura total da navbar combinada */
+    padding: var(--mantine-spacing-md);
+    display: flex;
+    flex-direction: column;
+    border-right: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+    /* Remover background se WorkspacePage definir um geral */
+    /* background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6)); */
+  }
+  
+  .wrapper {
+    display: flex;
+    flex: 1; /* Ocupa o espaço vertical disponível */
+  }
+  
+  .aside {
+    flex: 0 0 rem(60px);
+    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-right: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  }
+  
+  .logo {
+    box-sizing: border-box;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    height: rem(60px);
+    padding-top: var(--mantine-spacing-md);
+    border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+    margin-bottom: var(--mantine-spacing-xl);
+  }
+  
+  .mainLink {
+    width: rem(44px);
+    height: rem(44px);
+    border-radius: var(--mantine-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+  
+    &:hover {
+      background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+    }
+  
+    &[data-active] {
+      background-color: var(--mantine-color-blue-filled); /* Ou orange? */
+      color: var(--mantine-color-white);
+    }
+  }
+  
+  .main {
+    flex: 1;
+    padding-left: var(--mantine-spacing-md);
+    padding-right: var(--mantine-spacing-md);
+    padding-top: var(--mantine-spacing-md);
+    background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  }
+  
+  .title {
+    box-sizing: border-box;
+    font-family:
+      Greycliff CF,
+      var(--mantine-font-family);
+    margin-bottom: var(--mantine-spacing-xl);
+    background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6)); /* Garante que o fundo seja o mesmo */
+    padding: var(--mantine-spacing-md);
+    padding-top: rem(18px);
+    height: rem(60px);
+    border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+    /* Remover margin-bottom se não houver espaço entre title e links */
+  }
+  
+  .link {
+    box-sizing: border-box;
+    display: block;
+    text-decoration: none;
+    border-radius: var(--mantine-radius-md);
+    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+    padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+    font-size: var(--mantine-font-size-sm);
+    font-weight: 500;
+    line-height: var(--mantine-line-height-sm);
+  
+    &:hover {
+      background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+      color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+    }
+  
+    &[data-active] {
+      background-color: var(--mantine-color-orange-light); /* Cor de fundo ativa para sublinks */
+      color: light-dark(var(--mantine-color-orange-filled), var(--mantine-color-orange-1)); /* Cor do texto ativa para sublinks */
+      font-weight: 600;
+    }
+  }

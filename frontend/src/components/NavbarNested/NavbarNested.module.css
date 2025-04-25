@@ -1,0 +1,60 @@
+/* frontend/src/components/NavbarNested/NavbarNested.module.css */
+.navbar {
+    height: 100vh; /* Altura total */
+    width: rem(260px); /* Largura padrão */
+    padding: var(--mantine-spacing-md);
+    display: flex;
+    flex-direction: column;
+    border-right: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+    background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+    transition: width 0.2s ease-in-out; /* Transição para colapso */
+  }
+  
+  .navbarCollapsed {
+    width: rem(80px); /* Largura quando colapsado */
+    padding-left: calc(var(--mantine-spacing-md) / 2);
+    padding-right: calc(var(--mantine-spacing-md) / 2);
+  }
+  
+  
+  .header {
+    padding-bottom: var(--mantine-spacing-md);
+    margin-bottom: calc(var(--mantine-spacing-md) * 1.5);
+    border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+    /* Esconder logo e versão quando colapsado */
+    .navbarCollapsed & .mantine-Group-root {
+      display: none; /* Esconde o Group(Logo+Code) */
+    }
+    .navbarCollapsed & .collapseToggle {
+       margin-left: auto; /* Move botão de toggle para direita */
+       margin-right: auto;
+    }
+  }
+  
+  .links {
+    flex: 1;
+    overflow-y: auto; /* Permitir scroll se muitos itens */
+  }
+  
+  .linksInner {
+    padding-top: var(--mantine-spacing-xl);
+    padding-bottom: var(--mantine-spacing-xl);
+    /* Esconder texto dos links quando colapsado - LinksGroup cuidará disso */
+  }
+  
+  .footer {
+    padding-top: var(--mantine-spacing-md);
+    margin-top: var(--mantine-spacing-md);
+    border-top: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+    /* UserButton cuidará do seu próprio colapso */
+  }
+  
+  .collapseToggle {
+    /* Estilo para o botão de colapsar */
+    color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-1));
+    margin-left: auto; /* Empurra para a direita por padrão */
+  
+    &:hover {
+       background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+    }
+  }

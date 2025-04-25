@@ -1,0 +1,72 @@
+/* frontend/src/components/NavbarNested/LinksGroup.module.css */
+.control {
+  font-weight: 500;
+  display: block;
+  width: 100%;
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+  color: light-dark(var(--mantine-color-black), var(--mantine-color-dark-0));
+  font-size: var(--mantine-font-size-sm);
+  border-radius: var(--mantine-radius-md);
+
+  &:hover {
+    background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-7));
+    color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+  }
+}
+
+.link {
+  font-weight: 500;
+  display: block;
+  text-decoration: none;
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+  padding-left: var(--mantine-spacing-md); /* Indentação inicial */
+  margin-left: var(--mantine-spacing-md); /* Espaço para indentação */
+  font-size: var(--mantine-font-size-sm);
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+  border-left: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+
+  /* Estilo do link ativo (página selecionada) */
+  &[data-active='true'] {
+    color: var(--mantine-color-orange-filled); /* Cor do texto ativa */
+    background-color: var(--mantine-color-orange-light); /* Fundo do link ativo */
+    font-weight: 600;
+  }
+
+
+  &:hover {
+    background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-7));
+    color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+  }
+}
+
+
+.chevron {
+  transition: transform 200ms ease;
+  &[data-rotate] {
+    transform: rotate(90deg);
+  }
+}
+
+/* Esconder texto e ajustar quando colapsado */
+.labelCollapsed {
+  display: none;
+}
+.controlCollapsed {
+   /* Removido justify-content: center para alinhar ícone à esquerda */
+   padding-left: 0;
+   padding-right: 0;
+}
+/* .iconCollapsed { /* Não precisamos mais disso se ThemeIcon não for centralizado */
+  /* margin-right: 0; */
+/* } */
+/* .chevronCollapsed { /* Não precisamos mais disso, o chevron já some com !collapsed */
+  /* display: none; */
+/* } */
+
+/* --- NOVO ESTILO PARA O CONTROLE ATIVO (Link principal ou pai de sublink ativo) --- */
+.controlActive {
+/* Pode ser sutil ou mais óbvio */
+background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-5)); /* Ex: Fundo ligeiramente diferente */
+/* color: var(--mantine-color-orange-filled); */ /* Ex: Cor do texto mais forte */
+font-weight: 600; /* Ex: Negrito */
+}

@@ -1,0 +1,24 @@
+/* frontend/src/components/NavbarNested/UserButton.module.css */
+.user {
+    display: block;
+    width: 100%;
+    padding: var(--mantine-spacing-md);
+    color: light-dark(var(--mantine-color-black), var(--mantine-color-dark-0));
+    border-radius: var(--mantine-radius-md);
+  
+    &:hover {
+      background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-8));
+    }
+  }
+  
+  .userCollapsed {
+    padding: var(--mantine-spacing-xs); /* Menor padding */
+    /* Centraliza o avatar */
+    & > .mantine-Group-root {
+        justify-content: center;
+    }
+  }
+  
+  .userInfoCollapsed {
+    display: none; /* Esconde nome/email */
+  }
