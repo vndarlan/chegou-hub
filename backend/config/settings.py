@@ -15,6 +15,7 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 import dj_database_url # <<< IMPORTADO
+from urllib.parse import urlparse
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -121,41 +122,47 @@ ASGI_APPLICATION = 'config.asgi.application' # <<< ESSENCIAL para Uvicorn/Railwa
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# --- Configuração do Banco de Dados para PostgreSQL (Railway/Produção) ---
-# <<< MODIFICADO para usar dj_database_url e fallback para SQLite >>>
+# --- Configuração do Banco de Dados ---
 DATABASE_URL_INTERNAL = os.getenv('DATABASE_URL')
 DATABASE_URL_PUBLIC = os.getenv('DATABASE_PUBLIC_URL')
 
-# <<< Usar a URL PÚBLICA como principal para evitar problemas de DNS interno >>>
-DB_URL_TO_USE = DATABASE_URL_PUBLIC # Prioriza a pública
+DATABASES = {} # Iniciar vazio
 
-if DB_URL_TO_USE:
-    # Adiciona um log para sabermos qual URL está sendo usada
-    print(f"INFO: Configurando banco de dados usando URL PÚBLICA.")
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=DB_URL_TO_USE, # <<< Usar a URL pública aqui
-            conn_max_age=600,
-            conn_health_checks=True,
-            # A conexão pública via proxy geralmente requer SSL
-            ssl_require=True
-        )
-    }
-elif DATABASE_URL_INTERNAL:
-     # Fallback para interna se a pública não existir (improvável no Railway)
-    print(f"INFO: Configurando banco de dados usando URL INTERNA (Pública não encontrada).")
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=DATABASE_URL_INTERNAL,
-            conn_max_age=600,
-            conn_health_checks=True,
-            # Para interna, respeita a variável de ambiente ou exige SSL por padrão
-            ssl_require=os.getenv('DB_SSL_REQUIRE', 'True') == 'True'
-        )
-    }
-else:
-    # Fallback para SQLite APENAS se nenhuma URL de banco de dados estiver definida
-    print("AVISO: Nenhuma URL de banco de dados (DATABASE_URL ou DATABASE_PUBLIC_URL) encontrada. Usando SQLite local (db.sqlite3).")
+if DATABASE_URL_PUBLIC:
+    print("INFO: Configurando banco de dados usando URL PÚBLICA (parse manual).")
+    try:
+        url = urlparse(DATABASE_URL_PUBLIC)
+        DATABASES['default'] = {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': url.path[1:], # Remove a barra inicial do path
+            'USER': url.username,
+            'PASSWORD': url.password,
+            'HOST': url.hostname,
+            'PORT': url.port,
+            'OPTIONS': {'sslmode': 'require'} # Forçar SSL para conexão pública
+        }
+    except Exception as e:
+        print(f"ERRO: Falha ao parsear DATABASE_PUBLIC_URL: {e}")
+        # Poderia levantar um erro aqui ou tentar fallback
+
+# Se o parse da pública falhou ou ela não existe, tenta a interna com dj_database_url
+if not DATABASES and DATABASE_URL_INTERNAL:
+    print(f"INFO: Configurando banco de dados usando URL INTERNA (Pública falhou ou não encontrada).")
+    try:
+        DATABASES = {
+            'default': dj_database_url.config(
+                default=DATABASE_URL_INTERNAL,
+                conn_max_age=600,
+                conn_health_checks=True,
+                ssl_require=os.getenv('DB_SSL_REQUIRE', 'True') == 'True'
+            )
+        }
+    except Exception as e:
+        print(f"ERRO: Falha ao configurar com DATABASE_URL interna via dj_database_url: {e}")
+
+# Fallback final para SQLite se tudo mais falhar
+if not DATABASES:
+    print("AVISO: Nenhuma URL de banco de dados válida encontrada. Usando SQLite local (db.sqlite3).")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
