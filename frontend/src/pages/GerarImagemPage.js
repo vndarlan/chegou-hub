@@ -305,12 +305,6 @@ function GerarImagemPage() {
         document.body.removeChild(link);
     };
 
-    const handleCopyPrompt = (promptToCopy) => {
-         navigator.clipboard.writeText(promptToCopy)
-             .then(() => console.log("Prompt copiado!")) // Idealmente mostrar uma notificação Mantine
-             .catch(err => console.error("Erro ao copiar prompt:", err));
-    };
-
     // --- Renderização ---
     return (
         <Box p="md" style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column' }}>
