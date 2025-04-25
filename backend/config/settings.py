@@ -123,21 +123,39 @@ ASGI_APPLICATION = 'config.asgi.application' # <<< ESSENCIAL para Uvicorn/Railwa
 
 # --- Configuração do Banco de Dados para PostgreSQL (Railway/Produção) ---
 # <<< MODIFICADO para usar dj_database_url e fallback para SQLite >>>
-DATABASE_URL = os.getenv('DATABASE_URL')
+DATABASE_URL_INTERNAL = os.getenv('DATABASE_URL')
+DATABASE_URL_PUBLIC = os.getenv('DATABASE_PUBLIC_URL')
 
-if DATABASE_URL:
-    print("INFO: Configurando banco de dados a partir de DATABASE_URL.")
+# <<< Usar a URL PÚBLICA como principal para evitar problemas de DNS interno >>>
+DB_URL_TO_USE = DATABASE_URL_PUBLIC # Prioriza a pública
+
+if DB_URL_TO_USE:
+    # Adiciona um log para sabermos qual URL está sendo usada
+    print(f"INFO: Configurando banco de dados usando URL PÚBLICA.")
     DATABASES = {
         'default': dj_database_url.config(
-            default=DATABASE_URL,
-            conn_max_age=600,        # Reutilização de conexões
-            conn_health_checks=True, # Verificação de saúde
-            ssl_require=os.getenv('DB_SSL_REQUIRE', 'True') == 'True' # Exige SSL por padrão, pode desabilitar com env var
+            default=DB_URL_TO_USE, # <<< Usar a URL pública aqui
+            conn_max_age=600,
+            conn_health_checks=True,
+            # A conexão pública via proxy geralmente requer SSL
+            ssl_require=True
+        )
+    }
+elif DATABASE_URL_INTERNAL:
+     # Fallback para interna se a pública não existir (improvável no Railway)
+    print(f"INFO: Configurando banco de dados usando URL INTERNA (Pública não encontrada).")
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL_INTERNAL,
+            conn_max_age=600,
+            conn_health_checks=True,
+            # Para interna, respeita a variável de ambiente ou exige SSL por padrão
+            ssl_require=os.getenv('DB_SSL_REQUIRE', 'True') == 'True'
         )
     }
 else:
-    # Fallback para SQLite APENAS se DATABASE_URL não estiver definida (desenvolvimento local)
-    print("AVISO: DATABASE_URL não encontrada no ambiente. Usando SQLite local (db.sqlite3).")
+    # Fallback para SQLite APENAS se nenhuma URL de banco de dados estiver definida
+    print("AVISO: Nenhuma URL de banco de dados (DATABASE_URL ou DATABASE_PUBLIC_URL) encontrada. Usando SQLite local (db.sqlite3).")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
