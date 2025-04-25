@@ -1,7 +1,7 @@
 // frontend/src/components/NavbarNested/NavbarNested.js
 import React from 'react'; // Importar React
 import { Group, ScrollArea, ActionIcon, Tooltip } from '@mantine/core';
-// Importa todos os ícones necessários
+// Importa todos os ícones necessários com substituições compatíveis
 import {
   IconAd,
   IconTools,
@@ -19,14 +19,14 @@ import {
   IconStar,
   IconPhoto,
   IconMessageCircle,
-  IconBrandJira,
+  IconBug,
   IconRocket,
-  IconMessageChatbot,
+  IconMessages,
   IconEye,
   IconShoppingCart,
   IconPackage,
-  IconBrandShopee,
-  IconBrandTiktok
+  IconShoppingBag,
+  IconBrandTwitter
 } from '@tabler/icons-react';
 // Importa componentes filhos
 import { LinksGroup } from './LinksGroup';
@@ -36,7 +36,7 @@ import { Logo } from './Logo';
 import classes from './NavbarNested.module.css';
 
 // --- NOVA ESTRUTURA DA NAVBAR ---
-// Atualizada conforme solicitado pelo usuário
+// Atualizada conforme solicitado pelo usuário com ícones compatíveis
 const areasDataLocal = [
   { label: 'Home', icon: IconHome, link: '/workspace' },
   { label: 'Agenda', icon: IconCalendar, link: '/workspace/agenda' },
@@ -59,9 +59,9 @@ const areasDataLocal = [
   },
   {
     label: 'Métricas do Negócio', icon: IconChartInfographic, links: [
-      { label: 'Jira', icon: IconBrandJira, link: '/workspace/business/jira' },
+      { label: 'Jira', icon: IconBug, link: '/workspace/business/jira' },
       { label: 'Projetos IA', icon: IconRocket, link: '/workspace/business/projetos-ia' },
-      { label: 'Nicochat', icon: IconMessageChatbot, link: '/workspace/business/nicochat' },
+      { label: 'Nicochat', icon: IconMessages, link: '/workspace/business/nicochat' },
     ],
   },
   {
@@ -69,7 +69,7 @@ const areasDataLocal = [
       { label: 'Visão Geral', icon: IconEye, link: '/workspace/fornecedores/visao-geral' },
       { label: 'Dropi', icon: IconShoppingCart, link: '/workspace/fornecedores/dropi' },
       { label: 'Prime COD', icon: IconPackage, link: '/workspace/fornecedores/prime-cod' },
-      { label: 'Shopify', icon: IconBrandShopee, link: '/workspace/fornecedores/shopify' },
+      { label: 'Shopify', icon: IconShoppingBag, link: '/workspace/fornecedores/shopify' },
     ],
   },
   {
@@ -77,36 +77,34 @@ const areasDataLocal = [
       { label: 'Visão Geral', icon: IconEye, link: '/workspace/anuncios/visao-geral' },
       { label: 'Facebook', icon: IconBrandFacebook, link: '/workspace/anuncios/facebook' },
       { label: 'Google', icon: IconBrandGoogle, link: '/workspace/anuncios/google' },
-      { label: 'Tiktok', icon: IconBrandTiktok, link: '/workspace/anuncios/tiktok' },
+      { label: 'Tiktok', icon: IconBrandTwitter, link: '/workspace/anuncios/tiktok' },
     ],
   },
 ];
 
-// Componente NavbarNested
-// Recebe props de WorkspacePage, incluindo 'areasData' (opcionalmente)
+// O resto do código permanece o mesmo
 export function NavbarNested({
-    activePage,          // Label da página ativa (para destaque visual)
-    setActivePage,       // Função para definir label ativa (menos usada agora)
-    userName,            // Nome do usuário logado
-    userEmail,           // Email do usuário logado
-    onLogout,            // Função de logout
-    collapsed,           // Estado de colapso (true/false)
-    setCollapsed,        // Função para alterar estado de colapso
-    areasData: areasDataFromProps // Dados da navbar vindos via props (opcional)
+    activePage,
+    setActivePage,
+    userName,
+    userEmail,
+    onLogout,
+    collapsed,
+    setCollapsed,
+    areasData: areasDataFromProps
 }) {
-
     // Decide quais dados usar: os passados via props ou os locais
     const dataToUse = areasDataFromProps || areasDataLocal;
 
     // Mapeia os dados para componentes LinksGroup
     const links = dataToUse.map((item) => (
         <LinksGroup
-            {...item} // Passa label, icon, links (array), etc.
+            {...item}
             key={item.label}
-            activePage={activePage}     // Passa label ativa para possível destaque interno
-            setActivePage={setActivePage} // Passa função
-            collapsed={collapsed}      // Passa estado de colapso
-            link={item.link}           // Passa o link direto, se houver
+            activePage={activePage}
+            setActivePage={setActivePage}
+            collapsed={collapsed}
+            link={item.link}
         />
     ));
 
@@ -121,7 +119,7 @@ export function NavbarNested({
                     {/* Botão de Colapsar/Expandir */}
                     <Tooltip label={collapsed ? "Expandir" : "Recolher"} position="right" withArrow>
                         <ActionIcon
-                            onClick={() => setCollapsed((c) => !c)} // Alterna o estado
+                            onClick={() => setCollapsed((c) => !c)}
                             variant="default"
                             size="lg"
                             className={classes.collapseToggle}

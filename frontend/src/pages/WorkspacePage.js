@@ -19,14 +19,15 @@ import {
   IconStar,
   IconPhoto,
   IconMessageCircle,
-  IconBrandJira,
+  // Substituições para ícones incompatíveis
+  IconBug, // Em vez de IconBrandJira
   IconRocket,
-  IconMessageChatbot,
+  IconMessages, // Em vez de IconMessageChatbot
   IconEye,
   IconShoppingCart,
   IconPackage,
-  IconBrandShopee,
-  IconBrandTiktok
+  IconShoppingBag, // Em vez de IconBrandShopee
+  IconBrandTwitter // Em vez de IconBrandTiktok
 } from '@tabler/icons-react';
 
 // --- Importar as páginas reais ---
@@ -42,7 +43,7 @@ const PlaceholderPage = ({ pageTitle }) => (
     </Box>
 );
 
-// --- Dados da Navbar atualizados ---
+// --- Dados da Navbar atualizados com ícones compatíveis ---
 const areasData = [
   { label: 'Home', icon: IconHome, link: '/workspace' },
   { label: 'Agenda', icon: IconCalendar, link: '/workspace/agenda' },
@@ -65,9 +66,9 @@ const areasData = [
   },
   {
     label: 'Métricas do Negócio', icon: IconChartInfographic, links: [
-      { label: 'Jira', icon: IconBrandJira, link: '/workspace/business/jira' },
+      { label: 'Jira', icon: IconBug, link: '/workspace/business/jira' }, // Substituído IconBrandJira
       { label: 'Projetos IA', icon: IconRocket, link: '/workspace/business/projetos-ia' },
-      { label: 'Nicochat', icon: IconMessageChatbot, link: '/workspace/business/nicochat' },
+      { label: 'Nicochat', icon: IconMessages, link: '/workspace/business/nicochat' }, // Substituído IconMessageChatbot
     ]
   },
   {
@@ -75,7 +76,7 @@ const areasData = [
       { label: 'Visão Geral', icon: IconEye, link: '/workspace/fornecedores/visao-geral' },
       { label: 'Dropi', icon: IconShoppingCart, link: '/workspace/fornecedores/dropi' },
       { label: 'Prime COD', icon: IconPackage, link: '/workspace/fornecedores/prime-cod' },
-      { label: 'Shopify', icon: IconBrandShopee, link: '/workspace/fornecedores/shopify' },
+      { label: 'Shopify', icon: IconShoppingBag, link: '/workspace/fornecedores/shopify' }, // Substituído IconBrandShopee
     ]
   },
   {
@@ -83,7 +84,7 @@ const areasData = [
       { label: 'Visão Geral', icon: IconEye, link: '/workspace/anuncios/visao-geral' },
       { label: 'Facebook', icon: IconBrandFacebook, link: '/workspace/anuncios/facebook' },
       { label: 'Google', icon: IconBrandGoogle, link: '/workspace/anuncios/google' },
-      { label: 'Tiktok', icon: IconBrandTiktok, link: '/workspace/anuncios/tiktok' },
+      { label: 'Tiktok', icon: IconBrandTwitter, link: '/workspace/anuncios/tiktok' }, // Substituído IconBrandTiktok
     ]
   },
 ];
