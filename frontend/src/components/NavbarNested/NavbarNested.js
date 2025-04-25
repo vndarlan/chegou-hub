@@ -1,7 +1,7 @@
 // frontend/src/components/NavbarNested/NavbarNested.js
-import React from 'react'; // Importar React
-import { Group, ScrollArea, ActionIcon, Tooltip } from '@mantine/core';
-// Importa todos os ícones necessários com substituições compatíveis
+import React from 'react';
+import { Group, ScrollArea, ActionIcon, Tooltip, Text, Divider, Box } from '@mantine/core';
+// Importa todos os ícones necessários
 import {
   IconAd,
   IconTools,
@@ -26,7 +26,8 @@ import {
   IconShoppingCart,
   IconPackage,
   IconShoppingBag,
-  IconBrandTwitter
+  // Usando o BrandTikTok (com T maiúsculo) que é mais provável estar disponível
+  IconBrandTiktok
 } from '@tabler/icons-react';
 // Importa componentes filhos
 import { LinksGroup } from './LinksGroup';
@@ -36,7 +37,6 @@ import { Logo } from './Logo';
 import classes from './NavbarNested.module.css';
 
 // --- NOVA ESTRUTURA DA NAVBAR ---
-// Atualizada conforme solicitado pelo usuário com ícones compatíveis
 const areasDataLocal = [
   { label: 'Home', icon: IconHome, link: '/workspace' },
   { label: 'Agenda', icon: IconCalendar, link: '/workspace/agenda' },
@@ -77,12 +77,11 @@ const areasDataLocal = [
       { label: 'Visão Geral', icon: IconEye, link: '/workspace/anuncios/visao-geral' },
       { label: 'Facebook', icon: IconBrandFacebook, link: '/workspace/anuncios/facebook' },
       { label: 'Google', icon: IconBrandGoogle, link: '/workspace/anuncios/google' },
-      { label: 'Tiktok', icon: IconBrandTwitter, link: '/workspace/anuncios/tiktok' },
+      { label: 'Tiktok', icon: IconBrandTiktok, link: '/workspace/anuncios/tiktok' }, // Corrigido para TikTok
     ],
   },
 ];
 
-// O resto do código permanece o mesmo
 export function NavbarNested({
     activePage,
     setActivePage,
@@ -111,11 +110,22 @@ export function NavbarNested({
     // Renderiza a estrutura da Navbar
     return (
         <nav className={`${classes.navbar} ${collapsed ? classes.navbarCollapsed : ''}`}>
-            {/* Cabeçalho: Logo e botão de colapsar */}
+            {/* Cabeçalho: Logo, Título, Versão e botão de colapsar */}
             <div className={classes.header}>
-                <Group justify="space-between" align="center" wrap='nowrap'>
-                    {/* Só mostra o logo se não estiver colapsado */}
-                    {!collapsed && <Logo style={{ flexShrink: 0 }} />}
+                <Group justify="space-between" align="center" wrap='nowrap' mb="xs">
+                    <Group>
+                        {/* Logo sempre visível */}
+                        <Logo style={{ flexShrink: 0, width: collapsed ? 30 : 40 }} />
+                        
+                        {/* Título e versão - apenas visível quando não estiver colapsado */}
+                        {!collapsed && (
+                            <div className={classes.titleContainer}>
+                                <Text fw={700} size="lg">Chegou Hub</Text>
+                                <Text size="xs" c="dimmed">v1.0.0</Text>
+                            </div>
+                        )}
+                    </Group>
+                    
                     {/* Botão de Colapsar/Expandir */}
                     <Tooltip label={collapsed ? "Expandir" : "Recolher"} position="right" withArrow>
                         <ActionIcon
@@ -130,6 +140,9 @@ export function NavbarNested({
                         </ActionIcon>
                     </Tooltip>
                 </Group>
+                
+                {/* Linha divisória após o cabeçalho */}
+                <Divider mb="sm" />
             </div>
 
             {/* Área de Links com Scroll */}

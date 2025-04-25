@@ -27,7 +27,7 @@ import {
   IconShoppingCart,
   IconPackage,
   IconShoppingBag, // Em vez de IconBrandShopee
-  IconBrandTwitter // Em vez de IconBrandTiktok
+  IconBrandTiktok
 } from '@tabler/icons-react';
 
 // --- Importar as páginas reais ---
@@ -84,7 +84,7 @@ const areasData = [
       { label: 'Visão Geral', icon: IconEye, link: '/workspace/anuncios/visao-geral' },
       { label: 'Facebook', icon: IconBrandFacebook, link: '/workspace/anuncios/facebook' },
       { label: 'Google', icon: IconBrandGoogle, link: '/workspace/anuncios/google' },
-      { label: 'Tiktok', icon: IconBrandTwitter, link: '/workspace/anuncios/tiktok' }, // Substituído IconBrandTiktok
+      { label: 'Tiktok', icon: IconBrandTiktok, link: '/workspace/anuncios/tiktok' }, // Substituído IconBrandTiktok
     ]
   },
 ];

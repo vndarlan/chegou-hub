@@ -1,60 +1,79 @@
 /* frontend/src/components/NavbarNested/NavbarNested.module.css */
 .navbar {
-    height: 100vh; /* Altura total */
-    width: rem(260px); /* Largura padrão */
-    padding: var(--mantine-spacing-md);
-    display: flex;
-    flex-direction: column;
-    border-right: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
-    background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
-    transition: width 0.2s ease-in-out; /* Transição para colapso */
+  width: 260px; /* Largura fixa no modo expandido */
+  height: 100%;
+  padding: var(--mantine-spacing-md);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  transition: width 0.3s ease;
+}
+
+.navbarCollapsed {
+  width: 70px; /* Largura fixa no modo colapsado */
+  padding: var(--mantine-spacing-md) var(--mantine-spacing-xs);
+}
+
+.header {
+  padding-bottom: var(--mantine-spacing-md);
+  margin-bottom: var(--mantine-spacing-md);
+}
+
+.titleContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.links {
+  flex: 1;
+  margin-left: calc(var(--mantine-spacing-md) * -1);
+  margin-right: calc(var(--mantine-spacing-md) * -1);
+}
+
+.linksInner {
+  padding-top: var(--mantine-spacing-xs);
+  padding-bottom: var(--mantine-spacing-xs);
+}
+
+.footer {
+  margin-top: auto;
+  padding-top: var(--mantine-spacing-md);
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  font-size: var(--mantine-font-size-sm);
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+  border-radius: var(--mantine-radius-sm);
+  font-weight: 500;
+}
+
+.link:hover {
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+  color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+}
+
+.linkIcon {
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  margin-right: var(--mantine-spacing-sm);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.linkActive {
+  &, &:hover {
+    background-color: var(--mantine-color-orange-light);
+    color: var(--mantine-color-orange-filled);
+    font-weight: 500;
   }
-  
-  .navbarCollapsed {
-    width: rem(80px); /* Largura quando colapsado */
-    padding-left: calc(var(--mantine-spacing-md) / 2);
-    padding-right: calc(var(--mantine-spacing-md) / 2);
-  }
-  
-  
-  .header {
-    padding-bottom: var(--mantine-spacing-md);
-    margin-bottom: calc(var(--mantine-spacing-md) * 1.5);
-    border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
-    /* Esconder logo e versão quando colapsado */
-    .navbarCollapsed & .mantine-Group-root {
-      display: none; /* Esconde o Group(Logo+Code) */
-    }
-    .navbarCollapsed & .collapseToggle {
-       margin-left: auto; /* Move botão de toggle para direita */
-       margin-right: auto;
-    }
-  }
-  
-  .links {
-    flex: 1;
-    overflow-y: auto; /* Permitir scroll se muitos itens */
-  }
-  
-  .linksInner {
-    padding-top: var(--mantine-spacing-xl);
-    padding-bottom: var(--mantine-spacing-xl);
-    /* Esconder texto dos links quando colapsado - LinksGroup cuidará disso */
-  }
-  
-  .footer {
-    padding-top: var(--mantine-spacing-md);
-    margin-top: var(--mantine-spacing-md);
-    border-top: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
-    /* UserButton cuidará do seu próprio colapso */
-  }
-  
-  .collapseToggle {
-    /* Estilo para o botão de colapsar */
-    color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-1));
-    margin-left: auto; /* Empurra para a direita por padrão */
-  
-    &:hover {
-       background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
-    }
-  }
+}
+
+.collapseToggle {
+  border-radius: var(--mantine-radius-sm);
+}

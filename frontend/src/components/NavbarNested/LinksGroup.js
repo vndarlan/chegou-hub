@@ -75,19 +75,17 @@ export function LinksGroup({ icon: Icon, label, initiallyOpened, links, activePa
           <div 
             onMouseEnter={() => setPopoverOpened(true)}
             onMouseLeave={() => setPopoverOpened(false)}
+            className={classes.popoverWrapper}
           >
             <UnstyledButton
               onClick={handleControlClick}
               className={`${classes.control} ${classes.controlCollapsed} ${isActive ? classes.controlActive : ''}`}
             >
-              <Group justify="space-between" gap={0} wrap="nowrap">
-                <Box style={{ display: 'flex', alignItems: 'center' }}>
-                  <ThemeIcon variant="light" size={30} color="orange">
-                    <Icon style={{ width: rem(18), height: rem(18) }} color='var(--mantine-color-orange-filled)'/>
-                  </ThemeIcon>
-                  <Box ml="md" className={classes.labelCollapsed}>{label}</Box>
-                </Box>
-              </Group>
+              <Box className={classes.iconContainer}>
+                <ThemeIcon variant="light" size={30} color="orange">
+                  <Icon style={{ width: rem(18), height: rem(18) }} color='var(--mantine-color-orange-filled)'/>
+                </ThemeIcon>
+              </Box>
             </UnstyledButton>
           </div>
         </Popover.Target>

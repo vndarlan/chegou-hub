@@ -60,8 +60,25 @@
 }
 
 .controlCollapsed {
-  padding-left: 0;
-  padding-right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--mantine-spacing-xs);
+}
+
+/* Centralizando o ícone no modo colapsado */
+.iconContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+/* Container para o Popover */
+.popoverWrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 /* Estilos para o Popover */
