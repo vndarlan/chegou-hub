@@ -4,12 +4,35 @@ import axios from 'axios';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { NavbarNested } from '../components/NavbarNested/NavbarNested';
 import { Box, LoadingOverlay, Text, Title } from '@mantine/core';
-import { IconAd, IconTools, IconChartInfographic, IconReceipt2, IconMap, IconCalendar } from '@tabler/icons-react';
+import {
+  IconHome,
+  IconAd,
+  IconTools,
+  IconChartInfographic,
+  IconTruck,
+  IconChartBar,
+  IconMap,
+  IconCalendar,
+  IconBrandFacebook,
+  IconBrandGoogle,
+  IconRobot,
+  IconStar,
+  IconPhoto,
+  IconMessageCircle,
+  IconBrandJira,
+  IconRocket,
+  IconMessageChatbot,
+  IconEye,
+  IconShoppingCart,
+  IconPackage,
+  IconBrandShopee,
+  IconBrandTiktok
+} from '@tabler/icons-react';
 
 // --- Importar as páginas reais ---
 import MapaPage from './MapaPage';
 import AgendaPage from './AgendaPage';
-import GerarImagemPage from './GerarImagemPage'; // <<< Import da nova página
+import GerarImagemPage from './GerarImagemPage'; // Import da página existente
 
 // Componente Placeholder
 const PlaceholderPage = ({ pageTitle }) => (
@@ -19,43 +42,50 @@ const PlaceholderPage = ({ pageTitle }) => (
     </Box>
 );
 
-// --- Dados da Navbar ---
+// --- Dados da Navbar atualizados ---
 const areasData = [
-    { label: 'Agenda', icon: IconCalendar, link: '/workspace/agenda' },
-    { label: 'Mapa', icon: IconMap, link: '/workspace/mapa' },
-    {
-        label: 'ADS', icon: IconAd, links: [
-            { label: 'Visão Geral', link: '/workspace/ads/overview' },
-            { label: 'Campanhas', link: '/workspace/ads/campaigns' },
-            { label: 'Criar Anúncio', link: '/workspace/ads/create' },
-            { label: 'Relatórios ADS', link: '/workspace/ads/reports' },
-        ]
-    },
-    {
-        label: 'Operacional', icon: IconTools, links: [
-            { label: 'Ferramenta X', link: '/workspace/ops/tool-x' },
-            { label: 'Entrada de Dados', link: '/workspace/ops/data-entry' },
-            { label: 'Processos Y', link: '/workspace/ops/process-y' },
-            { label: 'Automações', link: '/workspace/ops/automations' },
-            // --- Link para a nova página ---
-            { label: 'Gerar Imagem', link: '/workspace/operacional/gerar-imagem' },
-            // --- Fim do link ---
-        ]
-    },
-    {
-        label: 'Métricas do Negócio', icon: IconChartInfographic, links: [
-           { label: 'KPIs Principais', link: '/workspace/business/kpis' },
-           { label: 'Visão Financeira', link: '/workspace/business/financial' },
-           { label: 'Desempenho Setores', link: '/workspace/business/sectors' },
-        ]
-    },
-    {
-        label: 'Métricas de Vendas', icon: IconReceipt2, links: [
-            { label: 'Vendas por Período', link: '/workspace/sales/period' },
-            { label: 'Performance Vendedores', link: '/workspace/sales/sellers' },
-            { label: 'Funil de Vendas', link: '/workspace/sales/funnel' },
-        ]
-    },
+  { label: 'Home', icon: IconHome, link: '/workspace' },
+  { label: 'Agenda', icon: IconCalendar, link: '/workspace/agenda' },
+  { label: 'Mapa', icon: IconMap, link: '/workspace/mapa' },
+  {
+    label: 'ADS', icon: IconAd, links: [
+      { label: 'Gerenciador Facebook', icon: IconBrandFacebook, link: '/workspace/ads/gerenciador-facebook' },
+      { label: 'Subir Campanhas Facebook', icon: IconBrandFacebook, link: '/workspace/ads/campanhas-facebook' },
+      { label: 'Gerenciador Google', icon: IconBrandGoogle, link: '/workspace/ads/gerenciador-google' },
+      { label: 'Subir Campanhas Google', icon: IconBrandGoogle, link: '/workspace/ads/campanhas-google' },
+    ]
+  },
+  {
+    label: 'Operacional', icon: IconTools, links: [
+      { label: 'Moderação Automática', icon: IconRobot, link: '/workspace/operacional/moderacao-automatica' },
+      { label: 'Novelties', icon: IconStar, link: '/workspace/operacional/novelties' },
+      { label: 'Gerar Imagem', icon: IconPhoto, link: '/workspace/operacional/gerar-imagem' },
+      { label: 'Engajamento', icon: IconMessageCircle, link: '/workspace/operacional/engajamento' },
+    ]
+  },
+  {
+    label: 'Métricas do Negócio', icon: IconChartInfographic, links: [
+      { label: 'Jira', icon: IconBrandJira, link: '/workspace/business/jira' },
+      { label: 'Projetos IA', icon: IconRocket, link: '/workspace/business/projetos-ia' },
+      { label: 'Nicochat', icon: IconMessageChatbot, link: '/workspace/business/nicochat' },
+    ]
+  },
+  {
+    label: 'Métricas de Fornecedores', icon: IconTruck, links: [
+      { label: 'Visão Geral', icon: IconEye, link: '/workspace/fornecedores/visao-geral' },
+      { label: 'Dropi', icon: IconShoppingCart, link: '/workspace/fornecedores/dropi' },
+      { label: 'Prime COD', icon: IconPackage, link: '/workspace/fornecedores/prime-cod' },
+      { label: 'Shopify', icon: IconBrandShopee, link: '/workspace/fornecedores/shopify' },
+    ]
+  },
+  {
+    label: 'Métricas de Anúncios', icon: IconChartBar, links: [
+      { label: 'Visão Geral', icon: IconEye, link: '/workspace/anuncios/visao-geral' },
+      { label: 'Facebook', icon: IconBrandFacebook, link: '/workspace/anuncios/facebook' },
+      { label: 'Google', icon: IconBrandGoogle, link: '/workspace/anuncios/google' },
+      { label: 'Tiktok', icon: IconBrandTiktok, link: '/workspace/anuncios/tiktok' },
+    ]
+  },
 ];
 
 // Função para extrair a label ativa (pode precisar de ajustes finos)
@@ -69,7 +99,7 @@ const getActivePageLabelFromPathname = (pathname) => {
             }
         }
     }
-    if (normalizedPathname === '/workspace') return null;
+    if (normalizedPathname === '/workspace') return 'Home';
     const parts = normalizedPathname.split('/').filter(p => p);
     if (parts.length > 1) {
         const lastPart = parts[parts.length - 1];
@@ -77,7 +107,6 @@ const getActivePageLabelFromPathname = (pathname) => {
     }
     return null;
 };
-
 
 function WorkspacePage({ setIsLoggedIn }) {
     const location = useLocation();
@@ -165,25 +194,34 @@ function WorkspacePage({ setIsLoggedIn }) {
                     <Route path="agenda" element={<AgendaPage />} />
                     <Route path="mapa" element={<MapaPage />} />
 
-                    {/* Rotas Placeholder (ADS, Operacional, etc.) */}
-                    <Route path="ads/overview" element={<PlaceholderPage pageTitle="ADS - Visão Geral" />} />
-                    <Route path="ads/campaigns" element={<PlaceholderPage pageTitle="ADS - Campanhas" />} />
-                    <Route path="ads/create" element={<PlaceholderPage pageTitle="ADS - Criar Anúncio" />} />
-                    <Route path="ads/reports" element={<PlaceholderPage pageTitle="ADS - Relatórios" />} />
-                    <Route path="ops/tool-x" element={<PlaceholderPage pageTitle="Operacional - Ferramenta X" />} />
-                    <Route path="ops/data-entry" element={<PlaceholderPage pageTitle="Operacional - Entrada de Dados" />} />
-                    <Route path="ops/process-y" element={<PlaceholderPage pageTitle="Operacional - Processos Y" />} />
-                    <Route path="ops/automations" element={<PlaceholderPage pageTitle="Operacional - Automações" />} />
-                    <Route path="business/kpis" element={<PlaceholderPage pageTitle="Métricas Negócio - KPIs" />} />
-                    <Route path="business/financial" element={<PlaceholderPage pageTitle="Métricas Negócio - Financeiro" />} />
-                    <Route path="business/sectors" element={<PlaceholderPage pageTitle="Métricas Negócio - Setores" />} />
-                    <Route path="sales/period" element={<PlaceholderPage pageTitle="Métricas Vendas - Período" />} />
-                    <Route path="sales/sellers" element={<PlaceholderPage pageTitle="Métricas Vendas - Vendedores" />} />
-                    <Route path="sales/funnel" element={<PlaceholderPage pageTitle="Métricas Vendas - Funil" />} />
+                    {/* ADS */}
+                    <Route path="ads/gerenciador-facebook" element={<PlaceholderPage pageTitle="ADS - Gerenciador Facebook" />} />
+                    <Route path="ads/campanhas-facebook" element={<PlaceholderPage pageTitle="ADS - Subir Campanhas Facebook" />} />
+                    <Route path="ads/gerenciador-google" element={<PlaceholderPage pageTitle="ADS - Gerenciador Google" />} />
+                    <Route path="ads/campanhas-google" element={<PlaceholderPage pageTitle="ADS - Subir Campanhas Google" />} />
 
-                    {/* --- Rota para a nova página --- */}
+                    {/* Operacional */}
+                    <Route path="operacional/moderacao-automatica" element={<PlaceholderPage pageTitle="Operacional - Moderação Automática" />} />
+                    <Route path="operacional/novelties" element={<PlaceholderPage pageTitle="Operacional - Novelties" />} />
                     <Route path="operacional/gerar-imagem" element={<GerarImagemPage />} />
-                    {/* --- Fim da rota --- */}
+                    <Route path="operacional/engajamento" element={<PlaceholderPage pageTitle="Operacional - Engajamento" />} />
+
+                    {/* Métricas do Negócio */}
+                    <Route path="business/jira" element={<PlaceholderPage pageTitle="Métricas do Negócio - Jira" />} />
+                    <Route path="business/projetos-ia" element={<PlaceholderPage pageTitle="Métricas do Negócio - Projetos IA" />} />
+                    <Route path="business/nicochat" element={<PlaceholderPage pageTitle="Métricas do Negócio - Nicochat" />} />
+
+                    {/* Métricas de Fornecedores */}
+                    <Route path="fornecedores/visao-geral" element={<PlaceholderPage pageTitle="Métricas de Fornecedores - Visão Geral" />} />
+                    <Route path="fornecedores/dropi" element={<PlaceholderPage pageTitle="Métricas de Fornecedores - Dropi" />} />
+                    <Route path="fornecedores/prime-cod" element={<PlaceholderPage pageTitle="Métricas de Fornecedores - Prime COD" />} />
+                    <Route path="fornecedores/shopify" element={<PlaceholderPage pageTitle="Métricas de Fornecedores - Shopify" />} />
+
+                    {/* Métricas de Anúncios */}
+                    <Route path="anuncios/visao-geral" element={<PlaceholderPage pageTitle="Métricas de Anúncios - Visão Geral" />} />
+                    <Route path="anuncios/facebook" element={<PlaceholderPage pageTitle="Métricas de Anúncios - Facebook" />} />
+                    <Route path="anuncios/google" element={<PlaceholderPage pageTitle="Métricas de Anúncios - Google" />} />
+                    <Route path="anuncios/tiktok" element={<PlaceholderPage pageTitle="Métricas de Anúncios - TikTok" />} />
 
                     {/* Rota Catch-all */}
                     <Route path="*" element={<Navigate to="/workspace" replace />} />

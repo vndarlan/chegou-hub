@@ -6,11 +6,27 @@ import {
   IconAd,
   IconTools,
   IconChartInfographic,
-  IconReceipt2,
+  IconTruck,
+  IconChartBar,
   IconMap,
-  IconCalendar, // Ícone da Agenda
+  IconCalendar,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarRightCollapse,
+  IconHome,
+  IconBrandFacebook,
+  IconBrandGoogle,
+  IconRobot,
+  IconStar,
+  IconPhoto,
+  IconMessageCircle,
+  IconBrandJira,
+  IconRocket,
+  IconMessageChatbot,
+  IconEye,
+  IconShoppingCart,
+  IconPackage,
+  IconBrandShopee,
+  IconBrandTiktok
 } from '@tabler/icons-react';
 // Importa componentes filhos
 import { LinksGroup } from './LinksGroup';
@@ -19,41 +35,49 @@ import { Logo } from './Logo';
 // Importa CSS Module
 import classes from './NavbarNested.module.css';
 
-// --- DADOS LOCAIS DA NAVBAR ---
-// Esta é uma cópia dos dados, usada como fallback se não vier via props.
-// A ordem aqui define a ordem de exibição na barra lateral.
+// --- NOVA ESTRUTURA DA NAVBAR ---
+// Atualizada conforme solicitado pelo usuário
 const areasDataLocal = [
-  // Ordem ajustada: Agenda primeiro, depois Mapa
+  { label: 'Home', icon: IconHome, link: '/workspace' },
   { label: 'Agenda', icon: IconCalendar, link: '/workspace/agenda' },
   { label: 'Mapa', icon: IconMap, link: '/workspace/mapa' },
   {
     label: 'ADS', icon: IconAd, links: [
-      { label: 'Visão Geral', link: '/workspace/ads/overview' },
-      { label: 'Campanhas', link: '/workspace/ads/campaigns' },
-      { label: 'Criar Anúncio', link: '/workspace/ads/create' },
-      { label: 'Relatórios ADS', link: '/workspace/ads/reports' },
+      { label: 'Gerenciador Facebook', icon: IconBrandFacebook, link: '/workspace/ads/gerenciador-facebook' },
+      { label: 'Subir Campanhas Facebook', icon: IconBrandFacebook, link: '/workspace/ads/campanhas-facebook' },
+      { label: 'Gerenciador Google', icon: IconBrandGoogle, link: '/workspace/ads/gerenciador-google' },
+      { label: 'Subir Campanhas Google', icon: IconBrandGoogle, link: '/workspace/ads/campanhas-google' },
     ],
   },
   {
     label: 'Operacional', icon: IconTools, links: [
-      { label: 'Ferramenta X', link: '/workspace/ops/tool-x' },
-      { label: 'Entrada de Dados', link: '/workspace/ops/data-entry' },
-      { label: 'Processos Y', link: '/workspace/ops/process-y' },
-      { label: 'Automações', link: '/workspace/ops/automations' },
-    ],
-  },
-   {
-    label: 'Métricas do Negócio', icon: IconChartInfographic, links: [
-      { label: 'KPIs Principais', link: '/workspace/business/kpis' },
-      { label: 'Visão Financeira', link: '/workspace/business/financial' },
-      { label: 'Desempenho Setores', link: '/workspace/business/sectors' },
+      { label: 'Moderação Automática', icon: IconRobot, link: '/workspace/operacional/moderacao-automatica' },
+      { label: 'Novelties', icon: IconStar, link: '/workspace/operacional/novelties' },
+      { label: 'Gerar Imagem', icon: IconPhoto, link: '/workspace/operacional/gerar-imagem' },
+      { label: 'Engajamento', icon: IconMessageCircle, link: '/workspace/operacional/engajamento' },
     ],
   },
   {
-    label: 'Métricas de Vendas', icon: IconReceipt2, links: [
-      { label: 'Vendas por Período', link: '/workspace/sales/period' },
-      { label: 'Performance Vendedores', link: '/workspace/sales/sellers' },
-      { label: 'Funil de Vendas', link: '/workspace/sales/funnel' },
+    label: 'Métricas do Negócio', icon: IconChartInfographic, links: [
+      { label: 'Jira', icon: IconBrandJira, link: '/workspace/business/jira' },
+      { label: 'Projetos IA', icon: IconRocket, link: '/workspace/business/projetos-ia' },
+      { label: 'Nicochat', icon: IconMessageChatbot, link: '/workspace/business/nicochat' },
+    ],
+  },
+  {
+    label: 'Métricas de Fornecedores', icon: IconTruck, links: [
+      { label: 'Visão Geral', icon: IconEye, link: '/workspace/fornecedores/visao-geral' },
+      { label: 'Dropi', icon: IconShoppingCart, link: '/workspace/fornecedores/dropi' },
+      { label: 'Prime COD', icon: IconPackage, link: '/workspace/fornecedores/prime-cod' },
+      { label: 'Shopify', icon: IconBrandShopee, link: '/workspace/fornecedores/shopify' },
+    ],
+  },
+  {
+    label: 'Métricas de Anúncios', icon: IconChartBar, links: [
+      { label: 'Visão Geral', icon: IconEye, link: '/workspace/anuncios/visao-geral' },
+      { label: 'Facebook', icon: IconBrandFacebook, link: '/workspace/anuncios/facebook' },
+      { label: 'Google', icon: IconBrandGoogle, link: '/workspace/anuncios/google' },
+      { label: 'Tiktok', icon: IconBrandTiktok, link: '/workspace/anuncios/tiktok' },
     ],
   },
 ];
