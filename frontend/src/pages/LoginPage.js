@@ -1,6 +1,5 @@
 // src/pages/LoginPage.js
 import React, { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 // --- Componentes Mantine ---
@@ -48,7 +47,6 @@ function LoginPage({ setIsLoggedIn }) {
     const [timeSelecionado, setTimeSelecionado] = useState(null);
     const [notification, setNotification] = useState(null);
     const [loading, setLoading] = useState(false);
-    const navigate = useNavigate();
 
     // --- Funções das Partículas ---
     const particlesInit = useCallback(async (engine) => {

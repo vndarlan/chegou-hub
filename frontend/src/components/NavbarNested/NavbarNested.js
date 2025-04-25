@@ -1,6 +1,6 @@
 // frontend/src/components/NavbarNested/NavbarNested.js
 import React from 'react'; // Importar React
-import { Group, Code, ScrollArea, ActionIcon, Tooltip } from '@mantine/core';
+import { Group, ScrollArea, ActionIcon, Tooltip } from '@mantine/core';
 // Importa todos os ícones necessários
 import {
   IconAd,
