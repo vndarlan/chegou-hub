@@ -15,6 +15,13 @@ axios.defaults.xsrfHeaderName = 'X-CSRFToken';
 axios.defaults.withCredentials = true; // Enviar cookies em todas as requisições
 // --- Fim da Configuração Axios ---
 
+// Adicione um interceptor para examinar requests
+axios.interceptors.request.use(request => {
+  console.log('Request enviada:', request.url);
+  console.log('Headers:', request.headers);
+  return request;
+});
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>

@@ -149,12 +149,16 @@ function LoginPage({ setIsLoggedIn }) {
         setLoading(true);
     
         if (mode === 'login') {
-            // --- Lógica de LOGIN ---
             try {
-                console.log("Tentando login com:", {email, password: "***"});
+                // Primeiro, obter um token CSRF válido
+                await axios.get('/current-state/');
+                
+                // Depois fazer o login
                 const response = await axios.post('/login/', {
                     email: email, password: password
-                }, { withCredentials: true });
+                }, { 
+                    withCredentials: true
+                });
     
                 if (response.status === 200) {
                     console.log("Login bem-sucedido!", response.data);
