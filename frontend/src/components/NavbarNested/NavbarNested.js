@@ -131,15 +131,17 @@ export function NavbarNested({
                     </Tooltip>
                 </Group>
             </div>
-
+    
             {/* Área de Links com Scroll */}
             <ScrollArea className={classes.links} component="nav" role="navigation" aria-label="Navegação principal">
                 {/* Renderiza os componentes LinksGroup gerados */}
                 <div className={classes.linksInner}>{links}</div>
             </ScrollArea>
-
+    
             {/* Rodapé: Informações do Usuário */}
             <div className={classes.footer}>
+                {/* Linha divisória antes do UserButton */}
+                <div className={classes.footerDivider}></div>
                 <UserButton
                     userName={userName || "Carregando..."}
                     userEmail={userEmail || ""}
