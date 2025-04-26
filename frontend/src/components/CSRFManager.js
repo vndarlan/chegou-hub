@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 
 function CSRFManager({ children }) {
-    const [csrfReady, setCsrfReady] = useState(false);
+    // Remover a variável não utilizada
+    // const [csrfReady, setCsrfReady] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -37,11 +38,11 @@ function CSRFManager({ children }) {
                     return config;
                 });
                 
-                setCsrfReady(true);
+                // setCsrfReady(true); // Remover esta linha
             } catch (error) {
                 console.error("Erro ao configurar CSRF:", error);
                 // Mesmo com erro, tentamos prosseguir
-                setCsrfReady(true);
+                // setCsrfReady(true); // Remover esta linha
             } finally {
                 setIsLoading(false);
             }
