@@ -1,23 +1,22 @@
 # backend/config/urls.py
 from django.contrib import admin
-from django.urls import path, include # <<< Adicionar include
-from rest_framework.routers import DefaultRouter # <<< Adicionar router
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from core.views import (
     SimpleLoginView,
     LogoutView,
     CurrentStateView,
     SelectAreaView,
     RegisterView,
-    GenerateImageView, # View existente
-    EditImageView,       # <<< Nova View
-    CreateVariationView, # <<< Nova View
+    GenerateImageView,
+    EditImageView,  # Mantida
+    # CreateVariationView,  # Removida, não suportada pelo gpt-image-1
     ImageStyleViewSet,
-    ManagedCalendarViewSet    # <<< Novo ViewSet
+    ManagedCalendarViewSet
 )
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 
-# Configuração do Router para a API de Estilos
 # Configuração do Router para APIs
 router = DefaultRouter()
 router.register(r'styles', ImageStyleViewSet, basename='imagestyle')
@@ -35,11 +34,10 @@ urlpatterns = [
 
     # API para Operacional (Imagens)
     path('api/operacional/generate-image/', GenerateImageView.as_view(), name='api_generate_image'),
-    path('api/operacional/edit-image/', EditImageView.as_view(), name='api_edit_image'), # <<< Nova Rota
-    path('api/operacional/create-variation/', CreateVariationView.as_view(), name='api_create_variation'), # <<< Nova Rota
+    path('api/operacional/edit-image/', EditImageView.as_view(), name='api_edit_image'),
+    # Rota de variação removida por não ser compatível com gpt-image-1
+    # path('api/operacional/create-variation/', CreateVariationView.as_view(), name='api_create_variation'),
 
     # API para Estilos (gerenciada pelo Router)
-    path('api/', include(router.urls)), # <<< Inclui as URLs do router (/api/styles/, /api/styles/{pk}/, etc.)
-    
-
+    path('api/', include(router.urls)),
 ]

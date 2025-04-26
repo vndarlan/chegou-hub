@@ -1,22 +1,22 @@
 # backend/core/views.py
 import os
-import openai # Importa a biblioteca OpenAI
-import base64 # Para decodificar imagens de referência em edit (se necessário)
-from django.conf import settings # Para pegar a chave API
+import openai
+import base64
+from django.conf import settings
 from django.contrib.auth.models import User, Group
 from django.db import transaction
 from django.contrib.auth import authenticate, login, logout
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, viewsets, permissions
-from rest_framework.permissions import AllowAny, IsAuthenticated # Importa permissões
-from rest_framework.parsers import MultiPartParser, FormParser # Para lidar com upload de arquivos
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
-from openai import OpenAI # Importa a classe principal da OpenAI
+from openai import OpenAI
 
 # Importar modelos e serializers locais
-from .models import ImageStyle, ManagedCalendar # Adicione ManagedCalendar
+from .models import ImageStyle, ManagedCalendar
 from .serializers import ImageStyleSerializer, ManagedCalendarSerializer
 
 # --- Views de Autenticação e Estado (já existentes - SEM MUDANÇAS AQUI) ---
@@ -132,25 +132,17 @@ class ImageStyleViewSet(viewsets.ModelViewSet):
     seus próprios estilos de imagem.
     """
     serializer_class = ImageStyleSerializer
-    permission_classes = [permissions.IsAuthenticated] # Requer autenticação
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        """ Retorna apenas os estilos pertencentes ao usuário logado. """
-        # Certifica-se de que request.user está disponível e é um usuário autenticado
         if self.request.user and self.request.user.is_authenticated:
             return ImageStyle.objects.filter(user=self.request.user).order_by('name')
-        return ImageStyle.objects.none() # Retorna queryset vazio se não autenticado
+        return ImageStyle.objects.none()
 
     def perform_create(self, serializer):
-        """ Associa o usuário logado automaticamente ao criar um novo estilo. """
         serializer.save(user=self.request.user)
 
-    # O ModelViewSet já fornece os métodos list, create, retrieve, update, partial_update, destroy.
-    # A lógica de permissão (só o próprio usuário) é garantida pelo get_queryset.
-
-# --- Views Operacionais (Geração, Edição, Variação) ---
-
-# Função auxiliar para tratar erros da API OpenAI
+# --- Função auxiliar para tratar erros da API OpenAI ---
 def handle_openai_error(e, context="geração"):
     print(f"Erro OpenAI no contexto de {context}: {type(e).__name__}: {e}")
     if isinstance(e, openai.APIConnectionError):
@@ -164,33 +156,32 @@ def handle_openai_error(e, context="geração"):
         if "content policy" in error_detail.lower() or "safety system" in error_detail.lower():
             user_message = f"Seu prompt/imagem foi bloqueado pela política de conteúdo da OpenAI durante a {context}."
         elif "Invalid size" in error_detail:
-             user_message = f"Tamanho de imagem inválido para o modelo selecionado durante a {context}."
+            user_message = f"Tamanho de imagem inválido para o modelo selecionado durante a {context}."
         elif "Invalid image format" in error_detail:
-             user_message = f"Formato de imagem inválido enviado para {context}."
+            user_message = f"Formato de imagem inválido enviado para {context}."
         else:
             try:
-                 error_body = e.response.json()
-                 user_message = error_body.get("error", {}).get("message", f"O pedido de {context} foi rejeitado pela OpenAI (Bad Request).")
+                error_body = e.response.json()
+                user_message = error_body.get("error", {}).get("message", f"O pedido de {context} foi rejeitado pela OpenAI (Bad Request).")
             except:
-                 user_message = f"O pedido de {context} foi rejeitado pela OpenAI (Bad Request)."
+                user_message = f"O pedido de {context} foi rejeitado pela OpenAI (Bad Request)."
         return Response({'error': user_message}, status=status.HTTP_400_BAD_REQUEST)
     elif isinstance(e, openai.APIStatusError):
         return Response({'error': f'O serviço de {context} da OpenAI retornou um erro (Status: {e.status_code}).'}, status=e.status_code if e.status_code else status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
-        # Erro genérico
         import traceback
         traceback.print_exc()
         return Response({'error': f'Ocorreu um erro interno inesperado no servidor durante a {context}.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
+# --- Views Operacionais para GPT Image 1 ---
 class GenerateImageView(APIView):
-    """ Endpoint para gerar imagens usando a API da OpenAI com opções extras. """
+    """ Endpoint para gerar imagens usando apenas o modelo gpt-image-1 da OpenAI """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         user = request.user
         user_prompt = request.data.get('prompt')
-        style_id = request.data.get('style_id') # ID do estilo selecionado (opcional)
+        style_id = request.data.get('style_id')
 
         print(f"Recebida requisição POST em /api/operacional/generate-image/ por {user.email}")
         print(f"Prompt usuário: '{user_prompt}', Style ID: {style_id}")
@@ -208,66 +199,81 @@ class GenerateImageView(APIView):
                 print(f"Estilo '{style_instance.name}' aplicado. Prompt final: '{final_prompt[:100]}...'")
             except ImageStyle.DoesNotExist:
                 print(f"Aviso: Estilo com ID {style_id} não encontrado para o usuário {user.email}. Usando prompt original.")
-                # Não retorna erro, apenas ignora o estilo inválido
             except Exception as e:
                 print(f"Erro ao buscar estilo ID {style_id}: {e}. Usando prompt original.")
 
-
-        # 3. Obter outros parâmetros da requisição com defaults
+        # 3. Obter parâmetros da requisição específicos do gpt-image-1
         try:
-            n_images = int(request.data.get('n', 1)) # Número de imagens (default 1)
+            n_images = int(request.data.get('n', 1))
             if not (1 <= n_images <= 10):
                  raise ValueError("Número de imagens deve ser entre 1 e 10.")
         except (ValueError, TypeError):
              return Response({'error': 'Número de imagens inválido. Use um inteiro entre 1 e 10.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        selected_model = request.data.get('model', 'dall-e-3')
-        selected_size = request.data.get('size', '1024x1024')
-        selected_quality = request.data.get('quality', 'standard') # 'standard' ou 'hd' para DALL-E, 'low','medium','high','auto' para GPT
-        # response_format será sempre b64_json na chamada da API
-        # selected_background = request.data.get('background', 'opaque') # Para GPT-Image
+        # Parâmetros exclusivos do gpt-image-1
+        selected_size = request.data.get('size', 'auto')  # auto, 1024x1024, 1536x1024, 1024x1536
+        selected_quality = request.data.get('quality', 'auto')  # auto, high, medium, low
+        selected_background = request.data.get('background', 'auto')  # auto, transparent, opaque
+        selected_output_format = request.data.get('output_format', 'png')  # png, jpeg, webp
+        selected_moderation = request.data.get('moderation', 'auto')  # auto, low
+        
+        # Adiciona output_compression apenas para jpeg e webp
+        output_compression = None
+        if selected_output_format in ['jpeg', 'webp']:
+            try:
+                output_compression = int(request.data.get('output_compression', 100))
+                if not (0 <= output_compression <= 100):
+                    output_compression = 100
+            except (ValueError, TypeError):
+                output_compression = 100
 
-        # Ajustar qualidade se for modelo GPT e não for uma das opções válidas
-        # if selected_model == 'gpt-image-1' and selected_quality not in ['low', 'medium', 'high', 'auto']:
-        #    selected_quality = 'auto' # Ou 'medium' como default?
-        # elif selected_model != 'gpt-image-1' and selected_quality not in ['standard', 'hd']:
-        #    selected_quality = 'standard'
-
-        print(f"Opções - N: {n_images}, Modelo: {selected_model}, Tamanho: {selected_size}, Qualidade: {selected_quality}")
+        print(f"Opções GPT Image - N: {n_images}, Tamanho: {selected_size}, Qualidade: {selected_quality}")
+        print(f"Background: {selected_background}, Formato: {selected_output_format}, Moderação: {selected_moderation}")
+        if output_compression is not None:
+            print(f"Compressão: {output_compression}%")
 
         # 4. Validação da Chave API e Inicialização do Cliente
         api_key = settings.OPENAI_API_KEY
         if not api_key:
             print("Erro Crítico: Chave da API OpenAI não encontrada.")
             return Response({'error': 'Erro de configuração no servidor [API Key].'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
         try:
             client = OpenAI(api_key=api_key)
         except Exception as e:
             print(f"Erro ao inicializar cliente OpenAI: {e}")
             return Response({'error': 'Erro ao inicializar o serviço de geração [Client Init].'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # 5. Chamada à API OpenAI
+        # 5. Preparar argumentos para a API
+        api_args = {
+            "model": "gpt-image-1",
+            "prompt": final_prompt,
+            "n": n_images,
+            "size": selected_size,
+            "quality": selected_quality,
+            "background": selected_background,
+            "output_format": selected_output_format,
+            "moderation": selected_moderation,
+            "user": str(user.id)
+        }
+        
+        # Adicionar output_compression apenas se definido
+        if output_compression is not None:
+            api_args["output_compression"] = output_compression
+
+        # 6. Chamada à API OpenAI
         try:
-            print(f"Enviando prompt final para OpenAI...")
-            response = client.images.generate(
-                model=selected_model,
-                prompt=final_prompt,
-                n=n_images,
-                size=selected_size,
-                quality=selected_quality,
-                response_format="b64_json", # Sempre pedir base64
-                # style="vivid", # Opcional DALL-E 3: "vivid" ou "natural"
-                # background=selected_background # Apenas para GPT-Image
-                user=str(user.id) # Passar ID do usuário ajuda a OpenAI a monitorar abusos
-            )
+            print(f"Enviando prompt final para OpenAI com modelo gpt-image-1...")
+            response = client.images.generate(**api_args)
+            
             # Extrair todas as imagens base64 da resposta
-            images_b64 = [img_data.b64_json for img_data in response.data if img_data.b64_json]
+            images_b64 = [img_data.b64_json for img_data in response.data if hasattr(img_data, 'b64_json') and img_data.b64_json]
             print(f"{len(images_b64)} imagem(ns) gerada(s) com sucesso.")
 
             if not images_b64:
-                 return Response({'error': 'A API não retornou imagens válidas.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({'error': 'A API não retornou imagens válidas.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            # 6. Retorna a lista de base64 para o Frontend
+            # 7. Retorna a lista de base64 para o Frontend
             return Response({'images_b64': images_b64}, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -275,9 +281,9 @@ class GenerateImageView(APIView):
 
 
 class EditImageView(APIView):
-    """ Endpoint para editar imagens usando a API da OpenAI. """
+    """ Endpoint para editar imagens usando o modelo gpt-image-1 da OpenAI """
     permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser] # Habilita receber arquivos
+    parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request, *args, **kwargs):
         user = request.user
@@ -285,8 +291,8 @@ class EditImageView(APIView):
 
         # 1. Obter dados do formulário multipart
         prompt = request.data.get('prompt')
-        image_files = request.FILES.getlist('image') # Pode receber múltiplas imagens base
-        mask_file = request.FILES.get('mask')       # Máscara opcional
+        image_files = request.FILES.getlist('image')
+        mask_file = request.FILES.get('mask')
 
         # Validações básicas
         if not prompt or not isinstance(prompt, str) or not prompt.strip():
@@ -294,69 +300,76 @@ class EditImageView(APIView):
         if not image_files:
             return Response({'error': 'Pelo menos uma imagem base é obrigatória para edição.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 2. Obter outros parâmetros
+        # 2. Obter outros parâmetros específicos do gpt-image-1
         try:
             n_images = int(request.data.get('n', 1))
-            if not (1 <= n_images <= 10): raise ValueError()
+            if not (1 <= n_images <= 10): 
+                raise ValueError("Número de imagens deve ser entre 1 e 10.")
         except (ValueError, TypeError):
              return Response({'error': 'Número de imagens inválido (1-10).'}, status=status.HTTP_400_BAD_REQUEST)
 
-        selected_model = request.data.get('model', 'gpt-image-1') # GPT-Image é bom para edição, DALL-E 2 também suporta
-        selected_size = request.data.get('size', '1024x1024') # Tamanho da imagem de SAÍDA
-
+        selected_size = request.data.get('size', 'auto')  # auto, 1024x1024, 1536x1024, 1024x1536
+        selected_quality = request.data.get('quality', 'auto')  # auto, high, medium, low
+        
         print(f"Edição - Prompt: '{prompt[:50]}...', Imagens base: {len(image_files)}, Máscara: {'Sim' if mask_file else 'Não'}")
-        print(f"Opções - N: {n_images}, Modelo: {selected_model}, Tamanho Saída: {selected_size}")
+        print(f"Opções - N: {n_images}, Tamanho: {selected_size}, Qualidade: {selected_quality}")
 
         # 3. Validação da Chave API e Inicialização do Cliente
         api_key = settings.OPENAI_API_KEY
         if not api_key:
              return Response({'error': 'Erro de configuração no servidor [API Key].'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
         try:
             client = OpenAI(api_key=api_key)
         except Exception as e:
             return Response({'error': 'Erro ao inicializar o serviço de edição [Client Init].'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # 4. Preparar argumentos para a API
+        # 4. Validar e preparar imagens
+        image_byte_list = []
+        for img_file in image_files:
+            if img_file.size > 25 * 1024 * 1024:  # Limite de 25MB para gpt-image-1
+                return Response({'error': f'Imagem "{img_file.name}" excede o limite de 25MB.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Verificar formato válido (png, webp, jpg)
+            filename = img_file.name.lower()
+            if not (filename.endswith('.png') or filename.endswith('.jpg') or 
+                    filename.endswith('.jpeg') or filename.endswith('.webp')):
+                return Response({'error': f'Imagem "{img_file.name}" deve ser png, jpg ou webp.'}, 
+                               status=status.HTTP_400_BAD_REQUEST)
+            
+            image_byte_list.append(img_file.read())
+
+        # 5. Preparar argumentos para a API
         api_args = {
-            "model": selected_model,
+            "model": "gpt-image-1",
             "prompt": prompt.strip(),
             "n": n_images,
             "size": selected_size,
-            "response_format": "b64_json",
+            "quality": selected_quality,
             "user": str(user.id)
         }
 
-        # Ler bytes das imagens e adicionar aos argumentos
-        # A API espera os bytes diretamente
-        image_byte_list = []
-        for img_file in image_files:
-            # Validação de tamanho/tipo pode ser adicionada aqui
-            if img_file.size > 4 * 1024 * 1024: # Exemplo: limite de 4MB
-                return Response({'error': f'Imagem "{img_file.name}" excede o limite de 4MB.'}, status=status.HTTP_400_BAD_REQUEST)
-            image_byte_list.append(img_file.read()) # Lê o conteúdo do arquivo
-
-        # A API aceita uma lista de bytes diretamente para 'image' (a partir de openai>=1.1.0)
-        # Ou para versões anteriores, pode ser necessário passar apenas a primeira imagem ou
-        # usar outra abordagem dependendo do modelo e da versão da biblioteca.
-        # Ver documentação específica para client.images.edit com múltiplas imagens base.
-        # Assumindo que a versão recente aceita uma lista de bytes (ou o primeiro é usado):
-        if not image_byte_list:
-             return Response({'error': 'Falha ao ler arquivos de imagem.'}, status=status.HTTP_400_BAD_REQUEST)
-        api_args["image"] = image_byte_list[0] # Passa a primeira imagem (DALL-E 2 só usa a primeira com mask)
-        # Se GPT-Image suportar múltiplas referências, a API pode mudar
-        # api_args["image"] = image_byte_list # Passaria a lista toda se suportado
-
+        # O gpt-image-1 aceita um array de imagens 
+        if image_byte_list:
+            api_args["image"] = image_byte_list
+        
+        # Adicionar máscara se fornecida
         if mask_file:
-             if mask_file.size > 4 * 1024 * 1024:
-                 return Response({'error': f'Máscara excede o limite de 4MB.'}, status=status.HTTP_400_BAD_REQUEST)
-             api_args["mask"] = mask_file.read() # Adiciona bytes da máscara
+            if mask_file.size > 25 * 1024 * 1024:  # 25MB para gpt-image-1
+                return Response({'error': f'Máscara excede o limite de 25MB.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            if not mask_file.name.lower().endswith('.png'):
+                return Response({'error': 'A máscara deve ser um arquivo PNG.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            api_args["mask"] = mask_file.read()
 
-        # 5. Chamada à API OpenAI
+        # 6. Chamada à API OpenAI
         try:
-            print(f"Enviando pedido de edição para OpenAI...")
-            response = client.images.edit(**api_args) # Desempacota os argumentos
+            print(f"Enviando pedido de edição para OpenAI com modelo gpt-image-1...")
+            response = client.images.edit(**api_args)
 
-            images_b64 = [img_data.b64_json for img_data in response.data if img_data.b64_json]
+            # Extrair base64 das imagens retornadas
+            images_b64 = [img_data.b64_json for img_data in response.data if hasattr(img_data, 'b64_json') and img_data.b64_json]
             print(f"{len(images_b64)} imagem(ns) editada(s) com sucesso.")
 
             if not images_b64:
@@ -367,73 +380,13 @@ class EditImageView(APIView):
         except Exception as e:
             return handle_openai_error(e, context="edição")
 
+# Nota: A classe CreateVariationView foi removida porque gpt-image-1 não suporta variações.
+# Apenas o DALL-E 2 suporta variações de acordo com a documentação.
 
-class CreateVariationView(APIView):
-    """ Endpoint para criar variações de uma imagem usando a API da OpenAI (DALL-E 2). """
-    permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
-
-    def post(self, request, *args, **kwargs):
-        user = request.user
-        print(f"Recebida requisição POST em /api/operacional/create-variation/ por {user.email}")
-
-        # 1. Obter dados
-        image_file = request.FILES.get('image')
-        if not image_file:
-            return Response({'error': 'Uma imagem base é obrigatória para criar variações.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            n_variations = int(request.data.get('n', 1))
-            if not (1 <= n_variations <= 10): raise ValueError()
-        except (ValueError, TypeError):
-             return Response({'error': 'Número de variações inválido (1-10).'}, status=status.HTTP_400_BAD_REQUEST)
-
-        selected_size = request.data.get('size', '1024x1024')
-        # Modelo é implicitamente DALL-E 2 para create_variation
-        selected_model = 'dall-e-2'
-
-        print(f"Variação - Imagem base: {image_file.name}, N: {n_variations}, Tamanho Saída: {selected_size}")
-
-        # 2. Validação da Chave API e Inicialização do Cliente
-        api_key = settings.OPENAI_API_KEY
-        if not api_key:
-             return Response({'error': 'Erro de configuração no servidor [API Key].'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        try:
-            client = OpenAI(api_key=api_key)
-        except Exception as e:
-            return Response({'error': 'Erro ao inicializar o serviço de variação [Client Init].'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        # 3. Preparar argumentos e chamada à API
-        try:
-             if image_file.size > 4 * 1024 * 1024:
-                 return Response({'error': f'Imagem "{image_file.name}" excede o limite de 4MB.'}, status=status.HTTP_400_BAD_REQUEST)
-             image_bytes = image_file.read()
-
-             print(f"Enviando pedido de variação para OpenAI...")
-             response = client.images.create_variation(
-                 image=image_bytes, # Passa os bytes da imagem
-                 n=n_variations,
-                 size=selected_size,
-                 response_format="b64_json",
-                 model=selected_model, # Embora implícito, pode ser passado
-                 user=str(user.id)
-             )
-
-             images_b64 = [img_data.b64_json for img_data in response.data if img_data.b64_json]
-             print(f"{len(images_b64)} variação(ões) criada(s) com sucesso.")
-
-             if not images_b64:
-                 return Response({'error': 'A API não retornou variações válidas.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-             return Response({'images_b64': images_b64}, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            return handle_openai_error(e, context="variação")
-        
 class ManagedCalendarViewSet(viewsets.ModelViewSet):
     """
     API endpoint para listar, criar e deletar Calendários Gerenciados.
     """
     queryset = ManagedCalendar.objects.all().order_by('name')
     serializer_class = ManagedCalendarSerializer
-    permission_classes = [permissions.IsAuthenticated] # Apenas usuários logados podem gerenciar
+    permission_classes = [permissions.IsAuthenticated]

@@ -4,16 +4,16 @@ import axios from 'axios';
 import {
     Box, Title, Text, Paper, Textarea, Button, LoadingOverlay, Alert, Image, Group, Stack,
     Select, NumberInput, FileInput, Tabs, Modal, List, ThemeIcon, ActionIcon, Divider, ScrollArea, Center, SimpleGrid,
-    TextInput // <<< ADICIONE ESTA LINHA AQUI
+    TextInput, Slider, Switch
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-// Ícones (vamos remover os não usados para limpar os warnings)
 import {
-    IconAlertCircle, IconPhoto, IconEdit, IconSparkles, IconPalette, IconPlus, IconTrash, IconPencil, /* IconX, */ IconDownload /*, IconCopy */
+    IconAlertCircle, IconPhoto, IconEdit, IconSparkles, IconPalette, IconPlus, IconTrash, IconPencil, IconDownload
 } from '@tabler/icons-react';
 
 // Função para pegar o valor de um cookie pelo nome (mantida)
 function getCookie(name) {
+    // [função original mantida]
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
         const cookies = document.cookie.split(';');
@@ -33,36 +33,36 @@ function GerarImagemPage() {
     // --- Estados Gerais ---
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [activeTab, setActiveTab] = useState('generate'); // generate, edit, variations
+    const [activeTab, setActiveTab] = useState('generate'); // agora apenas generate e edit
 
-    // --- Estados de Geração ---
+    // --- Estados de Geração (apenas GPT-Image-1) ---
     const [prompt, setPrompt] = useState('');
-    const [selectedModelGen, setSelectedModelGen] = useState('dall-e-3');
-    const [selectedSizeGen, setSelectedSizeGen] = useState('1024x1024');
-    const [selectedQualityGen, setSelectedQualityGen] = useState('standard');
+    const [selectedSizeGen, setSelectedSizeGen] = useState('auto');
+    const [selectedQualityGen, setSelectedQualityGen] = useState('auto');
     const [nImagesGen, setNImagesGen] = useState(1);
-    const [selectedStyleId, setSelectedStyleId] = useState(null); // ID do estilo selecionado
+    const [selectedStyleId, setSelectedStyleId] = useState(null);
+
+    // Novos parâmetros específicos do gpt-image-1
+    const [selectedBackground, setSelectedBackground] = useState('auto');
+    const [selectedOutputFormat, setSelectedOutputFormat] = useState('png');
+    const [selectedModeration, setSelectedModeration] = useState('auto');
+    const [outputCompression, setOutputCompression] = useState(100);
 
     // --- Estados de Edição ---
     const [editPrompt, setEditPrompt] = useState('');
-    const [baseImagesEdit, setBaseImagesEdit] = useState([]); // Array de File objects
-    const [maskImageEdit, setMaskImageEdit] = useState(null); // File object
-    const [selectedModelEdit, setSelectedModelEdit] = useState('dall-e-2'); // DALL-E 2 bom para mask
-    const [selectedSizeEdit, setSelectedSizeEdit] = useState('1024x1024');
+    const [baseImagesEdit, setBaseImagesEdit] = useState([]);
+    const [maskImageEdit, setMaskImageEdit] = useState(null);
+    const [selectedSizeEdit, setSelectedSizeEdit] = useState('auto');
+    const [selectedQualityEdit, setSelectedQualityEdit] = useState('auto');
     const [nImagesEdit, setNImagesEdit] = useState(1);
 
-    // --- Estados de Variação ---
-    const [baseImageVar, setBaseImageVar] = useState(null); // File object
-    const [selectedSizeVar, setSelectedSizeVar] = useState('1024x1024');
-    const [nImagesVar, setNImagesVar] = useState(1);
-
     // --- Estado do Resultado ---
-    const [generatedImages, setGeneratedImages] = useState([]); // Array de strings base64
+    const [generatedImages, setGeneratedImages] = useState([]);
 
     // --- Estados de Estilos ---
     const [stylesList, setStylesList] = useState([]);
     const [styleModalOpened, { open: openStyleModal, close: closeStyleModal }] = useDisclosure(false);
-    const [currentStyle, setCurrentStyle] = useState(null); // Para edição/criação no modal
+    const [currentStyle, setCurrentStyle] = useState(null);
     const [styleName, setStyleName] = useState('');
     const [styleInstructions, setStyleInstructions] = useState('');
     const [styleError, setStyleError] = useState('');
@@ -82,7 +82,7 @@ function GerarImagemPage() {
             console.error("Erro ao buscar estilos:", err.response || err.message);
             setError("Não foi possível carregar seus estilos salvos.");
         }
-    }, []); // useCallback para evitar recriação desnecessária
+    }, []);
 
     // Busca estilos ao montar o componente
     useEffect(() => {
@@ -95,13 +95,22 @@ function GerarImagemPage() {
         setGeneratedImages([]);
     }, [activeTab]);
 
+    // Atualiza se o output_compression deve estar ativo
+    const compressionEnabled = ['webp', 'jpeg'].includes(selectedOutputFormat);
+    
+    // Atualiza se o background transparente pode ser selecionado
+    useEffect(() => {
+        if (selectedBackground === 'transparent' && !['png', 'webp'].includes(selectedOutputFormat)) {
+            setSelectedBackground('auto');
+        }
+    }, [selectedOutputFormat, selectedBackground]);
+
 
     // --- Funções de Chamada API ---
-
     const handleApiCall = async (url, payload, config = {}, useFormData = false) => {
         setIsLoading(true);
         setError(null);
-        setGeneratedImages([]); // Limpa imagens anteriores
+        setGeneratedImages([]);
         const csrfToken = getCookie('csrftoken');
 
         if (!csrfToken) {
@@ -118,7 +127,6 @@ function GerarImagemPage() {
                 headers: {
                     ...(config.headers || {}),
                     'X-CSRFToken': csrfToken,
-                    // Content-Type será definido pelo Axios para FormData ou como application/json
                 },
             };
 
@@ -150,7 +158,7 @@ function GerarImagemPage() {
         }
     };
 
-    // Geração
+    // Geração com GPT Image
     const handleGenerateImage = () => {
         if (!prompt.trim()) {
             setError('Por favor, digite um prompt.');
@@ -159,22 +167,22 @@ function GerarImagemPage() {
 
         const payload = {
             prompt: prompt.trim(),
-            model: selectedModelGen,
             size: selectedSizeGen,
             quality: selectedQualityGen,
             n: nImagesGen,
+            background: selectedBackground,
+            output_format: selectedOutputFormat,
+            moderation: selectedModeration,
         };
+
+        // Adiciona compressão apenas para webp e jpeg
+        if (compressionEnabled) {
+            payload.output_compression = outputCompression;
+        }
 
         // Adiciona instruções do estilo se selecionado
         if (selectedStyleId) {
-            const selectedStyle = stylesList.find(s => s.id === selectedStyleId);
-            if (selectedStyle && selectedStyle.instructions) {
-                // O backend agora faz a concatenação se receber style_id
-                payload.style_id = selectedStyleId;
-                // Alternativa: fazer no frontend (menos seguro se instruções mudarem)
-                // payload.prompt = `${selectedStyle.instructions}\n\n${prompt.trim()}`;
-                console.log(`Usando estilo: ${selectedStyle.name}`);
-            }
+            payload.style_id = selectedStyleId;
         }
 
         handleApiCall('/operacional/generate-image/', payload);
@@ -187,12 +195,12 @@ function GerarImagemPage() {
 
         const formData = new FormData();
         formData.append('prompt', editPrompt.trim());
-        formData.append('model', selectedModelEdit);
         formData.append('size', selectedSizeEdit);
+        formData.append('quality', selectedQualityEdit);
         formData.append('n', nImagesEdit);
 
         baseImagesEdit.forEach((file, index) => {
-            formData.append('image', file, file.name); // Adiciona cada imagem base
+            formData.append('image', file, file.name);
         });
 
         if (maskImageEdit) {
@@ -204,23 +212,7 @@ function GerarImagemPage() {
         }, true);
     };
 
-    // Variação
-    const handleCreateVariation = () => {
-        if (!baseImageVar) { setError('Selecione a imagem base para variações.'); return; }
-
-        const formData = new FormData();
-        formData.append('size', selectedSizeVar);
-        formData.append('n', nImagesVar);
-        formData.append('image', baseImageVar, baseImageVar.name);
-
-        handleApiCall('/operacional/create-variation/', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        }, true);
-    };
-
-
     // --- Funções de Gerenciamento de Estilos ---
-
     const openCreateStyleModal = () => {
         setCurrentStyle(null);
         setStyleName('');
@@ -243,11 +235,11 @@ function GerarImagemPage() {
             return;
         }
         setStyleError('');
-        setIsLoading(true); // Usar loading geral ou um específico para o modal
+        setIsLoading(true);
 
         const csrfToken = getCookie('csrftoken');
         const url = currentStyle ? `/styles/${currentStyle.id}/` : '/styles/';
-        const method = currentStyle ? 'patch' : 'post'; // Usar PATCH para atualização parcial
+        const method = currentStyle ? 'patch' : 'post';
 
         try {
             const response = await axios({
@@ -258,11 +250,7 @@ function GerarImagemPage() {
             });
             console.log("Estilo salvo:", response.data);
             closeStyleModal();
-            fetchStyles(); // Recarrega a lista de estilos
-            // Limpar seleção se o estilo editado era o selecionado?
-            if (currentStyle && currentStyle.id === selectedStyleId) {
-                 // Talvez não fazer nada ou re-selecionar? Por ora, deixa como está.
-            }
+            fetchStyles();
         } catch (err) {
             console.error("Erro ao salvar estilo:", err.response || err.message);
             setStyleError(err.response?.data?.detail || err.response?.data?.name?.[0] || err.response?.data?.instructions?.[0] || "Erro ao salvar estilo.");
@@ -281,24 +269,23 @@ function GerarImagemPage() {
                 headers: { 'X-CSRFToken': csrfToken }
             });
             console.log("Estilo deletado:", styleId);
-            fetchStyles(); // Recarrega a lista
-            // Desselecionar se o estilo deletado era o ativo
+            fetchStyles();
             if (styleId === selectedStyleId) {
                 setSelectedStyleId(null);
             }
         } catch (err) {
             console.error("Erro ao deletar estilo:", err.response || err.message);
-            setError("Não foi possível deletar o estilo."); // Mostra erro principal
+            setError("Não foi possível deletar o estilo.");
         } finally {
             setIsLoading(false);
         }
     };
 
-    // --- Funções de Download e Cópia ---
+    // --- Funções de Download ---
     const handleDownloadImage = (base64Data, index) => {
         const link = document.createElement('a');
-        link.href = `data:image/png;base64,${base64Data}`;
-        const filename = `gerada_${activeTab}_${index + 1}.png`;
+        link.href = `data:image/${selectedOutputFormat === 'jpeg' ? 'jpeg' : selectedOutputFormat};base64,${base64Data}`;
+        const filename = `gerada_${activeTab}_${index + 1}.${selectedOutputFormat}`;
         link.download = filename;
         document.body.appendChild(link);
         link.click();
@@ -310,7 +297,7 @@ function GerarImagemPage() {
         <Box p="md" style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column' }}>
             <LoadingOverlay visible={isLoading} overlayProps={{ radius: "sm", blur: 2 }} loaderProps={{ color: 'orange' }} />
 
-            {/* Gerenciamento de Estilos (pode ser um Drawer ou Accordion também) */}
+            {/* Gerenciamento de Estilos */}
             <Paper shadow="xs" p="lg" withBorder mb="md">
                  <Group justify="space-between" align="center">
                      <Title order={4}>🎨 Meus Estilos</Title>
@@ -318,7 +305,7 @@ function GerarImagemPage() {
                          Novo Estilo
                      </Button>
                  </Group>
-                 <ScrollArea h={150} mt="md"> {/* Altura limitada com scroll */}
+                 <ScrollArea h={150} mt="md">
                      {stylesList.length === 0 ? (
                          <Text c="dimmed" ta="center" mt="md">Nenhum estilo criado ainda.</Text>
                      ) : (
@@ -331,7 +318,7 @@ function GerarImagemPage() {
                                              <IconPalette size="0.8rem" />
                                          </ThemeIcon>
                                      }
-                                     styles={{ itemWrapper: { width: '100%' } }} // Para o grupo ir até o fim
+                                     styles={{ itemWrapper: { width: '100%' } }}
                                  >
                                      <Group justify="space-between" w="100%">
                                          <Text>{style.name}</Text>
@@ -359,7 +346,7 @@ function GerarImagemPage() {
                         placeholder="Ex: Anúncio Facebook"
                         value={styleName}
                         onChange={(event) => setStyleName(event.currentTarget.value)}
-                        error={styleError && styleError.includes("nome") ? styleError : null} // Mostra erro específico se houver
+                        error={styleError && styleError.includes("nome") ? styleError : null}
                         required
                     />
                     <Textarea
@@ -373,7 +360,7 @@ function GerarImagemPage() {
                         required
                     />
                     {styleError && !styleError.includes("nome") && !styleError.includes("Instruções") && (
-                        <Text c="red" size="sm">{styleError}</Text> // Erro geral do modal
+                        <Text c="red" size="sm">{styleError}</Text>
                     )}
                     <Group justify="flex-end" mt="md">
                          <Button variant="default" onClick={closeStyleModal}>Cancelar</Button>
@@ -388,7 +375,6 @@ function GerarImagemPage() {
                     <Tabs.List grow>
                         <Tabs.Tab value="generate" leftSection={<IconSparkles size={16} />}>Gerar Imagem</Tabs.Tab>
                         <Tabs.Tab value="edit" leftSection={<IconEdit size={16} />}>Editar Imagem</Tabs.Tab>
-                        <Tabs.Tab value="variations" leftSection={<IconPhoto size={16} />}>Criar Variações</Tabs.Tab>
                     </Tabs.List>
 
                     {/* Conteúdo das Abas */}
@@ -405,23 +391,114 @@ function GerarImagemPage() {
                                 <Select
                                      label="Aplicar Estilo (Opcional)"
                                      placeholder="Selecione um estilo salvo"
-                                     value={selectedStyleId ? String(selectedStyleId) : null} // Precisa ser string para o Select
+                                     value={selectedStyleId ? String(selectedStyleId) : null}
                                      onChange={(value) => setSelectedStyleId(value ? Number(value) : null)}
                                      data={stylesList.map(style => ({ value: String(style.id), label: style.name }))}
                                      clearable
                                      disabled={isLoading}
                                 />
+                                
+                                {/* Parâmetros do gpt-image-1 */}
                                 <Group grow>
-                                     <Select label="Modelo" value={selectedModelGen} onChange={setSelectedModelGen} data={[{ value: 'dall-e-3', label: 'DALL-E 3' }, { value: 'dall-e-2', label: 'DALL-E 2' }]} disabled={isLoading} />
-                                     <Select label="Tamanho" value={selectedSizeGen} onChange={setSelectedSizeGen} data={['1024x1024', '1024x1792', '1792x1024']} disabled={isLoading} /> {/* DALL-E 3 sizes */}
+                                    <Select 
+                                        label="Tamanho" 
+                                        value={selectedSizeGen} 
+                                        onChange={setSelectedSizeGen} 
+                                        data={[
+                                            { value: 'auto', label: 'Auto (Recomendado)' },
+                                            { value: '1024x1024', label: '1024x1024 (Quadrado)' },
+                                            { value: '1536x1024', label: '1536x1024 (Paisagem)' },
+                                            { value: '1024x1536', label: '1024x1536 (Retrato)' }
+                                        ]} 
+                                        disabled={isLoading} 
+                                    />
+                                    <Select 
+                                        label="Qualidade" 
+                                        value={selectedQualityGen} 
+                                        onChange={setSelectedQualityGen} 
+                                        data={[
+                                            { value: 'auto', label: 'Auto (Recomendado)' },
+                                            { value: 'high', label: 'Alta' },
+                                            { value: 'medium', label: 'Média' },
+                                            { value: 'low', label: 'Baixa' }
+                                        ]} 
+                                        disabled={isLoading} 
+                                    />
                                 </Group>
+                                
                                 <Group grow>
-                                     <Select label="Qualidade" value={selectedQualityGen} onChange={setSelectedQualityGen} data={[{ value: 'standard', label: 'Standard' }, { value: 'hd', label: 'HD' }]} disabled={isLoading || selectedModelGen !== 'dall-e-3'} /> {/* HD só DALL-E 3 */}
-                                     <NumberInput label="Nº de Imagens" value={nImagesGen} onChange={setNImagesGen} min={1} max={10} step={1} disabled={isLoading} />
+                                    <Select 
+                                        label="Formato de Saída" 
+                                        value={selectedOutputFormat} 
+                                        onChange={setSelectedOutputFormat} 
+                                        data={[
+                                            { value: 'png', label: 'PNG (Com transparência)' },
+                                            { value: 'webp', label: 'WebP (Melhor compressão)' },
+                                            { value: 'jpeg', label: 'JPEG (Sem transparência)' }
+                                        ]} 
+                                        disabled={isLoading} 
+                                    />
+                                    <Select 
+                                        label="Fundo" 
+                                        value={selectedBackground} 
+                                        onChange={setSelectedBackground} 
+                                        data={[
+                                            { value: 'auto', label: 'Auto (Recomendado)' },
+                                            { value: 'transparent', label: 'Transparente', disabled: !['png', 'webp'].includes(selectedOutputFormat) },
+                                            { value: 'opaque', label: 'Opaco' }
+                                        ]} 
+                                        disabled={isLoading} 
+                                    />
                                 </Group>
-                                {/* <Switch label="Fundo Transparente" checked={transparentBg} onChange={(event) => setTransparentBg(event.currentTarget.checked)} disabled={isLoading} /> */}
+                                
+                                <Group grow>
+                                    <NumberInput 
+                                        label="Nº de Imagens" 
+                                        value={nImagesGen} 
+                                        onChange={setNImagesGen} 
+                                        min={1} 
+                                        max={10} 
+                                        step={1} 
+                                        disabled={isLoading} 
+                                    />
+                                    <Select 
+                                        label="Moderação" 
+                                        value={selectedModeration} 
+                                        onChange={setSelectedModeration} 
+                                        data={[
+                                            { value: 'auto', label: 'Auto (Padrão)' },
+                                            { value: 'low', label: 'Baixa (Menos restrito)' }
+                                        ]} 
+                                        disabled={isLoading} 
+                                    />
+                                </Group>
+                                
+                                {/* Slider de compressão para WebP e JPEG */}
+                                {compressionEnabled && (
+                                    <Stack gap="xs">
+                                        <Text size="sm" fw={500}>Compressão ({outputCompression}%)</Text>
+                                        <Slider
+                                            min={1}
+                                            max={100}
+                                            label={(value) => `${value}%`}
+                                            value={outputCompression}
+                                            onChange={setOutputCompression}
+                                            disabled={isLoading}
+                                            marks={[
+                                                { value: 25, label: '25%' },
+                                                { value: 50, label: '50%' },
+                                                { value: 75, label: '75%' },
+                                                { value: 100, label: '100%' }
+                                            ]}
+                                        />
+                                        <Text size="xs" c="dimmed">Menor valor = menor tamanho de arquivo, qualidade inferior</Text>
+                                    </Stack>
+                                )}
+                                
                                 <Group justify="flex-end" mt="md">
-                                     <Button onClick={handleGenerateImage} disabled={isLoading || !prompt.trim()} loading={isLoading} leftSection={<IconSparkles size={18}/>}>Gerar</Button>
+                                     <Button onClick={handleGenerateImage} disabled={isLoading || !prompt.trim()} loading={isLoading} leftSection={<IconSparkles size={18}/>}>
+                                         Gerar com GPT Image
+                                     </Button>
                                 </Group>
                             </Stack>
                         </Tabs.Panel>
@@ -430,13 +507,14 @@ function GerarImagemPage() {
                              <Stack gap="md">
                                  <FileInput
                                      label="Imagem(ns) Base"
-                                     placeholder="Selecione uma ou mais imagens"
+                                     placeholder="Selecione uma ou mais imagens (PNG, JPG, WebP)"
                                      value={baseImagesEdit}
                                      onChange={setBaseImagesEdit}
-                                     multiple // Permite múltiplos arquivos
+                                     multiple
                                      clearable
-                                     accept="image/png,image/jpeg" // Aceita PNG e JPEG
+                                     accept="image/png,image/jpeg,image/webp"
                                      disabled={isLoading}
+                                     description="GPT Image permite múltiplas imagens de referência (até 25MB cada)"
                                  />
                                  <FileInput
                                      label="Máscara (Opcional - PNG com transparência)"
@@ -444,8 +522,9 @@ function GerarImagemPage() {
                                      value={maskImageEdit}
                                      onChange={setMaskImageEdit}
                                      clearable
-                                     accept="image/png" // Máscara deve ser PNG
+                                     accept="image/png"
                                      disabled={isLoading}
+                                     description="Áreas transparentes indicam onde a imagem será editada"
                                  />
                                 <Textarea
                                     label="Prompt de Edição"
@@ -455,35 +534,36 @@ function GerarImagemPage() {
                                     minRows={3} autosize disabled={isLoading} required
                                 />
                                 <Group grow>
-                                    <Select label="Modelo" value={selectedModelEdit} onChange={setSelectedModelEdit} data={[{ value: 'dall-e-2', label: 'DALL-E 2' }/* , { value: 'gpt-image-1', label: 'GPT Image' } */]} disabled={isLoading} /> {/* Edição DALL-E 2 */}
-                                    <Select label="Tamanho Saída" value={selectedSizeEdit} onChange={setSelectedSizeEdit} data={['1024x1024', '512x512', '256x256']} disabled={isLoading} /> {/* DALL-E 2 sizes */}
+                                    <Select 
+                                        label="Tamanho" 
+                                        value={selectedSizeEdit} 
+                                        onChange={setSelectedSizeEdit}
+                                        data={[
+                                            { value: 'auto', label: 'Auto (Recomendado)' },
+                                            { value: '1024x1024', label: '1024x1024 (Quadrado)' },
+                                            { value: '1536x1024', label: '1536x1024 (Paisagem)' },
+                                            { value: '1024x1536', label: '1024x1536 (Retrato)' }
+                                        ]} 
+                                        disabled={isLoading} 
+                                    />
+                                    <Select 
+                                        label="Qualidade" 
+                                        value={selectedQualityEdit} 
+                                        onChange={setSelectedQualityEdit}
+                                        data={[
+                                            { value: 'auto', label: 'Auto (Recomendado)' },
+                                            { value: 'high', label: 'Alta' },
+                                            { value: 'medium', label: 'Média' },
+                                            { value: 'low', label: 'Baixa' }
+                                        ]} 
+                                        disabled={isLoading} 
+                                    />
                                 </Group>
                                 <NumberInput label="Nº de Edições" value={nImagesEdit} onChange={setNImagesEdit} min={1} max={10} step={1} disabled={isLoading} />
                                 <Group justify="flex-end" mt="md">
-                                     <Button onClick={handleEditImage} disabled={isLoading || !editPrompt.trim() || baseImagesEdit.length === 0} loading={isLoading} leftSection={<IconEdit size={18}/>}>Editar</Button>
-                                </Group>
-                             </Stack>
-                        </Tabs.Panel>
-
-                        <Tabs.Panel value="variations" pt="xs">
-                             <Stack gap="md">
-                                  <FileInput
-                                     label="Imagem Base"
-                                     placeholder="Selecione a imagem para criar variações"
-                                     value={baseImageVar}
-                                     onChange={setBaseImageVar}
-                                     clearable
-                                     accept="image/png,image/jpeg"
-                                     disabled={isLoading}
-                                     required
-                                 />
-                                  <Group grow>
-                                     <Select label="Tamanho Saída" value={selectedSizeVar} onChange={setSelectedSizeVar} data={['1024x1024', '512x512', '256x256']} disabled={isLoading} /> {/* DALL-E 2 sizes */}
-                                     <NumberInput label="Nº de Variações" value={nImagesVar} onChange={setNImagesVar} min={1} max={10} step={1} disabled={isLoading} />
-                                 </Group>
-                                <Text c="dimmed" size="sm">Nota: Variações usam o modelo DALL-E 2.</Text>
-                                 <Group justify="flex-end" mt="md">
-                                     <Button onClick={handleCreateVariation} disabled={isLoading || !baseImageVar} loading={isLoading} leftSection={<IconPhoto size={18}/>}>Criar Variações</Button>
+                                     <Button onClick={handleEditImage} disabled={isLoading || !editPrompt.trim() || baseImagesEdit.length === 0} loading={isLoading} leftSection={<IconEdit size={18}/>}>
+                                         Editar com GPT Image
+                                     </Button>
                                 </Group>
                              </Stack>
                         </Tabs.Panel>
@@ -501,21 +581,18 @@ function GerarImagemPage() {
                  {generatedImages.length > 0 && !isLoading && (
                      <Box mt="lg">
                          <Divider my="md" label="Resultados" labelPosition="center" />
-                          {/* Grade para exibir múltiplas imagens */}
                          <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="md">
                              {generatedImages.map((base64Data, index) => (
                                  <Paper key={index} withBorder radius="md" p="xs" style={{ overflow: 'hidden', position: 'relative' }}>
                                      <Image
-                                         src={`data:image/png;base64,${base64Data}`}
+                                         src={`data:image/${selectedOutputFormat === 'jpeg' ? 'jpeg' : selectedOutputFormat};base64,${base64Data}`}
                                          alt={`Resultado ${index + 1}`}
                                          style={{ display: 'block', width: '100%', height: 'auto' }}
                                      />
-                                     {/* Overlay com botões (aparece no hover talvez?) */}
                                      <Group gap="xs" style={{ position: 'absolute', top: 5, right: 5 }}>
                                         <ActionIcon variant="filled" color="blue" size="sm" onClick={() => handleDownloadImage(base64Data, index)} title="Baixar">
                                             <IconDownload size={14} />
                                         </ActionIcon>
-                                         {/* Botão de copiar prompt poderia ficar aqui, mas qual prompt copiar? O original? */}
                                     </Group>
                                  </Paper>
                              ))}
