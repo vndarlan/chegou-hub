@@ -65,14 +65,7 @@ function GerarImagemPage() {
     const fetchStyles = useCallback(async () => {
         console.log("Buscando estilos...");
         try {
-            // Não precisamos chamar /current-state/ aqui, pois é uma requisição GET
-            const csrfToken = getCookie('csrftoken');
-            console.log("Token CSRF para fetch styles:", csrfToken);
-            
-            const response = await axios.get('/styles/', {
-                withCredentials: true
-            });
-            
+            const response = await axios.get('/styles/');
             setStylesList(response.data || []);
             console.log("Estilos carregados:", response.data);
         } catch (err) {
@@ -141,27 +134,9 @@ function GerarImagemPage() {
         setGeneratedImages([]);
         
         try {
-            // Força renovação do token CSRF antes de enviar
-            await axios.get('/current-state/');
-            const csrfToken = getCookie('csrftoken');
-            console.log("Token CSRF para API call:", csrfToken);
-    
-            if (!csrfToken) {
-                throw new Error('Token CSRF não encontrado. Recarregue a página e tente novamente.');
-            }
-    
             console.log(`Enviando requisição para ${url}...`);
     
-            const finalConfig = {
-                ...config,
-                headers: {
-                    ...config.headers,
-                    'X-CSRFToken': csrfToken
-                },
-                withCredentials: true
-            };
-    
-            const response = await axios.post(url, payload, finalConfig);
+            const response = await axios.post(url, payload, config);
     
             if (response.data && response.data.images_b64 && Array.isArray(response.data.images_b64)) {
                 console.log(`${response.data.images_b64.length} imagem(ns) recebida(s).`);
@@ -178,7 +153,7 @@ function GerarImagemPage() {
                 console.error("Status do erro:", err.response.status);
                 console.error("Dados do erro:", err.response.data);
                 
-                if (err.response.status === 403 && err.response.data?.detail?.includes('CSRF')) {
+                if (err.response.status === 403 && err.response?.data?.detail?.includes('CSRF')) {
                     errorMessage = "Erro de segurança (CSRF). Recarregue a página e tente novamente.";
                 } else {
                     errorMessage = err.response.data?.error || err.response.data?.detail || `Erro do servidor: ${err.response.status}`;
@@ -275,15 +250,6 @@ function GerarImagemPage() {
         setIsLoading(true);
     
         try {
-            // Força renovação do token CSRF antes de enviar
-            await axios.get('/current-state/');
-            const csrfToken = getCookie('csrftoken');
-            console.log("Token CSRF para salvar estilo:", csrfToken);
-    
-            if (!csrfToken) {
-                throw new Error('Token CSRF não encontrado. Recarregue a página e tente novamente.');
-            }
-    
             const url = currentStyle ? `/styles/${currentStyle.id}/` : '/styles/';
             const method = currentStyle ? 'patch' : 'post';
             
@@ -293,12 +259,7 @@ function GerarImagemPage() {
                 data: { 
                     name: styleName.trim(), 
                     instructions: styleInstructions.trim() 
-                },
-                headers: { 
-                    'X-CSRFToken': csrfToken,
-                    'Content-Type': 'application/json'
-                },
-                withCredentials: true
+                }
             });
             
             console.log("Estilo salvo com sucesso:", response.data);
