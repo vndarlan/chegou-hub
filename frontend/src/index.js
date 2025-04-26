@@ -27,14 +27,19 @@ axios.defaults.withCredentials = true;
 
 // Função para obter explicitamente o token CSRF
 async function fetchCSRFToken() {
-    try {
-        const response = await axios.get('/current-state/');
-        console.log("CSRF token obtido:", getCookie('csrftoken'));
-        return getCookie('csrftoken');
-    } catch (error) {
-        console.error("Erro ao obter token CSRF:", error);
-        return null;
-    }
+  try {
+      // ANTES:
+      // const response = await axios.get('/current-state/');
+      
+      // DEPOIS (removendo a variável não utilizada):
+      await axios.get('/current-state/');
+      
+      console.log("CSRF token obtido:", getCookie('csrftoken'));
+      return getCookie('csrftoken');
+  } catch (error) {
+      console.error("Erro ao obter token CSRF:", error);
+      return null;
+  }
 }
 
 // Interceptor para garantir que o token CSRF esteja presente em todas as requisições

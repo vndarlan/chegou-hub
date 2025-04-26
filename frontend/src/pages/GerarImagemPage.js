@@ -118,7 +118,8 @@ function GerarImagemPage() {
         // Garantir que o token CSRF esteja disponível quando o componente montar
         const fetchCSRFTokenOnMount = async () => {
             try {
-                const response = await axios.get('/current-state/');
+                await axios.get('/current-state/');
+                
                 const token = getCookie('csrftoken');
                 console.log("Token CSRF obtido na montagem:", token);
                 
@@ -132,7 +133,6 @@ function GerarImagemPage() {
         
         fetchCSRFTokenOnMount();
     }, []);
-
 
     // --- Funções de Chamada API ---
     const handleApiCall = async (url, payload, config = {}, useFormData = false) => {
