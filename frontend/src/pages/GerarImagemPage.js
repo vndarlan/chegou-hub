@@ -65,11 +65,11 @@ function GerarImagemPage() {
     const fetchStyles = useCallback(async () => {
         console.log("Buscando estilos...");
         try {
+            // Não precisamos chamar /current-state/ aqui, pois é uma requisição GET
             const csrfToken = getCookie('csrftoken');
             console.log("Token CSRF para fetch styles:", csrfToken);
             
             const response = await axios.get('/styles/', {
-                headers: { 'X-CSRFToken': csrfToken },
                 withCredentials: true
             });
             
@@ -114,6 +114,25 @@ function GerarImagemPage() {
         }
     }, [selectedOutputFormat, selectedBackground]);
 
+    useEffect(() => {
+        // Garantir que o token CSRF esteja disponível quando o componente montar
+        const fetchCSRFTokenOnMount = async () => {
+            try {
+                const response = await axios.get('/current-state/');
+                const token = getCookie('csrftoken');
+                console.log("Token CSRF obtido na montagem:", token);
+                
+                if (!token) {
+                    console.warn("AVISO: Token CSRF não encontrado após chamar /current-state/");
+                }
+            } catch (error) {
+                console.error("Erro ao obter token CSRF na montagem:", error);
+            }
+        };
+        
+        fetchCSRFTokenOnMount();
+    }, []);
+
 
     // --- Funções de Chamada API ---
     const handleApiCall = async (url, payload, config = {}, useFormData = false) => {
@@ -121,17 +140,17 @@ function GerarImagemPage() {
         setError(null);
         setGeneratedImages([]);
         
-        const csrfToken = getCookie('csrftoken');
-        console.log("Token CSRF para API call:", csrfToken);  // Debugging
-    
-        if (!csrfToken) {
-            setError('Erro de segurança: Token CSRF não encontrado. Recarregue a página.');
-            setIsLoading(false);
-            return;
-        }
-    
         try {
-            console.log(`Enviando para ${url}...`);
+            // Força renovação do token CSRF antes de enviar
+            await axios.get('/current-state/');
+            const csrfToken = getCookie('csrftoken');
+            console.log("Token CSRF para API call:", csrfToken);
+    
+            if (!csrfToken) {
+                throw new Error('Token CSRF não encontrado. Recarregue a página e tente novamente.');
+            }
+    
+            console.log(`Enviando requisição para ${url}...`);
     
             const finalConfig = {
                 ...config,
@@ -154,15 +173,22 @@ function GerarImagemPage() {
         } catch (err) {
             console.error(`Erro ao chamar ${url}:`, err);
             let errorMessage = 'Ocorreu um erro ao processar sua solicitação.';
+            
             if (err.response) {
-                console.error("Erro - Status:", err.response.status);
-                console.error("Erro - Dados:", err.response.data);
-                errorMessage = err.response.data?.error || err.response.data?.detail || `Erro do servidor: ${err.response.status}`;
+                console.error("Status do erro:", err.response.status);
+                console.error("Dados do erro:", err.response.data);
+                
+                if (err.response.status === 403 && err.response.data?.detail?.includes('CSRF')) {
+                    errorMessage = "Erro de segurança (CSRF). Recarregue a página e tente novamente.";
+                } else {
+                    errorMessage = err.response.data?.error || err.response.data?.detail || `Erro do servidor: ${err.response.status}`;
+                }
             } else if (err.request) {
                 errorMessage = 'Não foi possível conectar ao servidor.';
             } else {
-                errorMessage = 'Ocorreu um erro ao preparar a requisição.';
+                errorMessage = err.message || 'Ocorreu um erro ao preparar a requisição.';
             }
+            
             setError(errorMessage);
         } finally {
             setIsLoading(false);
@@ -248,14 +274,19 @@ function GerarImagemPage() {
         setStyleError('');
         setIsLoading(true);
     
-        const csrfToken = getCookie('csrftoken');
-        console.log("Token CSRF obtido:", csrfToken);  // Debugging
-        
         try {
+            // Força renovação do token CSRF antes de enviar
+            await axios.get('/current-state/');
+            const csrfToken = getCookie('csrftoken');
+            console.log("Token CSRF para salvar estilo:", csrfToken);
+    
+            if (!csrfToken) {
+                throw new Error('Token CSRF não encontrado. Recarregue a página e tente novamente.');
+            }
+    
             const url = currentStyle ? `/styles/${currentStyle.id}/` : '/styles/';
             const method = currentStyle ? 'patch' : 'post';
             
-            // Garantir que o token está sendo enviado corretamente
             const response = await axios({
                 method: method,
                 url: url,
@@ -270,16 +301,26 @@ function GerarImagemPage() {
                 withCredentials: true
             });
             
-            console.log("Estilo salvo:", response.data);
+            console.log("Estilo salvo com sucesso:", response.data);
             closeStyleModal();
             fetchStyles();
         } catch (err) {
             console.error("Erro ao salvar estilo:", err);
-            const errorMessage = err.response?.data?.detail || 
-                                err.response?.data?.name?.[0] || 
-                                err.response?.data?.instructions?.[0] || 
-                                "Erro ao salvar estilo.";
-            setStyleError(errorMessage);
+            let errorMsg = "Erro ao salvar estilo.";
+            
+            if (err.response?.status === 403 && err.response?.data?.detail?.includes('CSRF')) {
+                errorMsg = "Erro de segurança (CSRF). Recarregue a página e tente novamente.";
+            } else if (err.response?.data?.detail) {
+                errorMsg = err.response.data.detail;
+            } else if (err.response?.data?.name?.[0]) {
+                errorMsg = err.response.data.name[0];
+            } else if (err.response?.data?.instructions?.[0]) {
+                errorMsg = err.response.data.instructions[0];
+            } else if (err.message) {
+                errorMsg = err.message;
+            }
+            
+            setStyleError(errorMsg);
         } finally {
             setIsLoading(false);
         }
