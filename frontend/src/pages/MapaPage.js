@@ -49,7 +49,7 @@ const STATUS_DESCRIPTIONS = {
 };
 
 // GeoJSON URL
-const GEOJSON_URL = "/world-countries.json";
+const GEOJSON_URL = "/static/data/world-countries.json";
 
 // Isso corrige o problema de ícones quebrados do Leaflet com bundlers como Webpack/CreateReactApp
 delete L.Icon.Default.prototype._getIconUrl;

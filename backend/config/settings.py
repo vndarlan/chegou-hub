@@ -204,15 +204,12 @@ STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
-    # Você pode precisar definir 'default' se usar armazenamento de mídia,
-    # mas para começar, apenas 'staticfiles' é necessário para Whitenoise.
-    # "default": {
-    #     "BACKEND": "django.core.files.storage.FileSystemStorage",
-    # },
 }
-# --- Fim das configurações de estáticos ---
 
-# Default primary key field type
+STATICFILES_DIRS = [
+    BASE_DIR / 'static_files',
+]
+
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
