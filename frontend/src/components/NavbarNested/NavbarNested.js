@@ -131,6 +131,8 @@ export function NavbarNested({
                     </Tooltip>
                 </Group>
             </div>
+            {/* Linha divisória abaixo do header */}
+            <div className={classes.headerDivider}></div>
     
             {/* Área de Links com Scroll */}
             <ScrollArea className={classes.links} component="nav" role="navigation" aria-label="Navegação principal">

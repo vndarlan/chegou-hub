@@ -64,17 +64,19 @@ export function LinksGroup({ icon: Icon, label, initiallyOpened, links, activePa
     return (
       <Popover
         opened={popoverOpened}
-        onClose={() => setPopoverOpened(false)}
         position="right"
         withArrow
         shadow="md"
         width={220}
         withinPortal
+        closeOnEscape={false}
+        closeOnClickOutside={true}
+        trapFocus={false}
       >
         <Popover.Target>
           <div 
             onMouseEnter={() => setPopoverOpened(true)}
-            onMouseLeave={() => setPopoverOpened(false)}
+            onClick={() => setPopoverOpened(prev => !prev)} // Alternar ao clicar
           >
             <UnstyledButton
               onClick={handleControlClick}
