@@ -16,7 +16,7 @@ function CSRFManager({ children }) {
                 
                 // Faz uma chamada ao endpoint de CSRF para obter o token
                 console.log("Obtendo token CSRF...");
-                const response = await axios.get('/current-state/');
+                const response = await axios.get('https://chegou-hubb-production.up.railway.app/api/current-state/');
                 console.log("Resposta do servidor recebida:", response.status);
                 
                 // Configura o interceptor para todas as chamadas não-GET
