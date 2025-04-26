@@ -29,6 +29,7 @@ function getCSRFToken() {
 // Função para criar um cliente axios com CSRF
 function createCSRFAxios() {
     const instance = axios.create({
+        baseURL: 'https://chegou-hubb-production.up.railway.app/api',
         withCredentials: true,
         xsrfHeaderName: 'X-CSRFToken',
         xsrfCookieName: 'csrftoken'
@@ -57,7 +58,8 @@ function createCSRFAxios() {
 async function forceRefreshCSRFToken() {
     try {
         console.log('Forçando refresh do token CSRF...');
-        const response = await axios.get('/ensure-csrf/', { withCredentials: true });
+        // URL completa para o endpoint CSRF
+        const response = await axios.get('https://chegou-hubb-production.up.railway.app/api/ensure-csrf/', { withCredentials: true });
         console.log("Resposta do servidor:", response.status);
         
         const token = getCSRFToken();
@@ -188,7 +190,7 @@ function GerarImagemPage() {
         
         loadStyles();
         return () => { isMounted = false; };
-    }, []);
+    }, []); // Array de dependências vazio para evitar o loop
 
     // Geração com GPT Image
     const handleGenerateImage = async () => {
@@ -335,7 +337,14 @@ function GerarImagemPage() {
             console.log("Estilo salvo com sucesso:", response.data);
             await forceRefreshCSRFToken(); // Renova o token novamente após a operação
             closeStyleModal();
-            fetchStyles();
+            
+            // Substitui a chamada de fetchStyles por uma implementação direta
+            try {
+                const styleResponse = await csrfAxios.get('/styles/');
+                setStylesList(styleResponse.data || []);
+            } catch (e) {
+                console.log("Não foi possível atualizar a lista de estilos");
+            }
         } catch (err) {
             console.error("Erro ao salvar estilo:", err);
             let errorMsg = "Erro ao salvar estilo.";
@@ -368,7 +377,15 @@ function GerarImagemPage() {
             
             await csrfAxios.delete(`/styles/${styleId}/`);
             console.log("Estilo deletado:", styleId);
-            fetchStyles();
+            
+            // Substitui a chamada de fetchStyles por uma implementação direta
+            try {
+                const styleResponse = await csrfAxios.get('/styles/');
+                setStylesList(styleResponse.data || []);
+            } catch (e) {
+                console.log("Não foi possível atualizar a lista de estilos");
+            }
+            
             if (styleId === selectedStyleId) {
                 setSelectedStyleId(null);
             }
