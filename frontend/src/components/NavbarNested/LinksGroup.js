@@ -1,16 +1,48 @@
 // frontend/src/components/NavbarNested/LinksGroup.js
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Group, Box, Collapse, ThemeIcon, Text, UnstyledButton, rem, Popover } from '@mantine/core';
 import { IconChevronRight } from '@tabler/icons-react';
 import classes from './LinksGroup.module.css';
 
-export function LinksGroup({ icon: Icon, label, initiallyOpened, links, activePage, setActivePage, collapsed, link: directLink }) {
+export function LinksGroup({ 
+  icon: Icon, 
+  label, 
+  initiallyOpened, 
+  links, 
+  activePage, 
+  setActivePage, 
+  collapsed, 
+  link: directLink,
+  activeMenu,
+  setActiveMenu 
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const hasLinks = Array.isArray(links) && links.length > 0;
   const [opened, setOpened] = useState(initiallyOpened || false);
   const [popoverOpened, setPopoverOpened] = useState(false);
+
+  // Adicione este useEffect para lidar com cliques fora do componente
+  useEffect(() => {
+    if (!collapsed || !popoverOpened) return;
+    
+    const handleClickOutside = (event) => {
+      // Fechar o popover quando clicar fora dele
+      setPopoverOpened(false);
+    };
+    
+    // Adiciona event listener com pequeno atraso para evitar fechamento imediato
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 100);
+    
+    // Limpeza quando o componente desmontar ou estado mudar
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [collapsed, popoverOpened]);
 
   // Verifica se o item está ativo (selecionado)
   const isActive = location.pathname === directLink ||
@@ -51,6 +83,10 @@ export function LinksGroup({ icon: Icon, label, initiallyOpened, links, activePa
       if (collapsed) {
         // No modo colapsado, alterna visibilidade do popover
         setPopoverOpened((o) => !o);
+        // Se temos um gerenciador de menu ativo, atualizar o menu ativo
+        if (setActiveMenu) {
+          setActiveMenu(o => o === label ? null : label);
+        }
       } else {
         // Modo normal, abre/fecha o submenu
         setOpened((o) => !o);
@@ -72,13 +108,16 @@ export function LinksGroup({ icon: Icon, label, initiallyOpened, links, activePa
           arrowPosition="center"
           shadow="md"
           width={220}
-          withinPortal={true}
-          clickOutsideEvents={['mousedown', 'touchstart']}
-          closeOnClickOutside={true}
+          withinPortal
+          closeOnClickOutside
+          trapFocus={false}
         >
           <Popover.Target>
             <UnstyledButton
-              onClick={handleControlClick}
+              onClick={(e) => {
+                e.stopPropagation(); // Impede que o clique feche imediatamente
+                handleControlClick();
+              }}
               className={`${classes.control} ${classes.controlCollapsed} ${isActive ? classes.controlActive : ''}`}
             >
               <Group justify="center" gap={0} wrap="nowrap">
@@ -88,7 +127,7 @@ export function LinksGroup({ icon: Icon, label, initiallyOpened, links, activePa
               </Group>
             </UnstyledButton>
           </Popover.Target>
-          <Popover.Dropdown>
+          <Popover.Dropdown onClick={(e) => e.stopPropagation()}>
             <Text fw={500} size="sm" mb="xs">{label}</Text>
             <div className={classes.popoverLinks}>
               {items}

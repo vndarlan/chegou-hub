@@ -264,7 +264,7 @@ function LoginPage({ setIsLoggedIn }) {
                          <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} loaderProps={{ color: 'orange', type: 'bars' }}/>
                         <Stack gap="lg">
                             <Title order={2} ta="center">
-                                {mode === 'login' ? 'Login - Grupo Chegou' : 'Criar Conta - Grupo Chegou'}
+                                {mode === 'login' ? 'Login - Chegou Hub' : 'Criar Conta - Chegou Hub'}
                             </Title>
 
                             {/* Exibe Notificação */}
