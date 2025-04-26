@@ -18,7 +18,7 @@ function getCSRFToken() {
         const cookies = document.cookie.split(';')
             .map(cookie => cookie.trim())
             .filter(cookie => cookie.startsWith('csrftoken='));
-        
+
         if (cookies.length > 0) {
             csrftoken = cookies[0].split('=')[1];
         }
@@ -34,7 +34,7 @@ function createCSRFAxios() {
         xsrfHeaderName: 'X-CSRFToken',
         xsrfCookieName: 'csrftoken'
     });
-    
+
     instance.interceptors.request.use(
         async (config) => {
             if (config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
@@ -50,7 +50,7 @@ function createCSRFAxios() {
         },
         (error) => Promise.reject(error)
     );
-    
+
     return instance;
 }
 
@@ -61,7 +61,7 @@ async function forceRefreshCSRFToken() {
         // URL completa para o endpoint CSRF
         const response = await axios.get('https://chegou-hubb-production.up.railway.app/api/ensure-csrf/', { withCredentials: true });
         console.log("Resposta do servidor:", response.status);
-        
+
         const token = getCSRFToken();
         if (token) {
             console.log(`Token CSRF atualizado: ${token.substring(0, 10)}...`);
@@ -83,7 +83,10 @@ function GerarImagemPage() {
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('generate'); // agora apenas generate e edit
 
-    // Cliente axios com CSRF
+    // Cliente axios com CSRF - Criado aqui, mas não muda a cada render
+    // É importante que esta linha NÃO esteja dentro do componente se não usar useMemo
+    // Se createCSRFAxios() não depende de nada dentro do componente, pode até ficar fora dele.
+    // Mas para simplicidade, vamos deixar aqui e consertar o useEffect.
     const csrfAxios = createCSRFAxios();
 
     // --- Estados de Geração (apenas GPT-Image-1) ---
@@ -129,18 +132,18 @@ function GerarImagemPage() {
 
             const token = getCSRFToken();
             console.log("Token CSRF obtido na montagem:", token);
-            
+
             if (!token) {
                 console.warn("AVISO: Token CSRF não encontrado após chamar /current-state/");
             }
         };
-        
+
         refreshCSRF();
     }, []);
 
     // Atualiza se o output_compression deve estar ativo
     const compressionEnabled = ['webp', 'jpeg'].includes(selectedOutputFormat);
-    
+
     // Atualiza se o background transparente pode ser selecionado
     useEffect(() => {
         if (selectedBackground === 'transparent' && !['png', 'webp'].includes(selectedOutputFormat)) {
@@ -171,10 +174,12 @@ function GerarImagemPage() {
                 }
             }
         };
-        
+
         loadStyles();
         return () => { isMounted = false; };
-    }, [csrfAxios]); // Array de dependências vazio para evitar o loop
+    // <<< CORREÇÃO AQUI >>>
+    // Troque [csrfAxios] por um array vazio [] para rodar só uma vez.
+    }, []);
 
     // Geração com GPT Image
     const handleGenerateImage = async () => {
@@ -234,14 +239,16 @@ function GerarImagemPage() {
         setIsLoading(true);
         setError(null);
         setGeneratedImages([]);
-        
+
         try {
-            // Força atualização do token CSRF
-            await forceRefreshCSRFToken();
-            
+            // --- Ponto de Otimização (Opcional, mas recomendado) ---
+            // Remover a linha abaixo depois que o CSRF estiver funcionando
+            // await forceRefreshCSRFToken();
+            // --- Fim da Otimização ---
+
             console.log(`Enviando requisição para ${url}...`);
-            const token = getCSRFToken();
-            console.log("Token CSRF para API call:", token);
+            const token = getCSRFToken(); // Só para debug, o interceptor que envia
+            console.log("Token CSRF lido para API call (debug):", token);
 
             const response = await csrfAxios.post(url, payload, config);
 
@@ -255,11 +262,11 @@ function GerarImagemPage() {
         } catch (err) {
             console.error(`Erro ao chamar ${url}:`, err);
             let errorMessage = 'Ocorreu um erro ao processar sua solicitação.';
-            
+
             if (err.response) {
                 console.error("Status do erro:", err.response.status);
                 console.error("Dados do erro:", err.response.data);
-                
+
                 if (err.response.status === 403 && err.response?.data?.detail?.includes('CSRF')) {
                     errorMessage = "Erro de segurança (CSRF). Recarregue a página e tente novamente.";
                 } else {
@@ -270,7 +277,7 @@ function GerarImagemPage() {
             } else {
                 errorMessage = err.message || 'Ocorreu um erro ao preparar a requisição.';
             }
-            
+
             setError(errorMessage);
         } finally {
             setIsLoading(false);
@@ -303,36 +310,37 @@ function GerarImagemPage() {
         setIsLoading(true);
 
         try {
-            // Força atualização do token CSRF
-            await forceRefreshCSRFToken();
-            
+            // --- Ponto de Otimização (Opcional, mas recomendado) ---
+            // Remover a linha abaixo depois que o CSRF estiver funcionando
+            // await forceRefreshCSRFToken();
+            // --- Fim da Otimização ---
+
             const url = currentStyle ? `/styles/${currentStyle.id}/` : '/styles/';
             const method = currentStyle ? 'patch' : 'post';
-            
+
             const response = await csrfAxios({
                 method: method,
                 url: url,
-                data: { 
-                    name: styleName.trim(), 
-                    instructions: styleInstructions.trim() 
+                data: {
+                    name: styleName.trim(),
+                    instructions: styleInstructions.trim()
                 }
             });
-            
+
             console.log("Estilo salvo com sucesso:", response.data);
-            await forceRefreshCSRFToken(); // Renova o token novamente após a operação
             closeStyleModal();
-            
-            // Substitui a chamada de fetchStyles por uma implementação direta
+
+            // Atualiza a lista de estilos diretamente após salvar
             try {
                 const styleResponse = await csrfAxios.get('/styles/');
                 setStylesList(styleResponse.data || []);
             } catch (e) {
-                console.log("Não foi possível atualizar a lista de estilos");
+                console.log("Não foi possível atualizar a lista de estilos após salvar.");
             }
         } catch (err) {
             console.error("Erro ao salvar estilo:", err);
             let errorMsg = "Erro ao salvar estilo.";
-            
+
             if (err.response?.status === 403 && err.response?.data?.detail?.includes('CSRF')) {
                 errorMsg = "Erro de segurança (CSRF). Recarregue a página e tente novamente.";
             } else if (err.response?.data?.detail) {
@@ -344,7 +352,7 @@ function GerarImagemPage() {
             } else if (err.message) {
                 errorMsg = err.message;
             }
-            
+
             setStyleError(errorMsg);
         } finally {
             setIsLoading(false);
@@ -356,20 +364,22 @@ function GerarImagemPage() {
 
         setIsLoading(true);
         try {
-            // Força atualização do token CSRF
-            await forceRefreshCSRFToken();
-            
+             // --- Ponto de Otimização (Opcional, mas recomendado) ---
+            // Remover a linha abaixo depois que o CSRF estiver funcionando
+            // await forceRefreshCSRFToken();
+            // --- Fim da Otimização ---
+
             await csrfAxios.delete(`/styles/${styleId}/`);
             console.log("Estilo deletado:", styleId);
-            
-            // Substitui a chamada de fetchStyles por uma implementação direta
+
+            // Atualiza a lista de estilos diretamente após deletar
             try {
                 const styleResponse = await csrfAxios.get('/styles/');
                 setStylesList(styleResponse.data || []);
             } catch (e) {
-                console.log("Não foi possível atualizar a lista de estilos");
+                console.log("Não foi possível atualizar a lista de estilos após deletar.");
             }
-            
+
             if (styleId === selectedStyleId) {
                 setSelectedStyleId(null);
             }
@@ -497,82 +507,82 @@ function GerarImagemPage() {
                                      clearable
                                      disabled={isLoading}
                                 />
-                                
+
                                 {/* Parâmetros do gpt-image-1 */}
                                 <Group grow>
-                                    <Select 
-                                        label="Tamanho" 
-                                        value={selectedSizeGen} 
-                                        onChange={setSelectedSizeGen} 
+                                    <Select
+                                        label="Tamanho"
+                                        value={selectedSizeGen}
+                                        onChange={setSelectedSizeGen}
                                         data={[
                                             { value: 'auto', label: 'Auto (Recomendado)' },
                                             { value: '1024x1024', label: '1024x1024 (Quadrado)' },
                                             { value: '1536x1024', label: '1536x1024 (Paisagem)' },
                                             { value: '1024x1536', label: '1024x1536 (Retrato)' }
-                                        ]} 
-                                        disabled={isLoading} 
+                                        ]}
+                                        disabled={isLoading}
                                     />
-                                    <Select 
-                                        label="Qualidade" 
-                                        value={selectedQualityGen} 
-                                        onChange={setSelectedQualityGen} 
+                                    <Select
+                                        label="Qualidade"
+                                        value={selectedQualityGen}
+                                        onChange={setSelectedQualityGen}
                                         data={[
                                             { value: 'auto', label: 'Auto (Recomendado)' },
                                             { value: 'high', label: 'Alta' },
                                             { value: 'medium', label: 'Média' },
                                             { value: 'low', label: 'Baixa' }
-                                        ]} 
-                                        disabled={isLoading} 
+                                        ]}
+                                        disabled={isLoading}
                                     />
                                 </Group>
-                                
+
                                 <Group grow>
-                                    <Select 
-                                        label="Formato de Saída" 
-                                        value={selectedOutputFormat} 
-                                        onChange={setSelectedOutputFormat} 
+                                    <Select
+                                        label="Formato de Saída"
+                                        value={selectedOutputFormat}
+                                        onChange={setSelectedOutputFormat}
                                         data={[
                                             { value: 'png', label: 'PNG (Com transparência)' },
                                             { value: 'webp', label: 'WebP (Melhor compressão)' },
                                             { value: 'jpeg', label: 'JPEG (Sem transparência)' }
-                                        ]} 
-                                        disabled={isLoading} 
+                                        ]}
+                                        disabled={isLoading}
                                     />
-                                    <Select 
-                                        label="Fundo" 
-                                        value={selectedBackground} 
-                                        onChange={setSelectedBackground} 
+                                    <Select
+                                        label="Fundo"
+                                        value={selectedBackground}
+                                        onChange={setSelectedBackground}
                                         data={[
                                             { value: 'auto', label: 'Auto (Recomendado)' },
                                             { value: 'transparent', label: 'Transparente', disabled: !['png', 'webp'].includes(selectedOutputFormat) },
                                             { value: 'opaque', label: 'Opaco' }
-                                        ]} 
-                                        disabled={isLoading} 
+                                        ]}
+                                        disabled={isLoading}
                                     />
                                 </Group>
-                                
+
                                 <Group grow>
-                                    <NumberInput 
-                                        label="Nº de Imagens" 
-                                        value={nImagesGen} 
-                                        onChange={setNImagesGen} 
-                                        min={1} 
-                                        max={10} 
-                                        step={1} 
-                                        disabled={isLoading} 
+                                    <NumberInput
+                                        label="Nº de Imagens"
+                                        value={nImagesGen}
+                                        onChange={setNImagesGen}
+                                        min={1}
+                                        max={10}
+                                        step={1}
+                                        disabled={isLoading}
                                     />
-                                    <Select 
-                                        label="Moderação" 
-                                        value={selectedModeration} 
-                                        onChange={setSelectedModeration} 
+                                    <Select
+                                        label="Moderação"
+                                        value={selectedModeration}
+                                        onChange={setSelectedModeration}
                                         data={[
                                             { value: 'auto', label: 'Auto (Padrão)' },
                                             { value: 'low', label: 'Baixa (Menos restrito)' }
-                                        ]} 
-                                        disabled={isLoading} 
+                                        ]}
+                                        disabled={isLoading}
                                     />
                                 </Group>
-                                
+
                                 {/* Slider de compressão para WebP e JPEG */}
                                 {compressionEnabled && (
                                     <Stack gap="xs">
@@ -594,7 +604,7 @@ function GerarImagemPage() {
                                         <Text size="xs" c="dimmed">Menor valor = menor tamanho de arquivo, qualidade inferior</Text>
                                     </Stack>
                                 )}
-                                
+
                                 <Group justify="flex-end" mt="md">
                                      <Button onClick={handleGenerateImage} disabled={isLoading || !prompt.trim()} loading={isLoading} leftSection={<IconSparkles size={18}/>}>
                                          Gerar com GPT Image
@@ -634,29 +644,29 @@ function GerarImagemPage() {
                                     minRows={3} autosize disabled={isLoading} required
                                 />
                                 <Group grow>
-                                    <Select 
-                                        label="Tamanho" 
-                                        value={selectedSizeEdit} 
+                                    <Select
+                                        label="Tamanho"
+                                        value={selectedSizeEdit}
                                         onChange={setSelectedSizeEdit}
                                         data={[
                                             { value: 'auto', label: 'Auto (Recomendado)' },
                                             { value: '1024x1024', label: '1024x1024 (Quadrado)' },
                                             { value: '1536x1024', label: '1536x1024 (Paisagem)' },
                                             { value: '1024x1536', label: '1024x1536 (Retrato)' }
-                                        ]} 
-                                        disabled={isLoading} 
+                                        ]}
+                                        disabled={isLoading}
                                     />
-                                    <Select 
-                                        label="Qualidade" 
-                                        value={selectedQualityEdit} 
+                                    <Select
+                                        label="Qualidade"
+                                        value={selectedQualityEdit}
                                         onChange={setSelectedQualityEdit}
                                         data={[
                                             { value: 'auto', label: 'Auto (Recomendado)' },
                                             { value: 'high', label: 'Alta' },
                                             { value: 'medium', label: 'Média' },
                                             { value: 'low', label: 'Baixa' }
-                                        ]} 
-                                        disabled={isLoading} 
+                                        ]}
+                                        disabled={isLoading}
                                     />
                                 </Group>
                                 <NumberInput label="Nº de Edições" value={nImagesEdit} onChange={setNImagesEdit} min={1} max={10} step={1} disabled={isLoading} />
