@@ -103,3 +103,14 @@
   margin: var(--mantine-spacing-xs) 0;
   width: 100%;
 }
+
+.navbarCollapsed .header {
+  display: flex;
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.navbarCollapsed .collapseToggle {
+  margin: 0 auto;
+}
