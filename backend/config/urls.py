@@ -11,14 +11,17 @@ from core.views import (
     GenerateImageView, # View existente
     EditImageView,       # <<< Nova View
     CreateVariationView, # <<< Nova View
-    ImageStyleViewSet    # <<< Novo ViewSet
+    ImageStyleViewSet,
+    ManagedCalendarViewSet    # <<< Novo ViewSet
 )
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 
 # Configuração do Router para a API de Estilos
+# Configuração do Router para APIs
 router = DefaultRouter()
-router.register(r'styles', ImageStyleViewSet, basename='imagestyle') # Endpoint /api/styles/
+router.register(r'styles', ImageStyleViewSet, basename='imagestyle')
+router.register(r'calendars', ManagedCalendarViewSet, basename='managedcalendar') 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -37,5 +40,6 @@ urlpatterns = [
 
     # API para Estilos (gerenciada pelo Router)
     path('api/', include(router.urls)), # <<< Inclui as URLs do router (/api/styles/, /api/styles/{pk}/, etc.)
+    
 
 ]

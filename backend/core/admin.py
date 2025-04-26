@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User, Group
 
 # Importar o novo modelo
-from .models import ImageStyle
+from .models import ImageStyle, ManagedCalendar
 
 # --- Configuração User Admin (existente) ---
 class UserAdmin(BaseUserAdmin):
@@ -36,3 +36,9 @@ class ImageStyleAdmin(admin.ModelAdmin):
     #     if not obj: # Apenas na criação
     #         form.base_fields['user'].initial = request.user
     #     return form
+
+@admin.register(ManagedCalendar)
+class ManagedCalendarAdmin(admin.ModelAdmin):
+    list_display = ('name', 'google_calendar_id', 'added_at')
+    search_fields = ('name', 'google_calendar_id')
+    list_filter = ('added_at',)

@@ -16,8 +16,8 @@ from django.utils.decorators import method_decorator
 from openai import OpenAI # Importa a classe principal da OpenAI
 
 # Importar modelos e serializers locais
-from .models import ImageStyle
-from .serializers import ImageStyleSerializer
+from .models import ImageStyle, ManagedCalendar # Adicione ManagedCalendar
+from .serializers import ImageStyleSerializer, ManagedCalendarSerializer
 
 # --- Views de Autenticação e Estado (já existentes - SEM MUDANÇAS AQUI) ---
 class SimpleLoginView(APIView):
@@ -429,3 +429,11 @@ class CreateVariationView(APIView):
 
         except Exception as e:
             return handle_openai_error(e, context="variação")
+        
+class ManagedCalendarViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint para listar, criar e deletar Calendários Gerenciados.
+    """
+    queryset = ManagedCalendar.objects.all().order_by('name')
+    serializer_class = ManagedCalendarSerializer
+    permission_classes = [permissions.IsAuthenticated] # Apenas usuários logados podem gerenciar

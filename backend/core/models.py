@@ -37,3 +37,35 @@ class ImageStyle(models.Model):
 
     def __str__(self):
         return f"{self.name} (Usuário: {self.user.username})"
+    
+class ManagedCalendar(models.Model):
+    """
+    Representa um Google Calendar gerenciado para exibição na AgendaPage.
+    """
+    name = models.CharField(
+        max_length=100,
+        verbose_name="Nome do Calendário",
+        help_text="Um nome descritivo para o calendário (Ex: Marketing, Feriados)."
+    )
+    google_calendar_id = models.CharField( # Usando CharField para flexibilidade, mas pode ser EmailField
+        max_length=255,
+        unique=True, # Garante que o mesmo ID não seja adicionado duas vezes
+        verbose_name="ID do Calendário Google (Email)",
+        help_text="O ID/Email do Google Calendar a ser incorporado."
+    )
+    added_at = models.DateTimeField(auto_now_add=True, verbose_name="Adicionado em")
+    # Opcional: Adicionar quem adicionou
+    # added_by = models.ForeignKey(
+    #     settings.AUTH_USER_MODEL,
+    #     on_delete=models.SET_NULL, # Ou models.PROTECT
+    #     null=True, blank=True,
+    #     verbose_name="Adicionado por"
+    # )
+
+    class Meta:
+        verbose_name = "Calendário Gerenciado"
+        verbose_name_plural = "Calendários Gerenciados"
+        ordering = ['name'] # Ordenar por nome por padrão
+
+    def __str__(self):
+        return f"{self.name} ({self.google_calendar_id})"
