@@ -49,7 +49,7 @@ const STATUS_DESCRIPTIONS = {
 };
 
 // GeoJSON URL
-const GEOJSON_URL = "/static/data/world-countries.json";
+const FULL_GEOJSON_URL = "https://chegou-hubb-production.up.railway.app/static/data/world-countries.json";
 
 // Isso corrige o problema de ícones quebrados do Leaflet com bundlers como Webpack/CreateReactApp
 delete L.Icon.Default.prototype._getIconUrl;
@@ -80,17 +80,21 @@ function MapaPage() {
     useEffect(() => {
         setLoading(true);
         setError(null);
-        axios.get(GEOJSON_URL)
+        // Use a URL completa diretamente na chamada axios.get
+        axios.get(FULL_GEOJSON_URL)
             .then(response => {
                 setGeoJsonData(response.data);
                 setLoading(false);
             })
             .catch(err => {
                 console.error("Erro ao buscar GeoJSON:", err);
-                setError("Não foi possível carregar os dados do mapa. Verifique a conexão ou tente novamente mais tarde.");
+                // Mensagem de erro um pouco mais detalhada no console, se possível
+                console.error("URL tentada:", FULL_GEOJSON_URL);
+                console.error("Detalhes do erro:", err.response || err.message);
+                setError("Não foi possível carregar os dados do mapa. Verifique o console para detalhes.");
                 setLoading(false);
             });
-    }, []); // Roda apenas uma vez ao montar
+    }, []); 
 
     // Função para definir o estilo de cada país no GeoJSON
     const styleGeoJson = (feature) => {
