@@ -9,10 +9,10 @@ from core.views import (
     SelectAreaView,
     RegisterView,
     GenerateImageView,
-    EditImageView,  # Mantida
-    # CreateVariationView,  # Removida, não suportada pelo gpt-image-1
+    EditImageView,
     ImageStyleViewSet,
-    ManagedCalendarViewSet
+    ManagedCalendarViewSet,
+    EnsureCSRFView  # <-- Importe a nova view
 )
 from django.http import HttpResponse
 from django.contrib.auth.models import User
@@ -35,6 +35,7 @@ urlpatterns = [
     # API para Operacional (Imagens)
     path('api/operacional/generate-image/', GenerateImageView.as_view(), name='api_generate_image'),
     path('api/operacional/edit-image/', EditImageView.as_view(), name='api_edit_image'),
+    path('api/ensure-csrf/', EnsureCSRFView.as_view(), name='ensure_csrf'),
     # Rota de variação removida por não ser compatível com gpt-image-1
     # path('api/operacional/create-variation/', CreateVariationView.as_view(), name='api_create_variation'),
 

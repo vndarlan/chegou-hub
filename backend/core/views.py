@@ -14,6 +14,10 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from openai import OpenAI
+from django.http import JsonResponse
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.decorators import method_decorator
+from rest_framework.views import APIView
 
 # Importar modelos e serializers locais
 from .models import ImageStyle, ManagedCalendar
@@ -390,3 +394,17 @@ class ManagedCalendarViewSet(viewsets.ModelViewSet):
     queryset = ManagedCalendar.objects.all().order_by('name')
     serializer_class = ManagedCalendarSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+class EnsureCSRFView(APIView):
+    """
+    Endpoint específico para garantir que o cookie CSRF seja enviado.
+    """
+    permission_classes = []  # Sem restrições de permissão
+
+    @method_decorator(ensure_csrf_cookie)
+    def get(self, request, *args, **kwargs):
+        return JsonResponse({
+            'success': True, 
+            'message': 'CSRF cookie set', 
+            'csrf_present': bool(request.META.get('CSRF_COOKIE', None))
+        })

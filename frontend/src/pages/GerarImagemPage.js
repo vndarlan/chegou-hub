@@ -11,14 +11,69 @@ import {
     IconAlertCircle, IconEdit, IconSparkles, IconPalette, IconPlus, IconTrash, IconPencil, IconDownload
 } from '@tabler/icons-react';
 
-// Função para pegar o valor de um cookie pelo nome (mantida)
-function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) {
-        return parts.pop().split(';').shift();
+// Função para obter o token CSRF
+function getCSRFToken() {
+    let csrftoken = null;
+    if (document.cookie) {
+        const cookies = document.cookie.split(';')
+            .map(cookie => cookie.trim())
+            .filter(cookie => cookie.startsWith('csrftoken='));
+        
+        if (cookies.length > 0) {
+            csrftoken = cookies[0].split('=')[1];
+        }
     }
-    return null;
+    return csrftoken;
+}
+
+// Função para criar um cliente axios com CSRF
+function createCSRFAxios() {
+    const instance = axios.create({
+        withCredentials: true,
+        xsrfHeaderName: 'X-CSRFToken',
+        xsrfCookieName: 'csrftoken'
+    });
+    
+    instance.interceptors.request.use(
+        async (config) => {
+            if (config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
+                const token = getCSRFToken();
+                if (token) {
+                    console.log(`Usando token CSRF: ${token.substring(0, 10)}...`);
+                    config.headers['X-CSRFToken'] = token;
+                } else {
+                    console.warn('Token CSRF não encontrado nos cookies!');
+                }
+            }
+            return config;
+        },
+        (error) => Promise.reject(error)
+    );
+    
+    return instance;
+}
+
+// Função para forçar atualização do token CSRF
+async function forceRefreshCSRFToken() {
+    try {
+        console.log('Forçando refresh do token CSRF...');
+        // Use o endpoint específico para CSRF (se implementado)
+        await axios.get('/current-state/', { withCredentials: true });
+        // Ou use o endpoint específico:
+        // await axios.get('/ensure-csrf/', { withCredentials: true });
+        
+        const token = getCSRFToken();
+        if (token) {
+            console.log(`Token CSRF atualizado: ${token.substring(0, 10)}...`);
+            return true;
+        } else {
+            console.error('Não foi possível obter o token CSRF do servidor.');
+            return false;
+        }
+    } catch (error) {
+        console.error('Erro ao forçar refresh do token CSRF:', error);
+        return false;
+    }
 }
 
 // Componente principal
@@ -27,6 +82,9 @@ function GerarImagemPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('generate'); // agora apenas generate e edit
+
+    // Cliente axios com CSRF
+    const csrfAxios = createCSRFAxios();
 
     // --- Estados de Geração (apenas GPT-Image-1) ---
     const [prompt, setPrompt] = useState('');
@@ -60,41 +118,24 @@ function GerarImagemPage() {
     const [styleInstructions, setStyleInstructions] = useState('');
     const [styleError, setStyleError] = useState('');
 
-
-    // --- Funções Auxiliares ---
-    const fetchStyles = useCallback(async () => {
-        console.log("Buscando estilos...");
-        try {
-            const response = await axios.get('/styles/');
-            setStylesList(response.data || []);
-            console.log("Estilos carregados:", response.data);
-        } catch (err) {
-            console.error("Erro ao buscar estilos:", err);
-            setError("Não foi possível carregar seus estilos salvos.");
-        }
-    }, []);
-
-    // Busca estilos ao montar o componente
+    // Obter token CSRF na montagem
     useEffect(() => {
-        fetchStyles();
-    }, [fetchStyles]);
+        const refreshCSRF = async () => {
+            console.log("Atualizando token CSRF na montagem do componente...");
+            const success = await forceRefreshCSRFToken();
+            if (!success) {
+                console.warn("Não foi possível atualizar o token CSRF. Algumas operações podem falhar.");
+            }
 
-    // Limpar erros e resultados ao mudar de aba
-    useEffect(() => {
-        setError(null);
-        setGeneratedImages([]);
-    }, [activeTab]);
-
-    // Garantir que o token CSRF está disponível
-    useEffect(() => {
-        // Forçar a obtenção do token CSRF
-        axios.get('/current-state/', { withCredentials: true })
-            .then(response => {
-                console.log("Token CSRF renovado");
-            })
-            .catch(error => {
-                console.error("Erro ao renovar token CSRF:", error);
-            });
+            const token = getCSRFToken();
+            console.log("Token CSRF obtido na montagem:", token);
+            
+            if (!token) {
+                console.warn("AVISO: Token CSRF não encontrado após chamar /current-state/");
+            }
+        };
+        
+        refreshCSRF();
     }, []);
 
     // Atualiza se o output_compression deve estar ativo
@@ -107,37 +148,102 @@ function GerarImagemPage() {
         }
     }, [selectedOutputFormat, selectedBackground]);
 
+    // Limpar erros e resultados ao mudar de aba
     useEffect(() => {
-        // Garantir que o token CSRF esteja disponível quando o componente montar
-        const fetchCSRFTokenOnMount = async () => {
-            try {
-                await axios.get('/current-state/');
-                
-                const token = getCookie('csrftoken');
-                console.log("Token CSRF obtido na montagem:", token);
-                
-                if (!token) {
-                    console.warn("AVISO: Token CSRF não encontrado após chamar /current-state/");
-                }
-            } catch (error) {
-                console.error("Erro ao obter token CSRF na montagem:", error);
-            }
-        };
-        
-        fetchCSRFTokenOnMount();
-    }, []);
+        setError(null);
+        setGeneratedImages([]);
+    }, [activeTab]);
 
     // --- Funções de Chamada API ---
-    const handleApiCall = async (url, payload, config = {}, useFormData = false) => {
+    const fetchStyles = useCallback(async () => {
+        console.log("Buscando estilos...");
+        try {
+            // Tenta renovar o token CSRF antes de buscar os estilos
+            await forceRefreshCSRFToken();
+            
+            const response = await csrfAxios.get('/styles/');
+            setStylesList(response.data || []);
+            console.log("Estilos carregados:", response.data);
+        } catch (err) {
+            console.error("Erro ao buscar estilos:", err);
+            setError("Não foi possível carregar seus estilos salvos.");
+        }
+    }, [csrfAxios]);
+
+    // Busca estilos ao montar o componente
+    useEffect(() => {
+        fetchStyles();
+    }, [fetchStyles]);
+
+    // Geração com GPT Image
+    const handleGenerateImage = async () => {
+        if (!prompt.trim()) {
+            setError('Por favor, digite um prompt.');
+            return;
+        }
+
+        const payload = {
+            prompt: prompt.trim(),
+            size: selectedSizeGen,
+            quality: selectedQualityGen,
+            n: nImagesGen,
+            background: selectedBackground,
+            output_format: selectedOutputFormat,
+            moderation: selectedModeration,
+        };
+
+        // Adiciona compressão apenas para webp e jpeg
+        if (compressionEnabled) {
+            payload.output_compression = outputCompression;
+        }
+
+        // Adiciona instruções do estilo se selecionado
+        if (selectedStyleId) {
+            payload.style_id = selectedStyleId;
+        }
+
+        await handleApiCall('/operacional/generate-image/', payload);
+    };
+
+    // Edição
+    const handleEditImage = async () => {
+        if (!editPrompt.trim()) { setError('Prompt de edição é obrigatório.'); return; }
+        if (baseImagesEdit.length === 0) { setError('Selecione ao menos uma imagem base.'); return; }
+
+        const formData = new FormData();
+        formData.append('prompt', editPrompt.trim());
+        formData.append('size', selectedSizeEdit);
+        formData.append('quality', selectedQualityEdit);
+        formData.append('n', nImagesEdit);
+
+        baseImagesEdit.forEach((file, index) => {
+            formData.append('image', file, file.name);
+        });
+
+        if (maskImageEdit) {
+            formData.append('mask', maskImageEdit, maskImageEdit.name);
+        }
+
+        await handleApiCall('/operacional/edit-image/', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    };
+
+    const handleApiCall = async (url, payload, config = {}) => {
         setIsLoading(true);
         setError(null);
         setGeneratedImages([]);
         
         try {
+            // Força atualização do token CSRF
+            await forceRefreshCSRFToken();
+            
             console.log(`Enviando requisição para ${url}...`);
-    
-            const response = await axios.post(url, payload, config);
-    
+            const token = getCSRFToken();
+            console.log("Token CSRF para API call:", token);
+
+            const response = await csrfAxios.post(url, payload, config);
+
             if (response.data && response.data.images_b64 && Array.isArray(response.data.images_b64)) {
                 console.log(`${response.data.images_b64.length} imagem(ns) recebida(s).`);
                 setGeneratedImages(response.data.images_b64);
@@ -170,60 +276,6 @@ function GerarImagemPage() {
         }
     };
 
-    // Geração com GPT Image
-    const handleGenerateImage = () => {
-        if (!prompt.trim()) {
-            setError('Por favor, digite um prompt.');
-            return;
-        }
-
-        const payload = {
-            prompt: prompt.trim(),
-            size: selectedSizeGen,
-            quality: selectedQualityGen,
-            n: nImagesGen,
-            background: selectedBackground,
-            output_format: selectedOutputFormat,
-            moderation: selectedModeration,
-        };
-
-        // Adiciona compressão apenas para webp e jpeg
-        if (compressionEnabled) {
-            payload.output_compression = outputCompression;
-        }
-
-        // Adiciona instruções do estilo se selecionado
-        if (selectedStyleId) {
-            payload.style_id = selectedStyleId;
-        }
-
-        handleApiCall('/operacional/generate-image/', payload);
-    };
-
-    // Edição
-    const handleEditImage = () => {
-        if (!editPrompt.trim()) { setError('Prompt de edição é obrigatório.'); return; }
-        if (baseImagesEdit.length === 0) { setError('Selecione ao menos uma imagem base.'); return; }
-
-        const formData = new FormData();
-        formData.append('prompt', editPrompt.trim());
-        formData.append('size', selectedSizeEdit);
-        formData.append('quality', selectedQualityEdit);
-        formData.append('n', nImagesEdit);
-
-        baseImagesEdit.forEach((file, index) => {
-            formData.append('image', file, file.name);
-        });
-
-        if (maskImageEdit) {
-            formData.append('mask', maskImageEdit, maskImageEdit.name);
-        }
-
-        handleApiCall('/operacional/edit-image/', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        }, true);
-    };
-
     // --- Funções de Gerenciamento de Estilos ---
     const openCreateStyleModal = () => {
         setCurrentStyle(null);
@@ -248,12 +300,15 @@ function GerarImagemPage() {
         }
         setStyleError('');
         setIsLoading(true);
-    
+
         try {
+            // Força atualização do token CSRF
+            await forceRefreshCSRFToken();
+            
             const url = currentStyle ? `/styles/${currentStyle.id}/` : '/styles/';
             const method = currentStyle ? 'patch' : 'post';
             
-            const response = await axios({
+            const response = await csrfAxios({
                 method: method,
                 url: url,
                 data: { 
@@ -263,6 +318,7 @@ function GerarImagemPage() {
             });
             
             console.log("Estilo salvo com sucesso:", response.data);
+            await forceRefreshCSRFToken(); // Renova o token novamente após a operação
             closeStyleModal();
             fetchStyles();
         } catch (err) {
@@ -291,18 +347,18 @@ function GerarImagemPage() {
         if (!window.confirm("Tem certeza que deseja deletar este estilo?")) return;
 
         setIsLoading(true);
-        const csrfToken = getCookie('csrftoken');
         try {
-            await axios.delete(`/styles/${styleId}/`, {
-                headers: { 'X-CSRFToken': csrfToken }
-            });
+            // Força atualização do token CSRF
+            await forceRefreshCSRFToken();
+            
+            await csrfAxios.delete(`/styles/${styleId}/`);
             console.log("Estilo deletado:", styleId);
             fetchStyles();
             if (styleId === selectedStyleId) {
                 setSelectedStyleId(null);
             }
         } catch (err) {
-            console.error("Erro ao deletar estilo:", err.response || err.message);
+            console.error("Erro ao deletar estilo:", err);
             setError("Não foi possível deletar o estilo.");
         } finally {
             setIsLoading(false);

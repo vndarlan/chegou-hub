@@ -14,7 +14,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-import dj_database_url # <<< IMPORTADO
+import dj_database_url
 from urllib.parse import urlparse
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -29,24 +29,23 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY') # <<< LER DO AMBIENTE
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # <<< LER DO AMBIENTE, padrão é False (produção) >>>
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # --- Configuração ALLOWED_HOSTS para produção ---
-# <<< MODIFICADO para ler do ambiente e incluir Railway URL >>>
-ALLOWED_HOSTS_STRING = os.getenv('ALLOWED_HOSTS', '') # Ex: 'meuapp.railway.app,meudominio.com'
+ALLOWED_HOSTS_STRING = os.getenv('ALLOWED_HOSTS', '')
 ALLOWED_HOSTS = []
 if ALLOWED_HOSTS_STRING:
     ALLOWED_HOSTS.extend(ALLOWED_HOSTS_STRING.split(','))
 
 # Adiciona a URL pública que o Railway dá para seu app (se disponível em env)
-RAILWAY_STATIC_URL = os.getenv('RAILWAY_STATIC_URL') # Formato 'hostname/...'
+RAILWAY_STATIC_URL = os.getenv('RAILWAY_STATIC_URL')
 if RAILWAY_STATIC_URL and '/' in RAILWAY_STATIC_URL:
     RAILWAY_HOSTNAME = RAILWAY_STATIC_URL.split('/')[0]
-    if RAILWAY_HOSTNAME not in ALLOWED_HOSTS: # Evita duplicados
+    if RAILWAY_HOSTNAME not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(RAILWAY_HOSTNAME)
 
 # Adiciona localhost e 127.0.0.1 se estiver em modo DEBUG para testes locais
@@ -54,7 +53,6 @@ if DEBUG:
     ALLOWED_HOSTS.append('localhost')
     ALLOWED_HOSTS.append('127.0.0.1')
     if not SECRET_KEY:
-       # Chave fallback APENAS para DEBUG local se não definida no .env
        SECRET_KEY = 'django-insecure-fallback-key-change-this-in-real-env-or-prod'
        print("\n\nAVISO: Usando SECRET_KEY de fallback para DEBUG. Defina DJANGO_SECRET_KEY no .env\n\n")
 elif not SECRET_KEY:
@@ -62,24 +60,21 @@ elif not SECRET_KEY:
     raise ValueError("ERRO CRÍTICO: DJANGO_SECRET_KEY não definida no ambiente de produção!")
 # --- Fim ALLOWED_HOSTS ---
 
-
 # --- Chave da API OpenAI ---
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 if not OPENAI_API_KEY and DEBUG:
     print("AVISO: OPENAI_API_KEY não está definida no arquivo .env!")
 # --- Fim da chave OpenAI ---
 
-
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'whitenoise.runserver_nostatic', # <<< ADICIONADO Whitenoise (antes de staticfiles)
-    'django.contrib.staticfiles',    # <<< Mantido
+    'whitenoise.runserver_nostatic',
+    'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
     'core.apps.CoreConfig',
@@ -87,7 +82,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # <<< ADICIONADO Whitenoise (logo após Security)
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -116,8 +111,7 @@ TEMPLATES = [
 ]
 
 # WSGI_APPLICATION = 'config.wsgi.application' # Mantido para compatibilidade
-ASGI_APPLICATION = 'config.asgi.application' # <<< ESSENCIAL para Uvicorn/Railway
-
+ASGI_APPLICATION = 'config.asgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -126,7 +120,7 @@ ASGI_APPLICATION = 'config.asgi.application' # <<< ESSENCIAL para Uvicorn/Railwa
 DATABASE_URL_INTERNAL = os.getenv('DATABASE_URL')
 DATABASE_URL_PUBLIC = os.getenv('DATABASE_PUBLIC_URL')
 
-DATABASES = {} # Iniciar vazio
+DATABASES = {}
 
 if DATABASE_URL_PUBLIC:
     print("INFO: Configurando banco de dados usando URL PÚBLICA (parse manual).")
@@ -134,18 +128,16 @@ if DATABASE_URL_PUBLIC:
         url = urlparse(DATABASE_URL_PUBLIC)
         DATABASES['default'] = {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': url.path[1:], # Remove a barra inicial do path
+            'NAME': url.path[1:],
             'USER': url.username,
             'PASSWORD': url.password,
             'HOST': url.hostname,
             'PORT': url.port,
-            'OPTIONS': {'sslmode': 'require'} # Forçar SSL para conexão pública
+            'OPTIONS': {'sslmode': 'require'}
         }
     except Exception as e:
         print(f"ERRO: Falha ao parsear DATABASE_PUBLIC_URL: {e}")
-        # Poderia levantar um erro aqui ou tentar fallback
 
-# Se o parse da pública falhou ou ela não existe, tenta a interna com dj_database_url
 if not DATABASES and DATABASE_URL_INTERNAL:
     print(f"INFO: Configurando banco de dados usando URL INTERNA (Pública falhou ou não encontrada).")
     try:
@@ -182,7 +174,6 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
@@ -191,13 +182,12 @@ TIME_ZONE = 'America/Sao_Paulo'
 USE_I18N = True
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
 # --- Configurações de Estáticos para Produção com Whitenoise ---
-STATIC_ROOT = BASE_DIR / 'staticfiles' # <<< OBRIGATÓRIO para collectstatic
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # <<< Storage OBRIGATÓRIO para Whitenoise (Django >= 4.2) >>>
 STORAGES = {
@@ -216,8 +206,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # --- Configuração do CORS ---
 # <<< MODIFICADO para ler origens do ambiente >>>
-CORS_ALLOWED_ORIGINS_STRING = os.getenv('CORS_ALLOWED_ORIGINS', '') # Ex: 'https://frontend.railway.app,https://outro.com'
-CORS_ALLOWED_ORIGINS = []
+CORS_ALLOWED_ORIGINS_STRING = os.getenv('CORS_ALLOWED_ORIGINS', '')
+CORS_ALLOWED_ORIGINS = [
+    "https://chegou-hubb-production.up.railway.app",  # Seu domínio frontend
+]
 if DEBUG:
     # Permitir localhost em DEBUG
     CORS_ALLOWED_ORIGINS.extend([
@@ -233,8 +225,10 @@ CORS_ALLOW_CREDENTIALS = True
 
 # --- Configuração CSRF ---
 # <<< MODIFICADO para ler origens do ambiente >>>
-CSRF_TRUSTED_ORIGINS_STRING = os.getenv('CSRF_TRUSTED_ORIGINS', '') # Ex: 'https://frontend.railway.app,https://outro.com'
-CSRF_TRUSTED_ORIGINS = []
+CSRF_TRUSTED_ORIGINS_STRING = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+CSRF_TRUSTED_ORIGINS = [
+    "https://chegou-hubb-production.up.railway.app",  # Seu domínio frontend
+]
 if DEBUG:
     CSRF_TRUSTED_ORIGINS.extend([
         'http://localhost:3000',
@@ -243,6 +237,11 @@ if DEBUG:
 if CSRF_TRUSTED_ORIGINS_STRING:
     # Adiciona URLs do ambiente (ex: a URL do seu frontend no Railway)
     CSRF_TRUSTED_ORIGINS.extend([origin.strip() for origin in CSRF_TRUSTED_ORIGINS_STRING.split(',')])
+
+# CSRF Cookie configurações
+CSRF_COOKIE_SECURE = False if DEBUG else True
+CSRF_COOKIE_HTTPONLY = False  # Precisa ser False para que o JavaScript possa ler
+CSRF_COOKIE_SAMESITE = 'Lax'  # Menos restritivo, mas ainda seguro para a maioria dos casos
 
 # <<< Ajustes de Segurança para Produção (HTTPS) >>>
 if not DEBUG: # Apenas em produção (quando DEBUG=False)
@@ -266,8 +265,6 @@ else:
      SESSION_COOKIE_SECURE = False # Permite cookie de sessão em HTTP
      CSRF_COOKIE_SECURE = False    # Permite cookie CSRF em HTTP
      SECURE_SSL_REDIRECT = False   # Não força redirect em dev local
-
-# CSRF_COOKIE_HTTPONLY = False # Padrão já é False, necessário para JS ler
 
 # --- Configuração REST Framework (sem mudanças) ---
 REST_FRAMEWORK = {
