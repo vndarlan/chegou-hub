@@ -1,12 +1,11 @@
 // src/pages/MapaPage.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react'; // Adicionado useMemo
 import { MapContainer, TileLayer, GeoJSON, Marker, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css'; // Estilos essenciais do Leaflet
-import L from 'leaflet'; // Importa a biblioteca Leaflet para ícones customizados, se necessário
-import axios from 'axios'; // Usaremos axios que já está no projeto
+import L from 'leaflet'; // Importa a biblioteca Leaflet para ícones customizados
 
 // Importar componentes do Mantine para layout e texto
-import { Box, Grid, Title, Text, List, LoadingOverlay, Alert, Stack, Group } from '@mantine/core'; // <--- ADICIONADO 'Group' AQUI
+import { Box, Grid, Title, Text, List, LoadingOverlay, Alert, Stack, Group } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 
 // --- Configuration (Adaptado do Python) ---
@@ -48,10 +47,11 @@ const STATUS_DESCRIPTIONS = {
     "expanding": "Em Expansão / Validação"
 };
 
-// GeoJSON URL
+// --- URL do GeoJSON servido pelo Backend ---
+// Usando a URL completa para evitar problemas com baseURL do Axios
 const FULL_GEOJSON_URL = "https://chegou-hubb-production.up.railway.app/static/data/world-countries.json";
 
-// Isso corrige o problema de ícones quebrados do Leaflet com bundlers como Webpack/CreateReactApp
+// --- Configuração do Ícone Padrão do Leaflet (Correção para Webpack) ---
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
@@ -60,13 +60,14 @@ L.Icon.Default.mergeOptions({
 });
 // --- Fim da Correção de Ícone ---
 
+
 function MapaPage() {
     const [geoJsonData, setGeoJsonData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Mapa normalizado -> status
-    const countryStatusMap = React.useMemo(() => {
+    // Mapa normalizado -> status (usando useMemo para evitar recálculo desnecessário)
+    const countryStatusMap = useMemo(() => {
         const map = new Map();
         for (const status in COUNTRY_DATA) {
             COUNTRY_DATA[status].forEach(countryOrig => {
@@ -77,24 +78,39 @@ function MapaPage() {
         return map;
     }, []); // Recalcula apenas se COUNTRY_DATA ou NAME_MAP mudarem (o que não acontece aqui)
 
+    // --- Efeito para buscar os dados GeoJSON ---
     useEffect(() => {
         setLoading(true);
         setError(null);
-        // Use a URL completa diretamente na chamada axios.get
-        axios.get(FULL_GEOJSON_URL)
+        console.log(`Tentando buscar GeoJSON de: ${FULL_GEOJSON_URL}`);
+
+        // ***** MUDANÇA PRINCIPAL: Usando fetch em vez de axios *****
+        // fetch não envia credenciais por padrão, evitando o erro CORS específico
+        fetch(FULL_GEOJSON_URL)
             .then(response => {
-                setGeoJsonData(response.data);
-                setLoading(false);
+                console.log(`Resposta recebida: Status ${response.status}`);
+                // Verifica se a resposta da rede foi ok (status 200-299)
+                if (!response.ok) {
+                    // Se a resposta não foi ok, lança um erro que será pego pelo .catch()
+                    throw new Error(`Erro HTTP! Status: ${response.status}, ao buscar ${FULL_GEOJSON_URL}`);
+                }
+                // Se a resposta foi ok, tenta converter o corpo para JSON
+                return response.json();
+            })
+            .then(data => {
+                // Se a conversão para JSON foi bem-sucedida
+                console.log("GeoJSON recebido e parseado com sucesso.");
+                setGeoJsonData(data); // Atualiza o estado com os dados
+                setLoading(false);    // Marca o carregamento como concluído
             })
             .catch(err => {
+                // Se ocorreu qualquer erro na rede ou na conversão para JSON
                 console.error("Erro ao buscar GeoJSON:", err);
-                // Mensagem de erro um pouco mais detalhada no console, se possível
-                console.error("URL tentada:", FULL_GEOJSON_URL);
-                console.error("Detalhes do erro:", err.response || err.message);
-                setError("Não foi possível carregar os dados do mapa. Verifique o console para detalhes.");
-                setLoading(false);
+                setError(`Não foi possível carregar os dados do mapa. ${err.message}`); // Define a mensagem de erro
+                setLoading(false); // Marca o carregamento como concluído (mesmo com erro)
             });
-    }, []); 
+
+    }, []); // O array vazio [] garante que isso rode apenas uma vez ao montar
 
     // Função para definir o estilo de cada país no GeoJSON
     const styleGeoJson = (feature) => {
@@ -122,27 +138,31 @@ function MapaPage() {
         }
     };
 
-    // Cria os marcadores
-    const markers = [];
-    for (const status in COUNTRY_DATA) {
-        const statusDesc = STATUS_DESCRIPTIONS[status] || status;
-        COUNTRY_DATA[status].forEach(countryOrig => {
-            const normalizedName = NAME_MAP[countryOrig] || countryOrig;
-            if (COUNTRY_COORDINATES[normalizedName]) {
-                const coords = COUNTRY_COORDINATES[normalizedName];
-                const displayName = NAME_MAP_REVERSE[normalizedName] || normalizedName;
-                markers.push(
-                    <Marker position={coords} key={`${normalizedName}-marker`}>
-                        <Tooltip>
-                            {`${displayName} - ${statusDesc}`}
-                        </Tooltip>
-                    </Marker>
-                );
-            } else {
-                console.warn(`Coordenadas não encontradas para ${countryOrig}`);
-            }
-        });
-    }
+    // Cria os marcadores (usando useMemo para otimizar, recalcula só se as dependências mudarem)
+    const markers = useMemo(() => {
+        const markerList = [];
+        for (const status in COUNTRY_DATA) {
+            const statusDesc = STATUS_DESCRIPTIONS[status] || status;
+            COUNTRY_DATA[status].forEach(countryOrig => {
+                const normalizedName = NAME_MAP[countryOrig] || countryOrig;
+                if (COUNTRY_COORDINATES[normalizedName]) {
+                    const coords = COUNTRY_COORDINATES[normalizedName];
+                    const displayName = NAME_MAP_REVERSE[normalizedName] || normalizedName;
+                    markerList.push(
+                        <Marker position={coords} key={`${normalizedName}-marker`}>
+                            <Tooltip>
+                                {`${displayName} - ${statusDesc}`}
+                            </Tooltip>
+                        </Marker>
+                    );
+                } else {
+                    console.warn(`Coordenadas não encontradas para ${countryOrig}`);
+                }
+            });
+        }
+        return markerList;
+    }, []); // Recalcula apenas se COUNTRY_DATA, NAME_MAP, etc. mudarem (o que não acontece)
+
 
     // Renderização da Legenda (Componente separado para clareza)
     const Legend = () => (
@@ -169,7 +189,7 @@ function MapaPage() {
     // Renderização das Listas (Componente separado)
     const CountryLists = () => (
          <Grid mt="xl">
-            {Object.entries(STATUS_DESCRIPTIONS).map(([status, description], index) => (
+            {Object.entries(STATUS_DESCRIPTIONS).map(([status, description]) => (
                 <Grid.Col span={{ base: 12, sm: 4 }} key={status}>
                     <Title order={5} style={{ color: STATUS_COLORS_HEX[status] }}>
                         {description.split('(')[0].trim()} {/* Pega só a parte principal do título */}
@@ -194,20 +214,24 @@ function MapaPage() {
             <Title order={2} mb="md">🗺️ Mapa de Atuação</Title>
             <Text mb="xl">Visualize os países onde o Grupo Chegou opera, operou ou está expandindo.</Text>
 
+            {/* Indicador de Carregamento */}
             <LoadingOverlay visible={loading} overlayProps={{ radius: "sm", blur: 2 }} />
 
-            {error && (
-                <Alert icon={<IconAlertCircle size="1rem" />} title="Erro ao Carregar Mapa" color="red" radius="md">
+            {/* Mensagem de Erro */}
+            {error && !loading && ( // Mostra erro apenas se não estiver carregando mais
+                <Alert icon={<IconAlertCircle size="1rem" />} title="Erro ao Carregar Mapa" color="red" radius="md" mb="md">
                     {error}
                 </Alert>
             )}
 
+            {/* Conteúdo Principal (Mapa e Legenda) */}
+            {/* Renderiza apenas se não estiver carregando, não houver erro E os dados existirem */}
             {!loading && !error && geoJsonData && (
                 <>
                     <Grid>
                         <Grid.Col span={{ base: 12, md: 9 }}> {/* Coluna do Mapa */}
                              {/* Container do Mapa precisa ter altura definida */}
-                            <Box style={{ height: '650px', width: '100%', border: '1px solid #ccc', borderRadius: 'var(--mantine-radius-md)' /* Opcional: borda arredondada */ }}>
+                            <Box style={{ height: '650px', width: '100%', border: '1px solid #ccc', borderRadius: 'var(--mantine-radius-md)', overflow: 'hidden' /* Evita problemas de borda */ }}>
                                 <MapContainer
                                     center={[20, -30]} // Centro inicial
                                     zoom={2.5} // Zoom inicial
@@ -219,13 +243,15 @@ function MapaPage() {
                                         attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
                                         url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" // Tile CartoDB Positron
                                     />
+                                    {/* A chave aqui força o react-leaflet a recriar a camada se os dados mudarem */}
                                     <GeoJSON
-                                        key={JSON.stringify(geoJsonData)} // Força re-renderização se data mudar
+                                        key={JSON.stringify(geoJsonData)}
                                         data={geoJsonData}
                                         style={styleGeoJson}
                                         onEachFeature={onEachFeature}
                                     />
-                                    {markers} {/* Renderiza os marcadores criados */}
+                                    {/* Renderiza os marcadores criados */}
+                                    {markers}
                                 </MapContainer>
                             </Box>
                         </Grid.Col>
