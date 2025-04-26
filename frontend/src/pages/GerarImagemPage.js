@@ -13,19 +13,12 @@ import {
 
 // Função para pegar o valor de um cookie pelo nome (mantida)
 function getCookie(name) {
-    // [função original mantida]
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) {
+        return parts.pop().split(';').shift();
     }
-    return cookieValue;
+    return null;
 }
 
 // Componente principal
@@ -73,13 +66,17 @@ function GerarImagemPage() {
         console.log("Buscando estilos...");
         try {
             const csrfToken = getCookie('csrftoken');
+            console.log("Token CSRF para fetch styles:", csrfToken);
+            
             const response = await axios.get('/styles/', {
-                headers: { 'X-CSRFToken': csrfToken }
+                headers: { 'X-CSRFToken': csrfToken },
+                withCredentials: true
             });
+            
             setStylesList(response.data || []);
             console.log("Estilos carregados:", response.data);
         } catch (err) {
-            console.error("Erro ao buscar estilos:", err.response || err.message);
+            console.error("Erro ao buscar estilos:", err);
             setError("Não foi possível carregar seus estilos salvos.");
         }
     }, []);
@@ -94,6 +91,18 @@ function GerarImagemPage() {
         setError(null);
         setGeneratedImages([]);
     }, [activeTab]);
+
+    // Garantir que o token CSRF está disponível
+    useEffect(() => {
+        // Forçar a obtenção do token CSRF
+        axios.get('/current-state/', { withCredentials: true })
+            .then(response => {
+                console.log("Token CSRF renovado");
+            })
+            .catch(error => {
+                console.error("Erro ao renovar token CSRF:", error);
+            });
+    }, []);
 
     // Atualiza se o output_compression deve estar ativo
     const compressionEnabled = ['webp', 'jpeg'].includes(selectedOutputFormat);
@@ -111,27 +120,30 @@ function GerarImagemPage() {
         setIsLoading(true);
         setError(null);
         setGeneratedImages([]);
+        
         const csrfToken = getCookie('csrftoken');
-
+        console.log("Token CSRF para API call:", csrfToken);  // Debugging
+    
         if (!csrfToken) {
             setError('Erro de segurança: Token CSRF não encontrado. Recarregue a página.');
             setIsLoading(false);
             return;
         }
-
+    
         try {
-            console.log(`Enviando para ${url}... Payload/FormData keys:`, useFormData ? Array.from(payload.keys()) : Object.keys(payload));
-
+            console.log(`Enviando para ${url}...`);
+    
             const finalConfig = {
                 ...config,
                 headers: {
-                    ...(config.headers || {}),
-                    'X-CSRFToken': csrfToken,
+                    ...config.headers,
+                    'X-CSRFToken': csrfToken
                 },
+                withCredentials: true
             };
-
+    
             const response = await axios.post(url, payload, finalConfig);
-
+    
             if (response.data && response.data.images_b64 && Array.isArray(response.data.images_b64)) {
                 console.log(`${response.data.images_b64.length} imagem(ns) recebida(s).`);
                 setGeneratedImages(response.data.images_b64);
@@ -139,7 +151,6 @@ function GerarImagemPage() {
                 console.error('Resposta da API inválida ou sem imagens:', response.data);
                 setError('Ocorreu um erro inesperado ao receber as imagens.');
             }
-
         } catch (err) {
             console.error(`Erro ao chamar ${url}:`, err);
             let errorMessage = 'Ocorreu um erro ao processar sua solicitação.';
@@ -236,24 +247,39 @@ function GerarImagemPage() {
         }
         setStyleError('');
         setIsLoading(true);
-
+    
         const csrfToken = getCookie('csrftoken');
-        const url = currentStyle ? `/styles/${currentStyle.id}/` : '/styles/';
-        const method = currentStyle ? 'patch' : 'post';
-
+        console.log("Token CSRF obtido:", csrfToken);  // Debugging
+        
         try {
+            const url = currentStyle ? `/styles/${currentStyle.id}/` : '/styles/';
+            const method = currentStyle ? 'patch' : 'post';
+            
+            // Garantir que o token está sendo enviado corretamente
             const response = await axios({
                 method: method,
                 url: url,
-                data: { name: styleName.trim(), instructions: styleInstructions.trim() },
-                headers: { 'X-CSRFToken': csrfToken }
+                data: { 
+                    name: styleName.trim(), 
+                    instructions: styleInstructions.trim() 
+                },
+                headers: { 
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                },
+                withCredentials: true
             });
+            
             console.log("Estilo salvo:", response.data);
             closeStyleModal();
             fetchStyles();
         } catch (err) {
-            console.error("Erro ao salvar estilo:", err.response || err.message);
-            setStyleError(err.response?.data?.detail || err.response?.data?.name?.[0] || err.response?.data?.instructions?.[0] || "Erro ao salvar estilo.");
+            console.error("Erro ao salvar estilo:", err);
+            const errorMessage = err.response?.data?.detail || 
+                                err.response?.data?.name?.[0] || 
+                                err.response?.data?.instructions?.[0] || 
+                                "Erro ao salvar estilo.";
+            setStyleError(errorMessage);
         } finally {
             setIsLoading(false);
         }
