@@ -1,5 +1,5 @@
 // frontend/src/components/NavbarNested/LinksGroup.js
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Group, Box, Collapse, ThemeIcon, Text, UnstyledButton, rem, Popover } from '@mantine/core';
 import { IconChevronRight } from '@tabler/icons-react';
