@@ -12,7 +12,7 @@ export function Logo(props) {
           Chegou Hub
         </Text>
         <Text size="xs" c="dimmed" style={{ lineHeight: 1 }}>
-          v1.0.2
+          BETA
         </Text>
       </div>
     </Group>

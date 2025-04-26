@@ -49,9 +49,8 @@ const STATUS_DESCRIPTIONS = {
 };
 
 // GeoJSON URL
-const GEOJSON_URL = "https://raw.githubusercontent.com/python-visualization/folium/master/examples/data/world-countries.json";
+const GEOJSON_URL = "/world-countries.json";
 
-// --- Configuração do Ícone Padrão do Leaflet (Correção para Webpack) ---
 // Isso corrige o problema de ícones quebrados do Leaflet com bundlers como Webpack/CreateReactApp
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -60,7 +59,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
 });
 // --- Fim da Correção de Ícone ---
-
 
 function MapaPage() {
     const [geoJsonData, setGeoJsonData] = useState(null);
