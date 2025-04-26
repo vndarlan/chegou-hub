@@ -17,7 +17,6 @@ import {
     ActionIcon,
     ScrollArea,
     List,
-    Code,
     Alert,
     LoadingOverlay // Importado para feedback de carregamento
 } from '@mantine/core';
