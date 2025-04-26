@@ -29,7 +29,7 @@ function getCSRFToken() {
 // Função para criar um cliente axios com CSRF
 function createCSRFAxios() {
     const instance = axios.create({
-        baseURL: 'https://chegou-hubb-production.up.railway.app/api',
+        baseURL: 'https://chegou-hubb-production.up.railway.app/api', // Verifique se esta é a URL correta do seu backend
         withCredentials: true,
         xsrfHeaderName: 'X-CSRFToken',
         xsrfCookieName: 'csrftoken'
@@ -37,13 +37,15 @@ function createCSRFAxios() {
 
     instance.interceptors.request.use(
         async (config) => {
+            // Adiciona o token APENAS para métodos que precisam de proteção CSRF
             if (config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
                 const token = getCSRFToken();
                 if (token) {
-                    console.log(`Usando token CSRF: ${token.substring(0, 10)}...`);
+                    // console.log(`DEBUG: Adicionando token CSRF: ${token.substring(0, 5)}... para ${config.url}`); // Log de Debug (opcional)
                     config.headers['X-CSRFToken'] = token;
                 } else {
-                    console.warn('Token CSRF não encontrado nos cookies!');
+                    // Aviso importante se o token não for encontrado ANTES da requisição
+                    console.warn(`AVISO: Token CSRF não encontrado nos cookies antes de enviar ${config.method.toUpperCase()} para ${config.url}`);
                 }
             }
             return config;
@@ -54,49 +56,49 @@ function createCSRFAxios() {
     return instance;
 }
 
-// Função para forçar atualização do token CSRF
-async function forceRefreshCSRFToken() {
+// Função para TENTAR obter/confirmar o token CSRF inicial
+async function ensureCSRFTokenIsSet() {
     try {
-        console.log('Forçando refresh do token CSRF...');
-        // URL completa para o endpoint CSRF
+        console.log('Verificando/Tentando setar token CSRF inicial...');
+        // Usar /ensure-csrf/ ou /current-state/ - ambos devem funcionar se decorados
         const response = await axios.get('https://chegou-hubb-production.up.railway.app/api/ensure-csrf/', { withCredentials: true });
-        console.log("Resposta do servidor:", response.status);
+        console.log("Resposta do servidor (ensure-csrf):", response.status);
+
+        // Pequena pausa para permitir que o cookie seja processado pelo navegador (pode não ser necessário)
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         const token = getCSRFToken();
         if (token) {
-            console.log(`Token CSRF atualizado: ${token.substring(0, 10)}...`);
+            console.log(`Token CSRF confirmado/obtido após chamada inicial: ${token.substring(0, 10)}...`);
             return true;
         } else {
-            console.log('Não foi possível obter token CSRF, mas continuando mesmo assim');
+            console.warn('Token CSRF NÃO encontrado nos cookies após chamada inicial.');
             return false;
         }
     } catch (error) {
-        console.log('Erro ao forçar refresh do token CSRF, continuando mesmo assim');
+        console.error('Erro ao tentar garantir token CSRF inicial:', error);
         return false;
     }
 }
+
+// <<< CORREÇÃO PRINCIPAL >>>
+// Cria a instância Axios FORA da função do componente.
+// Ela será criada apenas uma vez quando este módulo JS for carregado.
+const csrfAxios = createCSRFAxios();
 
 // Componente principal
 function GerarImagemPage() {
     // --- Estados Gerais ---
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [activeTab, setActiveTab] = useState('generate'); // agora apenas generate e edit
+    const [activeTab, setActiveTab] = useState('generate');
 
-    // Cliente axios com CSRF - Criado aqui, mas não muda a cada render
-    // É importante que esta linha NÃO esteja dentro do componente se não usar useMemo
-    // Se createCSRFAxios() não depende de nada dentro do componente, pode até ficar fora dele.
-    // Mas para simplicidade, vamos deixar aqui e consertar o useEffect.
-    const csrfAxios = createCSRFAxios();
-
-    // --- Estados de Geração (apenas GPT-Image-1) ---
+    // --- Estados de Geração ---
     const [prompt, setPrompt] = useState('');
     const [selectedSizeGen, setSelectedSizeGen] = useState('auto');
     const [selectedQualityGen, setSelectedQualityGen] = useState('auto');
     const [nImagesGen, setNImagesGen] = useState(1);
     const [selectedStyleId, setSelectedStyleId] = useState(null);
-
-    // Novos parâmetros específicos do gpt-image-1
     const [selectedBackground, setSelectedBackground] = useState('auto');
     const [selectedOutputFormat, setSelectedOutputFormat] = useState('png');
     const [selectedModeration, setSelectedModeration] = useState('auto');
@@ -121,25 +123,10 @@ function GerarImagemPage() {
     const [styleInstructions, setStyleInstructions] = useState('');
     const [styleError, setStyleError] = useState('');
 
-    // Obter token CSRF na montagem
+    // Tenta garantir que o cookie CSRF esteja presente na montagem
     useEffect(() => {
-        const refreshCSRF = async () => {
-            console.log("Atualizando token CSRF na montagem do componente...");
-            const success = await forceRefreshCSRFToken();
-            if (!success) {
-                console.warn("Não foi possível atualizar o token CSRF. Algumas operações podem falhar.");
-            }
-
-            const token = getCSRFToken();
-            console.log("Token CSRF obtido na montagem:", token);
-
-            if (!token) {
-                console.warn("AVISO: Token CSRF não encontrado após chamar /current-state/");
-            }
-        };
-
-        refreshCSRF();
-    }, []);
+        ensureCSRFTokenIsSet(); // Chama a função para buscar o token inicial
+    }, []); // Roda só uma vez na montagem
 
     // Atualiza se o output_compression deve estar ativo
     const compressionEnabled = ['webp', 'jpeg'].includes(selectedOutputFormat);
@@ -157,19 +144,21 @@ function GerarImagemPage() {
         setGeneratedImages([]);
     }, [activeTab]);
 
-    // Busca estilos ao montar o componente
+    // Busca estilos
     useEffect(() => {
         let isMounted = true;
+        console.log("Executando useEffect para buscar estilos...");
         const loadStyles = async () => {
             try {
+                // Usa a instância csrfAxios que é estável
                 const response = await csrfAxios.get('/styles/');
                 if (isMounted) {
                     setStylesList(response.data || []);
-                    console.log("Estilos carregados:", response.data);
+                    console.log("Estilos carregados:", response.data?.length); // Log mais conciso
                 }
             } catch (err) {
                 console.error("Erro ao buscar estilos:", err);
-                if (isMounted) {
+                if (isMounted && err.response?.status !== 401 && err.response?.status !== 403) {
                     setError("Não foi possível carregar seus estilos salvos.");
                 }
             }
@@ -177,9 +166,9 @@ function GerarImagemPage() {
 
         loadStyles();
         return () => { isMounted = false; };
-    // <<< CORREÇÃO AQUI >>>
-    // Troque [csrfAxios] por um array vazio [] para rodar só uma vez.
-    }, []);
+    // <<< CORREÇÃO ESLINT >>>
+    // Inclui csrfAxios na dependência, pois agora é estável (definido fora)
+    }, [csrfAxios]);
 
     // Geração com GPT Image
     const handleGenerateImage = async () => {
@@ -187,7 +176,6 @@ function GerarImagemPage() {
             setError('Por favor, digite um prompt.');
             return;
         }
-
         const payload = {
             prompt: prompt.trim(),
             size: selectedSizeGen,
@@ -197,88 +185,84 @@ function GerarImagemPage() {
             output_format: selectedOutputFormat,
             moderation: selectedModeration,
         };
-
-        // Adiciona compressão apenas para webp e jpeg
         if (compressionEnabled) {
             payload.output_compression = outputCompression;
         }
-
-        // Adiciona instruções do estilo se selecionado
         if (selectedStyleId) {
             payload.style_id = selectedStyleId;
         }
-
-        await handleApiCall('/operacional/generate-image/', payload);
+        await handleApiCall('/operacional/generate-image/', payload, 'post');
     };
 
     // Edição
     const handleEditImage = async () => {
         if (!editPrompt.trim()) { setError('Prompt de edição é obrigatório.'); return; }
         if (baseImagesEdit.length === 0) { setError('Selecione ao menos uma imagem base.'); return; }
-
         const formData = new FormData();
         formData.append('prompt', editPrompt.trim());
         formData.append('size', selectedSizeEdit);
         formData.append('quality', selectedQualityEdit);
         formData.append('n', nImagesEdit);
-
         baseImagesEdit.forEach((file, index) => {
             formData.append('image', file, file.name);
         });
-
         if (maskImageEdit) {
             formData.append('mask', maskImageEdit, maskImageEdit.name);
         }
-
-        await handleApiCall('/operacional/edit-image/', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await handleApiCall('/operacional/edit-image/', formData, 'post', { headers: { 'Content-Type': 'multipart/form-data' } });
     };
 
-    const handleApiCall = async (url, payload, config = {}) => {
+    // Função genérica para chamadas API state-changing (POST/PATCH/DELETE)
+    const handleApiCall = async (url, payload, method = 'post', config = {}) => {
         setIsLoading(true);
         setError(null);
-        setGeneratedImages([]);
+        // Limpar resultados apenas se for uma chamada de geração/edição
+        if (url.includes('/operacional/')) {
+             setGeneratedImages([]);
+        }
+
+        console.log(`Enviando ${method.toUpperCase()} para ${url}...`);
+        const tokenCheck = getCSRFToken();
+        console.log(`DEBUG: Token CSRF lido ANTES da chamada ${method.toUpperCase()} ${url}:`, tokenCheck ? tokenCheck.substring(0, 10) + '...' : null);
 
         try {
-            // --- Ponto de Otimização (Opcional, mas recomendado) ---
-            // Remover a linha abaixo depois que o CSRF estiver funcionando
-            // await forceRefreshCSRFToken();
-            // --- Fim da Otimização ---
+             // Usa a instância csrfAxios diretamente com o método correto
+             const response = await csrfAxios({
+                 method: method,
+                 url: url,
+                 data: payload,
+                 ...config // Espalha configurações adicionais (como headers para FormData)
+             });
 
-            console.log(`Enviando requisição para ${url}...`);
-            const token = getCSRFToken(); // Só para debug, o interceptor que envia
-            console.log("Token CSRF lido para API call (debug):", token);
+             console.log(`Sucesso ${method.toUpperCase()} ${url}:`, response.status);
 
-            const response = await csrfAxios.post(url, payload, config);
+             // Tratamento específico para geração/edição de imagem
+             if (url.includes('/operacional/') && response.data?.images_b64?.length > 0) {
+                 console.log(`${response.data.images_b64.length} imagem(ns) recebida(s).`);
+                 setGeneratedImages(response.data.images_b64);
+             }
+             // Poderia adicionar tratamento para outros endpoints se necessário
 
-            if (response.data && response.data.images_b64 && Array.isArray(response.data.images_b64)) {
-                console.log(`${response.data.images_b64.length} imagem(ns) recebida(s).`);
-                setGeneratedImages(response.data.images_b64);
-            } else {
-                console.error('Resposta da API inválida ou sem imagens:', response.data);
-                setError('Ocorreu um erro inesperado ao receber as imagens.');
-            }
         } catch (err) {
-            console.error(`Erro ao chamar ${url}:`, err);
+            console.error(`Erro ao chamar ${method.toUpperCase()} ${url}:`, err);
             let errorMessage = 'Ocorreu um erro ao processar sua solicitação.';
-
             if (err.response) {
-                console.error("Status do erro:", err.response.status);
-                console.error("Dados do erro:", err.response.data);
-
-                if (err.response.status === 403 && err.response?.data?.detail?.includes('CSRF')) {
-                    errorMessage = "Erro de segurança (CSRF). Recarregue a página e tente novamente.";
+                console.error(`Status do erro (${method.toUpperCase()} ${url}):`, err.response.status);
+                console.error(`Dados do erro (${method.toUpperCase()} ${url}):`, err.response.data);
+                if (err.response.status === 403) {
+                    errorMessage = `Erro de Segurança (403). Verifique se está logado e tente recarregar a página. Detalhe: ${err.response.data?.detail || 'CSRF ou Permissão'}`;
+                } else if (err.response.status === 401) {
+                    errorMessage = `Não autenticado (401). Faça login novamente.`;
                 } else {
                     errorMessage = err.response.data?.error || err.response.data?.detail || `Erro do servidor: ${err.response.status}`;
                 }
             } else if (err.request) {
                 errorMessage = 'Não foi possível conectar ao servidor.';
             } else {
-                errorMessage = err.message || 'Ocorreu um erro ao preparar a requisição.';
+                errorMessage = `Erro ao preparar a requisição: ${err.message}`;
             }
-
-            setError(errorMessage);
+            setError(errorMessage); // Exibe o erro para o usuário
+            setGeneratedImages([]); // Limpa imagens em caso de erro na geração/edição
         } finally {
             setIsLoading(false);
         }
@@ -307,94 +291,72 @@ function GerarImagemPage() {
             return;
         }
         setStyleError('');
-        setIsLoading(true);
+        setIsLoading(true); // Inicia o loading aqui para cobrir a chamada e a atualização
 
-        try {
-            // --- Ponto de Otimização (Opcional, mas recomendado) ---
-            // Remover a linha abaixo depois que o CSRF estiver funcionando
-            // await forceRefreshCSRFToken();
-            // --- Fim da Otimização ---
+        const url = currentStyle ? `/styles/${currentStyle.id}/` : '/styles/';
+        const method = currentStyle ? 'patch' : 'post';
+        const payload = { name: styleName.trim(), instructions: styleInstructions.trim() };
 
-            const url = currentStyle ? `/styles/${currentStyle.id}/` : '/styles/';
-            const method = currentStyle ? 'patch' : 'post';
+        // Reutiliza handleApiCall
+        await handleApiCall(url, payload, method);
 
-            const response = await csrfAxios({
-                method: method,
-                url: url,
-                data: {
-                    name: styleName.trim(),
-                    instructions: styleInstructions.trim()
-                }
-            });
-
-            console.log("Estilo salvo com sucesso:", response.data);
-            closeStyleModal();
-
-            // Atualiza a lista de estilos diretamente após salvar
-            try {
-                const styleResponse = await csrfAxios.get('/styles/');
-                setStylesList(styleResponse.data || []);
-            } catch (e) {
-                console.log("Não foi possível atualizar a lista de estilos após salvar.");
-            }
-        } catch (err) {
-            console.error("Erro ao salvar estilo:", err);
-            let errorMsg = "Erro ao salvar estilo.";
-
-            if (err.response?.status === 403 && err.response?.data?.detail?.includes('CSRF')) {
-                errorMsg = "Erro de segurança (CSRF). Recarregue a página e tente novamente.";
-            } else if (err.response?.data?.detail) {
-                errorMsg = err.response.data.detail;
-            } else if (err.response?.data?.name?.[0]) {
-                errorMsg = err.response.data.name[0];
-            } else if (err.response?.data?.instructions?.[0]) {
-                errorMsg = err.response.data.instructions[0];
-            } else if (err.message) {
-                errorMsg = err.message;
-            }
-
-            setStyleError(errorMsg);
-        } finally {
-            setIsLoading(false);
-        }
+        // Se a chamada API teve sucesso (sem erro no estado), fecha modal e atualiza lista
+        // Usamos um timeout pequeno para garantir que o estado de erro seja atualizado antes de verificar
+        setTimeout(async () => {
+             if (!error) { // Verifica se não houve erro na chamada
+                closeStyleModal();
+                // Atualiza lista de estilos após sucesso
+                 try {
+                     const styleResponse = await csrfAxios.get('/styles/');
+                     setStylesList(styleResponse.data || []);
+                 } catch (e) {
+                     console.error("Erro ao re-buscar estilos após salvar:", e);
+                     setError("Estilo salvo, mas erro ao atualizar a lista."); // Informa sobre o problema secundário
+                 }
+             } else {
+                 // Se houve erro na handleApiCall, exibe no modal
+                 setStyleError(error);
+                 setError(null); // Limpa o erro global para não mostrar duas vezes
+             }
+             setIsLoading(false); // Finaliza o loading aqui
+        }, 100); // Pequeno delay
     };
 
     const handleDeleteStyle = async (styleId) => {
         if (!window.confirm("Tem certeza que deseja deletar este estilo?")) return;
 
-        setIsLoading(true);
-        try {
-             // --- Ponto de Otimização (Opcional, mas recomendado) ---
-            // Remover a linha abaixo depois que o CSRF estiver funcionando
-            // await forceRefreshCSRFToken();
-            // --- Fim da Otimização ---
+        setIsLoading(true); // Inicia loading
+        await handleApiCall(`/styles/${styleId}/`, null, 'delete'); // Usa handleApiCall para deletar
 
-            await csrfAxios.delete(`/styles/${styleId}/`);
-            console.log("Estilo deletado:", styleId);
-
-            // Atualiza a lista de estilos diretamente após deletar
-            try {
-                const styleResponse = await csrfAxios.get('/styles/');
-                setStylesList(styleResponse.data || []);
-            } catch (e) {
-                console.log("Não foi possível atualizar a lista de estilos após deletar.");
+        // Se a chamada API teve sucesso, atualiza lista
+        setTimeout(async () => {
+            if (!error) {
+                if (styleId === selectedStyleId) {
+                    setSelectedStyleId(null);
+                }
+                // Atualiza lista de estilos após sucesso
+                try {
+                    const styleResponse = await csrfAxios.get('/styles/');
+                    setStylesList(styleResponse.data || []);
+                } catch (e) {
+                    console.error("Erro ao re-buscar estilos após deletar:", e);
+                    setError("Estilo deletado, mas erro ao atualizar a lista.");
+                }
             }
-
-            if (styleId === selectedStyleId) {
-                setSelectedStyleId(null);
-            }
-        } catch (err) {
-            console.error("Erro ao deletar estilo:", err);
-            setError("Não foi possível deletar o estilo.");
-        } finally {
-            setIsLoading(false);
-        }
+            // O erro já foi setado por handleApiCall se houve falha
+             setIsLoading(false); // Finaliza loading
+        }, 100);
     };
 
-    // --- Funções de Download ---
+    // --- Função de Download ---
     const handleDownloadImage = (base64Data, index) => {
         const link = document.createElement('a');
-        link.href = `data:image/${selectedOutputFormat === 'jpeg' ? 'jpeg' : selectedOutputFormat};base64,${base64Data}`;
+        // Determina o mime type correto baseado no formato selecionado
+        let mimeType = 'image/png';
+        if (selectedOutputFormat === 'jpeg') mimeType = 'image/jpeg';
+        else if (selectedOutputFormat === 'webp') mimeType = 'image/webp';
+
+        link.href = `data:${mimeType};base64,${base64Data}`;
         const filename = `gerada_${activeTab}_${index + 1}.${selectedOutputFormat}`;
         link.download = filename;
         document.body.appendChild(link);
@@ -409,43 +371,43 @@ function GerarImagemPage() {
 
             {/* Gerenciamento de Estilos */}
             <Paper shadow="xs" p="lg" withBorder mb="md">
-                 <Group justify="space-between" align="center">
-                     <Title order={4}>🎨 Meus Estilos</Title>
-                     <Button size="xs" leftSection={<IconPlus size={14} />} onClick={openCreateStyleModal}>
-                         Novo Estilo
-                     </Button>
-                 </Group>
-                 <ScrollArea h={150} mt="md">
-                     {stylesList.length === 0 ? (
-                         <Text c="dimmed" ta="center" mt="md">Nenhum estilo criado ainda.</Text>
-                     ) : (
-                         <List spacing="xs" size="sm" center>
-                             {stylesList.map((style) => (
-                                 <List.Item
-                                     key={style.id}
-                                     icon={
-                                         <ThemeIcon color="orange" size={20} radius="xl">
-                                             <IconPalette size="0.8rem" />
-                                         </ThemeIcon>
-                                     }
-                                     styles={{ itemWrapper: { width: '100%' } }}
-                                 >
-                                     <Group justify="space-between" w="100%">
-                                         <Text>{style.name}</Text>
-                                         <Group gap="xs">
-                                             <ActionIcon variant="default" size="sm" onClick={() => openEditStyleModal(style)} title="Editar Estilo">
-                                                 <IconPencil size={14} />
-                                             </ActionIcon>
-                                             <ActionIcon variant="filled" color="red" size="sm" onClick={() => handleDeleteStyle(style.id)} title="Deletar Estilo">
-                                                 <IconTrash size={14} />
-                                             </ActionIcon>
-                                         </Group>
-                                     </Group>
-                                 </List.Item>
-                             ))}
-                         </List>
-                     )}
-                 </ScrollArea>
+                <Group justify="space-between" align="center">
+                    <Title order={4}>🎨 Meus Estilos</Title>
+                    <Button size="xs" leftSection={<IconPlus size={14} />} onClick={openCreateStyleModal}>
+                        Novo Estilo
+                    </Button>
+                </Group>
+                <ScrollArea h={150} mt="md">
+                    {stylesList.length === 0 && !isLoading ? ( // Só mostra se não estiver carregando
+                        <Text c="dimmed" ta="center" mt="md">Nenhum estilo criado ainda.</Text>
+                    ) : (
+                        <List spacing="xs" size="sm" center>
+                            {stylesList.map((style) => (
+                                <List.Item
+                                    key={style.id}
+                                    icon={
+                                        <ThemeIcon color="orange" size={20} radius="xl">
+                                            <IconPalette size="0.8rem" />
+                                        </ThemeIcon>
+                                    }
+                                    styles={{ itemWrapper: { width: '100%' } }}
+                                >
+                                    <Group justify="space-between" w="100%">
+                                        <Text>{style.name}</Text>
+                                        <Group gap="xs">
+                                            <ActionIcon variant="default" size="sm" onClick={() => openEditStyleModal(style)} title="Editar Estilo">
+                                                <IconPencil size={14} />
+                                            </ActionIcon>
+                                            <ActionIcon variant="filled" color="red" size="sm" onClick={() => handleDeleteStyle(style.id)} title="Deletar Estilo">
+                                                <IconTrash size={14} />
+                                            </ActionIcon>
+                                        </Group>
+                                    </Group>
+                                </List.Item>
+                            ))}
+                        </List>
+                    )}
+                </ScrollArea>
             </Paper>
 
             {/* Modal para Criar/Editar Estilo */}
@@ -456,25 +418,28 @@ function GerarImagemPage() {
                         placeholder="Ex: Anúncio Facebook"
                         value={styleName}
                         onChange={(event) => setStyleName(event.currentTarget.value)}
-                        error={styleError && styleError.includes("nome") ? styleError : null}
+                        error={styleError && styleError.includes("Nome") ? styleError : null} // Verifica se o erro é sobre o nome
                         required
                     />
                     <Textarea
                         label="Instruções / Prompt Base"
-                        placeholder="Ex: Crie uma imagem vibrante e chamativa para um anúncio no Facebook, foco em..."
+                        placeholder="Ex: Crie uma imagem vibrante e chamativa..."
                         value={styleInstructions}
                         onChange={(event) => setStyleInstructions(event.currentTarget.value)}
                         minRows={4}
                         autosize
-                        error={styleError && styleError.includes("Instruções") ? styleError : null}
+                        error={styleError && styleError.includes("Instruções") ? styleError : null} // Verifica se o erro é sobre as instruções
                         required
                     />
-                    {styleError && !styleError.includes("nome") && !styleError.includes("Instruções") && (
-                        <Text c="red" size="sm">{styleError}</Text>
+                    {/* Mostra outros erros (como CSRF) aqui */}
+                    {styleError && !styleError.includes("Nome") && !styleError.includes("Instruções") && (
+                        <Alert color="red" title="Erro ao Salvar" icon={<IconAlertCircle size="1rem" />} mt="sm" mb="sm">
+                           {styleError}
+                        </Alert>
                     )}
                     <Group justify="flex-end" mt="md">
-                         <Button variant="default" onClick={closeStyleModal}>Cancelar</Button>
-                         <Button onClick={handleSaveStyle} loading={isLoading}>Salvar Estilo</Button>
+                        <Button variant="default" onClick={closeStyleModal}>Cancelar</Button>
+                        <Button onClick={handleSaveStyle} loading={isLoading}>Salvar Estilo</Button>
                     </Group>
                 </Stack>
             </Modal>
@@ -489,234 +454,171 @@ function GerarImagemPage() {
 
                     {/* Conteúdo das Abas */}
                     <Box style={{ flexGrow: 1, overflowY: 'auto', paddingTop: 'var(--mantine-spacing-md)' }}>
+                        {/* Painel Gerar */}
                         <Tabs.Panel value="generate" pt="xs">
                             <Stack gap="md">
                                 <Textarea
                                     label="Prompt Principal"
-                                    placeholder="Ex: Um robô simpático entregando flores em Marte, estilo aquarela."
+                                    placeholder="Ex: Um robô simpático entregando flores em Marte..."
                                     value={prompt}
                                     onChange={(event) => setPrompt(event.currentTarget.value)}
                                     minRows={3} autosize disabled={isLoading} required
                                 />
                                 <Select
-                                     label="Aplicar Estilo (Opcional)"
-                                     placeholder="Selecione um estilo salvo"
-                                     value={selectedStyleId ? String(selectedStyleId) : null}
-                                     onChange={(value) => setSelectedStyleId(value ? Number(value) : null)}
-                                     data={stylesList.map(style => ({ value: String(style.id), label: style.name }))}
-                                     clearable
-                                     disabled={isLoading}
+                                    label="Aplicar Estilo (Opcional)"
+                                    placeholder="Selecione um estilo salvo"
+                                    value={selectedStyleId ? String(selectedStyleId) : null}
+                                    onChange={(value) => setSelectedStyleId(value ? Number(value) : null)}
+                                    data={stylesList.map(style => ({ value: String(style.id), label: style.name }))}
+                                    clearable
+                                    searchable
+                                    disabled={isLoading || stylesList.length === 0}
                                 />
-
-                                {/* Parâmetros do gpt-image-1 */}
                                 <Group grow>
                                     <Select
-                                        label="Tamanho"
-                                        value={selectedSizeGen}
-                                        onChange={setSelectedSizeGen}
+                                        label="Tamanho" value={selectedSizeGen} onChange={setSelectedSizeGen}
                                         data={[
-                                            { value: 'auto', label: 'Auto (Recomendado)' },
-                                            { value: '1024x1024', label: '1024x1024 (Quadrado)' },
-                                            { value: '1536x1024', label: '1536x1024 (Paisagem)' },
-                                            { value: '1024x1536', label: '1024x1536 (Retrato)' }
-                                        ]}
-                                        disabled={isLoading}
+                                            { value: 'auto', label: 'Auto (Recomendado)' }, { value: '1024x1024', label: '1024x1024' },
+                                            { value: '1536x1024', label: '1536x1024' }, { value: '1024x1536', label: '1024x1536' }
+                                        ]} disabled={isLoading}
                                     />
                                     <Select
-                                        label="Qualidade"
-                                        value={selectedQualityGen}
-                                        onChange={setSelectedQualityGen}
+                                        label="Qualidade" value={selectedQualityGen} onChange={setSelectedQualityGen}
                                         data={[
-                                            { value: 'auto', label: 'Auto (Recomendado)' },
-                                            { value: 'high', label: 'Alta' },
-                                            { value: 'medium', label: 'Média' },
-                                            { value: 'low', label: 'Baixa' }
-                                        ]}
-                                        disabled={isLoading}
+                                            { value: 'auto', label: 'Auto (Recomendado)' }, { value: 'high', label: 'Alta' },
+                                            { value: 'medium', label: 'Média' }, { value: 'low', label: 'Baixa' }
+                                        ]} disabled={isLoading}
                                     />
                                 </Group>
-
                                 <Group grow>
                                     <Select
-                                        label="Formato de Saída"
-                                        value={selectedOutputFormat}
-                                        onChange={setSelectedOutputFormat}
+                                        label="Formato Saída" value={selectedOutputFormat} onChange={setSelectedOutputFormat}
                                         data={[
-                                            { value: 'png', label: 'PNG (Com transparência)' },
-                                            { value: 'webp', label: 'WebP (Melhor compressão)' },
-                                            { value: 'jpeg', label: 'JPEG (Sem transparência)' }
-                                        ]}
-                                        disabled={isLoading}
+                                            { value: 'png', label: 'PNG' }, { value: 'webp', label: 'WebP' }, { value: 'jpeg', label: 'JPEG' }
+                                        ]} disabled={isLoading}
                                     />
                                     <Select
-                                        label="Fundo"
-                                        value={selectedBackground}
-                                        onChange={setSelectedBackground}
+                                        label="Fundo" value={selectedBackground} onChange={setSelectedBackground}
                                         data={[
-                                            { value: 'auto', label: 'Auto (Recomendado)' },
+                                            { value: 'auto', label: 'Auto' },
                                             { value: 'transparent', label: 'Transparente', disabled: !['png', 'webp'].includes(selectedOutputFormat) },
                                             { value: 'opaque', label: 'Opaco' }
-                                        ]}
-                                        disabled={isLoading}
+                                        ]} disabled={isLoading}
                                     />
                                 </Group>
-
                                 <Group grow>
                                     <NumberInput
-                                        label="Nº de Imagens"
-                                        value={nImagesGen}
-                                        onChange={setNImagesGen}
-                                        min={1}
-                                        max={10}
-                                        step={1}
-                                        disabled={isLoading}
+                                        label="Nº Imagens" value={nImagesGen} onChange={setNImagesGen} min={1} max={10} step={1} disabled={isLoading}
                                     />
                                     <Select
-                                        label="Moderação"
-                                        value={selectedModeration}
-                                        onChange={setSelectedModeration}
+                                        label="Moderação" value={selectedModeration} onChange={setSelectedModeration}
                                         data={[
-                                            { value: 'auto', label: 'Auto (Padrão)' },
-                                            { value: 'low', label: 'Baixa (Menos restrito)' }
-                                        ]}
-                                        disabled={isLoading}
+                                            { value: 'auto', label: 'Auto' }, { value: 'low', label: 'Baixa' }
+                                        ]} disabled={isLoading}
                                     />
                                 </Group>
-
-                                {/* Slider de compressão para WebP e JPEG */}
                                 {compressionEnabled && (
                                     <Stack gap="xs">
                                         <Text size="sm" fw={500}>Compressão ({outputCompression}%)</Text>
-                                        <Slider
-                                            min={1}
-                                            max={100}
-                                            label={(value) => `${value}%`}
-                                            value={outputCompression}
-                                            onChange={setOutputCompression}
-                                            disabled={isLoading}
-                                            marks={[
-                                                { value: 25, label: '25%' },
-                                                { value: 50, label: '50%' },
-                                                { value: 75, label: '75%' },
-                                                { value: 100, label: '100%' }
-                                            ]}
-                                        />
-                                        <Text size="xs" c="dimmed">Menor valor = menor tamanho de arquivo, qualidade inferior</Text>
+                                        <Slider min={1} max={100} label={(value) => `${value}%`} value={outputCompression} onChange={setOutputCompression} disabled={isLoading}
+                                            marks={[{ value: 25, label: '25%' }, { value: 50, label: '50%' }, { value: 75, label: '75%' }, { value: 100, label: '100%' }]} />
+                                        <Text size="xs" c="dimmed">Menor valor = menor tamanho de arquivo</Text>
                                     </Stack>
                                 )}
-
                                 <Group justify="flex-end" mt="md">
-                                     <Button onClick={handleGenerateImage} disabled={isLoading || !prompt.trim()} loading={isLoading} leftSection={<IconSparkles size={18}/>}>
-                                         Gerar com GPT Image
-                                     </Button>
+                                    <Button onClick={handleGenerateImage} disabled={isLoading || !prompt.trim()} loading={isLoading} leftSection={<IconSparkles size={18} />}>
+                                        Gerar com GPT Image
+                                    </Button>
                                 </Group>
                             </Stack>
                         </Tabs.Panel>
 
+                        {/* Painel Editar */}
                         <Tabs.Panel value="edit" pt="xs">
-                             <Stack gap="md">
-                                 <FileInput
-                                     label="Imagem(ns) Base"
-                                     placeholder="Selecione uma ou mais imagens (PNG, JPG, WebP)"
-                                     value={baseImagesEdit}
-                                     onChange={setBaseImagesEdit}
-                                     multiple
-                                     clearable
-                                     accept="image/png,image/jpeg,image/webp"
-                                     disabled={isLoading}
-                                     description="GPT Image permite múltiplas imagens de referência (até 25MB cada)"
-                                 />
-                                 <FileInput
-                                     label="Máscara (Opcional - PNG com transparência)"
-                                     placeholder="Selecione a máscara para inpainting"
-                                     value={maskImageEdit}
-                                     onChange={setMaskImageEdit}
-                                     clearable
-                                     accept="image/png"
-                                     disabled={isLoading}
-                                     description="Áreas transparentes indicam onde a imagem será editada"
-                                 />
+                            <Stack gap="md">
+                                <FileInput
+                                    label="Imagem(ns) Base" placeholder="Selecione (PNG, JPG, WebP)" value={baseImagesEdit} onChange={setBaseImagesEdit}
+                                    multiple clearable accept="image/png,image/jpeg,image/webp" disabled={isLoading}
+                                    description="GPT Image permite múltiplas imagens (até 25MB cada)"
+                                />
+                                <FileInput
+                                    label="Máscara (Opcional - PNG)" placeholder="Selecione a máscara" value={maskImageEdit} onChange={setMaskImageEdit}
+                                    clearable accept="image/png" disabled={isLoading}
+                                    description="Áreas transparentes indicam onde editar"
+                                />
                                 <Textarea
-                                    label="Prompt de Edição"
-                                    placeholder="Descreva a edição desejada ou a imagem final"
-                                    value={editPrompt}
-                                    onChange={(event) => setEditPrompt(event.currentTarget.value)}
+                                    label="Prompt de Edição" placeholder="Descreva a edição..." value={editPrompt} onChange={(event) => setEditPrompt(event.currentTarget.value)}
                                     minRows={3} autosize disabled={isLoading} required
                                 />
                                 <Group grow>
                                     <Select
-                                        label="Tamanho"
-                                        value={selectedSizeEdit}
-                                        onChange={setSelectedSizeEdit}
+                                        label="Tamanho" value={selectedSizeEdit} onChange={setSelectedSizeEdit}
                                         data={[
-                                            { value: 'auto', label: 'Auto (Recomendado)' },
-                                            { value: '1024x1024', label: '1024x1024 (Quadrado)' },
-                                            { value: '1536x1024', label: '1536x1024 (Paisagem)' },
-                                            { value: '1024x1536', label: '1024x1536 (Retrato)' }
-                                        ]}
-                                        disabled={isLoading}
+                                            { value: 'auto', label: 'Auto' }, { value: '1024x1024', label: '1024x1024' },
+                                            { value: '1536x1024', label: '1536x1024' }, { value: '1024x1536', label: '1024x1536' }
+                                        ]} disabled={isLoading}
                                     />
                                     <Select
-                                        label="Qualidade"
-                                        value={selectedQualityEdit}
-                                        onChange={setSelectedQualityEdit}
+                                        label="Qualidade" value={selectedQualityEdit} onChange={setSelectedQualityEdit}
                                         data={[
-                                            { value: 'auto', label: 'Auto (Recomendado)' },
-                                            { value: 'high', label: 'Alta' },
-                                            { value: 'medium', label: 'Média' },
-                                            { value: 'low', label: 'Baixa' }
-                                        ]}
-                                        disabled={isLoading}
+                                            { value: 'auto', label: 'Auto' }, { value: 'high', label: 'Alta' },
+                                            { value: 'medium', label: 'Média' }, { value: 'low', label: 'Baixa' }
+                                        ]} disabled={isLoading}
                                     />
                                 </Group>
                                 <NumberInput label="Nº de Edições" value={nImagesEdit} onChange={setNImagesEdit} min={1} max={10} step={1} disabled={isLoading} />
                                 <Group justify="flex-end" mt="md">
-                                     <Button onClick={handleEditImage} disabled={isLoading || !editPrompt.trim() || baseImagesEdit.length === 0} loading={isLoading} leftSection={<IconEdit size={18}/>}>
-                                         Editar com GPT Image
-                                     </Button>
+                                    <Button onClick={handleEditImage} disabled={isLoading || !editPrompt.trim() || baseImagesEdit.length === 0} loading={isLoading} leftSection={<IconEdit size={18} />}>
+                                        Editar com GPT Image
+                                    </Button>
                                 </Group>
-                             </Stack>
+                            </Stack>
                         </Tabs.Panel>
                     </Box>
                 </Tabs>
 
-                 {/* Exibição de Erro Global */}
+                {/* Exibição de Erro Global */}
                 {error && (
                     <Alert icon={<IconAlertCircle size="1rem" />} title="Erro!" color="red" withCloseButton onClose={() => setError(null)} mt="md">
                         {error}
                     </Alert>
                 )}
 
-                 {/* Exibição dos Resultados */}
-                 {generatedImages.length > 0 && !isLoading && (
-                     <Box mt="lg">
-                         <Divider my="md" label="Resultados" labelPosition="center" />
-                         <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="md">
-                             {generatedImages.map((base64Data, index) => (
-                                 <Paper key={index} withBorder radius="md" p="xs" style={{ overflow: 'hidden', position: 'relative' }}>
-                                     <Image
-                                         src={`data:image/${selectedOutputFormat === 'jpeg' ? 'jpeg' : selectedOutputFormat};base64,${base64Data}`}
-                                         alt={`Resultado ${index + 1}`}
-                                         style={{ display: 'block', width: '100%', height: 'auto' }}
-                                     />
-                                     <Group gap="xs" style={{ position: 'absolute', top: 5, right: 5 }}>
-                                        <ActionIcon variant="filled" color="blue" size="sm" onClick={() => handleDownloadImage(base64Data, index)} title="Baixar">
-                                            <IconDownload size={14} />
-                                        </ActionIcon>
-                                    </Group>
-                                 </Paper>
-                             ))}
-                         </SimpleGrid>
-                     </Box>
-                 )}
+                {/* Exibição dos Resultados */}
+                {generatedImages.length > 0 && !isLoading && (
+                    <Box mt="lg">
+                        <Divider my="md" label="Resultados" labelPosition="center" />
+                        <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="md">
+                            {generatedImages.map((base64Data, index) => {
+                                let mimeType = 'image/png'; // Default
+                                if (selectedOutputFormat === 'jpeg') mimeType = 'image/jpeg';
+                                else if (selectedOutputFormat === 'webp') mimeType = 'image/webp';
 
-                 {/* Placeholder quando não há imagens */}
-                 {generatedImages.length === 0 && !isLoading && !error && (
-                     <Center mt="xl" p="xl" style={{ border: '1px dashed #ced4da', minHeight: '200px', borderRadius: 'var(--mantine-radius-md)', backgroundColor: '#f8f9fa' }}>
-                         <Text c="dimmed" ta="center">Os resultados aparecerão aqui.</Text>
-                     </Center>
-                 )}
+                                return (
+                                    <Paper key={index} withBorder radius="md" p="xs" style={{ overflow: 'hidden', position: 'relative' }}>
+                                        <Image
+                                            src={`data:${mimeType};base64,${base64Data}`}
+                                            alt={`Resultado ${index + 1}`}
+                                            style={{ display: 'block', width: '100%', height: 'auto' }}
+                                        />
+                                        <Group gap="xs" style={{ position: 'absolute', top: 5, right: 5 }}>
+                                            <ActionIcon variant="filled" color="blue" size="sm" onClick={() => handleDownloadImage(base64Data, index)} title="Baixar">
+                                                <IconDownload size={14} />
+                                            </ActionIcon>
+                                        </Group>
+                                    </Paper>
+                                );
+                            })}
+                        </SimpleGrid>
+                    </Box>
+                )}
 
+                {/* Placeholder quando não há imagens e não está carregando */}
+                {generatedImages.length === 0 && !isLoading && !error && (
+                    <Center mt="xl" p="xl" style={{ border: '1px dashed #ced4da', minHeight: '200px', borderRadius: 'var(--mantine-radius-md)', backgroundColor: '#f8f9fa' }}>
+                        <Text c="dimmed" ta="center">Os resultados aparecerão aqui.</Text>
+                    </Center>
+                )}
             </Paper>
         </Box>
     );
