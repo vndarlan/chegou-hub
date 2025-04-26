@@ -39,6 +39,18 @@ class ImageStyleAdmin(admin.ModelAdmin):
 
 @admin.register(ManagedCalendar)
 class ManagedCalendarAdmin(admin.ModelAdmin):
-    list_display = ('name', 'google_calendar_id', 'added_at')
-    search_fields = ('name', 'google_calendar_id')
+    # Opção 1: Mostrar o campo novo e a função de preview
+    list_display = ('name', 'get_iframe_preview', 'added_at')
+
+    # Opção 2 (Alternativa): Mostrar o campo iframe_code diretamente (pode ser longo)
+    # list_display = ('name', 'iframe_code', 'added_at')
+
+    search_fields = ('name', 'iframe_code') # <<< CORRIGIDO: Buscar no iframe_code
     list_filter = ('added_at',)
+
+    # Função auxiliar para mostrar só o começo no admin (se usar Opção 1 no list_display)
+    def get_iframe_preview(self, obj):
+        if obj.iframe_code:
+             return obj.iframe_code[:100] + '...' if len(obj.iframe_code) > 100 else obj.iframe_code
+        return "N/A" # Caso esteja vazio
+    get_iframe_preview.short_description = 'Preview do Iframe'

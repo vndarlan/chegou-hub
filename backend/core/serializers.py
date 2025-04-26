@@ -57,22 +57,23 @@ class ImageStyleSerializer(serializers.ModelSerializer):
         return data
     
 class ManagedCalendarSerializer(serializers.ModelSerializer):
-    """ Serializer para o modelo ManagedCalendar. """
     class Meta:
         model = ManagedCalendar
-        fields = ['id', 'name', 'google_calendar_id', 'added_at']
-        # O ID (pk) é importante para o frontend poder deletar
+        fields = ['id', 'name', 'iframe_code', 'added_at'] # Campo atualizado
         read_only_fields = ['id', 'added_at']
 
-    def validate_google_calendar_id(self, value):
-        """ Validação simples para o ID do calendário. """
-        if not value or '@' not in value: # Verifica se tem um '@', básico
-             raise serializers.ValidationError("O ID do Calendário Google parece inválido.")
-        # Remove espaços extras
-        return value.strip()
+    def validate_iframe_code(self, value):
+        """ Validação muito básica para o código iframe. """
+        if not value or not value.strip():
+             raise serializers.ValidationError("O código iframe não pode ser vazio.")
+        value = value.strip()
+        # Verifica se contém elementos básicos de um iframe do Google
+        if not value.startswith('<iframe') or '</iframe>' not in value or 'src="https://calendar.google.com/calendar/embed?src=' not in value:
+             raise serializers.ValidationError("O código fornecido não parece ser um iframe válido do Google Calendar.")
+        # Poderia adicionar validação de tamanho máximo se desejado
+        return value
 
     def validate_name(self, value):
-         """ Garante que o nome não seja vazio. """
          if not value or not value.strip():
              raise serializers.ValidationError("O nome do calendário não pode ser vazio.")
          return value.strip()

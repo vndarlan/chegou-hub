@@ -39,33 +39,28 @@ class ImageStyle(models.Model):
         return f"{self.name} (Usuário: {self.user.username})"
     
 class ManagedCalendar(models.Model):
-    """
-    Representa um Google Calendar gerenciado para exibição na AgendaPage.
-    """
     name = models.CharField(
         max_length=100,
         verbose_name="Nome do Calendário",
         help_text="Um nome descritivo para o calendário (Ex: Marketing, Feriados)."
     )
-    google_calendar_id = models.CharField( # Usando CharField para flexibilidade, mas pode ser EmailField
-        max_length=255,
-        unique=True, # Garante que o mesmo ID não seja adicionado duas vezes
-        verbose_name="ID do Calendário Google (Email)",
-        help_text="O ID/Email do Google Calendar a ser incorporado."
+    # Substituído google_calendar_id por iframe_code
+    iframe_code = models.TextField(
+        verbose_name="Código Iframe do Google Calendar",
+        help_text="Cole aqui o código iframe completo obtido do Google Calendar.",
+        unique=True # Garante que o mesmo iframe não seja adicionado duas vezes
     )
     added_at = models.DateTimeField(auto_now_add=True, verbose_name="Adicionado em")
-    # Opcional: Adicionar quem adicionou
-    # added_by = models.ForeignKey(
-    #     settings.AUTH_USER_MODEL,
-    #     on_delete=models.SET_NULL, # Ou models.PROTECT
-    #     null=True, blank=True,
-    #     verbose_name="Adicionado por"
-    # )
+    # Opcional: added_by
 
     class Meta:
-        verbose_name = "Calendário Gerenciado"
-        verbose_name_plural = "Calendários Gerenciados"
-        ordering = ['name'] # Ordenar por nome por padrão
+        verbose_name = "Calendário Gerenciado (Iframe)" # Nome atualizado
+        verbose_name_plural = "Calendários Gerenciados (Iframe)"
+        ordering = ['name']
 
     def __str__(self):
-        return f"{self.name} ({self.google_calendar_id})"
+        # Exibe o início do iframe para identificação
+        src_start = self.iframe_code.find('src="')
+        src_end = self.iframe_code.find('"', src_start + 5) if src_start != -1 else -1
+        src_preview = self.iframe_code[src_start+5:src_end] if src_end != -1 else "[código iframe]"
+        return f"{self.name} ({src_preview[:50]}...)" # Mostra início da URL src
