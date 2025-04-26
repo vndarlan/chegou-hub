@@ -4,11 +4,11 @@ import axios from 'axios';
 import {
     Box, Title, Text, Paper, Textarea, Button, LoadingOverlay, Alert, Image, Group, Stack,
     Select, NumberInput, FileInput, Tabs, Modal, List, ThemeIcon, ActionIcon, Divider, ScrollArea, Center, SimpleGrid,
-    TextInput, Slider, Switch
+    TextInput, Slider
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
-    IconAlertCircle, IconPhoto, IconEdit, IconSparkles, IconPalette, IconPlus, IconTrash, IconPencil, IconDownload
+    IconAlertCircle, IconEdit, IconSparkles, IconPalette, IconPlus, IconTrash, IconPencil, IconDownload
 } from '@tabler/icons-react';
 
 // Função para pegar o valor de um cookie pelo nome (mantida)
