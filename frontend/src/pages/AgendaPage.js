@@ -52,7 +52,7 @@ function AgendaPage() {
         console.log("Buscando calendários da API...");
         try {
             // Usa a instância padrão do axios (configurada no index.js)
-            const response = await axios.get('/api/calendars/');
+            const response = await axios.get('/calendars/');
             console.log("Calendários recebidos:", response.data);
             setCalendarios(response.data); // Atualiza o estado com dados da API
 
@@ -119,9 +119,9 @@ function AgendaPage() {
         setIsAdding(true); // Mostra loading no botão
         try {
             // Chama a API POST para criar o calendário no backend
-            const response = await axios.post('/api/calendars/', {
-                name: novoNome.trim(), // Envia nome sem espaços extras
-                google_calendar_id: novoEmail.trim() // Envia ID sem espaços extras
+            const response = await axios.post('/calendars/', {
+                name: novoNome.trim(),
+                google_calendar_id: novoEmail.trim()
             });
             // Sucesso!
             setNovoNome(''); // Limpa o formulário
@@ -157,7 +157,7 @@ function AgendaPage() {
         // Idealmente, mostrar um feedback visual que o item está sendo removido
         try {
             // Chama a API DELETE, passando o ID do banco
-            await axios.delete(`/api/calendars/${idToRemove}/`);
+            await axios.delete(`/calendars/${idToRemove}/`);
             // Sucesso!
             setAddNotification({ type: 'info', message: `Calendário removido.` });
             await fetchCalendars(); // Rebusca a lista para atualizar a UI
