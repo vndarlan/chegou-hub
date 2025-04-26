@@ -1,5 +1,5 @@
 // frontend/src/components/NavbarNested/NavbarNested.js
-import React from 'react'; // Importar React
+import React, { useState } from 'react';
 import { Group, ScrollArea, ActionIcon, Tooltip } from '@mantine/core';
 // Importa todos os ícones necessários com substituições compatíveis
 import {
@@ -34,7 +34,6 @@ import { UserButton } from './UserButton';
 import { Logo } from './Logo';
 // Importa CSS Module
 import classes from './NavbarNested.module.css';
-import React, { useState } from 'react';
 
 // --- NOVA ESTRUTURA DA NAVBAR ---
 // Atualizada conforme solicitado pelo usuário com ícones compatíveis
