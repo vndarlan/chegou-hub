@@ -154,22 +154,6 @@ function GerarImagemPage() {
         setGeneratedImages([]);
     }, [activeTab]);
 
-    // --- Funções de Chamada API ---
-    const fetchStyles = useCallback(async () => {
-        console.log("Buscando estilos...");
-        try {
-            // Tenta renovar o token CSRF antes de buscar os estilos
-            await forceRefreshCSRFToken();
-            
-            const response = await csrfAxios.get('/styles/');
-            setStylesList(response.data || []);
-            console.log("Estilos carregados:", response.data);
-        } catch (err) {
-            console.error("Erro ao buscar estilos:", err);
-            setError("Não foi possível carregar seus estilos salvos.");
-        }
-    }, [csrfAxios]);
-
     // Busca estilos ao montar o componente
     useEffect(() => {
         let isMounted = true;
@@ -190,7 +174,7 @@ function GerarImagemPage() {
         
         loadStyles();
         return () => { isMounted = false; };
-    }, []); // Array de dependências vazio para evitar o loop
+    }, [csrfAxios]); // Array de dependências vazio para evitar o loop
 
     // Geração com GPT Image
     const handleGenerateImage = async () => {
