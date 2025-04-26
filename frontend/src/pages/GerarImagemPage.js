@@ -57,21 +57,19 @@ function createCSRFAxios() {
 async function forceRefreshCSRFToken() {
     try {
         console.log('Forçando refresh do token CSRF...');
-        // Use o endpoint específico para CSRF (se implementado)
-        await axios.get('/current-state/', { withCredentials: true });
-        // Ou use o endpoint específico:
-        // await axios.get('/ensure-csrf/', { withCredentials: true });
+        const response = await axios.get('/ensure-csrf/', { withCredentials: true });
+        console.log("Resposta do servidor:", response.status);
         
         const token = getCSRFToken();
         if (token) {
             console.log(`Token CSRF atualizado: ${token.substring(0, 10)}...`);
             return true;
         } else {
-            console.error('Não foi possível obter o token CSRF do servidor.');
+            console.log('Não foi possível obter token CSRF, mas continuando mesmo assim');
             return false;
         }
     } catch (error) {
-        console.error('Erro ao forçar refresh do token CSRF:', error);
+        console.log('Erro ao forçar refresh do token CSRF, continuando mesmo assim');
         return false;
     }
 }
@@ -172,8 +170,25 @@ function GerarImagemPage() {
 
     // Busca estilos ao montar o componente
     useEffect(() => {
-        fetchStyles();
-    }, [fetchStyles]);
+        let isMounted = true;
+        const loadStyles = async () => {
+            try {
+                const response = await csrfAxios.get('/styles/');
+                if (isMounted) {
+                    setStylesList(response.data || []);
+                    console.log("Estilos carregados:", response.data);
+                }
+            } catch (err) {
+                console.error("Erro ao buscar estilos:", err);
+                if (isMounted) {
+                    setError("Não foi possível carregar seus estilos salvos.");
+                }
+            }
+        };
+        
+        loadStyles();
+        return () => { isMounted = false; };
+    }, []);
 
     // Geração com GPT Image
     const handleGenerateImage = async () => {
