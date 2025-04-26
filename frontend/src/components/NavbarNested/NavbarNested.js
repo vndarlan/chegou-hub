@@ -34,6 +34,7 @@ import { UserButton } from './UserButton';
 import { Logo } from './Logo';
 // Importa CSS Module
 import classes from './NavbarNested.module.css';
+import React, { useState } from 'react';
 
 // --- NOVA ESTRUTURA DA NAVBAR ---
 // Atualizada conforme solicitado pelo usuário com ícones compatíveis
@@ -95,7 +96,7 @@ export function NavbarNested({
 }) {
     // Decide quais dados usar: os passados via props ou os locais
     const dataToUse = areasDataFromProps || areasDataLocal;
-
+    const [activeMenu, setActiveMenu] = useState(null);
     // Mapeia os dados para componentes LinksGroup
     const links = dataToUse.map((item) => (
         <LinksGroup
@@ -105,6 +106,8 @@ export function NavbarNested({
             setActivePage={setActivePage}
             collapsed={collapsed}
             link={item.link}
+            activeMenu={activeMenu}
+            setActiveMenu={setActiveMenu}
         />
     ));
 

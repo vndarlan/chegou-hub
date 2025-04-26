@@ -1,5 +1,5 @@
 // frontend/src/components/NavbarNested/LinksGroup.js
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Group, Box, Collapse, ThemeIcon, Text, UnstyledButton, rem, Popover } from '@mantine/core';
 import { IconChevronRight } from '@tabler/icons-react';
@@ -25,12 +25,13 @@ export function LinksGroup({ icon: Icon, label, initiallyOpened, links, activePa
       key={subLink.label}
       onClick={(event) => {
         event.preventDefault();
+        event.stopPropagation(); // Impede propagação do clique
         setActivePage(subLink.label);
         if (subLink.link && subLink.link !== '#') {
           navigate(subLink.link);
-        }
-        if (collapsed) {
-          setPopoverOpened(false);
+          if (collapsed) {
+            setPopoverOpened(false); // Fecha o popover após clicar
+          }
         }
       }}
       data-active={location.pathname === subLink.link || undefined}
@@ -45,10 +46,10 @@ export function LinksGroup({ icon: Icon, label, initiallyOpened, links, activePa
   ));
 
   // Handler para clicar no item principal
-  const handleControlClick = () => {
+  const handleControlClick = (event) => {
     if (hasLinks) {
       if (collapsed) {
-        // No modo colapsado, não abre/fecha
+        // No modo colapsado, alterna visibilidade do popover
         setPopoverOpened((o) => !o);
       } else {
         // Modo normal, abre/fecha o submenu
@@ -59,47 +60,42 @@ export function LinksGroup({ icon: Icon, label, initiallyOpened, links, activePa
     }
   };
 
-  // Se estiver colapsado e tiver subitens, usar Popover
+  // No modo colapsado com subitens, usar Popover persistente
   if (collapsed && hasLinks) {
     return (
-      <Popover
-        opened={popoverOpened}
-        position="right"
-        withArrow
-        shadow="md"
-        width={220}
-        withinPortal
-        closeOnEscape={false}
-        closeOnClickOutside={true}
-        trapFocus={false}
-      >
-        <Popover.Target>
-          <div 
-            onMouseEnter={() => setPopoverOpened(true)}
-            onClick={() => setPopoverOpened(prev => !prev)} // Alternar ao clicar
-          >
+      <div className={classes.linkWrapper}>
+        <Popover
+          opened={popoverOpened}
+          position="right"
+          offset={10}
+          withArrow
+          arrowPosition="center"
+          shadow="md"
+          width={220}
+          withinPortal={true}
+          clickOutsideEvents={['mousedown', 'touchstart']}
+          closeOnClickOutside={true}
+        >
+          <Popover.Target>
             <UnstyledButton
               onClick={handleControlClick}
               className={`${classes.control} ${classes.controlCollapsed} ${isActive ? classes.controlActive : ''}`}
             >
-              <Group justify="space-between" gap={0} wrap="nowrap">
-                <Box style={{ display: 'flex', alignItems: 'center' }}>
-                  <ThemeIcon variant="light" size={30} color="orange">
-                    <Icon style={{ width: rem(18), height: rem(18) }} color='var(--mantine-color-orange-filled)'/>
-                  </ThemeIcon>
-                  <Box ml="md" className={classes.labelCollapsed}>{label}</Box>
-                </Box>
+              <Group justify="center" gap={0} wrap="nowrap">
+                <ThemeIcon variant="light" size={30} color="orange">
+                  <Icon style={{ width: rem(18), height: rem(18) }} color='var(--mantine-color-orange-filled)'/>
+                </ThemeIcon>
               </Group>
             </UnstyledButton>
-          </div>
-        </Popover.Target>
-        <Popover.Dropdown>
-          <Text weight={500} size="sm" mb="xs">{label}</Text>
-          <div className={classes.popoverLinks}>
-            {items}
-          </div>
-        </Popover.Dropdown>
-      </Popover>
+          </Popover.Target>
+          <Popover.Dropdown>
+            <Text fw={500} size="sm" mb="xs">{label}</Text>
+            <div className={classes.popoverLinks}>
+              {items}
+            </div>
+          </Popover.Dropdown>
+        </Popover>
+      </div>
     );
   }
 
