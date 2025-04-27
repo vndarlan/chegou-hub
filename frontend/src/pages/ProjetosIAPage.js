@@ -1,8 +1,8 @@
 // src/pages/ProjetosIAPage.js
-import React, { useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import {Title, LoadingOverlay, Alert, Container, Grid, Paper, Space } from '@mantine/core';
-import { IconAlertCircle } from '@tabler/icons-react';
+import { Container, Title, LoadingOverlay, Alert, Tabs, rem } from '@mantine/core';
+import { IconAlertCircle, IconLayoutDashboard, IconSquarePlus } from '@tabler/icons-react';
 import AIProjectTable from '../components/ProjetosIA/AIProjectTable';
 import AIProjectForm from '../components/ProjetosIA/AIProjectForm';
 import AIProjectDashboard from '../components/ProjetosIA/AIProjectDashboard';
@@ -16,37 +16,27 @@ function ProjetosIAPage() {
         setIsLoading(true);
         setError('');
         try {
-            const response = await axios.get('/api/aiprojects/');
+            // URL corrigida (sem /api inicial)
+            const response = await axios.get('/aiprojects/');
             setProjects(response.data);
         } catch (err) {
             console.error("Erro ao buscar projetos de IA:", err);
-            setError('Falha ao carregar os projetos. Tente recarregar a página.');
+            setError('Falha ao carregar os projetos. Verifique a conexão ou a URL da API.');
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Opcional: Buscar usuários para o Select do formulário
-    // const fetchUsers = async () => {
-    //     try {
-    //         const response = await axios.get('/api/users/'); // Precisa criar este endpoint no backend
-    //         setUsers(response.data.map(user => ({ value: user.id.toString(), label: user.email })));
-    //     } catch (err) {
-    //         console.error("Erro ao buscar usuários:", err);
-    //         // Lidar com erro ou deixar o select desabilitado/com opções padrão
-    //     }
-    // };
-
     useEffect(() => {
         fetchProjects();
-        // fetchUsers(); // Descomente se implementar a busca de usuários
     }, []);
 
     const handleProjectAdded = (newProject) => {
-        // Adiciona o novo projeto à lista existente ou recarrega tudo
-        // setProjects(prevProjects => [newProject, ...prevProjects]); // Adiciona no início
-        fetchProjects(); // Mais simples: recarrega tudo para garantir consistência
+        // Recarrega a lista para garantir consistência após adição
+        fetchProjects();
     };
+
+    const iconStyle = { width: rem(16), height: rem(16) };
 
     return (
         <Container fluid p="md">
@@ -60,33 +50,36 @@ function ProjetosIAPage() {
                 </Alert>
             )}
 
-            {/* Dashboard */}
-            {!isLoading && !error && projects.length > 0 && (
-               <AIProjectDashboard projects={projects} />
-            )}
+            <Tabs defaultValue="dashboard">
+                <Tabs.List>
+                    <Tabs.Tab value="dashboard" leftSection={<IconLayoutDashboard style={iconStyle} />}>
+                        Dashboard e Tabela
+                    </Tabs.Tab>
+                    <Tabs.Tab value="add" leftSection={<IconSquarePlus style={iconStyle} />}>
+                        Adicionar Projeto
+                    </Tabs.Tab>
+                </Tabs.List>
 
-             <Space h="xl" />
+                <Tabs.Panel value="dashboard" pt="lg">
+                    {/* Dashboard */}
+                    {!isLoading && !error && projects.length > 0 && (
+                       <AIProjectDashboard projects={projects} />
+                    )}
 
-            <Grid>
-                {/* Tabela de Projetos */}
-                <Grid.Col span={{ base: 12, lg: 8 }}>
-                    <Paper shadow="sm" p="md" withBorder>
-                         <Title order={4} mb="md">Projetos Cadastrados</Title>
-                        {!isLoading && !error && (
-                            <AIProjectTable projects={projects} />
-                        )}
-                         {projects.length === 0 && !isLoading && <p>Nenhum projeto encontrado.</p>}
-                    </Paper>
-                </Grid.Col>
+                    {/* Tabela de Projetos */}
+                    <Title order={4} mt="xl" mb="md">Projetos Cadastrados</Title>
+                    {!isLoading && !error && (
+                        <AIProjectTable projects={projects} />
+                    )}
+                    {projects.length === 0 && !isLoading && <p>Nenhum projeto encontrado.</p>}
 
-                {/* Formulário de Cadastro */}
-                <Grid.Col span={{ base: 12, lg: 4 }}>
-                     <Paper shadow="sm" p="md" withBorder>
-                         <Title order={4} mb="md">Adicionar Novo Projeto</Title>
-                        <AIProjectForm onProjectAdded={handleProjectAdded} /* users={users} */ />
-                    </Paper>
-                </Grid.Col>
-            </Grid>
+                </Tabs.Panel>
+
+                <Tabs.Panel value="add" pt="lg">
+                     {/* Formulário de Cadastro */}
+                     <AIProjectForm onProjectAdded={handleProjectAdded} />
+                </Tabs.Panel>
+            </Tabs>
 
         </Container>
     );

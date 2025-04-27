@@ -3,9 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 
+
 // Mantine Imports
 import { MantineProvider, createTheme, LoadingOverlay } from '@mantine/core';
 import '@mantine/core/styles.css';
+import '@mantine/dates/styles.css';
 
 // Importa o novo componente CSRFManager
 import CSRFManager from './components/CSRFManager';
