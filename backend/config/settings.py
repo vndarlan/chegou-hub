@@ -227,7 +227,8 @@ CORS_ALLOW_CREDENTIALS = True
 # <<< MODIFICADO para ler origens do ambiente >>>
 CSRF_TRUSTED_ORIGINS_STRING = os.getenv('CSRF_TRUSTED_ORIGINS', '')
 CSRF_TRUSTED_ORIGINS = [
-    "https://chegouhub.up.railway.app",  # Seu domínio frontend
+    "https://chegouhub.up.railway.app",
+    "https://chegou-hubb-production.up.railway.app"
 ]
 if DEBUG:
     CSRF_TRUSTED_ORIGINS.extend([
@@ -239,9 +240,9 @@ if CSRF_TRUSTED_ORIGINS_STRING:
     CSRF_TRUSTED_ORIGINS.extend([origin.strip() for origin in CSRF_TRUSTED_ORIGINS_STRING.split(',')])
 
 # CSRF Cookie configurações
-CSRF_COOKIE_SECURE = False if DEBUG else True
-CSRF_COOKIE_HTTPONLY = False  # Precisa ser False para que o JavaScript possa ler
-CSRF_COOKIE_SAMESITE = 'Lax'  # Menos restritivo, mas ainda seguro para a maioria dos casos
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'None'  # Permite cookies cross-site
+CSRF_COOKIE_DOMAIN = '.railway.app'
 
 # <<< Ajustes de Segurança para Produção (HTTPS) >>>
 if not DEBUG: # Em produção

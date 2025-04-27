@@ -8,7 +8,7 @@ import reportWebVitals from './reportWebVitals';
 
 // Configuração base do Axios - definindo URL completa explicitamente
 const API_URL = 'https://chegou-hubb-production.up.railway.app/api';
-axios.defaults.baseURL = API_URL;
+axios.defaults.baseURL = '/api';
 axios.defaults.withCredentials = true;
 console.log("API Base URL FIXA:", axios.defaults.baseURL);
 
