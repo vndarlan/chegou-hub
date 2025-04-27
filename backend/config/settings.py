@@ -243,7 +243,8 @@ if CSRF_TRUSTED_ORIGINS_STRING:
 # CSRF Cookie configurações
 CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_SAMESITE = 'None'  # Permite cookies cross-site
-CSRF_COOKIE_DOMAIN = '.railway.app'
+CSRF_USE_SESSIONS = True
+CSRF_COOKIE_HTTPONLY = False  
 
 # <<< Ajustes de Segurança para Produção (HTTPS) >>>
 if not DEBUG: # Em produção

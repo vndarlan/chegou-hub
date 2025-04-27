@@ -5,7 +5,7 @@ import { useForm } from '@mantine/form';
 import { TextInput, Textarea, Select, Button, Box, Group, LoadingOverlay, Alert, MultiSelect } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import 'dayjs/locale/pt-br'; // Import locale for DatePicker
-import { notifications } from '@mantine/notifications'; // Assuming you have notifications setup
+import { notifications } from '@mantine/notifications';
 import { IconAlertCircle, IconCheck } from '@tabler/icons-react';
 
 // Use as mesmas opções do backend para Status
@@ -64,22 +64,36 @@ function AIProjectForm({ onProjectAdded }) {
 
         // Converte array de nomes para string separada por vírgula
         const namesString = Array.isArray(values.creator_names)
-                           ? values.creator_names.join(', ')
-                           : ''; // String vazia se nada for selecionado
+                       ? values.creator_names.join(', ')
+                       : '';
 
         const formattedValues = {
             ...values,
-            creator_names: namesString, // Usa a string convertida
+            creator_names: namesString,
             creation_date: values.creation_date ? values.creation_date.toISOString().split('T')[0] : null,
             finalization_date: values.finalization_date ? values.finalization_date.toISOString().split('T')[0] : null,
         };
 
         try {
-            // IMPORTANTE: Primeiro, garanta que temos um token CSRF
-            await axios.get('/ensure-csrf/');
+            // Obter token CSRF imediatamente antes do POST
+            await axios.get('https://chegou-hubb-production.up.railway.app/api/ensure-csrf/', {
+                withCredentials: true
+            });
             
-            // Agora faça a requisição POST com o token que acabou de ser obtido
-            const response = await axios.post('/aiprojects/', formattedValues);
+            // Fazer a requisição com URL absoluta e parâmetros explícitos
+            const response = await axios.post('https://chegou-hubb-production.up.railway.app/api/aiprojects/', 
+                formattedValues,
+                {
+                    withCredentials: true,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Tentar obter o token diretamente do cookie
+                        'X-CSRFToken': document.cookie.split('; ')
+                            .find(row => row.startsWith('csrftoken='))
+                            ?.split('=')[1] || ''
+                    }
+                }
+            );
             
             notifications.show({
                 title: 'Sucesso!',
@@ -87,9 +101,9 @@ function AIProjectForm({ onProjectAdded }) {
                 color: 'green',
                 icon: <IconCheck size={18} />,
             });
-            form.reset(); // Limpa o formulário
+            form.reset();
             if (onProjectAdded) {
-                onProjectAdded(response.data); // Informa o componente pai
+                onProjectAdded(response.data);
             }
         } catch (err) {
             console.error("Erro ao adicionar projeto:", err.response?.data || err.message);
