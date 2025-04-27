@@ -75,8 +75,8 @@ function AIProjectForm({ onProjectAdded }) {
         };
 
         try {
-            // 1. Obter token CSRF em uma operação separada
-            const csrfResponse = await axios.get('https://chegou-hubb-production.up.railway.app/api/ensure-csrf/', {
+            // 1. Obter token CSRF em uma operação separada - sem armazenar em variável não utilizada
+            await axios.get('https://chegou-hubb-production.up.railway.app/api/ensure-csrf/', {
                 withCredentials: true
             });
             
