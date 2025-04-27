@@ -1,3 +1,5 @@
+# Ignorar arquivos de ambiente específicos do backend
+backend/.env
 
 # (Opcional, mas bom) Ignorar arquivos de ambiente do frontend também
 frontend/.env
