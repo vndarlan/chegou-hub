@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User, Group
 
 # Importar o novo modelo
-from .models import ImageStyle, ManagedCalendar
+from .models import ManagedCalendar
 
 # --- Configuração User Admin (existente) ---
 class UserAdmin(BaseUserAdmin):
@@ -20,22 +20,6 @@ class UserAdmin(BaseUserAdmin):
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
 # admin.site.register(Group) # Geralmente já registrado
-
-# --- Registrar ImageStyle ---
-@admin.register(ImageStyle)
-class ImageStyleAdmin(admin.ModelAdmin):
-    list_display = ('name', 'user', 'created_at', 'updated_at')
-    list_filter = ('user',) # Filtrar por usuário
-    search_fields = ('name', 'instructions', 'user__username', 'user__email') # Buscar no nome, instruções e dados do usuário
-    list_per_page = 20
-    # Define campos que aparecem no formulário de edição/criação
-    fields = ('user', 'name', 'instructions')
-    # Se quiser que o usuário seja preenchido automaticamente no admin:
-    # def get_form(self, request, obj=None, **kwargs):
-    #     form = super().get_form(request, obj, **kwargs)
-    #     if not obj: # Apenas na criação
-    #         form.base_fields['user'].initial = request.user
-    #     return form
 
 @admin.register(ManagedCalendar)
 class ManagedCalendarAdmin(admin.ModelAdmin):

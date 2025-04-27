@@ -15,19 +15,13 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from openai import OpenAI
 from django.http import JsonResponse
-from django.views.decorators.csrf import ensure_csrf_cookie
-from django.utils.decorators import method_decorator
-from rest_framework.views import APIView
+from .models import ManagedCalendar # Mantido (ImageStyle removido)
+from .serializers import ManagedCalendarSerializer # Mantido (ImageStyleSerializer removido)
 
-# Importar modelos e serializers locais
-from .models import ImageStyle, ManagedCalendar
-from .serializers import ImageStyleSerializer, ManagedCalendarSerializer
-
-# --- Views de Autenticação e Estado (já existentes - SEM MUDANÇAS AQUI) ---
+# --- Views de Autenticação e Estado (sem mudanças, apenas colapsadas para clareza) ---
 class SimpleLoginView(APIView):
     permission_classes = [AllowAny]
     def post(self, request, *args, **kwargs):
-        # ... (código existente sem mudanças) ...
         email = request.data.get('email')
         password = request.data.get('password')
         print(f"Tentativa de login recebida: Email={email}")
@@ -45,10 +39,9 @@ class SimpleLoginView(APIView):
 class LogoutView(APIView):
     permission_classes = [AllowAny]
     def post(self, request, *args, **kwargs):
-        # ... (código existente sem mudanças) ...
         user_email = request.user.email if request.user.is_authenticated else 'N/A (deslogado ou sessão inválida)'
         print(f"Tentativa de logout para usuário: {user_email}")
-        logout(request) # Função do Django para invalidar a sessão
+        logout(request)
         print(f"Logout realizado.")
         return Response({'message': 'Logout successful'}, status=status.HTTP_200_OK)
 
@@ -56,13 +49,12 @@ class LogoutView(APIView):
 class CurrentStateView(APIView):
     permission_classes = [AllowAny]
     def get(self, request, *args, **kwargs):
-         # ... (código existente sem mudanças) ...
         is_authenticated = request.user.is_authenticated
         if is_authenticated:
             user = request.user
             user_groups = list(user.groups.values_list('name', flat=True))
             current_area = request.session.get('current_area', None)
-            print(f"Verificação de estado (com ensure_csrf_cookie): Usuário={user.email}, Logged in=True") # Log opcional
+            print(f"Verificação de estado (com ensure_csrf_cookie): Usuário={user.email}, Logged in=True")
             return Response({
                 'logged_in': True,
                 'email': user.email,
@@ -71,7 +63,7 @@ class CurrentStateView(APIView):
                 'current_area': current_area,
             }, status=status.HTTP_200_OK)
         else:
-            print(f"Verificação de estado (com ensure_csrf_cookie): Usuário não autenticado.") # Log opcional
+            print(f"Verificação de estado (com ensure_csrf_cookie): Usuário não autenticado.")
             return Response({
                 'logged_in': False, 'email': None, 'name': None, 'groups': [], 'current_area': None,
             }, status=status.HTTP_200_OK)
@@ -79,7 +71,6 @@ class CurrentStateView(APIView):
 class SelectAreaView(APIView):
     permission_classes = [IsAuthenticated]
     def post(self, request, *args, **kwargs):
-         # ... (código existente sem mudanças) ...
          area = request.data.get('area')
          AREAS_PERMITIDAS = ['ADS', 'Operacional', 'Métricas do Negócio', 'Métricas de Vendas']
          print(f"Tentativa de selecionar área: {area} por {request.user.email}")
@@ -98,7 +89,6 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]
     @transaction.atomic
     def post(self, request, *args, **kwargs):
-        # ... (código existente sem mudanças) ...
         name = request.data.get('name')
         email = request.data.get('email')
         area_atuacao = request.data.get('area')
@@ -128,25 +118,7 @@ class RegisterView(APIView):
             print(f"Erro ao criar usuário {email}: {e}")
             return Response({'error': 'Erro ao criar a conta.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# --- ViewSet para CRUD de Estilos de Imagem ---
-
-class ImageStyleViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint que permite aos usuários criar, ler, atualizar e deletar
-    seus próprios estilos de imagem.
-    """
-    serializer_class = ImageStyleSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        if self.request.user and self.request.user.is_authenticated:
-            return ImageStyle.objects.filter(user=self.request.user).order_by('name')
-        return ImageStyle.objects.none()
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-# --- Função auxiliar para tratar erros da API OpenAI ---
+# --- Função auxiliar para tratar erros da API OpenAI (Mantida) ---
 def handle_openai_error(e, context="geração"):
     print(f"Erro OpenAI no contexto de {context}: {type(e).__name__}: {e}")
     if isinstance(e, openai.APIConnectionError):
@@ -177,7 +149,7 @@ def handle_openai_error(e, context="geração"):
         traceback.print_exc()
         return Response({'error': f'Ocorreu um erro interno inesperado no servidor durante a {context}.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# --- Views Operacionais para GPT Image 1 ---
+# --- Views Operacionais para GPT Image 1 (Sem Estilos) ---
 class GenerateImageView(APIView):
     """ Endpoint para gerar imagens usando apenas o modelo gpt-image-1 da OpenAI """
     permission_classes = [IsAuthenticated]
@@ -185,26 +157,18 @@ class GenerateImageView(APIView):
     def post(self, request, *args, **kwargs):
         user = request.user
         user_prompt = request.data.get('prompt')
-        style_id = request.data.get('style_id')
+        # REMOVIDO: style_id não é mais lido da requisição
 
         print(f"Recebida requisição POST em /api/operacional/generate-image/ por {user.email}")
-        print(f"Prompt usuário: '{user_prompt}', Style ID: {style_id}")
+        print(f"Prompt usuário: '{user_prompt}'") # Log sem style_id
 
         # 1. Validação do Prompt do Usuário
         if not user_prompt or not isinstance(user_prompt, str) or not user_prompt.strip():
             return Response({'error': 'O prompt do usuário é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 2. Buscar e Prependenciar Instruções do Estilo (se style_id for fornecido)
+        # 2. Prompt final é apenas o prompt do usuário
         final_prompt = user_prompt.strip()
-        if style_id:
-            try:
-                style_instance = ImageStyle.objects.get(pk=style_id, user=user)
-                final_prompt = f"{style_instance.instructions}\n\n{user_prompt.strip()}"
-                print(f"Estilo '{style_instance.name}' aplicado. Prompt final: '{final_prompt[:100]}...'")
-            except ImageStyle.DoesNotExist:
-                print(f"Aviso: Estilo com ID {style_id} não encontrado para o usuário {user.email}. Usando prompt original.")
-            except Exception as e:
-                print(f"Erro ao buscar estilo ID {style_id}: {e}. Usando prompt original.")
+        # REMOVIDO: Bloco de código que aplicava estilo ao prompt
 
         # 3. Obter parâmetros da requisição específicos do gpt-image-1
         try:
@@ -214,14 +178,12 @@ class GenerateImageView(APIView):
         except (ValueError, TypeError):
              return Response({'error': 'Número de imagens inválido. Use um inteiro entre 1 e 10.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Parâmetros exclusivos do gpt-image-1
-        selected_size = request.data.get('size', 'auto')  # auto, 1024x1024, 1536x1024, 1024x1536
-        selected_quality = request.data.get('quality', 'auto')  # auto, high, medium, low
-        selected_background = request.data.get('background', 'auto')  # auto, transparent, opaque
-        selected_output_format = request.data.get('output_format', 'png')  # png, jpeg, webp
-        selected_moderation = request.data.get('moderation', 'auto')  # auto, low
-        
-        # Adiciona output_compression apenas para jpeg e webp
+        selected_size = request.data.get('size', 'auto')
+        selected_quality = request.data.get('quality', 'auto')
+        selected_background = request.data.get('background', 'auto')
+        selected_output_format = request.data.get('output_format', 'png')
+        selected_moderation = request.data.get('moderation', 'auto')
+
         output_compression = None
         if selected_output_format in ['jpeg', 'webp']:
             try:
@@ -241,7 +203,7 @@ class GenerateImageView(APIView):
         if not api_key:
             print("Erro Crítico: Chave da API OpenAI não encontrada.")
             return Response({'error': 'Erro de configuração no servidor [API Key].'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
         try:
             client = OpenAI(api_key=api_key)
         except Exception as e:
@@ -251,7 +213,7 @@ class GenerateImageView(APIView):
         # 5. Preparar argumentos para a API
         api_args = {
             "model": "gpt-image-1",
-            "prompt": final_prompt,
+            "prompt": final_prompt, # Usa o prompt direto
             "n": n_images,
             "size": selected_size,
             "quality": selected_quality,
@@ -260,8 +222,7 @@ class GenerateImageView(APIView):
             "moderation": selected_moderation,
             "user": str(user.id)
         }
-        
-        # Adicionar output_compression apenas se definido
+
         if output_compression is not None:
             api_args["output_compression"] = output_compression
 
@@ -269,15 +230,13 @@ class GenerateImageView(APIView):
         try:
             print(f"Enviando prompt final para OpenAI com modelo gpt-image-1...")
             response = client.images.generate(**api_args)
-            
-            # Extrair todas as imagens base64 da resposta
+
             images_b64 = [img_data.b64_json for img_data in response.data if hasattr(img_data, 'b64_json') and img_data.b64_json]
             print(f"{len(images_b64)} imagem(ns) gerada(s) com sucesso.")
 
             if not images_b64:
                 return Response({'error': 'A API não retornou imagens válidas.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            # 7. Retorna a lista de base64 para o Frontend
             return Response({'images_b64': images_b64}, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -287,7 +246,7 @@ class GenerateImageView(APIView):
 class EditImageView(APIView):
     """ Endpoint para editar imagens usando o modelo gpt-image-1 da OpenAI """
     permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser] # Necessário para upload de arquivos
 
     def post(self, request, *args, **kwargs):
         user = request.user
@@ -295,8 +254,8 @@ class EditImageView(APIView):
 
         # 1. Obter dados do formulário multipart
         prompt = request.data.get('prompt')
-        image_files = request.FILES.getlist('image')
-        mask_file = request.FILES.get('mask')
+        image_files = request.FILES.getlist('image') # Pega lista de arquivos 'image'
+        mask_file = request.FILES.get('mask') # Pega arquivo 'mask' (opcional)
 
         # Validações básicas
         if not prompt or not isinstance(prompt, str) or not prompt.strip():
@@ -307,14 +266,14 @@ class EditImageView(APIView):
         # 2. Obter outros parâmetros específicos do gpt-image-1
         try:
             n_images = int(request.data.get('n', 1))
-            if not (1 <= n_images <= 10): 
+            if not (1 <= n_images <= 10):
                 raise ValueError("Número de imagens deve ser entre 1 e 10.")
         except (ValueError, TypeError):
              return Response({'error': 'Número de imagens inválido (1-10).'}, status=status.HTTP_400_BAD_REQUEST)
 
-        selected_size = request.data.get('size', 'auto')  # auto, 1024x1024, 1536x1024, 1024x1536
-        selected_quality = request.data.get('quality', 'auto')  # auto, high, medium, low
-        
+        selected_size = request.data.get('size', 'auto')
+        selected_quality = request.data.get('quality', 'auto')
+
         print(f"Edição - Prompt: '{prompt[:50]}...', Imagens base: {len(image_files)}, Máscara: {'Sim' if mask_file else 'Não'}")
         print(f"Opções - N: {n_images}, Tamanho: {selected_size}, Qualidade: {selected_quality}")
 
@@ -322,26 +281,21 @@ class EditImageView(APIView):
         api_key = settings.OPENAI_API_KEY
         if not api_key:
              return Response({'error': 'Erro de configuração no servidor [API Key].'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
         try:
             client = OpenAI(api_key=api_key)
         except Exception as e:
             return Response({'error': 'Erro ao inicializar o serviço de edição [Client Init].'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # 4. Validar e preparar imagens
+        # 4. Validar e preparar imagens (ler bytes)
         image_byte_list = []
         for img_file in image_files:
-            if img_file.size > 25 * 1024 * 1024:  # Limite de 25MB para gpt-image-1
+            if img_file.size > 25 * 1024 * 1024: # Limite de 25MB
                 return Response({'error': f'Imagem "{img_file.name}" excede o limite de 25MB.'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Verificar formato válido (png, webp, jpg)
             filename = img_file.name.lower()
-            if not (filename.endswith('.png') or filename.endswith('.jpg') or 
-                    filename.endswith('.jpeg') or filename.endswith('.webp')):
-                return Response({'error': f'Imagem "{img_file.name}" deve ser png, jpg ou webp.'}, 
-                               status=status.HTTP_400_BAD_REQUEST)
-            
-            image_byte_list.append(img_file.read())
+            if not (filename.endswith('.png') or filename.endswith('.jpg') or filename.endswith('.jpeg') or filename.endswith('.webp')):
+                return Response({'error': f'Imagem "{img_file.name}" deve ser png, jpg ou webp.'}, status=status.HTTP_400_BAD_REQUEST)
+            image_byte_list.append(img_file.read()) # Lê os bytes do arquivo
 
         # 5. Preparar argumentos para a API
         api_args = {
@@ -353,26 +307,23 @@ class EditImageView(APIView):
             "user": str(user.id)
         }
 
-        # O gpt-image-1 aceita um array de imagens 
+        # Passa a lista de bytes das imagens
         if image_byte_list:
             api_args["image"] = image_byte_list
-        
-        # Adicionar máscara se fornecida
+
+        # Adicionar máscara se fornecida (ler bytes)
         if mask_file:
-            if mask_file.size > 25 * 1024 * 1024:  # 25MB para gpt-image-1
+            if mask_file.size > 25 * 1024 * 1024:
                 return Response({'error': f'Máscara excede o limite de 25MB.'}, status=status.HTTP_400_BAD_REQUEST)
-            
             if not mask_file.name.lower().endswith('.png'):
                 return Response({'error': 'A máscara deve ser um arquivo PNG.'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            api_args["mask"] = mask_file.read()
+            api_args["mask"] = mask_file.read() # Lê os bytes da máscara
 
         # 6. Chamada à API OpenAI
         try:
             print(f"Enviando pedido de edição para OpenAI com modelo gpt-image-1...")
             response = client.images.edit(**api_args)
 
-            # Extrair base64 das imagens retornadas
             images_b64 = [img_data.b64_json for img_data in response.data if hasattr(img_data, 'b64_json') and img_data.b64_json]
             print(f"{len(images_b64)} imagem(ns) editada(s) com sucesso.")
 
@@ -384,27 +335,27 @@ class EditImageView(APIView):
         except Exception as e:
             return handle_openai_error(e, context="edição")
 
-# Nota: A classe CreateVariationView foi removida porque gpt-image-1 não suporta variações.
-# Apenas o DALL-E 2 suporta variações de acordo com a documentação.
-
+# ViewSet para Calendários (Mantido)
 class ManagedCalendarViewSet(viewsets.ModelViewSet):
     """
     API endpoint para listar, criar e deletar Calendários Gerenciados.
     """
     queryset = ManagedCalendar.objects.all().order_by('name')
     serializer_class = ManagedCalendarSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated] # Garante que só usuários logados podem acessar
 
+# View para garantir o Cookie CSRF (Mantida)
 class EnsureCSRFView(APIView):
     """
     Endpoint específico para garantir que o cookie CSRF seja enviado.
     """
-    permission_classes = []  # Sem restrições de permissão
+    permission_classes = [AllowAny] # Permite acesso mesmo sem login
 
     @method_decorator(ensure_csrf_cookie)
     def get(self, request, *args, **kwargs):
+        # A simples chamada a esta view com o decorator já garante que o cookie será setado na resposta
         return JsonResponse({
-            'success': True, 
-            'message': 'CSRF cookie set', 
-            'csrf_present': bool(request.META.get('CSRF_COOKIE', None))
+            'success': True,
+            'message': 'CSRF cookie check/set complete.'
+            # Não podemos verificar o cookie aqui diretamente no backend de forma fácil
         })

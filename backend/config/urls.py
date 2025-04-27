@@ -10,22 +10,21 @@ from core.views import (
     RegisterView,
     GenerateImageView,
     EditImageView,
-    ImageStyleViewSet,
-    ManagedCalendarViewSet,
-    EnsureCSRFView  # <-- Importe a nova view
+    # REMOVIDO: ImageStyleViewSet
+    ManagedCalendarViewSet, # Mantido
+    EnsureCSRFView
 )
-from django.http import HttpResponse
-from django.contrib.auth.models import User
+# REMOVIDO: import desnecessário do HttpResponse e User
 
 # Configuração do Router para APIs
 router = DefaultRouter()
-router.register(r'styles', ImageStyleViewSet, basename='imagestyle')
-router.register(r'calendars', ManagedCalendarViewSet, basename='managedcalendar') 
+# REMOVIDO: router.register(r'styles', ImageStyleViewSet, basename='imagestyle')
+router.register(r'calendars', ManagedCalendarViewSet, basename='managedcalendar') # Mantido
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    # API Endpoints Autenticação/Estado (existentes)
+    # API Endpoints Autenticação/Estado
     path('api/login/', SimpleLoginView.as_view(), name='api_login'),
     path('api/logout/', LogoutView.as_view(), name='api_logout'),
     path('api/current-state/', CurrentStateView.as_view(), name='api_current_state'),
@@ -36,9 +35,7 @@ urlpatterns = [
     path('api/operacional/generate-image/', GenerateImageView.as_view(), name='api_generate_image'),
     path('api/operacional/edit-image/', EditImageView.as_view(), name='api_edit_image'),
     path('api/ensure-csrf/', EnsureCSRFView.as_view(), name='ensure_csrf'),
-    # Rota de variação removida por não ser compatível com gpt-image-1
-    # path('api/operacional/create-variation/', CreateVariationView.as_view(), name='api_create_variation'),
 
-    # API para Estilos (gerenciada pelo Router)
+    # API para Calendários (gerenciada pelo Router)
     path('api/', include(router.urls)),
 ]

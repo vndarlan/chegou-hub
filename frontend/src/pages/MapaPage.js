@@ -166,7 +166,6 @@ function MapaPage() {
 
     // --- Componentes Internos para Layout ---
 
-    // Renderização da Legenda (REMOVIDO Ícone de Presença)
     const Legend = () => (
         <Stack gap="xs">
             <Title order={5} mb="xs">Legenda</Title>
@@ -190,7 +189,6 @@ function MapaPage() {
          // Usaremos Stack para espaçamento vertical entre as listas
         <Stack gap="md" mt="xl"> {/* Adicionado espaçamento superior */}
             {Object.entries(STATUS_DESCRIPTIONS).map(([status, description]) => (
-                // Removido Grid.Col, cada lista será um item do Stack
                 <Box key={status}>
                     <Title order={5} style={{ color: STATUS_COLORS_HEX[status] }}>
                         {description.split('(')[0].trim()}
