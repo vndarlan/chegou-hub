@@ -208,7 +208,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # <<< MODIFICADO para ler origens do ambiente >>>
 CORS_ALLOWED_ORIGINS_STRING = os.getenv('CORS_ALLOWED_ORIGINS', '')
 CORS_ALLOWED_ORIGINS = [
-    "https://chegou-hubb-production.up.railway.app",  # Seu domínio frontend
+    "https://chegouhub.up.railway.app",  # Seu domínio frontend
 ]
 if DEBUG:
     # Permitir localhost em DEBUG
