@@ -235,9 +235,10 @@ if DEBUG:
         'http://localhost:3000',
         'http://127.0.0.1:3000',
     ])
-if CSRF_TRUSTED_ORIGINS_STRING:
+# Corrigi para usar CORS_ALLOWED_ORIGINS_STRING já que CSRF_TRUSTED_ORIGINS_STRING não existe
+if CORS_ALLOWED_ORIGINS_STRING:
     # Adiciona URLs do ambiente
-    CSRF_TRUSTED_ORIGINS.extend([origin.strip() for origin in CSRF_TRUSTED_ORIGINS_STRING.split(',')])
+    CSRF_TRUSTED_ORIGINS.extend([origin.strip() for origin in CORS_ALLOWED_ORIGINS_STRING.split(',')])
 
 # Configurações CORS adicionais
 CORS_ALLOW_CREDENTIALS = True

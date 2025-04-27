@@ -1,9 +1,9 @@
 // src/components/CSRFManager.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import axios from 'axios';
 
 function CSRFManager({ children }) {
-  const [isCSRFReady, setIsCSRFReady] = useState(false);
+  // Removida a variável isCSRFReady que estava causando o erro
   
   useEffect(() => {
     // Configuração axios global
@@ -32,7 +32,6 @@ function CSRFManager({ children }) {
             
             // Define o token para todas as requisições futuras do axios
             axios.defaults.headers.common['X-CSRFToken'] = token;
-            setIsCSRFReady(true);
           } else {
             console.error('CSRF cookie não encontrado após resposta do servidor');
             setTimeout(fetchCSRFToken, 3000);
