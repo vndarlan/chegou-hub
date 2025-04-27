@@ -150,7 +150,7 @@ function GerarImagemPage() {
         console.log("Executando useEffect para buscar estilos...");
         const loadStyles = async () => {
             try {
-                // Usa a instância csrfAxios que é estável
+                // Usa a instância csrfAxios que agora é estável (criada fora)
                 const response = await csrfAxios.get('/styles/');
                 if (isMounted) {
                     setStylesList(response.data || []);
@@ -166,9 +166,10 @@ function GerarImagemPage() {
 
         loadStyles();
         return () => { isMounted = false; };
-    // <<< CORREÇÃO ESLINT >>>
-    // Inclui csrfAxios na dependência, pois agora é estável (definido fora)
-    }, [csrfAxios]);
+    // <<< CORREÇÃO AQUI >>>
+    // Mude de volta para array vazio para rodar SÓ NA MONTAGEM
+    // e ignorar o aviso do ESLint sobre dependência desnecessária.
+    }, []);
 
     // Geração com GPT Image
     const handleGenerateImage = async () => {
