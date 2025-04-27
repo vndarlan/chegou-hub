@@ -2,16 +2,17 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
-    Box, /* Title, */ Text, Paper, Textarea, Button, LoadingOverlay, Alert, Image, Group, Stack, // Removido Title daqui
-    Select, NumberInput, FileInput, Tabs, Divider, /* ScrollArea, */ Center, SimpleGrid,     // Removido ScrollArea daqui
-    Slider, ActionIcon
+    Box, Title, Text, Paper, Textarea, Button, LoadingOverlay, Alert, Image, Group, Stack,
+    Select, NumberInput, FileInput, Tabs, Divider, ScrollArea, Center, SimpleGrid,
+    Slider, ActionIcon, Modal, TextInput, Table, Badge
 } from '@mantine/core';
-// Removido useDisclosure
+import { useDisclosure } from '@mantine/hooks';
 import {
-    IconAlertCircle, IconEdit, IconSparkles, IconDownload
+    IconAlertCircle, IconEdit, IconSparkles, IconDownload, IconPlus, IconPencil, 
+    IconTrash, IconInfoCircle
 } from '@tabler/icons-react';
 
-// Função para obter o token CSRF (Mantida)
+// Função para obter o token CSRF
 function getCSRFToken() {
     let csrftoken = null;
     if (document.cookie) {
@@ -26,10 +27,10 @@ function getCSRFToken() {
     return csrftoken;
 }
 
-// Função para criar um cliente axios com CSRF (Mantida)
+// Função para criar um cliente axios com CSRF
 function createCSRFAxios() {
     const instance = axios.create({
-        baseURL: 'https://chegou-hubb-production.up.railway.app/api', // Verifique URL
+        baseURL: 'https://chegou-hubb-production.up.railway.app/api',
         withCredentials: true,
         xsrfHeaderName: 'X-CSRFToken',
         xsrfCookieName: 'csrftoken'
@@ -53,7 +54,7 @@ function createCSRFAxios() {
     return instance;
 }
 
-// Função para TENTAR obter/confirmar o token CSRF inicial (Mantida)
+// Função para TENTAR obter/confirmar o token CSRF inicial
 async function ensureCSRFTokenIsSet() {
     try {
         console.log('Verificando/Tentando setar token CSRF inicial...');
@@ -74,22 +75,23 @@ async function ensureCSRFTokenIsSet() {
     }
 }
 
-// Cria a instância Axios FORA da função do componente (Mantido)
+// Cria a instância Axios FORA da função do componente
 const csrfAxios = createCSRFAxios();
 
-// Componente principal - SEM FUNCIONALIDADE DE ESTILOS
 function GerarImagemPage() {
     // --- Estados Gerais ---
     const [isLoading, setIsLoading] = useState(false);
+    const [resultsLoading, setResultsLoading] = useState(false); // Nova state para loading dos resultados
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('generate');
+    const [apiKeyMissing, setApiKeyMissing] = useState(false);
 
     // --- Estados de Geração ---
     const [prompt, setPrompt] = useState('');
     const [selectedSizeGen, setSelectedSizeGen] = useState('auto');
     const [selectedQualityGen, setSelectedQualityGen] = useState('auto');
     const [nImagesGen, setNImagesGen] = useState(1);
-    // REMOVIDO: selectedStyleId
+    const [selectedStyleId, setSelectedStyleId] = useState(null); // Restaurado
     const [selectedBackground, setSelectedBackground] = useState('auto');
     const [selectedOutputFormat, setSelectedOutputFormat] = useState('png');
     const [selectedModeration, setSelectedModeration] = useState('auto');
@@ -102,12 +104,18 @@ function GerarImagemPage() {
     const [selectedSizeEdit, setSelectedSizeEdit] = useState('auto');
     const [selectedQualityEdit, setSelectedQualityEdit] = useState('auto');
     const [nImagesEdit, setNImagesEdit] = useState(1);
+    const [selectedStyleIdEdit, setSelectedStyleIdEdit] = useState(null); // Novo para edição
 
     // --- Estado do Resultado ---
     const [generatedImages, setGeneratedImages] = useState([]);
 
     // --- Estados de Estilos ---
-    // REMOVIDO: stylesList, styleModalOpened, currentStyle, styleName, styleInstructions, styleError
+    const [stylesList, setStylesList] = useState([]); // Restaurado
+    const [opened, { open, close }] = useDisclosure(false); // Para o modal
+    const [currentStyle, setCurrentStyle] = useState(null); // Restaurado
+    const [styleName, setStyleName] = useState(''); // Restaurado
+    const [styleInstructions, setStyleInstructions] = useState(''); // Restaurado
+    const [styleError, setStyleError] = useState(null); // Restaurado
 
     // Tenta garantir que o cookie CSRF esteja presente na montagem
     useEffect(() => {
@@ -130,7 +138,28 @@ function GerarImagemPage() {
         setGeneratedImages([]);
     }, [activeTab]);
 
-    // REMOVIDO: useEffect para buscar estilos
+    // Buscar estilos ao carregar a página
+    useEffect(() => {
+        const fetchStyles = async () => {
+            try {
+                // Simular busca de estilos - em produção, você usaria uma chamada de API real
+                // const response = await csrfAxios.get('/operacional/image-styles/');
+                // setStylesList(response.data);
+                
+                // Para fins de demonstração, usando dados de exemplo
+                setStylesList([
+                    { id: 1, name: 'Anúncio de Relógio', instructions: 'Estilo profissional para anúncios de relógios de luxo. Fundo escuro, iluminação dramática, detalhes nítidos.' },
+                    { id: 2, name: 'Paisagem Artística', instructions: 'Estilo de pintura artística para paisagens. Tons pastéis, pinceladas visíveis, inspiração impressionista.' },
+                    { id: 3, name: 'Retratos Corporativos', instructions: 'Estilo para fotos profissionais. Iluminação neutra, fundo limpo, aparência formal e profissional.' }
+                ]);
+            } catch (err) {
+                console.error("Erro ao buscar estilos:", err);
+                // Não definimos nenhum erro na interface para não confundir o usuário
+            }
+        };
+
+        fetchStyles();
+    }, []);
 
     // Geração com GPT Image
     const handleGenerateImage = async () => {
@@ -138,6 +167,10 @@ function GerarImagemPage() {
             setError('Por favor, digite um prompt.');
             return;
         }
+        
+        // Encontrar o estilo selecionado
+        const selectedStyle = stylesList.find(style => style.id === selectedStyleId);
+        
         const payload = {
             prompt: prompt.trim(),
             size: selectedSizeGen,
@@ -147,10 +180,16 @@ function GerarImagemPage() {
             output_format: selectedOutputFormat,
             moderation: selectedModeration,
         };
+        
+        // Adicionar as instruções do estilo ao prompt, se um estilo for selecionado
+        if (selectedStyle) {
+            payload.prompt = `${selectedStyle.instructions}\n\n${prompt.trim()}`;
+        }
+        
         if (compressionEnabled) {
             payload.output_compression = outputCompression;
         }
-        // REMOVIDO: Lógica para adicionar style_id
+        
         await handleApiCall('/operacional/generate-image/', payload, 'post');
     };
 
@@ -158,24 +197,41 @@ function GerarImagemPage() {
     const handleEditImage = async () => {
         if (!editPrompt.trim()) { setError('Prompt de edição é obrigatório.'); return; }
         if (baseImagesEdit.length === 0) { setError('Selecione ao menos uma imagem base.'); return; }
+        
+        // Encontrar o estilo selecionado para edição
+        const selectedStyle = stylesList.find(style => style.id === selectedStyleIdEdit);
+        
         const formData = new FormData();
-        formData.append('prompt', editPrompt.trim());
+        
+        // Adicionar as instruções do estilo ao prompt, se um estilo for selecionado
+        if (selectedStyle) {
+            formData.append('prompt', `${selectedStyle.instructions}\n\n${editPrompt.trim()}`);
+        } else {
+            formData.append('prompt', editPrompt.trim());
+        }
+        
         formData.append('size', selectedSizeEdit);
         formData.append('quality', selectedQualityEdit);
         formData.append('n', nImagesEdit);
+        
         baseImagesEdit.forEach((file, index) => {
             formData.append('image', file, file.name);
         });
+        
         if (maskImageEdit) {
             formData.append('mask', maskImageEdit, maskImageEdit.name);
         }
+        
         await handleApiCall('/operacional/edit-image/', formData, 'post', { headers: { 'Content-Type': 'multipart/form-data' } });
     };
 
     // Função genérica para chamadas API state-changing (POST/PATCH/DELETE)
     const handleApiCall = async (url, payload, method = 'post', config = {}) => {
         setIsLoading(true);
+        setResultsLoading(true); // Nova state específica para a área de resultados
         setError(null);
+        setApiKeyMissing(false);
+        
         if (url.includes('/operacional/')) {
              setGeneratedImages([]);
         }
@@ -197,12 +253,18 @@ function GerarImagemPage() {
             if (err.response) {
                 console.error(`Status do erro (${method.toUpperCase()} ${url}):`, err.response.status);
                 console.error(`Dados do erro (${method.toUpperCase()} ${url}):`, err.response.data);
+                
                 if (err.response.status === 403) {
                     errorMessage = `Erro de Segurança (403). Verifique se está logado e tente recarregar a página. Detalhe: ${err.response.data?.detail || 'CSRF ou Permissão'}`;
                 } else if (err.response.status === 401) {
                     errorMessage = `Não autenticado (401). Faça login novamente.`;
                 } else {
                     errorMessage = err.response.data?.error || err.response.data?.detail || `Erro do servidor: ${err.response.status}`;
+                    
+                    // Verifica se o erro está relacionado à API Key
+                    if (errorMessage.includes('API Key') || errorMessage.includes('configuração no servidor')) {
+                        setApiKeyMissing(true);
+                    }
                 }
             } else if (err.request) {
                 errorMessage = 'Não foi possível conectar ao servidor.';
@@ -215,11 +277,108 @@ function GerarImagemPage() {
             }
         } finally {
             setIsLoading(false);
+            setResultsLoading(false);
         }
     };
 
     // --- Funções de Gerenciamento de Estilos ---
-    // REMOVIDO: openCreateStyleModal, openEditStyleModal, handleSaveStyle, handleDeleteStyle
+    // Abre o modal para criar um novo estilo
+    const openCreateStyleModal = () => {
+        setCurrentStyle(null);
+        setStyleName('');
+        setStyleInstructions('');
+        setStyleError(null);
+        open();
+    };
+
+    // Abre o modal para editar um estilo existente
+    const openEditStyleModal = (style) => {
+        setCurrentStyle(style);
+        setStyleName(style.name);
+        setStyleInstructions(style.instructions);
+        setStyleError(null);
+        open();
+    };
+
+    // Salva um estilo (cria ou atualiza)
+    const handleSaveStyle = async () => {
+        // Validação básica
+        if (!styleName.trim()) {
+            setStyleError('O nome do estilo é obrigatório');
+            return;
+        }
+        if (!styleInstructions.trim()) {
+            setStyleError('As instruções do estilo são obrigatórias');
+            return;
+        }
+
+        try {
+            setStyleError(null);
+            
+            // Em uma implementação real, você faria chamadas API aqui
+            if (currentStyle) {
+                // Atualização (PUT)
+                // const response = await csrfAxios.put(`/operacional/image-styles/${currentStyle.id}/`, {
+                //     name: styleName.trim(),
+                //     instructions: styleInstructions.trim()
+                // });
+                
+                // Simulando atualização
+                const updatedStyles = stylesList.map(style => 
+                    style.id === currentStyle.id 
+                        ? { ...style, name: styleName.trim(), instructions: styleInstructions.trim() } 
+                        : style
+                );
+                setStylesList(updatedStyles);
+            } else {
+                // Criação (POST)
+                // const response = await csrfAxios.post('/operacional/image-styles/', {
+                //     name: styleName.trim(),
+                //     instructions: styleInstructions.trim()
+                // });
+                
+                // Simulando criação
+                const newStyle = {
+                    id: Date.now(), // Gera um ID único simulado
+                    name: styleName.trim(),
+                    instructions: styleInstructions.trim()
+                };
+                setStylesList([...stylesList, newStyle]);
+            }
+            
+            close(); // Fecha o modal
+        } catch (err) {
+            console.error("Erro ao salvar estilo:", err);
+            setStyleError('Ocorreu um erro ao salvar o estilo. Tente novamente.');
+        }
+    };
+
+    // Exclui um estilo
+    const handleDeleteStyle = async (styleId) => {
+        if (!confirm('Tem certeza que deseja excluir este estilo? Esta ação não pode ser desfeita.')) {
+            return;
+        }
+        
+        try {
+            // Na implementação real, chame a API:
+            // await csrfAxios.delete(`/operacional/image-styles/${styleId}/`);
+            
+            // Simulando a exclusão
+            const filteredStyles = stylesList.filter(style => style.id !== styleId);
+            setStylesList(filteredStyles);
+            
+            // Limpar o seletor se o estilo excluído estiver selecionado
+            if (selectedStyleId === styleId) {
+                setSelectedStyleId(null);
+            }
+            if (selectedStyleIdEdit === styleId) {
+                setSelectedStyleIdEdit(null);
+            }
+        } catch (err) {
+            console.error("Erro ao excluir estilo:", err);
+            setError('Ocorreu um erro ao excluir o estilo. Tente novamente.');
+        }
+    };
 
     // --- Função de Download ---
     const handleDownloadImage = (base64Data, index) => {
@@ -238,11 +397,127 @@ function GerarImagemPage() {
     // --- Renderização ---
     return (
         <Box p="md" style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <LoadingOverlay visible={isLoading} overlayProps={{ radius: "sm", blur: 2 }} loaderProps={{ color: 'orange' }} />
+            {/* Alerta para OpenAI API Key ausente */}
+            {apiKeyMissing && (
+                <Alert 
+                    icon={<IconInfoCircle size="1.1rem" />} 
+                    title="Configuração da API OpenAI necessária" 
+                    color="blue" 
+                    mb="md"
+                >
+                    <Text mb="xs">A chave da API OpenAI não está configurada no servidor. Para resolver:</Text>
+                    <ol style={{ paddingLeft: '20px', marginBottom: '10px' }}>
+                        <li>Acesse o painel do Railway para seu projeto</li>
+                        <li>Vá para a seção "Variables"</li>
+                        <li>Adicione a variável <b>OPENAI_API_KEY</b> com sua chave da API OpenAI</li>
+                        <li>Reinicie o serviço ou aguarde alguns minutos para que as alterações sejam aplicadas</li>
+                    </ol>
+                    <Text size="sm">Esta configuração é necessária apenas uma vez.</Text>
+                </Alert>
+            )}
 
-            {/* REMOVIDO: Paper de Gerenciamento de Estilos */}
+            {/* Paper de Gerenciamento de Estilos */}
+            <Paper shadow="xs" p="lg" withBorder mb="md">
+                <Group position="apart" mb="md">
+                    <Title order={4}>Estilos de Imagem</Title>
+                    <Button 
+                        leftIcon={<IconPlus size={16} />} 
+                        onClick={openCreateStyleModal}
+                        disabled={isLoading}
+                    >
+                        Novo Estilo
+                    </Button>
+                </Group>
+                
+                <ScrollArea style={{ height: '200px' }}>
+                    <Table striped>
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Instruções</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {stylesList.length === 0 ? (
+                                <tr>
+                                    <td colSpan={3} style={{ textAlign: 'center' }}>
+                                        <Text color="dimmed">Nenhum estilo encontrado. Crie um novo estilo usando o botão acima.</Text>
+                                    </td>
+                                </tr>
+                            ) : (
+                                stylesList.map((style) => (
+                                    <tr key={style.id}>
+                                        <td>
+                                            <Text weight={500}>{style.name}</Text>
+                                        </td>
+                                        <td>
+                                            <Text truncate>{style.instructions}</Text>
+                                        </td>
+                                        <td>
+                                            <Group spacing={4}>
+                                                <ActionIcon 
+                                                    color="blue" 
+                                                    onClick={() => openEditStyleModal(style)}
+                                                    disabled={isLoading}
+                                                >
+                                                    <IconPencil size={16} />
+                                                </ActionIcon>
+                                                <ActionIcon 
+                                                    color="red" 
+                                                    onClick={() => handleDeleteStyle(style.id)}
+                                                    disabled={isLoading}
+                                                >
+                                                    <IconTrash size={16} />
+                                                </ActionIcon>
+                                            </Group>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </Table>
+                </ScrollArea>
+            </Paper>
 
-            {/* REMOVIDO: Modal para Criar/Editar Estilo */}
+            {/* Modal para Criar/Editar Estilo */}
+            <Modal 
+                opened={opened} 
+                onClose={close} 
+                title={currentStyle ? `Editar Estilo: ${currentStyle.name}` : "Criar Novo Estilo"} 
+                centered
+            >
+                {styleError && (
+                    <Alert icon={<IconAlertCircle size="1rem" />} title="Erro!" color="red" mb="md">
+                        {styleError}
+                    </Alert>
+                )}
+                
+                <TextInput
+                    label="Nome do Estilo"
+                    placeholder="Ex: Anúncio de Relógio"
+                    value={styleName}
+                    onChange={(e) => setStyleName(e.currentTarget.value)}
+                    required
+                    mb="md"
+                />
+                
+                <Textarea
+                    label="Instruções do Estilo"
+                    placeholder="Descreva detalhadamente como as imagens deste estilo devem ser..."
+                    value={styleInstructions}
+                    onChange={(e) => setStyleInstructions(e.currentTarget.value)}
+                    required
+                    minRows={5}
+                    autosize
+                    mb="xl"
+                />
+                
+                <Group position="right">
+                    <Button variant="outline" onClick={close}>Cancelar</Button>
+                    <Button onClick={handleSaveStyle}>Salvar</Button>
+                </Group>
+            </Modal>
 
             {/* Área Principal com Abas */}
             <Paper shadow="xs" p="lg" withBorder style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
@@ -264,7 +539,17 @@ function GerarImagemPage() {
                                     onChange={(event) => setPrompt(event.currentTarget.value)}
                                     minRows={3} autosize disabled={isLoading} required
                                 />
-                                {/* REMOVIDO: Select para Aplicar Estilo */}
+                                {/* Select para Aplicar Estilo */}
+                                <Select
+                                    label="Aplicar Estilo (Opcional)"
+                                    placeholder="Selecione um estilo..."
+                                    value={selectedStyleId}
+                                    onChange={setSelectedStyleId}
+                                    data={stylesList.map(style => ({ value: style.id, label: style.name }))}
+                                    clearable
+                                    disabled={isLoading || stylesList.length === 0}
+                                    description={stylesList.length === 0 ? "Crie um estilo primeiro para usar esta opção" : ""}
+                                />
                                 <Group grow>
                                     <Select
                                         label="Tamanho" value={selectedSizeGen} onChange={setSelectedSizeGen}
@@ -324,7 +609,7 @@ function GerarImagemPage() {
                             </Stack>
                         </Tabs.Panel>
 
-                        {/* Painel Editar (sem mudanças aqui) */}
+                        {/* Painel Editar */}
                         <Tabs.Panel value="edit" pt="xs">
                              <Stack gap="md">
                                  <FileInput
@@ -340,6 +625,17 @@ function GerarImagemPage() {
                                 <Textarea
                                     label="Prompt de Edição" placeholder="Descreva a edição..." value={editPrompt} onChange={(event) => setEditPrompt(event.currentTarget.value)}
                                     minRows={3} autosize disabled={isLoading} required
+                                />
+                                {/* Select para Aplicar Estilo na Edição */}
+                                <Select
+                                    label="Aplicar Estilo (Opcional)"
+                                    placeholder="Selecione um estilo..."
+                                    value={selectedStyleIdEdit}
+                                    onChange={setSelectedStyleIdEdit}
+                                    data={stylesList.map(style => ({ value: style.id, label: style.name }))}
+                                    clearable
+                                    disabled={isLoading || stylesList.length === 0}
+                                    description={stylesList.length === 0 ? "Crie um estilo primeiro para usar esta opção" : ""}
                                 />
                                 <Group grow>
                                     <Select
@@ -369,46 +665,51 @@ function GerarImagemPage() {
                 </Tabs>
 
                 {/* Exibição de Erro Global */}
-                {error && (
+                {error && !apiKeyMissing && (
                     <Alert icon={<IconAlertCircle size="1rem" />} title="Erro!" color="red" withCloseButton onClose={() => setError(null)} mt="md">
                         {error}
                     </Alert>
                 )}
 
-                {/* Exibição dos Resultados */}
-                {generatedImages.length > 0 && !isLoading && (
-                    <Box mt="lg">
-                        <Divider my="md" label="Resultados" labelPosition="center" />
-                        <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="md">
-                            {generatedImages.map((base64Data, index) => {
-                                let mimeType = 'image/png';
-                                if (selectedOutputFormat === 'jpeg') mimeType = 'image/jpeg';
-                                else if (selectedOutputFormat === 'webp') mimeType = 'image/webp';
-                                return (
-                                    <Paper key={index} withBorder radius="md" p="xs" style={{ overflow: 'hidden', position: 'relative' }}>
-                                        <Image
-                                            src={`data:${mimeType};base64,${base64Data}`}
-                                            alt={`Resultado ${index + 1}`}
-                                            style={{ display: 'block', width: '100%', height: 'auto' }}
-                                        />
-                                        <Group gap="xs" style={{ position: 'absolute', top: 5, right: 5 }}>
-                                            <ActionIcon variant="filled" color="blue" size="sm" onClick={() => handleDownloadImage(base64Data, index)} title="Baixar">
-                                                <IconDownload size={14} />
-                                            </ActionIcon>
-                                        </Group>
-                                    </Paper>
-                                );
-                            })}
-                        </SimpleGrid>
-                    </Box>
-                )}
+                {/* Exibição dos Resultados - com Loading específico */}
+                <Box mt="lg" style={{ position: 'relative' }}>
+                    {/* LoadingOverlay apenas na área de resultados */}
+                    <LoadingOverlay visible={resultsLoading} overlayProps={{ radius: "sm", blur: 2 }} loaderProps={{ color: 'orange' }} />
+                    
+                    {generatedImages.length > 0 && !isLoading && (
+                        <>
+                            <Divider my="md" label="Resultados" labelPosition="center" />
+                            <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="md">
+                                {generatedImages.map((base64Data, index) => {
+                                    let mimeType = 'image/png';
+                                    if (selectedOutputFormat === 'jpeg') mimeType = 'image/jpeg';
+                                    else if (selectedOutputFormat === 'webp') mimeType = 'image/webp';
+                                    return (
+                                        <Paper key={index} withBorder radius="md" p="xs" style={{ overflow: 'hidden', position: 'relative' }}>
+                                            <Image
+                                                src={`data:${mimeType};base64,${base64Data}`}
+                                                alt={`Resultado ${index + 1}`}
+                                                style={{ display: 'block', width: '100%', height: 'auto' }}
+                                            />
+                                            <Group gap="xs" style={{ position: 'absolute', top: 5, right: 5 }}>
+                                                <ActionIcon variant="filled" color="blue" size="sm" onClick={() => handleDownloadImage(base64Data, index)} title="Baixar">
+                                                    <IconDownload size={14} />
+                                                </ActionIcon>
+                                            </Group>
+                                        </Paper>
+                                    );
+                                })}
+                            </SimpleGrid>
+                        </>
+                    )}
 
-                {/* Placeholder quando não há imagens e não está carregando */}
-                {generatedImages.length === 0 && !isLoading && !error && (
-                    <Center mt="xl" p="xl" style={{ border: '1px dashed #ced4da', minHeight: '200px', borderRadius: 'var(--mantine-radius-md)', backgroundColor: '#f8f9fa' }}>
-                        <Text c="dimmed" ta="center">Os resultados aparecerão aqui.</Text>
-                    </Center>
-                )}
+                    {/* Placeholder quando não há imagens e não está carregando */}
+                    {generatedImages.length === 0 && !resultsLoading && !error && !apiKeyMissing && (
+                        <Center mt="xl" p="xl" style={{ border: '1px dashed #ced4da', minHeight: '200px', borderRadius: 'var(--mantine-radius-md)', backgroundColor: '#f8f9fa' }}>
+                            <Text c="dimmed" ta="center">Os resultados aparecerão aqui.</Text>
+                        </Center>
+                    )}
+                </Box>
             </Paper>
         </Box>
     );
