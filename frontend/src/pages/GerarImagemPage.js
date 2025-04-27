@@ -2,13 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
-    Box, Title, Text, Paper, Textarea, Button, LoadingOverlay, Alert, Image, Group, Stack,
-    Select, NumberInput, FileInput, Tabs, Divider, ScrollArea, Center, SimpleGrid,
-    Slider, ActionIcon // Removido Modal, List, ThemeIcon, TextInput, ActionIcon
+    Box, /* Title, */ Text, Paper, Textarea, Button, LoadingOverlay, Alert, Image, Group, Stack, // Removido Title daqui
+    Select, NumberInput, FileInput, Tabs, Divider, /* ScrollArea, */ Center, SimpleGrid,     // Removido ScrollArea daqui
+    Slider, ActionIcon
 } from '@mantine/core';
 // Removido useDisclosure
 import {
-    IconAlertCircle, IconEdit, IconSparkles, IconDownload // Removido IconPalette, IconPlus, IconTrash, IconPencil
+    IconAlertCircle, IconEdit, IconSparkles, IconDownload
 } from '@tabler/icons-react';
 
 // Função para obter o token CSRF (Mantida)
