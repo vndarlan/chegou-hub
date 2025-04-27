@@ -1,9 +1,9 @@
 // src/components/CSRFManager.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import axios from 'axios';
 
 function CSRFManager({ children }) {
-  const [isCSRFReady, setIsCSRFReady] = useState(false);
+  // Removida a variável isCSRFReady que não estava sendo usada
   
   useEffect(() => {
     // Configuração axios global para CSRF
@@ -18,7 +18,7 @@ function CSRFManager({ children }) {
           withCredentials: true
         });
         console.log('CSRF token obtido com sucesso', response.status);
-        setIsCSRFReady(true);
+        // Removida a chamada setIsCSRFReady(true)
       } catch (error) {
         console.error('Erro ao obter CSRF token:', error);
         setTimeout(fetchCSRFToken, 3000); // Tentar novamente após 3 segundos
