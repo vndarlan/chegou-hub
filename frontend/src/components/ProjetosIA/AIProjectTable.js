@@ -1,5 +1,5 @@
 // src/components/ProjetosIA/AIProjectTable.js
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react'; 
 import { Table, ScrollArea, TextInput, Box, Text, Anchor, Badge, Group, ActionIcon, Tooltip } from '@mantine/core';
 import { IconSearch, IconExternalLink } from '@tabler/icons-react';
 import { format } from 'date-fns'; // Para formatar datas

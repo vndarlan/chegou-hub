@@ -1,6 +1,6 @@
 // src/components/ProjetosIA/AIProjectDashboard.js
 import React, { useMemo, useState } from 'react';
-import { Grid, Paper, Text, Title, RingProgress, Center, Group, Select, Box } from '@mantine/core';
+import { Grid, Paper, Text, Title, RingProgress, Center, Group, Select, Box, Space } from '@mantine/core';
 import { BarChart, LineChart, DonutChart } from '@mantine/charts'; // Import chart types
 import { format, parseISO, startOfMonth, endOfMonth, eachMonthOfInterval, getYear, getMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale'; // Import locale for month names
