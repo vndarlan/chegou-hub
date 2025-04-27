@@ -75,22 +75,32 @@ function AIProjectForm({ onProjectAdded }) {
         };
 
         try {
-            // Obter token CSRF imediatamente antes do POST
-            await axios.get('https://chegou-hubb-production.up.railway.app/api/ensure-csrf/', {
+            // 1. Obter token CSRF em uma operação separada
+            const csrfResponse = await axios.get('https://chegou-hubb-production.up.railway.app/api/ensure-csrf/', {
                 withCredentials: true
             });
             
-            // Fazer a requisição com URL absoluta e parâmetros explícitos
+            // 2. Extrair o token dos cookies após receber a resposta do ensure-csrf
+            let csrfToken = '';
+            // Procurar por todos os nomes possíveis do cookie CSRF
+            const cookieNames = ['csrftoken', 'csrf_token', 'CSRF-TOKEN', 'XSRF-TOKEN'];
+            for (const name of cookieNames) {
+                const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
+                if (match) {
+                    csrfToken = match[2];
+                    console.log(`Token CSRF encontrado em cookie ${name}: ${csrfToken.substring(0, 8)}...`);
+                    break;
+                }
+            }
+            
+            // 3. Fazer a requisição POST com o token obtido
             const response = await axios.post('https://chegou-hubb-production.up.railway.app/api/aiprojects/', 
                 formattedValues,
                 {
                     withCredentials: true,
                     headers: {
                         'Content-Type': 'application/json',
-                        // Tentar obter o token diretamente do cookie
-                        'X-CSRFToken': document.cookie.split('; ')
-                            .find(row => row.startsWith('csrftoken='))
-                            ?.split('=')[1] || ''
+                        'X-CSRFToken': csrfToken
                     }
                 }
             );
@@ -108,6 +118,12 @@ function AIProjectForm({ onProjectAdded }) {
         } catch (err) {
             console.error("Erro ao adicionar projeto:", err.response?.data || err.message);
             const apiErrors = err.response?.data;
+            
+            // Adicionar mais debug para CSRF
+            if (err.response?.data?.detail?.includes('CSRF')) {
+                console.log('Erro de CSRF detectado. Cookies disponíveis:', document.cookie);
+            }
+            
             // Tenta obter a mensagem de erro HTML ou padrão
             let errorMessage = 'Falha ao adicionar o projeto.';
             if (typeof err.response?.data === 'string' && err.response.data.includes('<html')) {
