@@ -1,9 +1,6 @@
 // src/components/ProjetosIA/AIProjectDashboard.js
-import React, { useMemo } from 'react';
-import { Grid, Paper, Text, Title, Center, Group, Select, Box, Space } from '@mantine/core';
-import { BarChart, PieChart } from '@mantine/charts';
-import { format, parseISO, getYear } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import React from 'react';
+import { Grid, Paper, Text, Title, Stack, Group } from '@mantine/core';
 
 // Cores consistentes com a tabela
 const statusColors = {
@@ -16,62 +13,33 @@ const statusColors = {
 };
 
 function AIProjectDashboard({ projects = [] }) {
-    // Dados totais e por status
-    const { totalProjects, statusCounts } = useMemo(() => {
-        const counts = {};
-        Object.keys(statusColors).forEach(s => counts[s] = 0);
-        
-        projects.forEach(project => {
-            if (counts.hasOwnProperty(project.status)) {
-                counts[project.status]++;
-            } else {
-                counts[project.status] = 1;
-            }
-        });
-        
-        return { 
-            totalProjects: projects.length,
-            statusCounts: counts
-        };
-    }, [projects]);
+    // Contagem simples de status
+    const statusCounts = {};
+    Object.keys(statusColors).forEach(status => statusCounts[status] = 0);
+    
+    projects.forEach(project => {
+        if (statusCounts.hasOwnProperty(project.status)) {
+            statusCounts[project.status]++;
+        }
+    });
+    
+    // Contagem de projetos por criador
+    const creatorCounts = {};
+    projects.forEach(project => {
+        if (project.creator_names) {
+            const creators = project.creator_names.split(',');
+            creators.forEach(creator => {
+                const name = creator.trim();
+                creatorCounts[name] = (creatorCounts[name] || 0) + 1;
+            });
+        }
+    });
+    
+    const topCreators = Object.entries(creatorCounts)
+        .sort(([, countA], [, countB]) => countB - countA)
+        .slice(0, 5);
 
-    // Dados para o Gráfico de Pizza
-    const pieChartData = useMemo(() => {
-        return Object.entries(statusCounts)
-            .filter(([name, count]) => count > 0)
-            .map(([name, count]) => ({
-                name,
-                value: count,
-                color: statusColors[name] || 'gray',
-            }));
-    }, [statusCounts]);
-
-    // Dados para gráfico de criadores
-    const creatorData = useMemo(() => {
-        const counts = {};
-        
-        projects.forEach(project => {
-            if (project.creator_names) {
-                const creatorNames = project.creator_names.split(',');
-                creatorNames.forEach(name => {
-                    const trimmedName = name.trim();
-                    counts[trimmedName] = (counts[trimmedName] || 0) + 1;
-                });
-            } else {
-                counts['Não especificado'] = (counts['Não especificado'] || 0) + 1;
-            }
-        });
-        
-        return Object.entries(counts)
-            .sort(([, countA], [, countB]) => countB - countA)
-            .slice(0, 10)
-            .map(([name, count]) => ({
-                creator: name,
-                Projetos: count,
-            }));
-    }, [projects]);
-
-    // Componente para mostrar cards de métricas
+    // Card simples 
     const StatCard = ({ title, value, color = "blue" }) => (
         <Paper withBorder p="md" radius="md" style={{ height: '100%' }}>
             <Text size="xs" c="dimmed" tt="uppercase" fw={700}>{title}</Text>
@@ -80,13 +48,13 @@ function AIProjectDashboard({ projects = [] }) {
     );
 
     return (
-        <Box mb="xl">
+        <div>
             <Title order={3} mb="md">Dashboard de Projetos</Title>
             
             {/* Cards de Métricas */}
-            <Grid mb="md">
+            <Grid mb="xl">
                 <Grid.Col span={{ base: 12, xs: 6, sm: 4, md: 2 }}>
-                    <StatCard title="Total" value={totalProjects} color="blue" />
+                    <StatCard title="Total" value={projects.length} color="blue" />
                 </Grid.Col>
                 {Object.entries(statusCounts).map(([status, count]) => (
                     count > 0 && (
@@ -101,51 +69,53 @@ function AIProjectDashboard({ projects = [] }) {
                 ))}
             </Grid>
 
-            <Space h="lg" />
-
+            {/* Informações sem usar gráficos */}
             <Grid>
-                {/* Gráfico de Pizza - Distribuição por Status */}
-                <Grid.Col span={{ base: 12, md: 5 }}>
-                    <Paper withBorder p="md" radius="md" h={300}>
+                <Grid.Col span={{ base: 12, md: 6 }}>
+                    <Paper withBorder p="md" radius="md">
                         <Title order={5} mb="md">Distribuição por Status</Title>
-                        {pieChartData.length > 0 ? (
-                            <PieChart
-                                data={pieChartData}
-                                withTooltip
-                                h={200}
-                                withLabels
-                                withLabelsLine
-                                paddingAngle={3}
-                                style={{ width: '100%', height: '100%' }}
-                            />
-                        ) : (
-                            <Center h={200}><Text c="dimmed">Sem dados para exibir</Text></Center>
-                        )}
+                        <Stack spacing="xs">
+                            {Object.entries(statusCounts)
+                                .filter(([_, count]) => count > 0)
+                                .map(([status, count]) => (
+                                    <Group key={status} position="apart">
+                                        <Group>
+                                            <div style={{ 
+                                                width: 16, 
+                                                height: 16, 
+                                                backgroundColor: `var(--mantine-color-${statusColors[status] || 'gray'}-6)`,
+                                                borderRadius: '50%' 
+                                            }} />
+                                            <Text>{status}</Text>
+                                        </Group>
+                                        <Text fw={500}>
+                                            {count} ({Math.round(count / projects.length * 100)}%)
+                                        </Text>
+                                    </Group>
+                                ))
+                            }
+                        </Stack>
                     </Paper>
                 </Grid.Col>
 
-                {/* Gráfico de Barras - Projetos por Criador */}
-                <Grid.Col span={{ base: 12, md: 7 }}>
-                    <Paper withBorder p="md" radius="md" h={300}>
-                        <Title order={5} mb="md">Projetos por Criador (Top 10)</Title>
-                        {creatorData.length > 0 ? (
-                            <BarChart
-                                h={200}
-                                data={creatorData}
-                                dataKey="creator"
-                                series={[{ name: 'Projetos', color: 'orange' }]}
-                                tickLine="none"
-                                gridAxis="none"
-                                withLegend={false}
-                                style={{ width: '100%', height: '100%' }}
-                            />
-                        ) : (
-                            <Center h={200}><Text c="dimmed">Sem dados para exibir</Text></Center>
-                        )}
+                <Grid.Col span={{ base: 12, md: 6 }}>
+                    <Paper withBorder p="md" radius="md">
+                        <Title order={5} mb="md">Top 5 Criadores</Title>
+                        <Stack spacing="xs">
+                            {topCreators.map(([creator, count]) => (
+                                <Group key={creator} position="apart">
+                                    <Text>{creator}</Text>
+                                    <Text fw={500}>{count} projeto(s)</Text>
+                                </Group>
+                            ))}
+                            {topCreators.length === 0 && (
+                                <Text c="dimmed">Nenhum criador encontrado</Text>
+                            )}
+                        </Stack>
                     </Paper>
                 </Grid.Col>
             </Grid>
-        </Box>
+        </div>
     );
 }
 
