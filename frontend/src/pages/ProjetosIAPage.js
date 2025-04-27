@@ -1,7 +1,7 @@
 // src/pages/ProjetosIAPage.js
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect} from 'react';
 import axios from 'axios';
-import { Box, Title, LoadingOverlay, Alert, Container, Grid, Paper, Space } from '@mantine/core';
+import {Title, LoadingOverlay, Alert, Container, Grid, Paper, Space } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 import AIProjectTable from '../components/ProjetosIA/AIProjectTable';
 import AIProjectForm from '../components/ProjetosIA/AIProjectForm';
@@ -11,7 +11,6 @@ function ProjetosIAPage() {
     const [projects, setProjects] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
-    const [users, setUsers] = useState([]); // Para o select de criadores, se necessário
 
     const fetchProjects = async () => {
         setIsLoading(true);
