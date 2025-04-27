@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useForm } from '@mantine/form';
-import { TextInput, Textarea, Select, Button, Box, Group, LoadingOverlay, Alert, MultiSelect } from '@mantine/core'; // Adicionado MultiSelect
+import { TextInput, Textarea, Select, Button, Box, Group, LoadingOverlay, Alert, MultiSelect } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import 'dayjs/locale/pt-br'; // Import locale for DatePicker
 import { notifications } from '@mantine/notifications'; // Assuming you have notifications setup
@@ -26,7 +26,7 @@ const creatorOptions = [
 ];
 
 
-function AIProjectForm({ onProjectAdded }) { // Removido prop 'users' não utilizado
+function AIProjectForm({ onProjectAdded }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState('');
 
@@ -64,8 +64,8 @@ function AIProjectForm({ onProjectAdded }) { // Removido prop 'users' não utili
 
         // Converte array de nomes para string separada por vírgula
         const namesString = Array.isArray(values.creator_names)
-                            ? values.creator_names.join(', ')
-                            : ''; // String vazia se nada for selecionado
+                           ? values.creator_names.join(', ')
+                           : ''; // String vazia se nada for selecionado
 
         const formattedValues = {
             ...values,
@@ -75,8 +75,12 @@ function AIProjectForm({ onProjectAdded }) { // Removido prop 'users' não utili
         };
 
         try {
-             // URL corrigida (sem /api inicial)
+            // IMPORTANTE: Primeiro, garanta que temos um token CSRF
+            await axios.get('/ensure-csrf/');
+            
+            // Agora faça a requisição POST com o token que acabou de ser obtido
             const response = await axios.post('/aiprojects/', formattedValues);
+            
             notifications.show({
                 title: 'Sucesso!',
                 message: `Projeto "${response.data.name}" adicionado com sucesso.`,
@@ -164,7 +168,7 @@ function AIProjectForm({ onProjectAdded }) { // Removido prop 'users' não utili
                     autosize
                     minRows={2}
                 />
-                 <Select
+                <Select
                     label="Status"
                     placeholder="Selecione o status atual"
                     data={statusOptions}
@@ -173,26 +177,24 @@ function AIProjectForm({ onProjectAdded }) { // Removido prop 'users' não utili
                     {...form.getInputProps('status')}
                     mb="sm"
                 />
-                 <TextInput
+                <TextInput
                     label="Link do Projeto (Opcional)"
                     placeholder="https://github.com/seu-repo ou https://projeto.dominio.com"
                     {...form.getInputProps('project_link')}
                     mb="sm"
                 />
-                 <TextInput
+                <TextInput
                     label="Ferramentas Utilizadas"
                     placeholder="Ex: Python, TensorFlow, React, Docker"
                     {...form.getInputProps('tools_used')}
                     mb="sm"
                 />
-                {/* Grupo removido para dar mais espaço vertical */}
                 <TextInput
                     label="Versão do Projeto"
                     placeholder="Ex: v1.0, v2.alpha"
                     {...form.getInputProps('project_version')}
                     mb="sm" // Adiciona margem inferior
                 />
-                {/* Campo MultiSelect para Criadores */}
                 <MultiSelect
                     label="Criador(es) do Projeto"
                     placeholder="Selecione um ou mais nomes"
@@ -202,7 +204,6 @@ function AIProjectForm({ onProjectAdded }) { // Removido prop 'users' não utili
                     {...form.getInputProps('creator_names')} // Usa o mesmo nome de campo do form
                     mb="sm"
                 />
-
 
                 <Button type="submit" mt="md" fullWidth loading={isSubmitting}>
                     Adicionar Projeto

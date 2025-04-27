@@ -209,7 +209,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS_STRING = os.getenv('CORS_ALLOWED_ORIGINS', '')
 CORS_ALLOWED_ORIGINS = [
     "https://chegouhub.up.railway.app",
-    "https://chegou-hubb-production.up.railway.app",
     # mantenha outras origens que já existem
 ]
 if DEBUG:
@@ -229,8 +228,7 @@ CORS_ALLOW_CREDENTIALS = True
 # <<< MODIFICADO para ler origens do ambiente >>>
 CSRF_TRUSTED_ORIGINS_STRING = os.getenv('CSRF_TRUSTED_ORIGINS', '')
 CSRF_TRUSTED_ORIGINS = [
-    "https://chegouhub.up.railway.app",
-    "https://chegou-hubb-production.up.railway.app", 
+    "https://chegouhub.up.railway.app", 
     # mantenha outros domínios que já existem
 ]
 if DEBUG:
