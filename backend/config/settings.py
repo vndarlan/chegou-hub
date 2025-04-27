@@ -209,7 +209,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS_STRING = os.getenv('CORS_ALLOWED_ORIGINS', '')
 CORS_ALLOWED_ORIGINS = [
     "https://chegouhub.up.railway.app",
-    # mantenha outras origens que já existem
+    "https://chegou-hubb-production.up.railway.app",
+    "https://www.chegouhub.up.railway.app",
+    "http://chegouhub.up.railway.app",  # Para ambientes de desenvolvimento
 ]
 if DEBUG:
     # Permitir localhost em DEBUG
@@ -218,18 +220,15 @@ if DEBUG:
         "http://127.0.0.1:3000",
     ])
 if CORS_ALLOWED_ORIGINS_STRING:
-     # Adiciona URLs do ambiente (ex: a URL do seu frontend no Railway)
+    # Adiciona URLs do ambiente
     CORS_ALLOWED_ORIGINS.extend([origin.strip() for origin in CORS_ALLOWED_ORIGINS_STRING.split(',')])
 
-CORS_ALLOW_CREDENTIALS = True
-# --- Fim CORS ---
-
-# --- Configuração CSRF ---
-# <<< MODIFICADO para ler origens do ambiente >>>
-CSRF_TRUSTED_ORIGINS_STRING = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+# Atualize CSRF_TRUSTED_ORIGINS - deve incluir a mesma lista
 CSRF_TRUSTED_ORIGINS = [
     "https://chegouhub.up.railway.app", 
-    # mantenha outros domínios que já existem
+    "https://chegou-hubb-production.up.railway.app",
+    "https://www.chegouhub.up.railway.app",
+    "http://chegouhub.up.railway.app",  # Para ambientes de desenvolvimento
 ]
 if DEBUG:
     CSRF_TRUSTED_ORIGINS.extend([
@@ -237,14 +236,30 @@ if DEBUG:
         'http://127.0.0.1:3000',
     ])
 if CSRF_TRUSTED_ORIGINS_STRING:
-    # Adiciona URLs do ambiente (ex: a URL do seu frontend no Railway)
+    # Adiciona URLs do ambiente
     CSRF_TRUSTED_ORIGINS.extend([origin.strip() for origin in CSRF_TRUSTED_ORIGINS_STRING.split(',')])
 
-# CSRF Cookie configurações
-CSRF_COOKIE_SECURE = True
-CSRF_COOKIE_SAMESITE = 'None'  # Permite cookies cross-site
-CSRF_USE_SESSIONS = True
-CSRF_COOKIE_HTTPONLY = False  
+# Configurações CORS adicionais
+CORS_ALLOW_CREDENTIALS = True
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# Configurações CSRF Cookie ajustadas
+CSRF_COOKIE_SECURE = not DEBUG  # True em produção, False em desenvolvimento
+CSRF_COOKIE_SAMESITE = 'Lax' if DEBUG else 'None'  # 'None' requer HTTPS em produção
+CSRF_COOKIE_HTTPONLY = False  # Precisa ser acessível por JavaScript
+CSRF_USE_SESSIONS = False  # Armazenar em cookies é mais simples para APIs
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Corresponde ao axios.defaults.xsrfHeaderName = 'X-CSRFToken'
 
 # <<< Ajustes de Segurança para Produção (HTTPS) >>>
 if not DEBUG: # Em produção

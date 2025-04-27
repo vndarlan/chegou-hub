@@ -350,16 +350,39 @@ class ManagedCalendarViewSet(viewsets.ModelViewSet):
 class EnsureCSRFView(APIView):
     """
     Endpoint específico para garantir que o cookie CSRF seja enviado.
+    Também verifica se o cookie está sendo enviado corretamente.
     """
-    permission_classes = [AllowAny] # Permite acesso mesmo sem login
+    permission_classes = [AllowAny]  # Permite acesso mesmo sem login
 
     @method_decorator(ensure_csrf_cookie)
     def get(self, request, *args, **kwargs):
-        # A simples chamada a esta view com o decorator já garante que o cookie será setado na resposta
+        # Verifica se o cookie CSRF está presente na requisição
+        csrf_token = request.META.get('CSRF_COOKIE', None)
+        
+        # Identifica o domínio do cliente
+        referer = request.META.get('HTTP_REFERER', 'unknown')
+        origin = request.META.get('HTTP_ORIGIN', 'unknown')
+        
+        # Log para debug em produção
+        print(f"CSRF View acessada. Referer: {referer}, Origin: {origin}")
+        print(f"CSRF cookie definido: {csrf_token is not None}")
+        
+        # Lista os primeiros cabeçalhos para debug
+        headers = dict(request.headers.items())
+        print(f"Cabeçalhos da requisição: {str(headers)[:200]}...")
+        
+        # Lista cookies para debug
+        cookies = dict(request.COOKIES.items())
+        print(f"Cookies da requisição: {str(cookies)[:200]}...")
+        
         return JsonResponse({
             'success': True,
-            'message': 'CSRF cookie check/set complete.'
-            # Não podemos verificar o cookie aqui diretamente no backend de forma fácil
+            'message': 'CSRF cookie set successfully.',
+            'has_csrf_cookie': csrf_token is not None,
+            'client_info': {
+                'referer': referer,
+                'origin': origin
+            }
         })
     
 class AIProjectViewSet(viewsets.ModelViewSet):

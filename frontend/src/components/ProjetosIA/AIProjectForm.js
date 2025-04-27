@@ -4,11 +4,11 @@ import axios from 'axios';
 import { useForm } from '@mantine/form';
 import { TextInput, Textarea, Select, Button, Box, Group, LoadingOverlay, Alert, MultiSelect } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
-import 'dayjs/locale/pt-br'; // Import locale for DatePicker
+import 'dayjs/locale/pt-br';
 import { notifications } from '@mantine/notifications';
 import { IconAlertCircle, IconCheck } from '@tabler/icons-react';
 
-// Use as mesmas opções do backend para Status
+// Opções de status do backend
 const statusOptions = [
     'Ativo',
     'Em Manutenção',
@@ -25,6 +25,8 @@ const creatorOptions = [
     'Ricardo Machado', 'Rafael', 'Sávio Mendes'
 ];
 
+// URL da API
+const API_URL = 'https://chegou-hubb-production.up.railway.app/api';
 
 function AIProjectForm({ onProjectAdded }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,28 +35,24 @@ function AIProjectForm({ onProjectAdded }) {
     const form = useForm({
         initialValues: {
             name: '',
-            creation_date: new Date(), // Default to today
+            creation_date: new Date(),
             finalization_date: null,
             description: '',
-            status: 'Em Construção', // Default status
+            status: 'Em Construção',
             project_link: '',
             tools_used: '',
-            project_version: 'v1', // Default version
-            creator_names: [], // Inicializa como array vazio para MultiSelect
+            project_version: 'v1',
+            creator_names: [],
         },
         validate: {
             name: (value) => (value.trim().length > 0 ? null : 'Nome do projeto é obrigatório'),
             creation_date: (value) => (value ? null : 'Data de criação é obrigatória'),
             status: (value) => (value ? null : 'Status é obrigatório'),
-             // Validação de URL simples
             project_link: (value) => (!value || /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i.test(value) ? null : 'Link inválido'),
-             // Validação de datas
             finalization_date: (value, values) => (value && values.creation_date && value < values.creation_date
                 ? 'Data final não pode ser anterior à data de criação'
                 : null
             ),
-            // Validação opcional para criadores (se necessário)
-            // creator_names: (value) => (value.length > 0 ? null : 'Selecione pelo menos um criador'),
         },
     });
 
@@ -75,32 +73,25 @@ function AIProjectForm({ onProjectAdded }) {
         };
 
         try {
-            // 1. Obter token CSRF em uma operação separada - sem armazenar em variável não utilizada
-            await axios.get('https://chegou-hubb-production.up.railway.app/api/ensure-csrf/', {
-                withCredentials: true
+            // Criar uma instância personalizada do axios com as configurações corretas
+            const axiosInstance = axios.create({
+                baseURL: API_URL,
+                withCredentials: true,
+                // Copia os cabeçalhos padrão do axios global
+                headers: {
+                    ...axios.defaults.headers.common,
+                }
             });
             
-            // 2. Extrair o token dos cookies após receber a resposta do ensure-csrf
-            let csrfToken = '';
-            // Procurar por todos os nomes possíveis do cookie CSRF
-            const cookieNames = ['csrftoken', 'csrf_token', 'CSRF-TOKEN', 'XSRF-TOKEN'];
-            for (const name of cookieNames) {
-                const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-                if (match) {
-                    csrfToken = match[2];
-                    console.log(`Token CSRF encontrado em cookie ${name}: ${csrfToken.substring(0, 8)}...`);
-                    break;
-                }
-            }
+            // Buscar CSRF token fresco antes de enviar
+            await axiosInstance.get('/ensure-csrf/');
             
-            // 3. Fazer a requisição POST com o token obtido
-            const response = await axios.post('https://chegou-hubb-production.up.railway.app/api/aiprojects/', 
-                formattedValues,
+            // Agora faça a chamada POST com a configuração correta
+            const response = await axiosInstance.post('/aiprojects/', 
+                formattedValues, 
                 {
-                    withCredentials: true,
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
                     }
                 }
             );
@@ -111,45 +102,42 @@ function AIProjectForm({ onProjectAdded }) {
                 color: 'green',
                 icon: <IconCheck size={18} />,
             });
+            
             form.reset();
             if (onProjectAdded) {
                 onProjectAdded(response.data);
             }
         } catch (err) {
             console.error("Erro ao adicionar projeto:", err.response?.data || err.message);
-            const apiErrors = err.response?.data;
             
-            // Adicionar mais debug para CSRF
-            if (err.response?.data?.detail?.includes('CSRF')) {
-                console.log('Erro de CSRF detectado. Cookies disponíveis:', document.cookie);
-            }
-            
-            // Tenta obter a mensagem de erro HTML ou padrão
+            // Mensagem de erro mais amigável
             let errorMessage = 'Falha ao adicionar o projeto.';
-            if (typeof err.response?.data === 'string' && err.response.data.includes('<html')) {
-                 errorMessage = `Erro do servidor (${err.response.status}): ${err.response.statusText}. Verifique a URL da API ou os logs do servidor.`;
-            } else if (apiErrors) {
-                 const errorMessages = Object.entries(apiErrors)
+            
+            if (err.response?.data?.detail?.includes('CSRF')) {
+                errorMessage = 'Erro de autenticação CSRF. Por favor, recarregue a página e tente novamente.';
+            } else if (typeof err.response?.data === 'string' && err.response.data.includes('<html')) {
+                errorMessage = `Erro do servidor (${err.response.status}): ${err.response.statusText}.`;
+            } else if (err.response?.data) {
+                const errorMessages = Object.entries(err.response.data)
                     .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
                     .join(' | ');
-                 if (errorMessages) errorMessage += ` Detalhes: ${errorMessages}`;
+                if (errorMessages) errorMessage += ` Detalhes: ${errorMessages}`;
 
-                 // Tenta mapear erros para campos do formulário (opcional)
-                 Object.entries(apiErrors).forEach(([field, messages]) => {
-                    if (form.values.hasOwnProperty(field) || field === 'creator_names') { // Inclui creator_names
-                         form.setFieldError(field === 'creator_names' ? 'creator_names' : field, Array.isArray(messages) ? messages[0] : messages);
+                // Mapear erros para campos do formulário
+                Object.entries(err.response.data).forEach(([field, messages]) => {
+                    if (form.values.hasOwnProperty(field) || field === 'creator_names') {
+                        form.setFieldError(field === 'creator_names' ? 'creator_names' : field, Array.isArray(messages) ? messages[0] : messages);
                     }
-                 });
+                });
             }
 
             setSubmitError(errorMessage);
-             notifications.show({
-                 title: 'Erro!',
-                 message: errorMessage.split(' Detalhes:')[0], // Mensagem mais curta para notificação
-                 color: 'red',
-                 icon: <IconAlertCircle size={18} />,
-             });
-
+            notifications.show({
+                title: 'Erro!',
+                message: errorMessage.split(' Detalhes:')[0],
+                color: 'red',
+                icon: <IconAlertCircle size={18} />,
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -223,7 +211,7 @@ function AIProjectForm({ onProjectAdded }) {
                     label="Versão do Projeto"
                     placeholder="Ex: v1.0, v2.alpha"
                     {...form.getInputProps('project_version')}
-                    mb="sm" // Adiciona margem inferior
+                    mb="sm"
                 />
                 <MultiSelect
                     label="Criador(es) do Projeto"
@@ -231,7 +219,7 @@ function AIProjectForm({ onProjectAdded }) {
                     data={creatorOptions}
                     searchable
                     clearable
-                    {...form.getInputProps('creator_names')} // Usa o mesmo nome de campo do form
+                    {...form.getInputProps('creator_names')}
                     mb="sm"
                 />
 
