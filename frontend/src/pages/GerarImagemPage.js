@@ -138,8 +138,8 @@ function GerarImagemPage() {
     useEffect(() => {
         // Simular carregamento de estilos do servidor
         setStylesList([
-            { id: 1, name: 'Anúncio de Relógio', instructions: 'Estilo profissional para anúncios de relógios de luxo. Fundo escuro, iluminação dramática, detalhes nítidos.' },
-            { id: 2, name: 'Estilo Minimalista', instructions: 'Design clean e minimalista. Espaços em branco, poucas cores, linhas simples e elegantes.' }
+            { id: "1", name: 'Anúncio de Relógio', instructions: 'Estilo profissional para anúncios de relógios de luxo. Fundo escuro, iluminação dramática, detalhes nítidos.' },
+            { id: "2", name: 'Estilo Minimalista', instructions: 'Design clean e minimalista. Espaços em branco, poucas cores, linhas simples e elegantes.' }
         ]);
     }, []);
 
@@ -268,9 +268,9 @@ function GerarImagemPage() {
             return;
         }
         
-        // Criar novo estilo
+        // Criar novo estilo - IMPORTANTE: IDs como string
         const newStyle = {
-            id: Date.now(), // Criar ID único para local storage
+            id: String(Date.now()), // ID como string
             name: newStyleName.trim(),
             instructions: newStyleInstructions.trim()
         };
@@ -399,14 +399,14 @@ function GerarImagemPage() {
                                     minRows={3} autosize disabled={isLoading} required
                                 />
                                 
-                                {/* Seletor de Estilo */}
+                                {/* Seletor de Estilo - IDs COMO STRINGS */}
                                 <Select
                                     label="Aplicar Estilo (Opcional)"
                                     placeholder="Selecione um estilo para aplicar junto com o prompt"
                                     value={selectedStyleId}
                                     onChange={setSelectedStyleId}
                                     data={stylesList.map(style => ({ 
-                                        value: style.id, 
+                                        value: String(style.id), // IMPORTANTE: Valores como STRING
                                         label: style.name 
                                     }))}
                                     clearable
@@ -490,14 +490,14 @@ function GerarImagemPage() {
                                     minRows={3} autosize disabled={isLoading} required
                                 />
                                 
-                                {/* Seletor de Estilo para Edição */}
+                                {/* Seletor de Estilo para Edição - IDs COMO STRINGS */}
                                 <Select
                                     label="Aplicar Estilo (Opcional)"
                                     placeholder="Selecione um estilo para aplicar junto com o prompt"
                                     value={selectedStyleIdEdit}
                                     onChange={setSelectedStyleIdEdit}
                                     data={stylesList.map(style => ({ 
-                                        value: style.id, 
+                                        value: String(style.id), // IMPORTANTE: Valores como STRING
                                         label: style.name 
                                     }))}
                                     clearable
