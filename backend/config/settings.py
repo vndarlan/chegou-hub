@@ -227,7 +227,7 @@ CORS_ALLOW_CREDENTIALS = True
 # <<< MODIFICADO para ler origens do ambiente >>>
 CSRF_TRUSTED_ORIGINS_STRING = os.getenv('CSRF_TRUSTED_ORIGINS', '')
 CSRF_TRUSTED_ORIGINS = [
-    "https://chegou-hubb-production.up.railway.app",  # Seu domínio frontend
+    "https://chegouhub.up.railway.app",  # Seu domínio frontend
 ]
 if DEBUG:
     CSRF_TRUSTED_ORIGINS.extend([
