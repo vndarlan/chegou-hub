@@ -244,27 +244,12 @@ CSRF_COOKIE_HTTPONLY = False  # Precisa ser False para que o JavaScript possa le
 CSRF_COOKIE_SAMESITE = 'Lax'  # Menos restritivo, mas ainda seguro para a maioria dos casos
 
 # <<< Ajustes de Segurança para Produção (HTTPS) >>>
-if not DEBUG: # Apenas em produção (quando DEBUG=False)
-    # Confia no header X-Forwarded-Proto que o Railway (ou outro proxy reverso) envia
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    # Redireciona automaticamente conexões HTTP para HTTPS
-    SECURE_SSL_REDIRECT = True
-    # Garante que cookies de sessão só sejam enviados via HTTPS
-    SESSION_COOKIE_SECURE = True
-    # Garante que cookies CSRF só sejam enviados via HTTPS
-    CSRF_COOKIE_SECURE = True
-    # 'Lax' é geralmente seguro e compatível. 'Strict' é mais seguro, mas pode quebrar fluxos OAuth/SAML.
-    CSRF_COOKIE_SAMESITE = 'Lax'
-    # Configuração de HSTS (opcional, mas recomendado após confirmar que tudo funciona em HTTPS)
-    # SECURE_HSTS_SECONDS = 31536000 # 1 ano
-    # SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    # SECURE_HSTS_PRELOAD = True
-else:
-     # Para desenvolvimento local (HTTP), SAMESITE precisa ser 'Lax'
-     CSRF_COOKIE_SAMESITE = 'Lax'
-     SESSION_COOKIE_SECURE = False # Permite cookie de sessão em HTTP
-     CSRF_COOKIE_SECURE = False    # Permite cookie CSRF em HTTP
-     SECURE_SSL_REDIRECT = False   # Não força redirect em dev local
+if not DEBUG: # Em produção
+    CSRF_COOKIE_SECURE = True   # OBRIGATÓRIO para SameSite=None
+    CSRF_COOKIE_SAMESITE = 'None' # Permite envio cross-site (diferentes subdomínios)
+else: # Em desenvolvimento (DEBUG=True)
+    CSRF_COOKIE_SECURE = False
+    CSRF_COOKIE_SAMESITE = 'Lax' 
 
 # --- Configuração REST Framework (sem mudanças) ---
 REST_FRAMEWORK = {
