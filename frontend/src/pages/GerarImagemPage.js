@@ -2,18 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
-    Box, Text, Paper, Textarea, Button, LoadingOverlay, Alert, Image, Group, Stack,
-    Select, NumberInput, FileInput, Tabs, Divider, Center, SimpleGrid,
+    Box, /* Title, */ Text, Paper, Textarea, Button, LoadingOverlay, Alert, Image, Group, Stack, // Removido Title daqui
+    Select, NumberInput, FileInput, Tabs, Divider, /* ScrollArea, */ Center, SimpleGrid,     // Removido ScrollArea daqui
     Slider, ActionIcon
 } from '@mantine/core';
+// Removido useDisclosure
 import {
-    IconAlertCircle, IconEdit, IconSparkles, IconDownload, IconExclamationCircle
+    IconAlertCircle, IconEdit, IconSparkles, IconDownload
 } from '@tabler/icons-react';
 
-// URL da API
-const API_URL = 'https://chegou-hubb-production.up.railway.app/api';
-
-// Função para obter o token CSRF 
+// Função para obter o token CSRF (Mantida)
 function getCSRFToken() {
     let csrftoken = null;
     if (document.cookie) {
@@ -28,10 +26,10 @@ function getCSRFToken() {
     return csrftoken;
 }
 
-// Função para criar um cliente axios com CSRF
+// Função para criar um cliente axios com CSRF (Mantida)
 function createCSRFAxios() {
     const instance = axios.create({
-        baseURL: API_URL,
+        baseURL: 'https://chegou-hubb-production.up.railway.app/api', // Verifique URL
         withCredentials: true,
         xsrfHeaderName: 'X-CSRFToken',
         xsrfCookieName: 'csrftoken'
@@ -55,11 +53,11 @@ function createCSRFAxios() {
     return instance;
 }
 
-// Função para garantir o token CSRF inicial
+// Função para TENTAR obter/confirmar o token CSRF inicial (Mantida)
 async function ensureCSRFTokenIsSet() {
     try {
         console.log('Verificando/Tentando setar token CSRF inicial...');
-        const response = await axios.get(`${API_URL}/ensure-csrf/`, { withCredentials: true });
+        const response = await axios.get('https://chegou-hubb-production.up.railway.app/api/ensure-csrf/', { withCredentials: true });
         console.log("Resposta do servidor (ensure-csrf):", response.status);
         await new Promise(resolve => setTimeout(resolve, 100));
         const token = getCSRFToken();
@@ -76,21 +74,22 @@ async function ensureCSRFTokenIsSet() {
     }
 }
 
-// Cria a instância Axios
+// Cria a instância Axios FORA da função do componente (Mantido)
 const csrfAxios = createCSRFAxios();
 
+// Componente principal - SEM FUNCIONALIDADE DE ESTILOS
 function GerarImagemPage() {
     // --- Estados Gerais ---
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('generate');
-    const [apiKeyMissing, setApiKeyMissing] = useState(false);
 
     // --- Estados de Geração ---
     const [prompt, setPrompt] = useState('');
     const [selectedSizeGen, setSelectedSizeGen] = useState('auto');
     const [selectedQualityGen, setSelectedQualityGen] = useState('auto');
     const [nImagesGen, setNImagesGen] = useState(1);
+    // REMOVIDO: selectedStyleId
     const [selectedBackground, setSelectedBackground] = useState('auto');
     const [selectedOutputFormat, setSelectedOutputFormat] = useState('png');
     const [selectedModeration, setSelectedModeration] = useState('auto');
@@ -106,6 +105,9 @@ function GerarImagemPage() {
 
     // --- Estado do Resultado ---
     const [generatedImages, setGeneratedImages] = useState([]);
+
+    // --- Estados de Estilos ---
+    // REMOVIDO: stylesList, styleModalOpened, currentStyle, styleName, styleInstructions, styleError
 
     // Tenta garantir que o cookie CSRF esteja presente na montagem
     useEffect(() => {
@@ -126,8 +128,9 @@ function GerarImagemPage() {
     useEffect(() => {
         setError(null);
         setGeneratedImages([]);
-        setApiKeyMissing(false);
     }, [activeTab]);
+
+    // REMOVIDO: useEffect para buscar estilos
 
     // Geração com GPT Image
     const handleGenerateImage = async () => {
@@ -147,6 +150,7 @@ function GerarImagemPage() {
         if (compressionEnabled) {
             payload.output_compression = outputCompression;
         }
+        // REMOVIDO: Lógica para adicionar style_id
         await handleApiCall('/operacional/generate-image/', payload, 'post');
     };
 
@@ -168,12 +172,10 @@ function GerarImagemPage() {
         await handleApiCall('/operacional/edit-image/', formData, 'post', { headers: { 'Content-Type': 'multipart/form-data' } });
     };
 
-    // Função genérica para chamadas API
+    // Função genérica para chamadas API state-changing (POST/PATCH/DELETE)
     const handleApiCall = async (url, payload, method = 'post', config = {}) => {
         setIsLoading(true);
         setError(null);
-        setApiKeyMissing(false);
-        
         if (url.includes('/operacional/')) {
              setGeneratedImages([]);
         }
@@ -183,10 +185,6 @@ function GerarImagemPage() {
         console.log(`DEBUG: Token CSRF lido ANTES da chamada ${method.toUpperCase()} ${url}:`, tokenCheck ? tokenCheck.substring(0, 10) + '...' : null);
 
         try {
-             // Primeiro, garantir um token CSRF fresco
-             await ensureCSRFTokenIsSet();
-             
-             // Fazer a chamada API
              const response = await csrfAxios({ method, url, data: payload, ...config });
              console.log(`Sucesso ${method.toUpperCase()} ${url}:`, response.status);
              if (url.includes('/operacional/') && response.data?.images_b64?.length > 0) {
@@ -199,12 +197,7 @@ function GerarImagemPage() {
             if (err.response) {
                 console.error(`Status do erro (${method.toUpperCase()} ${url}):`, err.response.status);
                 console.error(`Dados do erro (${method.toUpperCase()} ${url}):`, err.response.data);
-                
-                // Detectar erro específico de API Key
-                if (err.response.data?.error && err.response.data.error.includes('API Key')) {
-                    setApiKeyMissing(true);
-                    errorMessage = 'API Key do OpenAI não configurada no servidor. Contate o administrador.';
-                } else if (err.response.status === 403) {
+                if (err.response.status === 403) {
                     errorMessage = `Erro de Segurança (403). Verifique se está logado e tente recarregar a página. Detalhe: ${err.response.data?.detail || 'CSRF ou Permissão'}`;
                 } else if (err.response.status === 401) {
                     errorMessage = `Não autenticado (401). Faça login novamente.`;
@@ -225,6 +218,9 @@ function GerarImagemPage() {
         }
     };
 
+    // --- Funções de Gerenciamento de Estilos ---
+    // REMOVIDO: openCreateStyleModal, openEditStyleModal, handleSaveStyle, handleDeleteStyle
+
     // --- Função de Download ---
     const handleDownloadImage = (base64Data, index) => {
         const link = document.createElement('a');
@@ -244,6 +240,10 @@ function GerarImagemPage() {
         <Box p="md" style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column' }}>
             <LoadingOverlay visible={isLoading} overlayProps={{ radius: "sm", blur: 2 }} loaderProps={{ color: 'orange' }} />
 
+            {/* REMOVIDO: Paper de Gerenciamento de Estilos */}
+
+            {/* REMOVIDO: Modal para Criar/Editar Estilo */}
+
             {/* Área Principal com Abas */}
             <Paper shadow="xs" p="lg" withBorder style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                 <Tabs value={activeTab} onChange={setActiveTab} variant='pills' radius='md'>
@@ -256,161 +256,120 @@ function GerarImagemPage() {
                     <Box style={{ flexGrow: 1, overflowY: 'auto', paddingTop: 'var(--mantine-spacing-md)' }}>
                         {/* Painel Gerar */}
                         <Tabs.Panel value="generate" pt="xs">
-                            {apiKeyMissing ? (
-                                <Alert 
-                                    icon={<IconExclamationCircle size="1.2rem" />} 
-                                    title="API OpenAI não configurada" 
-                                    color="yellow" 
-                                    my="lg"
-                                >
-                                    <Text mb="md">
-                                        O servidor não possui uma chave API válida do OpenAI configurada. Por isso, a geração de imagens não está funcionando.
-                                    </Text>
-                                    <Text>
-                                        O que você pode fazer:
-                                    </Text>
-                                    <Stack spacing="xs" mt="xs">
-                                        <Text size="sm">1. Se você é o administrador, configure a variável OPENAI_API_KEY no arquivo .env do backend</Text>
-                                        <Text size="sm">2. Se não for administrador, entre em contato com o administrador do sistema</Text>
-                                        <Text size="sm">3. A chave pode ser obtida em <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">platform.openai.com/api-keys</a></Text>
-                                    </Stack>
-                                </Alert>
-                            ) : (
-                                <Stack gap="md">
-                                    <Textarea
-                                        label="Prompt Principal"
-                                        placeholder="Ex: Um robô simpático entregando flores em Marte..."
-                                        value={prompt}
-                                        onChange={(event) => setPrompt(event.currentTarget.value)}
-                                        minRows={3} autosize disabled={isLoading} required
+                            <Stack gap="md">
+                                <Textarea
+                                    label="Prompt Principal"
+                                    placeholder="Ex: Um robô simpático entregando flores em Marte..."
+                                    value={prompt}
+                                    onChange={(event) => setPrompt(event.currentTarget.value)}
+                                    minRows={3} autosize disabled={isLoading} required
+                                />
+                                {/* REMOVIDO: Select para Aplicar Estilo */}
+                                <Group grow>
+                                    <Select
+                                        label="Tamanho" value={selectedSizeGen} onChange={setSelectedSizeGen}
+                                        data={[
+                                            { value: 'auto', label: 'Auto (Recomendado)' }, { value: '1024x1024', label: '1024x1024' },
+                                            { value: '1536x1024', label: '1536x1024' }, { value: '1024x1536', label: '1024x1536' }
+                                        ]} disabled={isLoading}
                                     />
-                                    <Group grow>
-                                        <Select
-                                            label="Tamanho" value={selectedSizeGen} onChange={setSelectedSizeGen}
-                                            data={[
-                                                { value: 'auto', label: 'Auto (Recomendado)' }, { value: '1024x1024', label: '1024x1024' },
-                                                { value: '1536x1024', label: '1536x1024' }, { value: '1024x1536', label: '1024x1536' }
-                                            ]} disabled={isLoading}
-                                        />
-                                        <Select
-                                            label="Qualidade" value={selectedQualityGen} onChange={setSelectedQualityGen}
-                                            data={[
-                                                { value: 'auto', label: 'Auto (Recomendado)' }, { value: 'high', label: 'Alta' },
-                                                { value: 'medium', label: 'Média' }, { value: 'low', label: 'Baixa' }
-                                            ]} disabled={isLoading}
-                                        />
-                                    </Group>
-                                    <Group grow>
-                                        <Select
-                                            label="Formato Saída" value={selectedOutputFormat} onChange={setSelectedOutputFormat}
-                                            data={[
-                                                { value: 'png', label: 'PNG' }, { value: 'webp', label: 'WebP' }, { value: 'jpeg', label: 'JPEG' }
-                                            ]} disabled={isLoading}
-                                        />
-                                        <Select
-                                            label="Fundo" value={selectedBackground} onChange={setSelectedBackground}
-                                            data={[
-                                                { value: 'auto', label: 'Auto' },
-                                                { value: 'transparent', label: 'Transparente', disabled: !['png', 'webp'].includes(selectedOutputFormat) },
-                                                { value: 'opaque', label: 'Opaco' }
-                                            ]} disabled={isLoading}
-                                        />
-                                    </Group>
-                                    <Group grow>
-                                        <NumberInput
-                                            label="Nº Imagens" value={nImagesGen} onChange={setNImagesGen} min={1} max={10} step={1} disabled={isLoading}
-                                        />
-                                        <Select
-                                            label="Moderação" value={selectedModeration} onChange={setSelectedModeration}
-                                            data={[
-                                                { value: 'auto', label: 'Auto' }, { value: 'low', label: 'Baixa' }
-                                            ]} disabled={isLoading}
-                                        />
-                                    </Group>
-                                    {compressionEnabled && (
-                                        <Stack gap="xs">
-                                            <Text size="sm" fw={500}>Compressão ({outputCompression}%)</Text>
-                                            <Slider min={1} max={100} label={(value) => `${value}%`} value={outputCompression} onChange={setOutputCompression} disabled={isLoading}
-                                                marks={[{ value: 25, label: '25%' }, { value: 50, label: '50%' }, { value: 75, label: '75%' }, { value: 100, label: '100%' }]} />
-                                            <Text size="xs" c="dimmed">Menor valor = menor tamanho de arquivo</Text>
-                                        </Stack>
-                                    )}
-                                    <Group justify="flex-end" mt="md">
-                                        <Button onClick={handleGenerateImage} disabled={isLoading || !prompt.trim()} loading={isLoading} leftSection={<IconSparkles size={18} />}>
-                                            Gerar com GPT Image
-                                        </Button>
-                                    </Group>
-                                </Stack>
-                            )}
+                                    <Select
+                                        label="Qualidade" value={selectedQualityGen} onChange={setSelectedQualityGen}
+                                        data={[
+                                            { value: 'auto', label: 'Auto (Recomendado)' }, { value: 'high', label: 'Alta' },
+                                            { value: 'medium', label: 'Média' }, { value: 'low', label: 'Baixa' }
+                                        ]} disabled={isLoading}
+                                    />
+                                </Group>
+                                <Group grow>
+                                    <Select
+                                        label="Formato Saída" value={selectedOutputFormat} onChange={setSelectedOutputFormat}
+                                        data={[
+                                            { value: 'png', label: 'PNG' }, { value: 'webp', label: 'WebP' }, { value: 'jpeg', label: 'JPEG' }
+                                        ]} disabled={isLoading}
+                                    />
+                                    <Select
+                                        label="Fundo" value={selectedBackground} onChange={setSelectedBackground}
+                                        data={[
+                                            { value: 'auto', label: 'Auto' },
+                                            { value: 'transparent', label: 'Transparente', disabled: !['png', 'webp'].includes(selectedOutputFormat) },
+                                            { value: 'opaque', label: 'Opaco' }
+                                        ]} disabled={isLoading}
+                                    />
+                                </Group>
+                                <Group grow>
+                                    <NumberInput
+                                        label="Nº Imagens" value={nImagesGen} onChange={setNImagesGen} min={1} max={10} step={1} disabled={isLoading}
+                                    />
+                                    <Select
+                                        label="Moderação" value={selectedModeration} onChange={setSelectedModeration}
+                                        data={[
+                                            { value: 'auto', label: 'Auto' }, { value: 'low', label: 'Baixa' }
+                                        ]} disabled={isLoading}
+                                    />
+                                </Group>
+                                {compressionEnabled && (
+                                    <Stack gap="xs">
+                                        <Text size="sm" fw={500}>Compressão ({outputCompression}%)</Text>
+                                        <Slider min={1} max={100} label={(value) => `${value}%`} value={outputCompression} onChange={setOutputCompression} disabled={isLoading}
+                                            marks={[{ value: 25, label: '25%' }, { value: 50, label: '50%' }, { value: 75, label: '75%' }, { value: 100, label: '100%' }]} />
+                                        <Text size="xs" c="dimmed">Menor valor = menor tamanho de arquivo</Text>
+                                    </Stack>
+                                )}
+                                <Group justify="flex-end" mt="md">
+                                    <Button onClick={handleGenerateImage} disabled={isLoading || !prompt.trim()} loading={isLoading} leftSection={<IconSparkles size={18} />}>
+                                        Gerar com GPT Image
+                                    </Button>
+                                </Group>
+                            </Stack>
                         </Tabs.Panel>
 
-                        {/* Painel Editar */}
+                        {/* Painel Editar (sem mudanças aqui) */}
                         <Tabs.Panel value="edit" pt="xs">
-                            {apiKeyMissing ? (
-                                <Alert 
-                                    icon={<IconExclamationCircle size="1.2rem" />} 
-                                    title="API OpenAI não configurada" 
-                                    color="yellow" 
-                                    my="lg"
-                                >
-                                    <Text mb="md">
-                                        O servidor não possui uma chave API válida do OpenAI configurada. Por isso, a edição de imagens não está funcionando.
-                                    </Text>
-                                    <Text>
-                                        O que você pode fazer:
-                                    </Text>
-                                    <Stack spacing="xs" mt="xs">
-                                        <Text size="sm">1. Se você é o administrador, configure a variável OPENAI_API_KEY no arquivo .env do backend</Text>
-                                        <Text size="sm">2. Se não for administrador, entre em contato com o administrador do sistema</Text>
-                                        <Text size="sm">3. A chave pode ser obtida em <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">platform.openai.com/api-keys</a></Text>
-                                    </Stack>
-                                </Alert>
-                            ) : (
-                                <Stack gap="md">
-                                    <FileInput
-                                        label="Imagem(ns) Base" placeholder="Selecione (PNG, JPG, WebP)" value={baseImagesEdit} onChange={setBaseImagesEdit}
-                                        multiple clearable accept="image/png,image/jpeg,image/webp" disabled={isLoading}
-                                        description="GPT Image permite múltiplas imagens (até 25MB cada)"
+                             <Stack gap="md">
+                                 <FileInput
+                                     label="Imagem(ns) Base" placeholder="Selecione (PNG, JPG, WebP)" value={baseImagesEdit} onChange={setBaseImagesEdit}
+                                     multiple clearable accept="image/png,image/jpeg,image/webp" disabled={isLoading}
+                                     description="GPT Image permite múltiplas imagens (até 25MB cada)"
+                                 />
+                                 <FileInput
+                                     label="Máscara (Opcional - PNG)" placeholder="Selecione a máscara" value={maskImageEdit} onChange={setMaskImageEdit}
+                                     clearable accept="image/png" disabled={isLoading}
+                                     description="Áreas transparentes indicam onde editar"
+                                 />
+                                <Textarea
+                                    label="Prompt de Edição" placeholder="Descreva a edição..." value={editPrompt} onChange={(event) => setEditPrompt(event.currentTarget.value)}
+                                    minRows={3} autosize disabled={isLoading} required
+                                />
+                                <Group grow>
+                                    <Select
+                                        label="Tamanho" value={selectedSizeEdit} onChange={setSelectedSizeEdit}
+                                        data={[
+                                            { value: 'auto', label: 'Auto' }, { value: '1024x1024', label: '1024x1024' },
+                                            { value: '1536x1024', label: '1536x1024' }, { value: '1024x1536', label: '1024x1536' }
+                                        ]} disabled={isLoading}
                                     />
-                                    <FileInput
-                                        label="Máscara (Opcional - PNG)" placeholder="Selecione a máscara" value={maskImageEdit} onChange={setMaskImageEdit}
-                                        clearable accept="image/png" disabled={isLoading}
-                                        description="Áreas transparentes indicam onde editar"
+                                    <Select
+                                        label="Qualidade" value={selectedQualityEdit} onChange={setSelectedQualityEdit}
+                                        data={[
+                                            { value: 'auto', label: 'Auto' }, { value: 'high', label: 'Alta' },
+                                            { value: 'medium', label: 'Média' }, { value: 'low', label: 'Baixa' }
+                                        ]} disabled={isLoading}
                                     />
-                                   <Textarea
-                                       label="Prompt de Edição" placeholder="Descreva a edição..." value={editPrompt} onChange={(event) => setEditPrompt(event.currentTarget.value)}
-                                       minRows={3} autosize disabled={isLoading} required
-                                   />
-                                   <Group grow>
-                                       <Select
-                                           label="Tamanho" value={selectedSizeEdit} onChange={setSelectedSizeEdit}
-                                           data={[
-                                               { value: 'auto', label: 'Auto' }, { value: '1024x1024', label: '1024x1024' },
-                                               { value: '1536x1024', label: '1536x1024' }, { value: '1024x1536', label: '1024x1536' }
-                                           ]} disabled={isLoading}
-                                       />
-                                       <Select
-                                           label="Qualidade" value={selectedQualityEdit} onChange={setSelectedQualityEdit}
-                                           data={[
-                                               { value: 'auto', label: 'Auto' }, { value: 'high', label: 'Alta' },
-                                               { value: 'medium', label: 'Média' }, { value: 'low', label: 'Baixa' }
-                                           ]} disabled={isLoading}
-                                       />
-                                   </Group>
-                                   <NumberInput label="Nº de Edições" value={nImagesEdit} onChange={setNImagesEdit} min={1} max={10} step={1} disabled={isLoading} />
-                                   <Group justify="flex-end" mt="md">
-                                        <Button onClick={handleEditImage} disabled={isLoading || !editPrompt.trim() || baseImagesEdit.length === 0} loading={isLoading} leftSection={<IconEdit size={18}/>}>
-                                            Editar com GPT Image
-                                        </Button>
-                                   </Group>
-                                </Stack>
-                            )}
+                                </Group>
+                                <NumberInput label="Nº de Edições" value={nImagesEdit} onChange={setNImagesEdit} min={1} max={10} step={1} disabled={isLoading} />
+                                <Group justify="flex-end" mt="md">
+                                     <Button onClick={handleEditImage} disabled={isLoading || !editPrompt.trim() || baseImagesEdit.length === 0} loading={isLoading} leftSection={<IconEdit size={18}/>}>
+                                         Editar com GPT Image
+                                     </Button>
+                                </Group>
+                             </Stack>
                         </Tabs.Panel>
                     </Box>
                 </Tabs>
 
                 {/* Exibição de Erro Global */}
-                {error && !apiKeyMissing && (
+                {error && (
                     <Alert icon={<IconAlertCircle size="1rem" />} title="Erro!" color="red" withCloseButton onClose={() => setError(null)} mt="md">
                         {error}
                     </Alert>
@@ -445,7 +404,7 @@ function GerarImagemPage() {
                 )}
 
                 {/* Placeholder quando não há imagens e não está carregando */}
-                {generatedImages.length === 0 && !isLoading && !error && !apiKeyMissing && (
+                {generatedImages.length === 0 && !isLoading && !error && (
                     <Center mt="xl" p="xl" style={{ border: '1px dashed #ced4da', minHeight: '200px', borderRadius: 'var(--mantine-radius-md)', backgroundColor: '#f8f9fa' }}>
                         <Text c="dimmed" ta="center">Os resultados aparecerão aqui.</Text>
                     </Center>
