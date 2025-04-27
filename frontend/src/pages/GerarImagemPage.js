@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
     Box, Title, Text, Paper, Textarea, Button, LoadingOverlay, Alert, Image, Group, Stack,
     Select, NumberInput, FileInput, Tabs, Divider, ScrollArea, Center, SimpleGrid,
-    Slider // Removido Modal, List, ThemeIcon, TextInput, ActionIcon
+    Slider, ActionIcon // Removido Modal, List, ThemeIcon, TextInput, ActionIcon
 } from '@mantine/core';
 // Removido useDisclosure
 import {
