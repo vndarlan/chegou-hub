@@ -1,6 +1,7 @@
 # backend/core/models.py
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 class ManagedCalendar(models.Model):
     name = models.CharField(
@@ -30,3 +31,79 @@ class ManagedCalendar(models.Model):
             return f"{self.name} ({src_preview[:50]}...)"
         else:
             return f"{self.name} (iframe inválido ou vazio)" # Melhor retorno se não encontrar src
+        
+class AIProject(models.Model):
+    STATUS_CHOICES = [
+        ('Ativo', 'Ativo'),
+        ('Em Manutenção', 'Em Manutenção'),
+        ('Arquivado', 'Arquivado'),
+        ('Backlog', 'Backlog'),
+        ('Em Construção', 'Em Construção'),
+        ('Período de Validação', 'Período de Validação'),
+    ]
+
+    name = models.CharField(
+        max_length=200,
+        verbose_name="Nome do Projeto"
+    )
+    creation_date = models.DateField(
+        verbose_name="Data de Criação",
+        default=timezone.now # Preenche com a data atual por padrão
+    )
+    finalization_date = models.DateField(
+        verbose_name="Data de Finalização",
+        null=True,
+        blank=True
+    )
+    description = models.TextField(
+        verbose_name="Descrição Curta",
+        blank=True
+    )
+    status = models.CharField(
+        max_length=50,
+        choices=STATUS_CHOICES,
+        verbose_name="Status",
+        default='Em Construção' # Um valor padrão razoável
+    )
+    project_link = models.URLField(
+        max_length=500,
+        verbose_name="Link do Projeto",
+        blank=True
+    )
+    tools_used = models.CharField(
+        max_length=300,
+        verbose_name="Ferramentas Utilizadas",
+        blank=True
+    )
+    project_version = models.CharField(
+        max_length=20,
+        verbose_name="Versão do Projeto",
+        default='v1',
+        blank=True
+    )
+    # Simplificado: associa ao usuário que cadastrou via API
+    creator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True, # Permite criar via admin sem associar a um usuário específico
+        related_name='created_ai_projects',
+        verbose_name="Criador (Registrado por)"
+    )
+    # Campo para o nome dos criadores como texto (como na imagem da tabela)
+    # Se precisar de relação muitos-para-muitos com User, mude depois.
+    creator_names = models.CharField(
+        max_length=255,
+        verbose_name="Criador(es) do Projeto (Nomes)",
+        blank=True,
+        help_text="Nomes dos responsáveis pelo projeto, separados por vírgula."
+    )
+    added_at = models.DateTimeField(auto_now_add=True, verbose_name="Adicionado em")
+
+    class Meta:
+        verbose_name = "Projeto de IA"
+        verbose_name_plural = "Projetos de IA"
+        ordering = ['-creation_date', 'name'] # Mais recentes primeiro
+
+    def __str__(self):
+        return self.name

@@ -12,7 +12,8 @@ from core.views import (
     EditImageView,
     # REMOVIDO: ImageStyleViewSet
     ManagedCalendarViewSet, # Mantido
-    EnsureCSRFView
+    EnsureCSRFView,
+    AIProjectViewSet
 )
 # REMOVIDO: import desnecessário do HttpResponse e User
 
@@ -20,6 +21,7 @@ from core.views import (
 router = DefaultRouter()
 # REMOVIDO: router.register(r'styles', ImageStyleViewSet, basename='imagestyle')
 router.register(r'calendars', ManagedCalendarViewSet, basename='managedcalendar') # Mantido
+router.register(r'aiprojects', AIProjectViewSet, basename='aiproject')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -35,7 +37,9 @@ urlpatterns = [
     path('api/operacional/generate-image/', GenerateImageView.as_view(), name='api_generate_image'),
     path('api/operacional/edit-image/', EditImageView.as_view(), name='api_edit_image'),
     path('api/ensure-csrf/', EnsureCSRFView.as_view(), name='ensure_csrf'),
+    path('api/', include(router.urls)),
 
     # API para Calendários (gerenciada pelo Router)
     path('api/', include(router.urls)),
+    
 ]

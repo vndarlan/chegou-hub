@@ -17,6 +17,8 @@ from openai import OpenAI
 from django.http import JsonResponse
 from .models import ManagedCalendar # Mantido (ImageStyle removido)
 from .serializers import ManagedCalendarSerializer # Mantido (ImageStyleSerializer removido)
+from .models import AIProject # Importe o novo modelo
+from .serializers import AIProjectSerializer 
 
 # --- Views de Autenticação e Estado (sem mudanças, apenas colapsadas para clareza) ---
 class SimpleLoginView(APIView):
@@ -359,3 +361,17 @@ class EnsureCSRFView(APIView):
             'message': 'CSRF cookie check/set complete.'
             # Não podemos verificar o cookie aqui diretamente no backend de forma fácil
         })
+    
+class AIProjectViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint para listar, criar, atualizar e deletar Projetos de IA.
+    """
+    queryset = AIProject.objects.all().order_by('-creation_date', 'name')
+    serializer_class = AIProjectSerializer
+    permission_classes = [permissions.IsAuthenticated] # Somente usuários logados
+
+    def perform_create(self, serializer):
+        """
+        Associa o usuário logado como o 'creator' ao criar um novo projeto via API.
+        """
+        serializer.save(creator=self.request.user)

@@ -34,6 +34,7 @@ import {
 import MapaPage from './MapaPage';
 import AgendaPage from './AgendaPage';
 import GerarImagemPage from './GerarImagemPage'; // Import da página existente
+import ProjetosIAPage from './ProjetosIAPage';
 
 // Componente Placeholder
 const PlaceholderPage = ({ pageTitle }) => (
@@ -209,7 +210,7 @@ function WorkspacePage({ setIsLoggedIn }) {
 
                     {/* Métricas do Negócio */}
                     <Route path="business/jira" element={<PlaceholderPage pageTitle="Métricas do Negócio - Jira" />} />
-                    <Route path="business/projetos-ia" element={<PlaceholderPage pageTitle="Métricas do Negócio - Projetos IA" />} />
+                    <Route path="business/projetos-ia" element={<ProjetosIAPage />} />
                     <Route path="business/nicochat" element={<PlaceholderPage pageTitle="Métricas do Negócio - Nicochat" />} />
 
                     {/* Métricas de Fornecedores */}

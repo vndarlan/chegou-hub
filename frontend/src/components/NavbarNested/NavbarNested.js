@@ -60,7 +60,7 @@ const areasDataLocal = [
   {
     label: 'Métricas do Negócio', icon: IconChartInfographic, links: [
       { label: 'Jira', icon: IconBug, link: '/workspace/business/jira' },
-      { label: 'Projetos IA', icon: IconRocket, link: '/workspace/business/projetos-ia' },
+      { label: 'Projetos IA', icon: IconRocket, link: '/workspace/business/projetos-ia' },,
       { label: 'Nicochat', icon: IconMessages, link: '/workspace/business/nicochat' },
     ],
   },
