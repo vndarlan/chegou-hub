@@ -2,8 +2,10 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { 
   Grid, Paper, Text, Title, Center, Group, Select, Box, Space, 
-  Flex, MultiSelect, DatePickerInput, Button
+  Flex, MultiSelect, Button
 } from '@mantine/core';
+// Correção da importação - DatePickerInput vem do @mantine/dates
+import { DatePickerInput } from '@mantine/dates';
 import { BarChart, LineChart, DonutChart } from '@mantine/charts';
 import { 
   format, parseISO, startOfMonth, endOfMonth, eachMonthOfInterval, 
