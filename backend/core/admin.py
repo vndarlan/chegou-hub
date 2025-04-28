@@ -2,8 +2,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User, Group
-from .models import AIProject # Importe o novo modelo
-
+from .models import AIProject, ManagedCalendar, ImageStyle
 
 # Importar o novo modelo
 from .models import ManagedCalendar
@@ -21,64 +20,67 @@ class UserAdmin(BaseUserAdmin):
 
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
-# admin.site.register(Group) # Geralmente já registrado
 
+# --- Registro ManagedCalendar (existente) ---
 @admin.register(ManagedCalendar)
 class ManagedCalendarAdmin(admin.ModelAdmin):
-    # Opção 1: Mostrar o campo novo e a função de preview
+    # ... (código ManagedCalendarAdmin existente sem alterações) ...
     list_display = ('name', 'get_iframe_preview', 'added_at')
-
-    # Opção 2 (Alternativa): Mostrar o campo iframe_code diretamente (pode ser longo)
-    # list_display = ('name', 'iframe_code', 'added_at')
-
-    search_fields = ('name', 'iframe_code') # <<< CORRIGIDO: Buscar no iframe_code
+    search_fields = ('name', 'iframe_code')
     list_filter = ('added_at',)
 
-    # Função auxiliar para mostrar só o começo no admin (se usar Opção 1 no list_display)
     def get_iframe_preview(self, obj):
         if obj.iframe_code:
              return obj.iframe_code[:100] + '...' if len(obj.iframe_code) > 100 else obj.iframe_code
-        return "N/A" # Caso esteja vazio
+        return "N/A"
     get_iframe_preview.short_description = 'Preview do Iframe'
 
+
+# --- Registro AIProject (existente) ---
 @admin.register(AIProject)
 class AIProjectAdmin(admin.ModelAdmin):
+    # ... (código AIProjectAdmin existente sem alterações) ...
     list_display = (
-        'name',
-        'status',
-        'creation_date',
-        'finalization_date',
-        'project_version',
-        'creator_names', # Mostrar o campo de nomes
-        'creator', # Mostrar quem registrou (usuário logado)
-        'added_at',
+        'name', 'status', 'creation_date', 'finalization_date', 'project_version',
+        'creator_names', 'creator', 'added_at',
     )
     list_filter = ('status', 'creation_date', 'creator')
     search_fields = ('name', 'description', 'tools_used', 'creator_names')
     date_hierarchy = 'creation_date'
     readonly_fields = ('added_at',)
     fieldsets = (
+        (None, {'fields': ('name', 'description', 'status', 'project_link')}),
+        ('Datas', {'fields': ('creation_date', 'finalization_date')}),
+        ('Detalhes Técnicos', {'fields': ('tools_used', 'project_version')}),
+        ('Responsáveis', {'fields': ('creator_names', 'creator')}),
+        ('Datas do Sistema', {'fields': ('added_at',), 'classes': ('collapse',)}),
+    )
+
+    def save_model(self, request, obj, form, change):
+        if not obj.pk and not obj.creator:
+            obj.creator = request.user
+        super().save_model(request, obj, form, change)
+
+
+# --- Registro ImageStyle (NOVO) ---
+@admin.register(ImageStyle)
+class ImageStyleAdmin(admin.ModelAdmin):
+    list_display = ('name', 'creator', 'added_at', 'updated_at')
+    list_filter = ('creator', 'added_at', 'updated_at')
+    search_fields = ('name', 'instructions', 'creator__username', 'creator__email')
+    readonly_fields = ('added_at', 'updated_at', 'creator') # Creator preenchido automaticamente
+    fieldsets = (
         (None, {
-            'fields': ('name', 'description', 'status', 'project_link')
+            'fields': ('name', 'instructions')
         }),
-        ('Datas', {
-            'fields': ('creation_date', 'finalization_date')
-        }),
-        ('Detalhes Técnicos', {
-            'fields': ('tools_used', 'project_version')
-        }),
-        ('Responsáveis', {
-            'fields': ('creator_names', 'creator') # Creator será preenchido via API, aqui é mais para visualização/edição admin
-        }),
-        ('Datas do Sistema', {
-            'fields': ('added_at',),
+        ('Metadados', {
+            'fields': ('creator', 'added_at', 'updated_at'),
             'classes': ('collapse',) # Oculta por padrão
         }),
     )
 
-    # Para preencher o criador automaticamente se criado pelo admin
+    # Preenche o criador automaticamente se criado pelo admin
     def save_model(self, request, obj, form, change):
         if not obj.pk: # Apenas na criação
-             if not obj.creator: # Se não foi definido manualmente
-                 obj.creator = request.user
+             obj.creator = request.user
         super().save_model(request, obj, form, change)

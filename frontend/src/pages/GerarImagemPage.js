@@ -1,23 +1,25 @@
 // frontend/src/pages/GerarImagemPage.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import {
     Box, Text, Paper, Textarea, Button, LoadingOverlay, Alert, Image, Group, Stack,
     Select, NumberInput, FileInput, Tabs, Divider, Center, SimpleGrid,
-    Slider, ActionIcon, Title, TextInput
+    Slider, ActionIcon, Title, TextInput, Loader,
+    ScrollArea // Adicionado para rolagem
 } from '@mantine/core';
 import {
-    IconAlertCircle, IconEdit, IconSparkles, IconDownload, IconPlus, IconTrash
+    IconAlertCircle, IconEdit, IconSparkles, IconDownload, IconPlus, IconTrash,
+    IconStyle // Ícone para estilos
 } from '@tabler/icons-react';
 
-// Função para obter o token CSRF (Mantida)
+// --- Funções Auxiliares (CSRF e Axios) ---
+// (Mantidas como na versão anterior, assumindo que axios está configurado globalmente)
 function getCSRFToken() {
     let csrftoken = null;
     if (document.cookie) {
         const cookies = document.cookie.split(';')
             .map(cookie => cookie.trim())
             .filter(cookie => cookie.startsWith('csrftoken='));
-
         if (cookies.length > 0) {
             csrftoken = cookies[0].split('=')[1];
         }
@@ -25,71 +27,62 @@ function getCSRFToken() {
     return csrftoken;
 }
 
-// Função para criar um cliente axios com CSRF (Mantida)
-function createCSRFAxios() {
-    const instance = axios.create({
-        baseURL: 'https://chegou-hubb-production.up.railway.app/api', // Verifique URL
-        withCredentials: true,
-        xsrfHeaderName: 'X-CSRFToken',
-        xsrfCookieName: 'csrftoken'
-    });
+// Cria instância Axios específica com CSRF para POST/PUT/DELETE/PATCH
+// GETs podem usar o axios global que já deve ter withCredentials=true
+const csrfAxios = axios.create({
+    // baseURL: axios.defaults.baseURL, // Herda a baseURL global
+    withCredentials: true,
+    xsrfHeaderName: 'X-CSRFToken',
+    xsrfCookieName: 'csrftoken'
+});
 
-    instance.interceptors.request.use(
-        async (config) => {
-            if (config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
-                const token = getCSRFToken();
-                if (token) {
-                    config.headers['X-CSRFToken'] = token;
-                } else {
-                    console.warn(`AVISO: Token CSRF não encontrado nos cookies antes de enviar ${config.method.toUpperCase()} para ${config.url}`);
-                }
+csrfAxios.interceptors.request.use(
+    async (config) => {
+        // Adiciona token apenas para métodos que precisam
+        if (config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
+            const token = getCSRFToken();
+            if (token) {
+                config.headers['X-CSRFToken'] = token;
+            } else {
+                console.warn(`AVISO CSRF: Token não encontrado para ${config.method.toUpperCase()} ${config.url}`);
+                // Poderia tentar buscar o token aqui se necessário, mas pode complicar
             }
-            return config;
-        },
-        (error) => Promise.reject(error)
-    );
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
 
-    return instance;
-}
-
-// Função para TENTAR obter/confirmar o token CSRF inicial (Mantida)
+// Função para garantir o token inicial (opcional, mas ajuda)
 async function ensureCSRFTokenIsSet() {
     try {
-        console.log('Verificando/Tentando setar token CSRF inicial...');
-        const response = await axios.get('https://chegou-hubb-production.up.railway.app/api/ensure-csrf/', { withCredentials: true });
-        console.log("Resposta do servidor (ensure-csrf):", response.status);
+        console.log('Verificando/Garantindo token CSRF...');
+        await axios.get('/ensure-csrf/', { withCredentials: true }); // Usa axios global
         await new Promise(resolve => setTimeout(resolve, 100));
         const token = getCSRFToken();
-        if (token) {
-            console.log(`Token CSRF confirmado/obtido após chamada inicial: ${token.substring(0, 10)}...`);
-            return true;
-        } else {
-            console.warn('Token CSRF NÃO encontrado nos cookies após chamada inicial.');
-            return false;
-        }
+        console.log(`Token CSRF ${token ? 'confirmado/obtido' : 'NÃO encontrado'} após ensure-csrf.`);
+        return !!token;
     } catch (error) {
-        console.error('Erro ao tentar garantir token CSRF inicial:', error);
+        console.error('Erro ao garantir token CSRF inicial:', error.response?.data || error.message);
         return false;
     }
 }
 
-// Cria a instância Axios FORA da função do componente (Mantido)
-const csrfAxios = createCSRFAxios();
-
-// Componente principal com funcionalidades atualizadas
+// --- Componente Principal Refatorado ---
 function GerarImagemPage() {
     // --- Estados Gerais ---
-    const [isLoading, setIsLoading] = useState(false);
-    const [resultsLoading, setResultsLoading] = useState(false); // Novo: loading específico para área de resultados
-    const [error, setError] = useState(null);
-    const [activeTab, setActiveTab] = useState('generate');
+    const [isLoading, setIsLoading] = useState(false); // Loading para GERAÇÃO/EDIÇÃO (OpenAI)
+    const [resultsLoading, setResultsLoading] = useState(false); // Loading overlay para área de resultados
+    const [error, setError] = useState(null); // Erro GERAL ou de GERAÇÃO/EDIÇÃO
+    const [activeTab, setActiveTab] = useState('generate'); // Aba principal: 'generate', 'edit'
+    const [activeSubTab, setActiveSubTab] = useState('use'); // Sub-aba: 'use', 'manageStyles'
 
     // --- Estados de Geração ---
     const [prompt, setPrompt] = useState('');
     const [selectedSizeGen, setSelectedSizeGen] = useState('auto');
     const [selectedQualityGen, setSelectedQualityGen] = useState('auto');
     const [nImagesGen, setNImagesGen] = useState(1);
-    const [selectedStyleId, setSelectedStyleId] = useState(null); // Para seleção de estilo
+    const [selectedStyleId, setSelectedStyleId] = useState(null); // ID (string) do estilo para GERAÇÃO
     const [selectedBackground, setSelectedBackground] = useState('auto');
     const [selectedOutputFormat, setSelectedOutputFormat] = useState('png');
     const [selectedModeration, setSelectedModeration] = useState('auto');
@@ -102,483 +95,408 @@ function GerarImagemPage() {
     const [selectedSizeEdit, setSelectedSizeEdit] = useState('auto');
     const [selectedQualityEdit, setSelectedQualityEdit] = useState('auto');
     const [nImagesEdit, setNImagesEdit] = useState(1);
-    const [selectedStyleIdEdit, setSelectedStyleIdEdit] = useState(null); // Para seleção de estilo na edição
+    const [selectedStyleIdEdit, setSelectedStyleIdEdit] = useState(null); // ID (string) do estilo para EDIÇÃO
 
     // --- Estado do Resultado ---
     const [generatedImages, setGeneratedImages] = useState([]);
 
-    // --- Estados de Estilos ---
-    const [stylesList, setStylesList] = useState([]); // Lista de estilos
-    const [newStyleName, setNewStyleName] = useState(''); // Para criar novo estilo
-    const [newStyleInstructions, setNewStyleInstructions] = useState(''); // Para criar novo estilo
-    const [showAddStyleForm, setShowAddStyleForm] = useState(false); // Controla exibição do formulário
+    // --- Estados de Gerenciamento de Estilos ---
+    const [stylesList, setStylesList] = useState([]); // Lista de estilos vinda do backend
+    const [stylesLoading, setStylesLoading] = useState(false); // Loading para buscar/modificar ESTILOS
+    const [stylesError, setStylesError] = useState(null); // Erro específico dos ESTILOS
+    const [newStyleName, setNewStyleName] = useState('');
+    const [newStyleInstructions, setNewStyleInstructions] = useState('');
+    const [showAddStyleForm, setShowAddStyleForm] = useState(false);
 
-    // Tenta garantir que o cookie CSRF esteja presente na montagem
+    // --- Funções de API para Estilos ---
+    const fetchStyles = useCallback(async (showLoading = true) => {
+        if (showLoading) setStylesLoading(true);
+        setStylesError(null);
+        console.log("Buscando estilos do backend...");
+        try {
+            // Usar axios global para GET, pois já deve ter withCredentials
+            const response = await axios.get('/styles/');
+            console.log("Estilos recebidos:", response.data);
+            const sortedStyles = response.data.sort((a, b) => a.name.localeCompare(b.name));
+            setStylesList(sortedStyles || []);
+        } catch (err) {
+            console.error("Erro ao buscar estilos:", err.response?.data || err.message);
+            setStylesError(`Falha ao carregar estilos: ${err.response?.data?.detail || err.message || 'Erro desconhecido'}`);
+            setStylesList([]);
+        } finally {
+            if (showLoading) setStylesLoading(false);
+        }
+    }, []);
+
+    // Buscar estilos na montagem
     useEffect(() => {
         ensureCSRFTokenIsSet();
-    }, []);
+        fetchStyles();
+    }, [fetchStyles]);
 
-    // Atualiza se o output_compression deve estar ativo
-    const compressionEnabled = ['webp', 'jpeg'].includes(selectedOutputFormat);
-
-    // Atualiza se o background transparente pode ser selecionado
-    useEffect(() => {
-        if (selectedBackground === 'transparent' && !['png', 'webp'].includes(selectedOutputFormat)) {
-            setSelectedBackground('auto');
+    const handleAddStyle = async () => {
+        if (!newStyleName.trim() || !newStyleInstructions.trim()) {
+            setStylesError('Nome e instruções são obrigatórios.');
+            return;
         }
-    }, [selectedOutputFormat, selectedBackground]);
+        setStylesLoading(true); // Loading específico de estilos
+        setStylesError(null);
+        console.log("Adicionando novo estilo:", { name: newStyleName, instructions: newStyleInstructions });
+        try {
+            // Usar csrfAxios para POST
+            await csrfAxios.post('/styles/', {
+                name: newStyleName.trim(),
+                instructions: newStyleInstructions.trim(),
+            });
+            console.log("Estilo adicionado com sucesso.");
+            setNewStyleName('');
+            setNewStyleInstructions('');
+            setShowAddStyleForm(false);
+            await fetchStyles(false); // Atualiza a lista sem mostrar loading global de estilos
+        } catch (err) {
+            console.error("Erro ao adicionar estilo:", err.response?.data || err.message);
+            const fieldErrors = err.response?.data;
+            let errorMsg = `Falha ao adicionar estilo: ${err.message}`;
+            if (typeof fieldErrors === 'object' && fieldErrors !== null) {
+                 if (fieldErrors.name) errorMsg = `Erro no nome: ${fieldErrors.name.join(', ')}`;
+                 else if (fieldErrors.instructions) errorMsg = `Erro nas instruções: ${fieldErrors.instructions.join(', ')}`;
+                 else if (fieldErrors.detail) errorMsg = fieldErrors.detail;
+                 else errorMsg = JSON.stringify(fieldErrors); // Fallback
+            }
+            setStylesError(errorMsg);
+        } finally {
+             setStylesLoading(false); // Finaliza loading específico de estilos
+        }
+    };
 
-    // Limpar erros e resultados ao mudar de aba
-    useEffect(() => {
-        setError(null);
-        setGeneratedImages([]);
-    }, [activeTab]);
+    const handleDeleteStyle = async (styleId) => {
+        const styleToDelete = stylesList.find(s => s.id === styleId);
+        if (!window.confirm(`Tem certeza que deseja excluir o estilo "${styleToDelete?.name || styleId}"?`)) {
+            return;
+        }
+        setStylesLoading(true); // Loading específico de estilos
+        setStylesError(null);
+        console.log("Deletando estilo ID:", styleId);
+        try {
+            // Usar csrfAxios para DELETE
+            await csrfAxios.delete(`/styles/${styleId}/`);
+            console.log("Estilo deletado com sucesso.");
+            if (selectedStyleId === String(styleId)) setSelectedStyleId(null);
+            if (selectedStyleIdEdit === String(styleId)) setSelectedStyleIdEdit(null);
+            await fetchStyles(false); // Atualiza a lista sem loading global
+        } catch (err) {
+            console.error("Erro ao deletar estilo:", err.response?.data || err.message);
+            setStylesError(`Falha ao deletar estilo: ${err.response?.data?.detail || err.message || 'Erro desconhecido'}`);
+        } finally {
+            setStylesLoading(false); // Finaliza loading específico de estilos
+        }
+    };
 
-    // Inicializa com alguns estilos de exemplo
-    useEffect(() => {
-        // Simular carregamento de estilos do servidor
-        setStylesList([
-            { id: "1", name: 'Anúncio de Relógio', instructions: 'Estilo profissional para anúncios de relógios de luxo. Fundo escuro, iluminação dramática, detalhes nítidos.' },
-            { id: "2", name: 'Estilo Minimalista', instructions: 'Design clean e minimalista. Espaços em branco, poucas cores, linhas simples e elegantes.' }
-        ]);
-    }, []);
-
-    // Geração com GPT Image
+    // --- Funções de Geração e Edição (com API OpenAI via Backend) ---
     const handleGenerateImage = async () => {
         if (!prompt.trim()) {
             setError('Por favor, digite um prompt.');
             return;
         }
-        
-        // Encontrar o estilo selecionado, se houver
-        const selectedStyle = stylesList.find(style => style.id === selectedStyleId);
-        
+        const selectedStyle = stylesList.find(style => String(style.id) === selectedStyleId);
+        let finalPrompt = prompt.trim();
+        if (selectedStyle) {
+            console.log(`Aplicando estilo (Geração): "${selectedStyle.name}"`);
+            finalPrompt = `${selectedStyle.instructions}\n\n${prompt.trim()}`;
+        } else {
+             console.log("Gerando sem estilo adicional.");
+        }
+
         const payload = {
-            prompt: prompt.trim(),
-            size: selectedSizeGen,
-            quality: selectedQualityGen,
-            n: nImagesGen,
-            background: selectedBackground,
-            output_format: selectedOutputFormat,
+            prompt: finalPrompt, size: selectedSizeGen, quality: selectedQualityGen,
+            n: nImagesGen, background: selectedBackground, output_format: selectedOutputFormat,
             moderation: selectedModeration,
         };
-        
-        // Adicionar as instruções do estilo ao prompt, se um estilo for selecionado
-        if (selectedStyle) {
-            payload.prompt = `${selectedStyle.instructions}\n\n${prompt.trim()}`;
-        }
-        
-        if (compressionEnabled) {
-            payload.output_compression = outputCompression;
-        }
-        
+        if (compressionEnabled) payload.output_compression = outputCompression;
+
         await handleApiCall('/operacional/generate-image/', payload, 'post');
     };
 
-    // Edição
     const handleEditImage = async () => {
         if (!editPrompt.trim()) { setError('Prompt de edição é obrigatório.'); return; }
         if (baseImagesEdit.length === 0) { setError('Selecione ao menos uma imagem base.'); return; }
-        
-        // Encontrar o estilo selecionado para edição, se houver
-        const selectedStyle = stylesList.find(style => style.id === selectedStyleIdEdit);
-        
-        const formData = new FormData();
-        
-        // Adicionar as instruções do estilo ao prompt, se um estilo for selecionado
+
+        const selectedStyle = stylesList.find(style => String(style.id) === selectedStyleIdEdit);
+        let finalEditPrompt = editPrompt.trim();
         if (selectedStyle) {
-            formData.append('prompt', `${selectedStyle.instructions}\n\n${editPrompt.trim()}`);
+            console.log(`Aplicando estilo (Edição): "${selectedStyle.name}"`);
+            finalEditPrompt = `${selectedStyle.instructions}\n\n${editPrompt.trim()}`;
         } else {
-            formData.append('prompt', editPrompt.trim());
+            console.log("Editando sem estilo adicional.");
         }
-        
+
+        const formData = new FormData();
+        formData.append('prompt', finalEditPrompt);
         formData.append('size', selectedSizeEdit);
         formData.append('quality', selectedQualityEdit);
         formData.append('n', nImagesEdit);
-        
-        baseImagesEdit.forEach((file, index) => {
-            formData.append('image', file, file.name);
-        });
-        
-        if (maskImageEdit) {
-            formData.append('mask', maskImageEdit, maskImageEdit.name);
-        }
-        
+        baseImagesEdit.forEach((file) => formData.append('image', file, file.name));
+        if (maskImageEdit) formData.append('mask', maskImageEdit, maskImageEdit.name);
+
         await handleApiCall('/operacional/edit-image/', formData, 'post', { headers: { 'Content-Type': 'multipart/form-data' } });
     };
 
-    // Função genérica para chamadas API state-changing (POST/PATCH/DELETE)
+    // --- Função Genérica para API Calls (Geração/Edição OpenAI) ---
     const handleApiCall = async (url, payload, method = 'post', config = {}) => {
-        setIsLoading(true);
-        setResultsLoading(true); // Novo: ativa o loading específico da área de resultados
-        setError(null);
-        
-        if (url.includes('/operacional/')) {
-             setGeneratedImages([]);
-        }
+        setIsLoading(true); // Loading GERAL (OpenAI call)
+        setResultsLoading(true); // Overlay na área de resultados
+        setError(null); // Limpa erro GERAL
+        setGeneratedImages([]);
 
         console.log(`Enviando ${method.toUpperCase()} para ${url}...`);
-        const tokenCheck = getCSRFToken();
-        console.log(`DEBUG: Token CSRF lido ANTES da chamada ${method.toUpperCase()} ${url}:`, tokenCheck ? tokenCheck.substring(0, 10) + '...' : null);
-
         try {
-             const response = await csrfAxios({ method, url, data: payload, ...config });
-             console.log(`Sucesso ${method.toUpperCase()} ${url}:`, response.status);
-             if (url.includes('/operacional/') && response.data?.images_b64?.length > 0) {
-                 console.log(`${response.data.images_b64.length} imagem(ns) recebida(s).`);
-                 setGeneratedImages(response.data.images_b64);
-             }
+            // Usar csrfAxios para POST/etc. que interagem com a API OpenAI via backend
+            const response = await csrfAxios({ method, url, data: payload, ...config });
+            console.log(`Sucesso ${method.toUpperCase()} ${url}:`, response.status);
+            if (response.data?.images_b64?.length > 0) {
+                setGeneratedImages(response.data.images_b64);
+            } else {
+                 console.warn("API OpenAI via backend retornou sucesso, mas sem imagens B64.");
+            }
         } catch (err) {
             console.error(`Erro ao chamar ${method.toUpperCase()} ${url}:`, err);
             let errorMessage = 'Ocorreu um erro ao processar sua solicitação.';
             if (err.response) {
-                console.error(`Status do erro (${method.toUpperCase()} ${url}):`, err.response.status);
-                console.error(`Dados do erro (${method.toUpperCase()} ${url}):`, err.response.data);
-                if (err.response.status === 403) {
-                    errorMessage = `Erro de Segurança (403). Verifique se está logado e tente recarregar a página. Detalhe: ${err.response.data?.detail || 'CSRF ou Permissão'}`;
-                } else if (err.response.status === 401) {
-                    errorMessage = `Não autenticado (401). Faça login novamente.`;
-                } else {
-                    errorMessage = err.response.data?.error || err.response.data?.detail || `Erro do servidor: ${err.response.status}`;
-                    
-                    // Verificar se é um erro de API Key
-                    if (errorMessage.includes('API Key') || errorMessage.includes('configuração no servidor')) {
-                        errorMessage = "Erro: API Key da OpenAI não configurada no servidor. Adicione a variável OPENAI_API_KEY nas configurações do Railway.";
-                    }
+                const status = err.response.status;
+                const data = err.response.data;
+                console.error(`Status do erro (${method.toUpperCase()} ${url}):`, status);
+                console.error(`Dados do erro (${method.toUpperCase()} ${url}):`, data);
+                if (status === 403) errorMessage = `Erro de Segurança (403). Verifique se está logado ou se o token CSRF é válido. Detalhe: ${data?.detail || 'CSRF ou Permissão'}`;
+                else if (status === 401) errorMessage = `Não autenticado (401). Faça login novamente.`;
+                else if (status === 400 && data?.error?.includes("content policy")) errorMessage = "Seu prompt foi bloqueado pela política de conteúdo da OpenAI.";
+                else if (status === 429) errorMessage = "Limite de uso da API OpenAI atingido. Tente mais tarde.";
+                else {
+                    let detail = data?.error || data?.detail;
+                    if (typeof detail === 'object') detail = JSON.stringify(detail);
+                    errorMessage = detail || `Erro do servidor: ${status}`;
+                    if (errorMessage.includes('API Key') || errorMessage.includes('configuração no servidor')) errorMessage = "Erro: API Key da OpenAI não configurada no servidor.";
                 }
-            } else if (err.request) {
-                errorMessage = 'Não foi possível conectar ao servidor.';
-            } else {
-                errorMessage = `Erro ao preparar a requisição: ${err.message}`;
-            }
-            setError(errorMessage);
-            if (url.includes('/operacional/')) {
-                setGeneratedImages([]);
-            }
+            } else if (err.request) errorMessage = 'Não foi possível conectar ao servidor.';
+            else errorMessage = `Erro ao preparar a requisição: ${err.message}`;
+            setError(errorMessage); // Define o erro GERAL
+            setGeneratedImages([]);
         } finally {
-            setIsLoading(false);
-            setResultsLoading(false); // Novo: desativa o loading da área de resultados
+            setIsLoading(false); // Finaliza loading GERAL
+            setResultsLoading(false); // Remove overlay
         }
     };
 
-    // --- Funções de Gerenciamento de Estilos ---
-    const handleAddStyle = () => {
-        if (!newStyleName.trim() || !newStyleInstructions.trim()) {
-            setError('Nome e instruções são obrigatórios para criar um estilo.');
-            return;
-        }
-        
-        // Criar novo estilo - IMPORTANTE: IDs como string
-        const newStyle = {
-            id: String(Date.now()), // ID como string
-            name: newStyleName.trim(),
-            instructions: newStyleInstructions.trim()
-        };
-        
-        // Adicionar à lista
-        setStylesList([...stylesList, newStyle]);
-        
-        // Limpar campos
-        setNewStyleName('');
-        setNewStyleInstructions('');
-        setShowAddStyleForm(false);
-    };
-
-    const handleDeleteStyle = (styleId) => {
-        if (window.confirm('Tem certeza que deseja excluir este estilo?')) {
-            // Filtrar o estilo
-            const updatedStyles = stylesList.filter(style => style.id !== styleId);
-            setStylesList(updatedStyles);
-            
-            // Limpar seleção se necessário
-            if (selectedStyleId === styleId) {
-                setSelectedStyleId(null);
-            }
-            if (selectedStyleIdEdit === styleId) {
-                setSelectedStyleIdEdit(null);
-            }
-        }
-    };
-
-    // --- Função de Download ---
+    // --- Outras Funções Auxiliares ---
     const handleDownloadImage = (base64Data, index) => {
         const link = document.createElement('a');
         let mimeType = 'image/png';
-        if (selectedOutputFormat === 'jpeg') mimeType = 'image/jpeg';
-        else if (selectedOutputFormat === 'webp') mimeType = 'image/webp';
+        const currentOutputFormat = activeTab === 'generate' ? selectedOutputFormat : 'png'; // Edição assume PNG
+        if (currentOutputFormat === 'jpeg') mimeType = 'image/jpeg';
+        else if (currentOutputFormat === 'webp') mimeType = 'image/webp';
+
         link.href = `data:${mimeType};base64,${base64Data}`;
-        const filename = `gerada_${activeTab}_${index + 1}.${selectedOutputFormat}`;
+        const filename = `chegouhub_${activeTab}_${index + 1}.${currentOutputFormat}`;
         link.download = filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
+    const compressionEnabled = selectedOutputFormat === 'jpeg' || selectedOutputFormat === 'webp';
+
+    useEffect(() => {
+        if (selectedBackground === 'transparent' && !['png', 'webp'].includes(selectedOutputFormat)) {
+            setSelectedBackground('auto');
+        }
+    }, [selectedOutputFormat, selectedBackground]);
+
+    // Limpar erro geral e resultados ao mudar aba PRINCIPAL
+    useEffect(() => {
+        setError(null);
+        setGeneratedImages([]);
+    }, [activeTab]);
+
+    // Limpar erro de estilos ao mudar sub-aba
+     useEffect(() => {
+        setStylesError(null);
+        setShowAddStyleForm(false); // Esconde form ao mudar de sub-aba
+    }, [activeSubTab]);
+
     // --- Renderização ---
     return (
-        <Box p="md" style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column' }}>
-            {/* Área de Gerenciamento de Estilos */}
-            <Paper shadow="xs" p="lg" withBorder mb="md">
-                <Group position="apart" mb="md">
-                    <Title order={4}>Estilos de Imagem</Title>
-                    <Button 
-                        leftIcon={<IconPlus size={16} />} 
-                        onClick={() => setShowAddStyleForm(!showAddStyleForm)}
-                    >
-                        {showAddStyleForm ? 'Cancelar' : 'Novo Estilo'}
-                    </Button>
-                </Group>
-                
-                {/* Formulário para adicionar estilo */}
-                {showAddStyleForm && (
-                    <Paper p="md" withBorder mb="md">
-                        <Stack>
-                            <TextInput
-                                label="Nome do Estilo"
-                                placeholder="Ex: Anúncio de Relógio"
-                                value={newStyleName}
-                                onChange={(e) => setNewStyleName(e.currentTarget.value)}
-                                required
-                            />
-                            <Textarea
-                                label="Instruções do Estilo"
-                                placeholder="Descreva como as imagens devem ser geradas neste estilo..."
-                                value={newStyleInstructions}
-                                onChange={(e) => setNewStyleInstructions(e.currentTarget.value)}
-                                required
-                                minRows={3}
-                                autosize
-                            />
-                            <Button onClick={handleAddStyle} disabled={!newStyleName.trim() || !newStyleInstructions.trim()}>
-                                Salvar Estilo
-                            </Button>
-                        </Stack>
-                    </Paper>
-                )}
-                
-                {/* Lista de estilos */}
-                {stylesList.length === 0 ? (
-                    <Text c="dimmed">Nenhum estilo cadastrado. Adicione um novo estilo usando o botão acima.</Text>
-                ) : (
-                    <div style={{ display: 'grid', gap: '8px' }}>
-                        {stylesList.map(style => (
-                            <Paper key={style.id} withBorder p="sm">
-                                <Group position="apart">
-                                    <div>
-                                        <Text fw={600}>{style.name}</Text>
-                                        <Text size="sm" lineClamp={1}>{style.instructions}</Text>
-                                    </div>
-                                    <ActionIcon color="red" onClick={() => handleDeleteStyle(style.id)}>
-                                        <IconTrash size={16} />
-                                    </ActionIcon>
-                                </Group>
-                            </Paper>
-                        ))}
-                    </div>
-                )}
-            </Paper>
+        <Box p="md" style={{ height: 'calc(100vh - var(--app-shell-header-height, 60px))', display: 'flex', flexDirection: 'column' }}>
 
-            {/* Área Principal com Abas */}
-            <Paper shadow="xs" p="lg" withBorder style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                <Tabs value={activeTab} onChange={setActiveTab} variant='pills' radius='md'>
-                    <Tabs.List grow>
-                        <Tabs.Tab value="generate" leftSection={<IconSparkles size={16} />}>Gerar Imagem</Tabs.Tab>
-                        <Tabs.Tab value="edit" leftSection={<IconEdit size={16} />}>Editar Imagem</Tabs.Tab>
-                    </Tabs.List>
+            {/* 1. Abas Principais: Gerar e Editar */}
+            <Tabs value={activeTab} onChange={setActiveTab} variant='pills' radius='md' mb="md">
+                <Tabs.List grow>
+                    <Tabs.Tab value="generate" leftSection={<IconSparkles size={16} />} disabled={isLoading}>Gerar Imagem</Tabs.Tab>
+                    <Tabs.Tab value="edit" leftSection={<IconEdit size={16} />} disabled={isLoading}>Editar Imagem</Tabs.Tab>
+                </Tabs.List>
+            </Tabs>
 
-                    {/* Conteúdo das Abas */}
-                    <Box style={{ flexGrow: 1, overflowY: 'auto', paddingTop: 'var(--mantine-spacing-md)' }}>
-                        {/* Painel Gerar */}
-                        <Tabs.Panel value="generate" pt="xs">
-                            <Stack gap="md">
-                                <Textarea
-                                    label="Prompt Principal"
-                                    placeholder="Ex: Um robô simpático entregando flores em Marte..."
-                                    value={prompt}
-                                    onChange={(event) => setPrompt(event.currentTarget.value)}
-                                    minRows={3} autosize disabled={isLoading} required
-                                />
-                                
-                                {/* Seletor de Estilo - IDs COMO STRINGS */}
-                                <Select
-                                    label="Aplicar Estilo (Opcional)"
-                                    placeholder="Selecione um estilo para aplicar junto com o prompt"
-                                    value={selectedStyleId}
-                                    onChange={setSelectedStyleId}
-                                    data={stylesList.map(style => ({ 
-                                        value: String(style.id), // IMPORTANTE: Valores como STRING
-                                        label: style.name 
-                                    }))}
-                                    clearable
-                                    disabled={isLoading || stylesList.length === 0}
-                                />
-                                
-                                <Group grow>
-                                    <Select
-                                        label="Tamanho" value={selectedSizeGen} onChange={setSelectedSizeGen}
-                                        data={[
-                                            { value: 'auto', label: 'Auto (Recomendado)' }, { value: '1024x1024', label: '1024x1024' },
-                                            { value: '1536x1024', label: '1536x1024' }, { value: '1024x1536', label: '1024x1536' }
-                                        ]} disabled={isLoading}
-                                    />
-                                    <Select
-                                        label="Qualidade" value={selectedQualityGen} onChange={setSelectedQualityGen}
-                                        data={[
-                                            { value: 'auto', label: 'Auto (Recomendado)' }, { value: 'high', label: 'Alta' },
-                                            { value: 'medium', label: 'Média' }, { value: 'low', label: 'Baixa' }
-                                        ]} disabled={isLoading}
-                                    />
-                                </Group>
-                                <Group grow>
-                                    <Select
-                                        label="Formato Saída" value={selectedOutputFormat} onChange={setSelectedOutputFormat}
-                                        data={[
-                                            { value: 'png', label: 'PNG' }, { value: 'webp', label: 'WebP' }, { value: 'jpeg', label: 'JPEG' }
-                                        ]} disabled={isLoading}
-                                    />
-                                    <Select
-                                        label="Fundo" value={selectedBackground} onChange={setSelectedBackground}
-                                        data={[
-                                            { value: 'auto', label: 'Auto' },
-                                            { value: 'transparent', label: 'Transparente', disabled: !['png', 'webp'].includes(selectedOutputFormat) },
-                                            { value: 'opaque', label: 'Opaco' }
-                                        ]} disabled={isLoading}
-                                    />
-                                </Group>
-                                <Group grow>
-                                    <NumberInput
-                                        label="Nº Imagens" value={nImagesGen} onChange={setNImagesGen} min={1} max={10} step={1} disabled={isLoading}
-                                    />
-                                    <Select
-                                        label="Moderação" value={selectedModeration} onChange={setSelectedModeration}
-                                        data={[
-                                            { value: 'auto', label: 'Auto' }, { value: 'low', label: 'Baixa' }
-                                        ]} disabled={isLoading}
-                                    />
-                                </Group>
-                                {compressionEnabled && (
-                                    <Stack gap="xs">
-                                        <Text size="sm" fw={500}>Compressão ({outputCompression}%)</Text>
-                                        <Slider min={1} max={100} label={(value) => `${value}%`} value={outputCompression} onChange={setOutputCompression} disabled={isLoading}
-                                            marks={[{ value: 25, label: '25%' }, { value: 50, label: '50%' }, { value: 75, label: '75%' }, { value: 100, label: '100%' }]} />
-                                        <Text size="xs" c="dimmed">Menor valor = menor tamanho de arquivo</Text>
+            {/* 2. Container Principal Flexível (Colunas) */}
+            <Box style={{ display: 'flex', flexGrow: 1, gap: 'var(--mantine-spacing-md)', overflow: 'hidden' }}>
+
+                {/* 2.1 Coluna Esquerda: Controles + Gerenciamento de Estilos */}
+                <Paper shadow="xs" p="lg" withBorder style={{ width: '400px', minWidth:'350px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    {/* Abas Secundárias */}
+                    <Tabs value={activeSubTab} onChange={setActiveSubTab} variant='outline' radius='md' mb="lg">
+                        <Tabs.List grow>
+                            <Tabs.Tab value="use" disabled={isLoading}>Usar Ferramentas</Tabs.Tab>
+                            <Tabs.Tab value="manageStyles" leftSection={<IconStyle size={16} />} disabled={isLoading || stylesLoading}>Gerenciar Estilos</Tabs.Tab>
+                        </Tabs.List>
+                    </Tabs>
+
+                    {/* Área de Rolagem para Conteúdo da Coluna Esquerda */}
+                    <ScrollArea style={{ flexGrow: 1, overflowX: 'hidden' }} viewportProps={{ style: { paddingRight: '12px' } }}> {/* Adiciona padding para evitar corte pela scrollbar */}
+                        {/* Conteúdo da Aba "Usar Ferramentas" */}
+                        {activeSubTab === 'use' && (
+                            <Box>
+                                {/* --- FORMULÁRIO GERAR --- */}
+                                {activeTab === 'generate' && (
+                                    <Stack gap="md">
+                                        <Textarea label="Prompt Principal" placeholder="Ex: Um gato astronauta..." value={prompt} onChange={(e) => setPrompt(e.currentTarget.value)} minRows={3} autosize disabled={isLoading} required />
+                                        <Select
+                                            label="Aplicar Estilo (Opcional)"
+                                            placeholder={stylesLoading ? "Carregando..." : (stylesList.length === 0 ? "Nenhum estilo" : "Selecione um estilo")}
+                                            value={selectedStyleId} onChange={setSelectedStyleId} // Estado para Geração
+                                            data={stylesList.map(style => ({ value: String(style.id), label: style.name }))} // IDs como String
+                                            clearable searchable disabled={isLoading || stylesLoading || stylesList.length === 0}
+                                            nothingFoundMessage={stylesLoading ? "Carregando..." : "Nenhum estilo encontrado"}
+                                        />
+                                        {/* Restante dos controles de Geração */}
+                                        <Group grow>
+                                            <Select label="Tamanho" value={selectedSizeGen} onChange={setSelectedSizeGen} data={['auto', '1024x1024', '1536x1024', '1024x1536']} disabled={isLoading} />
+                                            <Select label="Qualidade" value={selectedQualityGen} onChange={setSelectedQualityGen} data={['auto', 'high', 'medium', 'low']} disabled={isLoading} />
+                                        </Group>
+                                        <Group grow>
+                                            <Select label="Formato Saída" value={selectedOutputFormat} onChange={setSelectedOutputFormat} data={['png', 'webp', 'jpeg']} disabled={isLoading} />
+                                            <Select label="Fundo" value={selectedBackground} onChange={setSelectedBackground} data={[{ value: 'auto', label: 'Auto' }, { value: 'transparent', label: 'Transparente', disabled: !['png', 'webp'].includes(selectedOutputFormat) }, { value: 'opaque', label: 'Opaco' }]} disabled={isLoading} />
+                                        </Group>
+                                        <Group grow>
+                                            <NumberInput label="Nº Imagens" value={nImagesGen} onChange={setNImagesGen} min={1} max={10} step={1} disabled={isLoading} />
+                                            <Select label="Moderação" value={selectedModeration} onChange={setSelectedModeration} data={['auto', 'low']} disabled={isLoading} />
+                                        </Group>
+                                        {compressionEnabled && (
+                                            <Stack gap="xs">
+                                                <Text size="sm" fw={500}>Compressão ({outputCompression}%)</Text>
+                                                <Slider min={1} max={100} label={(v) => `${v}%`} value={outputCompression} onChange={setOutputCompression} disabled={isLoading} marks={[{ value: 25, label: '25%' }, { value: 50, label: '50%' }, { value: 75, label: '75%' }, { value: 100, label: '100%' }]} />
+                                            </Stack>
+                                        )}
+                                        <Button onClick={handleGenerateImage} disabled={isLoading || !prompt.trim()} loading={isLoading} leftSection={<IconSparkles size={18} />} mt="md">Gerar</Button>
                                     </Stack>
                                 )}
-                                <Group justify="flex-end" mt="md">
-                                    <Button onClick={handleGenerateImage} disabled={isLoading || !prompt.trim()} loading={isLoading} leftSection={<IconSparkles size={18} />}>
-                                        Gerar com GPT Image
+                                {/* --- FORMULÁRIO EDITAR --- */}
+                                {activeTab === 'edit' && (
+                                    <Stack gap="md">
+                                        <FileInput label="Imagem(ns) Base" placeholder="Selecione (PNG, JPG, WebP)" value={baseImagesEdit} onChange={setBaseImagesEdit} multiple clearable accept="image/png,image/jpeg,image/webp" disabled={isLoading} description="Até 25MB cada" />
+                                        <FileInput label="Máscara (Opcional - PNG)" placeholder="Selecione a máscara" value={maskImageEdit} onChange={setMaskImageEdit} clearable accept="image/png" disabled={isLoading} description="Áreas transparentes indicam onde editar" />
+                                        <Textarea label="Prompt de Edição" placeholder="Descreva a edição..." value={editPrompt} onChange={(e) => setEditPrompt(e.currentTarget.value)} minRows={3} autosize disabled={isLoading} required />
+                                        <Select
+                                            label="Aplicar Estilo (Opcional)"
+                                            placeholder={stylesLoading ? "Carregando..." : (stylesList.length === 0 ? "Nenhum estilo" : "Selecione um estilo")}
+                                            value={selectedStyleIdEdit} onChange={setSelectedStyleIdEdit} // Estado para Edição
+                                            data={stylesList.map(style => ({ value: String(style.id), label: style.name }))} // IDs como String
+                                            clearable searchable disabled={isLoading || stylesLoading || stylesList.length === 0}
+                                            nothingFoundMessage={stylesLoading ? "Carregando..." : "Nenhum estilo encontrado"}
+                                        />
+                                        {/* Restante dos controles de Edição */}
+                                        <Group grow>
+                                            <Select label="Tamanho" value={selectedSizeEdit} onChange={setSelectedSizeEdit} data={['auto', '1024x1024', '1536x1024', '1024x1536']} disabled={isLoading} />
+                                            <Select label="Qualidade" value={selectedQualityEdit} onChange={setSelectedQualityEdit} data={['auto', 'high', 'medium', 'low']} disabled={isLoading} />
+                                        </Group>
+                                        <NumberInput label="Nº de Edições" value={nImagesEdit} onChange={setNImagesEdit} min={1} max={10} step={1} disabled={isLoading} />
+                                        <Button onClick={handleEditImage} disabled={isLoading || !editPrompt.trim() || baseImagesEdit.length === 0} loading={isLoading} leftSection={<IconEdit size={18}/>} mt="md">Editar</Button>
+                                    </Stack>
+                                )}
+                            </Box>
+                        )}
+                        {/* Conteúdo da Aba "Gerenciar Estilos" */}
+                        {activeSubTab === 'manageStyles' && (
+                            <Box>
+                                <Group justify="space-between" mb="md">
+                                    <Title order={5}>Meus Estilos</Title>
+                                    <Button size="xs" variant='light' leftSection={<IconPlus size={14} />} onClick={() => setShowAddStyleForm(!showAddStyleForm)} disabled={stylesLoading}>
+                                        {showAddStyleForm ? 'Cancelar' : 'Novo Estilo'}
                                     </Button>
                                 </Group>
-                            </Stack>
-                        </Tabs.Panel>
+                                {/* Formulário Adicionar Estilo */}
+                                {showAddStyleForm && (
+                                    <Paper p="sm" withBorder mb="md" radius="md">
+                                        <Stack>
+                                            <TextInput label="Nome do Estilo" placeholder="Ex: Desenho Animado" value={newStyleName} onChange={(e) => setNewStyleName(e.currentTarget.value)} required disabled={stylesLoading} />
+                                            <Textarea label="Instruções do Estilo" placeholder="Descreva o estilo..." value={newStyleInstructions} onChange={(e) => setNewStyleInstructions(e.currentTarget.value)} required minRows={3} autosize disabled={stylesLoading} />
+                                            <Button onClick={handleAddStyle} loading={stylesLoading} disabled={!newStyleName.trim() || !newStyleInstructions.trim()}>Salvar Estilo</Button>
+                                        </Stack>
+                                    </Paper>
+                                )}
+                                {/* Loading e Erro de Estilos */}
+                                {stylesLoading && <Center><Loader size="sm" /></Center>}
+                                {stylesError && (
+                                    <Alert icon={<IconAlertCircle size="1rem" />} title="Erro nos Estilos" color="red" withCloseButton onClose={() => setStylesError(null)} mb="md">{stylesError}</Alert>
+                                )}
+                                {/* Lista de Estilos */}
+                                {!stylesLoading && stylesList.length === 0 && !stylesError && (<Text c="dimmed" ta="center" mt="lg">Nenhum estilo cadastrado.</Text>)}
+                                {!stylesLoading && stylesList.length > 0 && (
+                                    <Stack gap="xs">
+                                        {stylesList.map(style => (
+                                            <Paper key={style.id} withBorder p="xs" radius="sm">
+                                                <Group justify="space-between" wrap="nowrap">
+                                                    <Box style={{ overflow: 'hidden', flexGrow: 1 }}>
+                                                        <Text fw={500} size="sm" truncate>{style.name}</Text>
+                                                        <Text size="xs" c="dimmed" lineClamp={2}>{style.instructions}</Text>
+                                                    </Box>
+                                                    <ActionIcon color="red" variant="subtle" onClick={() => handleDeleteStyle(style.id)} disabled={stylesLoading} title={`Excluir "${style.name}"`}>
+                                                        <IconTrash size={16} />
+                                                    </ActionIcon>
+                                                </Group>
+                                            </Paper>
+                                        ))}
+                                    </Stack>
+                                )}
+                            </Box>
+                        )}
+                    </ScrollArea>
+                </Paper>
 
-                        {/* Painel Editar */}
-                        <Tabs.Panel value="edit" pt="xs">
-                             <Stack gap="md">
-                                 <FileInput
-                                     label="Imagem(ns) Base" placeholder="Selecione (PNG, JPG, WebP)" value={baseImagesEdit} onChange={setBaseImagesEdit}
-                                     multiple clearable accept="image/png,image/jpeg,image/webp" disabled={isLoading}
-                                     description="GPT Image permite múltiplas imagens (até 25MB cada)"
-                                 />
-                                 <FileInput
-                                     label="Máscara (Opcional - PNG)" placeholder="Selecione a máscara" value={maskImageEdit} onChange={setMaskImageEdit}
-                                     clearable accept="image/png" disabled={isLoading}
-                                     description="Áreas transparentes indicam onde editar"
-                                 />
-                                <Textarea
-                                    label="Prompt de Edição" placeholder="Descreva a edição..." value={editPrompt} onChange={(event) => setEditPrompt(event.currentTarget.value)}
-                                    minRows={3} autosize disabled={isLoading} required
-                                />
-                                
-                                {/* Seletor de Estilo para Edição - IDs COMO STRINGS */}
-                                <Select
-                                    label="Aplicar Estilo (Opcional)"
-                                    placeholder="Selecione um estilo para aplicar junto com o prompt"
-                                    value={selectedStyleIdEdit}
-                                    onChange={setSelectedStyleIdEdit}
-                                    data={stylesList.map(style => ({ 
-                                        value: String(style.id), // IMPORTANTE: Valores como STRING
-                                        label: style.name 
-                                    }))}
-                                    clearable
-                                    disabled={isLoading || stylesList.length === 0}
-                                />
-                                
-                                <Group grow>
-                                    <Select
-                                        label="Tamanho" value={selectedSizeEdit} onChange={setSelectedSizeEdit}
-                                        data={[
-                                            { value: 'auto', label: 'Auto' }, { value: '1024x1024', label: '1024x1024' },
-                                            { value: '1536x1024', label: '1536x1024' }, { value: '1024x1536', label: '1024x1536' }
-                                        ]} disabled={isLoading}
-                                    />
-                                    <Select
-                                        label="Qualidade" value={selectedQualityEdit} onChange={setSelectedQualityEdit}
-                                        data={[
-                                            { value: 'auto', label: 'Auto' }, { value: 'high', label: 'Alta' },
-                                            { value: 'medium', label: 'Média' }, { value: 'low', label: 'Baixa' }
-                                        ]} disabled={isLoading}
-                                    />
-                                </Group>
-                                <NumberInput label="Nº de Edições" value={nImagesEdit} onChange={setNImagesEdit} min={1} max={10} step={1} disabled={isLoading} />
-                                <Group justify="flex-end" mt="md">
-                                     <Button onClick={handleEditImage} disabled={isLoading || !editPrompt.trim() || baseImagesEdit.length === 0} loading={isLoading} leftSection={<IconEdit size={18}/>}>
-                                         Editar com GPT Image
-                                     </Button>
-                                </Group>
-                             </Stack>
-                        </Tabs.Panel>
-                    </Box>
-                </Tabs>
+                {/* 2.2 Coluna Direita: Resultados */}
+                <Paper shadow="xs" p="lg" withBorder style={{ flexGrow: 1, position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                     <Title order={4} mb="md">Resultados</Title>
+                     {/* Erro Geral/Geração/Edição */}
+                     {error && (<Alert icon={<IconAlertCircle size="1rem" />} title="Erro!" color="red" withCloseButton onClose={() => setError(null)} mb="md">{error}</Alert>)}
 
-                {/* Exibição de Erro Global */}
-                {error && (
-                    <Alert icon={<IconAlertCircle size="1rem" />} title="Erro!" color="red" withCloseButton onClose={() => setError(null)} mt="md">
-                        {error}
-                    </Alert>
-                )}
-
-                {/* Área de Resultados com Loading Overlay Localizado */}
-                <Box mt="lg" style={{ position: 'relative' }}>
-                    {/* Loading apenas na área de resultados */}
-                    <LoadingOverlay visible={resultsLoading} overlayProps={{ radius: "sm", blur: 2 }} loaderProps={{ color: 'orange' }} />
-                    
-                    {/* Conteúdo dos resultados */}
-                    {generatedImages.length > 0 && !isLoading && (
-                        <Box mt="lg">
-                            <Divider my="md" label="Resultados" labelPosition="center" />
-                            <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="md">
-                                {generatedImages.map((base64Data, index) => {
-                                    let mimeType = 'image/png';
-                                    if (selectedOutputFormat === 'jpeg') mimeType = 'image/jpeg';
-                                    else if (selectedOutputFormat === 'webp') mimeType = 'image/webp';
-                                    return (
-                                        <Paper key={index} withBorder radius="md" p="xs" style={{ overflow: 'hidden', position: 'relative' }}>
-                                            <Image
-                                                src={`data:${mimeType};base64,${base64Data}`}
-                                                alt={`Resultado ${index + 1}`}
-                                                style={{ display: 'block', width: '100%', height: 'auto' }}
-                                            />
-                                            <Group gap="xs" style={{ position: 'absolute', top: 5, right: 5 }}>
-                                                <ActionIcon variant="filled" color="blue" size="sm" onClick={() => handleDownloadImage(base64Data, index)} title="Baixar">
+                     {/* Área de Resultados com Loading e Scroll */}
+                     <Box style={{ flexGrow: 1, position: 'relative', overflow: 'hidden' }}>
+                        <LoadingOverlay visible={resultsLoading} overlayProps={{ radius: "sm", blur: 1 }} loaderProps={{ color: 'orange' }} />
+                        <ScrollArea style={{ height: '100%' }} viewportProps={{ style: { padding: '4px' } }}> {/* Padding no viewport da scrollarea */}
+                             {generatedImages.length > 0 && !isLoading && (
+                                <SimpleGrid cols={{ base: 1, sm: 2, md: 2, lg: 3 }} spacing="md">
+                                    {generatedImages.map((base64Data, index) => {
+                                        let mimeType = 'image/png';
+                                        const currentOutputFormat = activeTab === 'generate' ? selectedOutputFormat : 'png';
+                                        if (currentOutputFormat === 'jpeg') mimeType = 'image/jpeg';
+                                        else if (currentOutputFormat === 'webp') mimeType = 'image/webp';
+                                        return (
+                                            <Paper key={index} withBorder radius="md" p={4} style={{ overflow: 'hidden', position: 'relative' }}>
+                                                <Image src={`data:${mimeType};base64,${base64Data}`} alt={`Resultado ${index + 1}`} style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 'var(--mantine-radius-sm)' }} />
+                                                <ActionIcon variant="filled" color="blue" size="sm" onClick={() => handleDownloadImage(base64Data, index)} title="Baixar Imagem" style={{ position: 'absolute', top: 8, right: 8 }}>
                                                     <IconDownload size={14} />
                                                 </ActionIcon>
-                                            </Group>
-                                        </Paper>
-                                    );
-                                })}
-                            </SimpleGrid>
-                        </Box>
-                    )}
-
-                    {/* Placeholder quando não há imagens */}
-                    {generatedImages.length === 0 && !resultsLoading && !error && (
-                        <Center mt="xl" p="xl" style={{ border: '1px dashed #ced4da', minHeight: '200px', borderRadius: 'var(--mantine-radius-md)', backgroundColor: '#f8f9fa' }}>
-                            <Text c="dimmed" ta="center">Os resultados aparecerão aqui.</Text>
-                        </Center>
-                    )}
-                </Box>
-            </Paper>
+                                            </Paper>
+                                        );
+                                    })}
+                                </SimpleGrid>
+                             )}
+                            {/* Placeholder */}
+                             {generatedImages.length === 0 && !resultsLoading && !error && (
+                                <Center style={{ height: '100%', minHeight: '200px', border: '1px dashed var(--mantine-color-gray-3)', borderRadius: 'var(--mantine-radius-md)', backgroundColor: 'var(--mantine-color-gray-0)' }}>
+                                    <Text c="dimmed" ta="center">Os resultados aparecerão aqui.</Text>
+                                </Center>
+                            )}
+                        </ScrollArea>
+                     </Box>
+                </Paper>
+            </Box>
         </Box>
     );
 }

@@ -10,17 +10,16 @@ from core.views import (
     RegisterView,
     GenerateImageView,
     EditImageView,
-    # REMOVIDO: ImageStyleViewSet
+    ImageStyleViewSet,
     ManagedCalendarViewSet, # Mantido
     EnsureCSRFView,
     AIProjectViewSet
 )
-# REMOVIDO: import desnecessário do HttpResponse e User
 
 # Configuração do Router para APIs
 router = DefaultRouter()
-# REMOVIDO: router.register(r'styles', ImageStyleViewSet, basename='imagestyle')
-router.register(r'calendars', ManagedCalendarViewSet, basename='managedcalendar') # Mantido
+router.register(r'styles', ImageStyleViewSet, basename='imagestyle') # <<< ADICIONAR ESTA LINHA
+router.register(r'calendars', ManagedCalendarViewSet, basename='managedcalendar')
 router.register(r'aiprojects', AIProjectViewSet, basename='aiproject')
 
 urlpatterns = [
@@ -37,9 +36,9 @@ urlpatterns = [
     path('api/operacional/generate-image/', GenerateImageView.as_view(), name='api_generate_image'),
     path('api/operacional/edit-image/', EditImageView.as_view(), name='api_edit_image'),
     path('api/ensure-csrf/', EnsureCSRFView.as_view(), name='ensure_csrf'),
+
+    # Incluir todas as URLs registradas no router (Styles, Calendars, AIProjects)
     path('api/', include(router.urls)),
 
-    # API para Calendários (gerenciada pelo Router)
-    path('api/', include(router.urls)),
-    
+    # Linhas duplicadas removidas, a linha acima já inclui todos os endpoints do router
 ]

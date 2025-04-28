@@ -1,14 +1,47 @@
 # backend/core/serializers.py
 from rest_framework import serializers
-# REMOVIDO: import de ImageStyle
-from .models import ManagedCalendar # Mantido
+# Importar TODOS os modelos necessários PRIMEIRO e no TOPO do arquivo
+from .models import ManagedCalendar, AIProject, ImageStyle
 from django.contrib.auth import get_user_model
-from .models import AIProject
 
-User = get_user_model() # Mantido se usado em outros serializers (não neste arquivo)
+User = get_user_model()
 
-# REMOVIDO: Toda a classe ImageStyleSerializer foi removida מכאן עד הסוף
+# --- Serializer para ImageStyle ---
+# A definição da classe vem DEPOIS do import
+class ImageStyleSerializer(serializers.ModelSerializer):
+    creator_email = serializers.EmailField(source='creator.email', read_only=True, allow_null=True)
 
+    class Meta:
+        model = ImageStyle # O modelo ImageStyle deve ser conhecido aqui por causa do import acima
+        fields = [
+            'id',
+            'name',
+            'instructions',
+            'creator',
+            'creator_email',
+            'added_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'added_at', 'updated_at', 'creator_email']
+
+    def validate_name(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("O nome do estilo não pode ser vazio.")
+        instance = getattr(self, 'instance', None)
+        query = ImageStyle.objects.filter(name__iexact=value.strip())
+        if instance:
+            query = query.exclude(pk=instance.pk)
+        if query.exists():
+            raise serializers.ValidationError("Já existe um estilo com este nome.")
+        return value.strip()
+
+    def validate_instructions(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("As instruções do estilo não podem ser vazias.")
+        return value.strip()
+
+# --- Serializers Existentes (ManagedCalendarSerializer, AIProjectSerializer) ---
+# A definição destas classes também vem DEPOIS do import dos modelos
 class ManagedCalendarSerializer(serializers.ModelSerializer):
     class Meta:
         model = ManagedCalendar
@@ -19,18 +52,19 @@ class ManagedCalendarSerializer(serializers.ModelSerializer):
         if not value or not value.strip():
              raise serializers.ValidationError("O código iframe não pode ser vazio.")
         value = value.strip()
-        if not value.startswith('<iframe') or '</iframe>' not in value or 'src="https://calendar.google.com/calendar/embed?src=' not in value:
-             raise serializers.ValidationError("O código fornecido não parece ser um iframe válido do Google Calendar.")
+        if not value.startswith('<iframe') or '</iframe>' not in value or 'src="' not in value:
+             raise serializers.ValidationError("O código fornecido não parece ser um iframe válido.")
+        # if 'src="https://calendar.google.com/calendar/embed?src=' not in value:
+        #      print("AVISO: O iframe não parece ser do Google Calendar, mas será aceito.")
         return value
 
     def validate_name(self, value):
          if not value or not value.strip():
              raise serializers.ValidationError("O nome do calendário não pode ser vazio.")
          return value.strip()
-    
+
 class AIProjectSerializer(serializers.ModelSerializer):
-    # Para exibir o nome do criador ao invés do ID (opcional, mas útil)
-    creator_email = serializers.EmailField(source='creator.email', read_only=True)
+    creator_email = serializers.EmailField(source='creator.email', read_only=True, allow_null=True)
 
     class Meta:
         model = AIProject
@@ -44,21 +78,16 @@ class AIProjectSerializer(serializers.ModelSerializer):
             'project_link',
             'tools_used',
             'project_version',
-            'creator', # ID do usuário que registrou (para escrita via API)
-            'creator_email', # Email (para leitura)
-            'creator_names', # Campo de texto com nomes
+            'creator',
+            'creator_email',
+            'creator_names',
             'added_at',
         ]
         read_only_fields = ['id', 'added_at', 'creator_email']
-        # O campo 'creator' será preenchido automaticamente na view ao criar
 
     def validate(self, data):
-        """
-        Validações cross-field.
-        """
         creation_date = data.get('creation_date')
         finalization_date = data.get('finalization_date')
-
         if creation_date and finalization_date and finalization_date < creation_date:
             raise serializers.ValidationError({
                 'finalization_date': 'A data de finalização não pode ser anterior à data de criação.'

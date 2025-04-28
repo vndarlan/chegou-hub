@@ -107,3 +107,36 @@ class AIProject(models.Model):
 
     def __str__(self):
         return self.name
+
+class ImageStyle(models.Model):
+    """
+    Representa um estilo de imagem predefinido para ser usado com a API OpenAI.
+    """
+    name = models.CharField(
+        max_length=100,
+        verbose_name="Nome do Estilo",
+        help_text="Um nome curto e descritivo para o estilo (Ex: Anúncio Luxo, Desenho Animado).",
+        unique=True # Garante que não haja nomes duplicados
+    )
+    instructions = models.TextField(
+        verbose_name="Instruções do Estilo",
+        help_text="Instruções detalhadas que serão pré-anexadas ao prompt do usuário para guiar a IA."
+    )
+    creator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL, # Mantém o estilo se o usuário for deletado
+        null=True,
+        blank=True, # Permite criar via admin sem associar ou se o criador for deletado
+        related_name='created_image_styles',
+        verbose_name="Criador (Registrado por)"
+    )
+    added_at = models.DateTimeField(auto_now_add=True, verbose_name="Adicionado em")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
+
+    class Meta:
+        verbose_name = "Estilo de Imagem"
+        verbose_name_plural = "Estilos de Imagem"
+        ordering = ['name'] # Ordenar por nome por padrão
+
+    def __str__(self):
+        return self.name

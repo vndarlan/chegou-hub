@@ -15,12 +15,38 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from openai import OpenAI
 from django.http import JsonResponse
-from .models import ManagedCalendar # Mantido (ImageStyle removido)
+from .models import ManagedCalendar, AIProject, ImageStyle
 from .serializers import ManagedCalendarSerializer # Mantido (ImageStyleSerializer removido)
 from .models import AIProject # Importe o novo modelo
-from .serializers import AIProjectSerializer 
-
+from .serializers import ManagedCalendarSerializer, AIProjectSerializer, ImageStyleSerializer
 # --- Views de Autenticação e Estado (sem mudanças, apenas colapsadas para clareza) ---
+
+class ImageStyleViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint para listar, criar, atualizar e deletar Estilos de Imagem.
+    """
+    queryset = ImageStyle.objects.all().order_by('name')
+    serializer_class = ImageStyleSerializer
+    permission_classes = [permissions.IsAuthenticated] # Somente usuários logados
+
+    def perform_create(self, serializer):
+        """
+        Associa o usuário logado como o 'creator' ao criar um novo estilo via API.
+        """
+        serializer.save(creator=self.request.user)
+
+    def perform_update(self, serializer):
+        """
+        Atualiza o estilo. Pode-se adicionar lógica extra aqui se necessário.
+        """
+        serializer.save() # Por padrão, não muda o criador na atualização
+
+    def perform_destroy(self, instance):
+        """
+        Deleta o estilo. Pode-se adicionar lógica extra aqui se necessário.
+        """
+        instance.delete()
+
 class SimpleLoginView(APIView):
     permission_classes = [AllowAny]
     def post(self, request, *args, **kwargs):
