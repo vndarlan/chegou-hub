@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import axios from 'axios';
 
 // Mantine Imports
-import { MantineProvider, createTheme, LoadingOverlay, Global } from '@mantine/core';
+import { MantineProvider, createTheme, LoadingOverlay } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
@@ -15,39 +15,6 @@ import CSRFManager from './components/CSRFManager';
 // Importa as páginas
 import LoginPage from './pages/LoginPage';
 import WorkspacePage from './pages/WorkspacePage';
-
-// Componente de estilos globais para melhorar a integração de temas
-function GlobalStyles() {
-  return (
-    <Global
-      styles={(theme) => ({
-        '*, *::before, *::after': {
-          boxSizing: 'border-box',
-        },
-        body: {
-          backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[7] : theme.white,
-          color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
-          lineHeight: theme.lineHeight,
-        },
-        '.mantine-AppShell-main': {
-          backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.colors.gray[0],
-        },
-        // Adiciona suporte para mapas e outros componentes de terceiros
-        '.leaflet-container': {
-          filter: theme.colorScheme === 'dark' ? 'invert(0.9) hue-rotate(180deg)' : 'none',
-        },
-        // Melhora contraste de texto em tema escuro
-        '[data-mantine-color-scheme="dark"] .mantine-Text-root': {
-          color: theme.colors.gray[3],
-        },
-        // Ajusta contraste de fundos em tema escuro
-        '[data-mantine-color-scheme="dark"] .mantine-Paper-root': {
-          backgroundColor: theme.colors.dark[6],
-        }
-      })}
-    />
-  );
-}
 
 // Definição do Tema com suporte melhorado para tema escuro
 const theme = createTheme({
@@ -102,13 +69,67 @@ function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-mantine-color-scheme', colorScheme);
     document.body.setAttribute('data-mantine-color-scheme', colorScheme);
+    
+    // Aplicar estilos de tema diretamente no corpo do documento
+    if (colorScheme === 'dark') {
+      document.body.style.backgroundColor = '#1A1B1E';
+      document.body.style.color = '#C1C2C5';
+    } else {
+      document.body.style.backgroundColor = '#fff';
+      document.body.style.color = '#000';
+    }
+    
     console.log("Atributo de tema definido no documento:", colorScheme);
   }, [colorScheme]);
 
-  // Efeito para monitorar mudanças no tema (debug)
+  // Efeito para adicionar estilos CSS diretamente
   useEffect(() => {
-    console.log("Tema atual:", colorScheme);
-  }, [colorScheme]);
+    // Criar um elemento de estilo
+    const styleElement = document.createElement('style');
+    
+    // Adicionar os estilos CSS
+    styleElement.textContent = `
+      /* Estilos para tema escuro */
+      [data-mantine-color-scheme="dark"] .mantine-Paper-root {
+        background-color: #25262B;
+      }
+      
+      [data-mantine-color-scheme="dark"] .mantine-Text-root {
+        color: #C1C2C5;
+      }
+      
+      [data-mantine-color-scheme="dark"] .leaflet-container {
+        filter: invert(0.9) hue-rotate(180deg);
+      }
+      
+      [data-mantine-color-scheme="dark"] .mantine-AppShell-main {
+        background-color: #1A1B1E;
+      }
+      
+      /* Estilos para o navbar */
+      [data-mantine-color-scheme="dark"] .navbar {
+        background-color: #1A1B1E;
+        border-right-color: #373A40;
+      }
+      
+      [data-mantine-color-scheme="dark"] .headerDivider,
+      [data-mantine-color-scheme="dark"] .footerDivider {
+        border-top-color: #373A40;
+      }
+      
+      [data-mantine-color-scheme="dark"] .control:hover {
+        background-color: #25262B;
+      }
+    `;
+    
+    // Adicionar o elemento de estilo ao head
+    document.head.appendChild(styleElement);
+    
+    // Limpar ao desmontar
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
 
   // Verifica o estado inicial de login no backend ao carregar o App
   useEffect(() => {
@@ -148,7 +169,6 @@ function App() {
         theme={theme} 
         colorScheme={colorScheme}
       >
-        <GlobalStyles />
         <LoadingOverlay
           visible={true}
           zIndex={1000}
@@ -164,7 +184,6 @@ function App() {
       theme={theme}
       colorScheme={colorScheme}
     >
-      <GlobalStyles />
       <CSRFManager>
         <Router>
           <Routes>
