@@ -112,32 +112,32 @@ function GerarImagemPage() {
     const fetchStyles = useCallback(async (showLoading = true) => {
         if (showLoading) setStylesLoading(true);
         setStylesError(null);
-        const targetUrl = '/api/styles/'; // <<< GARANTIR O /api/ AQUI também para GET
-        console.log("Buscando estilos - URL:", targetUrl); // Log da URL
+        const targetUrl = '/styles/'; // <<< CAMINHO RELATIVO À BASE URL (/api)
+        console.log("Buscando estilos - URL Relativa:", targetUrl);
         try {
             // Usar axios global para GET
-            const response = await axios.get(targetUrl); // <<< Usar a variável targetUrl
+            const response = await axios.get(targetUrl); // <<< Passar caminho relativo
             console.log("Estilos recebidos:", response.data);
             const sortedStyles = response.data.sort((a, b) => a.name.localeCompare(b.name));
             setStylesList(sortedStyles || []);
         } catch (err) {
-             // Tratamento de erro permanece o mesmo
             console.error("Erro ao buscar estilos:", err.response?.data || err.message);
-            setStylesError(`Falha ao carregar estilos: ${err.response?.data?.detail || err.message || 'Erro desconhecido'}`);
+            let errorDetail = "Erro desconhecido";
+            if (err.response?.data) {
+                 // Tentar extrair a mensagem HTML se for o caso (como no log)
+                 const match = typeof err.response.data === 'string' ? err.response.data.match(/<pre>(.*?)<\/pre>/) : null;
+                 errorDetail = match ? match[1] : (err.response.data.detail || JSON.stringify(err.response.data));
+            } else if (err.message) {
+                 errorDetail = err.message;
+            }
+            setStylesError(`Falha ao carregar estilos: ${errorDetail}`);
             setStylesList([]);
         } finally {
             if (showLoading) setStylesLoading(false);
         }
-    }, []); // A dependência vazia está ok aqui
-
-    // Buscar estilos na montagem
-    useEffect(() => {
-        ensureCSRFTokenIsSet();
-        fetchStyles();
-    }, [fetchStyles]);
+    }, []); // Dependência vazia OK
 
     const handleAddStyle = async () => {
-        // ... (validação inicial igual)
         if (!newStyleName.trim() || !newStyleInstructions.trim()) {
             setStylesError('Nome e instruções são obrigatórios.');
             return;
@@ -148,55 +148,66 @@ function GerarImagemPage() {
             name: newStyleName.trim(),
             instructions: newStyleInstructions.trim(),
         };
-        console.log("Adicionando novo estilo - Payload:", payload); // Log do payload
-        const targetUrl = '/api/styles/'; // <<< GARANTIR O /api/ AQUI
-        console.log("Adicionando novo estilo - URL:", targetUrl); // Log da URL
+        const targetUrl = '/styles/'; // <<< CAMINHO RELATIVO À BASE URL (/api)
+        console.log("Adicionando novo estilo - URL Relativa:", targetUrl, "Payload:", payload);
         try {
             // Usar csrfAxios para POST
-            await csrfAxios.post(targetUrl, payload); // <<< Usar a variável targetUrl
+            await csrfAxios.post(targetUrl, payload); // <<< Passar caminho relativo
             console.log("Estilo adicionado com sucesso.");
             setNewStyleName('');
             setNewStyleInstructions('');
             setShowAddStyleForm(false);
             await fetchStyles(false);
         } catch (err) {
-            // Tratamento de erro permanece o mesmo
             console.error("Erro ao adicionar estilo:", err.response?.data || err.message);
-            const fieldErrors = err.response?.data;
-            let errorMsg = `Falha ao adicionar estilo: ${err.message}`;
-             if (typeof fieldErrors === 'object' && fieldErrors !== null) {
-                 if (fieldErrors.name) errorMsg = `Erro no nome: ${fieldErrors.name.join(', ')}`;
-                 else if (fieldErrors.instructions) errorMsg = `Erro nas instruções: ${fieldErrors.instructions.join(', ')}`;
-                 else if (fieldErrors.detail) errorMsg = fieldErrors.detail;
-                 else errorMsg = JSON.stringify(fieldErrors);
-             }
-            setStylesError(errorMsg);
+            let errorDetail = "Erro desconhecido";
+            if (err.response?.data) {
+                 const fieldErrors = err.response.data;
+                 if (typeof fieldErrors === 'object' && fieldErrors !== null) {
+                     if (fieldErrors.name) errorDetail = `Erro no nome: ${fieldErrors.name.join(', ')}`;
+                     else if (fieldErrors.instructions) errorDetail = `Erro nas instruções: ${fieldErrors.instructions.join(', ')}`;
+                     else if (fieldErrors.detail) errorDetail = fieldErrors.detail;
+                     else errorDetail = JSON.stringify(fieldErrors);
+                 } else {
+                     // Tentar extrair a mensagem HTML se for o caso
+                     const match = typeof fieldErrors === 'string' ? fieldErrors.match(/<pre>(.*?)<\/pre>/) : null;
+                     errorDetail = match ? match[1] : String(fieldErrors);
+                 }
+            } else if (err.message) {
+                 errorDetail = err.message;
+            }
+            setStylesError(`Falha ao adicionar estilo: ${errorDetail}`);
         } finally {
              setStylesLoading(false);
         }
     };
 
     const handleDeleteStyle = async (styleId) => {
-        // ... (confirmação igual)
         const styleToDelete = stylesList.find(s => s.id === styleId);
         if (!window.confirm(`Tem certeza que deseja excluir o estilo "${styleToDelete?.name || styleId}"?`)) {
             return;
         }
         setStylesLoading(true);
         setStylesError(null);
-        const targetUrl = `/api/styles/${styleId}/`; // <<< GARANTIR O /api/ AQUI e a barra final
-        console.log("Deletando estilo - URL:", targetUrl); // Log da URL
+        const targetUrl = `/styles/${styleId}/`; // <<< CAMINHO RELATIVO À BASE URL (/api)
+        console.log("Deletando estilo - URL Relativa:", targetUrl);
         try {
             // Usar csrfAxios para DELETE
-            await csrfAxios.delete(targetUrl); // <<< Usar a variável targetUrl
+            await csrfAxios.delete(targetUrl); // <<< Passar caminho relativo
             console.log("Estilo deletado com sucesso.");
             if (selectedStyleId === String(styleId)) setSelectedStyleId(null);
             if (selectedStyleIdEdit === String(styleId)) setSelectedStyleIdEdit(null);
             await fetchStyles(false);
         } catch (err) {
-             // Tratamento de erro permanece o mesmo
             console.error("Erro ao deletar estilo:", err.response?.data || err.message);
-            setStylesError(`Falha ao deletar estilo: ${err.response?.data?.detail || err.message || 'Erro desconhecido'}`);
+             let errorDetail = "Erro desconhecido";
+            if (err.response?.data) {
+                 const match = typeof err.response.data === 'string' ? err.response.data.match(/<pre>(.*?)<\/pre>/) : null;
+                 errorDetail = match ? match[1] : (err.response.data.detail || JSON.stringify(err.response.data));
+            } else if (err.message) {
+                 errorDetail = err.message;
+            }
+            setStylesError(`Falha ao deletar estilo: ${errorDetail}`);
         } finally {
             setStylesLoading(false);
         }
@@ -253,46 +264,52 @@ function GerarImagemPage() {
 
     // --- Função Genérica para API Calls (Geração/Edição OpenAI) ---
     const handleApiCall = async (url, payload, method = 'post', config = {}) => {
-        setIsLoading(true); // Loading GERAL (OpenAI call)
-        setResultsLoading(true); // Overlay na área de resultados
-        setError(null); // Limpa erro GERAL
+        setIsLoading(true);
+        setResultsLoading(true);
+        setError(null);
         setGeneratedImages([]);
 
-        console.log(`Enviando ${method.toUpperCase()} para ${url}...`);
+        const targetUrl = url.startsWith('/') ? url : `/${url}`; // Garante que comece com /
+        console.log(`Enviando ${method.toUpperCase()} para URL Relativa: ${targetUrl}...`);
         try {
-            // Usar csrfAxios para POST/etc. que interagem com a API OpenAI via backend
-            const response = await csrfAxios({ method, url, data: payload, ...config });
-            console.log(`Sucesso ${method.toUpperCase()} ${url}:`, response.status);
+            const response = await csrfAxios({ method, url: targetUrl, data: payload, ...config }); // Passar targetUrl
+            console.log(`Sucesso ${method.toUpperCase()} ${targetUrl}:`, response.status);
             if (response.data?.images_b64?.length > 0) {
                 setGeneratedImages(response.data.images_b64);
             } else {
                  console.warn("API OpenAI via backend retornou sucesso, mas sem imagens B64.");
             }
         } catch (err) {
-            console.error(`Erro ao chamar ${method.toUpperCase()} ${url}:`, err);
+            // Tratamento de erro permanece o mesmo
+            console.error(`Erro ao chamar ${method.toUpperCase()} ${targetUrl}:`, err);
             let errorMessage = 'Ocorreu um erro ao processar sua solicitação.';
-            if (err.response) {
+            // ... (lógica de extração de erro igual à anterior) ...
+             if (err.response) {
                 const status = err.response.status;
                 const data = err.response.data;
-                console.error(`Status do erro (${method.toUpperCase()} ${url}):`, status);
-                console.error(`Dados do erro (${method.toUpperCase()} ${url}):`, data);
+                console.error(`Status do erro (${method.toUpperCase()} ${targetUrl}):`, status);
+                console.error(`Dados do erro (${method.toUpperCase()} ${targetUrl}):`, data);
                 if (status === 403) errorMessage = `Erro de Segurança (403). Verifique se está logado ou se o token CSRF é válido. Detalhe: ${data?.detail || 'CSRF ou Permissão'}`;
                 else if (status === 401) errorMessage = `Não autenticado (401). Faça login novamente.`;
-                else if (status === 400 && data?.error?.includes("content policy")) errorMessage = "Seu prompt foi bloqueado pela política de conteúdo da OpenAI.";
+                else if (status === 400 && typeof data?.error === 'string' && data.error.includes("content policy")) errorMessage = "Seu prompt foi bloqueado pela política de conteúdo da OpenAI.";
                 else if (status === 429) errorMessage = "Limite de uso da API OpenAI atingido. Tente mais tarde.";
                 else {
                     let detail = data?.error || data?.detail;
                     if (typeof detail === 'object') detail = JSON.stringify(detail);
+                    // Tentar extrair erro HTML
+                    const match = typeof data === 'string' ? data.match(/<pre>(.*?)<\/pre>/) : null;
+                    detail = match ? match[1] : detail;
+
                     errorMessage = detail || `Erro do servidor: ${status}`;
-                    if (errorMessage.includes('API Key') || errorMessage.includes('configuração no servidor')) errorMessage = "Erro: API Key da OpenAI não configurada no servidor.";
+                    if (typeof errorMessage === 'string' && (errorMessage.includes('API Key') || errorMessage.includes('configuração no servidor'))) errorMessage = "Erro: API Key da OpenAI não configurada no servidor.";
                 }
             } else if (err.request) errorMessage = 'Não foi possível conectar ao servidor.';
             else errorMessage = `Erro ao preparar a requisição: ${err.message}`;
-            setError(errorMessage); // Define o erro GERAL
+            setError(errorMessage);
             setGeneratedImages([]);
         } finally {
-            setIsLoading(false); // Finaliza loading GERAL
-            setResultsLoading(false); // Remove overlay
+            setIsLoading(false);
+            setResultsLoading(false);
         }
     };
 
