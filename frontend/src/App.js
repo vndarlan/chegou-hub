@@ -18,21 +18,22 @@ import WorkspacePage from './pages/WorkspacePage';
 
 // Definição do Tema com suporte melhorado para tema escuro
 const theme = createTheme({
-  primaryColor: 'orange',
+  primaryColor: 'orange', // Cor primária do aplicativo
   colors: {
-    // Definir cores personalizadas para tema claro e escuro
+    // Paleta de cores escuras personalizadas para o tema escuro
     dark: [
-      '#C1C2C5', // 0
+      '#FFFFFF', // 0 - Texto principal no tema escuro (alterado para branco)
       '#A6A7AB', // 1
       '#909296', // 2
       '#5C5F66', // 3
-      '#373A40', // 4
+      '#373A40', // 4 
       '#2C2E33', // 5
-      '#25262B', // 6
-      '#1A1B1E', // 7
+      '#25262B', // 6 - Fundos de cards/papers no tema escuro
+      '#1A1B1E', // 7 - Fundo principal no tema escuro
       '#141517', // 8
       '#101113', // 9
     ],
+    // Você pode adicionar outras paletas aqui
   },
   // Configurações específicas para o tema escuro
   components: {
@@ -72,11 +73,11 @@ function App() {
     
     // Aplicar estilos de tema diretamente no corpo do documento
     if (colorScheme === 'dark') {
-      document.body.style.backgroundColor = '#1A1B1E';
-      document.body.style.color = '#C1C2C5';
+      document.body.style.backgroundColor = '#1A1B1E'; // Cor de fundo do corpo no tema escuro
+      document.body.style.color = '#FFFFFF'; // Cor do texto alterada para branco
     } else {
-      document.body.style.backgroundColor = '#fff';
-      document.body.style.color = '#000';
+      document.body.style.backgroundColor = '#fff'; // Cor de fundo do corpo no tema claro
+      document.body.style.color = '#000'; // Cor do texto no tema claro
     }
     
     console.log("Atributo de tema definido no documento:", colorScheme);
@@ -84,41 +85,35 @@ function App() {
 
   // Efeito para adicionar estilos CSS diretamente
   useEffect(() => {
-    // Criar um elemento de estilo
     const styleElement = document.createElement('style');
     
-    // Adicionar os estilos CSS
     styleElement.textContent = `
-      /* Estilos para tema escuro */
+      /* Tema escuro - modifique estas cores */
       [data-mantine-color-scheme="dark"] .mantine-Paper-root {
-        background-color: #25262B;
+        background-color: #25262B; /* Cor de fundo dos cards */
       }
       
       [data-mantine-color-scheme="dark"] .mantine-Text-root {
-        color: #C1C2C5;
-      }
-      
-      [data-mantine-color-scheme="dark"] .leaflet-container {
-        filter: invert(0.9) hue-rotate(180deg);
+        color: #FFFFFF; /* Cor do texto alterada para branco */
       }
       
       [data-mantine-color-scheme="dark"] .mantine-AppShell-main {
-        background-color: #1A1B1E;
+        background-color: #1A1B1E; /* Cor de fundo principal */
       }
       
-      /* Estilos para o navbar */
+      /* Barra lateral no tema escuro */
       [data-mantine-color-scheme="dark"] .navbar {
-        background-color: #1A1B1E;
-        border-right-color: #373A40;
+        background-color: #1A1B1E; /* Cor de fundo da barra lateral */
+        border-right-color: #373A40; /* Cor da borda */
       }
       
       [data-mantine-color-scheme="dark"] .headerDivider,
       [data-mantine-color-scheme="dark"] .footerDivider {
-        border-top-color: #373A40;
+        border-top-color: #373A40; /* Cor dos divisores */
       }
       
       [data-mantine-color-scheme="dark"] .control:hover {
-        background-color: #25262B;
+        background-color: #25262B; /* Cor de hover nos itens do menu */
       }
     `;
     
