@@ -110,7 +110,7 @@ const getActivePageLabelFromPathname = (pathname) => {
     return null;
 };
 
-function WorkspacePage({ setIsLoggedIn }) {
+function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
     const location = useLocation();
     const [activePageLabel, setActivePageLabel] = useState(null);
     const [loadingSession, setLoadingSession] = useState(true);

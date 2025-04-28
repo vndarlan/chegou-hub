@@ -146,13 +146,14 @@ export function NavbarNested({
     
             {/* Rodapé: Informações do Usuário */}
             <div className={classes.footer}>
-                {/* Linha divisória antes do UserButton */}
                 <div className={classes.footerDivider}></div>
                 <UserButton
                     userName={userName || "Carregando..."}
                     userEmail={userEmail || ""}
                     collapsed={collapsed}
                     onLogout={onLogout}
+                    toggleColorScheme={toggleColorScheme}
+                    colorScheme={colorScheme}
                 />
             </div>
         </nav>
