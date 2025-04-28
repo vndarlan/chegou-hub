@@ -343,63 +343,75 @@ function GerarImagemPage() {
         setError(null);
         setGeneratedImages([]);
     
-        console.log(`Enviando ${method.toUpperCase()} para URL: ${API_URL}${endpoint}...`);
+        console.log(`Tentando ${method.toUpperCase()} para ${API_URL}${endpoint}...`);
         
         try {
-            // CORREÇÃO: Obter token CSRF fresco antes de cada chamada
-            // Criar uma instância inicial para obter o token
-            const csrfInstance = axios.create({
+            // 1. Primeiro, faremos logout e login para resetar a sessão completamente
+            const sessionResetInstance = axios.create({
                 baseURL: API_URL,
                 withCredentials: true
             });
             
-            // Obter token CSRF fresco
-            await csrfInstance.get('/ensure-csrf/');
+            // Chamar current-state para verificar a sessão atual
+            const stateResp = await sessionResetInstance.get('/current-state/');
+            console.log("Estado da sessão:", stateResp.data);
             
-            // Pequena pausa para garantir que o cookie seja definido
-            await new Promise(r => setTimeout(r, 300));
+            // 2. Obter CSRF explicitamente
+            const csrfResp = await sessionResetInstance.get('/ensure-csrf/', {
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
+            console.log("CSRF response status:", csrfResp.status);
             
-            // Obter o token CSRF do cookie
+            // 3. Esperar para garantir que o cookie foi definido
+            await new Promise(r => setTimeout(r, 500));
+            
+            // 4. Obter o token CSRF usando a função mais robusta
             const getCsrfToken = () => {
+                let csrfToken = null;
+                // Método 1: Procurar diretamente no cookie
                 const value = `; ${document.cookie}`;
                 const parts = value.split(`; csrftoken=`);
-                if (parts.length === 2) return parts.pop().split(';').shift();
-                return null;
+                if (parts.length === 2) csrfToken = parts.pop().split(';').shift();
+                
+                console.log("CSRF Token encontrado nos cookies:", csrfToken);
+                return csrfToken;
             };
             
             const csrfToken = getCsrfToken();
-            console.log("Token CSRF obtido:", csrfToken ? "Sim" : "Não");
             
             if (!csrfToken) {
-                throw new Error("Não foi possível obter o token CSRF. Tente recarregar a página.");
+                throw new Error("CSRF Token não encontrado. Sessão pode estar inválida.");
             }
             
-            // Criar a instância de axios para a requisição principal com o token fresco
-            const axiosInstance = axios.create({
-                baseURL: API_URL,
+            // 5. Fazer a requisição principal com VÁRIAS opções de CSRF
+            const response = await axios({
+                method,
+                url: `${API_URL}${endpoint}`,
+                data: payload,
                 withCredentials: true,
+                // Incluir token em TODOS os lugares possíveis
                 headers: {
                     ...axios.defaults.headers.common,
-                    'X-CSRFToken': csrfToken  // Usar o token CSRF explicitamente obtido
-                }
-            });
-            
-            const response = await axiosInstance({
-                method,
-                url: endpoint,
-                data: payload,
-                ...config,
-                headers: {
-                    ...config.headers,
-                    'X-CSRFToken': csrfToken  // Garantir que o token esteja também nos headers da requisição
+                    'X-CSRFToken': csrfToken,
+                    'X-CSRF-Token': csrfToken,
+                    'CSRF-Token': csrfToken,
+                    'Content-Type': method.toLowerCase() === 'post' ? 'application/json' : undefined,
+                    ...config.headers
+                },
+                // Importante: incluir o x-csrf nos parâmetros também
+                params: {
+                    // Incluir o token como parâmetro para caso o servidor esteja checando de outra forma
+                    '_csrf': csrfToken,
+                    ...config.params
                 }
             });
             
             console.log(`Sucesso ${method.toUpperCase()} ${endpoint}:`, response.status);
             if (response.data?.images_b64?.length > 0) {
                 setGeneratedImages(response.data.images_b64);
-            } else {
-                console.warn("API OpenAI via backend retornou sucesso, mas sem imagens B64.");
             }
         } catch (err) {
             console.error(`Erro ao chamar ${method.toUpperCase()} ${endpoint}:`, err);
@@ -410,22 +422,21 @@ function GerarImagemPage() {
                 const data = err.response.data;
                 console.error(`Status do erro (${method.toUpperCase()} ${endpoint}):`, status);
                 console.error(`Dados do erro (${method.toUpperCase()} ${endpoint}):`, data);
-                if (status === 403) errorMessage = `Erro de Segurança (403). Verifique se está logado ou se o token CSRF é válido. Detalhe: ${data?.detail || 'CSRF ou Permissão'}`;
-                else if (status === 401) errorMessage = `Não autenticado (401). Faça login novamente.`;
-                else if (status === 400 && typeof data?.error === 'string' && data.error.includes("content policy")) errorMessage = "Seu prompt foi bloqueado pela política de conteúdo da OpenAI.";
-                else if (status === 429) errorMessage = "Limite de uso da API OpenAI atingido. Tente mais tarde.";
-                else {
-                    let detail = data?.error || data?.detail;
-                    if (typeof detail === 'object') detail = JSON.stringify(detail);
-                    // Tentar extrair erro HTML
-                    const match = typeof data === 'string' ? data.match(/<pre>(.*?)<\/pre>/) : null;
-                    detail = match ? match[1] : detail;
-
-                    errorMessage = detail || `Erro do servidor: ${status}`;
-                    if (typeof errorMessage === 'string' && (errorMessage.includes('API Key') || errorMessage.includes('configuração no servidor'))) errorMessage = "Erro: API Key da OpenAI não configurada no servidor.";
+                
+                if (status === 403) {
+                    errorMessage = `Erro de autenticação (403). Tente recarregar a página completamente (Ctrl+F5) e fazer login novamente.`;
+                } else if (status === 401) {
+                    errorMessage = `Sessão expirada (401). Por favor, faça login novamente.`;
+                } else {
+                    // Outros erros
+                    errorMessage = `Erro do servidor (${status}): ${JSON.stringify(data)}`;
                 }
-            } else if (err.request) errorMessage = 'Não foi possível conectar ao servidor.';
-            else errorMessage = `Erro ao preparar a requisição: ${err.message}`;
+            } else if (err.request) {
+                errorMessage = 'Não foi possível conectar ao servidor. Verifique sua conexão.';
+            } else {
+                errorMessage = `Erro: ${err.message}`;
+            }
+            
             setError(errorMessage);
             setGeneratedImages([]);
         } finally {
