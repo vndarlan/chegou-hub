@@ -357,12 +357,7 @@ function GerarImagemPage() {
             console.log("Estado da sessão:", stateResp.data);
             
             // 2. Obter CSRF explicitamente
-            const csrfResp = await sessionResetInstance.get('/ensure-csrf/', {
-                headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                }
-            });
+            const csrfResp = await sessionResetInstance.get('/ensure-csrf/');
             console.log("CSRF response status:", csrfResp.status);
             
             // 3. Esperar para garantir que o cookie foi definido
