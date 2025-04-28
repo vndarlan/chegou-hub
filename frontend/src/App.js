@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 
-// Mantine Imports - Na v7, useMantineColorScheme vem de @mantine/core
-import { MantineProvider, createTheme, LoadingOverlay, useMantineColorScheme } from '@mantine/core';
+// Mantine Imports - Removi useMantineColorScheme que não estava sendo usado
+import { MantineProvider, createTheme, LoadingOverlay } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';

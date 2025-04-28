@@ -1,8 +1,9 @@
 // frontend/src/components/ThemeToggle.js
 import React from 'react';
-import { ActionIcon, useMantineColorScheme } from '@mantine/core';
+import { ActionIcon } from '@mantine/core';
 import { IconSun, IconMoon } from '@tabler/icons-react';
 
+// Este componente recebe colorScheme e toggleColorScheme como props
 function ThemeToggle({ colorScheme, toggleColorScheme }) {
   const isDark = colorScheme === 'dark';
 
