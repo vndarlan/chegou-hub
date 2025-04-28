@@ -137,6 +137,12 @@ function GerarImagemPage() {
         }
     }, []); // Dependência vazia OK
 
+    useEffect(() => {
+        console.log("GerarImagemPage montado. Chamando ensureCSRF e fetchStyles...");
+        ensureCSRFTokenIsSet(); // Chama a função para garantir o token
+        fetchStyles();          // Chama a função para buscar os estilos iniciais
+    }, [fetchStyles]);
+
     const handleAddStyle = async () => {
         if (!newStyleName.trim() || !newStyleInstructions.trim()) {
             setStylesError('Nome e instruções são obrigatórios.');
