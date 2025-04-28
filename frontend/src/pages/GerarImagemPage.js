@@ -391,15 +391,10 @@ function GerarImagemPage() {
                 headers: {
                     ...axios.defaults.headers.common,
                     'X-CSRFToken': csrfToken,
-                    'X-CSRF-Token': csrfToken,
-                    'CSRF-Token': csrfToken,
                     'Content-Type': method.toLowerCase() === 'post' ? 'application/json' : undefined,
                     ...config.headers
                 },
-                // Importante: incluir o x-csrf nos parâmetros também
                 params: {
-                    // Incluir o token como parâmetro para caso o servidor esteja checando de outra forma
-                    '_csrf': csrfToken,
                     ...config.params
                 }
             });
