@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import axios from 'axios';
 
 // Mantine Imports
-import { MantineProvider, createTheme, LoadingOverlay } from '@mantine/core';
+import { MantineProvider, createTheme, LoadingOverlay, Global } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
@@ -16,9 +16,69 @@ import CSRFManager from './components/CSRFManager';
 import LoginPage from './pages/LoginPage';
 import WorkspacePage from './pages/WorkspacePage';
 
-// Definição do Tema
+// Componente de estilos globais para melhorar a integração de temas
+function GlobalStyles() {
+  return (
+    <Global
+      styles={(theme) => ({
+        '*, *::before, *::after': {
+          boxSizing: 'border-box',
+        },
+        body: {
+          backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[7] : theme.white,
+          color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+          lineHeight: theme.lineHeight,
+        },
+        '.mantine-AppShell-main': {
+          backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.colors.gray[0],
+        },
+        // Adiciona suporte para mapas e outros componentes de terceiros
+        '.leaflet-container': {
+          filter: theme.colorScheme === 'dark' ? 'invert(0.9) hue-rotate(180deg)' : 'none',
+        },
+        // Melhora contraste de texto em tema escuro
+        '[data-mantine-color-scheme="dark"] .mantine-Text-root': {
+          color: theme.colors.gray[3],
+        },
+        // Ajusta contraste de fundos em tema escuro
+        '[data-mantine-color-scheme="dark"] .mantine-Paper-root': {
+          backgroundColor: theme.colors.dark[6],
+        }
+      })}
+    />
+  );
+}
+
+// Definição do Tema com suporte melhorado para tema escuro
 const theme = createTheme({
   primaryColor: 'orange',
+  colors: {
+    // Definir cores personalizadas para tema claro e escuro
+    dark: [
+      '#C1C2C5', // 0
+      '#A6A7AB', // 1
+      '#909296', // 2
+      '#5C5F66', // 3
+      '#373A40', // 4
+      '#2C2E33', // 5
+      '#25262B', // 6
+      '#1A1B1E', // 7
+      '#141517', // 8
+      '#101113', // 9
+    ],
+  },
+  // Configurações específicas para o tema escuro
+  components: {
+    Paper: {
+      styles: (theme) => ({
+        root: {
+          backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.white,
+        },
+      }),
+    },
+  },
+  // Habilitar o tema escuro adequadamente
+  darkMode: true,
 });
 
 // Componente Principal App
@@ -38,7 +98,7 @@ function App() {
     setColorScheme(colorScheme === 'dark' ? 'light' : 'dark');
   };
 
-  // NOVO: Efeito para garantir que o tema seja aplicado ao DOM
+  // Efeito para garantir que o tema seja aplicado ao DOM
   useEffect(() => {
     document.documentElement.setAttribute('data-mantine-color-scheme', colorScheme);
     document.body.setAttribute('data-mantine-color-scheme', colorScheme);
@@ -88,6 +148,7 @@ function App() {
         theme={theme} 
         colorScheme={colorScheme}
       >
+        <GlobalStyles />
         <LoadingOverlay
           visible={true}
           zIndex={1000}
@@ -103,6 +164,7 @@ function App() {
       theme={theme}
       colorScheme={colorScheme}
     >
+      <GlobalStyles />
       <CSRFManager>
         <Router>
           <Routes>

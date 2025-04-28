@@ -114,3 +114,17 @@
 .navbarCollapsed .collapseToggle {
   margin: 0 auto;
 }
+
+[data-mantine-color-scheme="dark"] .navbar {
+  background-color: var(--mantine-color-dark-7);
+  border-right-color: var(--mantine-color-dark-4);
+}
+
+[data-mantine-color-scheme="dark"] .headerDivider,
+[data-mantine-color-scheme="dark"] .footerDivider {
+  border-top-color: var(--mantine-color-dark-4);
+}
+
+[data-mantine-color-scheme="dark"] .control:hover {
+  background-color: var(--mantine-color-dark-6);
+}

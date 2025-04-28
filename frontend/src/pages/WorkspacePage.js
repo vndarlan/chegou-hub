@@ -184,7 +184,15 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
             />
 
             {/* Área de Conteúdo Principal com ROTAS ANINHADAS */}
-            <Box component="main" style={{ flexGrow: 1, overflowY: 'auto', backgroundColor: 'var(--mantine-color-gray-0)', height: '100vh' }}>
+            <Box 
+            component="main" 
+            style={{ 
+                flexGrow: 1, 
+                overflowY: 'auto', 
+                height: '100vh',
+                backgroundColor: 'var(--mantine-color-body)'
+            }}
+            >
                  <Routes>
                     {/* Rota Index */}
                     <Route index element={
