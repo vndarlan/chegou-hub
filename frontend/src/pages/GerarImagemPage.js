@@ -5,15 +5,18 @@ import {
     Box, Text, Paper, Textarea, Button, LoadingOverlay, Alert, Image, Group, Stack,
     Select, NumberInput, FileInput, Tabs, Center, SimpleGrid,
     Slider, ActionIcon, Title, TextInput, Loader,
-    ScrollArea // Adicionado para rolagem
+    ScrollArea
 } from '@mantine/core';
 import {
     IconAlertCircle, IconEdit, IconSparkles, IconDownload, IconPlus, IconTrash,
-    IconPalette // <<< SUBSTITUA IconStyle por IconPalette AQUI
+    IconPalette
 } from '@tabler/icons-react';
 
+// URL da API global para a página
+const API_URL = 'https://chegou-hubb-production.up.railway.app/api';
+console.log("API_URL configurada para:", API_URL);
+
 // --- Funções Auxiliares (CSRF e Axios) ---
-// (Mantidas como na versão anterior, assumindo que axios está configurado globalmente)
 function getCSRFToken() {
     let csrftoken = null;
     if (document.cookie) {
@@ -27,40 +30,22 @@ function getCSRFToken() {
     return csrftoken;
 }
 
-// Cria instância Axios específica com CSRF para POST/PUT/DELETE/PATCH
-// GETs podem usar o axios global que já deve ter withCredentials=true
-const csrfAxios = axios.create({
-    // baseURL: axios.defaults.baseURL, // Herda a baseURL global
-    withCredentials: true,
-    xsrfHeaderName: 'X-CSRFToken',
-    xsrfCookieName: 'csrftoken'
-});
-
-csrfAxios.interceptors.request.use(
-    async (config) => {
-        // Adiciona token apenas para métodos que precisam
-        if (config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
-            const token = getCSRFToken();
-            if (token) {
-                config.headers['X-CSRFToken'] = token;
-            } else {
-                console.warn(`AVISO CSRF: Token não encontrado para ${config.method.toUpperCase()} ${config.url}`);
-                // Poderia tentar buscar o token aqui se necessário, mas pode complicar
-            }
-        }
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
-
-// Função para garantir o token inicial (opcional, mas ajuda)
+// Função melhorada para garantir o token CSRF
 async function ensureCSRFTokenIsSet() {
     try {
         console.log('Verificando/Garantindo token CSRF...');
-        await axios.get('/ensure-csrf/', { withCredentials: true }); // Usa axios global
+        
+        const axiosInstance = axios.create({
+            baseURL: API_URL,
+            withCredentials: true
+        });
+        
+        await axiosInstance.get('/ensure-csrf/');
         await new Promise(resolve => setTimeout(resolve, 100));
+        
         const token = getCSRFToken();
         console.log(`Token CSRF ${token ? 'confirmado/obtido' : 'NÃO encontrado'} após ensure-csrf.`);
+        
         return !!token;
     } catch (error) {
         console.error('Erro ao garantir token CSRF inicial:', error.response?.data || error.message);
@@ -112,36 +97,66 @@ function GerarImagemPage() {
     const fetchStyles = useCallback(async (showLoading = true) => {
         if (showLoading) setStylesLoading(true);
         setStylesError(null);
-        const targetUrl = '/styles/'; // <<< CAMINHO RELATIVO À BASE URL (/api)
-        console.log("Buscando estilos - URL Relativa:", targetUrl);
+        
+        const targetEndpoint = '/styles/';
+        
+        console.log("Buscando estilos - URL:", API_URL + targetEndpoint);
+        
         try {
-            // Usar axios global para GET
-            const response = await axios.get(targetUrl); // <<< Passar caminho relativo
+            // Criar uma instância personalizada do axios com as configurações corretas
+            const axiosInstance = axios.create({
+                baseURL: API_URL,
+                withCredentials: true,
+                headers: {
+                    ...axios.defaults.headers.common,
+                }
+            });
+            
+            const response = await axiosInstance.get(targetEndpoint);
             console.log("Estilos recebidos:", response.data);
             const sortedStyles = response.data.sort((a, b) => a.name.localeCompare(b.name));
             setStylesList(sortedStyles || []);
         } catch (err) {
             console.error("Erro ao buscar estilos:", err.response?.data || err.message);
             let errorDetail = "Erro desconhecido";
+            
             if (err.response?.data) {
-                 // Tentar extrair a mensagem HTML se for o caso (como no log)
-                 const match = typeof err.response.data === 'string' ? err.response.data.match(/<pre>(.*?)<\/pre>/) : null;
-                 errorDetail = match ? match[1] : (err.response.data.detail || JSON.stringify(err.response.data));
+                // Tentar extrair a mensagem HTML se for o caso (como no log)
+                const match = typeof err.response.data === 'string' ? err.response.data.match(/<pre>(.*?)<\/pre>/) : null;
+                errorDetail = match ? match[1] : (err.response.data.detail || JSON.stringify(err.response.data));
             } else if (err.message) {
-                 errorDetail = err.message;
+                errorDetail = err.message;
             }
+            
             setStylesError(`Falha ao carregar estilos: ${errorDetail}`);
             setStylesList([]);
         } finally {
             if (showLoading) setStylesLoading(false);
         }
-    }, []); // Dependência vazia OK
+    }, []); // Dependência vazia para evitar recriação
 
+    // Corrigido useEffect para evitar loop infinito
     useEffect(() => {
-        console.log("GerarImagemPage montado. Chamando ensureCSRF e fetchStyles...");
-        ensureCSRFTokenIsSet(); // Chama a função para garantir o token
-        fetchStyles();          // Chama a função para buscar os estilos iniciais
-    }, [fetchStyles]);
+        console.log("GerarImagemPage montado. Chamando fetchStyles...");
+        
+        // Evitando passar fetchStyles como dependência para prevenir loop infinito
+        // Definimos uma função inline para chamar o fetchStyles
+        const loadStyles = async () => {
+            try {
+                // Primeiro garantir o token CSRF
+                await ensureCSRFTokenIsSet(); 
+                // Depois buscar os estilos
+                fetchStyles();
+            } catch (error) {
+                console.error("Erro ao inicializar a página:", error);
+                setStylesError("Erro de comunicação com o servidor.");
+            }
+        };
+        
+        loadStyles();
+        
+        // Array de dependências vazio para executar apenas uma vez na montagem
+    }, []);  // <-- Removido fetchStyles das dependências para evitar loop
 
     const handleAddStyle = async () => {
         if (!newStyleName.trim() || !newStyleInstructions.trim()) {
@@ -150,41 +165,70 @@ function GerarImagemPage() {
         }
         setStylesLoading(true);
         setStylesError(null);
+        
         const payload = {
             name: newStyleName.trim(),
             instructions: newStyleInstructions.trim(),
         };
-        const targetUrl = '/styles/'; // <<< CAMINHO RELATIVO À BASE URL (/api)
-        console.log("Adicionando novo estilo - URL Relativa:", targetUrl, "Payload:", payload);
+        
+        const targetEndpoint = '/styles/';
+        
+        console.log("Adicionando novo estilo - URL:", API_URL + targetEndpoint, "Payload:", payload);
+        
         try {
-            // Usar csrfAxios para POST
-            await csrfAxios.post(targetUrl, payload); // <<< Passar caminho relativo
-            console.log("Estilo adicionado com sucesso.");
+            // Criar uma instância personalizada do axios com as configurações corretas
+            // Seguindo o padrão exato que funciona em AIProjectForm.js
+            const axiosInstance = axios.create({
+                baseURL: API_URL,
+                withCredentials: true,
+                // Copia os cabeçalhos padrão do axios global
+                headers: {
+                    ...axios.defaults.headers.common,
+                }
+            });
+            
+            // Buscar CSRF token fresco antes de enviar (PASSO CRUCIAL)
+            await axiosInstance.get('/ensure-csrf/');
+            
+            // Agora faça a chamada POST com a configuração correta
+            const response = await axiosInstance.post(targetEndpoint, 
+                payload, 
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                }
+            );
+            
+            console.log("Estilo adicionado com sucesso:", response.data);
             setNewStyleName('');
             setNewStyleInstructions('');
             setShowAddStyleForm(false);
+            // Usar o mesmo padrão para buscar os estilos sem mostrar loading
             await fetchStyles(false);
         } catch (err) {
             console.error("Erro ao adicionar estilo:", err.response?.data || err.message);
             let errorDetail = "Erro desconhecido";
+            
             if (err.response?.data) {
-                 const fieldErrors = err.response.data;
-                 if (typeof fieldErrors === 'object' && fieldErrors !== null) {
-                     if (fieldErrors.name) errorDetail = `Erro no nome: ${fieldErrors.name.join(', ')}`;
-                     else if (fieldErrors.instructions) errorDetail = `Erro nas instruções: ${fieldErrors.instructions.join(', ')}`;
-                     else if (fieldErrors.detail) errorDetail = fieldErrors.detail;
-                     else errorDetail = JSON.stringify(fieldErrors);
-                 } else {
-                     // Tentar extrair a mensagem HTML se for o caso
-                     const match = typeof fieldErrors === 'string' ? fieldErrors.match(/<pre>(.*?)<\/pre>/) : null;
-                     errorDetail = match ? match[1] : String(fieldErrors);
-                 }
+                const fieldErrors = err.response.data;
+                if (typeof fieldErrors === 'object' && fieldErrors !== null) {
+                    if (fieldErrors.name) errorDetail = `Erro no nome: ${fieldErrors.name.join(', ')}`;
+                    else if (fieldErrors.instructions) errorDetail = `Erro nas instruções: ${fieldErrors.instructions.join(', ')}`;
+                    else if (fieldErrors.detail) errorDetail = fieldErrors.detail;
+                    else errorDetail = JSON.stringify(fieldErrors);
+                } else {
+                    // Tentar extrair a mensagem HTML se for o caso
+                    const match = typeof fieldErrors === 'string' ? fieldErrors.match(/<pre>(.*?)<\/pre>/) : null;
+                    errorDetail = match ? match[1] : String(fieldErrors);
+                }
             } else if (err.message) {
-                 errorDetail = err.message;
+                errorDetail = err.message;
             }
+            
             setStylesError(`Falha ao adicionar estilo: ${errorDetail}`);
         } finally {
-             setStylesLoading(false);
+            setStylesLoading(false);
         }
     };
 
@@ -193,26 +237,49 @@ function GerarImagemPage() {
         if (!window.confirm(`Tem certeza que deseja excluir o estilo "${styleToDelete?.name || styleId}"?`)) {
             return;
         }
+        
         setStylesLoading(true);
         setStylesError(null);
-        const targetUrl = `/styles/${styleId}/`; // <<< CAMINHO RELATIVO À BASE URL (/api)
-        console.log("Deletando estilo - URL Relativa:", targetUrl);
+        
+        const targetEndpoint = `/styles/${styleId}/`;
+        
+        console.log("Deletando estilo - URL:", API_URL + targetEndpoint);
+        
         try {
-            // Usar csrfAxios para DELETE
-            await csrfAxios.delete(targetUrl); // <<< Passar caminho relativo
+            // Criar uma instância personalizada do axios com as configurações corretas
+            const axiosInstance = axios.create({
+                baseURL: API_URL,
+                withCredentials: true,
+                headers: {
+                    ...axios.defaults.headers.common,
+                }
+            });
+            
+            // Buscar CSRF token fresco antes de enviar (PASSO CRUCIAL)
+            await axiosInstance.get('/ensure-csrf/');
+            
+            // Agora faça a chamada DELETE com a configuração correta
+            await axiosInstance.delete(targetEndpoint);
+            
             console.log("Estilo deletado com sucesso.");
+            
+            // Resetar os estados se o estilo excluído estava selecionado
             if (selectedStyleId === String(styleId)) setSelectedStyleId(null);
             if (selectedStyleIdEdit === String(styleId)) setSelectedStyleIdEdit(null);
+            
+            // Atualizar a lista sem mostrar loading
             await fetchStyles(false);
         } catch (err) {
             console.error("Erro ao deletar estilo:", err.response?.data || err.message);
-             let errorDetail = "Erro desconhecido";
+            let errorDetail = "Erro desconhecido";
+            
             if (err.response?.data) {
-                 const match = typeof err.response.data === 'string' ? err.response.data.match(/<pre>(.*?)<\/pre>/) : null;
-                 errorDetail = match ? match[1] : (err.response.data.detail || JSON.stringify(err.response.data));
+                const match = typeof err.response.data === 'string' ? err.response.data.match(/<pre>(.*?)<\/pre>/) : null;
+                errorDetail = match ? match[1] : (err.response.data.detail || JSON.stringify(err.response.data));
             } else if (err.message) {
-                 errorDetail = err.message;
+                errorDetail = err.message;
             }
+            
             setStylesError(`Falha ao deletar estilo: ${errorDetail}`);
         } finally {
             setStylesLoading(false);
@@ -231,7 +298,7 @@ function GerarImagemPage() {
             console.log(`Aplicando estilo (Geração): "${selectedStyle.name}"`);
             finalPrompt = `${selectedStyle.instructions}\n\n${prompt.trim()}`;
         } else {
-             console.log("Gerando sem estilo adicional.");
+            console.log("Gerando sem estilo adicional.");
         }
 
         const payload = {
@@ -241,7 +308,8 @@ function GerarImagemPage() {
         };
         if (compressionEnabled) payload.output_compression = outputCompression;
 
-        await handleApiCall('/operacional/generate-image/', payload, 'post');
+        const targetEndpoint = '/operacional/generate-image/';
+        await handleApiCall(targetEndpoint, payload, 'post');
     };
 
     const handleEditImage = async () => {
@@ -265,36 +333,55 @@ function GerarImagemPage() {
         baseImagesEdit.forEach((file) => formData.append('image', file, file.name));
         if (maskImageEdit) formData.append('mask', maskImageEdit, maskImageEdit.name);
 
-        await handleApiCall('/operacional/edit-image/', formData, 'post', { headers: { 'Content-Type': 'multipart/form-data' } });
+        const targetEndpoint = '/operacional/edit-image/';
+        await handleApiCall(targetEndpoint, formData, 'post', { headers: { 'Content-Type': 'multipart/form-data' } });
     };
 
     // --- Função Genérica para API Calls (Geração/Edição OpenAI) ---
-    const handleApiCall = async (url, payload, method = 'post', config = {}) => {
+    const handleApiCall = async (endpoint, payload, method = 'post', config = {}) => {
         setIsLoading(true);
         setResultsLoading(true);
         setError(null);
         setGeneratedImages([]);
 
-        const targetUrl = url.startsWith('/') ? url : `/${url}`; // Garante que comece com /
-        console.log(`Enviando ${method.toUpperCase()} para URL Relativa: ${targetUrl}...`);
+        console.log(`Enviando ${method.toUpperCase()} para URL: ${API_URL}${endpoint}...`);
         try {
-            const response = await csrfAxios({ method, url: targetUrl, data: payload, ...config }); // Passar targetUrl
-            console.log(`Sucesso ${method.toUpperCase()} ${targetUrl}:`, response.status);
+            // Criar uma instância personalizada do axios com as configurações corretas
+            const axiosInstance = axios.create({
+                baseURL: API_URL,
+                withCredentials: true,
+                headers: {
+                    ...axios.defaults.headers.common,
+                }
+            });
+            
+            // Buscar CSRF token fresco antes de enviar (para POST, PUT, DELETE)
+            if (method.toLowerCase() !== 'get') {
+                await axiosInstance.get('/ensure-csrf/');
+            }
+            
+            const response = await axiosInstance({
+                method,
+                url: endpoint,
+                data: payload,
+                ...config
+            });
+            
+            console.log(`Sucesso ${method.toUpperCase()} ${endpoint}:`, response.status);
             if (response.data?.images_b64?.length > 0) {
                 setGeneratedImages(response.data.images_b64);
             } else {
-                 console.warn("API OpenAI via backend retornou sucesso, mas sem imagens B64.");
+                console.warn("API OpenAI via backend retornou sucesso, mas sem imagens B64.");
             }
         } catch (err) {
-            // Tratamento de erro permanece o mesmo
-            console.error(`Erro ao chamar ${method.toUpperCase()} ${targetUrl}:`, err);
+            console.error(`Erro ao chamar ${method.toUpperCase()} ${endpoint}:`, err);
             let errorMessage = 'Ocorreu um erro ao processar sua solicitação.';
-            // ... (lógica de extração de erro igual à anterior) ...
-             if (err.response) {
+            
+            if (err.response) {
                 const status = err.response.status;
                 const data = err.response.data;
-                console.error(`Status do erro (${method.toUpperCase()} ${targetUrl}):`, status);
-                console.error(`Dados do erro (${method.toUpperCase()} ${targetUrl}):`, data);
+                console.error(`Status do erro (${method.toUpperCase()} ${endpoint}):`, status);
+                console.error(`Dados do erro (${method.toUpperCase()} ${endpoint}):`, data);
                 if (status === 403) errorMessage = `Erro de Segurança (403). Verifique se está logado ou se o token CSRF é válido. Detalhe: ${data?.detail || 'CSRF ou Permissão'}`;
                 else if (status === 401) errorMessage = `Não autenticado (401). Faça login novamente.`;
                 else if (status === 400 && typeof data?.error === 'string' && data.error.includes("content policy")) errorMessage = "Seu prompt foi bloqueado pela política de conteúdo da OpenAI.";
@@ -350,7 +437,7 @@ function GerarImagemPage() {
     }, [activeTab]);
 
     // Limpar erro de estilos ao mudar sub-aba
-     useEffect(() => {
+    useEffect(() => {
         setStylesError(null);
         setShowAddStyleForm(false); // Esconde form ao mudar de sub-aba
     }, [activeSubTab]);
@@ -376,12 +463,12 @@ function GerarImagemPage() {
                     <Tabs value={activeSubTab} onChange={setActiveSubTab} variant='outline' radius='md' mb="lg">
                         <Tabs.List grow>
                             <Tabs.Tab value="use" disabled={isLoading}>Usar Ferramentas</Tabs.Tab>
-                            <Tabs.Tab value="manageStyles" leftSection={<IconPalette size={16} />} disabled={isLoading || stylesLoading}>Gerenciar Estilos</Tabs.Tab> {/* <<< USE IconPalette AQUI */}
+                            <Tabs.Tab value="manageStyles" leftSection={<IconPalette size={16} />} disabled={isLoading || stylesLoading}>Gerenciar Estilos</Tabs.Tab>
                         </Tabs.List>
                     </Tabs>
 
                     {/* Área de Rolagem para Conteúdo da Coluna Esquerda */}
-                    <ScrollArea style={{ flexGrow: 1, overflowX: 'hidden' }} viewportProps={{ style: { paddingRight: '12px' } }}> {/* Adiciona padding para evitar corte pela scrollbar */}
+                    <ScrollArea style={{ flexGrow: 1, overflowX: 'hidden' }} viewportProps={{ style: { paddingRight: '12px' } }}>
                         {/* Conteúdo da Aba "Usar Ferramentas" */}
                         {activeSubTab === 'use' && (
                             <Box>
@@ -501,7 +588,7 @@ function GerarImagemPage() {
                      {/* Área de Resultados com Loading e Scroll */}
                      <Box style={{ flexGrow: 1, position: 'relative', overflow: 'hidden' }}>
                         <LoadingOverlay visible={resultsLoading} overlayProps={{ radius: "sm", blur: 1 }} loaderProps={{ color: 'orange' }} />
-                        <ScrollArea style={{ height: '100%' }} viewportProps={{ style: { padding: '4px' } }}> {/* Padding no viewport da scrollarea */}
+                        <ScrollArea style={{ height: '100%' }} viewportProps={{ style: { padding: '4px' } }}>
                              {generatedImages.length > 0 && !isLoading && (
                                 <SimpleGrid cols={{ base: 1, sm: 2, md: 2, lg: 3 }} spacing="md">
                                     {generatedImages.map((base64Data, index) => {
