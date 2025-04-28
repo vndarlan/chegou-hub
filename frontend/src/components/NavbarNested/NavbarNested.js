@@ -84,14 +84,16 @@ const areasDataLocal = [
 
 // O resto do código permanece o mesmo
 export function NavbarNested({
-    activePage,
-    setActivePage,
-    userName,
-    userEmail,
-    onLogout,
-    collapsed,
-    setCollapsed,
-    areasData: areasDataFromProps
+  activePage,
+  setActivePage,
+  userName,
+  userEmail,
+  onLogout,
+  collapsed,
+  setCollapsed,
+  areasData: areasDataFromProps,
+  toggleColorScheme,
+  colorScheme
 }) {
     // Decide quais dados usar: os passados via props ou os locais
     const dataToUse = areasDataFromProps || areasDataLocal;

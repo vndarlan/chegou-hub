@@ -179,6 +179,8 @@ function WorkspacePage({ setIsLoggedIn }) {
                 collapsed={navbarCollapsed}
                 setCollapsed={setNavbarCollapsed}
                 areasData={areasData}
+                toggleColorScheme={toggleColorScheme}
+                colorScheme={colorScheme}
             />
 
             {/* Área de Conteúdo Principal com ROTAS ANINHADAS */}
