@@ -32,6 +32,17 @@ function App() {
     defaultValue: 'light'
   });
 
+  // Função para alternar entre os temas com log para debug
+  const toggleColorScheme = () => {
+    console.log(`Alterando tema de ${colorScheme} para ${colorScheme === 'dark' ? 'light' : 'dark'}`);
+    setColorScheme(colorScheme === 'dark' ? 'light' : 'dark');
+  };
+
+  // Efeito para monitorar mudanças no tema (debug)
+  useEffect(() => {
+    console.log("Tema atual:", colorScheme);
+  }, [colorScheme]);
+
   // Verifica o estado inicial de login no backend ao carregar o App
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -58,16 +69,17 @@ function App() {
     checkLoginStatus();
   }, []);
 
-  // Função para alternar entre os temas
-  const toggleColorScheme = () => {
-    setColorScheme(colorScheme === 'dark' ? 'light' : 'dark');
-  };
+  // Verificação do tema no localStorage (debug)
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('mantine-color-scheme');
+    console.log("Tema salvo no localStorage:", savedTheme);
+  }, []);
 
   if (isLoading) {
     return (
       <MantineProvider 
         theme={theme} 
-        defaultColorScheme={colorScheme}
+        colorScheme={colorScheme}
       >
         <LoadingOverlay
           visible={true}
@@ -82,7 +94,7 @@ function App() {
   return (
     <MantineProvider
       theme={theme}
-      colorScheme={colorScheme} // Mude de defaultColorScheme para colorScheme
+      colorScheme={colorScheme}
     >
       <CSRFManager>
         <Router>

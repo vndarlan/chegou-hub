@@ -45,7 +45,15 @@ export function UserButton({
               ? <IconSun style={{ width: rem(14), height: rem(14) }} />
               : <IconMoonStars style={{ width: rem(14), height: rem(14) }} />
           }
-          onClick={toggleColorScheme}
+          onClick={() => {
+            console.log("Botão de tema clicado!");
+            console.log("Tema atual:", colorScheme);
+            if (toggleColorScheme) {
+              toggleColorScheme();
+            } else {
+              console.error("toggleColorScheme não está definido!");
+            }
+          }}
         >
           {colorScheme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
         </Menu.Item>
