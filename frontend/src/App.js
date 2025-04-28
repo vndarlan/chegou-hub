@@ -82,7 +82,7 @@ function App() {
   return (
     <MantineProvider
       theme={theme}
-      defaultColorScheme={colorScheme}
+      colorScheme={colorScheme} // Mude de defaultColorScheme para colorScheme
     >
       <CSRFManager>
         <Router>
