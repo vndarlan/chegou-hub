@@ -175,47 +175,50 @@ function GerarImagemPage() {
         console.log("Adicionando novo estilo - URL:", API_URL + targetEndpoint, "Payload:", payload);
         
         try {
-            // Criar uma instância personalizada do axios com as configurações corretas
+            // 1. Criar uma instância axios específica para esta solicitação
             const axiosInstance = axios.create({
                 baseURL: API_URL,
                 withCredentials: true,
-                // Copia os cabeçalhos padrão do axios global
-                headers: {
-                    ...axios.defaults.headers.common,
-                }
             });
             
-            // Buscar CSRF token fresco antes de enviar
-            await axiosInstance.get('/ensure-csrf/');
+            // 2. Obter um token CSRF fresco do servidor
+            await axiosInstance.get('/ensure-csrf/', {
+                withCredentials: true
+            });
             
-            // Obter o token CSRF dos cookies - ADICIONAR ESTA FUNÇÃO
-            const getCsrfToken = () => {
-                let token = null;
-                const value = `; ${document.cookie}`;
-                const parts = value.split(`; csrftoken=`);
-                if (parts.length === 2) token = parts.pop().split(';').shift();
-                return token;
-            };
-            
-            // ADICIONAR ESTA LINHA para obter o token
-            const csrfToken = getCsrfToken();
-            
-            // Agora faça a chamada POST incluindo o token CSRF explicitamente
-            const response = await axiosInstance.post(targetEndpoint, 
-                payload, 
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken  // ADICIONAR ESTA LINHA
-                    }
+            // 3. Obter esse token fresco dos cookies usando regex
+            function extractCSRFToken() {
+                const cookieValue = document.cookie
+                  .split('; ')
+                  .find(row => row.startsWith('csrftoken='));
+                
+                if (!cookieValue) {
+                    console.error('Nenhum token CSRF encontrado no cookie!');
+                    return null;
                 }
-            );
+                
+                return cookieValue.split('=')[1];
+            }
+            
+            const csrfToken = extractCSRFToken();
+            console.log("Usando token CSRF:", csrfToken ? csrfToken.substring(0, 6) + "..." : "NENHUM TOKEN");
+            
+            if (!csrfToken) {
+                throw new Error("Não foi possível obter token CSRF dos cookies");
+            }
+            
+            // 4. Fazer a requisição com o token obtido
+            const response = await axiosInstance.post(targetEndpoint, payload, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }
+            });
             
             console.log("Estilo adicionado com sucesso:", response.data);
             setNewStyleName('');
             setNewStyleInstructions('');
             setShowAddStyleForm(false);
-            // Usar o mesmo padrão para buscar os estilos sem mostrar loading
             await fetchStyles(false);
         } catch (err) {
             console.error("Erro ao adicionar estilo:", err.response?.data || err.message);
@@ -358,54 +361,51 @@ function GerarImagemPage() {
         console.log(`Tentando ${method.toUpperCase()} para ${API_URL}${endpoint}...`);
         
         try {
-            // 1. Primeiro, faremos logout e login para resetar a sessão completamente
-            const sessionResetInstance = axios.create({
+            // 1. Criar uma instância axios específica
+            const axiosInstance = axios.create({
                 baseURL: API_URL,
                 withCredentials: true
             });
             
-            // Chamar current-state para verificar a sessão atual
-            const stateResp = await sessionResetInstance.get('/current-state/');
+            // 2. Verificar o estado da sessão atual
+            const stateResp = await axiosInstance.get('/current-state/');
             console.log("Estado da sessão:", stateResp.data);
             
-            // 2. Obter CSRF explicitamente
-            const csrfResp = await sessionResetInstance.get('/ensure-csrf/');
-            console.log("CSRF response status:", csrfResp.status);
+            // 3. Obter CSRF token fresco explicitamente
+            await axiosInstance.get('/ensure-csrf/');
             
-            // 3. Esperar para garantir que o cookie foi definido
-            await new Promise(r => setTimeout(r, 500));
-            
-            // 4. Obter o token CSRF usando a função mais robusta
-            const getCsrfToken = () => {
-                let csrfToken = null;
-                // Método 1: Procurar diretamente no cookie
-                const value = `; ${document.cookie}`;
-                const parts = value.split(`; csrftoken=`);
-                if (parts.length === 2) csrfToken = parts.pop().split(';').shift();
+            // 4. Extrair o token dos cookies
+            function extractCSRFToken() {
+                const cookieValue = document.cookie
+                  .split('; ')
+                  .find(row => row.startsWith('csrftoken='));
                 
-                console.log("CSRF Token encontrado nos cookies:", csrfToken);
-                return csrfToken;
-            };
+                if (!cookieValue) {
+                    console.error('Nenhum token CSRF encontrado no cookie!');
+                    return null;
+                }
+                
+                return cookieValue.split('=')[1];
+            }
             
-            const csrfToken = getCsrfToken();
-
+            const csrfToken = extractCSRFToken();
+            console.log("Token CSRF para requisição:", csrfToken ? csrfToken.substring(0, 6) + "..." : "NENHUM TOKEN");
+            
             if (!csrfToken) {
                 throw new Error("CSRF Token não encontrado. Sessão pode estar inválida.");
             }
-
-            // 5. Fazer a requisição principal apenas com o header X-CSRFToken
-            const response = await axios({
+            
+            // 5. Fazer a requisição principal com headers simplificados
+            const response = await axiosInstance({
                 method,
-                url: `${API_URL}${endpoint}`,
+                url: endpoint,
                 data: payload,
-                withCredentials: true,
                 headers: {
-                    ...axios.defaults.headers.common,
-                    'X-CSRFToken': csrfToken,
                     'Content-Type': method.toLowerCase() === 'post' ? 'application/json' : undefined,
+                    'X-CSRFToken': csrfToken,
                     ...config.headers
                 }
-});
+            });
             
             console.log(`Sucesso ${method.toUpperCase()} ${endpoint}:`, response.status);
             if (response.data?.images_b64?.length > 0) {
