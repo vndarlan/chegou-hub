@@ -274,7 +274,7 @@ class GenerateImageView(APIView):
 class EditImageView(APIView):
     """ Endpoint para editar imagens usando o modelo gpt-image-1 da OpenAI """
     permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser] # Necessário para upload de arquivos
+    parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request, *args, **kwargs):
         user = request.user
@@ -316,14 +316,17 @@ class EditImageView(APIView):
             return Response({'error': 'Erro ao inicializar o serviço de edição [Client Init].'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # 4. Validar e preparar imagens (ler bytes)
-        image_byte_list = []
+        image_file_objects = []  # Lista de objetos de arquivo, não apenas bytes
         for img_file in image_files:
-            if img_file.size > 25 * 1024 * 1024: # Limite de 25MB
+            if img_file.size > 25 * 1024 * 1024:
                 return Response({'error': f'Imagem "{img_file.name}" excede o limite de 25MB.'}, status=status.HTTP_400_BAD_REQUEST)
+            
             filename = img_file.name.lower()
             if not (filename.endswith('.png') or filename.endswith('.jpg') or filename.endswith('.jpeg') or filename.endswith('.webp')):
                 return Response({'error': f'Imagem "{img_file.name}" deve ser png, jpg ou webp.'}, status=status.HTTP_400_BAD_REQUEST)
-            image_byte_list.append(img_file.read()) # Lê os bytes do arquivo
+            
+            # Importante: Não leia os bytes aqui, apenas adicione o objeto de arquivo
+            image_file_objects.append(img_file)
 
         # 5. Preparar argumentos para a API
         api_args = {
@@ -336,8 +339,8 @@ class EditImageView(APIView):
         }
 
         # Passa a lista de bytes das imagens
-        if image_byte_list:
-            api_args["image"] = image_byte_list
+        if image_file_objects:
+            api_args["image"] = image_file_objects
 
         # Adicionar máscara se fornecida (ler bytes)
         if mask_file:
