@@ -253,6 +253,8 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'cache-control',  # Adicionado
+    'pragma',         # Adicionado
 ]
 
 # Configurações CSRF Cookie ajustadas
@@ -269,6 +271,9 @@ if not DEBUG: # Em produção
 else: # Em desenvolvimento (DEBUG=True)
     CSRF_COOKIE_SECURE = False
     CSRF_COOKIE_SAMESITE = 'Lax' 
+
+# Configuração de domínio para cookies CSRF (NOVA CONFIGURAÇÃO)
+CSRF_COOKIE_DOMAIN = '.railway.app'  # Permite compartilhar cookies entre subdomínios
 
 # --- Configuração REST Framework (sem mudanças) ---
 REST_FRAMEWORK = {
