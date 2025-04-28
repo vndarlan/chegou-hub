@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 
-// Mantine Imports - Removi useMantineColorScheme que não estava sendo usado
+// Mantine Imports
 import { MantineProvider, createTheme, LoadingOverlay } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import '@mantine/core/styles.css';
@@ -37,6 +37,13 @@ function App() {
     console.log(`Alterando tema de ${colorScheme} para ${colorScheme === 'dark' ? 'light' : 'dark'}`);
     setColorScheme(colorScheme === 'dark' ? 'light' : 'dark');
   };
+
+  // NOVO: Efeito para garantir que o tema seja aplicado ao DOM
+  useEffect(() => {
+    document.documentElement.setAttribute('data-mantine-color-scheme', colorScheme);
+    document.body.setAttribute('data-mantine-color-scheme', colorScheme);
+    console.log("Atributo de tema definido no documento:", colorScheme);
+  }, [colorScheme]);
 
   // Efeito para monitorar mudanças no tema (debug)
   useEffect(() => {
@@ -98,7 +105,6 @@ function App() {
     >
       <CSRFManager>
         <Router>
-          {/* Passamos a função toggleColorScheme como prop para o WorkspacePage */}
           <Routes>
             <Route
               path="/login"
