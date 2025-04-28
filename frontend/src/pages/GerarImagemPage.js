@@ -176,7 +176,6 @@ function GerarImagemPage() {
         
         try {
             // Criar uma instância personalizada do axios com as configurações corretas
-            // Seguindo o padrão exato que funciona em AIProjectForm.js
             const axiosInstance = axios.create({
                 baseURL: API_URL,
                 withCredentials: true,
@@ -186,16 +185,28 @@ function GerarImagemPage() {
                 }
             });
             
-            // Buscar CSRF token fresco antes de enviar (PASSO CRUCIAL)
+            // Buscar CSRF token fresco antes de enviar
             await axiosInstance.get('/ensure-csrf/');
             
-            // Agora faça a chamada POST com a configuração correta
+            // Obter o token CSRF dos cookies - ADICIONAR ESTA FUNÇÃO
+            const getCsrfToken = () => {
+                let token = null;
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; csrftoken=`);
+                if (parts.length === 2) token = parts.pop().split(';').shift();
+                return token;
+            };
+            
+            // ADICIONAR ESTA LINHA para obter o token
+            const csrfToken = getCsrfToken();
+            
+            // Agora faça a chamada POST incluindo o token CSRF explicitamente
             const response = await axiosInstance.post(targetEndpoint, 
                 payload, 
                 {
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
+                        'X-CSRFToken': csrfToken  // ADICIONAR ESTA LINHA
                     }
                 }
             );
@@ -377,23 +388,24 @@ function GerarImagemPage() {
             };
             
             const csrfToken = getCsrfToken();
-            
+
             if (!csrfToken) {
                 throw new Error("CSRF Token não encontrado. Sessão pode estar inválida.");
             }
-            
-            // 5. Fazer a requisição principal com VÁRIAS opções de CSRF
+
+            // 5. Fazer a requisição principal apenas com o header X-CSRFToken
             const response = await axios({
                 method,
                 url: `${API_URL}${endpoint}`,
                 data: payload,
                 withCredentials: true,
                 headers: {
-                    'Content-Type': method.toLowerCase() === 'post' ? 'application/json' : undefined,
+                    ...axios.defaults.headers.common,
                     'X-CSRFToken': csrfToken,
+                    'Content-Type': method.toLowerCase() === 'post' ? 'application/json' : undefined,
                     ...config.headers
                 }
-            });
+});
             
             console.log(`Sucesso ${method.toUpperCase()} ${endpoint}:`, response.status);
             if (response.data?.images_b64?.length > 0) {
