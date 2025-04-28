@@ -88,39 +88,60 @@ function App() {
     const styleElement = document.createElement('style');
     
     styleElement.textContent = `
-      /* Tema escuro - modifique estas cores */
-      [data-mantine-color-scheme="dark"] .mantine-Paper-root {
-        background-color: #25262B; /* Cor de fundo dos cards */
+      /* Tema escuro refinado */
+      [data-mantine-color-scheme="dark"] body,
+      [data-mantine-color-scheme="dark"] .mantine-AppShell-main {
+        background-color: #1A1B1E;
+      }
+      
+      [data-mantine-color-scheme="dark"] .mantine-Paper-root,
+      [data-mantine-color-scheme="dark"] .mantine-Card-root {
+        background-color: #25262B;
+      }
+      
+      [data-mantine-color-scheme="dark"] .mantine-TextInput-input,
+      [data-mantine-color-scheme="dark"] .mantine-Textarea-input,
+      [data-mantine-color-scheme="dark"] .mantine-Select-input {
+        background-color: #2C2E33;
+        border-color: #383A40;
+        color: #E0E0E0;
       }
       
       [data-mantine-color-scheme="dark"] .mantine-Text-root {
-        color: #FFFFFF; /* Cor do texto alterada para branco */
+        color: #E0E0E0;
       }
       
-      [data-mantine-color-scheme="dark"] .mantine-AppShell-main {
-        background-color: #1A1B1E; /* Cor de fundo principal */
+      [data-mantine-color-scheme="dark"] .mantine-Text-root[color="dimmed"] {
+        color: #A0A0A0;
+      }
+      
+      /* Área de resultados (atualmente branca na sua captura) */
+      [data-mantine-color-scheme="dark"] .resultArea {
+        background-color: #2A2B30;
+        color: #E0E0E0;
       }
       
       /* Barra lateral no tema escuro */
       [data-mantine-color-scheme="dark"] .navbar {
-        background-color: #1A1B1E; /* Cor de fundo da barra lateral */
-        border-right-color: #373A40; /* Cor da borda */
+        background-color: #1A1B1E;
+        border-right-color: #383A40;
       }
       
-      [data-mantine-color-scheme="dark"] .headerDivider,
-      [data-mantine-color-scheme="dark"] .footerDivider {
-        border-top-color: #373A40; /* Cor dos divisores */
+      /* Botões no tema escuro */
+      [data-mantine-color-scheme="dark"] .mantine-Button-root:not(.mantine-Button-filled) {
+        border-color: #383A40;
       }
       
-      [data-mantine-color-scheme="dark"] .control:hover {
-        background-color: #25262B; /* Cor de hover nos itens do menu */
+      /* Dropdowns/selects no tema escuro */
+      [data-mantine-color-scheme="dark"] .mantine-Select-dropdown,
+      [data-mantine-color-scheme="dark"] .mantine-Menu-dropdown {
+        background-color: #25262B;
+        border-color: #383A40;
       }
     `;
     
-    // Adicionar o elemento de estilo ao head
     document.head.appendChild(styleElement);
     
-    // Limpar ao desmontar
     return () => {
       document.head.removeChild(styleElement);
     };
