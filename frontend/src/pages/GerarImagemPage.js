@@ -342,28 +342,57 @@ function GerarImagemPage() {
         setResultsLoading(true);
         setError(null);
         setGeneratedImages([]);
-
+    
         console.log(`Enviando ${method.toUpperCase()} para URL: ${API_URL}${endpoint}...`);
+        
         try {
-            // Criar uma instância personalizada do axios com as configurações corretas
+            // CORREÇÃO: Obter token CSRF fresco antes de cada chamada
+            // Criar uma instância inicial para obter o token
+            const csrfInstance = axios.create({
+                baseURL: API_URL,
+                withCredentials: true
+            });
+            
+            // Obter token CSRF fresco
+            await csrfInstance.get('/ensure-csrf/');
+            
+            // Pequena pausa para garantir que o cookie seja definido
+            await new Promise(r => setTimeout(r, 300));
+            
+            // Obter o token CSRF do cookie
+            const getCsrfToken = () => {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; csrftoken=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+                return null;
+            };
+            
+            const csrfToken = getCsrfToken();
+            console.log("Token CSRF obtido:", csrfToken ? "Sim" : "Não");
+            
+            if (!csrfToken) {
+                throw new Error("Não foi possível obter o token CSRF. Tente recarregar a página.");
+            }
+            
+            // Criar a instância de axios para a requisição principal com o token fresco
             const axiosInstance = axios.create({
                 baseURL: API_URL,
                 withCredentials: true,
                 headers: {
                     ...axios.defaults.headers.common,
+                    'X-CSRFToken': csrfToken  // Usar o token CSRF explicitamente obtido
                 }
             });
-            
-            // Buscar CSRF token fresco antes de enviar (para POST, PUT, DELETE)
-            if (method.toLowerCase() !== 'get') {
-                await axiosInstance.get('/ensure-csrf/');
-            }
             
             const response = await axiosInstance({
                 method,
                 url: endpoint,
                 data: payload,
-                ...config
+                ...config,
+                headers: {
+                    ...config.headers,
+                    'X-CSRFToken': csrfToken  // Garantir que o token esteja também nos headers da requisição
+                }
             });
             
             console.log(`Sucesso ${method.toUpperCase()} ${endpoint}:`, response.status);
