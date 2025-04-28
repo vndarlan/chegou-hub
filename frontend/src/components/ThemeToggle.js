@@ -1,17 +1,14 @@
 // frontend/src/components/ThemeToggle.js
 import React from 'react';
-import { ActionIcon, useMantineColorScheme, useComputedColorScheme } from '@mantine/core';
+import { ActionIcon, useMantineColorScheme } from '@mantine/core';
 import { IconSun, IconMoon } from '@tabler/icons-react';
 
-function ThemeToggle() {
-  const { toggleColorScheme } = useMantineColorScheme();
-  const computedColorScheme = useComputedColorScheme('light', { getInitialValueInEffect: true });
-  
-  const isDark = computedColorScheme === 'dark';
+function ThemeToggle({ colorScheme, toggleColorScheme }) {
+  const isDark = colorScheme === 'dark';
 
   return (
     <ActionIcon
-      onClick={() => toggleColorScheme()}
+      onClick={toggleColorScheme}
       variant="default"
       size="lg"
       aria-label="Alternar tema"

@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 
-// Mantine Imports
-import { MantineProvider, createTheme, LoadingOverlay, ColorSchemeProvider } from '@mantine/core';
+// Mantine Imports - Na v7, useMantineColorScheme vem de @mantine/core
+import { MantineProvider, createTheme, LoadingOverlay, useMantineColorScheme } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
@@ -29,13 +29,8 @@ function App() {
   // Estado para o esquema de cores com localStorage
   const [colorScheme, setColorScheme] = useLocalStorage({
     key: 'mantine-color-scheme',
-    defaultValue: 'light',
-    getInitialValueInEffect: true,
+    defaultValue: 'light'
   });
-
-  // Função para alternar entre os temas
-  const toggleColorScheme = (value) => 
-    setColorScheme(value || (colorScheme === 'dark' ? 'light' : 'dark'));
 
   // Verifica o estado inicial de login no backend ao carregar o App
   useEffect(() => {
@@ -63,50 +58,65 @@ function App() {
     checkLoginStatus();
   }, []);
 
+  // Função para alternar entre os temas
+  const toggleColorScheme = () => {
+    setColorScheme(colorScheme === 'dark' ? 'light' : 'dark');
+  };
+
   if (isLoading) {
     return (
-      <ColorSchemeProvider colorScheme={colorScheme} toggleColorScheme={toggleColorScheme}>
-        <MantineProvider theme={{...theme, colorScheme}} defaultColorScheme={colorScheme}>
-          <LoadingOverlay
-            visible={true}
-            zIndex={1000}
-            overlayProps={{ radius: "sm", blur: 2 }}
-            loaderProps={{ color: 'orange', type: 'bars' }}
-          />
-        </MantineProvider>
-      </ColorSchemeProvider>
+      <MantineProvider 
+        theme={theme} 
+        defaultColorScheme={colorScheme}
+      >
+        <LoadingOverlay
+          visible={true}
+          zIndex={1000}
+          overlayProps={{ radius: "sm", blur: 2 }}
+          loaderProps={{ color: 'orange', type: 'bars' }}
+        />
+      </MantineProvider>
     );
   }
 
   return (
-    <ColorSchemeProvider colorScheme={colorScheme} toggleColorScheme={toggleColorScheme}>
-      <MantineProvider theme={{...theme, colorScheme}} defaultColorScheme={colorScheme}>
-        <CSRFManager>
-          <Router>
-            <Routes>
-              <Route
-                path="/login"
-                element={!isLoggedIn ? <LoginPage setIsLoggedIn={setIsLoggedIn} /> : <Navigate to="/workspace" replace />}
-              />
-              <Route
-                path="/workspace/*"
-                element={isLoggedIn ? <WorkspacePage setIsLoggedIn={setIsLoggedIn} /> : <Navigate to="/login" replace />}
-              />
-              <Route
-                path="/"
-                element={isLoggedIn ? <Navigate to="/workspace" replace /> : <Navigate to="/login" replace />}
-              />
-              <Route path="*" element={
-                <div style={{ padding: '20px', textAlign: 'center' }}>
-                  <h1>404 - Página não encontrada</h1>
-                  <p>A rota que você tentou acessar não existe.</p>
-                </div>
-              } />
-            </Routes>
-          </Router>
-        </CSRFManager>
-      </MantineProvider>
-    </ColorSchemeProvider>
+    <MantineProvider
+      theme={theme}
+      defaultColorScheme={colorScheme}
+    >
+      <CSRFManager>
+        <Router>
+          {/* Passamos a função toggleColorScheme como prop para o WorkspacePage */}
+          <Routes>
+            <Route
+              path="/login"
+              element={!isLoggedIn ? <LoginPage setIsLoggedIn={setIsLoggedIn} /> : <Navigate to="/workspace" replace />}
+            />
+            <Route
+              path="/workspace/*"
+              element={isLoggedIn ? 
+                <WorkspacePage 
+                  setIsLoggedIn={setIsLoggedIn} 
+                  colorScheme={colorScheme}
+                  toggleColorScheme={toggleColorScheme}
+                /> : 
+                <Navigate to="/login" replace />
+              }
+            />
+            <Route
+              path="/"
+              element={isLoggedIn ? <Navigate to="/workspace" replace /> : <Navigate to="/login" replace />}
+            />
+            <Route path="*" element={
+              <div style={{ padding: '20px', textAlign: 'center' }}>
+                <h1>404 - Página não encontrada</h1>
+                <p>A rota que você tentou acessar não existe.</p>
+              </div>
+            } />
+          </Routes>
+        </Router>
+      </CSRFManager>
+    </MantineProvider>
   );
 }
 
