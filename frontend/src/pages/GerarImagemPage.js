@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import {
     Box, Text, Paper, Textarea, Button, LoadingOverlay, Alert, Image, Group, Stack,
-    Select, NumberInput, FileInput, Tabs, Divider, Center, SimpleGrid,
+    Select, NumberInput, FileInput, Tabs, Center, SimpleGrid,
     Slider, ActionIcon, Title, TextInput, Loader,
     ScrollArea // Adicionado para rolagem
 } from '@mantine/core';
