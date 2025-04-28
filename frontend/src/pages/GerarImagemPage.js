@@ -112,21 +112,23 @@ function GerarImagemPage() {
     const fetchStyles = useCallback(async (showLoading = true) => {
         if (showLoading) setStylesLoading(true);
         setStylesError(null);
-        console.log("Buscando estilos do backend...");
+        const targetUrl = '/api/styles/'; // <<< GARANTIR O /api/ AQUI também para GET
+        console.log("Buscando estilos - URL:", targetUrl); // Log da URL
         try {
-            // Usar axios global para GET, pois já deve ter withCredentials
-            const response = await axios.get('/styles/');
+            // Usar axios global para GET
+            const response = await axios.get(targetUrl); // <<< Usar a variável targetUrl
             console.log("Estilos recebidos:", response.data);
             const sortedStyles = response.data.sort((a, b) => a.name.localeCompare(b.name));
             setStylesList(sortedStyles || []);
         } catch (err) {
+             // Tratamento de erro permanece o mesmo
             console.error("Erro ao buscar estilos:", err.response?.data || err.message);
             setStylesError(`Falha ao carregar estilos: ${err.response?.data?.detail || err.message || 'Erro desconhecido'}`);
             setStylesList([]);
         } finally {
             if (showLoading) setStylesLoading(false);
         }
-    }, []);
+    }, []); // A dependência vazia está ok aqui
 
     // Buscar estilos na montagem
     useEffect(() => {
@@ -135,60 +137,68 @@ function GerarImagemPage() {
     }, [fetchStyles]);
 
     const handleAddStyle = async () => {
+        // ... (validação inicial igual)
         if (!newStyleName.trim() || !newStyleInstructions.trim()) {
             setStylesError('Nome e instruções são obrigatórios.');
             return;
         }
-        setStylesLoading(true); // Loading específico de estilos
+        setStylesLoading(true);
         setStylesError(null);
-        console.log("Adicionando novo estilo:", { name: newStyleName, instructions: newStyleInstructions });
+        const payload = {
+            name: newStyleName.trim(),
+            instructions: newStyleInstructions.trim(),
+        };
+        console.log("Adicionando novo estilo - Payload:", payload); // Log do payload
+        const targetUrl = '/api/styles/'; // <<< GARANTIR O /api/ AQUI
+        console.log("Adicionando novo estilo - URL:", targetUrl); // Log da URL
         try {
             // Usar csrfAxios para POST
-            await csrfAxios.post('/styles/', {
-                name: newStyleName.trim(),
-                instructions: newStyleInstructions.trim(),
-            });
+            await csrfAxios.post(targetUrl, payload); // <<< Usar a variável targetUrl
             console.log("Estilo adicionado com sucesso.");
             setNewStyleName('');
             setNewStyleInstructions('');
             setShowAddStyleForm(false);
-            await fetchStyles(false); // Atualiza a lista sem mostrar loading global de estilos
+            await fetchStyles(false);
         } catch (err) {
+            // Tratamento de erro permanece o mesmo
             console.error("Erro ao adicionar estilo:", err.response?.data || err.message);
             const fieldErrors = err.response?.data;
             let errorMsg = `Falha ao adicionar estilo: ${err.message}`;
-            if (typeof fieldErrors === 'object' && fieldErrors !== null) {
+             if (typeof fieldErrors === 'object' && fieldErrors !== null) {
                  if (fieldErrors.name) errorMsg = `Erro no nome: ${fieldErrors.name.join(', ')}`;
                  else if (fieldErrors.instructions) errorMsg = `Erro nas instruções: ${fieldErrors.instructions.join(', ')}`;
                  else if (fieldErrors.detail) errorMsg = fieldErrors.detail;
-                 else errorMsg = JSON.stringify(fieldErrors); // Fallback
-            }
+                 else errorMsg = JSON.stringify(fieldErrors);
+             }
             setStylesError(errorMsg);
         } finally {
-             setStylesLoading(false); // Finaliza loading específico de estilos
+             setStylesLoading(false);
         }
     };
 
     const handleDeleteStyle = async (styleId) => {
+        // ... (confirmação igual)
         const styleToDelete = stylesList.find(s => s.id === styleId);
         if (!window.confirm(`Tem certeza que deseja excluir o estilo "${styleToDelete?.name || styleId}"?`)) {
             return;
         }
-        setStylesLoading(true); // Loading específico de estilos
+        setStylesLoading(true);
         setStylesError(null);
-        console.log("Deletando estilo ID:", styleId);
+        const targetUrl = `/api/styles/${styleId}/`; // <<< GARANTIR O /api/ AQUI e a barra final
+        console.log("Deletando estilo - URL:", targetUrl); // Log da URL
         try {
             // Usar csrfAxios para DELETE
-            await csrfAxios.delete(`/styles/${styleId}/`);
+            await csrfAxios.delete(targetUrl); // <<< Usar a variável targetUrl
             console.log("Estilo deletado com sucesso.");
             if (selectedStyleId === String(styleId)) setSelectedStyleId(null);
             if (selectedStyleIdEdit === String(styleId)) setSelectedStyleIdEdit(null);
-            await fetchStyles(false); // Atualiza a lista sem loading global
+            await fetchStyles(false);
         } catch (err) {
+             // Tratamento de erro permanece o mesmo
             console.error("Erro ao deletar estilo:", err.response?.data || err.message);
             setStylesError(`Falha ao deletar estilo: ${err.response?.data?.detail || err.message || 'Erro desconhecido'}`);
         } finally {
-            setStylesLoading(false); // Finaliza loading específico de estilos
+            setStylesLoading(false);
         }
     };
 
