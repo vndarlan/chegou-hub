@@ -140,7 +140,6 @@ function GerarImagemPage() {
         console.log("GerarImagemPage montado. Chamando fetchStyles...");
         
         // Evitando passar fetchStyles como dependência para prevenir loop infinito
-        // Definimos uma função inline para chamar o fetchStyles
         const loadStyles = async () => {
             try {
                 // Primeiro garantir o token CSRF
@@ -155,8 +154,8 @@ function GerarImagemPage() {
         
         loadStyles();
         
-        // Array de dependências vazio para executar apenas uma vez na montagem
-    }, []);  // <-- Removido fetchStyles das dependências para evitar loop
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleAddStyle = async () => {
         if (!newStyleName.trim() || !newStyleInstructions.trim()) {
