@@ -315,8 +315,8 @@ class EditImageView(APIView):
         except Exception as e:
             return Response({'error': 'Erro ao inicializar o serviço de edição [Client Init].'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # 4. Validar e preparar imagens (ler bytes)
-        image_file_objects = []  # Lista de objetos de arquivo, não apenas bytes
+        # 4. Validar e preparar imagens
+        image_tuples = []  # Lista para armazenar as tuplas (nome, bytes, mimetype)
         for img_file in image_files:
             if img_file.size > 25 * 1024 * 1024:
                 return Response({'error': f'Imagem "{img_file.name}" excede o limite de 25MB.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -325,30 +325,42 @@ class EditImageView(APIView):
             if not (filename.endswith('.png') or filename.endswith('.jpg') or filename.endswith('.jpeg') or filename.endswith('.webp')):
                 return Response({'error': f'Imagem "{img_file.name}" deve ser png, jpg ou webp.'}, status=status.HTTP_400_BAD_REQUEST)
             
-            # Importante: Não leia os bytes aqui, apenas adicione o objeto de arquivo
-            image_file_objects.append(img_file)
+            # Determinar o mimetype correto baseado na extensão
+            mimetype = None
+            if filename.endswith('.png'):
+                mimetype = 'image/png'
+            elif filename.endswith('.jpg') or filename.endswith('.jpeg'):
+                mimetype = 'image/jpeg'
+            elif filename.endswith('.webp'):
+                mimetype = 'image/webp'
+            
+            # Criar uma tupla no formato (nome, bytes, mimetype)
+            image_tuples.append((img_file.name, img_file.read(), mimetype))
 
         # 5. Preparar argumentos para a API
         api_args = {
             "model": "gpt-image-1",
-            "prompt": prompt.strip(),
-            "n": n_images,
+            "prompt": finalEditPrompt,
+            "n": nImagesEdit,
             "size": selected_size,
             "quality": selected_quality,
             "user": str(user.id)
         }
 
-        # Passa a lista de bytes das imagens
-        if image_file_objects:
-            api_args["image"] = image_file_objects
+        # Passa a lista de tuplas das imagens
+        if image_tuples:
+            api_args["image"] = image_tuples[0] if len(image_tuples) == 1 else image_tuples
 
-        # Adicionar máscara se fornecida (ler bytes)
+        # Se tiver máscara, fazer o mesmo para ela
         if mask_file:
             if mask_file.size > 25 * 1024 * 1024:
                 return Response({'error': f'Máscara excede o limite de 25MB.'}, status=status.HTTP_400_BAD_REQUEST)
+            
             if not mask_file.name.lower().endswith('.png'):
                 return Response({'error': 'A máscara deve ser um arquivo PNG.'}, status=status.HTTP_400_BAD_REQUEST)
-            api_args["mask"] = mask_file.read() # Lê os bytes da máscara
+            
+            # Tupla para a máscara (nome, bytes, mimetype)
+            api_args["mask"] = (mask_file.name, mask_file.read(), 'image/png')
 
         # 6. Chamada à API OpenAI
         try:
