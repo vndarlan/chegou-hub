@@ -195,6 +195,7 @@ function GerarImagemPage() {
                 {
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
                     }
                 }
             );
@@ -387,15 +388,10 @@ function GerarImagemPage() {
                 url: `${API_URL}${endpoint}`,
                 data: payload,
                 withCredentials: true,
-                // Incluir token em TODOS os lugares possíveis
                 headers: {
-                    ...axios.defaults.headers.common,
-                    'X-CSRFToken': csrfToken,
                     'Content-Type': method.toLowerCase() === 'post' ? 'application/json' : undefined,
+                    'X-CSRFToken': csrfToken,
                     ...config.headers
-                },
-                params: {
-                    ...config.params
                 }
             });
             
