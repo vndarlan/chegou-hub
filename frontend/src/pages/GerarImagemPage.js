@@ -9,7 +9,7 @@ import {
 } from '@mantine/core';
 import {
     IconAlertCircle, IconEdit, IconSparkles, IconDownload, IconPlus, IconTrash,
-    IconStyle // Ícone para estilos
+    IconPalette // <<< SUBSTITUA IconStyle por IconPalette AQUI
 } from '@tabler/icons-react';
 
 // --- Funções Auxiliares (CSRF e Axios) ---
@@ -343,7 +343,7 @@ function GerarImagemPage() {
                     <Tabs value={activeSubTab} onChange={setActiveSubTab} variant='outline' radius='md' mb="lg">
                         <Tabs.List grow>
                             <Tabs.Tab value="use" disabled={isLoading}>Usar Ferramentas</Tabs.Tab>
-                            <Tabs.Tab value="manageStyles" leftSection={<IconStyle size={16} />} disabled={isLoading || stylesLoading}>Gerenciar Estilos</Tabs.Tab>
+                            <Tabs.Tab value="manageStyles" leftSection={<IconPalette size={16} />} disabled={isLoading || stylesLoading}>Gerenciar Estilos</Tabs.Tab> {/* <<< USE IconPalette AQUI */}
                         </Tabs.List>
                     </Tabs>
 
