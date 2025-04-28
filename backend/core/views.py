@@ -281,9 +281,9 @@ class EditImageView(APIView):
         print(f"Recebida requisição POST em /api/operacional/edit-image/ por {user.email}")
 
         # 1. Obter dados do formulário multipart
-        prompt = request.data.get('prompt')
-        image_files = request.FILES.getlist('image') # Pega lista de arquivos 'image'
-        mask_file = request.FILES.get('mask') # Pega arquivo 'mask' (opcional)
+        prompt = request.data.get('prompt')  # IMPORTANTE: Nome correto da variável
+        image_files = request.FILES.getlist('image')
+        mask_file = request.FILES.get('mask')
 
         # Validações básicas
         if not prompt or not isinstance(prompt, str) or not prompt.strip():
@@ -297,7 +297,7 @@ class EditImageView(APIView):
             if not (1 <= n_images <= 10):
                 raise ValueError("Número de imagens deve ser entre 1 e 10.")
         except (ValueError, TypeError):
-             return Response({'error': 'Número de imagens inválido (1-10).'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Número de imagens inválido (1-10).'}, status=status.HTTP_400_BAD_REQUEST)
 
         selected_size = request.data.get('size', 'auto')
         selected_quality = request.data.get('quality', 'auto')
@@ -305,18 +305,18 @@ class EditImageView(APIView):
         print(f"Edição - Prompt: '{prompt[:50]}...', Imagens base: {len(image_files)}, Máscara: {'Sim' if mask_file else 'Não'}")
         print(f"Opções - N: {n_images}, Tamanho: {selected_size}, Qualidade: {selected_quality}")
 
-        # 3. Validação da Chave API e Inicialização do Cliente
+        # 3. Obter API key e inicializar cliente
         api_key = settings.OPENAI_API_KEY
         if not api_key:
-             return Response({'error': 'Erro de configuração no servidor [API Key].'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error': 'Erro de configuração no servidor [API Key].'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         try:
             client = OpenAI(api_key=api_key)
         except Exception as e:
             return Response({'error': 'Erro ao inicializar o serviço de edição [Client Init].'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # 4. Validar e preparar imagens
-        image_tuples = []  # Lista para armazenar as tuplas (nome, bytes, mimetype)
+        # 4. Validar e preparar imagens (trabalhando com tuplas para cada imagem)
+        image_tuples = []
         for img_file in image_files:
             if img_file.size > 25 * 1024 * 1024:
                 return Response({'error': f'Imagem "{img_file.name}" excede o limite de 25MB.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -340,18 +340,18 @@ class EditImageView(APIView):
         # 5. Preparar argumentos para a API
         api_args = {
             "model": "gpt-image-1",
-            "prompt": finalEditPrompt,
-            "n": nImagesEdit,
+            "prompt": prompt.strip(),  # IMPORTANTE: Usar prompt.strip() e não finalEditPrompt
+            "n": n_images,
             "size": selected_size,
             "quality": selected_quality,
             "user": str(user.id)
         }
 
-        # Passa a lista de tuplas das imagens
+        # Passa a lista de tuplas das imagens (apenas a primeira em caso de múltiplas)
         if image_tuples:
             api_args["image"] = image_tuples[0] if len(image_tuples) == 1 else image_tuples
 
-        # Se tiver máscara, fazer o mesmo para ela
+        # Tratar máscara da mesma forma
         if mask_file:
             if mask_file.size > 25 * 1024 * 1024:
                 return Response({'error': f'Máscara excede o limite de 25MB.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -371,7 +371,7 @@ class EditImageView(APIView):
             print(f"{len(images_b64)} imagem(ns) editada(s) com sucesso.")
 
             if not images_b64:
-                 return Response({'error': 'A API não retornou imagens editadas válidas.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({'error': 'A API não retornou imagens editadas válidas.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             return Response({'images_b64': images_b64}, status=status.HTTP_200_OK)
 
