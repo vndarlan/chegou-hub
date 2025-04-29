@@ -60,7 +60,7 @@ class PrimeCODService:
         except requests.exceptions.RequestException as e:
             print(f"Erro de requisição: {str(e)}")
             raise Exception(f"Erro de conexão: {str(e)}")
-    
+
     @staticmethod
     def fetch_leads(filters=None):
         """
@@ -76,8 +76,15 @@ class PrimeCODService:
         
         if response.status_code != 200:
             raise Exception(f"Erro ao buscar pedidos: {response.status_code}")
-            
-        return response.json()
+        
+        data = response.json()
+        print(f"Estrutura da resposta: {list(data.keys())}")
+        
+        # Verifica se a resposta contém a chave 'PrimeCOD'
+        if 'PrimeCOD' in data:
+            return {'data': data['PrimeCOD']}  # Adapta para o formato esperado
+        
+        return data  # Retorna a resposta original se não encontrar PrimeCOD
     
     @staticmethod
     def sync_products():
@@ -170,6 +177,7 @@ class PrimeCODService:
             leads_data = PrimeCODService.fetch_leads(filters)
             print(f"Resposta da API: {leads_data.keys()}")
             print(f"Total de pedidos recebidos: {len(leads_data.get('data', []))}")
+            
             
             # Processa cada pedido
             for lead in leads_data.get('data', []):
