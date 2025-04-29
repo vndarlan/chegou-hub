@@ -726,21 +726,19 @@ function AgendaPage() {
                                     <Stack gap="md">
                                         <TextInput
                                             label="Nome (Identificação)"
-                                            placeholder="Ex: Marketing: João Silva, RH: Equipe Recrutamento"
+                                            placeholder="Ex: João Silva"
                                             value={novoNome}
                                             onChange={(event) => setNovoNome(event.currentTarget.value)}
                                             required
-                                            description="Use um nome descritivo para identificar facilmente sua agenda"
                                         />
                                         <Textarea
-                                            label="Código de Compartilhamento"
-                                            placeholder="Cole aqui o código fornecido após compartilhar sua agenda com viniciuschegouoperacional@gmail.com"
+                                            label="Código Iframe do Google Calendar"
+                                            placeholder="Cole aqui o código"
                                             value={novoIframeCode}
                                             onChange={(event) => setNovoIframeCode(event.currentTarget.value)}
                                             required
                                             minRows={3}
                                             autosize
-                                            description="Cole o código de confirmação obtido ao compartilhar sua agenda com nossa conta de integração"
                                         />
                                         {/* Área de Notificação */}
                                         {addNotification && (
@@ -859,34 +857,27 @@ function AgendaPage() {
                         <Stack gap="md">
                             <Text>Para que sua agenda apareça no Chegou Hub, você precisa compartilhá-la diretamente pelo Google Calendar com nossa conta de integração.</Text>
                             
-                            <Alert title="Importante" color="blue" icon={<IconInfoCircle size="1.1rem" />} radius="md">
-                                Este é um processo de compartilhamento de agenda, não de incorporação de iframe. Seu calendário será conectado diretamente ao Chegou Hub.
-                            </Alert>
-                            
                             <Title order={5} mt="lg" mb="sm">Siga estes passos simples:</Title>
                             <List type="ordered" spacing="sm">
                                 <List.Item>Acesse o <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer">Google Calendar</a> no seu navegador.</List.Item>
                                 <List.Item>Na barra lateral esquerda, localize a agenda que deseja compartilhar com a equipe.</List.Item>
-                                <List.Item>Passe o mouse sobre a agenda, clique nos três pontinhos (⋮) que aparecem.</List.Item>
-                                <List.Item>Selecione a opção <b>"Compartilhar Agenda"</b>.</List.Item>
-                                <List.Item>Na aba "Compartilhar Agenda" que abrir, adicione o email <Code>viniciuschegouoperacional@gmail.com</Code></List.Item>
-                                <List.Item>Defina as permissões adequadas (recomendamos "Ver todos os detalhes do evento").</List.Item>
-                                <List.Item>Clique em "Enviar" para finalizar o compartilhamento.</List.Item>
-                                <List.Item>O Google fornecerá um código de confirmação - copie este código.</List.Item>
+                                <List.Item>Passe o mouse sobre o nome da agenda e clique nos três pontinhos (⋮) que aparecem ao lado.</List.Item>
+                                <List.Item>Selecione a opção <b>"Configurações e compartilhamento"</b>.</List.Item>
+                                <List.Item>Role a página até a seção "Compartilhado com pessoas e grupos" e clique em "Adicionar pessoas e grupos".</List.Item>
+                                <List.Item>Adicione o e-mail: <Code>viniciuschegouoperacional@gmail.com.</Code></List.Item>
+                                <List.Item>Em permissões, selecione <b>"Ver todos os detalhes do evento"</b>.</List.Item>
+                                <List.Item>Clique em <b>"Enviar"</b> para concluir o compartilhamento.</List.Item>
+                                <List.Item>Role um pouco mais a página até encontrar a seção <b>"Incorporar código"</b> e copie o código exibido.</List.Item>
                             </List>
                             
                             <Title order={5} mt="lg" mb="sm">Adicionando no Chegou Hub:</Title>
                             <List type="ordered" spacing="sm">
                                 <List.Item>Vá para a aba "Gerenciar" aqui nesta página.</List.Item>
                                 <List.Item>No formulário, digite seu nome no campo <b>"Nome (Identificação)"</b> para que os outros membros possam identificar de quem é a agenda.</List.Item>
-                                <List.Item>Cole o código de confirmação no campo apropriado.</List.Item>
+                                <List.Item>Cole o código Iframe do Google Calendar.</List.Item>
                                 <List.Item>Clique em <b>"Adicionar Calendário"</b>.</List.Item>
                             </List>
-                            
-                            <Alert title="Dica de organização" color="green" icon={<IconInfoCircle size="1.1rem" />} mt="lg">
-                                Para melhor organização, inclua seu departamento ou equipe no nome da agenda (ex: "Marketing: João Silva", "TI: Maria Oliveira").
-                            </Alert>
-                            
+                                                        
                             <Text mt="md">Uma vez adicionada, sua agenda estará disponível na aba "Visualizar" e poderá ser vista pelos outros membros da equipe.</Text>
                         </Stack>
                     </Paper>
