@@ -113,7 +113,7 @@ function AgendaPage() {
 
     // --- Funções da API ---
 
-    // Buscar calendários
+    // Buscar calendários - CORRIGIDO: removido visibleCalendars das dependências
     const fetchCalendars = useCallback(async (selectFirst = true) => {
         setIsLoadingCalendars(true);
         setFetchError(null);
@@ -124,15 +124,6 @@ function AgendaPage() {
             
             const calendarData = response.data;
             setCalendarios(calendarData);
-
-            // Inicializar estados de visibilidade para novos calendários
-            const newVisibleCalendars = {...visibleCalendars};
-            calendarData.forEach(cal => {
-                if (newVisibleCalendars[cal.id] === undefined) {
-                    newVisibleCalendars[cal.id] = true;
-                }
-            });
-            setVisibleCalendars(newVisibleCalendars);
 
             // Define seleção inicial baseado no ID do banco se selectFirst for true
             if (selectFirst) {
@@ -158,12 +149,28 @@ function AgendaPage() {
         } finally {
             setIsLoadingCalendars(false);
         }
-    }, [viewAll, selectedDbId, visibleCalendars]);
+    }, [viewAll, selectedDbId]); // IMPORTANTE: Removido visibleCalendars das dependências para evitar loop infinito
 
     // Busca inicial
     useEffect(() => {
         fetchCalendars(true);
     }, [fetchCalendars]);
+    
+    // NOVO: Efeito separado para gerenciar visibilidade dos calendários
+    useEffect(() => {
+        // Inicializar estados de visibilidade para novos calendários
+        if (calendarios.length > 0) {
+            setVisibleCalendars(prev => {
+                const newVisibleCalendars = {...prev};
+                calendarios.forEach(cal => {
+                    if (newVisibleCalendars[cal.id] === undefined) {
+                        newVisibleCalendars[cal.id] = true;
+                    }
+                });
+                return newVisibleCalendars;
+            });
+        }
+    }, [calendarios]); // Este efeito depende apenas de calendarios
 
     // Opções para o Select (usando ID do banco como valor)
     const selectOptions = useMemo(() => calendarios.map(cal => ({
@@ -791,7 +798,7 @@ function AgendaPage() {
                                                                     <Group spacing="xs" mt={4}>
                                                                         <IconLink size={12} color={isUrlValid ? "green" : "red"} />
                                                                         <Text c="dimmed" size="xs" truncate style={{ maxWidth: '180px' }}>
-                                                                            {extractSrcFromIframe(cal.iframe_code)?.substring(0,30) || '[inválido]'}...
+                                                                            {extractSrcFromIframe(cal.iframe_code)?.substring(0,35) || '[URL inválida]'}...
                                                                         </Text>
                                                                     </Group>
                                                                 </Box>
