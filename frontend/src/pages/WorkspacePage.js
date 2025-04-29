@@ -35,6 +35,7 @@ import MapaPage from './MapaPage';
 import AgendaPage from './AgendaPage';
 import GerarImagemPage from './GerarImagemPage'; // Import da página existente
 import ProjetosIAPage from './ProjetosIAPage';
+import PrimeCODPage from './PrimeCODPage';
 
 // Componente Placeholder
 const PlaceholderPage = ({ pageTitle }) => (
@@ -226,7 +227,7 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     {/* Métricas de Fornecedores */}
                     <Route path="fornecedores/visao-geral" element={<PlaceholderPage pageTitle="Métricas de Fornecedores - Visão Geral" />} />
                     <Route path="fornecedores/dropi" element={<PlaceholderPage pageTitle="Métricas de Fornecedores - Dropi" />} />
-                    <Route path="fornecedores/prime-cod" element={<PlaceholderPage pageTitle="Métricas de Fornecedores - Prime COD" />} />
+                    <Route path="fornecedores/prime-cod" element={<PrimeCODPage />} />
                     <Route path="fornecedores/shopify" element={<PlaceholderPage pageTitle="Métricas de Fornecedores - Shopify" />} />
 
                     {/* Métricas de Anúncios */}

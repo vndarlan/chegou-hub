@@ -15,11 +15,21 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from openai import OpenAI
 from django.http import JsonResponse
-from .models import ManagedCalendar, AIProject, ImageStyle
+from .models import ManagedCalendar, AIProject, ImageStyle, PrimeCODProduct, PrimeCODOrder, PrimeCODApiConfig
 from .serializers import ManagedCalendarSerializer # Mantido (ImageStyleSerializer removido)
-from .models import AIProject # Importe o novo modelo
-from .serializers import ManagedCalendarSerializer, AIProjectSerializer, ImageStyleSerializer
-# --- Views de Autenticação e Estado (sem mudanças, apenas colapsadas para clareza) ---
+from .serializers import (
+    ManagedCalendarSerializer, 
+    AIProjectSerializer, 
+    ImageStyleSerializer, 
+    PrimeCODProductSerializer,
+    PrimeCODOrderSerializer,
+    PrimeCODMetricsSerializer
+)
+import requests
+from datetime import datetime
+from django.db.models import Count, Sum, F, Case, When, Value, IntegerField
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 class ImageStyleViewSet(viewsets.ModelViewSet):
     """
@@ -439,3 +449,130 @@ class AIProjectViewSet(viewsets.ModelViewSet):
         Associa o usuário logado como o 'creator' ao criar um novo projeto via API.
         """
         serializer.save(creator=self.request.user)
+
+class PrimeCODViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint para dados da Prime COD.
+    """
+    queryset = PrimeCODProduct.objects.all()
+    serializer_class = PrimeCODProductSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    @action(detail=False, methods=['get'])
+    def metrics(self, request):
+        """
+        Retorna métricas de produtos da Prime COD com filtros por país e data.
+        """
+        country = request.query_params.get('country', None)
+        start_date = request.query_params.get('start_date', None)
+        end_date = request.query_params.get('end_date', None)
+        
+        # Filtrar pedidos
+        orders = PrimeCODOrder.objects.all()
+        
+        if country:
+            orders = orders.filter(country_code=country)
+        
+        if start_date:
+            try:
+                start_date = datetime.strptime(start_date, '%Y-%m-%d')
+                orders = orders.filter(order_date__gte=start_date)
+            except ValueError:
+                return Response({"error": "Formato de data inicial inválido"}, status=400)
+        
+        if end_date:
+            try:
+                end_date = datetime.strptime(end_date, '%Y-%m-%d')
+                orders = orders.filter(order_date__lte=end_date)
+            except ValueError:
+                return Response({"error": "Formato de data final inválido"}, status=400)
+        
+        # Agrupar por produto
+        metrics = []
+        products = PrimeCODProduct.objects.filter(
+            id__in=orders.values_list('product', flat=True).distinct()
+        )
+        
+        for product in products:
+            product_orders = orders.filter(product=product)
+            
+            pedidos = product_orders.count()
+            pedidos_enviados = product_orders.filter(status='shipped').count()
+            pedidos_entregues = product_orders.filter(status='delivered').count()
+            em_transito = product_orders.filter(status='shipped').count()
+            recusados = product_orders.filter(status__in=['wrong', 'no_answer']).count()
+            devolvidos = product_orders.filter(status='returned').count()
+            outros_status = product_orders.exclude(
+                status__in=['shipped', 'delivered', 'wrong', 'no_answer', 'returned']
+            ).count()
+            
+            # Cálculo da efetividade (Pedidos Entregues ÷ Pedidos Totais)
+            efetividade = (pedidos_entregues / pedidos * 100) if pedidos > 0 else 0
+            
+            # Receita Líquida
+            receita_liquida = product_orders.filter(
+                status='delivered'
+            ).aggregate(total=Sum('total_price'))['total'] or 0
+            
+            metrics.append({
+                'product': product.name,
+                'pedidos': pedidos,
+                'pedidos_enviados': pedidos_enviados,
+                'pedidos_entregues': pedidos_entregues,
+                'efetividade': round(efetividade, 2),
+                'em_transito': em_transito,
+                'recusados': recusados,
+                'devolvidos': devolvidos,
+                'outros_status': outros_status,
+                'receita_liquida': receita_liquida
+            })
+        
+        # Adicionar linha de total
+        if metrics:
+            total = {
+                'product': 'TOTAL',
+                'pedidos': sum(m['pedidos'] for m in metrics),
+                'pedidos_enviados': sum(m['pedidos_enviados'] for m in metrics),
+                'pedidos_entregues': sum(m['pedidos_entregues'] for m in metrics),
+                'efetividade': round(sum(m['pedidos_entregues'] for m in metrics) / 
+                               sum(m['pedidos'] for m in metrics) * 100, 2) 
+                               if sum(m['pedidos'] for m in metrics) > 0 else 0,
+                'em_transito': sum(m['em_transito'] for m in metrics),
+                'recusados': sum(m['recusados'] for m in metrics),
+                'devolvidos': sum(m['devolvidos'] for m in metrics),
+                'outros_status': sum(m['outros_status'] for m in metrics),
+                'receita_liquida': sum(m['receita_liquida'] for m in metrics)
+            }
+            metrics.append(total)
+        
+        return Response(metrics)
+    
+@action(detail=False, methods=['get'])
+def sync_data(self, request):
+    """
+    Sincroniza dados da API Prime COD.
+    """
+    try:
+        from .services.primecod_service import PrimeCODService
+        
+        # Sincronizar produtos
+        PrimeCODService.sync_products()
+        
+        # Obter datas do filtro, se fornecidas
+        start_date = request.query_params.get('start_date', None)
+        end_date = request.query_params.get('end_date', None)
+        
+        if start_date and end_date:
+            try:
+                start_date = datetime.strptime(start_date, '%Y-%m-%d')
+                end_date = datetime.strptime(end_date, '%Y-%m-%d')
+            except ValueError:
+                return Response({"error": "Formato de data inválido"}, status=400)
+        
+        # Sincronizar pedidos
+        PrimeCODService.sync_orders(start_date, end_date)
+        
+        return Response({"message": "Dados sincronizados com sucesso"})
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)

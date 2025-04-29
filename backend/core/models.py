@@ -140,3 +140,63 @@ class ImageStyle(models.Model):
 
     def __str__(self):
         return self.name
+
+class PrimeCODProduct(models.Model):
+    """Modelo para armazenar informações de produtos da Prime COD."""
+    sku = models.CharField(max_length=100, unique=True, verbose_name="SKU do Produto")
+    name = models.CharField(max_length=255, verbose_name="Nome do Produto") 
+    country_code = models.CharField(max_length=2, verbose_name="Código do País")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Produto Prime COD"
+        verbose_name_plural = "Produtos Prime COD"
+        unique_together = ('sku', 'country_code')
+
+    def __str__(self):
+        return f"{self.name} ({self.sku}) - {self.country_code}"
+
+class PrimeCODOrder(models.Model):
+    """Modelo para armazenar pedidos da Prime COD."""
+    STATUS_CHOICES = [
+        ('new', 'Novo'),
+        ('pending', 'Pendente'),
+        ('shipped', 'Enviado'),
+        ('delivered', 'Entregue'),
+        ('returned', 'Devolvido'),
+        ('wrong', 'Incorreto'),
+        ('no_answer', 'Sem Resposta'),
+        ('packed', 'Embalado'),
+        ('confirmed', 'Confirmado'),
+        ('duplicate', 'Duplicado'),
+    ]
+    
+    reference = models.CharField(max_length=100, unique=True, verbose_name="Referência")
+    product = models.ForeignKey(PrimeCODProduct, on_delete=models.CASCADE, related_name='orders')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    country_code = models.CharField(max_length=2)
+    order_date = models.DateTimeField()
+    shipping_fees = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    class Meta:
+        verbose_name = "Pedido Prime COD"
+        verbose_name_plural = "Pedidos Prime COD"
+        
+    def __str__(self):
+        return f"Pedido {self.reference} - {self.product.name} ({self.status})"
+
+class PrimeCODApiConfig(models.Model):
+    """Configurações da API Prime COD."""
+    api_key = models.CharField(max_length=255, verbose_name="Token da API")
+    base_url = models.URLField(default="https://api.primecod.app/api", verbose_name="URL Base")
+    is_active = models.BooleanField(default=True)
+    last_sync = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Configuração da API Prime COD"
+        verbose_name_plural = "Configurações da API Prime COD"
+        
+    def __str__(self):
+        return f"Configuração Prime COD ({self.is_active})"

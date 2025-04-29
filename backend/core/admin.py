@@ -2,7 +2,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User, Group
-from .models import AIProject, ManagedCalendar, ImageStyle
+from .models import AIProject, ManagedCalendar, ImageStyle, PrimeCODProduct, PrimeCODOrder, PrimeCODApiConfig
 
 # Importar o novo modelo
 from .models import ManagedCalendar
@@ -84,3 +84,21 @@ class ImageStyleAdmin(admin.ModelAdmin):
         if not obj.pk: # Apenas na criação
              obj.creator = request.user
         super().save_model(request, obj, form, change)
+
+@admin.register(PrimeCODProduct)
+class PrimeCODProductAdmin(admin.ModelAdmin):
+    list_display = ('name', 'sku', 'country_code', 'created_at')
+    search_fields = ('name', 'sku')
+    list_filter = ('country_code',)
+
+@admin.register(PrimeCODOrder)
+class PrimeCODOrderAdmin(admin.ModelAdmin):
+    list_display = ('reference', 'product', 'status', 'country_code', 'order_date', 'total_price')
+    search_fields = ('reference', 'product__name', 'product__sku')
+    list_filter = ('status', 'country_code', 'order_date')
+    date_hierarchy = 'order_date'
+
+@admin.register(PrimeCODApiConfig)
+class PrimeCODApiConfigAdmin(admin.ModelAdmin):
+    list_display = ('base_url', 'is_active', 'last_sync')
+    list_filter = ('is_active',)

@@ -11,16 +11,18 @@ from core.views import (
     GenerateImageView,
     EditImageView,
     ImageStyleViewSet,
-    ManagedCalendarViewSet, # Mantido
+    ManagedCalendarViewSet, 
     EnsureCSRFView,
-    AIProjectViewSet
+    AIProjectViewSet,
+    PrimeCODViewSet
 )
 
 # Configuração do Router para APIs
 router = DefaultRouter()
-router.register(r'styles', ImageStyleViewSet, basename='imagestyle') # <<< ADICIONAR ESTA LINHA
+router.register(r'styles', ImageStyleViewSet, basename='imagestyle') 
 router.register(r'calendars', ManagedCalendarViewSet, basename='managedcalendar')
 router.register(r'aiprojects', AIProjectViewSet, basename='aiproject')
+router.register(r'prime-cod', PrimeCODViewSet, basename='prime-cod')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

@@ -1,7 +1,6 @@
 # backend/core/serializers.py
 from rest_framework import serializers
-# Importar TODOS os modelos necessários PRIMEIRO e no TOPO do arquivo
-from .models import ManagedCalendar, AIProject, ImageStyle
+from .models import ManagedCalendar, AIProject, ImageStyle, PrimeCODProduct, PrimeCODOrder, PrimeCODApiConfig
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -93,3 +92,28 @@ class AIProjectSerializer(serializers.ModelSerializer):
                 'finalization_date': 'A data de finalização não pode ser anterior à data de criação.'
             })
         return data
+    
+class PrimeCODProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PrimeCODProduct
+        fields = ['id', 'sku', 'name', 'country_code', 'created_at', 'updated_at']
+        
+class PrimeCODOrderSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    
+    class Meta:
+        model = PrimeCODOrder
+        fields = ['id', 'reference', 'product', 'product_name', 'status', 
+                 'country_code', 'order_date', 'shipping_fees', 'total_price']
+
+class PrimeCODMetricsSerializer(serializers.Serializer):
+    product = serializers.CharField()
+    pedidos = serializers.IntegerField()
+    pedidos_enviados = serializers.IntegerField()
+    pedidos_entregues = serializers.IntegerField()
+    efetividade = serializers.FloatField()
+    em_transito = serializers.IntegerField()
+    recusados = serializers.IntegerField()
+    devolvidos = serializers.IntegerField()
+    outros_status = serializers.IntegerField()
+    receita_liquida = serializers.DecimalField(max_digits=12, decimal_places=2)
