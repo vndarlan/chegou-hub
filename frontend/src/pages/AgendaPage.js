@@ -722,26 +722,25 @@ function AgendaPage() {
                             {/* Coluna Esquerda: Adicionar */}
                             <Grid.Col span={{ base: 12, md: 7 }}>
                                 <Paper shadow="xs" p="lg" withBorder>
-                                    <Title order={4} mb="lg">Adicionar Novo Calendário (via Iframe)</Title>
+                                    <Title order={4} mb="lg">Adicionar Sua Agenda ao Chegou Hub</Title>
                                     <Stack gap="md">
                                         <TextInput
                                             label="Nome (Identificação)"
-                                            placeholder="Ex: Marketing, Feriados Nacionais"
+                                            placeholder="Ex: Marketing: João Silva, RH: Equipe Recrutamento"
                                             value={novoNome}
                                             onChange={(event) => setNovoNome(event.currentTarget.value)}
                                             required
-                                            description="Use um nome descritivo para identificar facilmente este calendário"
+                                            description="Use um nome descritivo para identificar facilmente sua agenda"
                                         />
                                         <Textarea
-                                            label="Código Iframe do Google Calendar"
-                                            placeholder='Cole o código <iframe src="..."></iframe> aqui'
+                                            label="Código de Compartilhamento"
+                                            placeholder="Cole aqui o código fornecido após compartilhar sua agenda com viniciuschegouoperacional@gmail.com"
                                             value={novoIframeCode}
                                             onChange={(event) => setNovoIframeCode(event.currentTarget.value)}
                                             required
-                                            minRows={4}
+                                            minRows={3}
                                             autosize
-                                            description="Cole o código iframe completo do Google Calendar (instruções na aba 'Instruções')"
-                                            error={novoIframeCode && !checkIframeUrl(novoIframeCode) ? "O código não parece conter um URL válido" : null}
+                                            description="Cole o código de confirmação obtido ao compartilhar sua agenda com nossa conta de integração"
                                         />
                                         {/* Área de Notificação */}
                                         {addNotification && (
@@ -779,7 +778,7 @@ function AgendaPage() {
                                             leftIcon={<IconCalendar size={16} />}
                                             disabled={!novoNome || !novoIframeCode}
                                         >
-                                            Adicionar Calendário
+                                            Conectar Minha Agenda
                                         </Button>
                                     </Stack>
                                 </Paper>
@@ -853,35 +852,42 @@ function AgendaPage() {
                     )}
                 </Tabs.Panel>
 
-                {/* --- Painel Aba Instruções (Mantido com pequenas melhorias) --- */}
+                {/* --- Painel Aba Instruções (Atualizado com o processo correto) --- */}
                 <Tabs.Panel value="instrucoes" pt="lg">
                     <Paper shadow="xs" p="lg" withBorder>
-                        <Title order={4} mb="lg">Como Adicionar um Calendário Google (via Iframe)</Title>
+                        <Title order={4} mb="lg">Como Compartilhar sua Agenda no Chegou Hub</Title>
                         <Stack gap="md">
-                            <Text>Para que um Google Calendar possa ser visualizado aqui, ele precisa ter as permissões de acesso corretas definidas por você no Google.</Text>
-                            <Alert title="Permissões de Acesso" color="yellow" icon={<IconAlertCircle size="1.1rem" />} radius="md">
-                                O conteúdo exibido dependerá das permissões que você definiu para o calendário no Google (Público, Compartilhado, etc.). Certifique-se de que as permissões permitem a visualização desejada.
+                            <Text>Para que sua agenda apareça no Chegou Hub, você precisa compartilhá-la diretamente pelo Google Calendar com nossa conta de integração.</Text>
+                            
+                            <Alert title="Importante" color="blue" icon={<IconInfoCircle size="1.1rem" />} radius="md">
+                                Este é um processo de compartilhamento de agenda, não de incorporação de iframe. Seu calendário será conectado diretamente ao Chegou Hub.
                             </Alert>
-                            <Title order={5} mt="lg" mb="sm">Passos para Obter o Código Iframe:</Title>
+                            
+                            <Title order={5} mt="lg" mb="sm">Siga estes passos simples:</Title>
                             <List type="ordered" spacing="sm">
                                 <List.Item>Acesse o <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer">Google Calendar</a> no seu navegador.</List.Item>
-                                <List.Item>Na barra lateral esquerda, encontre o calendário desejado.</List.Item>
-                                <List.Item>Passe o mouse sobre ele, clique nos três pontos (⋮) e escolha "Configurações e compartilhamento".</List.Item>
-                                <List.Item>Role a página até a seção <b>Integrar agenda</b>.</List.Item>
-                                <List.Item>Localize a caixa de texto com o título <b>Incorporar agenda</b>. Ela conterá um código começando com <Code>{'<iframe src=...'}</Code>.</List.Item>
-                                <List.Item>Clique dentro dessa caixa e copie <b>todo o código HTML</b> presente nela (Ctrl+C ou Cmd+C).</List.Item>
+                                <List.Item>Na barra lateral esquerda, localize a agenda que deseja compartilhar com a equipe.</List.Item>
+                                <List.Item>Passe o mouse sobre a agenda, clique nos três pontinhos (⋮) que aparecem.</List.Item>
+                                <List.Item>Selecione a opção <b>"Compartilhar Agenda"</b>.</List.Item>
+                                <List.Item>Na aba "Compartilhar Agenda" que abrir, adicione o email <Code>viniciuschegouoperacional@gmail.com</Code></List.Item>
+                                <List.Item>Defina as permissões adequadas (recomendamos "Ver todos os detalhes do evento").</List.Item>
+                                <List.Item>Clique em "Enviar" para finalizar o compartilhamento.</List.Item>
+                                <List.Item>O Google fornecerá um código de confirmação - copie este código.</List.Item>
                             </List>
+                            
                             <Title order={5} mt="lg" mb="sm">Adicionando no Chegou Hub:</Title>
                             <List type="ordered" spacing="sm">
                                 <List.Item>Vá para a aba "Gerenciar" aqui nesta página.</List.Item>
-                                <List.Item>No formulário, cole o código HTML completo que você copiou no campo <b>Código Iframe do Google Calendar</b>.</List.Item>
-                                <List.Item>Digite um nome fácil de identificar no campo <b>Nome (Identificação)</b>.</List.Item>
-                                <List.Item>Clique no botão <b>Adicionar Calendário</b>.</List.Item>
+                                <List.Item>No formulário, digite seu nome no campo <b>"Nome (Identificação)"</b> para que os outros membros possam identificar de quem é a agenda.</List.Item>
+                                <List.Item>Cole o código de confirmação no campo apropriado.</List.Item>
+                                <List.Item>Clique em <b>"Adicionar Calendário"</b>.</List.Item>
                             </List>
-                            <Alert title="Dica" color="cyan" icon={<IconInfoCircle size="1.1rem" />} mt="lg">
-                                Para melhor organização, considere incluir o nome do departamento ou equipe no nome do calendário (ex: "Marketing: Campanhas", "TI: Manutenções").
+                            
+                            <Alert title="Dica de organização" color="green" icon={<IconInfoCircle size="1.1rem" />} mt="lg">
+                                Para melhor organização, inclua seu departamento ou equipe no nome da agenda (ex: "Marketing: João Silva", "TI: Maria Oliveira").
                             </Alert>
-                            <Text mt="md">O calendário deverá aparecer na lista e poderá ser selecionado na aba "Visualizar".</Text>
+                            
+                            <Text mt="md">Uma vez adicionada, sua agenda estará disponível na aba "Visualizar" e poderá ser vista pelos outros membros da equipe.</Text>
                         </Stack>
                     </Paper>
                 </Tabs.Panel>
