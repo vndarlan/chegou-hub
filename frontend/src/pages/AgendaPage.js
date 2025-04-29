@@ -92,6 +92,7 @@ function AgendaPage() {
     const [isLoadingCalendars, setIsLoadingCalendars] = useState(true);
     const [fetchError, setFetchError] = useState(null);
     const [iframeLoaded, setIframeLoaded] = useState(false);
+    const [selectOptions, setSelectOptions] = useState([]); // Novo estado para as opções do select
 
     // Estados para o formulário de adição
     const [novoNome, setNovoNome] = useState('');
@@ -172,18 +173,22 @@ function AgendaPage() {
         }
     }, [calendarios]); // Este efeito depende apenas de calendarios
 
-    // Opções para o Select (usando ID do banco como valor)
-    const selectOptions = useMemo(() => {
-        // Verificar se calendarios existe e é um array antes de chamar map
-        if (!Array.isArray(calendarios)) {
-            return []; // Retorna array vazio se calendarios não for um array
+    // Atualiza as opções do select quando os calendários mudam
+    useEffect(() => {
+        if (Array.isArray(calendarios) && calendarios.length > 0) {
+            try {
+                const options = calendarios.map(cal => ({
+                    value: cal.id.toString(),
+                    label: cal.name || "Calendário sem nome",
+                }));
+                setSelectOptions(options);
+            } catch (error) {
+                console.error("Erro ao processar opções do select:", error);
+                setSelectOptions([]);
+            }
+        } else {
+            setSelectOptions([]);
         }
-        
-        return calendarios.map(cal => ({
-            value: cal.id.toString(),
-            label: cal.name,
-            group: cal.name && cal.name.includes(':') ? cal.name.split(':')[0] : 'Calendários'
-        }));
     }, [calendarios]);
 
     // --- Lógica de Geração da URL do Iframe (melhorada) ---
@@ -555,7 +560,7 @@ function AgendaPage() {
                                                 <Select
                                                     label="Selecione um calendário para visualizar:"
                                                     placeholder="Escolha um calendário"
-                                                    data={selectOptions || []} // Garante que nunca seja undefined
+                                                    data={selectOptions}
                                                     value={selectedDbId ? selectedDbId.toString() : null}
                                                     onChange={(value) => setSelectedDbId(value ? parseInt(value, 10) : null)}
                                                     disabled={viewAll}
