@@ -173,11 +173,18 @@ function AgendaPage() {
     }, [calendarios]); // Este efeito depende apenas de calendarios
 
     // Opções para o Select (usando ID do banco como valor)
-    const selectOptions = useMemo(() => calendarios.map(cal => ({
-        value: cal.id.toString(),
-        label: cal.name,
-        group: cal.name.includes(':') ? cal.name.split(':')[0] : 'Calendários'
-    })), [calendarios]);
+    const selectOptions = useMemo(() => {
+        // Verificar se calendarios existe e é um array antes de chamar map
+        if (!Array.isArray(calendarios)) {
+            return []; // Retorna array vazio se calendarios não for um array
+        }
+        
+        return calendarios.map(cal => ({
+            value: cal.id.toString(),
+            label: cal.name,
+            group: cal.name && cal.name.includes(':') ? cal.name.split(':')[0] : 'Calendários'
+        }));
+    }, [calendarios]);
 
     // --- Lógica de Geração da URL do Iframe (melhorada) ---
     const iframeSrc = useMemo(() => {
@@ -438,8 +445,12 @@ function AgendaPage() {
 
     // --- Componente para Calendar Card (na visualização de todos) ---
     const CalendarCard = ({ calendar }) => {
-        const isVisible = visibleCalendars[calendar.id];
-        const calColor = generateCalendarColor(calendar.name);
+        if (!calendar || typeof calendar !== 'object') {
+            return null; // Não renderiza nada se o calendário não for válido
+        }
+        
+        const isVisible = calendar.id !== undefined ? visibleCalendars[calendar.id] : false;
+        const calColor = generateCalendarColor(calendar.name || '');
         
         return (
             <Paper withBorder p="xs" radius="md" shadow="sm">
@@ -447,7 +458,7 @@ function AgendaPage() {
                     <Group spacing="xs">
                         <ColorSwatch color={`var(--mantine-color-${calColor}-6)`} size={16} />
                         <Text weight={500} size="sm" lineClamp={1}>
-                            {calendar.name}
+                            {calendar.name || 'Calendário sem nome'}
                         </Text>
                     </Group>
                     <Group spacing={8}>
@@ -544,7 +555,7 @@ function AgendaPage() {
                                                 <Select
                                                     label="Selecione um calendário para visualizar:"
                                                     placeholder="Escolha um calendário"
-                                                    data={selectOptions}
+                                                    data={selectOptions || []} // Garante que nunca seja undefined
                                                     value={selectedDbId ? selectedDbId.toString() : null}
                                                     onChange={(value) => setSelectedDbId(value ? parseInt(value, 10) : null)}
                                                     disabled={viewAll}
