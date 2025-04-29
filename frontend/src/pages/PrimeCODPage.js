@@ -1,5 +1,5 @@
 // frontend/src/pages/PrimeCODPage.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { 
   Container, 
@@ -52,14 +52,15 @@ const PrimeCODPage = () => {
   const [metrics, setMetrics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Atualizado para usar apenas os países suportados
   const [countries] = useState(['es', 'it', 'ro', 'pl']);
   const [selectedCountry, setSelectedCountry] = useState('es');
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   
-  // Função para carregar os dados
-  const loadData = async () => {
+  // Função para carregar os dados com useCallback
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -70,6 +71,7 @@ const PrimeCODPage = () => {
       if (endDate) params.end_date = format(endDate, 'yyyy-MM-dd');
       
       const response = await axios.get('/prime-cod/metrics/', { params });
+      console.log('Data received from API:', response.data); // Debug: log data received
       setMetrics(response.data);
     } catch (err) {
       console.error('Erro ao carregar dados do Prime COD:', err);
@@ -78,18 +80,19 @@ const PrimeCODPage = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [selectedCountry, startDate, endDate]);
 
   // Carregar dados iniciais
   useEffect(() => {
     loadData();
-  }, [selectedCountry]);
+  }, [loadData]);
   
   // Função para sincronizar dados com a API
   const handleSyncData = async () => {
     try {
       setRefreshing(true);
-      await axios.get('/prime-cod/sync_data/');
+      const syncResponse = await axios.get('/prime-cod/sync_data/');
+      console.log('Sync response:', syncResponse.data); // Debug: log sync response
       await loadData(); // Recarregar dados após sincronização
     } catch (err) {
       console.error('Erro ao sincronizar dados:', err);
@@ -175,6 +178,11 @@ const PrimeCODPage = () => {
             <Box style={{ display: 'flex', justifyContent: 'center', padding: '50px 0' }}>
               <Loader size="lg" />
             </Box>
+          ) : metrics.length === 0 ? (
+            <Alert icon={<IconAlertCircle size={16} />} title="Sem dados" color="blue" mb="md">
+              Não foram encontrados dados para os filtros selecionados. 
+              Tente sincronizar ou mudar os filtros.
+            </Alert>
           ) : (
             <>
               <Title order={4} mb="md">Tabela de Métricas por Produto</Title>
