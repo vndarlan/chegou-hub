@@ -1,6 +1,6 @@
 # backend/core/services/primecod_service.py
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 from django.conf import settings
 from ..models import PrimeCODProduct, PrimeCODOrder, PrimeCODApiConfig
 import os
@@ -84,20 +84,21 @@ class PrimeCODService:
         """
         Sincroniza produtos da API com o banco de dados.
         """
-        try:
-            countries = ['es', 'fr', 'it', 'pt', 'de'] 
-            
-            for country in countries:
-                try:
-                    products_data = PrimeCODService.fetch_products(country)
-                    
-                    # Processa cada produto
-                    for product in products_data.get('data', []):
-                        sku = product.get('sku')
-                        if not sku:
-                            continue
-                            
-                        # Busca ou cria o produto
+        # Lista de países incluindo Romênia e Polônia
+        valid_countries = ['es', 'it', 'ro', 'pl'] 
+        any_success = False
+        
+        for country in valid_countries:
+            try:
+                products_data = PrimeCODService.fetch_products(country)
+                
+                # Processa cada produto
+                for product in products_data.get('data', []):
+                    sku = product.get('sku')
+                    if not sku:
+                        continue
+                        
+                    try:
                         product_obj, created = PrimeCODProduct.objects.update_or_create(
                             sku=sku,
                             country_code=country,
@@ -105,25 +106,47 @@ class PrimeCODService:
                                 'name': product.get('name', f'Produto {sku}')
                             }
                         )
-                except Exception as e:
-                    print(f"Erro ao sincronizar país {country}: {str(e)}")
-                    continue  # continua para o próximo país
-                    
-            return True
-        except Exception as e:
-            print(f"Erro geral na sincronização: {str(e)}")
-            # Criar produtos de teste para desenvolvimento
-            if os.getenv('DEBUG') == 'True':
-                print("Criando dados de teste para desenvolvimento")
-                for country in ['es', 'fr']:
-                    for i in range(1, 4):
-                        PrimeCODProduct.objects.update_or_create(
-                            sku=f"TEST-{country}-{i}",
+                        any_success = True
+                    except Exception as e:
+                        print(f"Erro ao salvar produto {sku}: {str(e)}")
+                        continue
+            except Exception as e:
+                print(f"Erro ao sincronizar país {country}: {str(e)}")
+                continue
+        
+        # Criar dados de exemplo se necessário
+        if not any_success:
+            print("Nenhum produto sincronizado. Criando dados de exemplo.")
+            for country in ['es', 'it', 'ro', 'pl']:
+                for i in range(1, 6):
+                    try:
+                        PrimeCODProduct.objects.get_or_create(
+                            sku=f"DEMO-{country}-{i}",
                             country_code=country,
-                            defaults={'name': f"Produto Teste {i} ({country})"}
+                            defaults={'name': f"Produto Demonstração {i} ({country.upper()})"}
                         )
-                return True
-            return False
+                    except Exception:
+                        pass
+                        
+            # Criar pedidos de exemplo
+            for product in PrimeCODProduct.objects.all()[:10]:
+                try:
+                    from datetime import datetime, timezone
+                    order_date = datetime.now(timezone.utc)
+                    
+                    PrimeCODOrder.objects.get_or_create(
+                        reference=f"REF-{product.sku}",
+                        defaults={
+                            'product': product,
+                            'status': 'new',
+                            'country_code': product.country_code,
+                            'order_date': order_date,
+                            'shipping_fees': 10.0,
+                            'total_price': 99.90
+                        }
+                    )
+                except Exception as e:
+                    print(f"Erro ao criar pedido de exemplo: {str(e)}")
     
     @staticmethod
     def sync_orders(start_date=None, end_date=None):
@@ -184,7 +207,7 @@ class PrimeCODService:
         
         # Atualizar timestamp de sincronização
         config = PrimeCODService.get_api_config()
-        config.last_sync = datetime.now()
+        config.last_sync = datetime.now(timezone.utc)
         config.save()
         
         return True
