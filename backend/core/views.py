@@ -547,32 +547,32 @@ class PrimeCODViewSet(viewsets.ModelViewSet):
         
         return Response(metrics)
     
-@action(detail=False, methods=['get'])
-def sync_data(self, request):
-    """
-    Sincroniza dados da API Prime COD.
-    """
-    try:
-        from .services.primecod_service import PrimeCODService
-        
-        # Sincronizar produtos
-        PrimeCODService.sync_products()
-        
-        # Obter datas do filtro, se fornecidas
-        start_date = request.query_params.get('start_date', None)
-        end_date = request.query_params.get('end_date', None)
-        
-        if start_date and end_date:
-            try:
-                start_date = datetime.strptime(start_date, '%Y-%m-%d')
-                end_date = datetime.strptime(end_date, '%Y-%m-%d')
-            except ValueError:
-                return Response({"error": "Formato de data inválido"}, status=400)
-        
-        # Sincronizar pedidos
-        PrimeCODService.sync_orders(start_date, end_date)
-        
-        return Response({"message": "Dados sincronizados com sucesso"})
-        
-    except Exception as e:
-        return Response({"error": str(e)}, status=500)
+    @action(detail=False, methods=['get'])
+    def sync_data(self, request):
+        """
+        Sincroniza dados da API Prime COD.
+        """
+        try:
+            from .services.primecod_service import PrimeCODService
+            
+            # Sincronizar produtos
+            PrimeCODService.sync_products()
+            
+            # Obter datas do filtro, se fornecidas
+            start_date = request.query_params.get('start_date', None)
+            end_date = request.query_params.get('end_date', None)
+            
+            if start_date and end_date:
+                try:
+                    start_date = datetime.strptime(start_date, '%Y-%m-%d')
+                    end_date = datetime.strptime(end_date, '%Y-%m-%d')
+                except ValueError:
+                    return Response({"error": "Formato de data inválido"}, status=400)
+            
+            # Sincronizar pedidos
+            PrimeCODService.sync_orders(start_date, end_date)
+            
+            return Response({"message": "Dados sincronizados com sucesso"})
+            
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
