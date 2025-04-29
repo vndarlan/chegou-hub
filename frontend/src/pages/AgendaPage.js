@@ -22,7 +22,6 @@ import {
     Alert,
     LoadingOverlay,
     Modal,
-    Switch,
     ColorSwatch,
     SimpleGrid,
     Badge,
