@@ -464,17 +464,12 @@ class PrimeCODViewSet(viewsets.ModelViewSet):
         start_date = request.query_params.get('start_date', None)
         end_date = request.query_params.get('end_date', None)
         
-        # First get all products for the selected country
-        products = PrimeCODProduct.objects.all()
-        if country:
-            products = products.filter(country_code=country)
-        
-        # Filter orders
+        # Filtrar pedidos primeiro
         orders = PrimeCODOrder.objects.all()
         if country:
             orders = orders.filter(country_code=country)
         
-        # Apply date filters to orders
+        # Aplicar filtros de data
         if start_date or end_date:
             from datetime import datetime, timezone
             
@@ -494,7 +489,11 @@ class PrimeCODViewSet(viewsets.ModelViewSet):
                 except ValueError:
                     return Response({"error": "Formato de data final inválido"}, status=400)
         
-        # Generate metrics
+        # Obter apenas produtos que têm pedidos no período filtrado
+        product_ids = orders.values_list('product', flat=True).distinct()
+        products = PrimeCODProduct.objects.filter(id__in=product_ids)
+        
+        # Gerar métricas
         metrics = []
         for product in products:
             product_orders = orders.filter(product=product)
