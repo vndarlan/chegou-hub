@@ -14,7 +14,6 @@ import {
   Flex,
   Loader,
   Alert,
-  DateInput,
   ActionIcon,
   LoadingOverlay,
   Button
@@ -23,6 +22,7 @@ import { IconRefresh, IconSearch, IconAlertCircle } from '@tabler/icons-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { DateInput } from '@mantine/dates';
 
 // Componente para o status da efetividade com cor baseada no valor
 const EffectivenessStatus = ({ value }) => {
