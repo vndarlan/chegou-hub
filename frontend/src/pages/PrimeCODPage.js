@@ -52,7 +52,7 @@ const PrimeCODPage = () => {
   const [metrics, setMetrics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [countries] = useState(['es', 'fr', 'it', 'pt', 'de']);
+  const [countries] = useState(['es', 'it', 'ro', 'pl']);
   const [selectedCountry, setSelectedCountry] = useState('es');
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
