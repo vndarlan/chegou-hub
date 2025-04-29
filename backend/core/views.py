@@ -460,45 +460,42 @@ class PrimeCODViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def metrics(self, request):
-        """
-        Retorna métricas de produtos da Prime COD com filtros por país e data.
-        """
         country = request.query_params.get('country', None)
         start_date = request.query_params.get('start_date', None)
         end_date = request.query_params.get('end_date', None)
         
-        # Filtrar pedidos
-        orders = PrimeCODOrder.objects.all()
+        # First get all products for the selected country
+        products = PrimeCODProduct.objects.all()
+        if country:
+            products = products.filter(country_code=country)
         
+        # Filter orders
+        orders = PrimeCODOrder.objects.all()
         if country:
             orders = orders.filter(country_code=country)
         
-        if start_date:
-            try:
-                from datetime import datetime, timezone
-                # Convert string date to timezone-aware datetime
-                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
-                start_date_obj = start_date_obj.replace(tzinfo=timezone.utc)
-                orders = orders.filter(order_date__gte=start_date_obj)
-            except ValueError:
-                return Response({"error": "Formato de data inicial inválido"}, status=400)
-
-        if end_date:
-            try:
-                from datetime import datetime, timezone
-                # Convert string date to timezone-aware datetime
-                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
-                end_date_obj = end_date_obj.replace(tzinfo=timezone.utc)
-                orders = orders.filter(order_date__lte=end_date_obj)
-            except ValueError:
-                return Response({"error": "Formato de data final inválido"}, status=400)
+        # Apply date filters to orders
+        if start_date or end_date:
+            from datetime import datetime, timezone
+            
+            if start_date:
+                try:
+                    start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
+                    start_date_obj = start_date_obj.replace(tzinfo=timezone.utc)
+                    orders = orders.filter(order_date__gte=start_date_obj)
+                except ValueError:
+                    return Response({"error": "Formato de data inicial inválido"}, status=400)
+            
+            if end_date:
+                try:
+                    end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
+                    end_date_obj = end_date_obj.replace(tzinfo=timezone.utc)
+                    orders = orders.filter(order_date__lte=end_date_obj)
+                except ValueError:
+                    return Response({"error": "Formato de data final inválido"}, status=400)
         
-        # Agrupar por produto
+        # Generate metrics
         metrics = []
-        products = PrimeCODProduct.objects.filter(
-            id__in=orders.values_list('product', flat=True).distinct()
-        )
-        
         for product in products:
             product_orders = orders.filter(product=product)
             
@@ -512,10 +509,10 @@ class PrimeCODViewSet(viewsets.ModelViewSet):
                 status__in=['shipped', 'delivered', 'wrong', 'no_answer', 'returned']
             ).count()
             
-            # Cálculo da efetividade (Pedidos Entregues ÷ Pedidos Totais)
+            # Calculate effectiveness (avoid division by zero)
             efetividade = (pedidos_entregues / pedidos * 100) if pedidos > 0 else 0
             
-            # Receita Líquida
+            # Revenue
             receita_liquida = product_orders.filter(
                 status='delivered'
             ).aggregate(total=Sum('total_price'))['total'] or 0
@@ -533,7 +530,7 @@ class PrimeCODViewSet(viewsets.ModelViewSet):
                 'receita_liquida': receita_liquida
             })
         
-        # Adicionar linha de total
+        # Add total row if we have metrics
         if metrics:
             total = {
                 'product': 'TOTAL',
@@ -541,8 +538,8 @@ class PrimeCODViewSet(viewsets.ModelViewSet):
                 'pedidos_enviados': sum(m['pedidos_enviados'] for m in metrics),
                 'pedidos_entregues': sum(m['pedidos_entregues'] for m in metrics),
                 'efetividade': round(sum(m['pedidos_entregues'] for m in metrics) / 
-                               sum(m['pedidos'] for m in metrics) * 100, 2) 
-                               if sum(m['pedidos'] for m in metrics) > 0 else 0,
+                            sum(m['pedidos'] for m in metrics) * 100, 2) 
+                            if sum(m['pedidos'] for m in metrics) > 0 else 0,
                 'em_transito': sum(m['em_transito'] for m in metrics),
                 'recusados': sum(m['recusados'] for m in metrics),
                 'devolvidos': sum(m['devolvidos'] for m in metrics),
