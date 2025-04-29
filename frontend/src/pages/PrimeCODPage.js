@@ -49,14 +49,22 @@ const EffectivenessStatus = ({ value }) => {
 };
 
 const PrimeCODPage = () => {
+  // Função para obter datas padrão - últimos 30 dias
+  const getDefaultDates = () => {
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    return { start: thirtyDaysAgo, end: today };
+  };
+
   const [metrics, setMetrics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   // Atualizado para usar apenas os países suportados
   const [countries] = useState(['es', 'it', 'ro', 'pl']);
   const [selectedCountry, setSelectedCountry] = useState('es');
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
+  const [startDate, setStartDate] = useState(getDefaultDates().start);
+  const [endDate, setEndDate] = useState(getDefaultDates().end);
   const [refreshing, setRefreshing] = useState(false);
   
   // Função para carregar os dados com useCallback
@@ -91,7 +99,13 @@ const PrimeCODPage = () => {
   const handleSyncData = async () => {
     try {
       setRefreshing(true);
-      const syncResponse = await axios.get('/prime-cod/sync_data/');
+      
+      // Preparar parâmetros de query para sincronização
+      const params = {};
+      if (startDate) params.start_date = format(startDate, 'yyyy-MM-dd');
+      if (endDate) params.end_date = format(endDate, 'yyyy-MM-dd');
+      
+      const syncResponse = await axios.get('/prime-cod/sync_data/', { params });
       console.log('Sync response:', syncResponse.data); // Debug: log sync response
       await loadData(); // Recarregar dados após sincronização
     } catch (err) {
