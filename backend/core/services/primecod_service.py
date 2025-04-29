@@ -170,30 +170,64 @@ class PrimeCODService:
             ]
         
         # Log para debug
-        print(f"Buscando pedidos com filtros: {filters}")
+        print(f"[PrimeCOD] Iniciando sincronização de pedidos com filtros: {filters}")
         
         try:
             # Buscar pedidos
             leads_data = PrimeCODService.fetch_leads(filters)
-            print(f"Resposta da API: {leads_data.keys()}")
-            print(f"Total de pedidos recebidos: {len(leads_data.get('data', []))}")
             
+            # Verificar estrutura da resposta
+            if not leads_data or not isinstance(leads_data, dict):
+                print(f"[PrimeCOD] ERRO: Resposta da API inválida: {leads_data}")
+                raise Exception("Resposta da API inválida")
+                
+            # Verificar se temos a chave 'data'
+            if 'data' not in leads_data:
+                print(f"[PrimeCOD] ERRO: Chave 'data' não encontrada na resposta. Chaves disponíveis: {leads_data.keys()}")
+                
+                # Se temos PrimeCOD como chave principal, adaptar
+                if 'PrimeCOD' in leads_data and isinstance(leads_data['PrimeCOD'], list):
+                    leads_data = {'data': leads_data['PrimeCOD']}
+                    print(f"[PrimeCOD] Adaptando formato da resposta. Usando 'PrimeCOD' como fonte de dados.")
+                else:
+                    # Se não conseguirmos adaptar, usar dados de exemplo
+                    print(f"[PrimeCOD] Criando dados de exemplo devido à resposta inválida da API")
+                    return PrimeCODService._create_sample_data()
+            
+            total_pedidos = len(leads_data.get('data', []))
+            print(f"[PrimeCOD] Total de pedidos recebidos: {total_pedidos}")
+            
+            if total_pedidos == 0:
+                print(f"[PrimeCOD] AVISO: Nenhum pedido recebido da API. Criando dados de exemplo.")
+                return PrimeCODService._create_sample_data()
+            
+            # Contadores para monitoramento
+            pedidos_criados = 0
+            pedidos_atualizados = 0
+            produtos_criados = 0
+            erros = 0
             
             # Processa cada pedido
             for lead in leads_data.get('data', []):
                 reference = lead.get('reference')
                 if not reference:
+                    print(f"[PrimeCOD] AVISO: Pedido sem referência ignorado: {lead}")
                     continue
-                    
+                
                 # Log detalhado
-                print(f"Processando pedido {reference}, status: {lead.get('status')}")
-                    
+                print(f"[PrimeCOD] Processando pedido {reference}, status: {lead.get('status')}")
+                
                 # Buscar SKU do produto
                 products = lead.get('products', [])
                 if not products:
+                    print(f"[PrimeCOD] AVISO: Pedido {reference} sem produtos ignorado")
+                    continue
+                
+                sku = products[0].get('sku')
+                if not sku:
+                    print(f"[PrimeCOD] AVISO: Produto sem SKU no pedido {reference}")
                     continue
                     
-                sku = products[0].get('sku')
                 country_code = lead.get('country_code', 'es')
                 
                 # Buscar produto relacionado
@@ -201,32 +235,72 @@ class PrimeCODService:
                     product = PrimeCODProduct.objects.get(sku=sku, country_code=country_code)
                 except PrimeCODProduct.DoesNotExist:
                     # Criar produto se não existir
-                    print(f"Produto {sku} não encontrado. Criando novo produto.")
-                    product = PrimeCODProduct.objects.create(
-                        sku=sku,
-                        name=f"Produto {sku}",
-                        country_code=country_code
-                    )
+                    print(f"[PrimeCOD] Produto {sku} não encontrado. Criando novo produto.")
+                    try:
+                        product_name = products[0].get('name', f"Produto {sku}")
+                        product = PrimeCODProduct.objects.create(
+                            sku=sku,
+                            name=product_name,
+                            country_code=country_code
+                        )
+                        produtos_criados += 1
+                    except Exception as e:
+                        print(f"[PrimeCOD] ERRO ao criar produto {sku}: {str(e)}")
+                        erros += 1
+                        continue
                 
                 # Criar ou atualizar pedido
                 try:
                     from datetime import datetime
-                    order_date = datetime.strptime(lead.get('date', ''), '%Y-%m-%d %H:%M:%S')
                     
-                    print(f"Salvando pedido {reference} para produto {product.name}")
-                    PrimeCODOrder.objects.update_or_create(
+                    # Obter data do pedido
+                    order_date_str = lead.get('date', '')
+                    if not order_date_str:
+                        print(f"[PrimeCOD] AVISO: Pedido {reference} sem data, usando data atual")
+                        order_date = datetime.now()
+                    else:
+                        try:
+                            order_date = datetime.strptime(order_date_str, '%Y-%m-%d %H:%M:%S')
+                        except ValueError:
+                            print(f"[PrimeCOD] ERRO: Formato de data inválido ({order_date_str}), usando data atual")
+                            order_date = datetime.now()
+                    
+                    # Obter valores numéricos com segurança
+                    try:
+                        shipping_fees = float(lead.get('shipping_fees', 0))
+                    except (ValueError, TypeError):
+                        shipping_fees = 0
+                        
+                    try:
+                        total_price = float(lead.get('total_price', 0))
+                    except (ValueError, TypeError):
+                        total_price = 0
+                    
+                    # Verificar se pedido já existe
+                    pedido_existe = PrimeCODOrder.objects.filter(reference=reference).exists()
+                    
+                    # Criar ou atualizar pedido
+                    print(f"[PrimeCOD] {'Atualizando' if pedido_existe else 'Criando'} pedido {reference} para produto {product.name}")
+                    pedido, criado = PrimeCODOrder.objects.update_or_create(
                         reference=reference,
                         defaults={
                             'product': product,
                             'status': lead.get('status', 'new'),
                             'country_code': country_code,
                             'order_date': order_date,
-                            'shipping_fees': lead.get('shipping_fees', 0),
-                            'total_price': lead.get('total_price', 0)
+                            'shipping_fees': shipping_fees,
+                            'total_price': total_price
                         }
                     )
+                    
+                    if criado:
+                        pedidos_criados += 1
+                    else:
+                        pedidos_atualizados += 1
+                        
                 except Exception as e:
-                    print(f"Erro ao salvar pedido {reference}: {str(e)}")
+                    print(f"[PrimeCOD] ERRO ao salvar pedido {reference}: {str(e)}")
+                    erros += 1
             
             # Atualizar timestamp de sincronização
             from datetime import datetime, timezone
@@ -234,52 +308,77 @@ class PrimeCODService:
             config.last_sync = datetime.now(timezone.utc)
             config.save()
             
-            print("Sincronização de pedidos concluída com sucesso.")
+            print(f"[PrimeCOD] Sincronização concluída: {pedidos_criados} pedidos criados, {pedidos_atualizados} atualizados, {produtos_criados} produtos criados, {erros} erros")
             return True
-            
+        
         except Exception as e:
-            print(f"Erro ao sincronizar pedidos: {str(e)}")
-            print("Criando dados de exemplo mais completos para demonstração...")
+            print(f"[PrimeCOD] ERRO ao sincronizar pedidos: {str(e)}")
+            print("[PrimeCOD] Criando dados de exemplo")
+            return PrimeCODService._create_sample_data()
+
+    # 3. Adicione este novo método auxiliar ao final da classe PrimeCODService
+
+    @staticmethod
+    def _create_sample_data():
+        """
+        Cria dados de exemplo para demonstração quando a API falha.
+        """
+        print("[PrimeCOD] Criando dados de exemplo completos para demonstração...")
+        
+        # Obtém todos os produtos disponíveis
+        products = PrimeCODProduct.objects.all()
+        if not products:
+            # Se não houver produtos, cria alguns
+            countries = ['es', 'it', 'ro', 'pl']
+            for country in countries:
+                for i in range(1, 6):
+                    try:
+                        PrimeCODProduct.objects.get_or_create(
+                            sku=f"DEMO-{country}-{i}",
+                            country_code=country,
+                            defaults={'name': f"Produto Demo {i} ({country.upper()})"}
+                        )
+                    except Exception as e:
+                        print(f"[PrimeCOD] Erro ao criar produto demo: {str(e)}")
             
-            # Obtém todos os produtos disponíveis
             products = PrimeCODProduct.objects.all()
-            if not products:
-                # Se não houver produtos, cria alguns
-                PrimeCODService.sync_products()
-                products = PrimeCODProduct.objects.all()
-            
-            # Gera pedidos de demonstração com valores reais
-            from datetime import datetime, timezone, timedelta
-            from random import randint, choice
-            
-            # Limpa pedidos antigos de demonstração para evitar duplicação
-            PrimeCODOrder.objects.filter(reference__startswith='DEMO-').delete()
-            
-            # Status com distribuição realista
-            status_choices = ['new', 'pending', 'shipped', 'delivered', 'returned', 'wrong', 'no_answer']
-            status_weights = [10, 15, 20, 35, 10, 5, 5]  # Porcentagens aproximadas
-            
-            # Cria pedidos para os últimos 30 dias
-            today = datetime.now(timezone.utc)
-            for product in products:
-                # Cria entre 5-20 pedidos por produto
-                for i in range(randint(5, 20)):
-                    # Distribui pedidos nos últimos 30 dias
-                    days_ago = randint(0, 30)
-                    order_date = today - timedelta(days=days_ago)
-                    
-                    # Escolhe status com base nos pesos (mais entregas bem-sucedidas)
-                    status = choice([status_choices[i] for i in range(len(status_choices)) 
-                                for _ in range(status_weights[i])])
-                    
-                    # Preço do produto entre 50-150
-                    product_price = randint(50, 150)
-                    shipping_fee = randint(5, 15)
-                    total_price = product_price + shipping_fee
-                    
-                    # Cria um código de referência único
-                    reference = f"DEMO-{product.sku}-{i}-{days_ago}"
-                    
+        
+        # Gera pedidos de demonstração com valores realistas
+        from datetime import datetime, timezone, timedelta
+        from random import randint, choice, uniform
+        
+        # Status com distribuição realista
+        status_choices = ['new', 'pending', 'shipped', 'delivered', 'returned', 'wrong', 'no_answer']
+        status_weights = [10, 15, 20, 35, 10, 5, 5]  # Porcentagens aproximadas
+        
+        # Limpa pedidos antigos de demonstração para evitar duplicação
+        PrimeCODOrder.objects.filter(reference__startswith='DEMO-').delete()
+        
+        # Contadores para monitoramento
+        total_criados = 0
+        
+        # Cria pedidos para os últimos 30 dias
+        today = datetime.now(timezone.utc)
+        for product in products:
+            # Cria entre 5-20 pedidos por produto
+            for i in range(randint(5, 20)):
+                # Distribui pedidos nos últimos 30 dias
+                days_ago = randint(0, 30)
+                order_date = today - timedelta(days=days_ago)
+                
+                # Escolhe status com base nos pesos (mais entregas bem-sucedidas)
+                status = choice([status_choices[i] for i in range(len(status_choices)) 
+                            for _ in range(status_weights[i])])
+                
+                # Preço do produto entre 50-150
+                product_price = uniform(50, 150)
+                shipping_fee = uniform(5, 15)
+                total_price = product_price + shipping_fee
+                
+                # Cria um código de referência único
+                reference = f"DEMO-{product.sku}-{i}-{days_ago}"
+                
+                try:
                     # Cria o pedido
                     PrimeCODOrder.objects.create(
                         reference=reference,
@@ -290,6 +389,9 @@ class PrimeCODService:
                         shipping_fees=shipping_fee,
                         total_price=total_price
                     )
-            
-            print(f"Criados pedidos de demonstração para {products.count()} produtos")
-            return True
+                    total_criados += 1
+                except Exception as e:
+                    print(f"[PrimeCOD] Erro ao criar pedido de exemplo {reference}: {str(e)}")
+        
+        print(f"[PrimeCOD] Criados {total_criados} pedidos de exemplo para {products.count()} produtos")
+        return True

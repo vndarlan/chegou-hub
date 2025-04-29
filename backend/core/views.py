@@ -460,41 +460,115 @@ class PrimeCODViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def metrics(self, request):
+        """Endpoint aprimorado para métricas do Prime COD com melhor logging e tratamento de dados."""
         country = request.query_params.get('country', None)
         start_date = request.query_params.get('start_date', None)
         end_date = request.query_params.get('end_date', None)
         
-        # Filtrar pedidos primeiro
+        print(f"[PrimeCOD] Solicitação de métricas - País: {country}, Período: {start_date} a {end_date}")
+        
+        # Iniciar com todos os pedidos
         orders = PrimeCODOrder.objects.all()
+        
+        # Aplicar filtros, se fornecidos
         if country:
             orders = orders.filter(country_code=country)
+            print(f"[PrimeCOD] Filtrando por país: {country} - {orders.count()} pedidos encontrados")
         
         # Aplicar filtros de data
         if start_date or end_date:
-            from datetime import datetime, timezone
+            from datetime import datetime, timezone, timedelta
             
             if start_date:
                 try:
                     start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
                     start_date_obj = start_date_obj.replace(tzinfo=timezone.utc)
                     orders = orders.filter(order_date__gte=start_date_obj)
+                    print(f"[PrimeCOD] Filtrando a partir de: {start_date} - {orders.count()} pedidos restantes")
                 except ValueError:
+                    print(f"[PrimeCOD] ERRO: Formato de data inicial inválido: {start_date}")
                     return Response({"error": "Formato de data inicial inválido"}, status=400)
             
             if end_date:
                 try:
                     end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
-                    end_date_obj = end_date_obj.replace(tzinfo=timezone.utc)
+                    # Adicionar 1 dia e subtrair 1 segundo para incluir todo o dia final
+                    end_date_obj = end_date_obj.replace(tzinfo=timezone.utc) + timedelta(days=1) - timedelta(seconds=1)
                     orders = orders.filter(order_date__lte=end_date_obj)
+                    print(f"[PrimeCOD] Filtrando até: {end_date} - {orders.count()} pedidos restantes")
                 except ValueError:
+                    print(f"[PrimeCOD] ERRO: Formato de data final inválido: {end_date}")
                     return Response({"error": "Formato de data final inválido"}, status=400)
         
-        # Obter apenas produtos que têm pedidos no período filtrado
+        # Se não há pedidos após filtragem, verificar se existem produtos para mostrar
+        total_orders = orders.count()
+        if total_orders == 0:
+            print("[PrimeCOD] AVISO: Nenhum pedido encontrado após aplicar filtros")
+            
+            # Mesmo sem pedidos, mostrar produtos disponíveis para o país
+            if country:
+                products = PrimeCODProduct.objects.filter(country_code=country)
+            else:
+                products = PrimeCODProduct.objects.all()
+            
+            # Se não há produtos, retornar lista vazia
+            if products.count() == 0:
+                print("[PrimeCOD] AVISO: Nenhum produto encontrado para exibição")
+                return Response([])
+                
+            # Gerar métricas "zeradas" para os produtos
+            print(f"[PrimeCOD] Gerando métricas zeradas para {products.count()} produtos")
+            metrics = []
+            for product in products:
+                metrics.append({
+                    'product': product.name,
+                    'pedidos': 0,
+                    'pedidos_enviados': 0,
+                    'pedidos_entregues': 0,
+                    'efetividade': 0,
+                    'em_transito': 0,
+                    'recusados': 0,
+                    'devolvidos': 0,
+                    'outros_status': 0,
+                    'receita_liquida': 0
+                })
+            
+            # Adicionar linha de total zerada
+            if metrics:
+                metrics.append({
+                    'product': 'TOTAL',
+                    'pedidos': 0,
+                    'pedidos_enviados': 0,
+                    'pedidos_entregues': 0,
+                    'efetividade': 0,
+                    'em_transito': 0,
+                    'recusados': 0,
+                    'devolvidos': 0,
+                    'outros_status': 0,
+                    'receita_liquida': 0
+                })
+            
+            return Response(metrics)
+        
+        # Obter produtos que têm pedidos no período filtrado
         product_ids = orders.values_list('product', flat=True).distinct()
         products = PrimeCODProduct.objects.filter(id__in=product_ids)
         
+        print(f"[PrimeCOD] Encontrados {products.count()} produtos com {total_orders} pedidos para gerar métricas")
+        
         # Gerar métricas
         metrics = []
+        total_data = {
+            'pedidos': 0,
+            'pedidos_enviados': 0,
+            'pedidos_entregues': 0,
+            'em_transito': 0,
+            'recusados': 0,
+            'devolvidos': 0,
+            'outros_status': 0,
+            'receita_liquida': 0
+        }
+        
         for product in products:
             product_orders = orders.filter(product=product)
             
@@ -516,6 +590,19 @@ class PrimeCODViewSet(viewsets.ModelViewSet):
                 status='delivered'
             ).aggregate(total=Sum('total_price'))['total'] or 0
             
+            # Para debug, imprimir detalhes de cada produto
+            print(f"[PrimeCOD] Produto: {product.name}, Pedidos: {pedidos}, Entregues: {pedidos_entregues}, Receita: {receita_liquida}")
+            
+            # Adicionar métricas ao total
+            total_data['pedidos'] += pedidos
+            total_data['pedidos_enviados'] += pedidos_enviados
+            total_data['pedidos_entregues'] += pedidos_entregues
+            total_data['em_transito'] += em_transito
+            total_data['recusados'] += recusados
+            total_data['devolvidos'] += devolvidos
+            total_data['outros_status'] += outros_status
+            total_data['receita_liquida'] += receita_liquida
+            
             metrics.append({
                 'product': product.name,
                 'pedidos': pedidos,
@@ -531,21 +618,26 @@ class PrimeCODViewSet(viewsets.ModelViewSet):
         
         # Add total row if we have metrics
         if metrics:
+            # Calcular efetividade total
+            total_efetividade = (
+                total_data['pedidos_entregues'] / total_data['pedidos'] * 100
+            ) if total_data['pedidos'] > 0 else 0
+            
             total = {
                 'product': 'TOTAL',
-                'pedidos': sum(m['pedidos'] for m in metrics),
-                'pedidos_enviados': sum(m['pedidos_enviados'] for m in metrics),
-                'pedidos_entregues': sum(m['pedidos_entregues'] for m in metrics),
-                'efetividade': round(sum(m['pedidos_entregues'] for m in metrics) / 
-                            sum(m['pedidos'] for m in metrics) * 100, 2) 
-                            if sum(m['pedidos'] for m in metrics) > 0 else 0,
-                'em_transito': sum(m['em_transito'] for m in metrics),
-                'recusados': sum(m['recusados'] for m in metrics),
-                'devolvidos': sum(m['devolvidos'] for m in metrics),
-                'outros_status': sum(m['outros_status'] for m in metrics),
-                'receita_liquida': sum(m['receita_liquida'] for m in metrics)
+                'pedidos': total_data['pedidos'],
+                'pedidos_enviados': total_data['pedidos_enviados'],
+                'pedidos_entregues': total_data['pedidos_entregues'],
+                'efetividade': round(total_efetividade, 2),
+                'em_transito': total_data['em_transito'],
+                'recusados': total_data['recusados'],
+                'devolvidos': total_data['devolvidos'],
+                'outros_status': total_data['outros_status'],
+                'receita_liquida': total_data['receita_liquida']
             }
             metrics.append(total)
+            
+            print(f"[PrimeCOD] Total de métricas gerado: {len(metrics)} linhas (incluindo total)")
         
         return Response(metrics)
     
