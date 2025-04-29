@@ -1,4 +1,4 @@
-// frontend/src/App.js (com adição do DifyChat)
+// frontend/src/App.js
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
@@ -15,9 +15,6 @@ import CSRFManager from './components/CSRFManager';
 // Importa as páginas
 import LoginPage from './pages/LoginPage';
 import WorkspacePage from './pages/WorkspacePage';
-
-// Importa o componente DifyChat
-import DifyChat from './components/DifyChat/DifyChat';
 
 // Definição do Tema com suporte melhorado para tema escuro
 const theme = createTheme({
@@ -91,50 +88,55 @@ function App() {
     const styleElement = document.createElement('style');
     
     styleElement.textContent = `
-      /* Tema escuro refinado - com foco nos contêineres */
-      
-      /* Cards/Contêineres principais - que atualmente estão brancos */
-      [data-mantine-color-scheme="dark"] .mantine-Card-root,
-      [data-mantine-color-scheme="dark"] .mantine-Paper-root,
-      [data-mantine-color-scheme="dark"] .mantine-Tabs-panel,
-      [data-mantine-color-scheme="dark"] .mantine-Box-root {
-        background-color: #2A2B30;
-        color: #E0E0E0;
-        border-color: #383A40;
+      /* Tema escuro refinado */
+      [data-mantine-color-scheme="dark"] body,
+      [data-mantine-color-scheme="dark"] .mantine-AppShell-main {
+        background-color: #1A1B1E;
       }
       
-      /* Áreas de entrada de texto */
+      [data-mantine-color-scheme="dark"] .mantine-Paper-root,
+      [data-mantine-color-scheme="dark"] .mantine-Card-root {
+        background-color: #25262B;
+      }
+      
       [data-mantine-color-scheme="dark"] .mantine-TextInput-input,
       [data-mantine-color-scheme="dark"] .mantine-Textarea-input,
-      [data-mantine-color-scheme="dark"] .mantine-Select-input,
-      [data-mantine-color-scheme="dark"] textarea,
-      [data-mantine-color-scheme="dark"] input {
-        background-color: #1F2126;
+      [data-mantine-color-scheme="dark"] .mantine-Select-input {
+        background-color: #2C2E33;
         border-color: #383A40;
         color: #E0E0E0;
       }
       
-      /* Mensagens de status (como "Nenhum calendário cadastrado") */
-      [data-mantine-color-scheme="dark"] .mantine-Text-root,
-      [data-mantine-color-scheme="dark"] .status-message {
+      [data-mantine-color-scheme="dark"] .mantine-Text-root {
         color: #E0E0E0;
       }
       
-      /* Configuração específica para a Agenda e área de calendários */
-      [data-mantine-color-scheme="dark"] .calendar-container,
-      [data-mantine-color-scheme="dark"] .content-area,
-      [data-mantine-color-scheme="dark"] main > div > div {
-        background-color: #2A2B30;
-        color: #E0E0E0;
-      }
-      
-      /* Caso específico para abas/tabs */
-      [data-mantine-color-scheme="dark"] .mantine-Tabs-tab {
+      [data-mantine-color-scheme="dark"] .mantine-Text-root[color="dimmed"] {
         color: #A0A0A0;
       }
       
-      [data-mantine-color-scheme="dark"] .mantine-Tabs-tab[data-active] {
-        color: #FF9E45;
+      /* Área de resultados (atualmente branca na sua captura) */
+      [data-mantine-color-scheme="dark"] .resultArea {
+        background-color: #2A2B30;
+        color: #E0E0E0;
+      }
+      
+      /* Barra lateral no tema escuro */
+      [data-mantine-color-scheme="dark"] .navbar {
+        background-color: #1A1B1E;
+        border-right-color: #383A40;
+      }
+      
+      /* Botões no tema escuro */
+      [data-mantine-color-scheme="dark"] .mantine-Button-root:not(.mantine-Button-filled) {
+        border-color: #383A40;
+      }
+      
+      /* Dropdowns/selects no tema escuro */
+      [data-mantine-color-scheme="dark"] .mantine-Select-dropdown,
+      [data-mantine-color-scheme="dark"] .mantine-Menu-dropdown {
+        background-color: #25262B;
+        border-color: #383A40;
       }
     `;
     
@@ -199,9 +201,6 @@ function App() {
       colorScheme={colorScheme}
     >
       <CSRFManager>
-        {/* Adiciona o componente DifyChat aqui para que esteja presente em todas as rotas */}
-        <DifyChat />
-        
         <Router>
           <Routes>
             <Route
