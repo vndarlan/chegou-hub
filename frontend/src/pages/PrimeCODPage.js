@@ -52,7 +52,7 @@ const PrimeCODPage = () => {
   const [metrics, setMetrics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [countries, setCountries] = useState(['es', 'fr', 'it', 'pt', 'de']);
+  const [countries] = useState(['es', 'fr', 'it', 'pt', 'de']);
   const [selectedCountry, setSelectedCountry] = useState('es');
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -83,7 +83,7 @@ const PrimeCODPage = () => {
   // Carregar dados iniciais
   useEffect(() => {
     loadData();
-  }, [selectedCountry]); // Recarregar quando o país selecionado mudar
+  }, [selectedCountry]);
   
   // Função para sincronizar dados com a API
   const handleSyncData = async () => {
