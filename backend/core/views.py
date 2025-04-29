@@ -3,6 +3,7 @@ import os
 import openai
 import base64
 from django.conf import settings
+from django.db.models import Sum
 from django.contrib.auth.models import User, Group
 from django.db import transaction
 from django.contrib.auth import authenticate, login, logout
@@ -460,7 +461,7 @@ class PrimeCODViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def metrics(self, request):
-        """Endpoint aprimorado para métricas do Prime COD com melhor logging e tratamento de dados."""
+        """Endpoint para métricas do Prime COD com correção para filtro de país."""
         country = request.query_params.get('country', None)
         start_date = request.query_params.get('start_date', None)
         end_date = request.query_params.get('end_date', None)
@@ -470,10 +471,27 @@ class PrimeCODViewSet(viewsets.ModelViewSet):
         # Iniciar com todos os pedidos
         orders = PrimeCODOrder.objects.all()
         
-        # Aplicar filtros, se fornecidos
+        # Aplicar filtros de país: agora aceita tanto o código quanto o nome do país
         if country:
-            orders = orders.filter(country_code=country)
-            print(f"[PrimeCOD] Filtrando por país: {country} - {orders.count()} pedidos encontrados")
+            # Lista de variantes possíveis para cada país
+            country_variants = []
+            
+            # Mapear códigos comuns (baseado nos dados observados no CSV)
+            if country.lower() == 'it':
+                country_variants = ['italy', 'it']
+            elif country.lower() == 'es':
+                country_variants = ['spain', 'es']
+            elif country.lower() == 'ro':
+                country_variants = ['romania', 'ro']
+            elif country.lower() == 'pl':
+                country_variants = ['poland', 'pl']
+            else:
+                # Se não é um dos códigos conhecidos, use o valor original
+                country_variants = [country]
+            
+            # Filtrar por qualquer uma das variantes (ignora maiúsculas/minúsculas)
+            orders = orders.filter(country_code__iregex=r'(' + '|'.join(country_variants) + ')')
+            print(f"[PrimeCOD] Filtrando por país: {country} (variantes: {country_variants}) - {orders.count()} pedidos encontrados")
         
         # Aplicar filtros de data
         if start_date or end_date:
@@ -507,7 +525,7 @@ class PrimeCODViewSet(viewsets.ModelViewSet):
             
             # Mesmo sem pedidos, mostrar produtos disponíveis para o país
             if country:
-                products = PrimeCODProduct.objects.filter(country_code=country)
+                products = PrimeCODProduct.objects.filter(country_code__iexact=country)
             else:
                 products = PrimeCODProduct.objects.all()
             
