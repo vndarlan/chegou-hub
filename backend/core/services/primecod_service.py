@@ -13,8 +13,20 @@ class PrimeCODService:
     def get_api_config():
         """Obtém a configuração ativa da API."""
         config = PrimeCODApiConfig.objects.filter(is_active=True).first()
+        
+        # Se não encontrar configuração no banco, tenta usar variável de ambiente
         if not config:
-            raise ValueError("Configuração da API Prime COD não encontrada")
+            import os
+            api_key = os.getenv('PRIME_COD_API_KEY')
+            if api_key:
+                config = PrimeCODApiConfig(
+                    api_key=api_key,
+                    base_url="https://api.primecod.app/api",
+                    is_active=True
+                )
+                config.save()
+            else:
+                raise ValueError("Configuração da API Prime COD não encontrada")
         return config
     
     @staticmethod
