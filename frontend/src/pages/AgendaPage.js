@@ -862,23 +862,23 @@ function AgendaPage() {
                                 <List.Item>Acesse o <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer">Google Calendar</a> no seu navegador.</List.Item>
                                 <List.Item>Na barra lateral esquerda, localize a agenda que deseja compartilhar com a equipe.</List.Item>
                                 <List.Item>Passe o mouse sobre o nome da agenda e clique nos três pontinhos (⋮) que aparecem ao lado.</List.Item>
-                                <List.Item>Selecione a opção <b>"Configurações e compartilhamento"</b>.</List.Item>
-                                <List.Item>Role a página até a seção "Compartilhado com pessoas e grupos" e clique em "Adicionar pessoas e grupos".</List.Item>
+                                <List.Item>Selecione a opção <Code>Configurações e compartilhamento</Code>.</List.Item>
+                                <List.Item>Role a página até a seção <Code>Compartilhado com pessoas e grupos</Code> e clique em <Code>Adicionar pessoas e grupos</Code>.</List.Item>
                                 <List.Item>Adicione o e-mail: <Code>viniciuschegouoperacional@gmail.com.</Code></List.Item>
-                                <List.Item>Em permissões, selecione <b>"Ver todos os detalhes do evento"</b>.</List.Item>
-                                <List.Item>Clique em <b>"Enviar"</b> para concluir o compartilhamento.</List.Item>
-                                <List.Item>Role um pouco mais a página até encontrar a seção <b>"Incorporar código"</b> e copie o código exibido.</List.Item>
+                                <List.Item>Em permissões, selecione <Code>Mais detalhes de todos os eventos</Code>.</List.Item>
+                                <List.Item>Clique em <Code>Enviar</Code> para concluir o compartilhamento.</List.Item>
+                                <List.Item>Role um pouco mais a página até encontrar a seção <Code>Incorporar código</Code> e copie o código exibido.</List.Item>
                             </List>
                             
                             <Title order={5} mt="lg" mb="sm">Adicionando no Chegou Hub:</Title>
                             <List type="ordered" spacing="sm">
-                                <List.Item>Vá para a aba "Gerenciar" aqui nesta página.</List.Item>
-                                <List.Item>No formulário, digite seu nome no campo <b>"Nome (Identificação)"</b> para que os outros membros possam identificar de quem é a agenda.</List.Item>
+                                <List.Item>Vá para a aba <Code>Gerenciar</Code> aqui nesta página.</List.Item>
+                                <List.Item>No formulário, digite seu nome no campo <Code>Nome (Identificação)</Code> para que os outros membros possam identificar de quem é a agenda.</List.Item>
                                 <List.Item>Cole o código Iframe do Google Calendar.</List.Item>
-                                <List.Item>Clique em <b>"Adicionar Calendário"</b>.</List.Item>
+                                <List.Item>Clique em <Code>Adicionar Calendário</Code>.</List.Item>
                             </List>
                                                         
-                            <Text mt="md">Uma vez adicionada, sua agenda estará disponível na aba "Visualizar" e poderá ser vista pelos outros membros da equipe.</Text>
+                            <Text mt="md">Uma vez adicionada, sua agenda estará disponível na aba <Code>Visualizar</Code> e poderá ser vista pelos outros membros da equipe.</Text>
                         </Stack>
                     </Paper>
                 </Tabs.Panel>
