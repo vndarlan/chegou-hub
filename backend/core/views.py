@@ -558,7 +558,7 @@ class PrimeCODViewSet(viewsets.ModelViewSet):
             # Sincronizar produtos
             PrimeCODService.sync_products()
             
-            # Obter datas do filtro, se fornecidas
+            # Obter datas do filtro
             start_date = request.query_params.get('start_date', None)
             end_date = request.query_params.get('end_date', None)
             
@@ -575,4 +575,8 @@ class PrimeCODViewSet(viewsets.ModelViewSet):
             return Response({"message": "Dados sincronizados com sucesso"})
             
         except Exception as e:
+            # Adicionar log detalhado do erro
+            import traceback
+            traceback.print_exc()
+            print(f"Erro na sincronização: {str(e)}")
             return Response({"error": str(e)}, status=500)
