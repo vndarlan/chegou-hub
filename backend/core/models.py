@@ -143,7 +143,7 @@ class ImageStyle(models.Model):
 
 class PrimeCODProduct(models.Model):
     """Modelo para armazenar informações de produtos da Prime COD."""
-    sku = models.CharField(max_length=100, unique=True, verbose_name="SKU do Produto")
+    sku = models.CharField(max_length=100, verbose_name="SKU do Produto")
     name = models.CharField(max_length=255, verbose_name="Nome do Produto") 
     country_code = models.CharField(max_length=2, verbose_name="Código do País")
     created_at = models.DateTimeField(auto_now_add=True)

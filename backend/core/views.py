@@ -475,15 +475,21 @@ class PrimeCODViewSet(viewsets.ModelViewSet):
         
         if start_date:
             try:
-                start_date = datetime.strptime(start_date, '%Y-%m-%d')
-                orders = orders.filter(order_date__gte=start_date)
+                from datetime import datetime, timezone
+                # Convert string date to timezone-aware datetime
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
+                start_date_obj = start_date_obj.replace(tzinfo=timezone.utc)
+                orders = orders.filter(order_date__gte=start_date_obj)
             except ValueError:
                 return Response({"error": "Formato de data inicial inválido"}, status=400)
-        
+
         if end_date:
             try:
-                end_date = datetime.strptime(end_date, '%Y-%m-%d')
-                orders = orders.filter(order_date__lte=end_date)
+                from datetime import datetime, timezone
+                # Convert string date to timezone-aware datetime
+                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
+                end_date_obj = end_date_obj.replace(tzinfo=timezone.utc)
+                orders = orders.filter(order_date__lte=end_date_obj)
             except ValueError:
                 return Response({"error": "Formato de data final inválido"}, status=400)
         
