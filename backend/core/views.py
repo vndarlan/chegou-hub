@@ -558,26 +558,29 @@ class PrimeCODViewSet(viewsets.ModelViewSet):
             from .services.primecod_service import PrimeCODService
             
             # Sincronizar produtos
+            print("Iniciando sincronização de produtos...")
             PrimeCODService.sync_products()
             
-            # Obter datas do filtro
+            # Obter datas do filtro, se fornecidas
             start_date = request.query_params.get('start_date', None)
             end_date = request.query_params.get('end_date', None)
             
             if start_date and end_date:
                 try:
-                    start_date = datetime.strptime(start_date, '%Y-%m-%d')
-                    end_date = datetime.strptime(end_date, '%Y-%m-%d')
+                    from datetime import datetime, timezone
+                    start_date = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+                    end_date = datetime.strptime(end_date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
                 except ValueError:
                     return Response({"error": "Formato de data inválido"}, status=400)
             
-            # Sincronizar pedidos
+            # Sincronizar pedidos (importante!)
+            print("Iniciando sincronização de pedidos...")
             PrimeCODService.sync_orders(start_date, end_date)
+            print("Sincronização de pedidos concluída!")
             
             return Response({"message": "Dados sincronizados com sucesso"})
             
         except Exception as e:
-            # Adicionar log detalhado do erro
             import traceback
             traceback.print_exc()
             print(f"Erro na sincronização: {str(e)}")
