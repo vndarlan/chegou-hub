@@ -162,52 +162,73 @@ class PrimeCODService:
                 end_date.strftime('%Y-%m-%d')
             ]
         
-        # Buscar pedidos
-        leads_data = PrimeCODService.fetch_leads(filters)
+        # Log para debug
+        print(f"Buscando pedidos com filtros: {filters}")
         
-        # Processa cada pedido
-        for lead in leads_data.get('data', []):
-            reference = lead.get('reference')
-            if not reference:
-                continue
+        try:
+            # Buscar pedidos
+            leads_data = PrimeCODService.fetch_leads(filters)
+            print(f"Resposta da API: {leads_data.keys()}")
+            print(f"Total de pedidos recebidos: {len(leads_data.get('data', []))}")
+            
+            # Processa cada pedido
+            for lead in leads_data.get('data', []):
+                reference = lead.get('reference')
+                if not reference:
+                    continue
+                    
+                # Log detalhado
+                print(f"Processando pedido {reference}, status: {lead.get('status')}")
+                    
+                # Buscar SKU do produto
+                products = lead.get('products', [])
+                if not products:
+                    continue
+                    
+                sku = products[0].get('sku')
+                country_code = lead.get('country_code', 'es')
                 
-            # Buscar SKU do produto
-            products = lead.get('products', [])
-            if not products:
-                continue
+                # Buscar produto relacionado
+                try:
+                    product = PrimeCODProduct.objects.get(sku=sku, country_code=country_code)
+                except PrimeCODProduct.DoesNotExist:
+                    # Criar produto se não existir
+                    print(f"Produto {sku} não encontrado. Criando novo produto.")
+                    product = PrimeCODProduct.objects.create(
+                        sku=sku,
+                        name=f"Produto {sku}",
+                        country_code=country_code
+                    )
                 
-            sku = products[0].get('sku')
-            country_code = lead.get('country_code', 'es')
+                # Criar ou atualizar pedido
+                try:
+                    from datetime import datetime
+                    order_date = datetime.strptime(lead.get('date', ''), '%Y-%m-%d %H:%M:%S')
+                    
+                    print(f"Salvando pedido {reference} para produto {product.name}")
+                    PrimeCODOrder.objects.update_or_create(
+                        reference=reference,
+                        defaults={
+                            'product': product,
+                            'status': lead.get('status', 'new'),
+                            'country_code': country_code,
+                            'order_date': order_date,
+                            'shipping_fees': lead.get('shipping_fees', 0),
+                            'total_price': lead.get('total_price', 0)
+                        }
+                    )
+                except Exception as e:
+                    print(f"Erro ao salvar pedido {reference}: {str(e)}")
             
-            # Buscar produto relacionado
-            try:
-                product = PrimeCODProduct.objects.get(sku=sku, country_code=country_code)
-            except PrimeCODProduct.DoesNotExist:
-                # Criar produto se não existir
-                product = PrimeCODProduct.objects.create(
-                    sku=sku,
-                    name=f"Produto {sku}",
-                    country_code=country_code
-                )
+            # Atualizar timestamp de sincronização
+            from datetime import datetime, timezone
+            config = PrimeCODService.get_api_config()
+            config.last_sync = datetime.now(timezone.utc)
+            config.save()
             
-            # Criar ou atualizar pedido
-            order_date = datetime.strptime(lead.get('date', ''), '%Y-%m-%d %H:%M:%S')
+            print("Sincronização de pedidos concluída com sucesso.")
+            return True
             
-            PrimeCODOrder.objects.update_or_create(
-                reference=reference,
-                defaults={
-                    'product': product,
-                    'status': lead.get('status', 'new'),
-                    'country_code': country_code,
-                    'order_date': order_date,
-                    'shipping_fees': lead.get('shipping_fees', 0),
-                    'total_price': lead.get('total_price', 0)
-                }
-            )
-        
-        # Atualizar timestamp de sincronização
-        config = PrimeCODService.get_api_config()
-        config.last_sync = datetime.now(timezone.utc)
-        config.save()
-        
-        return True
+        except Exception as e:
+            print(f"Erro ao sincronizar pedidos: {str(e)}")
+            raise
