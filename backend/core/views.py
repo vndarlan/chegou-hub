@@ -695,3 +695,37 @@ class PrimeCODViewSet(viewsets.ModelViewSet):
             traceback.print_exc()
             print(f"Erro na sincronização: {str(e)}")
             return Response({"error": str(e)}, status=500)
+
+    @action(detail=False, methods=['get'])
+    def clear_sample_data(self, request):
+        """
+        Endpoint temporário para limpar dados de exemplo.
+        Acesse via GET /api/prime-cod/clear-sample-data/ para executar a limpeza.
+        """
+        try:
+            # Filtra todos os pedidos que começam com "DEMO-" (dados de exemplo)
+            sample_orders = PrimeCODOrder.objects.filter(reference__startswith='DEMO-')
+            
+            # Conta quantos serão removidos (para o relatório)
+            count = sample_orders.count()
+            
+            # Registra no log antes de excluir
+            print(f"[PrimeCOD] Removendo {count} pedidos de exemplo do banco de dados")
+            
+            # Exclui todos os registros filtrados
+            sample_orders.delete()
+            
+            # Retorna uma resposta de sucesso com a contagem
+            return Response({
+                "success": True,
+                "message": f"Foram removidos {count} pedidos de exemplo",
+                "count": count
+            })
+            
+        except Exception as e:
+            # Se ocorrer algum erro, registra no log e retorna erro
+            print(f"[PrimeCOD] ERRO ao limpar dados de exemplo: {str(e)}")
+            return Response({
+                "success": False,
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
