@@ -9,13 +9,6 @@ from dotenv import load_dotenv
 import dj_database_url
 from urllib.parse import urlparse
 
-# Adicionar import para verificar a versão
-try:
-    import corsheaders
-    print(f"corsheaders versão: {corsheaders.__version__}")
-except ImportError:
-    print("AVISO: corsheaders não está instalado corretamente!")
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
