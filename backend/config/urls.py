@@ -1,7 +1,7 @@
 # backend/config/urls.py
 from django.contrib import admin
 from django.urls import path, include
-from core.views_debug import DebugCorsView
+from core.views_debug import DebugCorsView  # Adicione esta importação
 from rest_framework.routers import DefaultRouter
 from core.views import (
     SimpleLoginView,
@@ -42,6 +42,10 @@ urlpatterns = [
 
     # Incluir todas as URLs registradas no router (Styles, Calendars, AIProjects)
     path('api/', include(router.urls)),
+    
+    # Debug CORS - Corrigido o problema de importação
     path('api/debug/cors/', DebugCorsView.as_view(), name='debug_cors'),
-    path('api/cors-debug/', core.views_debug.DebugCorsView.as_view(), name='cors_debug'),
+    
+    # Nova rota para diagnóstico CORS
+    path('api/cors-debug/', DebugCorsView.as_view(), name='cors_debug'),
 ]
