@@ -36,30 +36,35 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # --- Configuração ALLOWED_HOSTS para produção ---
-ALLOWED_HOSTS_STRING = os.getenv('ALLOWED_HOSTS', '')
 ALLOWED_HOSTS = [
     'chegou-hubb-production.up.railway.app',
     'chegouhub.up.railway.app',
+    'railway.app',
+    '.railway.app',
+    'localhost',
+    '127.0.0.1',
 ]
 
+# Adicionar qualquer host adicional fornecido na variável de ambiente
+ALLOWED_HOSTS_STRING = os.getenv('ALLOWED_HOSTS', '')
 if ALLOWED_HOSTS_STRING:
-    ALLOWED_HOSTS.extend(ALLOWED_HOSTS_STRING.split(','))
+    ALLOWED_HOSTS.extend([host.strip() for host in ALLOWED_HOSTS_STRING.split(',')])
 
-# Adiciona a URL pública que o Railway dá para seu app (se disponível em env)
+# Adicionar automaticamente o hostname do Railway
 RAILWAY_STATIC_URL = os.getenv('RAILWAY_STATIC_URL')
 if RAILWAY_STATIC_URL and '/' in RAILWAY_STATIC_URL:
     RAILWAY_HOSTNAME = RAILWAY_STATIC_URL.split('/')[0]
     if RAILWAY_HOSTNAME not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(RAILWAY_HOSTNAME)
 
-# Adiciona localhost e 127.0.0.1 se estiver em modo DEBUG para testes locais
-if DEBUG:
-    ALLOWED_HOSTS.append('localhost')
-    ALLOWED_HOSTS.append('127.0.0.1')
-    if not SECRET_KEY:
-       SECRET_KEY = 'django-insecure-fallback-key-change-this-in-real-env-or-prod'
-       print("\n\nAVISO: Usando SECRET_KEY de fallback para DEBUG. Defina DJANGO_SECRET_KEY no .env\n\n")
-elif not SECRET_KEY:
+# Adicionar automaticamente hostname do DATABASE_PUBLIC_URL
+DATABASE_PUBLIC_URL = os.getenv('DATABASE_PUBLIC_URL', '')
+if DATABASE_PUBLIC_URL and '@' in DATABASE_PUBLIC_URL:
+    DB_HOSTNAME = DATABASE_PUBLIC_URL.split('@')[1].split(':')[0]
+    if DB_HOSTNAME not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(DB_HOSTNAME)
+
+if not SECRET_KEY and not DEBUG:
     # Em produção (não DEBUG), SECRET_KEY É OBRIGATÓRIA
     raise ValueError("ERRO CRÍTICO: DJANGO_SECRET_KEY não definida no ambiente de produção!")
 # --- Fim ALLOWED_HOSTS ---
@@ -86,6 +91,7 @@ INSTALLED_APPS = [
 
 # *** CORREÇÃO DE ORDEM DE MIDDLEWARES PARA CORS ***
 MIDDLEWARE = [
+    'core.middleware.CustomCorsMiddleware'
     'corsheaders.middleware.CorsMiddleware',  # DEVE vir antes do SecurityMiddleware
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -95,7 +101,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-]
+]     
 
 ROOT_URLCONF = 'config.urls'
 
@@ -200,20 +206,34 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- CORREÇÃO DA CONFIGURAÇÃO DO CORS ---
-# Lista explícita dos domínios permitidos
-CORS_ALLOWED_ORIGINS = [
-    "https://chegouhub.up.railway.app",
-    "https://chegou-hubb-production.up.railway.app",
-    "https://www.chegouhub.up.railway.app",
-    "http://chegouhub.up.railway.app",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+# === INÍCIO DA CONFIGURAÇÃO PARA RESOLVER CORS CROSS-DOMAIN ===
+
+# Permitir TODAS as origens (necessário para multi-domínio Railway sem proxy)
+CORS_ALLOW_ALL_ORIGINS = True
+
+# Permitir credenciais nas requisições CORS
+CORS_ALLOW_CREDENTIALS = True
+
+# Expor cabeçalhos necessários
+CORS_EXPOSE_HEADERS = [
+    'Content-Type', 
+    'X-CSRFToken',
+    'Set-Cookie',
+    'Access-Control-Allow-Origin',
+    'Access-Control-Allow-Credentials',
 ]
 
-# Configurações CORS aprimoradas
-CORS_ALLOW_CREDENTIALS = True
-CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
+# Permitir todos os métodos HTTP
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# Permitir todos os cabeçalhos nas requisições
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
@@ -228,47 +248,30 @@ CORS_ALLOW_HEADERS = [
     'pragma',
 ]
 
-# PERMITIR PREFLIGHT OPTIONS
-CORS_ALLOW_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
-]
+# Aumentar o tempo de cache do preflight OPTIONS
 CORS_PREFLIGHT_MAX_AGE = 86400  # 24 horas
 
-# --- CORREÇÃO DA CONFIGURAÇÃO CSRF ---
-# Lista explícita dos domínios confiáveis
+# --- Configuração CSRF para multi-domínio ---
 CSRF_TRUSTED_ORIGINS = [
     "https://chegouhub.up.railway.app",
     "https://chegou-hubb-production.up.railway.app",
     "https://www.chegouhub.up.railway.app",
     "http://chegouhub.up.railway.app",
+    "http://chegou-hubb-production.up.railway.app",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
 
-# Configurações CSRF Cookie ajustadas
-CSRF_COOKIE_SECURE = not DEBUG  # True em produção, False em desenvolvimento
-CSRF_COOKIE_SAMESITE = 'Lax' if DEBUG else 'None'  # 'None' requer HTTPS em produção
-CSRF_COOKIE_HTTPONLY = False  # Precisa ser acessível por JavaScript
-CSRF_USE_SESSIONS = False  # Armazenar em cookies
-CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Corresponde ao axios.defaults.xsrfHeaderName = 'X-CSRFToken'
+# Desabilitar configurações que podem interferir com cross-domain
+CSRF_COOKIE_DOMAIN = None
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_SAMESITE = None  # Permitir uso cross-site
+CSRF_COOKIE_HTTPONLY = False
+CSRF_USE_SESSIONS = False
 
-# <<< Ajustes de Segurança para Produção (HTTPS) >>>
-if not DEBUG: # Em produção
-    CSRF_COOKIE_SECURE = True   # OBRIGATÓRIO para SameSite=None
-    CSRF_COOKIE_SAMESITE = 'None' # Permite envio cross-site (diferentes subdomínios)
-else: # Em desenvolvimento (DEBUG=True)
-    CSRF_COOKIE_SECURE = False
-    CSRF_COOKIE_SAMESITE = 'Lax' 
+# === FIM DA CONFIGURAÇÃO PARA RESOLVER CORS CROSS-DOMAIN ===
 
-# IMPORTANTE: Remover restrição de domínio para contornar problema com diferentes subdomínios
-CSRF_COOKIE_DOMAIN = None  # Permite que o cookie seja acessível entre diferentes domínios
-
-# --- Configuração REST Framework (sem mudanças) ---
+# --- Configuração REST Framework ---
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
@@ -277,7 +280,6 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ]
 }
-# --- Fim REST Framework ---
 
 # <<< Logging para mais detalhes >>>
 LOGGING = {
@@ -290,22 +292,17 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console'],
-        'level': 'DEBUG',  # Alterado para DEBUG para mais detalhes
+        'level': 'DEBUG',
     },
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'DEBUG',  # Alterado para DEBUG para mais detalhes
-            'propagate': False,
-        },
-        'django.db.backends': {
-            'handlers': ['console'],
-            'level': 'DEBUG',  # Ativar logs específicos de conexão do banco
+            'level': 'DEBUG',
             'propagate': False,
         },
         'corsheaders': {
             'handlers': ['console'],
-            'level': 'DEBUG',  # Logs específicos para depurar problemas de CORS
+            'level': 'DEBUG',
             'propagate': False,
         },
     },
