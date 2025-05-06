@@ -10,21 +10,22 @@ class DebugCorsView(APIView):
     
     def get(self, request, format=None):
         response = JsonResponse({
-            'status': 'success',
-            'message': 'Debug CORS funcionando!',
-            'origin': request.headers.get('Origin', 'Sem origem')
+            'cors_debug': True,
+            'headers_received': dict(request.headers),
+            'origin_detected': request.headers.get('Origin', 'Nenhuma origem detectada'),
+            'method': request.method,
+            'cookies': request.COOKIES,
         })
         
-        # Forçar cabeçalhos CORS
-        response["Access-Control-Allow-Origin"] = "https://chegouhub.up.railway.app"
+        # Força cabeçalhos CORS garantidos
+        origin = request.headers.get('Origin', '')
+        if origin and "chegouhub" in origin:
+            response["Access-Control-Allow-Origin"] = origin
+        else:
+            response["Access-Control-Allow-Origin"] = "*"
+            
         response["Access-Control-Allow-Credentials"] = "true"
-        
-        return response
-        
-    def options(self, request, *args, **kwargs):
-        response = JsonResponse({'status': 'preflight_success'})
-        response["Access-Control-Allow-Origin"] = "https://chegouhub.up.railway.app"
         response["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
         response["Access-Control-Allow-Headers"] = "*"
-        response["Access-Control-Allow-Credentials"] = "true"
+        
         return response

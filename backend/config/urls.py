@@ -43,4 +43,5 @@ urlpatterns = [
     # Incluir todas as URLs registradas no router (Styles, Calendars, AIProjects)
     path('api/', include(router.urls)),
     path('api/debug/cors/', DebugCorsView.as_view(), name='debug_cors'),
+    path('api/cors-debug/', core.views_debug.DebugCorsView.as_view(), name='cors_debug'),
 ]
