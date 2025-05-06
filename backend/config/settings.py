@@ -9,6 +9,13 @@ from dotenv import load_dotenv
 import dj_database_url
 from urllib.parse import urlparse
 
+# Adicionar import para verificar a versão
+try:
+    import corsheaders
+    print(f"corsheaders versão: {corsheaders.__version__}")
+except ImportError:
+    print("AVISO: corsheaders não está instalado corretamente!")
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -60,7 +67,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'core.middleware.CORSMiddleware',  # Comentado - não use este middleware personalizado
+    # Remover o middleware CORS personalizado
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -203,14 +210,28 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- Configurações CORS atualizadas ---
+# --- Configurações CORS completas ---
+CORS_ALLOW_ALL_ORIGINS = True  # Temporariamente permitir todas as origens para diagnóstico
 CORS_ALLOWED_ORIGINS = [
     "https://chegouhub.up.railway.app",
     "https://chegou-hubb-production.up.railway.app",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
 CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
 
 # --- Configuração CSRF Simplificada ---
 CSRF_TRUSTED_ORIGINS = [
@@ -219,7 +240,9 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 CSRF_COOKIE_SAMESITE = None
 CSRF_COOKIE_HTTPONLY = False
-CSRF_COOKIE_DOMAIN = None
+CSRF_COOKIE_SECURE = True  # Para HTTPS
+SESSION_COOKIE_SECURE = True  # Para HTTPS
+SESSION_COOKIE_SAMESITE = None  # Necessário para CORS com credenciais
 
 # --- Configuração REST Framework ---
 REST_FRAMEWORK = {
