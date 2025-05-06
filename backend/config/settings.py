@@ -45,14 +45,13 @@ INSTALLED_APPS = [
     'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
     'rest_framework',
-    'corsheaders',
+    'corsheaders',  # Mantido como app instalado, mas não usado nos middlewares
     'core.apps.CoreConfig',
 ]
 
 # *** CORREÇÃO DE ORDEM DE MIDDLEWARES PARA CORS ***
 MIDDLEWARE = [
-    'core.middleware.ForceCorsMiddleware',  # Nosso middleware personalizado PRIMEIRO
-    'corsheaders.middleware.CorsMiddleware',
+    'core.middleware.CORSMiddleware',  # Nosso middleware PRIMEIRO
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -83,7 +82,7 @@ TEMPLATES = [
 
 # Use WSGI em vez de ASGI (mais estável para Railway)
 WSGI_APPLICATION = 'config.wsgi.application'
-# ASGI_APPLICATION = 'config.asgi.application'
+# Comentado: ASGI_APPLICATION = 'config.asgi.application'
 
 # --- DIAGNÓSTICO DO AMBIENTE ---
 print("=== DIAGNÓSTICO DE AMBIENTE ===")
@@ -159,26 +158,22 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- Configuração CORS Simplificada ---
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ORIGIN_ALLOW_ALL = True  # Redundante com o de cima, mas para garantir
-CORS_ALLOW_CREDENTIALS = True
+# --- Configurações CORS comentadas para não usar django-cors-headers ---
+# CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ALLOW_CREDENTIALS = True
+# CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
+# CORS_ALLOW_METHODS = ['DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT']
+# CORS_ALLOW_HEADERS = [...]
+# CORS_PREFLIGHT_MAX_AGE = 86400
 
 # --- Configuração CSRF Simplificada ---
 CSRF_TRUSTED_ORIGINS = [
     "https://chegouhub.up.railway.app",
-    "https://chegou-hubb-production.up.railway.app",
-    "http://chegouhub.up.railway.app",
-    "http://chegou-hubb-production.up.railway.app",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
 ]
-
-CSRF_COOKIE_SECURE = False
-CSRF_COOKIE_DOMAIN = None
 CSRF_COOKIE_SAMESITE = None
 CSRF_COOKIE_HTTPONLY = False
-CSRF_USE_SESSIONS = False
+CSRF_COOKIE_DOMAIN = None
 
 # --- Configuração REST Framework ---
 REST_FRAMEWORK = {
