@@ -12,8 +12,7 @@ class DebugCorsView(APIView):
         response = JsonResponse({
             'status': 'success',
             'message': 'Debug CORS funcionando!',
-            'origin': request.headers.get('Origin', 'Sem origem'),
-            'access_control_headers': True
+            'origin': request.headers.get('Origin', 'Sem origem')
         })
         
         # Forçar cabeçalhos CORS
