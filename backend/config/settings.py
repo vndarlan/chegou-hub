@@ -17,6 +17,9 @@ from dotenv import load_dotenv
 import dj_database_url
 from urllib.parse import urlparse
 
+# Opção para forçar uso de SQLite (para depuração/testes)
+FORCE_SQLITE = os.getenv('FORCE_SQLITE', 'False') == 'True'
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -113,56 +116,124 @@ TEMPLATES = [
 # WSGI_APPLICATION = 'config.wsgi.application' # Mantido para compatibilidade
 ASGI_APPLICATION = 'config.asgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+# --- NOVA CONFIGURAÇÃO DO BANCO DE DADOS ---
 
-# --- Configuração do Banco de Dados ---
-DATABASE_URL_INTERNAL = os.getenv('DATABASE_URL')
-DATABASE_URL_PUBLIC = os.getenv('DATABASE_PUBLIC_URL')
-
-DATABASES = {}
-
-if DATABASE_URL_PUBLIC:
-    print("INFO: Configurando banco de dados usando URL PÚBLICA (parse manual).")
-    try:
-        url = urlparse(DATABASE_URL_PUBLIC)
-        DATABASES['default'] = {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': url.path[1:],
-            'USER': url.username,
-            'PASSWORD': url.password,
-            'HOST': url.hostname,
-            'PORT': url.port,
-            'OPTIONS': {'sslmode': 'require'}
-        }
-    except Exception as e:
-        print(f"ERRO: Falha ao parsear DATABASE_PUBLIC_URL: {e}")
-
-if not DATABASES and DATABASE_URL_INTERNAL:
-    print(f"INFO: Configurando banco de dados usando URL INTERNA (Pública falhou ou não encontrada).")
-    try:
-        DATABASES = {
-            'default': dj_database_url.config(
-                default=DATABASE_URL_INTERNAL,
-                conn_max_age=600,
-                conn_health_checks=True,
-                ssl_require=os.getenv('DB_SSL_REQUIRE', 'True') == 'True'
-            )
-        }
-    except Exception as e:
-        print(f"ERRO: Falha ao configurar com DATABASE_URL interna via dj_database_url: {e}")
-
-# Fallback final para SQLite se tudo mais falhar
-if not DATABASES:
-    print("AVISO: Nenhuma URL de banco de dados válida encontrada. Usando SQLite local (db.sqlite3).")
+# Se forçar SQLite, usa SQLite independente de outras configurações
+if FORCE_SQLITE:
+    print("AVISO: Usando SQLite por configuração forçada (FORCE_SQLITE=True).")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-# --- Fim da configuração do Banco de Dados ---
+else:
+    # Configuração normal com PostgreSQL
+    DATABASE_URL_INTERNAL = os.getenv('DATABASE_URL')
+    DATABASE_URL_PUBLIC = os.getenv('DATABASE_PUBLIC_URL')
 
+    DATABASES = {}
+
+    # Tenta usar URL pública com dj_database_url em vez de parsing manual
+    if DATABASE_URL_PUBLIC:
+        print("INFO: Configurando banco de dados usando URL PÚBLICA com dj_database_url")
+        try:
+            DATABASES = {
+                'default': dj_database_url.config(
+                    default=DATABASE_URL_PUBLIC,
+                    conn_max_age=600,
+                    conn_health_checks=True,
+                    ssl_require=False  # Desabilitado temporariamente para diagnóstico
+                )
+            }
+            print("INFO: Configuração com URL pública parece bem-sucedida")
+        except Exception as e:
+            print(f"ERRO: Falha ao configurar com DATABASE_PUBLIC_URL via dj_database_url: {e}")
+            
+            # Tenta método antigo (parsing manual) como fallback
+            try:
+                print("INFO: Tentando método alternativo com URL pública (parse manual)")
+                url = urlparse(DATABASE_URL_PUBLIC)
+                DATABASES['default'] = {
+                    'ENGINE': 'django.db.backends.postgresql',
+                    'NAME': url.path[1:],
+                    'USER': url.username,
+                    'PASSWORD': url.password,
+                    'HOST': url.hostname,
+                    'PORT': url.port,
+                    'OPTIONS': {'sslmode': 'prefer'}  # mudado de 'require' para 'prefer'
+                }
+            except Exception as e2:
+                print(f"ERRO: Fallback também falhou ao parsear DATABASE_PUBLIC_URL: {e2}")
+
+    # Se não configurou com URL pública, tenta URL interna
+    if not DATABASES and DATABASE_URL_INTERNAL:
+        print("INFO: Configurando banco de dados usando URL INTERNA")
+        try:
+            DATABASES = {
+                'default': dj_database_url.config(
+                    default=DATABASE_URL_INTERNAL,
+                    conn_max_age=600,
+                    conn_health_checks=True,
+                    ssl_require=False  # Desabilitado temporariamente para diagnóstico
+                )
+            }
+        except Exception as e:
+            print(f"ERRO: Falha ao configurar com DATABASE_URL interna: {e}")
+
+    # Fallback final para SQLite se tudo mais falhar
+    if not DATABASES:
+        print("AVISO: Nenhuma URL de banco de dados válida configurada. Usando SQLite local.")
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
+
+# --- CÓDIGO DE DIAGNÓSTICO DO BANCO DE DADOS ---
+if DATABASES and 'default' in DATABASES:
+    print("=== DIAGNÓSTICO DE BANCO DE DADOS ===")
+    db_info = DATABASES['default'].copy()
+    if 'PASSWORD' in db_info:
+        db_info['PASSWORD'] = '********'  # Esconder senha nos logs
+    print(f"ENGINE: {db_info.get('ENGINE')}")
+    print(f"NAME: {db_info.get('NAME')}")
+    print(f"USER: {db_info.get('USER')}")
+    print(f"HOST: {db_info.get('HOST')}")
+    print(f"PORT: {db_info.get('PORT')}")
+    print(f"OPTIONS: {db_info.get('OPTIONS', {})}")
+    
+    # Teste de conexão (apenas em produção)
+    if not DEBUG:
+        try:
+            print("Tentando conexão de teste com o banco...")
+            # Importações dentro do bloco try para evitar erros
+            import django.db
+            from django.db import connection
+            connection.ensure_connection()
+            print("Conexão de teste BEM-SUCEDIDA!")
+        except Exception as e:
+            print(f"ERRO NA CONEXÃO DE TESTE: {type(e).__name__}: {str(e)}")
+            
+            # Tenta diagnóstico mais detalhado com psycopg2 diretamente
+            try:
+                import psycopg2
+                db_config = DATABASES['default']
+                if db_config['ENGINE'] == 'django.db.backends.postgresql':
+                    print("Tentando conexão direta com psycopg2...")
+                    psycopg2.connect(
+                        dbname=db_config.get('NAME', ''),
+                        user=db_config.get('USER', ''),
+                        password=db_config.get('PASSWORD', ''),
+                        host=db_config.get('HOST', ''),
+                        port=db_config.get('PORT', ''),
+                    )
+                    print("Conexão psycopg2 direta BEM-SUCEDIDA!")
+            except Exception as psycopg2_err:
+                print(f"ERRO NA CONEXÃO PSYCOPG2: {type(psycopg2_err).__name__}: {str(psycopg2_err)}")
+
+    print("=== FIM DO DIAGNÓSTICO ===")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -286,7 +357,7 @@ REST_FRAMEWORK = {
 }
 # --- Fim REST Framework ---
 
-# <<< Logging (Opcional, mas útil para depuração no Railway) >>>
+# <<< Logging (Aumentado para DEBUG para mais informações) >>>
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -297,12 +368,17 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console'],
-        'level': 'INFO', # Mude para 'DEBUG' para mais detalhes
+        'level': 'DEBUG',  # Alterado para DEBUG para mais detalhes
     },
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'level': 'DEBUG',  # Alterado para DEBUG para mais detalhes
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'DEBUG',  # Ativar logs específicos de conexão do banco
             'propagate': False,
         },
     },
