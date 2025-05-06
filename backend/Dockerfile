@@ -2,14 +2,20 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Instalar dependências
+# Instalar dependências em um ambiente virtual
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m venv /opt/venv && \
+    . /opt/venv/bin/activate && \
+    pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Ativar o ambiente virtual em todos os comandos
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Copiar código
 COPY . .
 
-# Fase de release (sem o check_db problemático)
+# Fase de release (sem verificação de BD)
 RUN python manage.py collectstatic --noinput
 
 # Comando para iniciar
