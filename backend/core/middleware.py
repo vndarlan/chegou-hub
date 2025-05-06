@@ -21,7 +21,7 @@ class CORSMiddleware:
             if origin in allowed_origins:
                 response["Access-Control-Allow-Origin"] = origin
             else:
-                # Permitir todas as origens em desenvolvimento
+                # Para desenvolvimento, permite todas as origens
                 response["Access-Control-Allow-Origin"] = "*"
                 
             response["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
@@ -37,7 +37,7 @@ class CORSMiddleware:
         if origin in allowed_origins:
             response["Access-Control-Allow-Origin"] = origin
         else:
-            # Permitir todas as origens em desenvolvimento
+            # Para desenvolvimento
             response["Access-Control-Allow-Origin"] = "*"
             
         response["Access-Control-Allow-Credentials"] = "true"
