@@ -44,14 +44,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
+    'corsheaders',  # Certifique-se de que está aqui
     'rest_framework',
-    'corsheaders',  # Mantido como app instalado, mas não usado nos middlewares
     'core.apps.CoreConfig',
 ]
 
-# *** CORREÇÃO DE ORDEM DE MIDDLEWARES PARA CORS ***
+# *** CORREÇÃO DE MIDDLEWARE PARA CORS ***
 MIDDLEWARE = [
-    'core.middleware.CORSMiddleware',  # Nosso middleware PRIMEIRO
+    'corsheaders.middleware.CorsMiddleware',  # DEVE estar primeiro
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -60,6 +60,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # 'core.middleware.CORSMiddleware',  # Comentado - não use este middleware personalizado
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -202,14 +203,14 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- Configurações CORS comentadas para não usar django-cors-headers ---
-# CORS_ALLOW_ALL_ORIGINS = True
-# CORS_ORIGIN_ALLOW_ALL = True
-# CORS_ALLOW_CREDENTIALS = True
-# CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
-# CORS_ALLOW_METHODS = ['DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT']
-# CORS_ALLOW_HEADERS = [...]
-# CORS_PREFLIGHT_MAX_AGE = 86400
+# --- Configurações CORS atualizadas ---
+CORS_ALLOWED_ORIGINS = [
+    "https://chegouhub.up.railway.app",
+    "https://chegou-hubb-production.up.railway.app",
+]
+CORS_ALLOW_CREDENTIALS = True
+CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
+CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
 
 # --- Configuração CSRF Simplificada ---
 CSRF_TRUSTED_ORIGINS = [
