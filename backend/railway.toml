@@ -1,6 +1,6 @@
 [build]
 builder = "dockerfile"
-dockerfilePath = "Dockerfile"
+dockerfilePath = "backend/Dockerfile"
 
 [deploy]
 startCommand = "sh -c 'python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --log-level debug --timeout 120 --preload'"

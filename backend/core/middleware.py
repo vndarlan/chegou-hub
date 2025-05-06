@@ -7,7 +7,20 @@ class CORSMiddleware:
         if request.method == 'OPTIONS':
             from django.http import HttpResponse
             response = HttpResponse()
-            response["Access-Control-Allow-Origin"] = "https://chegouhub.up.railway.app"
+            # Permitir ambos os domínios
+            origin = request.headers.get('Origin', '')
+            allowed_origins = [
+                "https://chegouhub.up.railway.app",
+                "https://chegou-hubb-production.up.railway.app"
+            ]
+            
+            # Verificar se a origem está na lista de permitidos
+            if origin in allowed_origins:
+                response["Access-Control-Allow-Origin"] = origin
+            else:
+                # Modo de desenvolvimento - permite todas as origens
+                response["Access-Control-Allow-Origin"] = "*"
+                
             response["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
             response["Access-Control-Allow-Headers"] = "*"
             response["Access-Control-Allow-Credentials"] = "true"
@@ -18,7 +31,19 @@ class CORSMiddleware:
         response = self.get_response(request)
         
         # E adicionamos os cabeçalhos CORS à resposta
-        response["Access-Control-Allow-Origin"] = "https://chegouhub.up.railway.app"
+        origin = request.headers.get('Origin', '')
+        allowed_origins = [
+            "https://chegouhub.up.railway.app",
+            "https://chegou-hubb-production.up.railway.app"
+        ]
+        
+        # Verificar se a origem está na lista de permitidos
+        if origin in allowed_origins:
+            response["Access-Control-Allow-Origin"] = origin
+        else:
+            # Modo de desenvolvimento - permite todas as origens
+            response["Access-Control-Allow-Origin"] = "*"
+            
         response["Access-Control-Allow-Credentials"] = "true"
         
         return response
