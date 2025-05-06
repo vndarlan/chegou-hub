@@ -37,7 +37,11 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # --- Configuração ALLOWED_HOSTS para produção ---
 ALLOWED_HOSTS_STRING = os.getenv('ALLOWED_HOSTS', '')
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'chegou-hubb-production.up.railway.app',
+    'chegouhub.up.railway.app',
+]
+
 if ALLOWED_HOSTS_STRING:
     ALLOWED_HOSTS.extend(ALLOWED_HOSTS_STRING.split(','))
 
@@ -80,10 +84,11 @@ INSTALLED_APPS = [
     'core.apps.CoreConfig',
 ]
 
+# *** CORREÇÃO DE ORDEM DE MIDDLEWARES PARA CORS ***
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # DEVE vir antes do SecurityMiddleware
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -118,22 +123,28 @@ print("=== DIAGNÓSTICO DE AMBIENTE ===")
 print(f"DATABASE_URL: {'Definido' if os.getenv('DATABASE_URL') else 'NÃO DEFINIDO'}")
 print(f"DATABASE_PUBLIC_URL: {'Definido' if os.getenv('DATABASE_PUBLIC_URL') else 'NÃO DEFINIDO'}")
 print(f"DEBUG: {os.getenv('DEBUG', 'False')}")
-print(f"ALLOWED_HOSTS: {os.getenv('ALLOWED_HOSTS', 'Não definido')}")
+print(f"ALLOWED_HOSTS: {ALLOWED_HOSTS}")
 print("=== FIM DIAGNÓSTICO DE AMBIENTE ===")
 
 # --- Configuração Otimizada para PostgreSQL no Railway ---
 DATABASE_URL = os.getenv('DATABASE_URL')
+DATABASE_PUBLIC_URL = os.getenv('DATABASE_PUBLIC_URL')
+
+# Usar DATABASE_PUBLIC_URL se DATABASE_URL não estiver disponível
+if not DATABASE_URL and DATABASE_PUBLIC_URL:
+    print("AVISO: DATABASE_URL não encontrada, usando DATABASE_PUBLIC_URL.")
+    DATABASE_URL = DATABASE_PUBLIC_URL
 
 if not DATABASE_URL:
-    raise ValueError("ERRO CRÍTICO: DATABASE_URL não definida no ambiente. PostgreSQL é obrigatório para este aplicativo.")
+    raise ValueError("ERRO CRÍTICO: DATABASE_URL ou DATABASE_PUBLIC_URL não definida no ambiente. PostgreSQL é obrigatório para este aplicativo.")
 
-# Configuração simples e direta com dj-database-url
+# Configuração com dj-database-url
 DATABASES = {
     'default': dj_database_url.parse(
         DATABASE_URL,
         conn_max_age=600,
         conn_health_checks=True,
-        ssl_require=False  # Desabilitado inicialmente para diagnóstico
+        ssl_require=False  # Desabilitado para diagnóstico
     )
 }
 
@@ -189,43 +200,18 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- Configuração do CORS ---
-# <<< MODIFICADO para ler origens do ambiente >>>
-CORS_ALLOWED_ORIGINS_STRING = os.getenv('CORS_ALLOWED_ORIGINS', '')
+# --- CORREÇÃO DA CONFIGURAÇÃO DO CORS ---
+# Lista explícita dos domínios permitidos
 CORS_ALLOWED_ORIGINS = [
     "https://chegouhub.up.railway.app",
     "https://chegou-hubb-production.up.railway.app",
     "https://www.chegouhub.up.railway.app",
-    "http://chegouhub.up.railway.app",  # Para ambientes de desenvolvimento
+    "http://chegouhub.up.railway.app",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
-if DEBUG:
-    # Permitir localhost em DEBUG
-    CORS_ALLOWED_ORIGINS.extend([
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ])
-if CORS_ALLOWED_ORIGINS_STRING:
-    # Adiciona URLs do ambiente
-    CORS_ALLOWED_ORIGINS.extend([origin.strip() for origin in CORS_ALLOWED_ORIGINS_STRING.split(',')])
 
-# Atualize CSRF_TRUSTED_ORIGINS - deve incluir a mesma lista
-CSRF_TRUSTED_ORIGINS = [
-    "https://chegouhub.up.railway.app", 
-    "https://chegou-hubb-production.up.railway.app",
-    "https://www.chegouhub.up.railway.app",
-    "http://chegouhub.up.railway.app",  # Para ambientes de desenvolvimento
-]
-if DEBUG:
-    CSRF_TRUSTED_ORIGINS.extend([
-        'http://localhost:3000',
-        'http://127.0.0.1:3000',
-    ])
-# Corrigi para usar CORS_ALLOWED_ORIGINS_STRING já que CSRF_TRUSTED_ORIGINS_STRING não existe
-if CORS_ALLOWED_ORIGINS_STRING:
-    # Adiciona URLs do ambiente
-    CSRF_TRUSTED_ORIGINS.extend([origin.strip() for origin in CORS_ALLOWED_ORIGINS_STRING.split(',')])
-
-# Configurações CORS adicionais
+# Configurações CORS aprimoradas
 CORS_ALLOW_CREDENTIALS = True
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 CORS_ALLOW_HEADERS = [
@@ -238,15 +224,37 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
-    'cache-control',  # Adicionado
-    'pragma',         # Adicionado
+    'cache-control',
+    'pragma',
+]
+
+# PERMITIR PREFLIGHT OPTIONS
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+CORS_PREFLIGHT_MAX_AGE = 86400  # 24 horas
+
+# --- CORREÇÃO DA CONFIGURAÇÃO CSRF ---
+# Lista explícita dos domínios confiáveis
+CSRF_TRUSTED_ORIGINS = [
+    "https://chegouhub.up.railway.app",
+    "https://chegou-hubb-production.up.railway.app",
+    "https://www.chegouhub.up.railway.app",
+    "http://chegouhub.up.railway.app",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
 
 # Configurações CSRF Cookie ajustadas
 CSRF_COOKIE_SECURE = not DEBUG  # True em produção, False em desenvolvimento
 CSRF_COOKIE_SAMESITE = 'Lax' if DEBUG else 'None'  # 'None' requer HTTPS em produção
 CSRF_COOKIE_HTTPONLY = False  # Precisa ser acessível por JavaScript
-CSRF_USE_SESSIONS = False  # Armazenar em cookies é mais simples para APIs
+CSRF_USE_SESSIONS = False  # Armazenar em cookies
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Corresponde ao axios.defaults.xsrfHeaderName = 'X-CSRFToken'
 
 # <<< Ajustes de Segurança para Produção (HTTPS) >>>
@@ -257,8 +265,8 @@ else: # Em desenvolvimento (DEBUG=True)
     CSRF_COOKIE_SECURE = False
     CSRF_COOKIE_SAMESITE = 'Lax' 
 
-# Configuração de domínio para cookies CSRF (NOVA CONFIGURAÇÃO)
-CSRF_COOKIE_DOMAIN = '.railway.app'  # Permite compartilhar cookies entre subdomínios
+# IMPORTANTE: Remover restrição de domínio para contornar problema com diferentes subdomínios
+CSRF_COOKIE_DOMAIN = None  # Permite que o cookie seja acessível entre diferentes domínios
 
 # --- Configuração REST Framework (sem mudanças) ---
 REST_FRAMEWORK = {
@@ -293,6 +301,11 @@ LOGGING = {
         'django.db.backends': {
             'handlers': ['console'],
             'level': 'DEBUG',  # Ativar logs específicos de conexão do banco
+            'propagate': False,
+        },
+        'corsheaders': {
+            'handlers': ['console'],
+            'level': 'DEBUG',  # Logs específicos para depurar problemas de CORS
             'propagate': False,
         },
     },
