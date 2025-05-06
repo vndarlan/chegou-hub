@@ -99,56 +99,63 @@ DATABASE_PUBLIC_URL = os.getenv('DATABASE_PUBLIC_URL')
 # Iniciar log do diagnóstico
 print("=== DIAGNÓSTICO DE CONEXÃO COM BANCO DE DADOS ===")
 
-# Usar DATABASE_PUBLIC_URL se DATABASE_URL não estiver disponível
-if not DATABASE_URL and DATABASE_PUBLIC_URL:
-    print("AVISO: DATABASE_URL não encontrada, usando DATABASE_PUBLIC_URL.")
-    # Adicione esquema postgres:// se não existir
-    if not DATABASE_PUBLIC_URL.startswith(('postgres://', 'postgresql://')):
-        DATABASE_URL = f"postgres://{DATABASE_PUBLIC_URL}"
-        print(f"URL corrigida: {DATABASE_URL}")
-    else:
-        DATABASE_URL = DATABASE_PUBLIC_URL
-elif not DATABASE_URL:
-    print("AVISO: Nenhuma URL de banco de dados encontrada, usando SQLite.")
-    DATABASE_URL = "sqlite:///"+os.path.join(BASE_DIR, "db.sqlite3")
-
-print(f"URL de conexão final: {DATABASE_URL.split('@')[0].split('://')[0]}://*****@{DATABASE_URL.split('@')[1] if '@' in DATABASE_URL else 'sqlite-local'}")
-
-# Teste de conectividade básica antes de configurar
-try:
-    import socket
-    if '@' in DATABASE_URL:
-        # Extrai o hostname para teste
-        hostname = DATABASE_URL.split('@')[1].split('/')[0].split(':')[0]
-        try:
-            socket.gethostbyname(hostname)
-            print(f"✓ Hostname {hostname} resolvido com sucesso.")
-        except Exception as e:
-            print(f"✗ ERRO: Não foi possível resolver o hostname {hostname}: {str(e)}")
-except Exception as e:
-    print(f"Erro no teste de conectividade: {str(e)}")
-
-# Configuração com dj-database-url com tratamento de erros aprimorado
-try:
-    DATABASES = {
-        'default': dj_database_url.parse(
-            DATABASE_URL,
-            conn_max_age=600,
-            conn_health_checks=True,
-            ssl_require=False
-        )
-    }
-    print("✓ Configuração do banco de dados analisada com sucesso")
-except Exception as e:
-    print(f"✗ ERRO ao analisar URL do banco: {str(e)}")
-    # Fallback para SQLite em caso de erro
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+# Ignorar testes de DNS no Railway que estão falhando
+# e confiar diretamente nas variáveis de ambiente fornecidas
+if DATABASE_URL:
+    print(f"Usando DATABASE_URL para conexão direta")
+    try:
+        # Configuração direta com dj-database-url
+        DATABASES = {
+            'default': dj_database_url.parse(
+                DATABASE_URL,
+                conn_max_age=600,
+                conn_health_checks=True,
+                ssl_require=False
+            )
         }
-    }
-    print("Usando SQLite como fallback")
+        print("✓ Configuração do banco de dados definida com sucesso")
+    except Exception as e:
+        print(f"✗ ERRO ao configurar banco de dados: {str(e)}")
+        # Fallback para SQLite em caso de erro
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+            }
+        }
+        print("Usando SQLite como fallback")
+else:
+    print("AVISO: DATABASE_URL não disponível, tentando DATABASE_PUBLIC_URL")
+    if DATABASE_PUBLIC_URL:
+        try:
+            # Tenta usar URL pública como alternativa
+            DATABASES = {
+                'default': dj_database_url.parse(
+                    f"postgres://{DATABASE_PUBLIC_URL}" if not DATABASE_PUBLIC_URL.startswith(('postgres://', 'postgresql://')) else DATABASE_PUBLIC_URL,
+                    conn_max_age=600,
+                    conn_health_checks=True,
+                    ssl_require=False
+                )
+            }
+            print("✓ Configuração do banco de dados com URL pública")
+        except Exception as e:
+            print(f"✗ ERRO com URL pública: {str(e)}")
+            DATABASES = {
+                'default': {
+                    'ENGINE': 'django.db.backends.sqlite3',
+                    'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+                }
+            }
+            print("Usando SQLite como fallback")
+    else:
+        # Último recurso - SQLite
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+            }
+        }
+        print("Nenhuma URL de banco de dados encontrada, usando SQLite")
 
 print("=== FIM DO DIAGNÓSTICO DE CONEXÃO ===")
 
