@@ -1,2 +1,2 @@
 release: python manage.py collectstatic --noinput
-web: python -c "import sys; print('Python version:', sys.version); print('Starting server with DEBUG logging...')" && DJANGO_LOG_LEVEL=DEBUG uvicorn config.asgi:application --host 0.0.0.0 --port $PORT
+web: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 60

@@ -1,6 +1,7 @@
 # backend/config/urls.py
 from django.contrib import admin
 from django.urls import path, include
+from core.views_debug import DebugCorsView
 from rest_framework.routers import DefaultRouter
 from core.views import (
     SimpleLoginView,
@@ -41,6 +42,5 @@ urlpatterns = [
 
     # Incluir todas as URLs registradas no router (Styles, Calendars, AIProjects)
     path('api/', include(router.urls)),
-
-    # Linhas duplicadas removidas, a linha acima já inclui todos os endpoints do router
+    path('api/debug/cors/', DebugCorsView.as_view(), name='debug_cors'),
 ]
