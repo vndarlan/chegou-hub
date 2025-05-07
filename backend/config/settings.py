@@ -7,7 +7,6 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 import dj_database_url
-# from urllib.parse import urlparse # Não parece ser usado diretamente após as mudanças
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -16,37 +15,31 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'insecure-key-for-development-only-if-not-set')
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'insecure-fallback-key-for-dev-if-not-set-in-env')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # A variável de ambiente DEBUG do Railway será 'True' ou 'False' como string.
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-
 # --- Configuração ALLOWED_HOSTS ---
 # Lendo de variável de ambiente e adicionando padrões
+# No Railway, defina a variável de ambiente ALLOWED_HOSTS como:
+# "chegouhub.up.railway.app,chegou-hubb-production.up.railway.app"
+# (sem aspas extras, apenas os domínios separados por vírgula)
 allowed_hosts_env = os.getenv('ALLOWED_HOSTS')
 if allowed_hosts_env:
-    # Assume que a variável de ambiente é uma string separada por vírgulas
-    # e a converte para uma lista Python.
-    # Adiciona também os hosts padrão e '*' para garantir.
-    ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(',')] + [
-        'railway.app', '.railway.app', 'localhost', '127.0.0.1', '*'
-    ]
+    ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(',')]
 else:
-    # Fallback se a variável de ambiente não estiver definida
-    ALLOWED_HOSTS = [
-        'chegou-hubb-production.up.railway.app', # Seu backend
-        'chegouhub.up.railway.app',             # Seu frontend
-        'railway.app',
-        '.railway.app',
-        'localhost',
-        '127.0.0.1',
-        '*', # Mantenha '*' por enquanto para diagnóstico, mas restrinja em produção final.
-    ]
-# Remover duplicatas caso haja sobreposição
-ALLOWED_HOSTS = list(set(ALLOWED_HOSTS))
+    # Fallback se a variável de ambiente não estiver definida (para desenvolvimento local ou emergência)
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+    if not DEBUG: # Em produção sem a variável, é um problema de configuração.
+        print("ALERTA DE SEGURANÇA: ALLOWED_HOSTS não configurada via variável de ambiente em ambiente de não-DEBUG!")
+        ALLOWED_HOSTS.append('*') # Apenas como medida temporária extrema se tudo mais falhar
 
+# Se estiver em DEBUG, permita mais flexibilidade
+if DEBUG:
+    ALLOWED_HOSTS.extend(['localhost', '127.0.0.1', '*']) # '*' é geralmente ok para debug local
+    ALLOWED_HOSTS = list(set(ALLOWED_HOSTS)) # Remove duplicatas
 
 # --- Chave da API OpenAI ---
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
@@ -58,20 +51,20 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'whitenoise.runserver_nostatic', # Para servir arquivos estáticos com eficiência
+    'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
-    'corsheaders',                  # Para lidar com CORS
+    'corsheaders',
     'rest_framework',
     'core.apps.CoreConfig',
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',      # DEVE ser um dos primeiros
+    'corsheaders.middleware.CorsMiddleware', # Deve ser um dos primeiros
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # Para servir arquivos estáticos
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware', # Essencial para CSRF
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -82,7 +75,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [], # Se você tiver templates no nível do projeto, adicione o diretório aqui
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -96,28 +89,32 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
-# ASGI_APPLICATION = 'config.asgi.application' # Comentado pois você mencionou preferir WSGI
 
-# --- DIAGNÓSTICO DO AMBIENTE (mantido para utilidade) ---
-print("=== DIAGNÓSTICO DE AMBIENTE (settings.py) ===")
-print(f"SECRET_KEY: {'Definida' if SECRET_KEY else 'NÃO DEFINIDA (USANDO FALLBACK INSEGURO)'}")
-print(f"DEBUG: {DEBUG} (Tipo: {type(DEBUG)})")
-print(f"ALLOWED_HOSTS (final): {ALLOWED_HOSTS}")
-print(f"DATABASE_URL (env): {'Definido' if os.getenv('DATABASE_URL') else 'NÃO DEFINIDO'}")
-print(f"OPENAI_API_KEY (env): {'Definido' if OPENAI_API_KEY else 'NÃO DEFINIDO'}")
-print("=== FIM DIAGNÓSTICO DE AMBIENTE ===")
+# --- Diagnósticos (Opcional, mas útil) ---
+print(f"--- Django Settings Initializing ---")
+print(f"DEBUG: {DEBUG}")
+print(f"ALLOWED_HOSTS: {ALLOWED_HOSTS}")
 
 # --- Configuração do Banco de Dados ---
-DATABASE_URL = os.getenv('DATABASE_URL')
-DATABASES = {}
+DATABASE_URL_FROM_ENV = os.getenv('DATABASE_URL')
+# Para desenvolvimento local, você pode querer usar a DATABASE_PUBLIC_URL se DATABASE_URL for a interna.
+# No Railway, a DATABASE_URL fornecida já deve ser a correta (interna).
+if DEBUG and os.getenv('USE_PUBLIC_DB_URL_LOCALLY', 'False').lower() == 'true':
+    # Esta lógica é para DESENVOLVIMENTO LOCAL se você quiser forçar o uso da URL pública
+    # Defina USE_PUBLIC_DB_URL_LOCALLY=True no seu .env local.
+    public_db_url = os.getenv('DATABASE_PUBLIC_URL')
+    if public_db_url:
+        print("DEBUG LOCAL: Usando DATABASE_PUBLIC_URL para conexão.")
+        DATABASE_URL_FROM_ENV = public_db_url
 
-if DATABASE_URL:
-    print("Usando DATABASE_URL para conexão com PostgreSQL.")
+DATABASES = {}
+if DATABASE_URL_FROM_ENV:
+    print(f"Conectando ao banco de dados via URL: {DATABASE_URL_FROM_ENV.split('@')[0]}@...") # Log sem credenciais
     DATABASES['default'] = dj_database_url.parse(
-        DATABASE_URL,
-        conn_max_age=600,       # Tempo de vida da conexão em segundos
-        conn_health_checks=True, # Habilita verificação de saúde da conexão
-        ssl_require=os.getenv('DB_SSL_REQUIRE', 'False').lower() == 'true' # Para Railway, geralmente não precisa de SSL explícito na URL
+        DATABASE_URL_FROM_ENV,
+        conn_max_age=600,
+        conn_health_checks=True,
+        ssl_require=os.getenv('DB_SSL_REQUIRE', 'False').lower() == 'true'
     )
 else:
     print("AVISO: DATABASE_URL não definida. Usando SQLite como fallback.")
@@ -125,13 +122,6 @@ else:
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
-
-# Log da configuração final do banco (sem expor senha)
-db_info_final = DATABASES['default'].copy()
-if 'PASSWORD' in db_info_final and db_info_final['PASSWORD']:
-    db_info_final['PASSWORD'] = '********'
-print(f"Configuração final do banco de dados: {db_info_final}")
-
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -143,18 +133,13 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 LANGUAGE_CODE = 'pt-br'
-TIME_ZONE = 'America/Sao_Paulo' # Ou a timezone correta para você
+TIME_ZONE = 'America/Sao_Paulo'
 USE_I18N = True
-USE_TZ = True # Recomendado usar Time Zones
+USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles' # Diretório onde o collectstatic irá copiar os arquivos para o WhiteNoise
-STATICFILES_DIRS = [
-    # BASE_DIR / 'static', # Se você tiver uma pasta 'static' no nível do projeto com arquivos estáticos
-]
-
-# Storage para Whitenoise (recomendado para servir estáticos em produção)
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
@@ -163,88 +148,86 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- Configurações CORS Revisadas ---
-CORS_ALLOW_CREDENTIALS = True  # Essencial para autenticação baseada em cookies/sessão cross-origin
+# --- Configurações CORS ---
+CORS_ALLOW_CREDENTIALS = True
+# No Railway, defina a variável de ambiente CORS_ALLOWED_ORIGINS como:
+# "https://chegouhub.up.railway.app"
+# (Se precisar de múltiplas, separe por vírgula. Mas para este caso, apenas o frontend.)
+cors_allowed_origins_env = os.getenv('CORS_ALLOWED_ORIGINS')
+if cors_allowed_origins_env:
+    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_allowed_origins_env.split(',')]
+else:
+    CORS_ALLOWED_ORIGINS = [] # Deixe vazio se não definido no env; em DEBUG, pode ser adicionado abaixo.
+    if not DEBUG:
+        print("ALERTA: CORS_ALLOWED_ORIGINS não configurada via variável de ambiente em ambiente de não-DEBUG!")
 
-# Lista explícita de origens permitidas.
-# Garanta que a URL do seu frontend implantado esteja aqui.
-CORS_ALLOWED_ORIGINS = [
-    "https://chegouhub.up.railway.app",          # Seu frontend
-    "https://chegou-hubb-production.up.railway.app", # Seu backend (útil se o admin ou outras partes do backend fizerem chamadas API para si mesmas)
-    # Adicione origens de desenvolvimento local se precisar testar o frontend local contra o backend de produção
-    # "http://localhost:3000",
-    # "http://127.0.0.1:3000",
-]
+if DEBUG: # Em desenvolvimento, adicione origens comuns
+    CORS_ALLOWED_ORIGINS.extend([
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://chegouhub.up.railway.app", # Para testar o frontend de produção localmente
+    ])
+    CORS_ALLOWED_ORIGINS = list(set(CORS_ALLOWED_ORIGINS)) # Remove duplicatas
+
+# Se, após tudo, ainda houver problemas de CORS *e* você tiver certeza que o Django está gerando os cabeçalhos,
+# e eles estão se perdendo no proxy do Railway, esta linha abaixo pode ser um teste extremo.
+# Mas o ideal é que a lista explícita funcione.
+# CORS_ALLOW_ALL_ORIGINS = True # Use com cautela e apenas para diagnóstico extremo.
+
 print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
 
-# Comentado para forçar o uso de CORS_ALLOWED_ORIGINS e diagnosticar.
-# Se com a lista explícita acima funcionar, você pode decidir se quer reabilitar isso.
-# Lembre-se que com CORS_ALLOW_CREDENTIALS = True, o Allow-Origin não pode ser '*' efetivamente.
-# O django-cors-headers lida com isso refletindo a origem da requisição se ela estiver na lista permitida.
-# CORS_ALLOW_ALL_ORIGINS = True
-
-# Cabeçalhos que o frontend pode acessar na resposta
 CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
-
-# Métodos HTTP permitidos
-CORS_ALLOW_METHODS = [
-    "DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT",
-]
-
-# Cabeçalhos HTTP permitidos na requisição
+CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
 CORS_ALLOW_HEADERS = [
     "accept", "accept-encoding", "authorization", "content-type", "dnt", "origin",
     "user-agent", "x-csrftoken", "x-requested-with",
-    # Adicione outros cabeçalhos customizados que seu frontend possa enviar
 ]
 
-# --- Configuração CSRF Revisada ---
-# Lista de origens confiáveis para requisições POST que alteram estado.
-# Deve incluir o domínio onde seu frontend está hospedado se ele fizer POSTs.
-CSRF_TRUSTED_ORIGINS = [
-    "https://chegouhub.up.railway.app",          # Seu frontend
-    "https://chegou-hubb-production.up.railway.app", # Seu backend (para o admin e outras POSTs diretas)
-]
+# --- Configuração CSRF ---
+# No Railway, defina a variável de ambiente CSRF_TRUSTED_ORIGINS como:
+# "https://chegouhub.up.railway.app"
+# (Se precisar de múltiplas, separe por vírgula.)
+csrf_trusted_origins_env = os.getenv('CSRF_TRUSTED_ORIGINS')
+if csrf_trusted_origins_env:
+    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_trusted_origins_env.split(',')]
+else:
+    CSRF_TRUSTED_ORIGINS = []
+    if not DEBUG:
+        print("ALERTA: CSRF_TRUSTED_ORIGINS não configurada via variável de ambiente em ambiente de não-DEBUG!")
+
+if DEBUG: # Em desenvolvimento, adicione origens comuns
+    CSRF_TRUSTED_ORIGINS.extend([
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://chegouhub.up.railway.app",
+    ])
+    CSRF_TRUSTED_ORIGINS = list(set(CSRF_TRUSTED_ORIGINS)) # Remove duplicatas
 print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
 
-# Para cookies CSRF e de Sessão ao usar HTTPS e potencialmente diferentes subdomínios (frontend/backend)
-# `None` permite que o navegador envie o cookie com requisições cross-site
-# (necessário se o frontend e backend estão em domínios diferentes mas você quer credenciais).
-# 'Lax' é o padrão e mais restritivo, pode não funcionar se o frontend e backend são domínios diferentes.
-CSRF_COOKIE_SAMESITE = None  # Alterado para None para máxima compatibilidade com withCredentials
-SESSION_COOKIE_SAMESITE = None # Alterado para None
+CSRF_COOKIE_SAMESITE = 'Lax' # Padrão do Django, mais seguro. Mude para None se tiver problemas com iframes ou POSTs de domínios diferentes.
+SESSION_COOKIE_SAMESITE = 'Lax'# Padrão do Django. Mude para None se tiver problemas com iframes ou POSTs de domínios diferentes.
 
-CSRF_COOKIE_SECURE = True      # Cookie CSRF apenas sobre HTTPS
-SESSION_COOKIE_SECURE = True   # Cookie de Sessão apenas sobre HTTPS
+# Para que o Axios (JS) possa ler o cookie CSRF, HttpOnly DEVE ser False.
+# No entanto, o Axios é projetado para obter o token CSRF e enviá-lo em um header.
+# A configuração padrão do Django para CSRF_COOKIE_HTTPONLY é False.
+CSRF_COOKIE_HTTPONLY = False # Django default is False. Explicitly set.
 
-# Importante: Não defina CSRF_COOKIE_DOMAIN com a string "None" de uma variável de ambiente.
-# Deve ser o valor Python None, ou um domínio específico (ex: ".railway.app").
-# Se a variável de ambiente CSRF_COOKIE_DOMAIN for "None" (string), isso causará problemas.
-# Definindo explicitamente como Python None aqui para garantir.
-CSRF_COOKIE_DOMAIN = None
-print(f"CSRF_COOKIE_DOMAIN (final): {CSRF_COOKIE_DOMAIN} (Tipo: {type(CSRF_COOKIE_DOMAIN)})")
+CSRF_COOKIE_SECURE = not DEBUG  # True em produção (quando DEBUG=False), False em desenvolvimento
+SESSION_COOKIE_SECURE = not DEBUG # True em produção, False em desenvolvimento
 
-CSRF_COOKIE_HTTPONLY = False   # Default é False. Se True, JS não pode acessar o token CSRF
-                               # diretamente do cookie (Axios o pega do header ou de um campo de formulário).
-                               # Manter False é geralmente OK para SPA com Axios.
+# CSRF_COOKIE_DOMAIN = None # Padrão, geralmente o melhor.
+# SESSION_COOKIE_DOMAIN = None # Padrão, geralmente o melhor.
 
 # --- Configuração REST Framework ---
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication', # Para login via sessão/cookies
-        # 'rest_framework.authentication.TokenAuthentication', # Se você usar tokens API
+        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated', # Acesso padrão apenas para usuários autenticados
-    ],
-    # 'DEFAULT_RENDERER_CLASSES': ( # Se precisar de renderizadores específicos
-    #     'rest_framework.renderers.JSONRenderer',
-    # ),
-    # 'DEFAULT_PARSER_CLASSES': ( # Se precisar de parsers específicos
-    #     'rest_framework.parsers.JSONParser',
-    # )
+        'rest_framework.permissions.IsAuthenticated',
+    ]
 }
 
-# Aumentar timeout da sessão (opcional)
-SESSION_COOKIE_AGE = 86400 * 7  # 1 semana em segundos
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False # Sessão persiste mesmo se o navegador fechar (até SESSION_COOKIE_AGE)
+# Aumentar timeout da sessão
+SESSION_COOKIE_AGE = 86400 * 7  # 1 semana
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
