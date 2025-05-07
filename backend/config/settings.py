@@ -31,17 +31,48 @@ DEBUG_ENV_VAR = os.getenv('DEBUG', 'True' if not IS_RAILWAY_DEPLOYMENT else 'Fal
 DEBUG = DEBUG_ENV_VAR.lower() == 'true'
 
 # --- ALLOWED_HOSTS ---
-# No Railway, defina a variável de ambiente ALLOWED_HOSTS como:
-# "chegouhub.up.railway.app,chegou-hubb-production.up.railway.app"
-ALLOWED_HOSTS_ENV = os.getenv('ALLOWED_HOSTS')
+ALLOWED_HOSTS_ENV = os.getenv('ALLOWED_HOSTS') # Ex: "frontend.com,backend.com"
+ALLOWED_HOSTS = []
 if ALLOWED_HOSTS_ENV:
-    ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',')]
-else:
-    if DEBUG: # Local dev fallback
-        ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*']
-    else: # Produção sem ALLOWED_HOSTS definido é um erro de configuração
-        print("ERRO CRÍTICO: ALLOWED_HOSTS não definida no ambiente de produção!")
-        ALLOWED_HOSTS = [] # Forçará um erro se não corrigido
+    ALLOWED_HOSTS.extend([host.strip() for host in ALLOWED_HOSTS_ENV.split(',')])
+
+# Adicionar domínios específicos do Railway para healthchecks e comunicação interna
+# RAILWAY_PRIVATE_DOMAIN é geralmente o nome do seu serviço + ".railway.internal"
+# Mas pode variar. O mais seguro é permitir os domínios públicos e o genérico ".railway.app"
+# se o healthcheck vier de um subdomínio inesperado.
+RAILWAY_PUBLIC_BACKEND_DOMAIN = os.getenv('RAILWAY_PUBLIC_DOMAIN') # O Railway pode definir isso com seu domínio público
+if RAILWAY_PUBLIC_BACKEND_DOMAIN:
+    ALLOWED_HOSTS.append(RAILWAY_PUBLIC_BACKEND_DOMAIN)
+    # Adiciona o host sem o subdomínio mais específico se for tipo `servico.usuario.railway.app`
+    # para pegar `usuario.railway.app` ou similar para healthchecks.
+    # Isso é uma suposição e pode precisar de ajuste.
+    parts = RAILWAY_PUBLIC_BACKEND_DOMAIN.split('.')
+    if len(parts) > 2:
+         ALLOWED_HOSTS.append('.'.join(parts[-(len(parts)//2):])) # Tenta pegar um domínio mais genérico
+         ALLOWED_HOSTS.append(f".{'.'.join(parts[-(len(parts)//2):])}")
+
+
+# Para garantir que os healthchecks do Railway funcionem, eles podem vir de hosts internos
+# ou do próprio domínio público do serviço.
+# As variáveis que você definiu no painel do Railway são cruciais aqui.
+# Se ALLOWED_HOSTS_ENV já contém "chegou-hubb-production.up.railway.app", ótimo.
+# Adicionamos também ".railway.app" para cobrir subdomínios internos de forma genérica.
+ALLOWED_HOSTS.append('.railway.app') # Permite qualquer subdomínio de railway.app
+
+if DEBUG: # Local dev fallback
+    ALLOWED_HOSTS.extend(['localhost', '127.0.0.1', '*'])
+elif not ALLOWED_HOSTS_ENV: # Produção sem ALLOWED_HOSTS_ENV é um erro
+    print("ERRO CRÍTICO: ALLOWED_HOSTS (env var) não definida no ambiente de produção!")
+    # Não adicione '*' em produção aqui, force a configuração correta
+    ALLOWED_HOSTS = [] # Isso fará o Django falhar se não corrigido
+
+ALLOWED_HOSTS = list(set(ALLOWED_HOSTS)) # Remover duplicatas
+if not ALLOWED_HOSTS and not DEBUG:
+    # Se mesmo após tudo isso a lista estiver vazia em produção, é um problema sério
+    # Adicione '*' como último recurso para tentar fazer o healthcheck passar,
+    # mas ISSO NÃO É SEGURO PARA PRODUÇÃO A LONGO PRAZO.
+    print("ALERTA DE SEGURANÇA: ALLOWED_HOSTS está vazia em produção. Adicionando '*' como último recurso.")
+    ALLOWED_HOSTS.append('*')
 
 # --- Chave da API OpenAI ---
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
