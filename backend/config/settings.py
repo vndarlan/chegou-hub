@@ -11,35 +11,37 @@ import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# --- Carregar variáveis de ambiente do .env (principalmente para desenvolvimento local) ---
-load_dotenv(os.path.join(BASE_DIR, '.env'))
+# --- Carregar variáveis de ambiente do .env (APENAS PARA DESENVOLVIMENTO LOCAL) ---
+# Em produção (Railway), as variáveis de ambiente devem ser definidas no painel do Railway.
+IS_RAILWAY_DEPLOYMENT = os.getenv('RAILWAY_ENVIRONMENT_NAME') is not None # Railway define esta variável
+
+if not IS_RAILWAY_DEPLOYMENT:
+    print("Ambiente local detectado, carregando .env")
+    load_dotenv(os.path.join(BASE_DIR, '.env'))
+else:
+    print("Ambiente Railway detectado, NÃO carregando .env")
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'insecure-fallback-key-for-dev-if-not-set-in-env')
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'local-dev-insecure-fallback-key')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-# A variável de ambiente DEBUG do Railway será 'True' ou 'False' como string.
-DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+# --- DEBUG ---
+# No Railway, a variável de ambiente DEBUG deve ser a string "False"
+# No .env local, pode ser "True"
+DEBUG_ENV_VAR = os.getenv('DEBUG', 'True' if not IS_RAILWAY_DEPLOYMENT else 'False') # Default para True local, False Railway
+DEBUG = DEBUG_ENV_VAR.lower() == 'true'
 
-# --- Configuração ALLOWED_HOSTS ---
-# Lendo de variável de ambiente e adicionando padrões
+# --- ALLOWED_HOSTS ---
 # No Railway, defina a variável de ambiente ALLOWED_HOSTS como:
 # "chegouhub.up.railway.app,chegou-hubb-production.up.railway.app"
-# (sem aspas extras, apenas os domínios separados por vírgula)
-allowed_hosts_env = os.getenv('ALLOWED_HOSTS')
-if allowed_hosts_env:
-    ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(',')]
+ALLOWED_HOSTS_ENV = os.getenv('ALLOWED_HOSTS')
+if ALLOWED_HOSTS_ENV:
+    ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',')]
 else:
-    # Fallback se a variável de ambiente não estiver definida (para desenvolvimento local ou emergência)
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
-    if not DEBUG: # Em produção sem a variável, é um problema de configuração.
-        print("ALERTA DE SEGURANÇA: ALLOWED_HOSTS não configurada via variável de ambiente em ambiente de não-DEBUG!")
-        ALLOWED_HOSTS.append('*') # Apenas como medida temporária extrema se tudo mais falhar
-
-# Se estiver em DEBUG, permita mais flexibilidade
-if DEBUG:
-    ALLOWED_HOSTS.extend(['localhost', '127.0.0.1', '*']) # '*' é geralmente ok para debug local
-    ALLOWED_HOSTS = list(set(ALLOWED_HOSTS)) # Remove duplicatas
+    if DEBUG: # Local dev fallback
+        ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*']
+    else: # Produção sem ALLOWED_HOSTS definido é um erro de configuração
+        print("ERRO CRÍTICO: ALLOWED_HOSTS não definida no ambiente de produção!")
+        ALLOWED_HOSTS = [] # Forçará um erro se não corrigido
 
 # --- Chave da API OpenAI ---
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
@@ -59,12 +61,12 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware', # Deve ser um dos primeiros
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware', # Essencial para CSRF
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -90,18 +92,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# --- Diagnósticos (Opcional, mas útil) ---
-print(f"--- Django Settings Initializing ---")
-print(f"DEBUG: {DEBUG}")
-print(f"ALLOWED_HOSTS: {ALLOWED_HOSTS}")
+# --- Diagnósticos ---
+print(f"--- Django Settings Values ---")
+print(f"IS_RAILWAY_DEPLOYMENT: {IS_RAILWAY_DEPLOYMENT}")
+print(f"DEBUG: {DEBUG} (lido de: '{DEBUG_ENV_VAR}')")
+print(f"ALLOWED_HOSTS: {ALLOWED_HOSTS} (lido de: '{ALLOWED_HOSTS_ENV}')")
 
 # --- Configuração do Banco de Dados ---
 DATABASE_URL_FROM_ENV = os.getenv('DATABASE_URL')
-# Para desenvolvimento local, você pode querer usar a DATABASE_PUBLIC_URL se DATABASE_URL for a interna.
-# No Railway, a DATABASE_URL fornecida já deve ser a correta (interna).
-if DEBUG and os.getenv('USE_PUBLIC_DB_URL_LOCALLY', 'False').lower() == 'true':
-    # Esta lógica é para DESENVOLVIMENTO LOCAL se você quiser forçar o uso da URL pública
-    # Defina USE_PUBLIC_DB_URL_LOCALLY=True no seu .env local.
+if DEBUG and not IS_RAILWAY_DEPLOYMENT and os.getenv('USE_PUBLIC_DB_URL_LOCALLY', 'False').lower() == 'true':
     public_db_url = os.getenv('DATABASE_PUBLIC_URL')
     if public_db_url:
         print("DEBUG LOCAL: Usando DATABASE_PUBLIC_URL para conexão.")
@@ -109,7 +108,7 @@ if DEBUG and os.getenv('USE_PUBLIC_DB_URL_LOCALLY', 'False').lower() == 'true':
 
 DATABASES = {}
 if DATABASE_URL_FROM_ENV:
-    print(f"Conectando ao banco de dados via URL: {DATABASE_URL_FROM_ENV.split('@')[0]}@...") # Log sem credenciais
+    print(f"Conectando ao banco de dados via URL (host e nome omitidos por segurança no log)...")
     DATABASES['default'] = dj_database_url.parse(
         DATABASE_URL_FROM_ENV,
         conn_max_age=600,
@@ -123,7 +122,7 @@ else:
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 
-# Password validation
+# Password validation (mantido como antes)
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -131,13 +130,13 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalization
+# Internationalization (mantido como antes)
 LANGUAGE_CODE = 'pt-br'
 TIME_ZONE = 'America/Sao_Paulo'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
+# Static files (mantido como antes)
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STORAGES = {
@@ -150,31 +149,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # --- Configurações CORS ---
 CORS_ALLOW_CREDENTIALS = True
-# No Railway, defina a variável de ambiente CORS_ALLOWED_ORIGINS como:
-# "https://chegouhub.up.railway.app"
-# (Se precisar de múltiplas, separe por vírgula. Mas para este caso, apenas o frontend.)
-cors_allowed_origins_env = os.getenv('CORS_ALLOWED_ORIGINS')
-if cors_allowed_origins_env:
-    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_allowed_origins_env.split(',')]
+# No Railway, defina CORS_ALLOWED_ORIGINS="https://chegouhub.up.railway.app"
+CORS_ALLOWED_ORIGINS_ENV = os.getenv('CORS_ALLOWED_ORIGINS')
+if CORS_ALLOWED_ORIGINS_ENV:
+    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in CORS_ALLOWED_ORIGINS_ENV.split(',')]
 else:
-    CORS_ALLOWED_ORIGINS = [] # Deixe vazio se não definido no env; em DEBUG, pode ser adicionado abaixo.
-    if not DEBUG:
-        print("ALERTA: CORS_ALLOWED_ORIGINS não configurada via variável de ambiente em ambiente de não-DEBUG!")
-
-if DEBUG: # Em desenvolvimento, adicione origens comuns
-    CORS_ALLOWED_ORIGINS.extend([
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://chegouhub.up.railway.app", # Para testar o frontend de produção localmente
-    ])
-    CORS_ALLOWED_ORIGINS = list(set(CORS_ALLOWED_ORIGINS)) # Remove duplicatas
-
-# Se, após tudo, ainda houver problemas de CORS *e* você tiver certeza que o Django está gerando os cabeçalhos,
-# e eles estão se perdendo no proxy do Railway, esta linha abaixo pode ser um teste extremo.
-# Mas o ideal é que a lista explícita funcione.
-# CORS_ALLOW_ALL_ORIGINS = True # Use com cautela e apenas para diagnóstico extremo.
-
-print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
+    if DEBUG: # Local dev fallback
+        CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    else: # Produção sem CORS_ALLOWED_ORIGINS é um erro
+        print("ERRO CRÍTICO: CORS_ALLOWED_ORIGINS não definida no ambiente de produção!")
+        CORS_ALLOWED_ORIGINS = []
+print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS} (lido de: '{CORS_ALLOWED_ORIGINS_ENV}')")
 
 CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
 CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
@@ -184,39 +169,25 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # --- Configuração CSRF ---
-# No Railway, defina a variável de ambiente CSRF_TRUSTED_ORIGINS como:
-# "https://chegouhub.up.railway.app"
-# (Se precisar de múltiplas, separe por vírgula.)
-csrf_trusted_origins_env = os.getenv('CSRF_TRUSTED_ORIGINS')
-if csrf_trusted_origins_env:
-    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_trusted_origins_env.split(',')]
+# No Railway, defina CSRF_TRUSTED_ORIGINS="https://chegouhub.up.railway.app,https://chegou-hubb-production.up.railway.app"
+CSRF_TRUSTED_ORIGINS_ENV = os.getenv('CSRF_TRUSTED_ORIGINS')
+if CSRF_TRUSTED_ORIGINS_ENV:
+    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in CSRF_TRUSTED_ORIGINS_ENV.split(',')]
 else:
-    CSRF_TRUSTED_ORIGINS = []
-    if not DEBUG:
-        print("ALERTA: CSRF_TRUSTED_ORIGINS não configurada via variável de ambiente em ambiente de não-DEBUG!")
+    if DEBUG: # Local dev fallback
+        CSRF_TRUSTED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    else: # Produção sem CSRF_TRUSTED_ORIGINS é um erro
+        print("ERRO CRÍTICO: CSRF_TRUSTED_ORIGINS não definida no ambiente de produção!")
+        CSRF_TRUSTED_ORIGINS = []
+print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS} (lido de: '{CSRF_TRUSTED_ORIGINS_ENV}')")
 
-if DEBUG: # Em desenvolvimento, adicione origens comuns
-    CSRF_TRUSTED_ORIGINS.extend([
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://chegouhub.up.railway.app",
-    ])
-    CSRF_TRUSTED_ORIGINS = list(set(CSRF_TRUSTED_ORIGINS)) # Remove duplicatas
-print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
+# Teste com 'Lax' primeiro. Se o login do frontend ainda falhar por CSRF/Sessão, mude para None.
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'
 
-CSRF_COOKIE_SAMESITE = 'Lax' # Padrão do Django, mais seguro. Mude para None se tiver problemas com iframes ou POSTs de domínios diferentes.
-SESSION_COOKIE_SAMESITE = 'Lax'# Padrão do Django. Mude para None se tiver problemas com iframes ou POSTs de domínios diferentes.
-
-# Para que o Axios (JS) possa ler o cookie CSRF, HttpOnly DEVE ser False.
-# No entanto, o Axios é projetado para obter o token CSRF e enviá-lo em um header.
-# A configuração padrão do Django para CSRF_COOKIE_HTTPONLY é False.
-CSRF_COOKIE_HTTPONLY = False # Django default is False. Explicitly set.
-
-CSRF_COOKIE_SECURE = not DEBUG  # True em produção (quando DEBUG=False), False em desenvolvimento
-SESSION_COOKIE_SECURE = not DEBUG # True em produção, False em desenvolvimento
-
-# CSRF_COOKIE_DOMAIN = None # Padrão, geralmente o melhor.
-# SESSION_COOKIE_DOMAIN = None # Padrão, geralmente o melhor.
+CSRF_COOKIE_HTTPONLY = False # Crucial para Axios enviar o X-CSRFToken header
+CSRF_COOKIE_SECURE = not DEBUG  # True em produção, False em desenvolvimento local
+SESSION_COOKIE_SECURE = not DEBUG # True em produção, False em desenvolvimento local
 
 # --- Configuração REST Framework ---
 REST_FRAMEWORK = {
@@ -229,5 +200,7 @@ REST_FRAMEWORK = {
 }
 
 # Aumentar timeout da sessão
-SESSION_COOKIE_AGE = 86400 * 7  # 1 semana
+SESSION_COOKIE_AGE = 86400 * 7
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+print(f"--- Django Settings Loaded ---")
