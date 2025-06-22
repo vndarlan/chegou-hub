@@ -167,32 +167,37 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- Configurações CORS ---
+# --- Configurações CORS (CORRIGIDO) ---
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS_ENV = os.getenv('CORS_ALLOWED_ORIGINS')
-if CORS_ALLOWED_ORIGINS_ENV:
-    # Remove pontos e vírgulas e limpa espaços extras
-    clean_origins = CORS_ALLOWED_ORIGINS_ENV.replace(';', '').replace('\n', '').replace('\r', '')
-    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in clean_origins.split(',') if origin.strip()]
-else:
-    if DEBUG:
-        CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]
-    else:
-        print("ERRO CRÍTICO: CORS_ALLOWED_ORIGINS não definida no ambiente de produção!")
-        CORS_ALLOWED_ORIGINS = []
 
-# Mesma correção para CSRF:
-CSRF_TRUSTED_ORIGINS_ENV = os.getenv('CSRF_TRUSTED_ORIGINS')
-if CSRF_TRUSTED_ORIGINS_ENV:
-    clean_csrf = CSRF_TRUSTED_ORIGINS_ENV.replace(';', '').replace('\n', '').replace('\r', '')
-    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in clean_csrf.split(',') if origin.strip()]
+# CORS Origins - limpeza agressiva
+CORS_ALLOWED_ORIGINS_RAW = os.getenv('CORS_ALLOWED_ORIGINS', '')
+if CORS_ALLOWED_ORIGINS_RAW:
+    # Remove tudo que pode dar problema
+    clean_cors = CORS_ALLOWED_ORIGINS_RAW.replace(';', '').replace('"', '').replace("'", "").replace('\n', '').replace('\r', '').strip()
+    CORS_ALLOWED_ORIGINS = [url.strip() for url in clean_cors.split(',') if url.strip()]
 else:
-    if DEBUG:
-        CSRF_TRUSTED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]
-    else:
-        print("ERRO CRÍTICO: CSRF_TRUSTED_ORIGINS não definida no ambiente de produção!")
-        CSRF_TRUSTED_ORIGINS = []
-print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS} (lido de: '{CSRF_TRUSTED_ORIGINS_ENV}')")
+    CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"] if DEBUG else []
+
+print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS} (lido de: '{CORS_ALLOWED_ORIGINS_RAW}')")
+
+CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
+CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
+CORS_ALLOW_HEADERS = [
+    "accept", "accept-encoding", "authorization", "content-type", "dnt", "origin",
+    "user-agent", "x-csrftoken", "x-requested-with",
+]
+
+# --- Configuração CSRF (CORRIGIDO) ---
+# CSRF Origins - limpeza agressiva  
+CSRF_TRUSTED_ORIGINS_RAW = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+if CSRF_TRUSTED_ORIGINS_RAW:
+    clean_csrf = CSRF_TRUSTED_ORIGINS_RAW.replace(';', '').replace('"', '').replace("'", "").replace('\n', '').replace('\r', '').strip()
+    CSRF_TRUSTED_ORIGINS = [url.strip() for url in clean_csrf.split(',') if url.strip()]
+else:
+    CSRF_TRUSTED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"] if DEBUG else []
+
+print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS} (lido de: '{CSRF_TRUSTED_ORIGINS_RAW}')")
 
 CSRF_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SAMESITE = 'Lax'
