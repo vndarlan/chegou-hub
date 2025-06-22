@@ -170,12 +170,23 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # --- Configurações CORS (CORRIGIDO) ---
 CORS_ALLOW_CREDENTIALS = True
 
-# CORS Origins - limpeza agressiva
+# CORS Origins - limpeza melhorada
 CORS_ALLOWED_ORIGINS_RAW = os.getenv('CORS_ALLOWED_ORIGINS', '')
 if CORS_ALLOWED_ORIGINS_RAW:
-    # Remove tudo que pode dar problema
-    clean_cors = CORS_ALLOWED_ORIGINS_RAW.replace(';', '').replace('"', '').replace("'", "").replace('\n', '').replace('\r', '').strip()
-    CORS_ALLOWED_ORIGINS = [url.strip() for url in clean_cors.split(',') if url.strip()]
+    # Limpeza mais agressiva para remover todos os caracteres problemáticos
+    clean_cors = CORS_ALLOWED_ORIGINS_RAW
+    for char in [';', '"', "'", '\n', '\r', '\t']:
+        clean_cors = clean_cors.replace(char, '')
+    clean_cors = clean_cors.strip()
+    
+    # Split e limpeza individual de cada URL
+    urls = []
+    for url in clean_cors.split(','):
+        url = url.strip()
+        if url and url.startswith('http'):
+            urls.append(url)
+    
+    CORS_ALLOWED_ORIGINS = urls
 else:
     CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"] if DEBUG else []
 
@@ -189,11 +200,23 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # --- Configuração CSRF (CORRIGIDO) ---
-# CSRF Origins - limpeza agressiva  
+# CSRF Origins - limpeza melhorada
 CSRF_TRUSTED_ORIGINS_RAW = os.getenv('CSRF_TRUSTED_ORIGINS', '')
 if CSRF_TRUSTED_ORIGINS_RAW:
-    clean_csrf = CSRF_TRUSTED_ORIGINS_RAW.replace(';', '').replace('"', '').replace("'", "").replace('\n', '').replace('\r', '').strip()
-    CSRF_TRUSTED_ORIGINS = [url.strip() for url in clean_csrf.split(',') if url.strip()]
+    # Limpeza mais agressiva para remover todos os caracteres problemáticos
+    clean_csrf = CSRF_TRUSTED_ORIGINS_RAW
+    for char in [';', '"', "'", '\n', '\r', '\t']:
+        clean_csrf = clean_csrf.replace(char, '')
+    clean_csrf = clean_csrf.strip()
+    
+    # Split e limpeza individual de cada URL
+    urls = []
+    for url in clean_csrf.split(','):
+        url = url.strip()
+        if url and url.startswith('http'):
+            urls.append(url)
+    
+    CSRF_TRUSTED_ORIGINS = urls
 else:
     CSRF_TRUSTED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"] if DEBUG else []
 
