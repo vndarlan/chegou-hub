@@ -36,7 +36,7 @@ function MapaPage() {
                 setError(null);
                 
                 // Buscar dados dos países
-                const response = await fetch(`${API_BASE_URL}/mapa/api/mapa-data/`);
+                const response = await fetch(`${API_BASE_URL}/mapa-data/`);
                 if (!response.ok) {
                     throw new Error(`Erro API: ${response.status}`);
                 }

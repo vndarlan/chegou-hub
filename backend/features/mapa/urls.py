@@ -7,6 +7,6 @@ router.register(r'status', views.StatusPaisViewSet)
 router.register(r'paises', views.PaisViewSet)
 
 urlpatterns = [
-    path('api/', include(router.urls)),
-    path('api/mapa-data/', views.mapa_data, name='mapa-data'),
+    path('', include(router.urls)),  # Remove o 'api/' daqui
+    path('mapa-data/', views.mapa_data, name='mapa-data'),  # Remove o 'api/' daqui também
 ]
