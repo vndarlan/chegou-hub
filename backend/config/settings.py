@@ -168,16 +168,12 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- Configurações CORS (TESTE HARDCODED) ---
+# --- Configurações CORS (SOLUÇÃO TEMPORÁRIA) ---
+# Usar CORS_ALLOW_ALL_ORIGINS para contornar o bug do Railway
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
-# Teste com URLs hardcoded para verificar se o problema é das variáveis
-CORS_ALLOWED_ORIGINS = [
-    "https://chegouhub.up.railway.app",
-    "https://chegou-hubb-production.up.railway.app"
-]
-
-print(f"CORS_ALLOWED_ORIGINS hardcoded: {CORS_ALLOWED_ORIGINS}")
+print(f"CORS_ALLOW_ALL_ORIGINS: {CORS_ALLOW_ALL_ORIGINS}")
 
 CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
 CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
@@ -186,13 +182,13 @@ CORS_ALLOW_HEADERS = [
     "user-agent", "x-csrftoken", "x-requested-with",
 ]
 
-# --- Configuração CSRF (TESTE HARDCODED) ---
+# --- Configuração CSRF (HARDCODED) ---
 CSRF_TRUSTED_ORIGINS = [
     "https://chegouhub.up.railway.app",
     "https://chegou-hubb-production.up.railway.app"
 ]
 
-print(f"CSRF_TRUSTED_ORIGINS hardcoded: {CSRF_TRUSTED_ORIGINS}")
+print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
 
 CSRF_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SAMESITE = 'Lax'
