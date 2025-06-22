@@ -406,6 +406,7 @@ function MapaPage() {
                 onClose={() => setAddModalOpen(false)}
                 title="Adicionar País"
                 size="md"
+                zIndex={2000}
             >
                 <Stack gap="md">
                     <Select
