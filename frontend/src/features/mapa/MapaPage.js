@@ -420,6 +420,7 @@ function MapaPage() {
                         onChange={(value) => setSelectedCountry(value ? JSON.parse(value) : null)}
                         searchable
                         required
+                        comboboxProps={{ zIndex: 2001 }}
                     />
                     
                     <Select
@@ -432,6 +433,7 @@ function MapaPage() {
                         value={selectedStatus}
                         onChange={setSelectedStatus}
                         required
+                        comboboxProps={{ zIndex: 2001 }}
                     />
                     
                     <Group justify="flex-end" mt="md">
