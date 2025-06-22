@@ -168,31 +168,16 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- Configurações CORS (LIMPEZA ULTRA AGRESSIVA) ---
+# --- Configurações CORS (TESTE HARDCODED) ---
 CORS_ALLOW_CREDENTIALS = True
 
-# CORS Origins - limpeza ultra agressiva
-CORS_ALLOWED_ORIGINS_RAW = os.getenv('CORS_ALLOWED_ORIGINS', '')
-if CORS_ALLOWED_ORIGINS_RAW:
-    print(f"DEBUG: CORS RAW bytes: '{CORS_ALLOWED_ORIGINS_RAW.encode('utf-8')}'")
-    
-    # Limpeza agressiva - remove todos os caracteres não-ASCII e problemáticos
-    clean_string = CORS_ALLOWED_ORIGINS_RAW.encode('ascii', 'ignore').decode('ascii')
-    clean_string = re.sub(r'[^\w\-\.:/,]', '', clean_string)
-    
-    # Extrai URLs válidas
-    urls = []
-    for part in clean_string.split(','):
-        if part.strip() and part.strip().startswith('http'):
-            clean_url = part.strip()
-            urls.append(clean_url)
-            print(f"DEBUG: URL final: '{clean_url}'")
-    
-    CORS_ALLOWED_ORIGINS = urls
-else:
-    CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"] if DEBUG else []
+# Teste com URLs hardcoded para verificar se o problema é das variáveis
+CORS_ALLOWED_ORIGINS = [
+    "https://chegouhub.up.railway.app",
+    "https://chegou-hubb-production.up.railway.app"
+]
 
-print(f"CORS_ALLOWED_ORIGINS final: {CORS_ALLOWED_ORIGINS}")
+print(f"CORS_ALLOWED_ORIGINS hardcoded: {CORS_ALLOWED_ORIGINS}")
 
 CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
 CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
@@ -201,28 +186,13 @@ CORS_ALLOW_HEADERS = [
     "user-agent", "x-csrftoken", "x-requested-with",
 ]
 
-# --- Configuração CSRF (LIMPEZA ULTRA AGRESSIVA) ---
-CSRF_TRUSTED_ORIGINS_RAW = os.getenv('CSRF_TRUSTED_ORIGINS', '')
-if CSRF_TRUSTED_ORIGINS_RAW:
-    print(f"DEBUG: CSRF RAW bytes: '{CSRF_TRUSTED_ORIGINS_RAW.encode('utf-8')}'")
-    
-    # Limpeza agressiva - remove todos os caracteres não-ASCII e problemáticos
-    clean_string = CSRF_TRUSTED_ORIGINS_RAW.encode('ascii', 'ignore').decode('ascii')
-    clean_string = re.sub(r'[^\w\-\.:/,]', '', clean_string)
-    
-    # Extrai URLs válidas
-    urls = []
-    for part in clean_string.split(','):
-        if part.strip() and part.strip().startswith('http'):
-            clean_url = part.strip()
-            urls.append(clean_url)
-            print(f"DEBUG: CSRF URL final: '{clean_url}'")
-    
-    CSRF_TRUSTED_ORIGINS = urls
-else:
-    CSRF_TRUSTED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"] if DEBUG else []
+# --- Configuração CSRF (TESTE HARDCODED) ---
+CSRF_TRUSTED_ORIGINS = [
+    "https://chegouhub.up.railway.app",
+    "https://chegou-hubb-production.up.railway.app"
+]
 
-print(f"CSRF_TRUSTED_ORIGINS final: {CSRF_TRUSTED_ORIGINS}")
+print(f"CSRF_TRUSTED_ORIGINS hardcoded: {CSRF_TRUSTED_ORIGINS}")
 
 CSRF_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SAMESITE = 'Lax'
