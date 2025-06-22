@@ -58,7 +58,7 @@ const STATUS_DESCRIPTIONS = {
 };
 
 // URL do GeoJSON (sem alteração)
-const FULL_GEOJSON_URL = "https://chegou-hubb-production.up.railway.app/static_files/data/world-countries.json";
+const FULL_GEOJSON_URL = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
 // Correção do Ícone Padrão (sem alteração)
 delete L.Icon.Default.prototype._getIconUrl;
