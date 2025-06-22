@@ -185,6 +185,9 @@ function MapaPage() {
 
         setAddLoading(true);
         try {
+            // Garantir que temos um token CSRF válido
+            await axios.get('/current-state/');
+            
             const coordinates = COUNTRY_COORDINATES[selectedCountry.nome_geojson] || [0, 0];
             
             await axios.post('/paises/', {
