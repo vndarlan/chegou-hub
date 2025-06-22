@@ -36,35 +36,41 @@ class PaisViewSet(viewsets.ModelViewSet):
     serializer_class = PaisSerializer
     permission_classes = [IsAuthenticated, CanManageMapaPermission]
 
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+import json
+
 @csrf_exempt
-@api_view(['POST'])
+@require_http_methods(["POST"])
 def add_pais_simple(request):
-    """View simplificada para adicionar país sem CSRF"""
-    if not request.user.is_authenticated:
-        return JsonResponse({'error': 'Não autenticado'}, status=401)
-    
-    # Simplificar permissões - permitir qualquer usuário logado por enquanto
+    """View ultra simples para adicionar país"""
     try:
-        data = json.loads(request.body)
+        # Log básico
+        print(f"User: {request.user}, Auth: {request.user.is_authenticated}")
         
-        # Criar país
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'Login necessário'}, status=401)
+        
+        data = json.loads(request.body)
+        print(f"Data recebida: {data}")
+        
+        # Criar país diretamente
+        from .models import Pais
         pais = Pais.objects.create(
             nome_display=data['nome_display'],
             nome_geojson=data['nome_geojson'],
-            status_id=data['status'],
-            latitude=data['latitude'],
-            longitude=data['longitude'],
-            ativo=data.get('ativo', True)
+            status_id=int(data['status']),
+            latitude=float(data['latitude']),
+            longitude=float(data['longitude']),
+            ativo=True
         )
         
-        return JsonResponse({
-            'id': pais.id,
-            'nome_display': pais.nome_display,
-            'message': 'País adicionado com sucesso!'
-        })
+        return JsonResponse({'success': True, 'id': pais.id})
         
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        print(f"Erro: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
