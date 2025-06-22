@@ -1,4 +1,4 @@
-// frontend/src/pages/WorkspacePage.js
+// frontend/src/shared/pages/WorkspacePage.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
@@ -6,101 +6,26 @@ import { NavbarNested } from '../components/NavbarNested/NavbarNested';
 import { Box, LoadingOverlay, Text, Title } from '@mantine/core';
 import {
   IconHome,
-  IconAd,
-  IconTools,
-  IconChartInfographic,
-  IconTruck,
-  IconChartBar,
   IconMap,
   IconCalendar,
-  IconBrandFacebook,
-  IconBrandGoogle,
-  IconRobot,
-  IconStar,
-  IconPhoto,
-  IconMessageCircle,
-  // Substituições para ícones incompatíveis
-  IconBug, // Em vez de IconBrandJira
-  IconRocket,
-  IconMessages, // Em vez de IconMessageChatbot
-  IconEye,
-  IconShoppingCart,
-  IconPackage,
-  IconShoppingBag, // Em vez de IconBrandShopee
-  IconBrandTwitter // Em vez de IconBrandTiktok
 } from '@tabler/icons-react';
 
-// --- Importar as páginas reais ---
-import MapaPage from './MapaPage';
-import AgendaPage from './AgendaPage';
-import GerarImagemPage from './GerarImagemPage'; // Import da página existente
-import ProjetosIAPage from './ProjetosIAPage';
-import PrimeCODPage from './PrimeCODPage';
+// --- Importar páginas das funcionalidades ---
+import MapaPage from '../../features/mapa/MapaPage';
+import AgendaPage from '../../features/agenda/AgendaPage';
 
-// Componente Placeholder
-const PlaceholderPage = ({ pageTitle }) => (
-    <Box p="md">
-        <Title order={3}>{pageTitle || "Página"}</Title>
-        <Text>Conteúdo placeholder para {pageTitle}.</Text>
-    </Box>
-);
-
-// --- Dados da Navbar atualizados com ícones compatíveis ---
+// --- Dados da Navbar simplificados ---
 const areasData = [
   { label: 'Home', icon: IconHome, link: '/workspace' },
   { label: 'Agenda', icon: IconCalendar, link: '/workspace/agenda' },
   { label: 'Mapa', icon: IconMap, link: '/workspace/mapa' },
-  {
-    label: 'ADS', icon: IconAd, links: [
-      { label: 'Gerenciador Facebook', icon: IconBrandFacebook, link: '/workspace/ads/gerenciador-facebook' },
-      { label: 'Subir Campanhas Facebook', icon: IconBrandFacebook, link: '/workspace/ads/campanhas-facebook' },
-      { label: 'Gerenciador Google', icon: IconBrandGoogle, link: '/workspace/ads/gerenciador-google' },
-      { label: 'Subir Campanhas Google', icon: IconBrandGoogle, link: '/workspace/ads/campanhas-google' },
-    ]
-  },
-  {
-    label: 'Operacional', icon: IconTools, links: [
-      { label: 'Moderação Automática', icon: IconRobot, link: '/workspace/operacional/moderacao-automatica' },
-      { label: 'Novelties', icon: IconStar, link: '/workspace/operacional/novelties' },
-      { label: 'Gerar Imagem', icon: IconPhoto, link: '/workspace/operacional/gerar-imagem' },
-      { label: 'Engajamento', icon: IconMessageCircle, link: '/workspace/operacional/engajamento' },
-    ]
-  },
-  {
-    label: 'Métricas do Negócio', icon: IconChartInfographic, links: [
-      { label: 'Jira', icon: IconBug, link: '/workspace/business/jira' }, // Substituído IconBrandJira
-      { label: 'Projetos IA', icon: IconRocket, link: '/workspace/business/projetos-ia' },
-      { label: 'Nicochat', icon: IconMessages, link: '/workspace/business/nicochat' }, // Substituído IconMessageChatbot
-    ]
-  },
-  {
-    label: 'Métricas de Fornecedores', icon: IconTruck, links: [
-      { label: 'Visão Geral', icon: IconEye, link: '/workspace/fornecedores/visao-geral' },
-      { label: 'Dropi', icon: IconShoppingCart, link: '/workspace/fornecedores/dropi' },
-      { label: 'Prime COD', icon: IconPackage, link: '/workspace/fornecedores/prime-cod' },
-      { label: 'Shopify', icon: IconShoppingBag, link: '/workspace/fornecedores/shopify' }, // Substituído IconBrandShopee
-    ]
-  },
-  {
-    label: 'Métricas de Anúncios', icon: IconChartBar, links: [
-      { label: 'Visão Geral', icon: IconEye, link: '/workspace/anuncios/visao-geral' },
-      { label: 'Facebook', icon: IconBrandFacebook, link: '/workspace/anuncios/facebook' },
-      { label: 'Google', icon: IconBrandGoogle, link: '/workspace/anuncios/google' },
-      { label: 'Tiktok', icon: IconBrandTwitter, link: '/workspace/anuncios/tiktok' }, // Substituído IconBrandTiktok
-    ]
-  },
 ];
 
-// Função para extrair a label ativa (pode precisar de ajustes finos)
+// Função para extrair a label ativa
 const getActivePageLabelFromPathname = (pathname) => {
     const normalizedPathname = pathname.endsWith('/') && pathname.length > 11 ? pathname.slice(0, -1) : pathname;
     for (const area of areasData) {
         if (area.link && area.link === normalizedPathname) return area.label;
-        if (area.links) {
-            for (const subLink of area.links) {
-                if (subLink.link && subLink.link === normalizedPathname) return subLink.label;
-            }
-        }
     }
     if (normalizedPathname === '/workspace') return 'Home';
     const parts = normalizedPathname.split('/').filter(p => p);
@@ -130,7 +55,6 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
             setLoadingSession(true);
             setErrorSession('');
             try {
-                // Axios já configurado globalmente com withCredentials
                 const response = await axios.get('/current-state/');
                 if (response.status === 200 && response.data?.logged_in) {
                     setUserName(response.data.name || response.data.email || 'Usuário');
@@ -155,14 +79,12 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
         console.log("Tentando logout...");
         setLoadingSession(true);
         try {
-            // Axios já configurado globalmente com withCredentials
             await axios.post('/logout/', {});
             console.log("API de logout chamada com sucesso.");
         } catch (err) {
             console.error("Erro ao chamar API de logout:", err.response || err.message);
         } finally {
             setIsLoggedIn(false);
-            // Não precisa setLoadingSession(false), componente será desmontado
         }
     };
 
@@ -184,17 +106,17 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                 colorScheme={colorScheme}
             />
 
-            {/* Área de Conteúdo Principal com ROTAS ANINHADAS */}
+            {/* Área de Conteúdo Principal */}
             <Box 
-            component="main" 
-            style={{ 
-                flexGrow: 1, 
-                overflowY: 'auto', 
-                height: '100vh',
-                backgroundColor: 'var(--mantine-color-body)'
-            }}
+                component="main" 
+                style={{ 
+                    flexGrow: 1, 
+                    overflowY: 'auto', 
+                    height: '100vh',
+                    backgroundColor: 'var(--mantine-color-body)'
+                }}
             >
-                 <Routes>
+                <Routes>
                     {/* Rota Index */}
                     <Route index element={
                         <Box p="md">
@@ -203,42 +125,13 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                         </Box>
                     }/>
 
-                    {/* Páginas Existentes */}
+                    {/* Páginas das Funcionalidades */}
                     <Route path="agenda" element={<AgendaPage />} />
                     <Route path="mapa" element={<MapaPage />} />
 
-                    {/* ADS */}
-                    <Route path="ads/gerenciador-facebook" element={<PlaceholderPage pageTitle="ADS - Gerenciador Facebook" />} />
-                    <Route path="ads/campanhas-facebook" element={<PlaceholderPage pageTitle="ADS - Subir Campanhas Facebook" />} />
-                    <Route path="ads/gerenciador-google" element={<PlaceholderPage pageTitle="ADS - Gerenciador Google" />} />
-                    <Route path="ads/campanhas-google" element={<PlaceholderPage pageTitle="ADS - Subir Campanhas Google" />} />
-
-                    {/* Operacional */}
-                    <Route path="operacional/moderacao-automatica" element={<PlaceholderPage pageTitle="Operacional - Moderação Automática" />} />
-                    <Route path="operacional/novelties" element={<PlaceholderPage pageTitle="Operacional - Novelties" />} />
-                    <Route path="operacional/gerar-imagem" element={<GerarImagemPage />} />
-                    <Route path="operacional/engajamento" element={<PlaceholderPage pageTitle="Operacional - Engajamento" />} />
-
-                    {/* Métricas do Negócio */}
-                    <Route path="business/jira" element={<PlaceholderPage pageTitle="Métricas do Negócio - Jira" />} />
-                    <Route path="business/projetos-ia" element={<ProjetosIAPage />} />
-                    <Route path="business/nicochat" element={<PlaceholderPage pageTitle="Métricas do Negócio - Nicochat" />} />
-
-                    {/* Métricas de Fornecedores */}
-                    <Route path="fornecedores/visao-geral" element={<PlaceholderPage pageTitle="Métricas de Fornecedores - Visão Geral" />} />
-                    <Route path="fornecedores/dropi" element={<PlaceholderPage pageTitle="Métricas de Fornecedores - Dropi" />} />
-                    <Route path="fornecedores/prime-cod" element={<PrimeCODPage />} />
-                    <Route path="fornecedores/shopify" element={<PlaceholderPage pageTitle="Métricas de Fornecedores - Shopify" />} />
-
-                    {/* Métricas de Anúncios */}
-                    <Route path="anuncios/visao-geral" element={<PlaceholderPage pageTitle="Métricas de Anúncios - Visão Geral" />} />
-                    <Route path="anuncios/facebook" element={<PlaceholderPage pageTitle="Métricas de Anúncios - Facebook" />} />
-                    <Route path="anuncios/google" element={<PlaceholderPage pageTitle="Métricas de Anúncios - Google" />} />
-                    <Route path="anuncios/tiktok" element={<PlaceholderPage pageTitle="Métricas de Anúncios - TikTok" />} />
-
                     {/* Rota Catch-all */}
                     <Route path="*" element={<Navigate to="/workspace" replace />} />
-                 </Routes>
+                </Routes>
             </Box>
         </Box>
     );
