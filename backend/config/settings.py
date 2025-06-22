@@ -5,6 +5,7 @@ Django settings for config project.
 
 from pathlib import Path
 import os
+import re
 from dotenv import load_dotenv
 import dj_database_url
 
@@ -167,31 +168,31 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- Configurações CORS (CORRIGIDO ROBUSTAMENTE) ---
+# --- Configurações CORS (CORRIGIDO COM REGEX) ---
 CORS_ALLOW_CREDENTIALS = True
 
-# CORS Origins - limpeza ultra robusta
+# CORS Origins - limpeza com regex
 CORS_ALLOWED_ORIGINS_RAW = os.getenv('CORS_ALLOWED_ORIGINS', '')
 if CORS_ALLOWED_ORIGINS_RAW:
-    print(f"DEBUG: CORS RAW antes da limpeza: '{CORS_ALLOWED_ORIGINS_RAW}'")
+    print(f"DEBUG: CORS RAW: '{repr(CORS_ALLOWED_ORIGINS_RAW)}'")
     
-    # Split primeiro por vírgula, depois limpa cada URL individualmente
-    urls = []
-    for url in CORS_ALLOWED_ORIGINS_RAW.split(','):
-        # Remove todos os caracteres problemáticos de cada URL
-        clean_url = url
-        for char in [';', '"', "'", '\n', '\r', '\t', ' ']:
-            clean_url = clean_url.replace(char, '')
-        
-        if clean_url and clean_url.startswith('http'):
-            urls.append(clean_url)
-            print(f"DEBUG: URL limpa adicionada: '{clean_url}'")
+    # Use regex para extrair apenas URLs válidas
+    url_pattern = r'https?://[^\s,;"\'\n\r\t]+'
+    urls = re.findall(url_pattern, CORS_ALLOWED_ORIGINS_RAW)
     
-    CORS_ALLOWED_ORIGINS = urls
+    # Remove qualquer caractere extra do final
+    clean_urls = []
+    for url in urls:
+        clean_url = re.sub(r'[;"\'\s]+$', '', url)
+        if clean_url:
+            clean_urls.append(clean_url)
+            print(f"DEBUG: URL extraída: '{clean_url}'")
+    
+    CORS_ALLOWED_ORIGINS = clean_urls
 else:
     CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"] if DEBUG else []
 
-print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS} (lido de: '{CORS_ALLOWED_ORIGINS_RAW}')")
+print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
 
 CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
 CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
@@ -200,29 +201,28 @@ CORS_ALLOW_HEADERS = [
     "user-agent", "x-csrftoken", "x-requested-with",
 ]
 
-# --- Configuração CSRF (CORRIGIDO ROBUSTAMENTE) ---
-# CSRF Origins - limpeza ultra robusta
+# --- Configuração CSRF (CORRIGIDO COM REGEX) ---
 CSRF_TRUSTED_ORIGINS_RAW = os.getenv('CSRF_TRUSTED_ORIGINS', '')
 if CSRF_TRUSTED_ORIGINS_RAW:
-    print(f"DEBUG: CSRF RAW antes da limpeza: '{CSRF_TRUSTED_ORIGINS_RAW}'")
+    print(f"DEBUG: CSRF RAW: '{repr(CSRF_TRUSTED_ORIGINS_RAW)}'")
     
-    # Split primeiro por vírgula, depois limpa cada URL individualmente
-    urls = []
-    for url in CSRF_TRUSTED_ORIGINS_RAW.split(','):
-        # Remove todos os caracteres problemáticos de cada URL
-        clean_url = url
-        for char in [';', '"', "'", '\n', '\r', '\t', ' ']:
-            clean_url = clean_url.replace(char, '')
-        
-        if clean_url and clean_url.startswith('http'):
-            urls.append(clean_url)
-            print(f"DEBUG: CSRF URL limpa adicionada: '{clean_url}'")
+    # Use regex para extrair apenas URLs válidas
+    url_pattern = r'https?://[^\s,;"\'\n\r\t]+'
+    urls = re.findall(url_pattern, CSRF_TRUSTED_ORIGINS_RAW)
     
-    CSRF_TRUSTED_ORIGINS = urls
+    # Remove qualquer caractere extra do final
+    clean_urls = []
+    for url in urls:
+        clean_url = re.sub(r'[;"\'\s]+$', '', url)
+        if clean_url:
+            clean_urls.append(clean_url)
+            print(f"DEBUG: CSRF URL extraída: '{clean_url}'")
+    
+    CSRF_TRUSTED_ORIGINS = clean_urls
 else:
     CSRF_TRUSTED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"] if DEBUG else []
 
-print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS} (lido de: '{CSRF_TRUSTED_ORIGINS_RAW}')")
+print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
 
 CSRF_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SAMESITE = 'Lax'
