@@ -190,7 +190,7 @@ function MapaPage() {
             
             const coordinates = COUNTRY_COORDINATES[selectedCountry.nome_geojson] || [0, 0];
             
-            await axios.post('/paises/', {
+            await axios.post('/add-pais/', {
                 nome_display: selectedCountry.nome_display,
                 nome_geojson: selectedCountry.nome_geojson,
                 status: selectedStatus,

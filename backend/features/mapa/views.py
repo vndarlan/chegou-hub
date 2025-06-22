@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from django.contrib.auth.models import Group
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.http import JsonResponse
+import json
 from .models import Pais, StatusPais
 from .serializers import PaisSerializer, StatusPaisSerializer
 
@@ -29,11 +31,44 @@ class StatusPaisViewSet(viewsets.ModelViewSet):
     serializer_class = StatusPaisSerializer
     permission_classes = [IsAuthenticated, CanManageMapaPermission]
 
-@method_decorator(csrf_exempt, name='dispatch')
 class PaisViewSet(viewsets.ModelViewSet):
     queryset = Pais.objects.filter(ativo=True)
     serializer_class = PaisSerializer
     permission_classes = [IsAuthenticated, CanManageMapaPermission]
+
+@csrf_exempt
+@api_view(['POST'])
+def add_pais_simple(request):
+    """View simplificada para adicionar país sem CSRF"""
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Não autenticado'}, status=401)
+    
+    # Verificar permissões
+    permission = CanManageMapaPermission()
+    if not permission.has_permission(request, None):
+        return JsonResponse({'error': 'Sem permissão'}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        
+        # Criar país
+        pais = Pais.objects.create(
+            nome_display=data['nome_display'],
+            nome_geojson=data['nome_geojson'],
+            status_id=data['status'],
+            latitude=data['latitude'],
+            longitude=data['longitude'],
+            ativo=data.get('ativo', True)
+        )
+        
+        return JsonResponse({
+            'id': pais.id,
+            'nome_display': pais.nome_display,
+            'message': 'País adicionado com sucesso!'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
