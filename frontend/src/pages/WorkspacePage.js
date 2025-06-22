@@ -11,8 +11,8 @@ import {
 } from '@tabler/icons-react';
 
 // --- Importar páginas das funcionalidades ---
-import MapaPage from '../../features/mapa/MapaPage';
-import AgendaPage from '../../features/agenda/AgendaPage';
+import MapaPage from 'features/mapa/MapaPage';
+import AgendaPage from 'features/agenda/AgendaPage';
 
 // --- Dados da Navbar simplificados ---
 const areasData = [
