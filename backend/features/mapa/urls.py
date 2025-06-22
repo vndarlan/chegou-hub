@@ -12,4 +12,5 @@ urlpatterns = [
     path('check-permissions/', views.check_mapa_permissions, name='check-mapa-permissions'),
     path('available-countries/', views.available_countries, name='available-countries'),
     path('add-pais/', views.add_pais_simple, name='add-pais-simple'),
+    path('debug-user/', views.debug_user_info, name='debug-user'),
 ]
