@@ -13,6 +13,7 @@ class PaisViewSet(viewsets.ModelViewSet):
     serializer_class = PaisSerializer
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def mapa_data(request):
     paises = Pais.objects.filter(ativo=True).select_related('status')
     
