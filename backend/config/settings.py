@@ -167,24 +167,25 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- Configurações CORS (CORRIGIDO) ---
+# --- Configurações CORS (CORRIGIDO ROBUSTAMENTE) ---
 CORS_ALLOW_CREDENTIALS = True
 
-# CORS Origins - limpeza melhorada
+# CORS Origins - limpeza ultra robusta
 CORS_ALLOWED_ORIGINS_RAW = os.getenv('CORS_ALLOWED_ORIGINS', '')
 if CORS_ALLOWED_ORIGINS_RAW:
-    # Limpeza mais agressiva para remover todos os caracteres problemáticos
-    clean_cors = CORS_ALLOWED_ORIGINS_RAW
-    for char in [';', '"', "'", '\n', '\r', '\t']:
-        clean_cors = clean_cors.replace(char, '')
-    clean_cors = clean_cors.strip()
+    print(f"DEBUG: CORS RAW antes da limpeza: '{CORS_ALLOWED_ORIGINS_RAW}'")
     
-    # Split e limpeza individual de cada URL
+    # Split primeiro por vírgula, depois limpa cada URL individualmente
     urls = []
-    for url in clean_cors.split(','):
-        url = url.strip()
-        if url and url.startswith('http'):
-            urls.append(url)
+    for url in CORS_ALLOWED_ORIGINS_RAW.split(','):
+        # Remove todos os caracteres problemáticos de cada URL
+        clean_url = url
+        for char in [';', '"', "'", '\n', '\r', '\t', ' ']:
+            clean_url = clean_url.replace(char, '')
+        
+        if clean_url and clean_url.startswith('http'):
+            urls.append(clean_url)
+            print(f"DEBUG: URL limpa adicionada: '{clean_url}'")
     
     CORS_ALLOWED_ORIGINS = urls
 else:
@@ -199,22 +200,23 @@ CORS_ALLOW_HEADERS = [
     "user-agent", "x-csrftoken", "x-requested-with",
 ]
 
-# --- Configuração CSRF (CORRIGIDO) ---
-# CSRF Origins - limpeza melhorada
+# --- Configuração CSRF (CORRIGIDO ROBUSTAMENTE) ---
+# CSRF Origins - limpeza ultra robusta
 CSRF_TRUSTED_ORIGINS_RAW = os.getenv('CSRF_TRUSTED_ORIGINS', '')
 if CSRF_TRUSTED_ORIGINS_RAW:
-    # Limpeza mais agressiva para remover todos os caracteres problemáticos
-    clean_csrf = CSRF_TRUSTED_ORIGINS_RAW
-    for char in [';', '"', "'", '\n', '\r', '\t']:
-        clean_csrf = clean_csrf.replace(char, '')
-    clean_csrf = clean_csrf.strip()
+    print(f"DEBUG: CSRF RAW antes da limpeza: '{CSRF_TRUSTED_ORIGINS_RAW}'")
     
-    # Split e limpeza individual de cada URL
+    # Split primeiro por vírgula, depois limpa cada URL individualmente
     urls = []
-    for url in clean_csrf.split(','):
-        url = url.strip()
-        if url and url.startswith('http'):
-            urls.append(url)
+    for url in CSRF_TRUSTED_ORIGINS_RAW.split(','):
+        # Remove todos os caracteres problemáticos de cada URL
+        clean_url = url
+        for char in [';', '"', "'", '\n', '\r', '\t', ' ']:
+            clean_url = clean_url.replace(char, '')
+        
+        if clean_url and clean_url.startswith('http'):
+            urls.append(clean_url)
+            print(f"DEBUG: CSRF URL limpa adicionada: '{clean_url}'")
     
     CSRF_TRUSTED_ORIGINS = urls
 else:
@@ -225,9 +227,9 @@ print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS} (lido de: '{CSRF_TRUSTED_OR
 CSRF_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SAMESITE = 'Lax'
 
-CSRF_COOKIE_HTTPONLY = False # Crucial para Axios enviar o X-CSRFToken header
-CSRF_COOKIE_SECURE = not DEBUG  # True em produção, False em desenvolvimento local
-SESSION_COOKIE_SECURE = not DEBUG # True em produção, False em desenvolvimento local
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
 
 # --- Configuração REST Framework ---
 REST_FRAMEWORK = {
