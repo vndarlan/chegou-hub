@@ -5,12 +5,10 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Box, Grid, Title, Text, List, LoadingOverlay, Alert, Stack, Group, Button } from '@mantine/core';
 import { IconAlertCircle, IconSettings } from '@tabler/icons-react';
+import axios from 'axios';
 
 // URL do GeoJSON - atualizada
 const FULL_GEOJSON_URL = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
-
-// Configuração da API
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 // Correção do ícone do Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -35,12 +33,9 @@ function MapaPage() {
                 setLoading(true);
                 setError(null);
                 
-                // Buscar dados dos países
-                const response = await fetch(`${API_BASE_URL}/mapa-data/`);
-                if (!response.ok) {
-                    throw new Error(`Erro API: ${response.status}`);
-                }
-                const data = await response.json();
+                // Usar axios configurado globalmente em vez de fetch
+                const response = await axios.get('/mapa-data/');
+                const data = response.data;
                 
                 setPaisesData(data.paises);
                 setStatusColors(data.status_colors);
