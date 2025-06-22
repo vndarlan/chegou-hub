@@ -171,30 +171,25 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS_ENV = os.getenv('CORS_ALLOWED_ORIGINS')
 if CORS_ALLOWED_ORIGINS_ENV:
-    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in CORS_ALLOWED_ORIGINS_ENV.split(',')]
+    # Remove pontos e vírgulas e limpa espaços extras
+    clean_origins = CORS_ALLOWED_ORIGINS_ENV.replace(';', '').replace('\n', '').replace('\r', '')
+    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in clean_origins.split(',') if origin.strip()]
 else:
-    if DEBUG: # Local dev fallback
+    if DEBUG:
         CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]
-    else: # Produção sem CORS_ALLOWED_ORIGINS é um erro
+    else:
         print("ERRO CRÍTICO: CORS_ALLOWED_ORIGINS não definida no ambiente de produção!")
         CORS_ALLOWED_ORIGINS = []
-print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS} (lido de: '{CORS_ALLOWED_ORIGINS_ENV}')")
 
-CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
-CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
-CORS_ALLOW_HEADERS = [
-    "accept", "accept-encoding", "authorization", "content-type", "dnt", "origin",
-    "user-agent", "x-csrftoken", "x-requested-with",
-]
-
-# --- Configuração CSRF ---
+# Mesma correção para CSRF:
 CSRF_TRUSTED_ORIGINS_ENV = os.getenv('CSRF_TRUSTED_ORIGINS')
 if CSRF_TRUSTED_ORIGINS_ENV:
-    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in CSRF_TRUSTED_ORIGINS_ENV.split(',')]
+    clean_csrf = CSRF_TRUSTED_ORIGINS_ENV.replace(';', '').replace('\n', '').replace('\r', '')
+    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in clean_csrf.split(',') if origin.strip()]
 else:
-    if DEBUG: # Local dev fallback
+    if DEBUG:
         CSRF_TRUSTED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]
-    else: # Produção sem CSRF_TRUSTED_ORIGINS é um erro
+    else:
         print("ERRO CRÍTICO: CSRF_TRUSTED_ORIGINS não definida no ambiente de produção!")
         CSRF_TRUSTED_ORIGINS = []
 print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS} (lido de: '{CSRF_TRUSTED_ORIGINS_ENV}')")
