@@ -1,4 +1,4 @@
-// frontend/src/shared/pages/WorkspacePage.js
+// frontend/src/pages/WorkspacePage.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
@@ -10,9 +10,9 @@ import {
   IconCalendar,
 } from '@tabler/icons-react';
 
-// --- Importar páginas das funcionalidades ---
-import MapaPage from 'features/mapa/MapaPage';
-import AgendaPage from 'features/agenda/AgendaPage';
+// --- Importar páginas das funcionalidades (CAMINHO CORRIGIDO) ---
+import MapaPage from '../features/mapa/MapaPage';
+import AgendaPage from '../features/agenda/AgendaPage';
 
 // --- Dados da Navbar simplificados ---
 const areasData = [
