@@ -39,6 +39,14 @@ function EngajamentoPage() {
 
     // Carregar dados iniciais
     useEffect(() => {
+        const initCSRF = async () => {
+            try {
+                await axios.get('/current-state/');
+            } catch (error) {
+                console.error('Erro ao obter CSRF:', error);
+            }
+        };
+        initCSRF();
         carregarEngajamentos();
         carregarSaldo();
         carregarPedidos();
@@ -48,7 +56,7 @@ function EngajamentoPage() {
     const carregarSaldo = async () => {
         setLoadingSaldo(true);
         try {
-            const response = await axios.get('/api/saldo/');
+            const response = await axios.get('/saldo/');
             setSaldo(response.data);
         } catch (error) {
             console.error('Erro ao carregar saldo:', error);
@@ -60,7 +68,7 @@ function EngajamentoPage() {
 
     const carregarEngajamentos = async () => {
         try {
-            const response = await axios.get('/api/engajamentos/');
+            const response = await axios.get('/engajamentos/');
             setEngajamentos(response.data);
         } catch (error) {
             console.error('Erro ao carregar engajamentos:', error);
@@ -69,7 +77,7 @@ function EngajamentoPage() {
 
     const carregarPedidos = async () => {
         try {
-            const response = await axios.get('/api/pedidos/');
+            const response = await axios.get('/pedidos/');
             setPedidos(response.data);
         } catch (error) {
             console.error('Erro ao carregar pedidos:', error);
@@ -84,7 +92,8 @@ function EngajamentoPage() {
 
         setLoading(true);
         try {
-            await axios.post('/api/engajamento/engajamentos/', novoEngajamento);
+            await axios.get('/current-state/'); // Garante CSRF token
+            await axios.post('/engajamentos/', novoEngajamento);
             setNotification({ type: 'success', message: 'Engajamento salvo com sucesso!' });
             setModalEngajamento(false);
             setNovoEngajamento({ nome: '', engajamento_id: '', tipo: 'Like', funcionando: true });
@@ -100,7 +109,8 @@ function EngajamentoPage() {
         if (!window.confirm('Tem certeza que deseja excluir este engajamento?')) return;
 
         try {
-            await axios.delete(`/api/engajamento/engajamentos/${id}/`);
+            await axios.get('/current-state/'); // Garante CSRF token
+            await axios.delete(`/engajamentos/${id}/`);
             setNotification({ type: 'success', message: 'Engajamento excluído com sucesso!' });
             carregarEngajamentos();
         } catch (error) {
@@ -125,7 +135,8 @@ function EngajamentoPage() {
 
         setLoading(true);
         try {
-            const response = await axios.post('/api/engajamento/criar-pedido/', {
+            await axios.get('/current-state/'); // Garante CSRF token
+            const response = await axios.post('/criar-pedido/', {
                 urls: urlsInput,
                 engajamentos: engajamentosAtivos
             });
