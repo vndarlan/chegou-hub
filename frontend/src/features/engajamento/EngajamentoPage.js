@@ -92,13 +92,22 @@ function EngajamentoPage() {
 
         setLoading(true);
         try {
-            await axios.get('/current-state/'); // Garante CSRF token
-            await axios.post('/engajamentos/', novoEngajamento);
+            // Garantir CSRF token
+            const csrfResponse = await axios.get('/current-state/');
+            const csrfToken = csrfResponse.data.csrf_token;
+            
+            await axios.post('/engajamentos/', novoEngajamento, {
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json',
+                }
+            });
             setNotification({ type: 'success', message: 'Engajamento salvo com sucesso!' });
             setModalEngajamento(false);
             setNovoEngajamento({ nome: '', engajamento_id: '', tipo: 'Like', funcionando: true });
             carregarEngajamentos();
         } catch (error) {
+            console.error('Erro completo:', error);
             setNotification({ type: 'error', message: 'Erro ao salvar engajamento' });
         } finally {
             setLoading(false);
@@ -109,11 +118,19 @@ function EngajamentoPage() {
         if (!window.confirm('Tem certeza que deseja excluir este engajamento?')) return;
 
         try {
-            await axios.get('/current-state/'); // Garante CSRF token
-            await axios.delete(`/engajamentos/${id}/`);
+            // Garantir CSRF token
+            const csrfResponse = await axios.get('/current-state/');
+            const csrfToken = csrfResponse.data.csrf_token;
+            
+            await axios.delete(`/engajamentos/${id}/`, {
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                }
+            });
             setNotification({ type: 'success', message: 'Engajamento excluído com sucesso!' });
             carregarEngajamentos();
         } catch (error) {
+            console.error('Erro completo:', error);
             setNotification({ type: 'error', message: 'Erro ao excluir engajamento' });
         }
     };
@@ -135,16 +152,25 @@ function EngajamentoPage() {
 
         setLoading(true);
         try {
-            await axios.get('/current-state/'); // Garante CSRF token
+            // Garantir CSRF token
+            const csrfResponse = await axios.get('/current-state/');
+            const csrfToken = csrfResponse.data.csrf_token;
+            
             const response = await axios.post('/criar-pedido/', {
                 urls: urlsInput,
                 engajamentos: engajamentosAtivos
+            }, {
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json',
+                }
             });
             setNotification({ type: 'success', message: 'Pedido criado com sucesso!' });
             carregarPedidos();
             setEngajamentosSelecionados({});
             setUrlsInput('');
         } catch (error) {
+            console.error('Erro completo:', error);
             setNotification({ type: 'error', message: 'Erro ao criar pedido' });
         } finally {
             setLoading(false);
