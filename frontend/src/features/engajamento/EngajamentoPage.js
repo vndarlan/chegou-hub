@@ -162,7 +162,7 @@ function EngajamentoPage() {
             </Group>
             {saldo ? (
                 <Text size="xl" fw={700} c="green">
-                    {saldo.moeda === 'BRL' ? 'R : saldo.moeda} {parseFloat(saldo.saldo).toFixed(2).replace('.', ',')}
+                    {saldo.moeda === 'BRL' ? 'R$' : saldo.moeda} {parseFloat(saldo.saldo).toFixed(2).replace('.', ',')}
                 </Text>
             ) : (
                 <Text c="dimmed">Carregando saldo...</Text>
