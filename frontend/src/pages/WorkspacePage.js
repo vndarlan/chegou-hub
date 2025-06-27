@@ -8,17 +8,20 @@ import {
   IconHome,
   IconMap,
   IconCalendar,
+  IconChartLine,
 } from '@tabler/icons-react';
 
 // --- Importar páginas das funcionalidades (CAMINHO CORRIGIDO) ---
 import MapaPage from '../features/mapa/MapaPage';
 import AgendaPage from '../features/agenda/AgendaPage';
+import EngajamentoPage from '../features/engajamento/EngajamentoPage';
 
 // --- Dados da Navbar simplificados ---
 const areasData = [
   { label: 'Home', icon: IconHome, link: '/workspace' },
   { label: 'Agenda', icon: IconCalendar, link: '/workspace/agenda' },
   { label: 'Mapa', icon: IconMap, link: '/workspace/mapa' },
+  { label: 'Engajamento', icon: IconChartLine, link: '/workspace/engajamento' },
 ];
 
 // Função para extrair a label ativa
@@ -128,6 +131,7 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     {/* Páginas das Funcionalidades */}
                     <Route path="agenda" element={<AgendaPage />} />
                     <Route path="mapa" element={<MapaPage />} />
+                    <Route path="engajamento" element={<EngajamentoPage />} />
 
                     {/* Rota Catch-all */}
                     <Route path="*" element={<Navigate to="/workspace" replace />} />

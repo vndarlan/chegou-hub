@@ -12,4 +12,5 @@ urlpatterns = [
     # URLs das Funcionalidades
     path('api/', include('features.agenda.urls')),
     path('api/', include('features.mapa.urls')),
+    path('api/', include('features.engajamento.urls')),
 ]
