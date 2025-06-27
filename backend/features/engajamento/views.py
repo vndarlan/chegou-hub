@@ -1,5 +1,6 @@
 # backend/features/engajamento/views.py
 import requests
+import os
 import json
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view
@@ -12,7 +13,7 @@ from .serializers import (
 )
 
 # Configurações da API
-API_KEY = "bL*CK)GI@5(cS@KY*l@t*n@U("
+API_KEY = os.getenv('SMMRAJA_API_KEY')
 API_URL = "https://www.smmraja.com/api/v3"
 
 class EngajamentoViewSet(viewsets.ModelViewSet):
