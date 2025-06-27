@@ -48,7 +48,7 @@ function EngajamentoPage() {
     const carregarSaldo = async () => {
         setLoadingSaldo(true);
         try {
-            const response = await axios.get('/api/engajamento/saldo/');
+            const response = await axios.get('/api/saldo/');
             setSaldo(response.data);
         } catch (error) {
             console.error('Erro ao carregar saldo:', error);
@@ -60,7 +60,7 @@ function EngajamentoPage() {
 
     const carregarEngajamentos = async () => {
         try {
-            const response = await axios.get('/api/engajamento/engajamentos/');
+            const response = await axios.get('/api/engajamentos/');
             setEngajamentos(response.data);
         } catch (error) {
             console.error('Erro ao carregar engajamentos:', error);
@@ -69,7 +69,7 @@ function EngajamentoPage() {
 
     const carregarPedidos = async () => {
         try {
-            const response = await axios.get('/api/engajamento/pedidos/');
+            const response = await axios.get('/api/pedidos/');
             setPedidos(response.data);
         } catch (error) {
             console.error('Erro ao carregar pedidos:', error);
