@@ -10,6 +10,8 @@ import {
   IconMap,
   IconChartLine,
   IconLogout,
+  IconSun,
+  IconMoonStars,
 } from '@tabler/icons-react';
 import { Title, Tooltip, UnstyledButton, Group, Avatar, Text, Menu, rem } from '@mantine/core';
 import classes from './DoubleNavbar.module.css';
@@ -92,6 +94,9 @@ export function DoubleNavbar({
     const page = getActivePageFromPath(location.pathname);
     setActiveArea(area);
     setActivePage(page);
+    
+    console.log(`URL mudou: ${location.pathname}`);
+    console.log(`Área detectada: ${area}, Página detectada: ${page}`);
   }, [location.pathname]);
 
   // Renderizar ícones das áreas principais
@@ -105,16 +110,19 @@ export function DoubleNavbar({
     >
       <UnstyledButton
         onClick={() => {
+          console.log(`Clicando na área: ${area.label}`);
           setActiveArea(area.label);
           // Se a área tem páginas, navegar para a primeira
           if (area.pages.length > 0) {
             const firstPage = area.pages[0];
             setActivePage(firstPage.label);
             navigate(firstPage.link);
+            console.log(`Navegando para primeira página: ${firstPage.link}`);
           } else {
             setActivePage(null);
-            // Para áreas vazias, navegar para uma página placeholder
-            navigate('/workspace');
+            // Para áreas vazias, manter na agenda
+            navigate('/workspace/agenda');
+            console.log('Área sem páginas - redirecionando para agenda');
           }
         }}
         className={classes.mainLink}
@@ -139,6 +147,7 @@ export function DoubleNavbar({
         event.preventDefault();
         setActivePage(page.label);
         navigate(page.link);
+        console.log(`Navegando para: ${page.link}, Página ativa: ${page.label}`);
       }}
       key={page.label}
     >
@@ -171,7 +180,11 @@ export function DoubleNavbar({
         <Menu.Dropdown>
           <Menu.Label>Configurações</Menu.Label>
           <Menu.Item
-            leftSection={colorScheme === 'dark' ? '☀️' : '🌙'}
+            leftSection={
+              colorScheme === 'dark' 
+                ? <IconSun style={{ width: rem(14), height: rem(14) }} />
+                : <IconMoonStars style={{ width: rem(14), height: rem(14) }} />
+            }
             onClick={toggleColorScheme}
           >
             {colorScheme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
@@ -218,8 +231,8 @@ export function DoubleNavbar({
             {currentPages.length > 0 ? (
               pageLinks
             ) : (
-              <Text c="dimmed" size="sm" style={{ padding: '8px 16px' }}>
-                Em breve: novas funcionalidades para {activeArea}
+              <Text c="dimmed" size="sm" style={{ padding: '12px 16px', fontStyle: 'italic' }}>
+                Funcionalidades de {activeArea} chegando em breve! 🚀
               </Text>
             )}
           </div>

@@ -80,42 +80,8 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                 }}
             >
                 <Routes>
-                    {/* Rota Index - Página inicial quando entra em /workspace */}
-                    <Route index element={
-                        <Box p="md">
-                            <Title order={2} mb="md">🏠 Bem-vindo ao Chegou Hub!</Title>
-                            <Text size="lg" mb="xl">
-                                Selecione uma área no menu lateral para começar.
-                            </Text>
-                            
-                            <Box>
-                                <Title order={3} mb="md">📋 Áreas Disponíveis:</Title>
-                                <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
-                                    
-                                    <Box p="md" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '8px' }}>
-                                        <Title order={4}>🏠 Home</Title>
-                                        <Text size="sm" c="dimmed">Agenda e Mapa</Text>
-                                    </Box>
-                                    
-                                    <Box p="md" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '8px' }}>
-                                        <Title order={4}>🤖 IA & Automações</Title>
-                                        <Text size="sm" c="dimmed">Em breve</Text>
-                                    </Box>
-                                    
-                                    <Box p="md" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '8px' }}>
-                                        <Title order={4}>🔧 Operacional</Title>
-                                        <Text size="sm" c="dimmed">Engajamento</Text>
-                                    </Box>
-                                    
-                                    <Box p="md" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '8px' }}>
-                                        <Title order={4}>🎧 Suporte</Title>
-                                        <Text size="sm" c="dimmed">Em breve</Text>
-                                    </Box>
-                                    
-                                </div>
-                            </Box>
-                        </Box>
-                    }/>
+                    {/* Rota Index - Redirecionar para Agenda */}
+                    <Route index element={<Navigate to="/workspace/agenda" replace />} />
 
                     {/* Páginas das Funcionalidades */}
                     <Route path="agenda" element={<AgendaPage />} />
@@ -123,19 +89,8 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     <Route path="engajamento" element={<EngajamentoPage />} />
 
                     {/* Placeholder para futuras páginas das novas áreas */}
-                    <Route path="ia-automacoes/*" element={
-                        <Box p="md">
-                            <Title order={2}>🤖 IA & Automações</Title>
-                            <Text>Esta seção estará disponível em breve com ferramentas de automação e inteligência artificial.</Text>
-                        </Box>
-                    }/>
-                    
-                    <Route path="suporte/*" element={
-                        <Box p="md">
-                            <Title order={2}>🎧 Suporte</Title>
-                            <Text>Esta seção estará disponível em breve com ferramentas de suporte ao cliente.</Text>
-                        </Box>
-                    }/>
+                    <Route path="ia-automacoes/*" element={<Navigate to="/workspace/agenda" replace />} />
+                    <Route path="suporte/*" element={<Navigate to="/workspace/agenda" replace />} />
 
                     {/* Rota Catch-all */}
                     <Route path="*" element={<Navigate to="/workspace" replace />} />
