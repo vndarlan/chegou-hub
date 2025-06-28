@@ -1,134 +1,235 @@
 /* frontend/src/components/DoubleNavbar.module.css */
+
 .navbar {
-    height: 100vh; /* Ocupa toda a altura */
-    width: 300px; /* Largura total da navbar combinada */
-    padding: var(--mantine-spacing-md);
-    display: flex;
-    flex-direction: column;
-    border-right: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
-    /* Remover background se WorkspacePage definir um geral */
-    /* background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6)); */
-  }
-  
-  .wrapper {
-    display: flex;
-    flex: 1; /* Ocupa o espaço vertical disponível */
+  height: 100vh;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+}
+
+.wrapper {
+  display: flex;
+  flex: 1;
+}
+
+/* Barra lateral esquerda com ícones das áreas */
+.aside {
+  flex: 0 0 60px;
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-right: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  padding: 16px 0;
+}
+
+.logo {
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  height: 60px;
+  padding-top: 8px;
+  margin-bottom: 24px;
+}
+
+.logoIcon {
+  width: 36px;
+  height: 36px;
+  background-color: var(--mantine-color-orange-6);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mainLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.mainLink {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+  transition: all 0.2s ease;
+}
+
+.mainLink:hover {
+  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6));
+  transform: translateY(-1px);
+}
+
+.mainLink[data-active] {
+  background-color: var(--mantine-color-orange-6);
+  color: var(--mantine-color-white);
+  box-shadow: 0 2px 8px rgba(255, 146, 43, 0.3);
+}
+
+.logoutButton {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  margin-top: auto;
+  margin-bottom: 16px;
+  transition: all 0.2s ease;
+}
+
+.logoutButton:hover {
+  background-color: light-dark(var(--mantine-color-red-1), var(--mantine-color-red-9));
+  color: var(--mantine-color-red-6);
+}
+
+/* Área principal com as páginas */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+}
+
+.title {
+  box-sizing: border-box;
+  font-family: Greycliff CF, var(--mantine-font-family);
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+  padding: 18px 24px;
+  height: 60px;
+  border-bottom: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-white));
+}
+
+.pageLinks {
+  flex: 1;
+  padding: 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.link {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  border-radius: 6px;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  transition: all 0.2s ease;
+}
+
+.link:hover {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+  color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+  transform: translateX(2px);
+}
+
+.link[data-active] {
+  background-color: var(--mantine-color-orange-1);
+  color: var(--mantine-color-orange-7);
+  font-weight: 600;
+  border-left: 3px solid var(--mantine-color-orange-6);
+}
+
+[data-mantine-color-scheme="dark"] .link[data-active] {
+  background-color: var(--mantine-color-orange-9);
+  color: var(--mantine-color-orange-2);
+}
+
+/* Seção do usuário */
+.userSection {
+  margin-top: auto;
+  padding: 16px;
+  border-top: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+.user {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.user:hover {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .navbar {
+    width: 280px;
   }
   
   .aside {
-    flex: 0 0 rem(60px);
-    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    border-right: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+    flex: 0 0 50px;
   }
   
-  .logo {
-    box-sizing: border-box;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    height: rem(60px);
-    padding-top: var(--mantine-spacing-md);
-    border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
-    margin-bottom: var(--mantine-spacing-xl);
+  .mainLink, .logoutButton {
+    width: 38px;
+    height: 38px;
   }
-
+  
   .logoIcon {
-    width: rem(30px);
-    height: rem(30px);
-    background-color: var(--mantine-color-orange-6);
-    border-radius: var(--mantine-radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 700;
-    font-size: var(--mantine-font-size-sm);
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
   }
-  
-  .mainLink {
-    width: rem(44px);
-    height: rem(44px);
-    border-radius: var(--mantine-radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
-    margin-bottom: var(--mantine-spacing-xs);
-  
-    &:hover {
-      background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
-    }
-  
-    &[data-active] {
-      background-color: var(--mantine-color-orange-filled); /* Laranja sólido */
-      color: var(--mantine-color-white);
-    }
-  }
-  
-  .main {
-    flex: 1;
-    padding-left: var(--mantine-spacing-md);
-    padding-right: var(--mantine-spacing-md);
-    padding-top: var(--mantine-spacing-md);
-    background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
-    position: relative;
-  }
-  
-  .title {
-    box-sizing: border-box;
-    font-family:
-      Greycliff CF,
-      var(--mantine-font-family);
-    margin-bottom: var(--mantine-spacing-xl);
-    background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6)); /* Garante que o fundo seja o mesmo */
-    padding: var(--mantine-spacing-md);
-    padding-top: rem(18px);
-    height: rem(60px);
-    border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
-    /* Remover margin-bottom se não houver espaço entre title e links */
-  }
-  
-  .link {
-    box-sizing: border-box;
-    display: block;
-    text-decoration: none;
-    border-radius: var(--mantine-radius-md);
-    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
-    padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
-    font-size: var(--mantine-font-size-sm);
-    font-weight: 500;
-    line-height: var(--mantine-line-height-sm);
-  
-    &:hover {
-      background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
-      color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
-    }
-  
-    &[data-active] {
-      background-color: var(--mantine-color-orange-light); /* Cor de fundo ativa para sublinks */
-      color: var(--mantine-color-orange-filled); /* Cor do texto ativa para sublinks */
-      font-weight: 600;
-    }
-  }
+}
 
-  /* Seção do usuário */
-  .userSection {
-    margin-top: auto;
-    padding-top: var(--mantine-spacing-md);
-    border-top: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
-  }
+/* Estados de loading/disabled */
+.mainLink:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
-  .user {
-    display: block;
-    width: 100%;
-    padding: var(--mantine-spacing-xs);
-    border-radius: var(--mantine-radius-md);
-    transition: background-color 150ms ease;
-  }
+.mainLink:disabled:hover {
+  background-color: transparent;
+  transform: none;
+}
 
-  .user:hover {
-    background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+/* Melhorias de acessibilidade */
+.mainLink:focus-visible,
+.logoutButton:focus-visible,
+.link:focus-visible {
+  outline: 2px solid var(--mantine-color-orange-6);
+  outline-offset: 2px;
+}
+
+/* Animações suaves */
+.pageLinks {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
