@@ -92,7 +92,7 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     <Route path="ia-automacoes/*" element={
                         <Box p="md">
                             <Title order={2}>🤖 IA & Automações</Title>
-                            <Text>Esta seção estará disponível em breve com ferramentas de automação e inteligência artificial.</Text>
+                            <Text>Esta seção estará disponívell em breve com ferramentas de automação e inteligência artificial.</Text>
                         </Box>
                     }/>
                     
