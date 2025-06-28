@@ -1,101 +1,233 @@
-// frontend/src/components/DoubleNavbar.js  <-- ESTE É O ARQUIVO QUE FALTAVA
-
-import React from 'react'; // Importar React
+// frontend/src/components/DoubleNavbar.js
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  IconAd,
+  IconHome2,
+  IconRobot,
   IconTools,
-  IconChartInfographic,
-  IconReceipt2,
+  IconHeadset,
+  IconCalendar,
+  IconMap,
+  IconChartLine,
   IconLogout,
 } from '@tabler/icons-react';
-import { Title, Tooltip, UnstyledButton } from '@mantine/core';
-// Importar o CSS Module que JÁ EXISTE
+import { Title, Tooltip, UnstyledButton, Group, Avatar, Text, Menu, rem } from '@mantine/core';
 import classes from './DoubleNavbar.module.css';
 
-// --- NOSSAS ÁREAS ---
-const areasData = [
-  { icon: IconAd, label: 'ADS' },
-  { icon: IconTools, label: 'Operacional' },
-  { icon: IconChartInfographic, label: 'Métricas do Negócio' },
-  { icon: IconReceipt2, label: 'Métricas de Vendas' },
+// Definir as áreas principais
+const mainAreasData = [
+  { 
+    icon: IconHome2, 
+    label: 'Home',
+    pages: [
+      { label: 'Agenda', link: '/workspace/agenda', icon: IconCalendar },
+      { label: 'Mapa', link: '/workspace/mapa', icon: IconMap }
+    ]
+  },
+  { 
+    icon: IconRobot, 
+    label: 'IA & Automações',
+    pages: [
+      // Vazio por enquanto, mas preparado para futuras páginas
+    ]
+  },
+  { 
+    icon: IconTools, 
+    label: 'Operacional',
+    pages: [
+      { label: 'Engajamento', link: '/workspace/engajamento', icon: IconChartLine }
+    ]
+  },
+  { 
+    icon: IconHeadset, 
+    label: 'Suporte',
+    pages: [
+      // Vazio por enquanto, mas preparado para futuras páginas
+    ]
+  },
 ];
 
-// --- NOSSAS PÁGINAS DENTRO DAS ÁREAS (Exemplo) ---
-const pagesData = {
-  'ADS': ['Visão Geral', 'Campanhas', 'Criar Anúncio', 'Relatórios ADS'],
-  'Operacional': ['Ferramenta X', 'Entrada de Dados', 'Processos Y', 'Automações'],
-  'Métricas do Negócio': ['KPIs Principais', 'Visão Financeira', 'Desempenho Setores'],
-  'Métricas de Vendas': ['Vendas por Período', 'Performance Vendedores', 'Funil de Vendas'],
+// Função para determinar área ativa baseada na URL
+const getActiveAreaFromPath = (pathname) => {
+  if (pathname.includes('/agenda') || pathname.includes('/mapa')) {
+    return 'Home';
+  }
+  if (pathname.includes('/engajamento')) {
+    return 'Operacional';
+  }
+  // Para futuras implementações
+  if (pathname.includes('/nicochat') || pathname.includes('/automacoes')) {
+    return 'IA & Automações';
+  }
+  if (pathname.includes('/suporte')) {
+    return 'Suporte';
+  }
+  return 'Home'; // Default
 };
 
-// O componente que será exportado e usado em WorkspacePage
-export function DoubleNavbar({ activeArea, setActiveArea, activePage, setActivePage, onLogout }) {
+// Função para determinar página ativa baseada na URL
+const getActivePageFromPath = (pathname) => {
+  if (pathname.includes('/agenda')) return 'Agenda';
+  if (pathname.includes('/mapa')) return 'Mapa';
+  if (pathname.includes('/engajamento')) return 'Engajamento';
+  return null;
+};
 
-  const mainLinks = areasData.map((link) => (
+export function DoubleNavbar({ 
+  userName, 
+  userEmail, 
+  onLogout, 
+  toggleColorScheme, 
+  colorScheme 
+}) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  const [activeArea, setActiveArea] = useState('Home');
+  const [activePage, setActivePage] = useState(null);
+
+  // Atualizar estados baseado na URL atual
+  useEffect(() => {
+    const area = getActiveAreaFromPath(location.pathname);
+    const page = getActivePageFromPath(location.pathname);
+    setActiveArea(area);
+    setActivePage(page);
+  }, [location.pathname]);
+
+  // Renderizar ícones das áreas principais
+  const mainLinks = mainAreasData.map((area) => (
     <Tooltip
-      label={link.label}
+      label={area.label}
       position="right"
       withArrow
       transitionProps={{ duration: 0 }}
-      key={link.label}
+      key={area.label}
     >
       <UnstyledButton
         onClick={() => {
-          setActiveArea(link.label);
-          const firstPageOfNewArea = pagesData[link.label]?.[0];
-          setActivePage(firstPageOfNewArea || null);
-          console.log(`Área ativa mudou para: ${link.label}, Página ativa: ${firstPageOfNewArea}`);
+          setActiveArea(area.label);
+          // Se a área tem páginas, navegar para a primeira
+          if (area.pages.length > 0) {
+            const firstPage = area.pages[0];
+            setActivePage(firstPage.label);
+            navigate(firstPage.link);
+          } else {
+            setActivePage(null);
+            // Para áreas vazias, navegar para uma página placeholder
+            navigate('/workspace');
+          }
         }}
-        // Usa as classes do CSS Module importado
         className={classes.mainLink}
-        data-active={link.label === activeArea || undefined}
+        data-active={area.label === activeArea || undefined}
       >
-        <link.icon size={22} stroke={1.5} />
+        <area.icon size={22} stroke={1.5} />
       </UnstyledButton>
     </Tooltip>
   ));
 
-  const subLinks = (pagesData[activeArea] || []).map((link) => (
+  // Encontrar área ativa e suas páginas
+  const currentArea = mainAreasData.find(area => area.label === activeArea);
+  const currentPages = currentArea?.pages || [];
+
+  // Renderizar links das páginas da área ativa
+  const pageLinks = currentPages.map((page) => (
     <a
-      // Usa as classes do CSS Module importado
       className={classes.link}
-      data-active={activePage === link || undefined}
+      data-active={activePage === page.label || undefined}
       href="#"
       onClick={(event) => {
         event.preventDefault();
-        setActivePage(link);
-        console.log(`Página ativa mudou para: ${link}`);
+        setActivePage(page.label);
+        navigate(page.link);
       }}
-      key={link}
+      key={page.label}
     >
-      {link}
+      {page.icon && <page.icon size={16} stroke={1.5} style={{ marginRight: '8px' }} />}
+      {page.label}
     </a>
   ));
 
+  // Componente do usuário no rodapé
+  const UserSection = () => (
+    <div className={classes.userSection}>
+      <Menu shadow="md" width={200} position="top-end" withArrow>
+        <Menu.Target>
+          <UnstyledButton className={classes.user}>
+            <Group>
+              <Avatar radius="xl" size="sm" color="orange">
+                {userName?.charAt(0).toUpperCase() || 'U'}
+              </Avatar>
+              <div style={{ flex: 1, overflow: 'hidden' }}>
+                <Text size="sm" fw={500} truncate="end">
+                  {userName || 'Usuário'}
+                </Text>
+                <Text c="dimmed" size="xs" truncate="end">
+                  {userEmail || ''}
+                </Text>
+              </div>
+            </Group>
+          </UnstyledButton>
+        </Menu.Target>
+        <Menu.Dropdown>
+          <Menu.Label>Configurações</Menu.Label>
+          <Menu.Item
+            leftSection={colorScheme === 'dark' ? '☀️' : '🌙'}
+            onClick={toggleColorScheme}
+          >
+            {colorScheme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
+          </Menu.Item>
+          <Menu.Divider />
+          <Menu.Item
+            color="red"
+            leftSection={<IconLogout style={{ width: rem(14), height: rem(14) }} />}
+            onClick={onLogout}
+          >
+            Logout
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
+    </div>
+  );
+
   return (
-    // Usa as classes do CSS Module importado
     <nav className={classes.navbar}>
       <div className={classes.wrapper}>
+        {/* Barra lateral com áreas principais */}
         <div className={classes.aside}>
-          {/* Logo pode ser adicionado aqui depois */}
-          {mainLinks}
-          <Tooltip label="Logout" position="right" withArrow transitionProps={{ duration: 0 }}>
-             <UnstyledButton onClick={onLogout} className={classes.mainLink} style={{ marginTop: 'auto', marginBottom: '10px' }}>
-               <IconLogout size={22} stroke={1.5} />
-             </UnstyledButton>
+          <div className={classes.logo}>
+            <div className={classes.logoIcon}>CH</div>
+          </div>
+          <div className={classes.mainLinks}>
+            {mainLinks}
+          </div>
+          {/* Botão de logout na parte inferior da barra lateral */}
+          <Tooltip label="Logout" position="right" withArrow>
+            <UnstyledButton onClick={onLogout} className={classes.logoutButton}>
+              <IconLogout size={22} stroke={1.5} />
+            </UnstyledButton>
           </Tooltip>
         </div>
+
+        {/* Área principal com páginas */}
         <div className={classes.main}>
           <Title order={4} className={classes.title}>
-            {activeArea || 'Selecione uma Área'}
+            {activeArea}
           </Title>
-          {subLinks.length > 0 ? subLinks : <p>Nenhuma página nesta área.</p>}
+          
+          <div className={classes.pageLinks}>
+            {currentPages.length > 0 ? (
+              pageLinks
+            ) : (
+              <Text c="dimmed" size="sm" style={{ padding: '8px 16px' }}>
+                Em breve: novas funcionalidades para {activeArea}
+              </Text>
+            )}
+          </div>
+
+          {/* Seção do usuário no rodapé */}
+          <UserSection />
         </div>
       </div>
     </nav>
   );
 }
-
-// Não precisa de 'export default' se você importa com chaves: import { DoubleNavbar } ...
-// Se preferir default export, adicione no final: export default DoubleNavbar;
-// e mude o import em WorkspacePage para: import DoubleNavbar from ...

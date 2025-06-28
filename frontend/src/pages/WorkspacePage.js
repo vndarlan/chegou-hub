@@ -2,56 +2,20 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import { NavbarNested } from '../components/NavbarNested/NavbarNested';
+import { DoubleNavbar } from '../components/DoubleNavbar';
 import { Box, LoadingOverlay, Text, Title } from '@mantine/core';
-import {
-  IconHome,
-  IconMap,
-  IconCalendar,
-  IconChartLine,
-} from '@tabler/icons-react';
 
-// --- Importar páginas das funcionalidades (CAMINHO CORRIGIDO) ---
+// --- Importar páginas das funcionalidades ---
 import MapaPage from '../features/mapa/MapaPage';
 import AgendaPage from '../features/agenda/AgendaPage';
 import EngajamentoPage from '../features/engajamento/EngajamentoPage';
 
-// --- Dados da Navbar simplificados ---
-const areasData = [
-  { label: 'Home', icon: IconHome, link: '/workspace' },
-  { label: 'Agenda', icon: IconCalendar, link: '/workspace/agenda' },
-  { label: 'Mapa', icon: IconMap, link: '/workspace/mapa' },
-  { label: 'Engajamento', icon: IconChartLine, link: '/workspace/engajamento' },
-];
-
-// Função para extrair a label ativa
-const getActivePageLabelFromPathname = (pathname) => {
-    const normalizedPathname = pathname.endsWith('/') && pathname.length > 11 ? pathname.slice(0, -1) : pathname;
-    for (const area of areasData) {
-        if (area.link && area.link === normalizedPathname) return area.label;
-    }
-    if (normalizedPathname === '/workspace') return 'Home';
-    const parts = normalizedPathname.split('/').filter(p => p);
-    if (parts.length > 1) {
-        const lastPart = parts[parts.length - 1];
-        return lastPart.charAt(0).toUpperCase() + lastPart.slice(1).replace('-', ' ');
-    }
-    return null;
-};
-
 function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
     const location = useLocation();
-    const [activePageLabel, setActivePageLabel] = useState(null);
     const [loadingSession, setLoadingSession] = useState(true);
     const [errorSession, setErrorSession] = useState('');
     const [userName, setUserName] = useState('Usuário');
     const [userEmail, setUserEmail] = useState('');
-    const [navbarCollapsed, setNavbarCollapsed] = useState(false);
-
-    useEffect(() => {
-        const label = getActivePageLabelFromPathname(location.pathname);
-        setActivePageLabel(label);
-    }, [location.pathname]);
 
     useEffect(() => {
         const fetchSessionData = async () => {
@@ -96,15 +60,11 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
 
     return (
         <Box style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-            <NavbarNested
-                activePage={activePageLabel}
-                setActivePage={setActivePageLabel}
+            {/* Nova DoubleNavbar */}
+            <DoubleNavbar
                 userName={userName}
                 userEmail={userEmail}
                 onLogout={handleLogout}
-                collapsed={navbarCollapsed}
-                setCollapsed={setNavbarCollapsed}
-                areasData={areasData}
                 toggleColorScheme={toggleColorScheme}
                 colorScheme={colorScheme}
             />
@@ -120,11 +80,40 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                 }}
             >
                 <Routes>
-                    {/* Rota Index */}
+                    {/* Rota Index - Página inicial quando entra em /workspace */}
                     <Route index element={
                         <Box p="md">
-                            <Title order={3}>Bem-vindo ao Workspace!</Title>
-                            <Text>Selecione uma opção no menu lateral.</Text>
+                            <Title order={2} mb="md">🏠 Bem-vindo ao Chegou Hub!</Title>
+                            <Text size="lg" mb="xl">
+                                Selecione uma área no menu lateral para começar.
+                            </Text>
+                            
+                            <Box>
+                                <Title order={3} mb="md">📋 Áreas Disponíveis:</Title>
+                                <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
+                                    
+                                    <Box p="md" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '8px' }}>
+                                        <Title order={4}>🏠 Home</Title>
+                                        <Text size="sm" c="dimmed">Agenda e Mapa</Text>
+                                    </Box>
+                                    
+                                    <Box p="md" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '8px' }}>
+                                        <Title order={4}>🤖 IA & Automações</Title>
+                                        <Text size="sm" c="dimmed">Em breve</Text>
+                                    </Box>
+                                    
+                                    <Box p="md" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '8px' }}>
+                                        <Title order={4}>🔧 Operacional</Title>
+                                        <Text size="sm" c="dimmed">Engajamento</Text>
+                                    </Box>
+                                    
+                                    <Box p="md" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '8px' }}>
+                                        <Title order={4}>🎧 Suporte</Title>
+                                        <Text size="sm" c="dimmed">Em breve</Text>
+                                    </Box>
+                                    
+                                </div>
+                            </Box>
                         </Box>
                     }/>
 
@@ -132,6 +121,21 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     <Route path="agenda" element={<AgendaPage />} />
                     <Route path="mapa" element={<MapaPage />} />
                     <Route path="engajamento" element={<EngajamentoPage />} />
+
+                    {/* Placeholder para futuras páginas das novas áreas */}
+                    <Route path="ia-automacoes/*" element={
+                        <Box p="md">
+                            <Title order={2}>🤖 IA & Automações</Title>
+                            <Text>Esta seção estará disponível em breve com ferramentas de automação e inteligência artificial.</Text>
+                        </Box>
+                    }/>
+                    
+                    <Route path="suporte/*" element={
+                        <Box p="md">
+                            <Title order={2}>🎧 Suporte</Title>
+                            <Text>Esta seção estará disponível em breve com ferramentas de suporte ao cliente.</Text>
+                        </Box>
+                    }/>
 
                     {/* Rota Catch-all */}
                     <Route path="*" element={<Navigate to="/workspace" replace />} />
