@@ -6,9 +6,6 @@ import {
   IconRobot,
   IconTools,
   IconHeadset,
-  IconCalendar,
-  IconMap,
-  IconChartLine,
   IconLogout,
   IconSun,
   IconMoonStars,
@@ -16,38 +13,30 @@ import {
 import { Title, Tooltip, UnstyledButton, Group, Avatar, Text, Menu, rem } from '@mantine/core';
 import classes from './DoubleNavbar.module.css';
 
-// Definir as áreas principais
-const mainAreasData = [
-  { 
-    icon: IconHome2, 
-    label: 'Home',
-    pages: [
-      { label: 'Agenda', link: '/workspace/agenda', icon: IconCalendar },
-      { label: 'Mapa', link: '/workspace/mapa', icon: IconMap }
-    ]
-  },
-  { 
-    icon: IconRobot, 
-    label: 'IA & Automações',
-    pages: [
-      // Vazio por enquanto, mas preparado para futuras páginas
-    ]
-  },
-  { 
-    icon: IconTools, 
-    label: 'Operacional',
-    pages: [
-      { label: 'Engajamento', link: '/workspace/engajamento', icon: IconChartLine }
-    ]
-  },
-  { 
-    icon: IconHeadset, 
-    label: 'Suporte',
-    pages: [
-      // Vazio por enquanto, mas preparado para futuras páginas
-    ]
-  },
+// --- NOSSAS ÁREAS ---
+const areasData = [
+  { icon: IconHome2, label: 'Home' },
+  { icon: IconRobot, label: 'IA & Automações' },
+  { icon: IconTools, label: 'Operacional' },
+  { icon: IconHeadset, label: 'Suporte' },
 ];
+
+// --- NOSSAS PÁGINAS DENTRO DAS ÁREAS ---
+const pagesData = {
+  'Home': [
+    { label: 'Agenda', link: '/workspace/agenda' },
+    { label: 'Mapa', link: '/workspace/mapa' }
+  ],
+  'IA & Automações': [
+    // Em breve
+  ],
+  'Operacional': [
+    { label: 'Engajamento', link: '/workspace/engajamento' }
+  ],
+  'Suporte': [
+    // Em breve
+  ],
+};
 
 // Função para determinar área ativa baseada na URL
 const getActiveAreaFromPath = (pathname) => {
@@ -57,13 +46,6 @@ const getActiveAreaFromPath = (pathname) => {
   if (pathname.includes('/engajamento')) {
     return 'Operacional';
   }
-  // Para futuras implementações
-  if (pathname.includes('/nicochat') || pathname.includes('/automacoes')) {
-    return 'IA & Automações';
-  }
-  if (pathname.includes('/suporte')) {
-    return 'Suporte';
-  }
   return 'Home'; // Default
 };
 
@@ -72,9 +54,10 @@ const getActivePageFromPath = (pathname) => {
   if (pathname.includes('/agenda')) return 'Agenda';
   if (pathname.includes('/mapa')) return 'Mapa';
   if (pathname.includes('/engajamento')) return 'Engajamento';
-  return null;
+  return 'Agenda'; // Default
 };
 
+// O componente que será exportado e usado em WorkspacePage
 export function DoubleNavbar({ 
   userName, 
   userEmail, 
@@ -84,9 +67,8 @@ export function DoubleNavbar({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  
   const [activeArea, setActiveArea] = useState('Home');
-  const [activePage, setActivePage] = useState(null);
+  const [activePage, setActivePage] = useState('Agenda');
 
   // Atualizar estados baseado na URL atual
   useEffect(() => {
@@ -94,65 +76,51 @@ export function DoubleNavbar({
     const page = getActivePageFromPath(location.pathname);
     setActiveArea(area);
     setActivePage(page);
-    
-    console.log(`URL mudou: ${location.pathname}`);
-    console.log(`Área detectada: ${area}, Página detectada: ${page}`);
   }, [location.pathname]);
 
-  // Renderizar ícones das áreas principais
-  const mainLinks = mainAreasData.map((area) => (
+  const mainLinks = areasData.map((link) => (
     <Tooltip
-      label={area.label}
+      label={link.label}
       position="right"
       withArrow
       transitionProps={{ duration: 0 }}
-      key={area.label}
+      key={link.label}
     >
       <UnstyledButton
         onClick={() => {
-          console.log(`Clicando na área: ${area.label}`);
-          setActiveArea(area.label);
-          // Se a área tem páginas, navegar para a primeira
-          if (area.pages.length > 0) {
-            const firstPage = area.pages[0];
-            setActivePage(firstPage.label);
-            navigate(firstPage.link);
-            console.log(`Navegando para primeira página: ${firstPage.link}`);
+          setActiveArea(link.label);
+          const firstPageOfNewArea = pagesData[link.label]?.[0];
+          
+          if (firstPageOfNewArea) {
+            setActivePage(firstPageOfNewArea.label);
+            navigate(firstPageOfNewArea.link);
           } else {
-            setActivePage(null);
             // Para áreas vazias, manter na agenda
+            setActivePage('Agenda');
             navigate('/workspace/agenda');
-            console.log('Área sem páginas - redirecionando para agenda');
           }
         }}
         className={classes.mainLink}
-        data-active={area.label === activeArea || undefined}
+        data-active={link.label === activeArea || undefined}
       >
-        <area.icon size={22} stroke={1.5} />
+        <link.icon size={22} stroke={1.5} />
       </UnstyledButton>
     </Tooltip>
   ));
 
-  // Encontrar área ativa e suas páginas
-  const currentArea = mainAreasData.find(area => area.label === activeArea);
-  const currentPages = currentArea?.pages || [];
-
-  // Renderizar links das páginas da área ativa
-  const pageLinks = currentPages.map((page) => (
+  const subLinks = (pagesData[activeArea] || []).map((pageItem) => (
     <a
       className={classes.link}
-      data-active={activePage === page.label || undefined}
+      data-active={activePage === pageItem.label || undefined}
       href="#"
       onClick={(event) => {
         event.preventDefault();
-        setActivePage(page.label);
-        navigate(page.link);
-        console.log(`Navegando para: ${page.link}, Página ativa: ${page.label}`);
+        setActivePage(pageItem.label);
+        navigate(pageItem.link);
       }}
-      key={page.label}
+      key={pageItem.label}
     >
-      {page.icon && <page.icon size={16} stroke={1.5} style={{ marginRight: '8px' }} />}
-      {page.label}
+      {pageItem.label}
     </a>
   ));
 
@@ -205,38 +173,28 @@ export function DoubleNavbar({
   return (
     <nav className={classes.navbar}>
       <div className={classes.wrapper}>
-        {/* Barra lateral com áreas principais */}
         <div className={classes.aside}>
+          {/* Logo */}
           <div className={classes.logo}>
             <div className={classes.logoIcon}>CH</div>
           </div>
-          <div className={classes.mainLinks}>
-            {mainLinks}
-          </div>
-          {/* Botão de logout na parte inferior da barra lateral */}
-          <Tooltip label="Logout" position="right" withArrow>
-            <UnstyledButton onClick={onLogout} className={classes.logoutButton}>
-              <IconLogout size={22} stroke={1.5} />
-            </UnstyledButton>
+          {mainLinks}
+          <Tooltip label="Logout" position="right" withArrow transitionProps={{ duration: 0 }}>
+             <UnstyledButton onClick={onLogout} className={classes.mainLink} style={{ marginTop: 'auto', marginBottom: '10px' }}>
+               <IconLogout size={22} stroke={1.5} />
+             </UnstyledButton>
           </Tooltip>
         </div>
-
-        {/* Área principal com páginas */}
         <div className={classes.main}>
           <Title order={4} className={classes.title}>
-            {activeArea}
+            {activeArea || 'Selecione uma Área'}
           </Title>
+          {subLinks.length > 0 ? subLinks : (
+            <Text c="dimmed" size="sm" style={{ padding: '12px 16px', fontStyle: 'italic' }}>
+              Funcionalidades de {activeArea} chegando em breve! 🚀
+            </Text>
+          )}
           
-          <div className={classes.pageLinks}>
-            {currentPages.length > 0 ? (
-              pageLinks
-            ) : (
-              <Text c="dimmed" size="sm" style={{ padding: '12px 16px', fontStyle: 'italic' }}>
-                Funcionalidades de {activeArea} chegando em breve! 🚀
-              </Text>
-            )}
-          </div>
-
           {/* Seção do usuário no rodapé */}
           <UserSection />
         </div>

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { DoubleNavbar } from '../components/DoubleNavbar';
-import { Box, LoadingOverlay, Text, Title } from '@mantine/core';
+import { Box, LoadingOverlay } from '@mantine/core';
 
 // --- Importar páginas das funcionalidades ---
 import MapaPage from '../features/mapa/MapaPage';
@@ -60,7 +60,7 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
 
     return (
         <Box style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-            {/* Nova DoubleNavbar */}
+            {/* DoubleNavbar atualizada */}
             <DoubleNavbar
                 userName={userName}
                 userEmail={userEmail}
@@ -88,12 +88,8 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     <Route path="mapa" element={<MapaPage />} />
                     <Route path="engajamento" element={<EngajamentoPage />} />
 
-                    {/* Placeholder para futuras páginas das novas áreas */}
-                    <Route path="ia-automacoes/*" element={<Navigate to="/workspace/agenda" replace />} />
-                    <Route path="suporte/*" element={<Navigate to="/workspace/agenda" replace />} />
-
                     {/* Rota Catch-all */}
-                    <Route path="*" element={<Navigate to="/workspace" replace />} />
+                    <Route path="*" element={<Navigate to="/workspace/agenda" replace />} />
                 </Routes>
             </Box>
         </Box>
