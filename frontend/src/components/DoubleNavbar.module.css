@@ -5,7 +5,6 @@
   width: 300px;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
   background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
 }
 
@@ -65,6 +64,7 @@
   justify-content: center;
   color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .mainLink:hover {
@@ -76,6 +76,19 @@
   background-color: var(--mantine-color-orange-6);
   color: var(--mantine-color-white);
   box-shadow: 0 2px 8px rgba(255, 146, 43, 0.3);
+}
+
+/* Adicionar linha lateral para item ativo - similar à imagem 3 */
+.mainLink[data-active]::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 24px;
+  background-color: var(--mantine-color-orange-6);
+  border-radius: 0 2px 2px 0;
 }
 
 .logoutButton {
@@ -102,6 +115,7 @@
   display: flex;
   flex-direction: column;
   background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+  border-right: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
 }
 
 .title {
@@ -119,10 +133,9 @@
 
 .pageLinks {
   flex: 1;
-  padding: 16px 8px;
+  padding: 8px 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
   overflow-y: auto;
 }
 
@@ -131,31 +144,33 @@
   display: flex;
   align-items: center;
   text-decoration: none;
-  border-radius: 6px;
   color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
-  padding: 10px 16px;
+  padding: 12px 24px;
   font-size: 14px;
   font-weight: 500;
   line-height: 1.4;
   transition: all 0.2s ease;
+  position: relative;
+  border-left: 3px solid transparent;
 }
 
 .link:hover {
-  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
   color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
-  transform: translateX(2px);
 }
 
+/* Estilo do link ativo - similar à imagem 3 */
 .link[data-active] {
-  background-color: var(--mantine-color-orange-1);
+  background-color: light-dark(var(--mantine-color-orange-0), var(--mantine-color-orange-9));
   color: var(--mantine-color-orange-7);
   font-weight: 600;
-  border-left: 3px solid var(--mantine-color-orange-6);
+  border-left-color: var(--mantine-color-orange-6);
 }
 
 [data-mantine-color-scheme="dark"] .link[data-active] {
   background-color: var(--mantine-color-orange-9);
   color: var(--mantine-color-orange-2);
+  border-left-color: var(--mantine-color-orange-4);
 }
 
 /* Seção do usuário */

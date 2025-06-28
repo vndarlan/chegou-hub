@@ -2,25 +2,23 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  IconHome2,
-  IconRobot,
-  IconTools,
-  IconHeadset,
   IconCalendar,
   IconMap,
   IconChartLine,
+  IconRobot,
+  IconTools,
+  IconHeadset,
   IconLogout,
 } from '@tabler/icons-react';
 import { Title, Tooltip, UnstyledButton, Group, Avatar, Text, Menu, rem } from '@mantine/core';
 import classes from './DoubleNavbar.module.css';
 
-// Definir as áreas principais
+// Definir as áreas principais - removendo Home e tornando Agenda a primeira
 const mainAreasData = [
   { 
-    icon: IconHome2, 
-    label: 'Home',
+    icon: IconCalendar, 
+    label: 'Agenda',
     pages: [
-      { label: 'Agenda', link: '/workspace/agenda', icon: IconCalendar },
       { label: 'Mapa', link: '/workspace/mapa', icon: IconMap }
     ]
   },
@@ -49,28 +47,30 @@ const mainAreasData = [
 
 // Função para determinar área ativa baseada na URL
 const getActiveAreaFromPath = (pathname) => {
-  if (pathname.includes('/agenda') || pathname.includes('/mapa')) {
-    return 'Home';
+  if (pathname.includes('/agenda') || pathname === '/workspace' || pathname === '/workspace/') {
+    return 'Agenda';
+  }
+  if (pathname.includes('/mapa')) {
+    return 'Agenda'; // Mapa está dentro de Agenda agora
   }
   if (pathname.includes('/engajamento')) {
     return 'Operacional';
   }
-  // Para futuras implementações
   if (pathname.includes('/nicochat') || pathname.includes('/automacoes')) {
     return 'IA & Automações';
   }
   if (pathname.includes('/suporte')) {
     return 'Suporte';
   }
-  return 'Home'; // Default
+  return 'Agenda'; // Default para Agenda
 };
 
 // Função para determinar página ativa baseada na URL
 const getActivePageFromPath = (pathname) => {
-  if (pathname.includes('/agenda')) return 'Agenda';
   if (pathname.includes('/mapa')) return 'Mapa';
   if (pathname.includes('/engajamento')) return 'Engajamento';
-  return null;
+  if (pathname.includes('/agenda') || pathname === '/workspace' || pathname === '/workspace/') return 'Agenda';
+  return 'Agenda'; // Default
 };
 
 export function DoubleNavbar({ 
@@ -83,8 +83,8 @@ export function DoubleNavbar({
   const navigate = useNavigate();
   const location = useLocation();
   
-  const [activeArea, setActiveArea] = useState('Home');
-  const [activePage, setActivePage] = useState(null);
+  const [activeArea, setActiveArea] = useState('Agenda');
+  const [activePage, setActivePage] = useState('Agenda');
 
   // Atualizar estados baseado na URL atual
   useEffect(() => {
@@ -106,8 +106,12 @@ export function DoubleNavbar({
       <UnstyledButton
         onClick={() => {
           setActiveArea(area.label);
-          // Se a área tem páginas, navegar para a primeira
-          if (area.pages.length > 0) {
+          // Se é a área Agenda, navegar direto para agenda
+          if (area.label === 'Agenda') {
+            setActivePage('Agenda');
+            navigate('/workspace/agenda');
+          } else if (area.pages.length > 0) {
+            // Se a área tem páginas, navegar para a primeira
             const firstPage = area.pages[0];
             setActivePage(firstPage.label);
             navigate(firstPage.link);
@@ -215,13 +219,31 @@ export function DoubleNavbar({
           </Title>
           
           <div className={classes.pageLinks}>
+            {/* Para Agenda, mostrar link da própria Agenda */}
+            {activeArea === 'Agenda' && (
+              <a
+                className={classes.link}
+                data-active={activePage === 'Agenda' || undefined}
+                href="#"
+                onClick={(event) => {
+                  event.preventDefault();
+                  setActivePage('Agenda');
+                  navigate('/workspace/agenda');
+                }}
+              >
+                <IconCalendar size={16} stroke={1.5} style={{ marginRight: '8px' }} />
+                Agenda
+              </a>
+            )}
+            
+            {/* Outros links da área */}
             {currentPages.length > 0 ? (
               pageLinks
-            ) : (
+            ) : activeArea !== 'Agenda' ? (
               <Text c="dimmed" size="sm" style={{ padding: '8px 16px' }}>
                 Em breve: novas funcionalidades para {activeArea}
               </Text>
-            )}
+            ) : null}
           </div>
 
           {/* Seção do usuário no rodapé */}

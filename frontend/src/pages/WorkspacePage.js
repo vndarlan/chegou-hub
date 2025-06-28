@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { DoubleNavbar } from '../components/DoubleNavbar';
-import { Box, LoadingOverlay, Text, Title } from '@mantine/core';
+import { Box, LoadingOverlay } from '@mantine/core';
 
 // --- Importar páginas das funcionalidades ---
 import MapaPage from '../features/mapa/MapaPage';
@@ -60,7 +60,7 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
 
     return (
         <Box style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-            {/* Nova DoubleNavbar */}
+            {/* DoubleNavbar atualizada */}
             <DoubleNavbar
                 userName={userName}
                 userEmail={userEmail}
@@ -80,42 +80,8 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                 }}
             >
                 <Routes>
-                    {/* Rota Index - Página inicial quando entra em /workspace */}
-                    <Route index element={
-                        <Box p="md">
-                            <Title order={2} mb="md">🏠 Bem-vindo ao Chegou Hub!</Title>
-                            <Text size="lg" mb="xl">
-                                Selecione uma área no menu lateral para começar.
-                            </Text>
-                            
-                            <Box>
-                                <Title order={3} mb="md">📋 Áreas Disponíveis:</Title>
-                                <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
-                                    
-                                    <Box p="md" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '8px' }}>
-                                        <Title order={4}>🏠 Home</Title>
-                                        <Text size="sm" c="dimmed">Agenda e Mapa</Text>
-                                    </Box>
-                                    
-                                    <Box p="md" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '8px' }}>
-                                        <Title order={4}>🤖 IA & Automações</Title>
-                                        <Text size="sm" c="dimmed">Em breve</Text>
-                                    </Box>
-                                    
-                                    <Box p="md" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '8px' }}>
-                                        <Title order={4}>🔧 Operacional</Title>
-                                        <Text size="sm" c="dimmed">Engajamento</Text>
-                                    </Box>
-                                    
-                                    <Box p="md" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '8px' }}>
-                                        <Title order={4}>🎧 Suporte</Title>
-                                        <Text size="sm" c="dimmed">Em breve</Text>
-                                    </Box>
-                                    
-                                </div>
-                            </Box>
-                        </Box>
-                    }/>
+                    {/* Rota Index - Redireciona direto para Agenda */}
+                    <Route index element={<Navigate to="/workspace/agenda" replace />} />
 
                     {/* Páginas das Funcionalidades */}
                     <Route path="agenda" element={<AgendaPage />} />
@@ -137,8 +103,8 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                         </Box>
                     }/>
 
-                    {/* Rota Catch-all */}
-                    <Route path="*" element={<Navigate to="/workspace" replace />} />
+                    {/* Rota Catch-all - Redireciona para Agenda */}
+                    <Route path="*" element={<Navigate to="/workspace/agenda" replace />} />
                 </Routes>
             </Box>
         </Box>
