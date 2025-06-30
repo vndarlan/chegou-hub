@@ -205,7 +205,7 @@ function App() {
           <Routes>
             <Route
               path="/login"
-              element={!isLoggedIn ? <LoginPage setIsLoggedIn={setIsLoggedIn} /> : <Navigate to="/workspace" replace />}
+              element={!isLoggedIn ? <LoginPage setIsLoggedIn={setIsLoggedIn} /> : <Navigate to="/workspace/agenda" replace />}
             />
             <Route
               path="/workspace/*"
@@ -218,14 +218,19 @@ function App() {
                 <Navigate to="/login" replace />
               }
             />
+            {/* Rota raiz redireciona direto para agenda se logado, senão para login */}
             <Route
               path="/"
-              element={isLoggedIn ? <Navigate to="/workspace" replace /> : <Navigate to="/login" replace />}
+              element={isLoggedIn ? <Navigate to="/workspace/agenda" replace /> : <Navigate to="/login" replace />}
             />
             <Route path="*" element={
               <div style={{ padding: '20px', textAlign: 'center' }}>
                 <h1>404 - Página não encontrada</h1>
                 <p>A rota que você tentou acessar não existe.</p>
+                {/* Link para voltar à página principal */}
+                <a href={isLoggedIn ? "/workspace/agenda" : "/login"}>
+                  Voltar ao {isLoggedIn ? 'início' : 'login'}
+                </a>
               </div>
             } />
           </Routes>

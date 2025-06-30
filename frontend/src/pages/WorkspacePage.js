@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { DoubleNavbar } from '../components/DoubleNavbar';
-import { Box, LoadingOverlay } from '@mantine/core';
+import { Box, LoadingOverlay, Title, Text } from '@mantine/core';
 
 // --- Importar páginas das funcionalidades ---
 import MapaPage from '../features/mapa/MapaPage';
@@ -76,11 +76,12 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     flexGrow: 1, 
                     overflowY: 'auto', 
                     height: '100vh',
-                    backgroundColor: 'var(--mantine-color-body)'
+                    backgroundColor: 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8))',
+                    borderLeft: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))'
                 }}
             >
                 <Routes>
-                    {/* Rota Index - Redireciona direto para Agenda */}
+                    {/* Rota Index - Redireciona direto para Agenda (REMOVIDA PÁGINA DE BOAS-VINDAS) */}
                     <Route index element={<Navigate to="/workspace/agenda" replace />} />
 
                     {/* Páginas das Funcionalidades */}
@@ -90,20 +91,42 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
 
                     {/* Placeholder para futuras páginas das novas áreas */}
                     <Route path="ia-automacoes/*" element={
-                        <Box p="md">
+                        <Box p="xl" style={{ 
+                            backgroundColor: 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-7))',
+                            margin: '16px',
+                            borderRadius: '8px',
+                            border: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))'
+                        }}>
                             <Title order={2}>🤖 IA & Automações</Title>
-                            <Text>Esta seção estará disponívell em breve com ferramentas de automação e inteligência artificial.</Text>
+                            <Text mt="md" c="dimmed">Esta seção estará disponível em breve com ferramentas de automação e inteligência artificial.</Text>
+                        </Box>
+                    }/>
+                    
+                    <Route path="operacional/*" element={
+                        <Box p="xl" style={{ 
+                            backgroundColor: 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-7))',
+                            margin: '16px',
+                            borderRadius: '8px',
+                            border: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))'
+                        }}>
+                            <Title order={2}>🔧 Operacional</Title>
+                            <Text mt="md" c="dimmed">Esta seção estará disponível em breve com ferramentas operacionais.</Text>
                         </Box>
                     }/>
                     
                     <Route path="suporte/*" element={
-                        <Box p="md">
+                        <Box p="xl" style={{ 
+                            backgroundColor: 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-7))',
+                            margin: '16px',
+                            borderRadius: '8px',
+                            border: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))'
+                        }}>
                             <Title order={2}>🎧 Suporte</Title>
-                            <Text>Esta seção estará disponível em breve com ferramentas de suporte ao cliente.</Text>
+                            <Text mt="md" c="dimmed">Esta seção estará disponível em breve com ferramentas de suporte ao cliente.</Text>
                         </Box>
                     }/>
 
-                    {/* Rota Catch-all - Redireciona para Agenda */}
+                    {/* Rota Catch-all - Redireciona para Agenda (GARANTE QUE NÃO VOLTE PARA BOAS-VINDAS) */}
                     <Route path="*" element={<Navigate to="/workspace/agenda" replace />} />
                 </Routes>
             </Box>

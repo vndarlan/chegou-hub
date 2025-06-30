@@ -6,6 +6,8 @@
   display: flex;
   flex-direction: column;
   background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+  border-right: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
 }
 
 .wrapper {
@@ -31,7 +33,7 @@
   justify-content: center;
   height: 60px;
   padding-top: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 16px; /* Reduzido para dar espaço ao divisor */
 }
 
 .logoIcon {
@@ -46,6 +48,15 @@
   font-weight: bold;
   font-size: 14px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Novo divisor após a logo - igual à imagem 2 */
+.logoDivider {
+  width: 32px;
+  height: 1px;
+  background-color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-4));
+  margin-bottom: 16px;
+  opacity: 0.6;
 }
 
 .mainLinks {
@@ -78,7 +89,7 @@
   box-shadow: 0 2px 8px rgba(255, 146, 43, 0.3);
 }
 
-/* Adicionar linha lateral para item ativo - similar à imagem 3 */
+/* Adicionar linha lateral para item ativo - similar à imagem 2 */
 .mainLink[data-active]::before {
   content: '';
   position: absolute;
@@ -115,13 +126,13 @@
   display: flex;
   flex-direction: column;
   background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
-  border-right: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  /* Removida a borda direita daqui pois já está no .navbar */
 }
 
 .title {
   box-sizing: border-box;
   font-family: Greycliff CF, var(--mantine-font-family);
-  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
   padding: 18px 24px;
   height: 60px;
   border-bottom: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
@@ -129,6 +140,8 @@
   align-items: center;
   font-weight: 600;
   color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-white));
+  /* Adicionar uma sombra sutil para separação */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .pageLinks {
@@ -137,6 +150,8 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  /* Adicionar fundo diferente para maior contraste */
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
 }
 
 .link {
@@ -155,11 +170,11 @@
 }
 
 .link:hover {
-  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
   color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
 }
 
-/* Estilo do link ativo - similar à imagem 3 */
+/* Estilo do link ativo - similar à imagem 2 */
 .link[data-active] {
   background-color: light-dark(var(--mantine-color-orange-0), var(--mantine-color-orange-9));
   color: var(--mantine-color-orange-7);
@@ -178,6 +193,7 @@
   margin-top: auto;
   padding: 16px;
   border-top: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
 }
 
 .user {
@@ -211,6 +227,10 @@
     width: 32px;
     height: 32px;
     font-size: 12px;
+  }
+  
+  .logoDivider {
+    width: 28px;
   }
 }
 
