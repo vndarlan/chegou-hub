@@ -60,7 +60,7 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
 
     return (
         <Box style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-            {/* DoubleNavbar atualizada */}
+            {/* DoubleNavbar com estrutura corrigida */}
             <DoubleNavbar
                 userName={userName}
                 userEmail={userEmail}
@@ -84,9 +84,11 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     {/* Rota Index - Redireciona direto para Agenda (REMOVIDA PÁGINA DE BOAS-VINDAS) */}
                     <Route index element={<Navigate to="/workspace/agenda" replace />} />
 
-                    {/* Páginas das Funcionalidades */}
+                    {/* Páginas da área HOME */}
                     <Route path="agenda" element={<AgendaPage />} />
                     <Route path="mapa" element={<MapaPage />} />
+
+                    {/* Páginas da área OPERACIONAL */}
                     <Route path="engajamento" element={<EngajamentoPage />} />
 
                     {/* Placeholder para futuras páginas das novas áreas */}
@@ -99,18 +101,6 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                         }}>
                             <Title order={2}>🤖 IA & Automações</Title>
                             <Text mt="md" c="dimmed">Esta seção estará disponível em breve com ferramentas de automação e inteligência artificial.</Text>
-                        </Box>
-                    }/>
-                    
-                    <Route path="operacional/*" element={
-                        <Box p="xl" style={{ 
-                            backgroundColor: 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-7))',
-                            margin: '16px',
-                            borderRadius: '8px',
-                            border: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))'
-                        }}>
-                            <Title order={2}>🔧 Operacional</Title>
-                            <Text mt="md" c="dimmed">Esta seção estará disponível em breve com ferramentas operacionais.</Text>
                         </Box>
                     }/>
                     

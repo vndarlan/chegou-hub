@@ -26,37 +26,29 @@
   padding: 16px 0;
 }
 
+/* Logo removida da barra lateral - agora vai ficar no título */
 .logo {
-  box-sizing: border-box;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  height: 60px;
-  padding-top: 8px;
-  margin-bottom: 16px; /* Reduzido para dar espaço ao divisor */
+  display: none; /* Esconder logo da barra lateral */
 }
 
 .logoIcon {
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   background-color: var(--mantine-color-orange-6);
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: bold;
-  font-size: 14px;
+  font-size: 12px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-right: 12px;
 }
 
-/* Novo divisor após a logo - igual à imagem 2 */
+/* Divisor removido pois logo não está mais aqui */
 .logoDivider {
-  width: 32px;
-  height: 1px;
-  background-color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-4));
-  margin-bottom: 16px;
-  opacity: 0.6;
+  display: none;
 }
 
 .mainLinks {
@@ -64,6 +56,7 @@
   flex-direction: column;
   gap: 8px;
   flex: 1;
+  margin-top: 16px; /* Adicionar margin superior já que não há mais logo */
 }
 
 .mainLink {
@@ -150,8 +143,8 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  /* Adicionar fundo diferente para maior contraste */
-  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+  /* Fundo mais escuro para contraste - igual à imagem de referência */
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-7));
 }
 
 .link {
@@ -159,7 +152,7 @@
   display: flex;
   align-items: center;
   text-decoration: none;
-  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+  color: light-dark(var(--mantine-color-gray-8), var(--mantine-color-dark-0));
   padding: 12px 24px;
   font-size: 14px;
   font-weight: 500;
@@ -170,22 +163,16 @@
 }
 
 .link:hover {
-  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
   color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
 }
 
-/* Estilo do link ativo - similar à imagem 2 */
+/* Estilo do link ativo - similar à imagem de referência */
 .link[data-active] {
-  background-color: light-dark(var(--mantine-color-orange-0), var(--mantine-color-orange-9));
-  color: var(--mantine-color-orange-7);
+  background-color: light-dark(var(--mantine-color-orange-6), var(--mantine-color-orange-6));
+  color: light-dark(var(--mantine-color-white), var(--mantine-color-white));
   font-weight: 600;
-  border-left-color: var(--mantine-color-orange-6);
-}
-
-[data-mantine-color-scheme="dark"] .link[data-active] {
-  background-color: var(--mantine-color-orange-9);
-  color: var(--mantine-color-orange-2);
-  border-left-color: var(--mantine-color-orange-4);
+  border-left-color: transparent;
 }
 
 /* Seção do usuário */
@@ -224,13 +211,10 @@
   }
   
   .logoIcon {
-    width: 32px;
-    height: 32px;
-    font-size: 12px;
-  }
-  
-  .logoDivider {
-    width: 28px;
+    width: 26px;
+    height: 26px;
+    font-size: 11px;
+    margin-right: 8px;
   }
 }
 
