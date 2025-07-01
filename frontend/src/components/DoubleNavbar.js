@@ -1,240 +1,298 @@
-// frontend/src/components/DoubleNavbar.js
-import React, { useState, useEffect } from 'react';
+// frontend/src/components/DoubleNavbar.js - ARQUIVO COMPLETO
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  IconHome,
-  IconCalendar,
-  IconMap,
-  IconChartLine,
-  IconRobot,
-  IconTools,
-  IconHeadset,
-  IconLogout,
+    Navbar,
+    ScrollArea,
+    Group,
+    Text,
+    Avatar,
+    UnstyledButton,
+    Box,
+    Collapse,
+    ThemeIcon,
+    ActionIcon,
+    Divider,
+    Stack,
+    Button
+} from '@mantine/core';
+import {
+    IconCalendar,
+    IconMap,
+    IconTrendingUp,
+    IconRobot,           // ← NOVO ÍCONE
+    IconHeadphones,
+    IconLogout,
+    IconMoon,
+    IconSun,
+    IconHome,
+    IconChevronDown,
+    IconChevronRight,
+    IconBrain,           // ← NOVO ÍCONE ALTERNATIVO
+    IconActivity,        // ← NOVO ÍCONE
+    IconSettings         // ← NOVO ÍCONE
 } from '@tabler/icons-react';
-import { Title, Tooltip, UnstyledButton, Group, Avatar, Text, Menu, rem } from '@mantine/core';
-import classes from './DoubleNavbar.module.css';
 
-// Definir as áreas principais - ESTRUTURA CORRETA
-const mainAreasData = [
-  { 
-    icon: IconHome, 
-    label: 'Home',
-    pages: [
-      { label: 'Agenda', link: '/workspace/agenda', icon: IconCalendar },
-      { label: 'Mapa', link: '/workspace/mapa', icon: IconMap }
-    ]
-  },
-  { 
-    icon: IconRobot, 
-    label: 'IA & Automações',
-    pages: [
-      // Vazio por enquanto, mas preparado para futuras páginas
-    ]
-  },
-  { 
-    icon: IconTools, 
-    label: 'Operacional',
-    pages: [
-      { label: 'Engajamento', link: '/workspace/engajamento', icon: IconChartLine }
-    ]
-  },
-  { 
-    icon: IconHeadset, 
-    label: 'Suporte',
-    pages: [
-      // Vazio por enquanto, mas preparado para futuras páginas
-    ]
-  },
+// ===================================================================
+// DADOS DE NAVEGAÇÃO ATUALIZADOS COM SEÇÃO IA & AUTOMAÇÕES
+// ===================================================================
+const navData = [
+    {
+        label: 'Home',
+        icon: IconHome,
+        initiallyOpened: true,
+        color: 'blue',
+        links: [
+            { label: 'Agenda', link: '/workspace/agenda', icon: IconCalendar },
+            { label: 'Mapa', link: '/workspace/mapa', icon: IconMap },
+        ],
+    },
+    {
+        label: 'IA & Automações',    // ← NOVA SEÇÃO ADICIONADA
+        icon: IconRobot,
+        initiallyOpened: false,
+        color: 'orange',
+        links: [
+            { label: 'Logs Gerais', link: '/workspace/ia-automacoes/logs', icon: IconActivity },
+            { label: 'Nicochat', link: '/workspace/ia-automacoes/nicochat', icon: IconBrain },
+            { label: 'N8N', link: '/workspace/ia-automacoes/n8n', icon: IconSettings },
+        ],
+    },
+    {
+        label: 'Operacional',
+        icon: IconTrendingUp,
+        initiallyOpened: false,
+        color: 'green',
+        links: [
+            { label: 'Engajamento', link: '/workspace/engajamento', icon: IconTrendingUp },
+        ],
+    },
+    {
+        label: 'Suporte',
+        icon: IconHeadphones,
+        initiallyOpened: false,
+        color: 'purple',
+        links: [
+            { label: 'Em Breve', link: '/workspace/suporte', icon: IconHeadphones },
+        ],
+    },
 ];
 
-// Função para determinar área ativa baseada na URL
-const getActiveAreaFromPath = (pathname) => {
-  if (pathname.includes('/agenda') || pathname.includes('/mapa') || pathname === '/workspace' || pathname === '/workspace/') {
-    return 'Home';
-  }
-  if (pathname.includes('/engajamento')) {
-    return 'Operacional';
-  }
-  if (pathname.includes('/nicochat') || pathname.includes('/automacoes')) {
-    return 'IA & Automações';
-  }
-  if (pathname.includes('/suporte')) {
-    return 'Suporte';
-  }
-  return 'Home'; // Default para Home
-};
-
-// Função para determinar página ativa baseada na URL
-const getActivePageFromPath = (pathname) => {
-  if (pathname.includes('/agenda') || pathname === '/workspace' || pathname === '/workspace/') return 'Agenda';
-  if (pathname.includes('/mapa')) return 'Mapa';
-  if (pathname.includes('/engajamento')) return 'Engajamento';
-  return 'Agenda'; // Default
-};
-
-export function DoubleNavbar({ 
-  userName, 
-  userEmail, 
-  onLogout, 
-  toggleColorScheme, 
-  colorScheme 
-}) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  
-  const [activeArea, setActiveArea] = useState('Home');
-  const [activePage, setActivePage] = useState('Agenda');
-
-  // Atualizar estados baseado na URL atual
-  useEffect(() => {
-    const area = getActiveAreaFromPath(location.pathname);
-    const page = getActivePageFromPath(location.pathname);
-    setActiveArea(area);
-    setActivePage(page);
-  }, [location.pathname]);
-
-  // Renderizar ícones das áreas principais
-  const mainLinks = mainAreasData.map((area) => (
-    <Tooltip
-      label={area.label}
-      position="right"
-      withArrow
-      transitionProps={{ duration: 0 }}
-      key={area.label}
-    >
-      <UnstyledButton
-        onClick={() => {
-          setActiveArea(area.label);
-          
-          // Se é Home, navegar direto para Agenda (sem página de boas-vindas)
-          if (area.label === 'Home') {
-            setActivePage('Agenda');
-            navigate('/workspace/agenda');
-          } else if (area.pages && area.pages.length > 0) {
-            // Se a área tem páginas, navegar para a primeira
-            const firstPage = area.pages[0];
-            setActivePage(firstPage.label);
-            navigate(firstPage.link);
-          } else {
-            setActivePage(null);
-            // Para áreas vazias, navegar para agenda
-            navigate('/workspace/agenda');
-          }
-        }}
-        className={classes.mainLink}
-        data-active={area.label === activeArea || undefined}
-      >
-        <area.icon size={22} stroke={1.5} />
-      </UnstyledButton>
-    </Tooltip>
-  ));
-
-  // Encontrar área ativa e suas páginas
-  const currentArea = mainAreasData.find(area => area.label === activeArea);
-  const currentPages = currentArea?.pages || [];
-
-  // Renderizar links das páginas da área ativa
-  const pageLinks = currentPages.map((page) => (
-    <a
-      className={classes.link}
-      data-active={activePage === page.label || undefined}
-      href="#"
-      onClick={(event) => {
-        event.preventDefault();
-        setActivePage(page.label);
-        navigate(page.link);
-      }}
-      key={page.label}
-    >
-      {page.icon && <page.icon size={16} stroke={1.5} style={{ marginRight: '8px' }} />}
-      {page.label}
-    </a>
-  ));
-
-  // Componente do usuário no rodapé
-  const UserSection = () => (
-    <div className={classes.userSection}>
-      <Menu shadow="md" width={200} position="top-end" withArrow>
-        <Menu.Target>
-          <UnstyledButton className={classes.user}>
-            <Group>
-              <Avatar radius="xl" size="sm" color="orange">
-                {userName?.charAt(0).toUpperCase() || 'U'}
-              </Avatar>
-              <div style={{ flex: 1, overflow: 'hidden' }}>
-                <Text size="sm" fw={500} truncate="end">
-                  {userName || 'Usuário'}
-                </Text>
-                <Text c="dimmed" size="xs" truncate="end">
-                  {userEmail || ''}
-                </Text>
-              </div>
+// ===================================================================
+// COMPONENTE DE LINK DE NAVEGAÇÃO
+// ===================================================================
+function NavbarLink({ icon: Icon, label, link, active, onClick, color }) {
+    return (
+        <UnstyledButton
+            onClick={() => onClick(link)}
+            style={{
+                display: 'block',
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                textDecoration: 'none',
+                backgroundColor: active ? `light-dark(var(--mantine-color-${color}-0), var(--mantine-color-${color}-9))` : 'transparent',
+                color: active ? `var(--mantine-color-${color}-7)` : 'light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-3))',
+                fontWeight: active ? 600 : 400,
+                transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+                if (!active) {
+                    e.target.style.backgroundColor = 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))';
+                }
+            }}
+            onMouseLeave={(e) => {
+                if (!active) {
+                    e.target.style.backgroundColor = 'transparent';
+                }
+            }}
+        >
+            <Group gap="sm">
+                <ThemeIcon 
+                    variant={active ? 'light' : 'subtle'} 
+                    color={active ? color : 'gray'} 
+                    size="sm"
+                >
+                    <Icon size="1rem" />
+                </ThemeIcon>
+                <Text size="sm">{label}</Text>
             </Group>
-          </UnstyledButton>
-        </Menu.Target>
-        <Menu.Dropdown>
-          <Menu.Label>Configurações</Menu.Label>
-          <Menu.Item
-            leftSection={colorScheme === 'dark' ? '☀️' : '🌙'}
-            onClick={toggleColorScheme}
-          >
-            {colorScheme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
-          </Menu.Item>
-          <Menu.Divider />
-          <Menu.Item
-            color="red"
-            leftSection={<IconLogout style={{ width: rem(14), height: rem(14) }} />}
-            onClick={onLogout}
-          >
-            Logout
-          </Menu.Item>
-        </Menu.Dropdown>
-      </Menu>
-    </div>
-  );
+        </UnstyledButton>
+    );
+}
 
-  return (
-    <nav className={classes.navbar}>
-      <div className={classes.wrapper}>
-        {/* Barra lateral com áreas principais */}
-        <div className={classes.aside}>
-          {/* Logo removida da barra lateral */}
-          
-          <div className={classes.mainLinks}>
-            {mainLinks}
-          </div>
-          
-          {/* Botão de logout na parte inferior da barra lateral */}
-          <Tooltip label="Logout" position="right" withArrow>
-            <UnstyledButton onClick={onLogout} className={classes.logoutButton}>
-              <IconLogout size={22} stroke={1.5} />
+// ===================================================================
+// COMPONENTE DE SEÇÃO DE NAVEGAÇÃO (COM COLLAPSE)
+// ===================================================================
+function NavbarSection({ section, activeLink, onLinkClick }) {
+    const [opened, setOpened] = useState(section.initiallyOpened);
+    const navigate = useNavigate();
+
+    const handleSectionClick = () => {
+        setOpened(!opened);
+        // Se for clicado na seção IA & Automações, navegar para logs por padrão
+        if (section.label === 'IA & Automações' && !opened) {
+            navigate('/workspace/ia-automacoes/logs');
+        }
+    };
+
+    const items = section.links.map((link) => (
+        <NavbarLink
+            key={link.label}
+            icon={link.icon}
+            label={link.label}
+            link={link.link}
+            active={activeLink === link.link}
+            onClick={onLinkClick}
+            color={section.color}
+        />
+    ));
+
+    return (
+        <Box mb="md">
+            <UnstyledButton
+                onClick={handleSectionClick}
+                style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    backgroundColor: 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7))',
+                    border: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5))',
+                    transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = `light-dark(var(--mantine-color-${section.color}-0), var(--mantine-color-${section.color}-9))`;
+                }}
+                onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7))';
+                }}
+            >
+                <Group justify="space-between">
+                    <Group gap="sm">
+                        <ThemeIcon variant="light" color={section.color} size="sm">
+                            <section.icon size="1rem" />
+                        </ThemeIcon>
+                        <Text fw={600} size="sm">
+                            {section.label}
+                        </Text>
+                    </Group>
+                    <ThemeIcon variant="subtle" color="gray" size="xs">
+                        {opened ? <IconChevronDown size="0.8rem" /> : <IconChevronRight size="0.8rem" />}
+                    </ThemeIcon>
+                </Group>
             </UnstyledButton>
-          </Tooltip>
-        </div>
 
-        {/* Área principal com páginas */}
-        <div className={classes.main}>
-          {/* Título com logo na mesma linha - igual à imagem de referência */}
-          <Title order={4} className={classes.title}>
-            <div className={classes.logoIcon}>CH</div>
-            {activeArea}
-          </Title>
-          
-          <div className={classes.pageLinks}>
-            {/* Mostrar páginas da área atual */}
-            {currentPages.length > 0 ? (
-              pageLinks
-            ) : activeArea !== 'Home' ? (
-              <Text c="dimmed" size="sm" style={{ padding: '8px 16px' }}>
-                Em breve: novas funcionalidades para {activeArea}
-              </Text>
-            ) : null}
-          </div>
+            <Collapse in={opened}>
+                <Box pl="md" pt="sm">
+                    <Stack gap="xs">
+                        {items}
+                    </Stack>
+                </Box>
+            </Collapse>
+        </Box>
+    );
+}
 
-          {/* Seção do usuário no rodapé */}
-          <UserSection />
-        </div>
-      </div>
-    </nav>
-  );
+// ===================================================================
+// COMPONENTE PRINCIPAL - DOUBLE NAVBAR
+// ===================================================================
+export function DoubleNavbar({ userName, userEmail, onLogout, colorScheme, toggleColorScheme }) {
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const handleLinkClick = (link) => {
+        navigate(link);
+    };
+
+    // Determinar link ativo baseado na URL atual
+    const getActiveLink = () => {
+        const pathname = location.pathname;
+        
+        // Verificar se está em uma das rotas de IA & Automações
+        if (pathname.includes('/ia-automacoes/')) {
+            if (pathname.includes('/nicochat')) return '/workspace/ia-automacoes/nicochat';
+            if (pathname.includes('/n8n')) return '/workspace/ia-automacoes/n8n';
+            return '/workspace/ia-automacoes/logs'; // Default para logs
+        }
+        
+        // Outras rotas
+        if (pathname.includes('/agenda')) return '/workspace/agenda';
+        if (pathname.includes('/mapa')) return '/workspace/mapa';
+        if (pathname.includes('/engajamento')) return '/workspace/engajamento';
+        if (pathname.includes('/suporte')) return '/workspace/suporte';
+        
+        return pathname;
+    };
+
+    const activeLink = getActiveLink();
+
+    return (
+        <Navbar 
+            width={{ base: 280 }} 
+            p="md"
+            style={{
+                borderRight: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
+                backgroundColor: 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-8))',
+            }}
+        >
+            <Navbar.Section>
+                {/* Header com informações do usuário */}
+                <Group justify="space-between" mb="md">
+                    <Group gap="sm">
+                        <Avatar color="orange" radius="xl" size="sm">
+                            {userName?.charAt(0)?.toUpperCase() || 'U'}
+                        </Avatar>
+                        <Box style={{ flex: 1 }}>
+                            <Text size="sm" fw={600} truncate>
+                                {userName || 'Usuário'}
+                            </Text>
+                            <Text size="xs" c="dimmed" truncate>
+                                {userEmail || 'email@exemplo.com'}
+                            </Text>
+                        </Box>
+                    </Group>
+                    
+                    {/* Botão de toggle tema */}
+                    <ActionIcon
+                        onClick={toggleColorScheme}
+                        variant="subtle"
+                        color="gray"
+                        size="sm"
+                    >
+                        {colorScheme === 'dark' ? <IconSun size="1rem" /> : <IconMoon size="1rem" />}
+                    </ActionIcon>
+                </Group>
+
+                <Divider mb="md" />
+            </Navbar.Section>
+
+            {/* Seções de navegação */}
+            <Navbar.Section grow component={ScrollArea}>
+                {navData.map((section) => (
+                    <NavbarSection
+                        key={section.label}
+                        section={section}
+                        activeLink={activeLink}
+                        onLinkClick={handleLinkClick}
+                    />
+                ))}
+            </Navbar.Section>
+
+            {/* Footer com botão de logout */}
+            <Navbar.Section>
+                <Divider mb="md" />
+                <Button
+                    variant="subtle"
+                    color="red"
+                    fullWidth
+                    leftSection={<IconLogout size="1rem" />}
+                    onClick={onLogout}
+                    size="sm"
+                >
+                    Sair
+                </Button>
+            </Navbar.Section>
+        </Navbar>
+    );
 }

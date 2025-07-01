@@ -9,6 +9,7 @@ import { Box, LoadingOverlay, Title, Text } from '@mantine/core';
 import MapaPage from '../features/mapa/MapaPage';
 import AgendaPage from '../features/agenda/AgendaPage';
 import EngajamentoPage from '../features/engajamento/EngajamentoPage';
+import IAPage from '../features/ia/IAPage';
 
 function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
     const location = useLocation();
@@ -81,29 +82,20 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                 }}
             >
                 <Routes>
-                    {/* Rota Index - Redireciona direto para Agenda (REMOVIDA PÁGINA DE BOAS-VINDAS) */}
+                    {/* Rota Index - Redireciona direto para Agenda */}
                     <Route index element={<Navigate to="/workspace/agenda" replace />} />
 
                     {/* Páginas da área HOME */}
                     <Route path="agenda" element={<AgendaPage />} />
                     <Route path="mapa" element={<MapaPage />} />
 
+                    {/* Páginas da área IA & AUTOMAÇÕES */}  {/* ← NOVA SEÇÃO */}
+                    <Route path="ia-automacoes/*" element={<IAPage />} />
+
                     {/* Páginas da área OPERACIONAL */}
                     <Route path="engajamento" element={<EngajamentoPage />} />
-
-                    {/* Placeholder para futuras páginas das novas áreas */}
-                    <Route path="ia-automacoes/*" element={
-                        <Box p="xl" style={{ 
-                            backgroundColor: 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-7))',
-                            margin: '16px',
-                            borderRadius: '8px',
-                            border: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))'
-                        }}>
-                            <Title order={2}>🤖 IA & Automações</Title>
-                            <Text mt="md" c="dimmed">Esta seção estará disponível em breve com ferramentas de automação e inteligência artificial.</Text>
-                        </Box>
-                    }/>
                     
+                    {/* Placeholder para Suporte */}
                     <Route path="suporte/*" element={
                         <Box p="xl" style={{ 
                             backgroundColor: 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-7))',
@@ -116,7 +108,7 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                         </Box>
                     }/>
 
-                    {/* Rota Catch-all - Redireciona para Agenda (GARANTE QUE NÃO VOLTE PARA BOAS-VINDAS) */}
+                    {/* Rota Catch-all - Redireciona para Agenda */}
                     <Route path="*" element={<Navigate to="/workspace/agenda" replace />} />
                 </Routes>
             </Box>

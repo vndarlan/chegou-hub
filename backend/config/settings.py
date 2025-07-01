@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     'features.agenda',
     'features.mapa',
     'features.engajamento',
+    'features.ia',
 ]
 
 MIDDLEWARE = [
