@@ -1,4 +1,4 @@
-// frontend/src/pages/WorkspacePage.js - ARQUIVO COMPLETO ATUALIZADO
+// frontend/src/pages/WorkspacePage.js - VERSÃO SIMPLIFICADA
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
@@ -9,7 +9,11 @@ import { Box, LoadingOverlay, Title, Text } from '@mantine/core';
 import MapaPage from '../features/mapa/MapaPage';
 import AgendaPage from '../features/agenda/AgendaPage';
 import EngajamentoPage from '../features/engajamento/EngajamentoPage';
-import IAPage from '../features/ia/IAPage';  // ← NOVA IMPORTAÇÃO
+
+// ← IMPORTAÇÕES DIRETAS DAS PÁGINAS DE IA (sem IAPage.js)
+import LogsPage from '../features/ia/LogsPage';
+import NicochatPage from '../features/ia/NicochatPage';
+import N8NPage from '../features/ia/N8NPage';
 
 function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
     const location = useLocation();
@@ -61,7 +65,7 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
 
     return (
         <Box style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-            {/* DoubleNavbar com estrutura corrigida */}
+            {/* DoubleNavbar */}
             <DoubleNavbar
                 userName={userName}
                 userEmail={userEmail}
@@ -89,14 +93,16 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     <Route path="agenda" element={<AgendaPage />} />
                     <Route path="mapa" element={<MapaPage />} />
 
-                    {/* Páginas da área IA & AUTOMAÇÕES */}  {/* ← NOVA SEÇÃO ADICIONADA */}
-                    <Route path="ia-automacoes/*" element={<IAPage />} />
+                    {/* Páginas da área IA & AUTOMAÇÕES - ROTAS DIRETAS */}
+                    <Route path="logs" element={<LogsPage />} />
+                    <Route path="nicochat" element={<NicochatPage />} />
+                    <Route path="n8n" element={<N8NPage />} />
 
                     {/* Páginas da área OPERACIONAL */}
                     <Route path="engajamento" element={<EngajamentoPage />} />
                     
                     {/* Placeholder para Suporte */}
-                    <Route path="suporte/*" element={
+                    <Route path="suporte" element={
                         <Box p="xl" style={{ 
                             backgroundColor: 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-7))',
                             margin: '16px',

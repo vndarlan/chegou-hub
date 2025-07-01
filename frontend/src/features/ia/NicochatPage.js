@@ -1,17 +1,18 @@
-// frontend/src/features/ia/NicochatPage.js - ARQUIVO COMPLETO
+// frontend/src/features/ia/NicochatPage.js - VERSÃO INDEPENDENTE FINAL
 import React, { useState, useEffect } from 'react';
 import {
     Box, Title, Text, Card, Group, Stack, Table, Badge, 
     Button, Select, TextInput, Grid, ActionIcon,
-    Modal, Textarea, Alert, Notification, Tabs,
+    Modal, Textarea, Alert, Notification,
     LoadingOverlay, ScrollArea, Code, JsonInput,
-    Paper, Progress, RingProgress, Center, Divider
+    Paper, Progress, RingProgress, Center, Divider, ThemeIcon
 } from '@mantine/core';
 import {
     IconSearch, IconRefresh, IconCheck, IconX,
     IconAlertTriangle, IconInfo, IconExclamationMark,
     IconEye, IconClock, IconMapPin, IconRobot,
-    IconChartBar, IconMessage, IconUsers, IconTrendingUp
+    IconChartBar, IconMessage, IconUsers, IconTrendingUp,
+    IconActivity
 } from '@tabler/icons-react';
 import axios from 'axios';
 
@@ -259,7 +260,7 @@ function NicochatPage() {
                                         <Text size="lg">{getPaisFlag(stat.pais)}</Text>
                                         <Text fw={600} size="sm">{getPaisDisplayName(stat.pais)}</Text>
                                     </Group>
-                                    <Badge variant="light" color="blue" size="sm">{stat.total}</Badge>
+                                    <Badge variant="light" color="blue">{stat.total}</Badge>
                                 </Group>
                                 
                                 <Progress 
@@ -307,9 +308,9 @@ function NicochatPage() {
                                    gradient={{ from: 'blue', to: 'cyan', deg: 45 }}>
                             <IconRobot size={24} />
                         </ThemeIcon>
-                        <Title order={2}>Nicochat - Monitoramento</Title>
+                        <Title order={2}>Nicochat - Monitoramento por País</Title>
                     </Group>
-                    <Text c="dimmed">Monitore conversas e erros do Nicochat por país</Text>
+                    <Text c="dimmed">Monitore conversas e erros do Nicochat nos 7 países de operação</Text>
                 </Box>
                 <Button
                     leftSection={<IconRefresh size={16} />}
@@ -339,7 +340,7 @@ function NicochatPage() {
             {/* Filtros específicos do Nicochat */}
             <Card shadow="sm" padding="lg" radius="md" mb="md" withBorder>
                 <Group mb="md">
-                    <ThemeIcon size="sm" radius="md" variant="light" color="gray">
+                    <ThemeIcon size="sm" radius="md" variant="light" color="blue">
                         <IconSearch size={16} />
                     </ThemeIcon>
                     <Title order={4}>Filtros de Pesquisa</Title>
@@ -511,8 +512,8 @@ function NicochatPage() {
 
                 {logs.length === 0 && !loading && (
                     <Box ta="center" py="xl">
-                        <ThemeIcon size="xl" radius="md" variant="light" color="gray" mx="auto" mb="md">
-                            <IconMessage size={32} />
+                        <ThemeIcon size="xl" radius="md" variant="light" color="blue" mx="auto" mb="md">
+                            <IconRobot size={32} />
                         </ThemeIcon>
                         <Text c="dimmed" fw={600}>Nenhum log do Nicochat encontrado</Text>
                         <Text size="sm" c="dimmed" mt="xs">

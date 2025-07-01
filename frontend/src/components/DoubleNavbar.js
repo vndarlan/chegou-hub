@@ -1,4 +1,4 @@
-// frontend/src/components/DoubleNavbar.js - ARQUIVO COMPLETO
+// frontend/src/components/DoubleNavbar.js - VERSÃO SIMPLIFICADA
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -20,7 +20,7 @@ import {
     IconCalendar,
     IconMap,
     IconTrendingUp,
-    IconRobot,           // ← NOVO ÍCONE
+    IconRobot,
     IconHeadphones,
     IconLogout,
     IconMoon,
@@ -28,13 +28,13 @@ import {
     IconHome,
     IconChevronDown,
     IconChevronRight,
-    IconBrain,           // ← NOVO ÍCONE ALTERNATIVO
-    IconActivity,        // ← NOVO ÍCONE
-    IconSettings         // ← NOVO ÍCONE
+    IconBrain,
+    IconActivity,
+    IconSettings
 } from '@tabler/icons-react';
 
 // ===================================================================
-// DADOS DE NAVEGAÇÃO ATUALIZADOS COM SEÇÃO IA & AUTOMAÇÕES
+// DADOS DE NAVEGAÇÃO - ROTAS DIRETAS (igual às outras features)
 // ===================================================================
 const navData = [
     {
@@ -48,14 +48,14 @@ const navData = [
         ],
     },
     {
-        label: 'IA & Automações',    // ← NOVA SEÇÃO ADICIONADA
+        label: 'IA & Automações',
         icon: IconRobot,
         initiallyOpened: false,
         color: 'orange',
         links: [
-            { label: 'Logs Gerais', link: '/workspace/ia-automacoes/logs', icon: IconActivity },
-            { label: 'Nicochat', link: '/workspace/ia-automacoes/nicochat', icon: IconBrain },
-            { label: 'N8N', link: '/workspace/ia-automacoes/n8n', icon: IconSettings },
+            { label: 'Logs Gerais', link: '/workspace/logs', icon: IconActivity },        // ← ROTA DIRETA
+            { label: 'Nicochat', link: '/workspace/nicochat', icon: IconBrain },          // ← ROTA DIRETA  
+            { label: 'N8N', link: '/workspace/n8n', icon: IconSettings },                // ← ROTA DIRETA
         ],
     },
     {
@@ -96,16 +96,6 @@ function NavbarLink({ icon: Icon, label, link, active, onClick, color }) {
                 fontWeight: active ? 600 : 400,
                 transition: 'all 0.2s ease',
             }}
-            onMouseEnter={(e) => {
-                if (!active) {
-                    e.target.style.backgroundColor = 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))';
-                }
-            }}
-            onMouseLeave={(e) => {
-                if (!active) {
-                    e.target.style.backgroundColor = 'transparent';
-                }
-            }}
         >
             <Group gap="sm">
                 <ThemeIcon 
@@ -130,9 +120,10 @@ function NavbarSection({ section, activeLink, onLinkClick }) {
 
     const handleSectionClick = () => {
         setOpened(!opened);
+        
         // Se for clicado na seção IA & Automações, navegar para logs por padrão
         if (section.label === 'IA & Automações' && !opened) {
-            navigate('/workspace/ia-automacoes/logs');
+            navigate('/workspace/logs');  // ← ROTA DIRETA SIMPLIFICADA
         }
     };
 
@@ -160,12 +151,6 @@ function NavbarSection({ section, activeLink, onLinkClick }) {
                     backgroundColor: 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7))',
                     border: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5))',
                     transition: 'all 0.2s ease',
-                }}
-                onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = `light-dark(var(--mantine-color-${section.color}-0), var(--mantine-color-${section.color}-9))`;
-                }}
-                onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7))';
                 }}
             >
                 <Group justify="space-between">
@@ -205,16 +190,14 @@ export function DoubleNavbar({ userName, userEmail, onLogout, colorScheme, toggl
         navigate(link);
     };
 
-    // Determinar link ativo baseado na URL atual
+    // Determinar link ativo baseado na URL atual - SIMPLIFICADO
     const getActiveLink = () => {
         const pathname = location.pathname;
         
-        // Verificar se está em uma das rotas de IA & Automações
-        if (pathname.includes('/ia-automacoes/')) {
-            if (pathname.includes('/nicochat')) return '/workspace/ia-automacoes/nicochat';
-            if (pathname.includes('/n8n')) return '/workspace/ia-automacoes/n8n';
-            return '/workspace/ia-automacoes/logs'; // Default para logs
-        }
+        // Verificar rotas diretas das páginas de IA
+        if (pathname.includes('/logs')) return '/workspace/logs';
+        if (pathname.includes('/nicochat')) return '/workspace/nicochat';
+        if (pathname.includes('/n8n')) return '/workspace/n8n';
         
         // Outras rotas
         if (pathname.includes('/agenda')) return '/workspace/agenda';
