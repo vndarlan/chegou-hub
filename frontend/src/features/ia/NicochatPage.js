@@ -1,4 +1,4 @@
-// frontend/src/features/ia/NicochatPage.js - VERSÃO INDEPENDENTE FINAL
+// frontend/src/features/ia/NicochatPage.js - ÍCONES CORRIGIDOS
 import React, { useState, useEffect } from 'react';
 import {
     Box, Title, Text, Card, Group, Stack, Table, Badge, 
@@ -9,7 +9,7 @@ import {
 } from '@mantine/core';
 import {
     IconSearch, IconRefresh, IconCheck, IconX,
-    IconAlertTriangle, IconInfo, IconExclamationMark,
+    IconAlertTriangle, IconInfoCircle, IconExclamationCircle,
     IconEye, IconClock, IconMapPin, IconRobot,
     IconChartBar, IconMessage, IconUsers, IconTrendingUp,
     IconActivity
@@ -118,12 +118,12 @@ function NicochatPage() {
 
     const getNivelIcon = (nivel) => {
         const icons = {
-            'info': IconInfo,
+            'info': IconInfoCircle,
             'warning': IconAlertTriangle,
-            'error': IconExclamationMark,
+            'error': IconExclamationCircle,
             'critical': IconX
         };
-        const Icon = icons[nivel] || IconInfo;
+        const Icon = icons[nivel] || IconInfoCircle;
         return <Icon size={16} />;
     };
 

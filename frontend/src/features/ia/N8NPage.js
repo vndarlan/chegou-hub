@@ -1,4 +1,4 @@
-// frontend/src/features/ia/N8NPage.js - VERSÃO INDEPENDENTE (sem tabs)
+// frontend/src/features/ia/N8NPage.js - ÍCONES CORRIGIDOS
 import React, { useState, useEffect } from 'react';
 import {
     Box, Title, Text, Card, Group, Stack, Table, Badge, 
@@ -9,8 +9,8 @@ import {
 } from '@mantine/core';
 import {
     IconSearch, IconRefresh, IconCheck, IconX,
-    IconAlertTriangle, IconInfo, IconExclamationMark,
-    IconEye, IconClock, IconSettings, IconWorkflow,
+    IconAlertTriangle, IconInfoCircle, IconExclamationCircle,
+    IconEye, IconClock, IconSettings, IconGitBranch,
     IconChartBar, IconActivity
 } from '@tabler/icons-react';
 import axios from 'axios';
@@ -115,12 +115,12 @@ function N8NPage() {
 
     const getNivelIcon = (nivel) => {
         const icons = {
-            'info': IconInfo,
+            'info': IconInfoCircle,
             'warning': IconAlertTriangle,
-            'error': IconExclamationMark,
+            'error': IconExclamationCircle,
             'critical': IconX
         };
-        const Icon = icons[nivel] || IconInfo;
+        const Icon = icons[nivel] || IconInfoCircle;
         return <Icon size={16} />;
     };
 
@@ -143,7 +143,7 @@ function N8NPage() {
                                 <Text size="xs" c="dimmed">Total de workflows</Text>
                             </Box>
                             <ThemeIcon size="xl" radius="md" variant="light" color="purple">
-                                <IconWorkflow size={24} />
+                                <IconGitBranch size={24} />
                             </ThemeIcon>
                         </Group>
                     </Card>
@@ -211,7 +211,7 @@ function N8NPage() {
                     <Group gap="sm" mb="xs">
                         <ThemeIcon size="lg" radius="md" variant="gradient" 
                                    gradient={{ from: 'purple', to: 'blue', deg: 45 }}>
-                            <IconWorkflow size={24} />
+                            <IconGitBranch size={24} />
                         </ThemeIcon>
                         <Title order={2}>N8N - Workflows e Automações</Title>
                     </Group>
@@ -395,7 +395,7 @@ function N8NPage() {
                 {logs.length === 0 && !loading && (
                     <Box ta="center" py="xl">
                         <ThemeIcon size="xl" radius="md" variant="light" color="purple" mx="auto" mb="md">
-                            <IconWorkflow size={32} />
+                            <IconGitBranch size={32} />
                         </ThemeIcon>
                         <Text c="dimmed" fw={600}>Nenhum log do N8N encontrado</Text>
                         <Text size="sm" c="dimmed" mt="xs">
@@ -412,7 +412,7 @@ function N8NPage() {
                 title={
                     <Group>
                         <ThemeIcon size="sm" radius="md" variant="light" color="purple">
-                            <IconWorkflow size={16} />
+                            <IconGitBranch size={16} />
                         </ThemeIcon>
                         <Text fw={600}>Detalhes do Log - N8N</Text>
                     </Group>
