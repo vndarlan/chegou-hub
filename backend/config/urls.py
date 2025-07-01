@@ -12,5 +12,5 @@ urlpatterns = [
     path('api/', include('features.agenda.urls')),
     path('api/', include('features.mapa.urls')),
     path('api/', include('features.engajamento.urls')),
-    path('api/ia/', include('features.ia.urls')),  # ← NOVA ROTA DE IA
+    # path('api/ia/', include('features.ia.urls')),  # ← NOVA ROTA DE IA
 ]
