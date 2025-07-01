@@ -29,14 +29,16 @@ const navigationData = [
     ],
   },
   {
-    label: 'IA & Automações', 
-    icon: IconActivity,
-    initiallyOpened: false,
-    links: [
-      { label: 'Logs Gerais', link: '/workspace/logs', icon: IconActivity },
-      { label: 'Nicochat', link: '/workspace/nicochat', icon: IconRobot },
-      { label: 'N8N', link: '/workspace/n8n', icon: IconGitBranch },
-    ],
+      label: 'IA & Automações', 
+      icon: IconActivity,
+      initiallyOpened: false,
+      links: [
+        { label: 'Dashboard de Projetos', link: '/workspace/projetos', icon: IconRobot },  // NOVA
+        { label: 'Relatórios & Análise', link: '/workspace/relatorios', icon: IconActivity }, // NOVA
+        { label: 'Logs Gerais', link: '/workspace/logs', icon: IconActivity },
+        { label: 'Nicochat', link: '/workspace/nicochat', icon: IconRobot },
+        { label: 'N8N', link: '/workspace/n8n', icon: IconGitBranch },
+      ],
   },
   {
     label: 'OPERACIONAL',

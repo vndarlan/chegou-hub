@@ -14,6 +14,8 @@ import EngajamentoPage from '../features/engajamento/EngajamentoPage';
 import LogsPage from '../features/ia/LogsPage';
 import NicochatPage from '../features/ia/NicochatPage';
 import N8NPage from '../features/ia/N8NPage';
+import ProjetoDashboard from './features/ia/ProjetoDashboard';
+import RelatoriosProjetos from './features/ia/RelatoriosProjetos';
 
 function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
     const [loadingSession, setLoadingSession] = useState(true);
@@ -96,6 +98,8 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     <Route path="logs" element={<LogsPage />} />
                     <Route path="nicochat" element={<NicochatPage />} />
                     <Route path="n8n" element={<N8NPage />} />
+                    <Route path="projetos" element={<ProjetoDashboard />} />        
+                    <Route path="relatorios" element={<RelatoriosProjetos />} />
 
                     {/* Páginas da área OPERACIONAL */}
                     <Route path="engajamento" element={<EngajamentoPage />} />
