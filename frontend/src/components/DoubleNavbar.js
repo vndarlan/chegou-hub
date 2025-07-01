@@ -1,280 +1,371 @@
-// frontend/src/components/DoubleNavbar.js - VERSÃO SIMPLIFICADA
+// frontend/src/components/DoubleNavbar.js
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
     Navbar,
     ScrollArea,
-    Group,
     Text,
-    Avatar,
-    UnstyledButton,
+    Group,
     Box,
-    Collapse,
+    UnstyledButton,
     ThemeIcon,
+    Tooltip,
     ActionIcon,
+    Avatar,
+    Menu,
     Divider,
+    Badge,
     Stack,
-    Button
+    Paper
 } from '@mantine/core';
 import {
+    // HOME
+    IconHome2,
     IconCalendar,
-    IconMap,
-    IconTrendingUp,
+    IconWorld,
+    
+    // IA & AUTOMAÇÕES
     IconRobot,
-    IconHeadphones,
-    IconLogout,
-    IconMoon,
-    IconSun,
-    IconHome,
-    IconChevronDown,
-    IconChevronRight,
-    IconBrain,
     IconActivity,
-    IconSettings
+    IconWorkflow,
+    IconBrain,
+    
+    // OPERACIONAL
+    IconSettings,
+    IconHeart,
+    IconHeadphones,
+    
+    // SISTEMA
+    IconLogout,
+    IconSun,
+    IconMoon,
+    IconUser,
+    IconChevronRight,
+    IconDots
 } from '@tabler/icons-react';
 
-// ===================================================================
-// DADOS DE NAVEGAÇÃO - ROTAS DIRETAS (igual às outras features)
-// ===================================================================
-const navData = [
+const navigationData = [
     {
-        label: 'Home',
-        icon: IconHome,
-        initiallyOpened: true,
+        label: 'HOME',
         color: 'blue',
-        links: [
-            { label: 'Agenda', link: '/workspace/agenda', icon: IconCalendar },
-            { label: 'Mapa', link: '/workspace/mapa', icon: IconMap },
-        ],
+        items: [
+            {
+                icon: IconCalendar,
+                label: 'Agenda da Empresa',
+                to: '/workspace/agenda',
+                description: 'Calendários e eventos da empresa',
+                color: 'blue'
+            },
+            {
+                icon: IconWorld,
+                label: 'Mapa de Países',
+                to: '/workspace/mapa',
+                description: 'Status global de operações',
+                color: 'green'
+            }
+        ]
     },
     {
         label: 'IA & Automações',
-        icon: IconRobot,
-        initiallyOpened: false,
         color: 'orange',
-        links: [
-            { label: 'Logs Gerais', link: '/workspace/logs', icon: IconActivity },        // ← ROTA DIRETA
-            { label: 'Nicochat', link: '/workspace/nicochat', icon: IconBrain },          // ← ROTA DIRETA  
-            { label: 'N8N', link: '/workspace/n8n', icon: IconSettings },                // ← ROTA DIRETA
-        ],
+        items: [
+            {
+                icon: IconActivity,
+                label: 'Logs Gerais',
+                to: '/workspace/logs',
+                description: 'Todos os logs de IA e automações',
+                color: 'purple'
+            },
+            {
+                icon: IconRobot,
+                label: 'Nicochat',
+                to: '/workspace/nicochat',
+                description: 'Monitoramento por país',
+                color: 'blue'
+            },
+            {
+                icon: IconWorkflow,
+                label: 'N8N',
+                to: '/workspace/n8n',
+                description: 'Workflows e automações',
+                color: 'grape'
+            }
+        ]
     },
     {
-        label: 'Operacional',
-        icon: IconTrendingUp,
-        initiallyOpened: false,
-        color: 'green',
-        links: [
-            { label: 'Engajamento', link: '/workspace/engajamento', icon: IconTrendingUp },
-        ],
-    },
-    {
-        label: 'Suporte',
-        icon: IconHeadphones,
-        initiallyOpened: false,
-        color: 'purple',
-        links: [
-            { label: 'Em Breve', link: '/workspace/suporte', icon: IconHeadphones },
-        ],
-    },
+        label: 'OPERACIONAL',
+        color: 'teal',
+        items: [
+            {
+                icon: IconHeart,
+                label: 'Engajamento',
+                to: '/workspace/engajamento',
+                description: 'Automação de likes e reações',
+                color: 'red'
+            },
+            {
+                icon: IconHeadphones,
+                label: 'Suporte',
+                to: '/workspace/suporte',
+                description: 'Ferramentas de atendimento',
+                color: 'cyan',
+                badge: 'Em breve'
+            }
+        ]
+    }
 ];
 
-// ===================================================================
-// COMPONENTE DE LINK DE NAVEGAÇÃO
-// ===================================================================
-function NavbarLink({ icon: Icon, label, link, active, onClick, color }) {
+function MainLink({ icon: Icon, color, label, description, to, active, onClick, badge }) {
     return (
-        <UnstyledButton
-            onClick={() => onClick(link)}
-            style={{
-                display: 'block',
-                width: '100%',
-                padding: '8px 12px',
-                borderRadius: '6px',
-                textDecoration: 'none',
-                backgroundColor: active ? `light-dark(var(--mantine-color-${color}-0), var(--mantine-color-${color}-9))` : 'transparent',
-                color: active ? `var(--mantine-color-${color}-7)` : 'light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-3))',
-                fontWeight: active ? 600 : 400,
-                transition: 'all 0.2s ease',
-            }}
+        <Tooltip
+            label={description}
+            position="right"
+            withArrow
+            transitionProps={{ duration: 0 }}
+            openDelay={500}
         >
-            <Group gap="sm">
-                <ThemeIcon 
-                    variant={active ? 'light' : 'subtle'} 
-                    color={active ? color : 'gray'} 
-                    size="sm"
-                >
-                    <Icon size="1rem" />
-                </ThemeIcon>
-                <Text size="sm">{label}</Text>
-            </Group>
-        </UnstyledButton>
+            <UnstyledButton
+                onClick={onClick}
+                style={(theme) => ({
+                    display: 'block',
+                    width: '100%',
+                    padding: theme.spacing.xs,
+                    borderRadius: theme.radius.sm,
+                    color: active 
+                        ? 'light-dark(var(--mantine-color-white), var(--mantine-color-white))'
+                        : 'light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-3))',
+                    backgroundColor: active 
+                        ? `var(--mantine-color-${color}-6)`
+                        : 'transparent',
+                    '&:hover': {
+                        backgroundColor: active 
+                            ? `var(--mantine-color-${color}-7)`
+                            : 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))',
+                    },
+                    transition: 'all 150ms ease'
+                })}
+            >
+                <Group gap="sm" wrap="nowrap">
+                    <ThemeIcon
+                        variant={active ? 'white' : 'light'}
+                        color={color}
+                        size={40}
+                        radius="md"
+                    >
+                        <Icon size={20} />
+                    </ThemeIcon>
+
+                    <Box style={{ flex: 1, minWidth: 0 }}>
+                        <Group gap="xs" wrap="nowrap">
+                            <Text size="sm" fw={500} truncate>
+                                {label}
+                            </Text>
+                            {badge && (
+                                <Badge
+                                    size="xs"
+                                    variant="light"
+                                    color="orange"
+                                >
+                                    {badge}
+                                </Badge>
+                            )}
+                        </Group>
+                        <Text size="xs" c="dimmed" truncate>
+                            {description}
+                        </Text>
+                    </Box>
+
+                    <IconChevronRight 
+                        size={16} 
+                        style={{ 
+                            opacity: active ? 1 : 0.5,
+                            transition: 'opacity 150ms ease'
+                        }} 
+                    />
+                </Group>
+            </UnstyledButton>
+        </Tooltip>
     );
 }
 
-// ===================================================================
-// COMPONENTE DE SEÇÃO DE NAVEGAÇÃO (COM COLLAPSE)
-// ===================================================================
-function NavbarSection({ section, activeLink, onLinkClick }) {
-    const [opened, setOpened] = useState(section.initiallyOpened);
-    const navigate = useNavigate();
-
-    const handleSectionClick = () => {
-        setOpened(!opened);
-        
-        // Se for clicado na seção IA & Automações, navegar para logs por padrão
-        if (section.label === 'IA & Automações' && !opened) {
-            navigate('/workspace/logs');  // ← ROTA DIRETA SIMPLIFICADA
-        }
+function UserButton({ userName, userEmail, onLogout, toggleColorScheme, colorScheme }) {
+    const getInitials = (name) => {
+        return name
+            .split(' ')
+            .map(word => word[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2);
     };
 
-    const items = section.links.map((link) => (
-        <NavbarLink
-            key={link.label}
-            icon={link.icon}
-            label={link.label}
-            link={link.link}
-            active={activeLink === link.link}
-            onClick={onLinkClick}
-            color={section.color}
-        />
-    ));
-
     return (
-        <Box mb="md">
-            <UnstyledButton
-                onClick={handleSectionClick}
-                style={{
-                    display: 'block',
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    backgroundColor: 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7))',
-                    border: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5))',
-                    transition: 'all 0.2s ease',
-                }}
-            >
-                <Group justify="space-between">
-                    <Group gap="sm">
-                        <ThemeIcon variant="light" color={section.color} size="sm">
-                            <section.icon size="1rem" />
-                        </ThemeIcon>
-                        <Text fw={600} size="sm">
-                            {section.label}
-                        </Text>
-                    </Group>
-                    <ThemeIcon variant="subtle" color="gray" size="xs">
-                        {opened ? <IconChevronDown size="0.8rem" /> : <IconChevronRight size="0.8rem" />}
-                    </ThemeIcon>
-                </Group>
-            </UnstyledButton>
+        <Box
+            style={{
+                paddingTop: 'var(--mantine-spacing-sm)',
+                borderTop: '1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4))',
+                marginTop: 'var(--mantine-spacing-sm)'
+            }}
+        >
+            <Menu shadow="md" width={250} position="right-end">
+                <Menu.Target>
+                    <UnstyledButton
+                        style={{
+                            display: 'block',
+                            width: '100%',
+                            padding: 'var(--mantine-spacing-xs)',
+                            borderRadius: 'var(--mantine-radius-sm)',
+                            color: 'light-dark(var(--mantine-color-dark-0), var(--mantine-color-gray-7))',
+                            '&:hover': {
+                                backgroundColor: 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))',
+                            },
+                        }}
+                    >
+                        <Group gap="sm">
+                            <Avatar size={36} radius="xl" color="orange">
+                                {getInitials(userName)}
+                            </Avatar>
+                            <Box style={{ flex: 1, minWidth: 0 }}>
+                                <Text size="sm" fw={500} truncate>
+                                    {userName}
+                                </Text>
+                                <Text size="xs" c="dimmed" truncate>
+                                    {userEmail}
+                                </Text>
+                            </Box>
+                            <IconDots size={16} />
+                        </Group>
+                    </UnstyledButton>
+                </Menu.Target>
 
-            <Collapse in={opened}>
-                <Box pl="md" pt="sm">
-                    <Stack gap="xs">
-                        {items}
-                    </Stack>
-                </Box>
-            </Collapse>
+                <Menu.Dropdown>
+                    <Menu.Label>Configurações</Menu.Label>
+                    
+                    <Menu.Item
+                        leftSection={colorScheme === 'dark' ? <IconSun size={16} /> : <IconMoon size={16} />}
+                        onClick={toggleColorScheme}
+                    >
+                        {colorScheme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
+                    </Menu.Item>
+
+                    <Menu.Divider />
+
+                    <Menu.Label>Conta</Menu.Label>
+                    
+                    <Menu.Item
+                        leftSection={<IconUser size={16} />}
+                        disabled
+                    >
+                        Meu Perfil
+                    </Menu.Item>
+
+                    <Menu.Divider />
+
+                    <Menu.Item
+                        leftSection={<IconLogout size={16} />}
+                        color="red"
+                        onClick={onLogout}
+                    >
+                        Sair
+                    </Menu.Item>
+                </Menu.Dropdown>
+            </Menu>
         </Box>
     );
 }
 
-// ===================================================================
-// COMPONENTE PRINCIPAL - DOUBLE NAVBAR
-// ===================================================================
-export function DoubleNavbar({ userName, userEmail, onLogout, colorScheme, toggleColorScheme }) {
+export function DoubleNavbar({ 
+    userName, 
+    userEmail, 
+    onLogout, 
+    toggleColorScheme, 
+    colorScheme 
+}) {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const handleLinkClick = (link) => {
-        navigate(link);
+    const handleNavigation = (to) => {
+        navigate(to);
     };
 
-    // Determinar link ativo baseado na URL atual - SIMPLIFICADO
-    const getActiveLink = () => {
-        const pathname = location.pathname;
-        
-        // Verificar rotas diretas das páginas de IA
-        if (pathname.includes('/logs')) return '/workspace/logs';
-        if (pathname.includes('/nicochat')) return '/workspace/nicochat';
-        if (pathname.includes('/n8n')) return '/workspace/n8n';
-        
-        // Outras rotas
-        if (pathname.includes('/agenda')) return '/workspace/agenda';
-        if (pathname.includes('/mapa')) return '/workspace/mapa';
-        if (pathname.includes('/engajamento')) return '/workspace/engajamento';
-        if (pathname.includes('/suporte')) return '/workspace/suporte';
-        
-        return pathname;
+    const isActive = (to) => {
+        return location.pathname === to;
     };
 
-    const activeLink = getActiveLink();
+    const links = navigationData.map((section) => (
+        <Box key={section.label} mb="xl">
+            <Group gap="xs" mb="md" px="xs">
+                <Text 
+                    size="xs" 
+                    fw={600} 
+                    c="dimmed" 
+                    tt="uppercase" 
+                    style={{ letterSpacing: '0.5px' }}
+                >
+                    {section.label}
+                </Text>
+                <Divider style={{ flex: 1 }} />
+            </Group>
+
+            <Stack gap="xs">
+                {section.items.map((item) => (
+                    <MainLink
+                        key={item.label}
+                        icon={item.icon}
+                        color={item.color}
+                        label={item.label}
+                        description={item.description}
+                        to={item.to}
+                        active={isActive(item.to)}
+                        onClick={() => handleNavigation(item.to)}
+                        badge={item.badge}
+                    />
+                ))}
+            </Stack>
+        </Box>
+    ));
 
     return (
-        <Navbar 
-            width={{ base: 280 }} 
-            p="md"
-            style={{
-                borderRight: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
-                backgroundColor: 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-8))',
-            }}
-        >
+        <Navbar width={{ sm: 320 }} p="md" style={{ 
+            borderRight: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
+            backgroundColor: 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-7))'
+        }}>
             <Navbar.Section>
-                {/* Header com informações do usuário */}
-                <Group justify="space-between" mb="md">
+                <Paper
+                    p="md"
+                    radius="md"
+                    style={{
+                        background: 'linear-gradient(135deg, var(--mantine-color-orange-6), var(--mantine-color-red-6))',
+                        marginBottom: 'var(--mantine-spacing-xl)'
+                    }}
+                >
                     <Group gap="sm">
-                        <Avatar color="orange" radius="xl" size="sm">
-                            {userName?.charAt(0)?.toUpperCase() || 'U'}
-                        </Avatar>
-                        <Box style={{ flex: 1 }}>
-                            <Text size="sm" fw={600} truncate>
-                                {userName || 'Usuário'}
+                        <ThemeIcon size="lg" radius="md" variant="white" color="orange">
+                            <IconBrain size={24} />
+                        </ThemeIcon>
+                        <Box>
+                            <Text fw={700} size="lg" c="white">
+                                ChegouHub
                             </Text>
-                            <Text size="xs" c="dimmed" truncate>
-                                {userEmail || 'email@exemplo.com'}
+                            <Text size="sm" c="orange.1">
+                                Centro de Comando
                             </Text>
                         </Box>
                     </Group>
-                    
-                    {/* Botão de toggle tema */}
-                    <ActionIcon
-                        onClick={toggleColorScheme}
-                        variant="subtle"
-                        color="gray"
-                        size="sm"
-                    >
-                        {colorScheme === 'dark' ? <IconSun size="1rem" /> : <IconMoon size="1rem" />}
-                    </ActionIcon>
-                </Group>
-
-                <Divider mb="md" />
+                </Paper>
             </Navbar.Section>
 
-            {/* Seções de navegação */}
             <Navbar.Section grow component={ScrollArea}>
-                {navData.map((section) => (
-                    <NavbarSection
-                        key={section.label}
-                        section={section}
-                        activeLink={activeLink}
-                        onLinkClick={handleLinkClick}
-                    />
-                ))}
+                {links}
             </Navbar.Section>
 
-            {/* Footer com botão de logout */}
             <Navbar.Section>
-                <Divider mb="md" />
-                <Button
-                    variant="subtle"
-                    color="red"
-                    fullWidth
-                    leftSection={<IconLogout size="1rem" />}
-                    onClick={onLogout}
-                    size="sm"
-                >
-                    Sair
-                </Button>
+                <UserButton
+                    userName={userName}
+                    userEmail={userEmail}
+                    onLogout={onLogout}
+                    toggleColorScheme={toggleColorScheme}
+                    colorScheme={colorScheme}
+                />
             </Navbar.Section>
         </Navbar>
     );
