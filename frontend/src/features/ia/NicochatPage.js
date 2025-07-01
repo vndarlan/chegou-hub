@@ -1,18 +1,17 @@
-// frontend/src/features/ia/NicochatPage.js - ÍCONES CORRIGIDOS
+// frontend/src/features/ia/NicochatPage.js - APENAS ERROS
 import React, { useState, useEffect } from 'react';
 import {
     Box, Title, Text, Card, Group, Stack, Table, Badge, 
     Button, Select, TextInput, Grid, ActionIcon,
     Modal, Textarea, Alert, Notification,
     LoadingOverlay, ScrollArea, Code, JsonInput,
-    Paper, Progress, RingProgress, Center, Divider, ThemeIcon
+    Paper, Divider, ThemeIcon
 } from '@mantine/core';
 import {
     IconSearch, IconRefresh, IconCheck, IconX,
-    IconAlertTriangle, IconInfoCircle, IconExclamationCircle,
+    IconAlertTriangle, IconExclamationCircle,
     IconEye, IconClock, IconMapPin, IconRobot,
-    IconChartBar, IconMessage, IconUsers, IconTrendingUp,
-    IconActivity
+    IconChartBar, IconActivity
 } from '@tabler/icons-react';
 import axios from 'axios';
 
@@ -20,12 +19,12 @@ function NicochatPage() {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(false);
     const [notification, setNotification] = useState(null);
-    const [statsNicochat, setStatsNicochat] = useState(null);
+    const [statsErros, setStatsErros] = useState(null);
     
-    // Estados de filtros específicos do Nicochat
+    // Filtros apenas para erros
     const [filtros, setFiltros] = useState({
-        ferramenta: 'Nicochat', // Sempre Nicochat
-        nivel: '',
+        ferramenta: 'Nicochat',
+        nivel: 'error,critical', // Apenas erros e críticos
         pais: '',
         resolvido: '',
         periodo: '24h',
@@ -40,7 +39,7 @@ function NicochatPage() {
 
     useEffect(() => {
         carregarLogs();
-        carregarStatsNicochat();
+        carregarStatsErros();
     }, [filtros]);
 
     const carregarLogs = async () => {
@@ -54,29 +53,29 @@ function NicochatPage() {
             const response = await axios.get(`/ia/logs/?${params}`);
             setLogs(response.data.results || response.data);
         } catch (error) {
-            console.error('Erro ao carregar logs do Nicochat:', error);
-            setNotification({ type: 'error', message: 'Erro ao carregar logs do Nicochat' });
+            console.error('Erro ao carregar logs:', error);
+            setNotification({ type: 'error', message: 'Erro ao carregar logs' });
         } finally {
             setLoading(false);
         }
     };
 
-    const carregarStatsNicochat = async () => {
+    const carregarStatsErros = async () => {
         try {
             const response = await axios.get('/ia/dashboard-stats/');
             const stats = response.data;
             
-            // Filtrar apenas stats do Nicochat
-            const nicochatStats = {
-                total_logs: stats.por_ferramenta?.find(f => f.ferramenta === 'Nicochat')?.total || 0,
+            // Apenas estatísticas de erros
+            const errosStats = {
                 total_erros: stats.por_ferramenta?.find(f => f.ferramenta === 'Nicochat')?.erros || 0,
                 nao_resolvidos: stats.por_ferramenta?.find(f => f.ferramenta === 'Nicochat')?.nao_resolvidos || 0,
-                por_pais: stats.por_pais_nicochat || []
+                criticos_7d: stats.resumo?.logs_criticos_7d || 0,
+                por_pais: stats.por_pais_nicochat?.filter(p => p.erros > 0) || []
             };
             
-            setStatsNicochat(nicochatStats);
+            setStatsErros(errosStats);
         } catch (error) {
-            console.error('Erro ao carregar estatísticas do Nicochat:', error);
+            console.error('Erro ao carregar estatísticas:', error);
         }
     };
 
@@ -94,12 +93,12 @@ function NicochatPage() {
             
             setNotification({ 
                 type: 'success', 
-                message: `Log marcado como ${resolvido ? 'resolvido' : 'não resolvido'}` 
+                message: `Erro marcado como ${resolvido ? 'resolvido' : 'não resolvido'}` 
             });
             setModalResolucao(false);
             setObservacoesResolucao('');
             carregarLogs();
-            carregarStatsNicochat();
+            carregarStatsErros();
         } catch (error) {
             console.error('Erro ao marcar log:', error);
             setNotification({ type: 'error', message: 'Erro ao atualizar log' });
@@ -107,83 +106,41 @@ function NicochatPage() {
     };
 
     const getNivelColor = (nivel) => {
-        const colors = {
-            'info': 'blue',
-            'warning': 'yellow',
-            'error': 'orange',
-            'critical': 'red'
-        };
-        return colors[nivel] || 'gray';
+        return nivel === 'critical' ? 'red' : 'orange';
     };
 
     const getNivelIcon = (nivel) => {
-        const icons = {
-            'info': IconInfoCircle,
-            'warning': IconAlertTriangle,
-            'error': IconExclamationCircle,
-            'critical': IconX
-        };
-        const Icon = icons[nivel] || IconInfoCircle;
-        return <Icon size={16} />;
+        return nivel === 'critical' ? IconX : IconExclamationCircle;
     };
 
     const getPaisDisplayName = (pais) => {
         const nomes = {
-            'colombia': 'Colômbia',
-            'chile': 'Chile',
-            'mexico': 'México',
-            'polonia': 'Polônia',
-            'romenia': 'Romênia',
-            'espanha': 'Espanha',
-            'italia': 'Itália'
+            'colombia': 'Colômbia', 'chile': 'Chile', 'mexico': 'México',
+            'polonia': 'Polônia', 'romenia': 'Romênia', 'espanha': 'Espanha', 'italia': 'Itália'
         };
         return nomes[pais] || pais;
     };
 
     const getPaisFlag = (pais) => {
         const flags = {
-            'colombia': '🇨🇴',
-            'chile': '🇨🇱',
-            'mexico': '🇲🇽',
-            'polonia': '🇵🇱',
-            'romenia': '🇷🇴',
-            'espanha': '🇪🇸',
-            'italia': '🇮🇹'
+            'colombia': '🇨🇴', 'chile': '🇨🇱', 'mexico': '🇲🇽',
+            'polonia': '🇵🇱', 'romenia': '🇷🇴', 'espanha': '🇪🇸', 'italia': '🇮🇹'
         };
         return flags[pais] || '🌍';
     };
 
-    // Componente de estatísticas do Nicochat
-    const StatsNicochat = () => {
-        if (!statsNicochat) return null;
-        
-        const totalLogs = statsNicochat.total_logs;
-        const sucessos = totalLogs - statsNicochat.total_erros;
-        const taxaSucesso = totalLogs > 0 ? (sucessos / totalLogs) * 100 : 0;
+    // Componente de estatísticas de erros
+    const StatsErros = () => {
+        if (!statsErros) return null;
         
         return (
             <Grid mb="xl">
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card shadow="sm" padding="lg" radius="md" withBorder>
-                        <Group justify="space-between">
-                            <Box>
-                                <Text c="dimmed" size="sm" fw={600}>Conversas (24h)</Text>
-                                <Text fw={700} size="xl">{statsNicochat.total_logs}</Text>
-                                <Text size="xs" c="dimmed">Total de interações</Text>
-                            </Box>
-                            <ThemeIcon size="xl" radius="md" variant="light" color="blue">
-                                <IconMessage size={24} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
-                
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+                <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
                     <Card shadow="sm" padding="lg" radius="md" withBorder>
                         <Group justify="space-between">
                             <Box>
                                 <Text c="dimmed" size="sm" fw={600}>Erros (24h)</Text>
-                                <Text fw={700} size="xl" c="red">{statsNicochat.total_erros}</Text>
+                                <Text fw={700} size="xl" c="red">{statsErros.total_erros}</Text>
                                 <Text size="xs" c="dimmed">Falhas no sistema</Text>
                             </Box>
                             <ThemeIcon size="xl" radius="md" variant="light" color="red">
@@ -193,12 +150,12 @@ function NicochatPage() {
                     </Card>
                 </Grid.Col>
                 
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+                <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
                     <Card shadow="sm" padding="lg" radius="md" withBorder>
                         <Group justify="space-between">
                             <Box>
-                                <Text c="dimmed" size="sm" fw={600}>Pendentes</Text>
-                                <Text fw={700} size="xl" c="orange">{statsNicochat.nao_resolvidos}</Text>
+                                <Text c="dimmed" size="sm" fw={600}>Não Resolvidos</Text>
+                                <Text fw={700} size="xl" c="orange">{statsErros.nao_resolvidos}</Text>
                                 <Text size="xs" c="dimmed">Aguardando resolução</Text>
                             </Box>
                             <ThemeIcon size="xl" radius="md" variant="light" color="orange">
@@ -208,89 +165,57 @@ function NicochatPage() {
                     </Card>
                 </Grid.Col>
                 
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+                <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
                     <Card shadow="sm" padding="lg" radius="md" withBorder>
-                        <Center>
-                            <RingProgress
-                                size={100}
-                                thickness={8}
-                                sections={[
-                                    { value: taxaSucesso, color: 'green', tooltip: `${taxaSucesso.toFixed(1)}% sucesso` }
-                                ]}
-                                label={
-                                    <Center>
-                                        <Stack gap={2} align="center">
-                                            <Text fw={700} size="lg">{taxaSucesso.toFixed(1)}%</Text>
-                                        </Stack>
-                                    </Center>
-                                }
-                            />
-                        </Center>
-                        <Text size="sm" c="dimmed" ta="center" mt="xs" fw={600}>Taxa de Sucesso</Text>
+                        <Group justify="space-between">
+                            <Box>
+                                <Text c="dimmed" size="sm" fw={600}>Críticos (7d)</Text>
+                                <Text fw={700} size="xl" c="red">{statsErros.criticos_7d}</Text>
+                                <Text size="xs" c="dimmed">Erros graves</Text>
+                            </Box>
+                            <ThemeIcon size="xl" radius="md" variant="light" color="red">
+                                <IconX size={24} />
+                            </ThemeIcon>
+                        </Group>
                     </Card>
                 </Grid.Col>
             </Grid>
         );
     };
 
-    // Componente de estatísticas por país
-    const StatsPorPais = () => {
-        if (!statsNicochat?.por_pais?.length) return null;
-        
-        const maxTotal = Math.max(...statsNicochat.por_pais.map(stat => stat.total));
+    // Componente de erros por país
+    const ErrosPorPais = () => {
+        if (!statsErros?.por_pais?.length) return null;
         
         return (
             <Card shadow="sm" padding="lg" radius="md" mb="md" withBorder>
                 <Group mb="md">
-                    <ThemeIcon size="sm" radius="md" variant="light" color="cyan">
+                    <ThemeIcon size="sm" radius="md" variant="light" color="red">
                         <IconMapPin size={16} />
                     </ThemeIcon>
-                    <Title order={4}>Atividade por País (24h)</Title>
+                    <Title order={4}>Erros por País (24h)</Title>
                 </Group>
                 <Grid>
-                    {statsNicochat.por_pais.map((stat) => (
+                    {statsErros.por_pais.map((stat) => (
                         <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 3 }} key={stat.pais}>
                             <Paper p="md" withBorder radius="md" 
-                                   style={{ 
-                                       backgroundColor: 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8))',
-                                       borderColor: stat.erros > 0 ? 'var(--mantine-color-red-3)' : 'var(--mantine-color-gray-3)'
-                                   }}>
+                                   style={{ borderColor: 'var(--mantine-color-red-3)' }}>
                                 <Group justify="space-between" mb="xs">
                                     <Group gap="xs">
                                         <Text size="lg">{getPaisFlag(stat.pais)}</Text>
                                         <Text fw={600} size="sm">{getPaisDisplayName(stat.pais)}</Text>
                                     </Group>
-                                    <Badge variant="light" color="blue">{stat.total}</Badge>
+                                    <Badge variant="light" color="red">{stat.erros}</Badge>
                                 </Group>
                                 
-                                <Progress 
-                                    value={(stat.total / maxTotal) * 100} 
-                                    size="xs" 
-                                    color={stat.erros > 0 ? 'red' : 'blue'}
-                                    mb="xs"
-                                />
-                                
-                                {stat.erros > 0 && (
-                                    <Group gap="xs">
-                                        <ThemeIcon size="xs" radius="xl" color="red" variant="light">
-                                            <IconAlertTriangle size={10} />
-                                        </ThemeIcon>
-                                        <Text size="xs" c="red" fw={600}>
-                                            {stat.erros} erro(s)
-                                        </Text>
-                                    </Group>
-                                )}
-                                
-                                {stat.erros === 0 && (
-                                    <Group gap="xs">
-                                        <ThemeIcon size="xs" radius="xl" color="green" variant="light">
-                                            <IconCheck size={10} />
-                                        </ThemeIcon>
-                                        <Text size="xs" c="green" fw={600}>
-                                            Funcionando bem
-                                        </Text>
-                                    </Group>
-                                )}
+                                <Group gap="xs">
+                                    <ThemeIcon size="xs" radius="xl" color="red" variant="light">
+                                        <IconAlertTriangle size={10} />
+                                    </ThemeIcon>
+                                    <Text size="xs" c="red" fw={600}>
+                                        {stat.erros} erro(s) registrados
+                                    </Text>
+                                </Group>
                             </Paper>
                         </Grid.Col>
                     ))}
@@ -305,16 +230,16 @@ function NicochatPage() {
                 <Box>
                     <Group gap="sm" mb="xs">
                         <ThemeIcon size="lg" radius="md" variant="gradient" 
-                                   gradient={{ from: 'blue', to: 'cyan', deg: 45 }}>
-                            <IconRobot size={24} />
+                                   gradient={{ from: 'red', to: 'orange', deg: 45 }}>
+                            <IconAlertTriangle size={24} />
                         </ThemeIcon>
-                        <Title order={2}>Nicochat - Monitoramento por País</Title>
+                        <Title order={2}>Nicochat - Erros e Falhas</Title>
                     </Group>
-                    <Text c="dimmed">Monitore conversas e erros do Nicochat nos 7 países de operação</Text>
+                    <Text c="dimmed">Monitore e resolva erros do Nicochat nos 7 países</Text>
                 </Box>
                 <Button
                     leftSection={<IconRefresh size={16} />}
-                    onClick={() => { carregarLogs(); carregarStatsNicochat(); }}
+                    onClick={() => { carregarLogs(); carregarStatsErros(); }}
                     loading={loading}
                     variant="light"
                 >
@@ -334,13 +259,13 @@ function NicochatPage() {
                 </Notification>
             )}
 
-            <StatsNicochat />
-            <StatsPorPais />
+            <StatsErros />
+            <ErrosPorPais />
 
-            {/* Filtros específicos do Nicochat */}
+            {/* Filtros */}
             <Card shadow="sm" padding="lg" radius="md" mb="md" withBorder>
                 <Group mb="md">
-                    <ThemeIcon size="sm" radius="md" variant="light" color="blue">
+                    <ThemeIcon size="sm" radius="md" variant="light" color="red">
                         <IconSearch size={16} />
                     </ThemeIcon>
                     <Title order={4}>Filtros de Pesquisa</Title>
@@ -367,17 +292,14 @@ function NicochatPage() {
                     
                     <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
                         <Select
-                            label="⚠️ Nível"
-                            placeholder="Todos os níveis"
+                            label="⚠️ Gravidade"
                             data={[
-                                { value: '', label: 'Todos os níveis' },
-                                { value: 'info', label: '🔵 Info' },
-                                { value: 'warning', label: '🟡 Warning' },
-                                { value: 'error', label: '🟠 Error' },
-                                { value: 'critical', label: '🔴 Critical' }
+                                { value: 'error,critical', label: 'Todos os erros' },
+                                { value: 'error', label: '🟠 Apenas Error' },
+                                { value: 'critical', label: '🔴 Apenas Critical' }
                             ]}
                             value={filtros.nivel}
-                            onChange={(value) => setFiltros(prev => ({ ...prev, nivel: value || '' }))}
+                            onChange={(value) => setFiltros(prev => ({ ...prev, nivel: value }))}
                         />
                     </Grid.Col>
                     
@@ -396,8 +318,8 @@ function NicochatPage() {
                     
                     <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
                         <TextInput
-                            label="🔍 Buscar"
-                            placeholder="Usuário, mensagem..."
+                            label="🔍 Buscar Erro"
+                            placeholder="Mensagem de erro..."
                             leftSection={<IconSearch size={16} />}
                             value={filtros.busca}
                             onChange={(e) => setFiltros(prev => ({ ...prev, busca: e.target.value }))}
@@ -406,16 +328,16 @@ function NicochatPage() {
                 </Grid>
             </Card>
 
-            {/* Tabela de Logs do Nicochat */}
+            {/* Tabela de Erros */}
             <Card shadow="sm" padding="lg" radius="md" withBorder>
                 <LoadingOverlay visible={loading} />
                 
                 <Group mb="md">
-                    <ThemeIcon size="sm" radius="md" variant="light" color="blue">
+                    <ThemeIcon size="sm" radius="md" variant="light" color="red">
                         <IconChartBar size={16} />
                     </ThemeIcon>
-                    <Title order={4}>Logs do Nicochat</Title>
-                    <Badge variant="light" color="blue">{logs.length} registros</Badge>
+                    <Title order={4}>Erros do Nicochat</Title>
+                    <Badge variant="light" color="red">{logs.length} erros</Badge>
                 </Group>
                 
                 <ScrollArea>
@@ -424,153 +346,112 @@ function NicochatPage() {
                             <Table.Tr>
                                 <Table.Th>Data/Hora</Table.Th>
                                 <Table.Th>País</Table.Th>
-                                <Table.Th>Nível</Table.Th>
-                                <Table.Th>Usuário</Table.Th>
-                                <Table.Th>Mensagem</Table.Th>
+                                <Table.Th>Gravidade</Table.Th>
+                                <Table.Th>Erro</Table.Th>
                                 <Table.Th>Status</Table.Th>
                                 <Table.Th>Ações</Table.Th>
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
-                            {logs.map((log) => (
-                                <Table.Tr key={log.id}>
-                                    <Table.Td>
-                                        <Text size="sm" fw={600}>{log.tempo_relativo}</Text>
-                                        <Text size="xs" c="dimmed">
-                                            {new Date(log.timestamp).toLocaleString()}
-                                        </Text>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Badge variant="light" color="cyan" 
-                                               leftSection={<span>{getPaisFlag(log.pais)}</span>}>
-                                            {getPaisDisplayName(log.pais)}
-                                        </Badge>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Badge 
-                                            variant="light" 
-                                            color={getNivelColor(log.nivel)}
-                                            leftSection={getNivelIcon(log.nivel)}
-                                        >
-                                            {log.nivel.toUpperCase()}
-                                        </Badge>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        {log.usuario_conversa && (
+                            {logs.map((log) => {
+                                const Icon = getNivelIcon(log.nivel);
+                                return (
+                                    <Table.Tr key={log.id}>
+                                        <Table.Td>
+                                            <Text size="sm" fw={600}>{log.tempo_relativo}</Text>
+                                            <Text size="xs" c="dimmed">
+                                                {new Date(log.timestamp).toLocaleString()}
+                                            </Text>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Badge variant="light" color="cyan" 
+                                                   leftSection={<span>{getPaisFlag(log.pais)}</span>}>
+                                                {getPaisDisplayName(log.pais)}
+                                            </Badge>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Badge 
+                                                variant="light" 
+                                                color={getNivelColor(log.nivel)}
+                                                leftSection={<Icon size={16} />}
+                                            >
+                                                {log.nivel.toUpperCase()}
+                                            </Badge>
+                                        </Table.Td>
+                                        <Table.Td style={{ maxWidth: '300px' }}>
+                                            <Text size="sm" truncate c="red">
+                                                {log.mensagem}
+                                            </Text>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Badge 
+                                                variant="light" 
+                                                color={log.resolvido ? 'green' : 'orange'}
+                                                leftSection={log.resolvido ? <IconCheck size={12} /> : <IconClock size={12} />}
+                                            >
+                                                {log.resolvido ? 'Resolvido' : 'Pendente'}
+                                            </Badge>
+                                        </Table.Td>
+                                        <Table.Td>
                                             <Group gap="xs">
-                                                <ThemeIcon size="xs" radius="xl" variant="light" color="blue">
-                                                    <IconUsers size={10} />
-                                                </ThemeIcon>
-                                                <Code size="xs">{log.usuario_conversa}</Code>
+                                                <ActionIcon
+                                                    variant="light"
+                                                    color="blue"
+                                                    onClick={() => {
+                                                        setLogSelecionado(log);
+                                                        setModalDetalhes(true);
+                                                    }}
+                                                >
+                                                    <IconEye size={16} />
+                                                </ActionIcon>
+                                                <ActionIcon
+                                                    variant="light"
+                                                    color={log.resolvido ? 'orange' : 'green'}
+                                                    onClick={() => {
+                                                        setLogSelecionado(log);
+                                                        setObservacoesResolucao('');
+                                                        setModalResolucao(true);
+                                                    }}
+                                                >
+                                                    {log.resolvido ? <IconX size={16} /> : <IconCheck size={16} />}
+                                                </ActionIcon>
                                             </Group>
-                                        )}
-                                    </Table.Td>
-                                    <Table.Td style={{ maxWidth: '300px' }}>
-                                        <Text size="sm" truncate>
-                                            {log.mensagem}
-                                        </Text>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Badge 
-                                            variant="light" 
-                                            color={log.resolvido ? 'green' : 'orange'}
-                                            leftSection={log.resolvido ? <IconCheck size={12} /> : <IconClock size={12} />}
-                                        >
-                                            {log.resolvido ? 'Resolvido' : 'Pendente'}
-                                        </Badge>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Group gap="xs">
-                                            <ActionIcon
-                                                variant="light"
-                                                color="blue"
-                                                onClick={() => {
-                                                    setLogSelecionado(log);
-                                                    setModalDetalhes(true);
-                                                }}
-                                            >
-                                                <IconEye size={16} />
-                                            </ActionIcon>
-                                            <ActionIcon
-                                                variant="light"
-                                                color={log.resolvido ? 'orange' : 'green'}
-                                                onClick={() => {
-                                                    setLogSelecionado(log);
-                                                    setObservacoesResolucao('');
-                                                    setModalResolucao(true);
-                                                }}
-                                            >
-                                                {log.resolvido ? <IconX size={16} /> : <IconCheck size={16} />}
-                                            </ActionIcon>
-                                        </Group>
-                                    </Table.Td>
-                                </Table.Tr>
-                            ))}
+                                        </Table.Td>
+                                    </Table.Tr>
+                                );
+                            })}
                         </Table.Tbody>
                     </Table>
                 </ScrollArea>
 
                 {logs.length === 0 && !loading && (
                     <Box ta="center" py="xl">
-                        <ThemeIcon size="xl" radius="md" variant="light" color="blue" mx="auto" mb="md">
-                            <IconRobot size={32} />
+                        <ThemeIcon size="xl" radius="md" variant="light" color="green" mx="auto" mb="md">
+                            <IconCheck size={32} />
                         </ThemeIcon>
-                        <Text c="dimmed" fw={600}>Nenhum log do Nicochat encontrado</Text>
+                        <Text c="green" fw={600}>Nenhum erro encontrado! 🎉</Text>
                         <Text size="sm" c="dimmed" mt="xs">
-                            Tente ajustar os filtros ou aguarde novas conversas
+                            O Nicochat está funcionando sem problemas
                         </Text>
                     </Box>
                 )}
             </Card>
 
-            {/* Modal de Detalhes */}
+            {/* Modals permanecem iguais */}
             <Modal
                 opened={modalDetalhes}
                 onClose={() => setModalDetalhes(false)}
-                title={
-                    <Group>
-                        <ThemeIcon size="sm" radius="md" variant="light" color="blue">
-                            <IconRobot size={16} />
-                        </ThemeIcon>
-                        <Text fw={600}>Detalhes do Log - Nicochat</Text>
-                    </Group>
-                }
+                title={<Group><IconAlertTriangle size={16} color="red" /><Text fw={600}>Detalhes do Erro</Text></Group>}
                 size="lg"
             >
                 {logSelecionado && (
                     <Stack gap="md">
-                        <Group>
-                            <Badge variant="light" color="blue">
-                                🤖 Nicochat
-                            </Badge>
-                            <Badge 
-                                variant="light" 
-                                color={getNivelColor(logSelecionado.nivel)}
-                                leftSection={getNivelIcon(logSelecionado.nivel)}
-                            >
-                                {logSelecionado.nivel.toUpperCase()}
-                            </Badge>
-                            <Badge variant="light" color="cyan" 
-                                   leftSection={<span>{getPaisFlag(logSelecionado.pais)}</span>}>
-                                {getPaisDisplayName(logSelecionado.pais)}
-                            </Badge>
-                        </Group>
-                        
-                        <Divider />
-                        
                         <Box>
-                            <Text fw={600} mb="xs">📝 Mensagem:</Text>
-                            <Paper p="sm" withBorder>
-                                <Text>{logSelecionado.mensagem}</Text>
+                            <Text fw={600} mb="xs">🚨 Mensagem de Erro:</Text>
+                            <Paper p="sm" withBorder style={{ backgroundColor: 'var(--mantine-color-red-0)' }}>
+                                <Text c="red">{logSelecionado.mensagem}</Text>
                             </Paper>
                         </Box>
-                        
-                        {logSelecionado.usuario_conversa && (
-                            <Box>
-                                <Text fw={600} mb="xs">👤 Usuário da Conversa:</Text>
-                                <Code block>{logSelecionado.usuario_conversa}</Code>
-                            </Box>
-                        )}
                         
                         {logSelecionado.id_conversa && (
                             <Box>
@@ -579,34 +460,20 @@ function NicochatPage() {
                             </Box>
                         )}
                         
-                        {logSelecionado.detalhes && Object.keys(logSelecionado.detalhes).length > 0 && (
-                            <Box>
-                                <Text fw={600} mb="xs">🔧 Detalhes Técnicos:</Text>
-                                <JsonInput
-                                    value={JSON.stringify(logSelecionado.detalhes, null, 2)}
-                                    readOnly
-                                    minRows={4}
-                                    maxRows={8}
-                                />
-                            </Box>
-                        )}
-                        
-                        <Divider />
-                        
                         <Grid>
                             <Grid.Col span={6}>
-                                <Text size="sm" c="dimmed" fw={600}>🕒 Data/Hora:</Text>
+                                <Text size="sm" c="dimmed" fw={600}>🕒 Ocorreu em:</Text>
                                 <Text size="sm">{new Date(logSelecionado.timestamp).toLocaleString()}</Text>
                             </Grid.Col>
                             <Grid.Col span={6}>
-                                <Text size="sm" c="dimmed" fw={600}>🌐 IP de Origem:</Text>
-                                <Text size="sm">{logSelecionado.ip_origem || 'N/A'}</Text>
+                                <Text size="sm" c="dimmed" fw={600}>🌍 País:</Text>
+                                <Text size="sm">{getPaisFlag(logSelecionado.pais)} {getPaisDisplayName(logSelecionado.pais)}</Text>
                             </Grid.Col>
                         </Grid>
                         
                         {logSelecionado.resolvido && (
                             <Alert color="green" icon={<IconCheck size={16} />}>
-                                <Text fw={600}>✅ Resolvido por: {logSelecionado.resolvido_por_nome}</Text>
+                                <Text fw={600}>✅ Erro resolvido por: {logSelecionado.resolvido_por_nome}</Text>
                                 <Text size="sm">🕒 Em: {new Date(logSelecionado.data_resolucao).toLocaleString()}</Text>
                             </Alert>
                         )}
@@ -614,21 +481,20 @@ function NicochatPage() {
                 )}
             </Modal>
 
-            {/* Modal de Resolução */}
             <Modal
                 opened={modalResolucao}
                 onClose={() => setModalResolucao(false)}
-                title={`${logSelecionado?.resolvido ? '↩️ Marcar como Não Resolvido' : '✅ Marcar como Resolvido'}`}
+                title={`${logSelecionado?.resolvido ? '↩️ Reabrir Erro' : '✅ Marcar como Resolvido'}`}
             >
                 {logSelecionado && (
                     <Stack gap="md">
                         <Text>
-                            Deseja marcar este log como {logSelecionado.resolvido ? 'não resolvido' : 'resolvido'}?
+                            Deseja marcar este erro como {logSelecionado.resolvido ? 'não resolvido' : 'resolvido'}?
                         </Text>
                         
                         <Textarea
-                            label="📝 Observações (opcional)"
-                            placeholder="Adicione observações sobre a resolução..."
+                            label="📝 Observações sobre a resolução"
+                            placeholder="Descreva como o erro foi resolvido..."
                             value={observacoesResolucao}
                             onChange={(e) => setObservacoesResolucao(e.target.value)}
                             minRows={3}
@@ -643,7 +509,7 @@ function NicochatPage() {
                                 onClick={() => marcarResolvido(logSelecionado.id, !logSelecionado.resolvido)}
                                 leftSection={logSelecionado.resolvido ? <IconX size={16} /> : <IconCheck size={16} />}
                             >
-                                {logSelecionado.resolvido ? 'Marcar Não Resolvido' : 'Marcar Resolvido'}
+                                {logSelecionado.resolvido ? 'Reabrir Erro' : 'Marcar Resolvido'}
                             </Button>
                         </Group>
                     </Stack>

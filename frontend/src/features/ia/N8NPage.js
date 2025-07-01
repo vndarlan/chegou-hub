@@ -1,17 +1,17 @@
-// frontend/src/features/ia/N8NPage.js - ÍCONES CORRIGIDOS
+// frontend/src/features/ia/N8NPage.js - APENAS ERROS
 import React, { useState, useEffect } from 'react';
 import {
     Box, Title, Text, Card, Group, Stack, Table, Badge, 
     Button, Select, TextInput, Grid, ActionIcon,
     Modal, Textarea, Alert, Notification,
     LoadingOverlay, ScrollArea, Code, JsonInput,
-    RingProgress, Center, ThemeIcon, Paper, Divider
+    Paper, Divider, ThemeIcon
 } from '@mantine/core';
 import {
     IconSearch, IconRefresh, IconCheck, IconX,
-    IconAlertTriangle, IconInfoCircle, IconExclamationCircle,
+    IconAlertTriangle, IconExclamationCircle,
     IconEye, IconClock, IconSettings, IconGitBranch,
-    IconChartBar, IconActivity
+    IconChartBar
 } from '@tabler/icons-react';
 import axios from 'axios';
 
@@ -19,12 +19,12 @@ function N8NPage() {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(false);
     const [notification, setNotification] = useState(null);
-    const [statsN8N, setStatsN8N] = useState(null);
+    const [statsErros, setStatsErros] = useState(null);
     
-    // Estados de filtros específicos do N8N
+    // Filtros apenas para erros
     const [filtros, setFiltros] = useState({
-        ferramenta: 'N8N', // Sempre N8N
-        nivel: '',
+        ferramenta: 'N8N',
+        nivel: 'error,critical', // Apenas erros e críticos
         resolvido: '',
         periodo: '24h',
         busca: ''
@@ -38,7 +38,7 @@ function N8NPage() {
 
     useEffect(() => {
         carregarLogs();
-        carregarStatsN8N();
+        carregarStatsErros();
     }, [filtros]);
 
     const carregarLogs = async () => {
@@ -59,19 +59,19 @@ function N8NPage() {
         }
     };
 
-    const carregarStatsN8N = async () => {
+    const carregarStatsErros = async () => {
         try {
             const response = await axios.get('/ia/dashboard-stats/');
             const stats = response.data;
             
-            // Filtrar apenas stats do N8N
-            const n8nStats = {
-                total_logs: stats.por_ferramenta?.find(f => f.ferramenta === 'N8N')?.total || 0,
+            // Apenas estatísticas de erros do N8N
+            const errosStats = {
                 total_erros: stats.por_ferramenta?.find(f => f.ferramenta === 'N8N')?.erros || 0,
                 nao_resolvidos: stats.por_ferramenta?.find(f => f.ferramenta === 'N8N')?.nao_resolvidos || 0,
+                criticos_7d: stats.resumo?.logs_criticos_7d || 0
             };
             
-            setStatsN8N(n8nStats);
+            setStatsErros(errosStats);
         } catch (error) {
             console.error('Erro ao carregar estatísticas do N8N:', error);
         }
@@ -91,12 +91,12 @@ function N8NPage() {
             
             setNotification({ 
                 type: 'success', 
-                message: `Log marcado como ${resolvido ? 'resolvido' : 'não resolvido'}` 
+                message: `Erro marcado como ${resolvido ? 'resolvido' : 'não resolvido'}` 
             });
             setModalResolucao(false);
             setObservacoesResolucao('');
             carregarLogs();
-            carregarStatsN8N();
+            carregarStatsErros();
         } catch (error) {
             console.error('Erro ao marcar log:', error);
             setNotification({ type: 'error', message: 'Erro ao atualizar log' });
@@ -104,58 +104,26 @@ function N8NPage() {
     };
 
     const getNivelColor = (nivel) => {
-        const colors = {
-            'info': 'blue',
-            'warning': 'yellow',
-            'error': 'orange',
-            'critical': 'red'
-        };
-        return colors[nivel] || 'gray';
+        return nivel === 'critical' ? 'red' : 'orange';
     };
 
     const getNivelIcon = (nivel) => {
-        const icons = {
-            'info': IconInfoCircle,
-            'warning': IconAlertTriangle,
-            'error': IconExclamationCircle,
-            'critical': IconX
-        };
-        const Icon = icons[nivel] || IconInfoCircle;
-        return <Icon size={16} />;
+        return nivel === 'critical' ? IconX : IconExclamationCircle;
     };
 
-    // Componente de estatísticas do N8N
-    const StatsN8N = () => {
-        if (!statsN8N) return null;
-        
-        const totalLogs = statsN8N.total_logs;
-        const sucessos = totalLogs - statsN8N.total_erros;
-        const taxaSucesso = totalLogs > 0 ? (sucessos / totalLogs) * 100 : 0;
+    // Componente de estatísticas de erros do N8N
+    const StatsErros = () => {
+        if (!statsErros) return null;
         
         return (
             <Grid mb="xl">
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card shadow="sm" padding="lg" radius="md" withBorder>
-                        <Group justify="space-between">
-                            <Box>
-                                <Text c="dimmed" size="sm" fw={600}>Execuções (24h)</Text>
-                                <Text fw={700} size="xl">{statsN8N.total_logs}</Text>
-                                <Text size="xs" c="dimmed">Total de workflows</Text>
-                            </Box>
-                            <ThemeIcon size="xl" radius="md" variant="light" color="purple">
-                                <IconGitBranch size={24} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
-                
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+                <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
                     <Card shadow="sm" padding="lg" radius="md" withBorder>
                         <Group justify="space-between">
                             <Box>
                                 <Text c="dimmed" size="sm" fw={600}>Falhas (24h)</Text>
-                                <Text fw={700} size="xl" c="red">{statsN8N.total_erros}</Text>
-                                <Text size="xs" c="dimmed">Execuções com erro</Text>
+                                <Text fw={700} size="xl" c="red">{statsErros.total_erros}</Text>
+                                <Text size="xs" c="dimmed">Workflows com erro</Text>
                             </Box>
                             <ThemeIcon size="xl" radius="md" variant="light" color="red">
                                 <IconAlertTriangle size={24} />
@@ -164,12 +132,12 @@ function N8NPage() {
                     </Card>
                 </Grid.Col>
                 
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+                <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
                     <Card shadow="sm" padding="lg" radius="md" withBorder>
                         <Group justify="space-between">
                             <Box>
                                 <Text c="dimmed" size="sm" fw={600}>Não Resolvidos</Text>
-                                <Text fw={700} size="xl" c="orange">{statsN8N.nao_resolvidos}</Text>
+                                <Text fw={700} size="xl" c="orange">{statsErros.nao_resolvidos}</Text>
                                 <Text size="xs" c="dimmed">Precisam atenção</Text>
                             </Box>
                             <ThemeIcon size="xl" radius="md" variant="light" color="orange">
@@ -179,25 +147,18 @@ function N8NPage() {
                     </Card>
                 </Grid.Col>
                 
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+                <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
                     <Card shadow="sm" padding="lg" radius="md" withBorder>
-                        <Center>
-                            <RingProgress
-                                size={100}
-                                thickness={8}
-                                sections={[
-                                    { value: taxaSucesso, color: 'purple', tooltip: `${taxaSucesso.toFixed(1)}% sucesso` }
-                                ]}
-                                label={
-                                    <Center>
-                                        <Stack gap={2} align="center">
-                                            <Text fw={700} size="lg">{taxaSucesso.toFixed(1)}%</Text>
-                                        </Stack>
-                                    </Center>
-                                }
-                            />
-                        </Center>
-                        <Text size="sm" c="dimmed" ta="center" mt="xs" fw={600}>Taxa de Sucesso</Text>
+                        <Group justify="space-between">
+                            <Box>
+                                <Text c="dimmed" size="sm" fw={600}>Críticos (7d)</Text>
+                                <Text fw={700} size="xl" c="red">{statsErros.criticos_7d}</Text>
+                                <Text size="xs" c="dimmed">Erros graves</Text>
+                            </Box>
+                            <ThemeIcon size="xl" radius="md" variant="light" color="red">
+                                <IconX size={24} />
+                            </ThemeIcon>
+                        </Group>
                     </Card>
                 </Grid.Col>
             </Grid>
@@ -210,16 +171,16 @@ function N8NPage() {
                 <Box>
                     <Group gap="sm" mb="xs">
                         <ThemeIcon size="lg" radius="md" variant="gradient" 
-                                   gradient={{ from: 'purple', to: 'blue', deg: 45 }}>
-                            <IconGitBranch size={24} />
+                                   gradient={{ from: 'red', to: 'orange', deg: 45 }}>
+                            <IconAlertTriangle size={24} />
                         </ThemeIcon>
-                        <Title order={2}>N8N - Workflows e Automações</Title>
+                        <Title order={2}>N8N - Falhas nos Workflows</Title>
                     </Group>
-                    <Text c="dimmed">Monitore execuções e falhas dos workflows do N8N</Text>
+                    <Text c="dimmed">Monitore e resolva falhas nos workflows do N8N</Text>
                 </Box>
                 <Button
                     leftSection={<IconRefresh size={16} />}
-                    onClick={() => { carregarLogs(); carregarStatsN8N(); }}
+                    onClick={() => { carregarLogs(); carregarStatsErros(); }}
                     loading={loading}
                     variant="light"
                 >
@@ -239,12 +200,12 @@ function N8NPage() {
                 </Notification>
             )}
 
-            <StatsN8N />
+            <StatsErros />
 
             {/* Filtros específicos do N8N */}
             <Card shadow="sm" padding="lg" radius="md" mb="md" withBorder>
                 <Group mb="md">
-                    <ThemeIcon size="sm" radius="md" variant="light" color="purple">
+                    <ThemeIcon size="sm" radius="md" variant="light" color="red">
                         <IconSettings size={16} />
                     </ThemeIcon>
                     <Title order={4}>Filtros de Pesquisa</Title>
@@ -252,17 +213,14 @@ function N8NPage() {
                 <Grid>
                     <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
                         <Select
-                            label="⚠️ Nível"
-                            placeholder="Todos os níveis"
+                            label="⚠️ Gravidade"
                             data={[
-                                { value: '', label: 'Todos os níveis' },
-                                { value: 'info', label: '🔵 Info' },
-                                { value: 'warning', label: '🟡 Warning' },
-                                { value: 'error', label: '🟠 Error' },
-                                { value: 'critical', label: '🔴 Critical' }
+                                { value: 'error,critical', label: 'Todos os erros' },
+                                { value: 'error', label: '🟠 Apenas Error' },
+                                { value: 'critical', label: '🔴 Apenas Critical' }
                             ]}
                             value={filtros.nivel}
-                            onChange={(value) => setFiltros(prev => ({ ...prev, nivel: value || '' }))}
+                            onChange={(value) => setFiltros(prev => ({ ...prev, nivel: value }))}
                         />
                     </Grid.Col>
                     
@@ -296,7 +254,7 @@ function N8NPage() {
                     
                     <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
                         <TextInput
-                            label="🔍 Buscar"
+                            label="🔍 Buscar Erro"
                             placeholder="Workflow, erro..."
                             leftSection={<IconSearch size={16} />}
                             value={filtros.busca}
@@ -306,16 +264,16 @@ function N8NPage() {
                 </Grid>
             </Card>
 
-            {/* Tabela de Logs do N8N */}
+            {/* Tabela de Erros do N8N */}
             <Card shadow="sm" padding="lg" radius="md" withBorder>
                 <LoadingOverlay visible={loading} />
                 
                 <Group mb="md">
-                    <ThemeIcon size="sm" radius="md" variant="light" color="purple">
+                    <ThemeIcon size="sm" radius="md" variant="light" color="red">
                         <IconChartBar size={16} />
                     </ThemeIcon>
-                    <Title order={4}>Logs do N8N</Title>
-                    <Badge variant="light" color="purple">{logs.length} registros</Badge>
+                    <Title order={4}>Falhas do N8N</Title>
+                    <Badge variant="light" color="red">{logs.length} erros</Badge>
                 </Group>
                 
                 <ScrollArea>
@@ -323,83 +281,86 @@ function N8NPage() {
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th>Data/Hora</Table.Th>
-                                <Table.Th>Nível</Table.Th>
-                                <Table.Th>Workflow/Erro</Table.Th>
+                                <Table.Th>Gravidade</Table.Th>
+                                <Table.Th>Erro no Workflow</Table.Th>
                                 <Table.Th>Status</Table.Th>
                                 <Table.Th>Ações</Table.Th>
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
-                            {logs.map((log) => (
-                                <Table.Tr key={log.id}>
-                                    <Table.Td>
-                                        <Text size="sm" fw={600}>{log.tempo_relativo}</Text>
-                                        <Text size="xs" c="dimmed">
-                                            {new Date(log.timestamp).toLocaleString()}
-                                        </Text>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Badge 
-                                            variant="light" 
-                                            color={getNivelColor(log.nivel)}
-                                            leftSection={getNivelIcon(log.nivel)}
-                                        >
-                                            {log.nivel.toUpperCase()}
-                                        </Badge>
-                                    </Table.Td>
-                                    <Table.Td style={{ maxWidth: '400px' }}>
-                                        <Text size="sm" truncate>
-                                            {log.mensagem}
-                                        </Text>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Badge 
-                                            variant="light" 
-                                            color={log.resolvido ? 'green' : 'orange'}
-                                            leftSection={log.resolvido ? <IconCheck size={12} /> : <IconClock size={12} />}
-                                        >
-                                            {log.resolvido ? 'Resolvido' : 'Pendente'}
-                                        </Badge>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Group gap="xs">
-                                            <ActionIcon
-                                                variant="light"
-                                                color="blue"
-                                                onClick={() => {
-                                                    setLogSelecionado(log);
-                                                    setModalDetalhes(true);
-                                                }}
+                            {logs.map((log) => {
+                                const Icon = getNivelIcon(log.nivel);
+                                return (
+                                    <Table.Tr key={log.id}>
+                                        <Table.Td>
+                                            <Text size="sm" fw={600}>{log.tempo_relativo}</Text>
+                                            <Text size="xs" c="dimmed">
+                                                {new Date(log.timestamp).toLocaleString()}
+                                            </Text>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Badge 
+                                                variant="light" 
+                                                color={getNivelColor(log.nivel)}
+                                                leftSection={<Icon size={16} />}
                                             >
-                                                <IconEye size={16} />
-                                            </ActionIcon>
-                                            <ActionIcon
-                                                variant="light"
-                                                color={log.resolvido ? 'orange' : 'green'}
-                                                onClick={() => {
-                                                    setLogSelecionado(log);
-                                                    setObservacoesResolucao('');
-                                                    setModalResolucao(true);
-                                                }}
+                                                {log.nivel.toUpperCase()}
+                                            </Badge>
+                                        </Table.Td>
+                                        <Table.Td style={{ maxWidth: '400px' }}>
+                                            <Text size="sm" truncate c="red">
+                                                {log.mensagem}
+                                            </Text>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Badge 
+                                                variant="light" 
+                                                color={log.resolvido ? 'green' : 'orange'}
+                                                leftSection={log.resolvido ? <IconCheck size={12} /> : <IconClock size={12} />}
                                             >
-                                                {log.resolvido ? <IconX size={16} /> : <IconCheck size={16} />}
-                                            </ActionIcon>
-                                        </Group>
-                                    </Table.Td>
-                                </Table.Tr>
-                            ))}
+                                                {log.resolvido ? 'Resolvido' : 'Pendente'}
+                                            </Badge>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Group gap="xs">
+                                                <ActionIcon
+                                                    variant="light"
+                                                    color="blue"
+                                                    onClick={() => {
+                                                        setLogSelecionado(log);
+                                                        setModalDetalhes(true);
+                                                    }}
+                                                >
+                                                    <IconEye size={16} />
+                                                </ActionIcon>
+                                                <ActionIcon
+                                                    variant="light"
+                                                    color={log.resolvido ? 'orange' : 'green'}
+                                                    onClick={() => {
+                                                        setLogSelecionado(log);
+                                                        setObservacoesResolucao('');
+                                                        setModalResolucao(true);
+                                                    }}
+                                                >
+                                                    {log.resolvido ? <IconX size={16} /> : <IconCheck size={16} />}
+                                                </ActionIcon>
+                                            </Group>
+                                        </Table.Td>
+                                    </Table.Tr>
+                                );
+                            })}
                         </Table.Tbody>
                     </Table>
                 </ScrollArea>
 
                 {logs.length === 0 && !loading && (
                     <Box ta="center" py="xl">
-                        <ThemeIcon size="xl" radius="md" variant="light" color="purple" mx="auto" mb="md">
-                            <IconGitBranch size={32} />
+                        <ThemeIcon size="xl" radius="md" variant="light" color="green" mx="auto" mb="md">
+                            <IconCheck size={32} />
                         </ThemeIcon>
-                        <Text c="dimmed" fw={600}>Nenhum log do N8N encontrado</Text>
+                        <Text c="green" fw={600}>Nenhuma falha encontrada! 🎉</Text>
                         <Text size="sm" c="dimmed" mt="xs">
-                            Tente ajustar os filtros ou aguarde execução de workflows
+                            Todos os workflows do N8N estão funcionando corretamente
                         </Text>
                     </Box>
                 )}
@@ -409,37 +370,15 @@ function N8NPage() {
             <Modal
                 opened={modalDetalhes}
                 onClose={() => setModalDetalhes(false)}
-                title={
-                    <Group>
-                        <ThemeIcon size="sm" radius="md" variant="light" color="purple">
-                            <IconGitBranch size={16} />
-                        </ThemeIcon>
-                        <Text fw={600}>Detalhes do Log - N8N</Text>
-                    </Group>
-                }
+                title={<Group><IconGitBranch size={16} color="red" /><Text fw={600}>Detalhes da Falha - N8N</Text></Group>}
                 size="lg"
             >
                 {logSelecionado && (
                     <Stack gap="md">
-                        <Group>
-                            <Badge variant="light" color="purple">
-                                ⚙️ N8N
-                            </Badge>
-                            <Badge 
-                                variant="light" 
-                                color={getNivelColor(logSelecionado.nivel)}
-                                leftSection={getNivelIcon(logSelecionado.nivel)}
-                            >
-                                {logSelecionado.nivel.toUpperCase()}
-                            </Badge>
-                        </Group>
-                        
-                        <Divider />
-                        
                         <Box>
-                            <Text fw={600} mb="xs">📝 Mensagem:</Text>
-                            <Paper p="sm" withBorder>
-                                <Text>{logSelecionado.mensagem}</Text>
+                            <Text fw={600} mb="xs">🚨 Falha no Workflow:</Text>
+                            <Paper p="sm" withBorder style={{ backgroundColor: 'var(--mantine-color-red-0)' }}>
+                                <Text c="red">{logSelecionado.mensagem}</Text>
                             </Paper>
                         </Box>
                         
@@ -455,11 +394,9 @@ function N8NPage() {
                             </Box>
                         )}
                         
-                        <Divider />
-                        
                         <Grid>
                             <Grid.Col span={6}>
-                                <Text size="sm" c="dimmed" fw={600}>🕒 Data/Hora:</Text>
+                                <Text size="sm" c="dimmed" fw={600}>🕒 Falha ocorreu em:</Text>
                                 <Text size="sm">{new Date(logSelecionado.timestamp).toLocaleString()}</Text>
                             </Grid.Col>
                             <Grid.Col span={6}>
@@ -470,7 +407,7 @@ function N8NPage() {
                         
                         {logSelecionado.resolvido && (
                             <Alert color="green" icon={<IconCheck size={16} />}>
-                                <Text fw={600}>✅ Resolvido por: {logSelecionado.resolvido_por_nome}</Text>
+                                <Text fw={600}>✅ Falha resolvida por: {logSelecionado.resolvido_por_nome}</Text>
                                 <Text size="sm">🕒 Em: {new Date(logSelecionado.data_resolucao).toLocaleString()}</Text>
                             </Alert>
                         )}
@@ -482,17 +419,17 @@ function N8NPage() {
             <Modal
                 opened={modalResolucao}
                 onClose={() => setModalResolucao(false)}
-                title={`${logSelecionado?.resolvido ? '↩️ Marcar como Não Resolvido' : '✅ Marcar como Resolvido'}`}
+                title={`${logSelecionado?.resolvido ? '↩️ Reabrir Falha' : '✅ Marcar como Resolvido'}`}
             >
                 {logSelecionado && (
                     <Stack gap="md">
                         <Text>
-                            Deseja marcar este log como {logSelecionado.resolvido ? 'não resolvido' : 'resolvido'}?
+                            Deseja marcar esta falha como {logSelecionado.resolvido ? 'não resolvida' : 'resolvida'}?
                         </Text>
                         
                         <Textarea
-                            label="📝 Observações (opcional)"
-                            placeholder="Adicione observações sobre a resolução..."
+                            label="📝 Observações sobre a resolução"
+                            placeholder="Descreva como a falha foi corrigida..."
                             value={observacoesResolucao}
                             onChange={(e) => setObservacoesResolucao(e.target.value)}
                             minRows={3}
@@ -507,7 +444,7 @@ function N8NPage() {
                                 onClick={() => marcarResolvido(logSelecionado.id, !logSelecionado.resolvido)}
                                 leftSection={logSelecionado.resolvido ? <IconX size={16} /> : <IconCheck size={16} />}
                             >
-                                {logSelecionado.resolvido ? 'Marcar Não Resolvido' : 'Marcar Resolvido'}
+                                {logSelecionado.resolvido ? 'Reabrir Falha' : 'Marcar Resolvido'}
                             </Button>
                         </Group>
                     </Stack>

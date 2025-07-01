@@ -1,18 +1,17 @@
-// frontend/src/features/ia/LogsPage.js - ÍCONES CORRIGIDOS
+// frontend/src/features/ia/LogsPage.js - APENAS ERROS
 import React, { useState, useEffect } from 'react';
 import {
     Box, Title, Text, Card, Group, Stack, Table, Badge, 
     Button, Select, TextInput, Grid, ActionIcon,
     Modal, Textarea, Alert, Notification,
     LoadingOverlay, ScrollArea, Code, JsonInput,
-    Paper, RingProgress, Center, Divider, ThemeIcon
+    Paper, Divider, ThemeIcon
 } from '@mantine/core';
 import {
     IconSearch, IconRefresh, IconCheck, IconX,
-    IconAlertTriangle, IconInfoCircle, IconExclamationCircle,
+    IconAlertTriangle, IconExclamationCircle,
     IconEye, IconClock, IconMapPin, IconRobot,
-    IconChartBar, IconMessage, IconUsers, IconTrendingUp,
-    IconActivity, IconTools
+    IconChartBar, IconActivity, IconGitBranch
 } from '@tabler/icons-react';
 import axios from 'axios';
 
@@ -22,10 +21,10 @@ function LogsPage() {
     const [notification, setNotification] = useState(null);
     const [stats, setStats] = useState(null);
     
-    // Estados de filtros
+    // Filtros apenas para erros e críticos
     const [filtros, setFiltros] = useState({
         ferramenta: '',
-        nivel: '',
+        nivel: 'error,critical', // Apenas erros e críticos
         pais: '',
         resolvido: '',
         periodo: '24h',
@@ -64,7 +63,18 @@ function LogsPage() {
     const carregarStats = async () => {
         try {
             const response = await axios.get('/ia/dashboard-stats/');
-            setStats(response.data);
+            const data = response.data;
+            
+            // Focar apenas em estatísticas de erro
+            const errorStats = {
+                total_erros: (data.por_ferramenta || []).reduce((sum, f) => sum + (f.erros || 0), 0),
+                nao_resolvidos: data.resumo?.logs_nao_resolvidos || 0,
+                criticos_7d: data.resumo?.logs_criticos_7d || 0,
+                por_ferramenta: (data.por_ferramenta || []).filter(f => f.erros > 0),
+                por_pais_nicochat: (data.por_pais_nicochat || []).filter(p => p.erros > 0)
+            };
+            
+            setStats(errorStats);
         } catch (error) {
             console.error('Erro ao carregar estatísticas:', error);
         }
@@ -84,7 +94,7 @@ function LogsPage() {
             
             setNotification({ 
                 type: 'success', 
-                message: `Log marcado como ${resolvido ? 'resolvido' : 'não resolvido'}` 
+                message: `Erro marcado como ${resolvido ? 'resolvido' : 'não resolvido'}` 
             });
             setModalResolucao(false);
             setObservacoesResolucao('');
@@ -97,96 +107,71 @@ function LogsPage() {
     };
 
     const getNivelColor = (nivel) => {
-        const colors = {
-            'info': 'blue',
-            'warning': 'yellow',
-            'error': 'orange',
-            'critical': 'red'
-        };
-        return colors[nivel] || 'gray';
+        return nivel === 'critical' ? 'red' : 'orange';
     };
 
     const getNivelIcon = (nivel) => {
-        const icons = {
-            'info': IconInfoCircle,
-            'warning': IconAlertTriangle,
-            'error': IconExclamationCircle,
-            'critical': IconX
-        };
-        const Icon = icons[nivel] || IconInfoCircle;
-        return <Icon size={16} />;
+        return nivel === 'critical' ? IconX : IconExclamationCircle;
     };
 
     const getPaisDisplayName = (pais) => {
         const nomes = {
-            'colombia': 'Colômbia',
-            'chile': 'Chile',
-            'mexico': 'México',
-            'polonia': 'Polônia',
-            'romenia': 'Romênia',
-            'espanha': 'Espanha',
-            'italia': 'Itália'
+            'colombia': 'Colômbia', 'chile': 'Chile', 'mexico': 'México',
+            'polonia': 'Polônia', 'romenia': 'Romênia', 'espanha': 'Espanha', 'italia': 'Itália'
         };
         return nomes[pais] || pais;
     };
 
-    // Componente de estatísticas
-    const StatsCards = () => {
+    const getPaisFlag = (pais) => {
+        const flags = {
+            'colombia': '🇨🇴', 'chile': '🇨🇱', 'mexico': '🇲🇽',
+            'polonia': '🇵🇱', 'romenia': '🇷🇴', 'espanha': '🇪🇸', 'italia': '🇮🇹'
+        };
+        return flags[pais] || '🌍';
+    };
+
+    // Componente de estatísticas de erros
+    const StatsErros = () => {
         if (!stats) return null;
         
         return (
             <Grid mb="xl">
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+                <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
                     <Card shadow="sm" padding="lg" radius="md" withBorder>
                         <Group justify="space-between">
                             <Box>
-                                <Text c="dimmed" size="sm" fw={600}>Total de Logs</Text>
-                                <Text fw={700} size="xl">{stats.resumo.total_logs}</Text>
+                                <Text c="dimmed" size="sm" fw={600}>Total de Erros</Text>
+                                <Text fw={700} size="xl" c="red">{stats.total_erros}</Text>
                                 <Text size="xs" c="dimmed">Todas as ferramentas</Text>
                             </Box>
-                            <ThemeIcon size="xl" radius="md" variant="light" color="blue">
-                                <IconTools size={24} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
-                
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card shadow="sm" padding="lg" radius="md" withBorder>
-                        <Group justify="space-between">
-                            <Box>
-                                <Text c="dimmed" size="sm" fw={600}>Últimas 24h</Text>
-                                <Text fw={700} size="xl">{stats.resumo.logs_24h}</Text>
-                                <Text size="xs" c="dimmed">Atividade recente</Text>
-                            </Box>
-                            <ThemeIcon size="xl" radius="md" variant="light" color="green">
-                                <IconActivity size={24} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
-                
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card shadow="sm" padding="lg" radius="md" withBorder>
-                        <Group justify="space-between">
-                            <Box>
-                                <Text c="dimmed" size="sm" fw={600}>Não Resolvidos</Text>
-                                <Text fw={700} size="xl" c="orange">{stats.resumo.logs_nao_resolvidos}</Text>
-                                <Text size="xs" c="dimmed">Precisam atenção</Text>
-                            </Box>
-                            <ThemeIcon size="xl" radius="md" variant="light" color="orange">
+                            <ThemeIcon size="xl" radius="md" variant="light" color="red">
                                 <IconAlertTriangle size={24} />
                             </ThemeIcon>
                         </Group>
                     </Card>
                 </Grid.Col>
                 
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+                <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
+                    <Card shadow="sm" padding="lg" radius="md" withBorder>
+                        <Group justify="space-between">
+                            <Box>
+                                <Text c="dimmed" size="sm" fw={600}>Não Resolvidos</Text>
+                                <Text fw={700} size="xl" c="orange">{stats.nao_resolvidos}</Text>
+                                <Text size="xs" c="dimmed">Precisam atenção</Text>
+                            </Box>
+                            <ThemeIcon size="xl" radius="md" variant="light" color="orange">
+                                <IconClock size={24} />
+                            </ThemeIcon>
+                        </Group>
+                    </Card>
+                </Grid.Col>
+                
+                <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
                     <Card shadow="sm" padding="lg" radius="md" withBorder>
                         <Group justify="space-between">
                             <Box>
                                 <Text c="dimmed" size="sm" fw={600}>Críticos (7d)</Text>
-                                <Text fw={700} size="xl" c="red">{stats.resumo.logs_criticos_7d}</Text>
+                                <Text fw={700} size="xl" c="red">{stats.criticos_7d}</Text>
                                 <Text size="xs" c="dimmed">Erros graves</Text>
                             </Box>
                             <ThemeIcon size="xl" radius="md" variant="light" color="red">
@@ -199,18 +184,72 @@ function LogsPage() {
         );
     };
 
+    // Componente de erros por ferramenta
+    const ErrosPorFerramenta = () => {
+        if (!stats?.por_ferramenta?.length) return null;
+        
+        return (
+            <Card shadow="sm" padding="lg" radius="md" mb="md" withBorder>
+                <Group mb="md">
+                    <ThemeIcon size="sm" radius="md" variant="light" color="red">
+                        <IconActivity size={16} />
+                    </ThemeIcon>
+                    <Title order={4}>Erros por Ferramenta (24h)</Title>
+                </Group>
+                <Grid>
+                    {stats.por_ferramenta.map((stat) => (
+                        <Grid.Col span={{ base: 12, sm: 6 }} key={stat.ferramenta}>
+                            <Paper p="md" withBorder radius="md" 
+                                   style={{ borderColor: 'var(--mantine-color-red-3)' }}>
+                                <Group justify="space-between" mb="xs">
+                                    <Group gap="xs">
+                                        <Text size="lg">
+                                            {stat.ferramenta === 'Nicochat' ? '🤖' : '⚙️'}
+                                        </Text>
+                                        <Text fw={600} size="sm">{stat.ferramenta}</Text>
+                                    </Group>
+                                    <Badge variant="light" color="red">{stat.erros}</Badge>
+                                </Group>
+                                
+                                <Group gap="xs">
+                                    <ThemeIcon size="xs" radius="xl" color="red" variant="light">
+                                        <IconAlertTriangle size={10} />
+                                    </ThemeIcon>
+                                    <Text size="xs" c="red" fw={600}>
+                                        {stat.erros} erro(s) registrados
+                                    </Text>
+                                </Group>
+                                
+                                {stat.nao_resolvidos > 0 && (
+                                    <Group gap="xs" mt="xs">
+                                        <ThemeIcon size="xs" radius="xl" color="orange" variant="light">
+                                            <IconClock size={10} />
+                                        </ThemeIcon>
+                                        <Text size="xs" c="orange" fw={600}>
+                                            {stat.nao_resolvidos} não resolvidos
+                                        </Text>
+                                    </Group>
+                                )}
+                            </Paper>
+                        </Grid.Col>
+                    ))}
+                </Grid>
+            </Card>
+        );
+    };
+
     return (
         <Box p="md">
             <Group justify="space-between" mb="xl">
                 <Box>
                     <Group gap="sm" mb="xs">
                         <ThemeIcon size="lg" radius="md" variant="gradient" 
-                                   gradient={{ from: 'blue', to: 'purple', deg: 45 }}>
-                            <IconActivity size={24} />
+                                   gradient={{ from: 'red', to: 'orange', deg: 45 }}>
+                            <IconAlertTriangle size={24} />
                         </ThemeIcon>
-                        <Title order={2}>Logs Gerais - IA & Automações</Title>
+                        <Title order={2}>Monitoramento de Erros - IA</Title>
                     </Group>
-                    <Text c="dimmed">Monitore todos os logs das ferramentas de IA (Nicochat e N8N)</Text>
+                    <Text c="dimmed">Central de erros e falhas críticas do Nicochat e N8N</Text>
                 </Box>
                 <Button
                     leftSection={<IconRefresh size={16} />}
@@ -234,12 +273,13 @@ function LogsPage() {
                 </Notification>
             )}
 
-            <StatsCards />
+            <StatsErros />
+            <ErrosPorFerramenta />
 
             {/* Filtros */}
             <Card shadow="sm" padding="lg" radius="md" mb="md" withBorder>
                 <Group mb="md">
-                    <ThemeIcon size="sm" radius="md" variant="light" color="gray">
+                    <ThemeIcon size="sm" radius="md" variant="light" color="red">
                         <IconSearch size={16} />
                     </ThemeIcon>
                     <Title order={4}>Filtros de Pesquisa</Title>
@@ -261,17 +301,14 @@ function LogsPage() {
                     
                     <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
                         <Select
-                            label="⚠️ Nível"
-                            placeholder="Todos"
+                            label="⚠️ Gravidade"
                             data={[
-                                { value: '', label: 'Todos' },
-                                { value: 'info', label: '🔵 Info' },
-                                { value: 'warning', label: '🟡 Warning' },
-                                { value: 'error', label: '🟠 Error' },
-                                { value: 'critical', label: '🔴 Critical' }
+                                { value: 'error,critical', label: 'Todos os erros' },
+                                { value: 'error', label: '🟠 Apenas Error' },
+                                { value: 'critical', label: '🔴 Apenas Critical' }
                             ]}
                             value={filtros.nivel}
-                            onChange={(value) => setFiltros(prev => ({ ...prev, nivel: value || '' }))}
+                            onChange={(value) => setFiltros(prev => ({ ...prev, nivel: value }))}
                         />
                     </Grid.Col>
                     
@@ -324,8 +361,8 @@ function LogsPage() {
                     
                     <Grid.Col span={{ base: 12, md: 2 }}>
                         <TextInput
-                            label="🔍 Buscar"
-                            placeholder="Mensagem, usuário..."
+                            label="🔍 Buscar Erro"
+                            placeholder="Mensagem..."
                             leftSection={<IconSearch size={16} />}
                             value={filtros.busca}
                             onChange={(e) => setFiltros(prev => ({ ...prev, busca: e.target.value }))}
@@ -334,16 +371,16 @@ function LogsPage() {
                 </Grid>
             </Card>
 
-            {/* Tabela de Logs */}
+            {/* Tabela de Erros */}
             <Card shadow="sm" padding="lg" radius="md" withBorder>
                 <LoadingOverlay visible={loading} />
                 
                 <Group mb="md">
-                    <ThemeIcon size="sm" radius="md" variant="light" color="blue">
+                    <ThemeIcon size="sm" radius="md" variant="light" color="red">
                         <IconChartBar size={16} />
                     </ThemeIcon>
-                    <Title order={4}>Logs de Todas as Ferramentas</Title>
-                    <Badge variant="light" color="blue">{logs.length} registros</Badge>
+                    <Title order={4}>Central de Erros</Title>
+                    <Badge variant="light" color="red">{logs.length} erros</Badge>
                 </Group>
                 
                 <ScrollArea>
@@ -352,113 +389,110 @@ function LogsPage() {
                             <Table.Tr>
                                 <Table.Th>Data/Hora</Table.Th>
                                 <Table.Th>Ferramenta</Table.Th>
-                                <Table.Th>Nível</Table.Th>
-                                <Table.Th>Mensagem</Table.Th>
+                                <Table.Th>Gravidade</Table.Th>
+                                <Table.Th>Erro</Table.Th>
                                 <Table.Th>País</Table.Th>
                                 <Table.Th>Status</Table.Th>
                                 <Table.Th>Ações</Table.Th>
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
-                            {logs.map((log) => (
-                                <Table.Tr key={log.id}>
-                                    <Table.Td>
-                                        <Text size="sm" fw={600}>{log.tempo_relativo}</Text>
-                                        <Text size="xs" c="dimmed">
-                                            {new Date(log.timestamp).toLocaleString()}
-                                        </Text>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Badge variant="light" color={log.ferramenta === 'Nicochat' ? 'blue' : 'purple'}>
-                                            {log.ferramenta === 'Nicochat' ? '🤖' : '⚙️'} {log.ferramenta}
-                                        </Badge>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Badge 
-                                            variant="light" 
-                                            color={getNivelColor(log.nivel)}
-                                            leftSection={getNivelIcon(log.nivel)}
-                                        >
-                                            {log.nivel.toUpperCase()}
-                                        </Badge>
-                                    </Table.Td>
-                                    <Table.Td style={{ maxWidth: '300px' }}>
-                                        <Text size="sm" truncate>
-                                            {log.mensagem}
-                                        </Text>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        {log.pais && (
-                                            <Badge variant="light" color="cyan" leftSection={<IconMapPin size={12} />}>
-                                                {getPaisDisplayName(log.pais)}
+                            {logs.map((log) => {
+                                const Icon = getNivelIcon(log.nivel);
+                                return (
+                                    <Table.Tr key={log.id}>
+                                        <Table.Td>
+                                            <Text size="sm" fw={600}>{log.tempo_relativo}</Text>
+                                            <Text size="xs" c="dimmed">
+                                                {new Date(log.timestamp).toLocaleString()}
+                                            </Text>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Badge variant="light" color={log.ferramenta === 'Nicochat' ? 'blue' : 'purple'}>
+                                                {log.ferramenta === 'Nicochat' ? '🤖' : '⚙️'} {log.ferramenta}
                                             </Badge>
-                                        )}
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Badge 
-                                            variant="light" 
-                                            color={log.resolvido ? 'green' : 'orange'}
-                                            leftSection={log.resolvido ? <IconCheck size={12} /> : <IconClock size={12} />}
-                                        >
-                                            {log.resolvido ? 'Resolvido' : 'Pendente'}
-                                        </Badge>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Group gap="xs">
-                                            <ActionIcon
-                                                variant="light"
-                                                color="blue"
-                                                onClick={() => {
-                                                    setLogSelecionado(log);
-                                                    setModalDetalhes(true);
-                                                }}
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Badge 
+                                                variant="light" 
+                                                color={getNivelColor(log.nivel)}
+                                                leftSection={<Icon size={16} />}
                                             >
-                                                <IconEye size={16} />
-                                            </ActionIcon>
-                                            <ActionIcon
-                                                variant="light"
-                                                color={log.resolvido ? 'orange' : 'green'}
-                                                onClick={() => {
-                                                    setLogSelecionado(log);
-                                                    setObservacoesResolucao('');
-                                                    setModalResolucao(true);
-                                                }}
+                                                {log.nivel.toUpperCase()}
+                                            </Badge>
+                                        </Table.Td>
+                                        <Table.Td style={{ maxWidth: '300px' }}>
+                                            <Text size="sm" truncate c="red">
+                                                {log.mensagem}
+                                            </Text>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            {log.pais && (
+                                                <Badge variant="light" color="cyan" 
+                                                       leftSection={<span>{getPaisFlag(log.pais)}</span>}>
+                                                    {getPaisDisplayName(log.pais)}
+                                                </Badge>
+                                            )}
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Badge 
+                                                variant="light" 
+                                                color={log.resolvido ? 'green' : 'orange'}
+                                                leftSection={log.resolvido ? <IconCheck size={12} /> : <IconClock size={12} />}
                                             >
-                                                {log.resolvido ? <IconX size={16} /> : <IconCheck size={16} />}
-                                            </ActionIcon>
-                                        </Group>
-                                    </Table.Td>
-                                </Table.Tr>
-                            ))}
+                                                {log.resolvido ? 'Resolvido' : 'Pendente'}
+                                            </Badge>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Group gap="xs">
+                                                <ActionIcon
+                                                    variant="light"
+                                                    color="blue"
+                                                    onClick={() => {
+                                                        setLogSelecionado(log);
+                                                        setModalDetalhes(true);
+                                                    }}
+                                                >
+                                                    <IconEye size={16} />
+                                                </ActionIcon>
+                                                <ActionIcon
+                                                    variant="light"
+                                                    color={log.resolvido ? 'orange' : 'green'}
+                                                    onClick={() => {
+                                                        setLogSelecionado(log);
+                                                        setObservacoesResolucao('');
+                                                        setModalResolucao(true);
+                                                    }}
+                                                >
+                                                    {log.resolvido ? <IconX size={16} /> : <IconCheck size={16} />}
+                                                </ActionIcon>
+                                            </Group>
+                                        </Table.Td>
+                                    </Table.Tr>
+                                );
+                            })}
                         </Table.Tbody>
                     </Table>
                 </ScrollArea>
 
                 {logs.length === 0 && !loading && (
                     <Box ta="center" py="xl">
-                        <ThemeIcon size="xl" radius="md" variant="light" color="gray" mx="auto" mb="md">
-                            <IconActivity size={32} />
+                        <ThemeIcon size="xl" radius="md" variant="light" color="green" mx="auto" mb="md">
+                            <IconCheck size={32} />
                         </ThemeIcon>
-                        <Text c="dimmed" fw={600}>Nenhum log encontrado</Text>
+                        <Text c="green" fw={600}>Nenhum erro encontrado! 🎉</Text>
                         <Text size="sm" c="dimmed" mt="xs">
-                            Tente ajustar os filtros ou aguarde atividade das ferramentas
+                            Todas as ferramentas estão funcionando sem problemas
                         </Text>
                     </Box>
                 )}
             </Card>
 
-            {/* Modal de Detalhes */}
+            {/* Modais iguais aos anteriores */}
             <Modal
                 opened={modalDetalhes}
                 onClose={() => setModalDetalhes(false)}
-                title={
-                    <Group>
-                        <ThemeIcon size="sm" radius="md" variant="light" color="blue">
-                            <IconActivity size={16} />
-                        </ThemeIcon>
-                        <Text fw={600}>Detalhes do Log</Text>
-                    </Group>
-                }
+                title={<Group><IconAlertTriangle size={16} color="red" /><Text fw={600}>Detalhes do Erro</Text></Group>}
                 size="lg"
             >
                 {logSelecionado && (
@@ -470,12 +504,13 @@ function LogsPage() {
                             <Badge 
                                 variant="light" 
                                 color={getNivelColor(logSelecionado.nivel)}
-                                leftSection={getNivelIcon(logSelecionado.nivel)}
+                                leftSection={getNivelIcon(logSelecionado.nivel)({ size: 16 })}
                             >
                                 {logSelecionado.nivel.toUpperCase()}
                             </Badge>
                             {logSelecionado.pais && (
-                                <Badge variant="light" color="cyan">
+                                <Badge variant="light" color="cyan" 
+                                       leftSection={<span>{getPaisFlag(logSelecionado.pais)}</span>}>
                                     {getPaisDisplayName(logSelecionado.pais)}
                                 </Badge>
                             )}
@@ -484,18 +519,11 @@ function LogsPage() {
                         <Divider />
                         
                         <Box>
-                            <Text fw={600} mb="xs">📝 Mensagem:</Text>
-                            <Paper p="sm" withBorder>
-                                <Text>{logSelecionado.mensagem}</Text>
+                            <Text fw={600} mb="xs">🚨 Mensagem de Erro:</Text>
+                            <Paper p="sm" withBorder style={{ backgroundColor: 'var(--mantine-color-red-0)' }}>
+                                <Text c="red">{logSelecionado.mensagem}</Text>
                             </Paper>
                         </Box>
-                        
-                        {logSelecionado.usuario_conversa && (
-                            <Box>
-                                <Text fw={600} mb="xs">👤 Usuário da Conversa:</Text>
-                                <Code block>{logSelecionado.usuario_conversa}</Code>
-                            </Box>
-                        )}
                         
                         {logSelecionado.id_conversa && (
                             <Box>
@@ -520,7 +548,7 @@ function LogsPage() {
                         
                         <Grid>
                             <Grid.Col span={6}>
-                                <Text size="sm" c="dimmed" fw={600}>🕒 Data/Hora:</Text>
+                                <Text size="sm" c="dimmed" fw={600}>🕒 Ocorreu em:</Text>
                                 <Text size="sm">{new Date(logSelecionado.timestamp).toLocaleString()}</Text>
                             </Grid.Col>
                             <Grid.Col span={6}>
@@ -531,7 +559,7 @@ function LogsPage() {
                         
                         {logSelecionado.resolvido && (
                             <Alert color="green" icon={<IconCheck size={16} />}>
-                                <Text fw={600}>✅ Resolvido por: {logSelecionado.resolvido_por_nome}</Text>
+                                <Text fw={600}>✅ Erro resolvido por: {logSelecionado.resolvido_por_nome}</Text>
                                 <Text size="sm">🕒 Em: {new Date(logSelecionado.data_resolucao).toLocaleString()}</Text>
                             </Alert>
                         )}
@@ -539,21 +567,20 @@ function LogsPage() {
                 )}
             </Modal>
 
-            {/* Modal de Resolução */}
             <Modal
                 opened={modalResolucao}
                 onClose={() => setModalResolucao(false)}
-                title={`${logSelecionado?.resolvido ? '↩️ Marcar como Não Resolvido' : '✅ Marcar como Resolvido'}`}
+                title={`${logSelecionado?.resolvido ? '↩️ Reabrir Erro' : '✅ Marcar como Resolvido'}`}
             >
                 {logSelecionado && (
                     <Stack gap="md">
                         <Text>
-                            Deseja marcar este log como {logSelecionado.resolvido ? 'não resolvido' : 'resolvido'}?
+                            Deseja marcar este erro como {logSelecionado.resolvido ? 'não resolvido' : 'resolvido'}?
                         </Text>
                         
                         <Textarea
-                            label="📝 Observações (opcional)"
-                            placeholder="Adicione observações sobre a resolução..."
+                            label="📝 Observações sobre a resolução"
+                            placeholder="Descreva como o erro foi resolvido..."
                             value={observacoesResolucao}
                             onChange={(e) => setObservacoesResolucao(e.target.value)}
                             minRows={3}
@@ -568,7 +595,7 @@ function LogsPage() {
                                 onClick={() => marcarResolvido(logSelecionado.id, !logSelecionado.resolvido)}
                                 leftSection={logSelecionado.resolvido ? <IconX size={16} /> : <IconCheck size={16} />}
                             >
-                                {logSelecionado.resolvido ? 'Marcar Não Resolvido' : 'Marcar Resolvido'}
+                                {logSelecionado.resolvido ? 'Reabrir Erro' : 'Marcar Resolvido'}
                             </Button>
                         </Group>
                     </Stack>
