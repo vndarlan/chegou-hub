@@ -112,7 +112,9 @@ urlpatterns = [
     path('cors-debug/', DebugCorsView.as_view(), name='cors_debug'),
     
     # ===== ROTAS TEMPORÁRIAS DA IA =====
+    # Aceitar com e sem barra final para compatibilidade
     path('ia/criar-log/', criar_log_temp, name='criar_log_temp'),
+    path('ia/criar-log', criar_log_temp, name='criar_log_temp_no_slash'),  # SEM barra
     path('ia/dashboard-stats/', dashboard_stats_temp, name='dashboard_stats_temp'),
     path('ia/logs/', logs_temp, name='logs_temp'),
 ]
