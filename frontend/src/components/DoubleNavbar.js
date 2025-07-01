@@ -215,20 +215,20 @@ export function DoubleNavbar({
         {/* Área principal com páginas */}
         <div className={classes.main}>
           {/* Título com logo na mesma linha - igual à imagem de referência */}
-          <div className={classes.title}>
+          <Title order={4} className={classes.title}>
             <div className={classes.logoIcon}>CH</div>
             {activeArea}
-          </div>
+          </Title>
           
           <div className={classes.pageLinks}>
             {/* Mostrar páginas da área atual */}
             {currentPages.length > 0 ? (
               pageLinks
-            ) : (
+            ) : activeArea !== 'Home' ? (
               <Text c="dimmed" size="sm" style={{ padding: '8px 16px' }}>
                 Em breve: novas funcionalidades para {activeArea}
               </Text>
-            )}
+            ) : null}
           </div>
 
           {/* Seção do usuário no rodapé */}
