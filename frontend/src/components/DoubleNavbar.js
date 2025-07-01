@@ -21,7 +21,7 @@ import {
     IconWorld,
     IconActivity,
     IconRobot,
-    IconWorkflow,
+    IconGitBranch,
     IconHeart,
     IconHeadphones,
     IconLogout,
@@ -71,7 +71,7 @@ const navigationSections = [
             { 
                 label: 'N8N', 
                 to: '/workspace/n8n', 
-                icon: IconWorkflow, 
+                icon: IconGitBranch, 
                 color: 'grape',
                 description: 'Workflows e automações'
             }
