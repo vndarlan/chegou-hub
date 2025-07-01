@@ -1,4 +1,4 @@
-// frontend/src/pages/WorkspacePage.js - CORREÇÃO DO WARNING LOCATION
+// frontend/src/pages/WorkspacePage.js - CORREÇÃO DOS IMPORTS
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Routes, Route, Navigate } from 'react-router-dom';
@@ -10,12 +10,12 @@ import MapaPage from '../features/mapa/MapaPage';
 import AgendaPage from '../features/agenda/AgendaPage';
 import EngajamentoPage from '../features/engajamento/EngajamentoPage';
 
-// ← IMPORTAÇÕES DIRETAS DAS PÁGINAS DE IA (sem IAPage.js)
+// ← CORREÇÃO: Usar ../ em vez de ./
 import LogsPage from '../features/ia/LogsPage';
 import NicochatPage from '../features/ia/NicochatPage';
 import N8NPage from '../features/ia/N8NPage';
-import ProjetoDashboard from './features/ia/ProjetoDashboard';
-import RelatoriosProjetos from './features/ia/RelatoriosProjetos';
+import ProjetoDashboard from '../features/ia/ProjetoDashboard';
+import RelatoriosProjetos from '../features/ia/RelatoriosProjetos';
 
 function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
     const [loadingSession, setLoadingSession] = useState(true);
