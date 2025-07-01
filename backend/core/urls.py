@@ -1,5 +1,12 @@
-# backend/core/urls.py - VERSÃO TEMPORÁRIA COM IA
+# backend/core/urls.py - VERSÃO CORRIGIDA
 from django.urls import path
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.utils.decorators import method_decorator
+from django.views import View
+import json
+
 from .views import (
     SimpleLoginView,
     LogoutView,
@@ -10,43 +17,67 @@ from .views import (
 )
 from .views_debug import DebugCorsView
 
-# VIEWS TEMPORÁRIAS PARA IA
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
-import json
+# ===== VIEWS TEMPORÁRIAS PARA IA =====
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def criar_log_temp(request):
-    """View temporária para criar logs"""
+    """View temporária para criar logs - PÚBLICO"""
     try:
         data = json.loads(request.body)
-        print(f"Log recebido: {data}")  # Debug
+        print(f"[IA LOG] Recebido: {data}")
+        
+        # Validação básica
+        required_fields = ['ferramenta', 'nivel', 'mensagem', 'pais']
+        for field in required_fields:
+            if field not in data:
+                return JsonResponse({'error': f'Campo {field} é obrigatório'}, status=400)
+        
+        # Simular resposta de sucesso
         return JsonResponse({
-            'status': 'ok',
-            'message': 'Log recebido com sucesso',
-            'id': 1
-        })
+            'status': 'success',
+            'message': 'Log criado com sucesso',
+            'id': 999,
+            'data_recebida': data
+        }, status=201)
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        print(f"[IA LOG] Erro: {str(e)}")
+        return JsonResponse({'error': f'Erro interno: {str(e)}'}, status=500)
 
 def dashboard_stats_temp(request):
     """Stats temporárias"""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método não permitido'}, status=405)
+    
     return JsonResponse({
         'resumo': {
-            'total_logs': 0,
-            'logs_24h': 0,
-            'logs_nao_resolvidos': 0,
-            'logs_criticos_7d': 0
+            'total_logs': 42,
+            'logs_24h': 15,
+            'logs_nao_resolvidos': 3,
+            'logs_criticos_7d': 1
         },
-        'por_ferramenta': [],
-        'por_pais_nicochat': []
+        'por_ferramenta': [
+            {'ferramenta': 'Nicochat', 'total': 10, 'erros': 2, 'nao_resolvidos': 1},
+            {'ferramenta': 'N8N', 'total': 5, 'erros': 1, 'nao_resolvidos': 2}
+        ],
+        'por_pais_nicochat': [
+            {'pais': 'mexico', 'total': 8, 'erros': 1},
+            {'pais': 'colombia', 'total': 2, 'erros': 1}
+        ]
     })
 
 def logs_temp(request):
     """Logs temporários"""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método não permitido'}, status=405)
+    
+    # Lista vazia por enquanto
     return JsonResponse([])
+
+# ===== URLs =====
 
 urlpatterns = [
     # Autenticação/Estado
@@ -61,7 +92,7 @@ urlpatterns = [
     path('debug/cors/', DebugCorsView.as_view(), name='debug_cors'),
     path('cors-debug/', DebugCorsView.as_view(), name='cors_debug'),
     
-    # ROTAS TEMPORÁRIAS DA IA
+    # ===== ROTAS TEMPORÁRIAS DA IA =====
     path('ia/criar-log/', criar_log_temp, name='criar_log_temp'),
     path('ia/dashboard-stats/', dashboard_stats_temp, name='dashboard_stats_temp'),
     path('ia/logs/', logs_temp, name='logs_temp'),
