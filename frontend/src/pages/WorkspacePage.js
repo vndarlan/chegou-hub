@@ -1,7 +1,7 @@
-// frontend/src/pages/WorkspacePage.js - VERSÃO SIMPLIFICADA
+// frontend/src/pages/WorkspacePage.js - CORREÇÃO DO WARNING LOCATION
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { DoubleNavbar } from '../components/DoubleNavbar';
 import { Box, LoadingOverlay, Title, Text } from '@mantine/core';
 
@@ -16,7 +16,6 @@ import NicochatPage from '../features/ia/NicochatPage';
 import N8NPage from '../features/ia/N8NPage';
 
 function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
-    const location = useLocation();
     const [loadingSession, setLoadingSession] = useState(true);
     const [errorSession, setErrorSession] = useState('');
     const [userName, setUserName] = useState('Usuário');
@@ -93,7 +92,7 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     <Route path="agenda" element={<AgendaPage />} />
                     <Route path="mapa" element={<MapaPage />} />
 
-                    {/* Páginas da área IA & AUTOMAÇÕES - ROTAS DIRETAS */}
+                    {/* 🤖 Páginas da área IA & AUTOMAÇÕES - ROTAS DIRETAS */}
                     <Route path="logs" element={<LogsPage />} />
                     <Route path="nicochat" element={<NicochatPage />} />
                     <Route path="n8n" element={<N8NPage />} />

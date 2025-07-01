@@ -1,5 +1,5 @@
 // frontend/src/components/DoubleNavbar.js
-// ATUALIZADO EM: 2025-01-02 - VERSÃO COM DEBUG COMPLETO
+// CORREÇÃO ESPECÍFICA PARA PÁGINAS DE IA APARECEREM
 
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -12,7 +12,9 @@ import {
     ThemeIcon,
     Stack,
     Divider,
-    ScrollArea
+    ScrollArea,
+    Avatar,
+    Menu
 } from '@mantine/core';
 import {
     IconCalendar,
@@ -23,66 +25,194 @@ import {
     IconHeart,
     IconHeadphones,
     IconLogout,
-    IconBrain
+    IconBrain,
+    IconDots,
+    IconSun,
+    IconMoon
 } from '@tabler/icons-react';
-
-// ⚡ FORÇA CONSOLE LOG PARA DEBUG
-console.log('🚀 DoubleNavbar.js CARREGADO EM:', new Date().toLocaleTimeString());
 
 const navigationSections = [
     {
         label: 'HOME',
         items: [
-            { label: 'Agenda da Empresa', to: '/workspace/agenda', icon: IconCalendar, color: 'blue' },
-            { label: 'Mapa de Países', to: '/workspace/mapa', icon: IconWorld, color: 'green' }
+            { 
+                label: 'Agenda da Empresa', 
+                to: '/workspace/agenda', 
+                icon: IconCalendar, 
+                color: 'blue',
+                description: 'Calendários e eventos'
+            },
+            { 
+                label: 'Mapa de Países', 
+                to: '/workspace/mapa', 
+                icon: IconWorld, 
+                color: 'green',
+                description: 'Status global de operações'
+            }
         ]
     },
     {
         label: 'IA & Automações',
         items: [
-            { label: 'Logs Gerais', to: '/workspace/logs', icon: IconActivity, color: 'purple' },
-            { label: 'Nicochat', to: '/workspace/nicochat', icon: IconRobot, color: 'blue' },
-            { label: 'N8N', to: '/workspace/n8n', icon: IconWorkflow, color: 'grape' }
+            { 
+                label: 'Logs Gerais', 
+                to: '/workspace/logs', 
+                icon: IconActivity, 
+                color: 'purple',
+                description: 'Todos os logs de IA'
+            },
+            { 
+                label: 'Nicochat', 
+                to: '/workspace/nicochat', 
+                icon: IconRobot, 
+                color: 'blue',
+                description: 'Monitoramento por país'
+            },
+            { 
+                label: 'N8N', 
+                to: '/workspace/n8n', 
+                icon: IconWorkflow, 
+                color: 'grape',
+                description: 'Workflows e automações'
+            }
         ]
     },
     {
         label: 'OPERACIONAL',
         items: [
-            { label: 'Engajamento', to: '/workspace/engajamento', icon: IconHeart, color: 'red' },
-            { label: 'Suporte', to: '/workspace/suporte', icon: IconHeadphones, color: 'cyan' }
+            { 
+                label: 'Engajamento', 
+                to: '/workspace/engajamento', 
+                icon: IconHeart, 
+                color: 'red',
+                description: 'Automação de likes'
+            },
+            { 
+                label: 'Suporte', 
+                to: '/workspace/suporte', 
+                icon: IconHeadphones, 
+                color: 'cyan',
+                description: 'Ferramentas de atendimento'
+            }
         ]
     }
 ];
 
-function NavItem({ icon: Icon, label, to, active, onClick, color }) {
+function NavItem({ icon: Icon, label, to, active, onClick, color, description }) {
     return (
         <UnstyledButton
             onClick={onClick}
             style={(theme) => ({
                 display: 'block',
                 width: '100%',
-                padding: '8px',
-                borderRadius: '6px',
+                padding: '10px',
+                borderRadius: '8px',
                 color: active ? 'white' : 'inherit',
                 backgroundColor: active ? `var(--mantine-color-${color}-6)` : 'transparent',
-                marginBottom: '4px',
-                transition: 'all 0.2s ease'
+                marginBottom: '2px',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                    backgroundColor: active 
+                        ? `var(--mantine-color-${color}-7)`
+                        : 'var(--mantine-color-gray-1)'
+                }
             })}
         >
-            <Group gap="sm">
+            <Group gap="sm" wrap="nowrap">
                 <ThemeIcon
                     variant={active ? 'white' : 'light'}
                     color={color}
-                    size={32}
+                    size={36}
                     radius="md"
                 >
-                    <Icon size={18} />
+                    <Icon size={20} />
                 </ThemeIcon>
-                <Text size="sm" fw={active ? 600 : 500}>
-                    {label}
-                </Text>
+                <Box style={{ flex: 1, minWidth: 0 }}>
+                    <Text size="sm" fw={active ? 600 : 500} truncate>
+                        {label}
+                    </Text>
+                    <Text size="xs" c={active ? 'white' : 'dimmed'} truncate>
+                        {description}
+                    </Text>
+                </Box>
             </Group>
         </UnstyledButton>
+    );
+}
+
+function UserSection({ userName, userEmail, onLogout, toggleColorScheme, colorScheme }) {
+    const getInitials = (name) => {
+        if (!name) return 'U';
+        return name
+            .split(' ')
+            .map(word => word[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2);
+    };
+
+    return (
+        <Box
+            style={{
+                paddingTop: '12px',
+                borderTop: '1px solid var(--mantine-color-gray-3)',
+                marginTop: '12px'
+            }}
+        >
+            <Menu shadow="md" width={200} position="top-end">
+                <Menu.Target>
+                    <UnstyledButton
+                        style={{
+                            display: 'block',
+                            width: '100%',
+                            padding: '8px',
+                            borderRadius: '8px',
+                            '&:hover': {
+                                backgroundColor: 'var(--mantine-color-gray-1)'
+                            }
+                        }}
+                    >
+                        <Group gap="sm">
+                            <Avatar size={32} radius="xl" color="orange">
+                                {getInitials(userName)}
+                            </Avatar>
+                            <Box style={{ flex: 1, minWidth: 0 }}>
+                                <Text size="sm" fw={500} truncate>
+                                    {userName || 'Usuário'}
+                                </Text>
+                                <Text size="xs" c="dimmed" truncate>
+                                    {userEmail || 'email@exemplo.com'}
+                                </Text>
+                            </Box>
+                            <IconDots size={16} />
+                        </Group>
+                    </UnstyledButton>
+                </Menu.Target>
+
+                <Menu.Dropdown>
+                    <Menu.Label>Configurações</Menu.Label>
+                    
+                    {toggleColorScheme && (
+                        <Menu.Item
+                            leftSection={colorScheme === 'dark' ? <IconSun size={16} /> : <IconMoon size={16} />}
+                            onClick={toggleColorScheme}
+                        >
+                            {colorScheme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
+                        </Menu.Item>
+                    )}
+
+                    <Menu.Divider />
+
+                    <Menu.Item
+                        leftSection={<IconLogout size={16} />}
+                        color="red"
+                        onClick={onLogout}
+                    >
+                        Sair
+                    </Menu.Item>
+                </Menu.Dropdown>
+            </Menu>
+        </Box>
     );
 }
 
@@ -90,30 +220,21 @@ export function DoubleNavbar({ userName, userEmail, onLogout, toggleColorScheme,
     const navigate = useNavigate();
     const location = useLocation();
 
-    // ⚡ DEBUG COMPLETO
-    console.log('🔍 DoubleNavbar RENDERIZADO!');
-    console.log('🔍 Props recebidas:', { userName, userEmail, colorScheme });
-    console.log('🔍 Localização atual:', location.pathname);
-    console.log('🔍 Seções de navegação:', navigationSections);
-
     const handleNavigation = (to) => {
-        console.log('🔗 Navegando para:', to);
         navigate(to);
     };
 
     const isActive = (to) => {
-        const active = location.pathname === to;
-        console.log(`🎯 Verificando ativo para ${to}:`, active);
-        return active;
+        return location.pathname === to;
     };
 
     return (
         <Navbar 
-            width={{ sm: 300 }} 
+            width={{ sm: 320 }} 
             p="md" 
             style={{ 
-                borderRight: '1px solid #e0e0e0',
-                backgroundColor: 'white',
+                borderRight: '1px solid var(--mantine-color-gray-3)',
+                backgroundColor: 'var(--mantine-color-white)',
                 height: '100vh'
             }}
         >
@@ -122,7 +243,7 @@ export function DoubleNavbar({ userName, userEmail, onLogout, toggleColorScheme,
                 <Box 
                     p="md" 
                     style={{ 
-                        background: 'linear-gradient(135deg, #fd7e14, #e03131)',
+                        background: 'linear-gradient(135deg, var(--mantine-color-orange-6), var(--mantine-color-red-6))',
                         borderRadius: '8px',
                         marginBottom: '20px'
                     }}
@@ -148,75 +269,50 @@ export function DoubleNavbar({ userName, userEmail, onLogout, toggleColorScheme,
                 <Stack gap="lg">
                     {navigationSections.map((section, sectionIndex) => (
                         <Box key={section.label}>
-                            <Text 
-                                size="xs" 
-                                fw={600} 
-                                c="dimmed" 
-                                mb="sm"
-                                style={{ 
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.5px'
-                                }}
-                            >
-                                {section.label}
-                            </Text>
+                            <Group gap="xs" mb="md">
+                                <Text 
+                                    size="xs" 
+                                    fw={600} 
+                                    c="dimmed" 
+                                    style={{ 
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px'
+                                    }}
+                                >
+                                    {section.label}
+                                </Text>
+                                <Divider style={{ flex: 1 }} />
+                            </Group>
                             
                             <Stack gap="xs">
-                                {section.items.map((item, itemIndex) => {
-                                    console.log(`🔢 Renderizando item ${sectionIndex}-${itemIndex}:`, item.label);
-                                    return (
-                                        <NavItem
-                                            key={`${section.label}-${item.to}`}
-                                            icon={item.icon}
-                                            label={item.label}
-                                            to={item.to}
-                                            color={item.color}
-                                            active={isActive(item.to)}
-                                            onClick={() => handleNavigation(item.to)}
-                                        />
-                                    );
-                                })}
+                                {section.items.map((item) => (
+                                    <NavItem
+                                        key={item.to}
+                                        icon={item.icon}
+                                        label={item.label}
+                                        description={item.description}
+                                        to={item.to}
+                                        color={item.color}
+                                        active={isActive(item.to)}
+                                        onClick={() => handleNavigation(item.to)}
+                                    />
+                                ))}
                             </Stack>
-                            
-                            {sectionIndex < navigationSections.length - 1 && (
-                                <Divider my="md" />
-                            )}
                         </Box>
                     ))}
                 </Stack>
             </Navbar.Section>
 
-            {/* Footer com usuário */}
+            {/* User Section */}
             <Navbar.Section>
-                <Divider mb="sm" />
-                <Group justify="space-between" wrap="nowrap">
-                    <Box style={{ flex: 1, minWidth: 0 }}>
-                        <Text size="sm" fw={500} truncate>
-                            {userName || 'Usuário'}
-                        </Text>
-                        <Text size="xs" c="dimmed" truncate>
-                            {userEmail || 'email@exemplo.com'}
-                        </Text>
-                    </Box>
-                    <UnstyledButton 
-                        onClick={() => {
-                            console.log('🚪 Logout clicado');
-                            onLogout();
-                        }}
-                        style={{
-                            borderRadius: '6px',
-                            padding: '4px'
-                        }}
-                    >
-                        <ThemeIcon variant="light" color="red" size="sm">
-                            <IconLogout size={16} />
-                        </ThemeIcon>
-                    </UnstyledButton>
-                </Group>
+                <UserSection
+                    userName={userName}
+                    userEmail={userEmail}
+                    onLogout={onLogout}
+                    toggleColorScheme={toggleColorScheme}
+                    colorScheme={colorScheme}
+                />
             </Navbar.Section>
         </Navbar>
     );
 }
-
-// ⚡ LOG FINAL
-console.log('✅ DoubleNavbar.js EXPORTADO COM SUCESSO');
