@@ -1,4 +1,4 @@
-// frontend/src/pages/WorkspacePage.js
+// frontend/src/pages/WorkspacePage.js - ARQUIVO COMPLETO ATUALIZADO
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
@@ -9,7 +9,7 @@ import { Box, LoadingOverlay, Title, Text } from '@mantine/core';
 import MapaPage from '../features/mapa/MapaPage';
 import AgendaPage from '../features/agenda/AgendaPage';
 import EngajamentoPage from '../features/engajamento/EngajamentoPage';
-import IAPage from '../features/ia/IAPage';
+import IAPage from '../features/ia/IAPage';  // ← NOVA IMPORTAÇÃO
 
 function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
     const location = useLocation();
@@ -89,7 +89,7 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     <Route path="agenda" element={<AgendaPage />} />
                     <Route path="mapa" element={<MapaPage />} />
 
-                    {/* Páginas da área IA & AUTOMAÇÕES */}  {/* ← NOVA SEÇÃO */}
+                    {/* Páginas da área IA & AUTOMAÇÕES */}  {/* ← NOVA SEÇÃO ADICIONADA */}
                     <Route path="ia-automacoes/*" element={<IAPage />} />
 
                     {/* Páginas da área OPERACIONAL */}
