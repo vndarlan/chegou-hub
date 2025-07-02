@@ -59,7 +59,7 @@ class VersaoProjetoInline(admin.TabularInline):
 @admin.register(ProjetoIA)
 class ProjetoIAAdmin(admin.ModelAdmin):
     list_display = [
-        'nome', 'status', 'tipo_projeto', 'departamento_atendido',  # Mudou status_badge para status
+        'nome', 'status', 'tipo_projeto', 'departamento_atendido',
         'prioridade_badge', 'horas_totais', 'criado_por', 'versao_atual',
         'get_roi', 'criado_em'
     ]
@@ -148,19 +148,12 @@ class ProjetoIAAdmin(admin.ModelAdmin):
             obj.criado_por = request.user
         super().save_model(request, obj, form, change)
     
-    def status_badge(self, obj):
-        colors = {
-            'ativo': '#28a745',
-            'arquivado': '#6c757d',
-            'manutencao': '#ffc107'
-        }
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px;">{}</span>',
-            colors.get(obj.status, '#6c757d'),
-            obj.get_status_display()
-        )
-    status_badge.short_description = 'Status'
-    status_badge.admin_order_field = 'status'
+    def get_form(self, request, obj=None, **kwargs):
+        """Pré-preenche o campo criado_por para novos objetos"""
+        form = super().get_form(request, obj, **kwargs)
+        if obj is None:  # Novo objeto
+            form.base_fields['criado_por'].initial = request.user
+        return form
     
     def prioridade_badge(self, obj):
         colors = {

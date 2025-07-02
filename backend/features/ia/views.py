@@ -8,11 +8,13 @@ from django.db.models import Q, Count, Sum, Avg, F
 from django.contrib.auth.models import User
 from datetime import timedelta
 from decimal import Decimal
+import logging
 
 from .models import (
     LogEntry, TipoFerramenta, PaisNicochat,
     ProjetoIA, VersaoProjeto, StatusProjeto,
-    TipoProjeto, DepartamentoChoices
+    TipoProjeto, DepartamentoChoices, PrioridadeChoices,
+    ComplexidadeChoices, FrequenciaUsoChoices
 )
 from .serializers import (
     LogEntrySerializer, CriarLogSerializer, MarcarResolvidoSerializer,
@@ -20,6 +22,9 @@ from .serializers import (
     VersaoProjetoSerializer, NovaVersaoSerializer, DashboardStatsSerializer,
     FiltrosProjetosSerializer
 )
+
+# Configurar logger
+logger = logging.getLogger(__name__)
 
 # ===== VIEWS DE LOGS (EXISTENTES) =====
 class LogEntryViewSet(viewsets.ModelViewSet):
@@ -440,22 +445,35 @@ def dashboard_stats(request):
 @permission_classes([IsAuthenticated])
 def opcoes_formulario(request):
     """Retorna opções para formulários"""
-    return Response({
-        'status_choices': [{'value': k, 'label': v} for k, v in StatusProjeto.choices],
-        'tipo_projeto_choices': [{'value': k, 'label': v} for k, v in TipoProjeto.choices],
-        'departamento_choices': [{'value': k, 'label': v} for k, v in DepartamentoChoices.choices],
-        'prioridade_choices': [{'value': k, 'label': v} for k, v in ProjetoIA._meta.get_field('prioridade').choices],
-        'complexidade_choices': [{'value': k, 'label': v} for k, v in ProjetoIA._meta.get_field('complexidade').choices],
-        'frequencia_choices': [{'value': k, 'label': v} for k, v in ProjetoIA._meta.get_field('frequencia_uso').choices],
-        'usuarios_disponiveis': [
-            {
-                'id': user.id,
-                'username': user.username,
-                'nome_completo': user.get_full_name() or user.username
-            }
-            for user in User.objects.filter(is_active=True).order_by('first_name', 'last_name')
-        ]
-    })
+    try:
+        logger.info("Carregando opções do formulário...")
+        
+        opcoes = {
+            'status_choices': [{'value': k, 'label': v} for k, v in StatusProjeto.choices],
+            'tipo_projeto_choices': [{'value': k, 'label': v} for k, v in TipoProjeto.choices],
+            'departamento_choices': [{'value': k, 'label': v} for k, v in DepartamentoChoices.choices],
+            'prioridade_choices': [{'value': k, 'label': v} for k, v in PrioridadeChoices.choices],
+            'complexidade_choices': [{'value': k, 'label': v} for k, v in ComplexidadeChoices.choices],
+            'frequencia_choices': [{'value': k, 'label': v} for k, v in FrequenciaUsoChoices.choices],
+            'usuarios_disponiveis': [
+                {
+                    'id': user.id,
+                    'username': user.username,
+                    'nome_completo': user.get_full_name() or user.username
+                }
+                for user in User.objects.filter(is_active=True).order_by('first_name', 'last_name')
+            ]
+        }
+        
+        logger.info(f"Opções carregadas com sucesso: {len(opcoes)} categorias")
+        return Response(opcoes)
+        
+    except Exception as e:
+        logger.error(f"Erro ao carregar opções do formulário: {str(e)}", exc_info=True)
+        return Response(
+            {'error': f'Erro ao carregar opções: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
