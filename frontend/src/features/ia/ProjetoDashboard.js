@@ -665,34 +665,58 @@ function ProjetoDashboard() {
     const carregarDadosIniciais = async () => {
         try {
             setLoading(true);
-            console.log('🔄 Carregando dados iniciais...');
+            console.log('🔄 Iniciando carregamento...');
             
-            const [statsRes, opcoesRes, permissoesRes] = await Promise.all([
-                axios.get('/ia/dashboard-stats/'),
-                axios.get('/ia/opcoes-formulario/'),
-                axios.get('/ia/verificar-permissoes/')
-            ]);
+            // Testar cada API individualmente
+            let statsData = null, opcoesData = null, permissoesData = null;
             
-            console.log('📊 Stats:', statsRes.data);
-            console.log('⚙️ Opções recebidas:', opcoesRes.data);
-            console.log('🔐 Permissões:', permissoesRes.data);
-            
-            // Verificar se as opções estão corretas
-            if (opcoesRes.data.tipo_projeto_choices) {
-                console.log('✅ Tipo projeto choices:', opcoesRes.data.tipo_projeto_choices);
-            } else {
-                console.error('❌ tipo_projeto_choices não encontrado!');
+            try {
+                console.log('📊 Carregando stats...');
+                const statsRes = await axios.get('/ia/dashboard-stats/');
+                statsData = statsRes.data;
+                console.log('✅ Stats OK:', statsData);
+            } catch (statsErr) {
+                console.error('❌ Erro stats:', statsErr.response?.data || statsErr.message);
+                statsData = { total_projetos: 0, projetos_ativos: 0, horas_totais_investidas: 0 };
             }
             
-            setStats(statsRes.data);
-            setOpcoes(opcoesRes.data);
-            setUserPermissions(permissoesRes.data);
+            try {
+                console.log('⚙️ Carregando opções...');
+                const opcoesRes = await axios.get('/ia/opcoes-formulario/');
+                opcoesData = opcoesRes.data;
+                console.log('✅ Opções OK:', opcoesData);
+            } catch (opcoesErr) {
+                console.error('❌ Erro opções:', opcoesErr.response?.data || opcoesErr.message);
+                opcoesData = {
+                    status_choices: [],
+                    tipo_projeto_choices: [],
+                    departamento_choices: [],
+                    prioridade_choices: [],
+                    complexidade_choices: [],
+                    frequencia_choices: [],
+                    usuarios_disponiveis: []
+                };
+            }
             
-            console.log('✅ Dados iniciais carregados');
+            try {
+                console.log('🔐 Carregando permissões...');
+                const permissoesRes = await axios.get('/ia/verificar-permissoes/');
+                permissoesData = permissoesRes.data;
+                console.log('✅ Permissões OK:', permissoesData);
+            } catch (permErr) {
+                console.error('❌ Erro permissões:', permErr.response?.data || permErr.message);
+                permissoesData = { pode_ver_financeiro: false, pode_criar_projetos: true };
+            }
+            
+            setStats(statsData);
+            setOpcoes(opcoesData);
+            setUserPermissions(permissoesData);
+            
+            console.log('✅ Todos os dados carregados');
+            
         } catch (err) {
-            console.error('❌ Erro ao carregar dados iniciais:', err);
-            console.error('❌ Resposta do erro:', err.response?.data);
-            setError('Erro ao carregar dados iniciais');
+            console.error('💥 Erro geral:', err);
+            setError(`Erro ao carregar: ${err.message}`);
         } finally {
             setLoading(false);
         }
@@ -727,25 +751,49 @@ function ProjetoDashboard() {
     const handleSaveProjeto = async (data) => {
         try {
             setFormLoading(true);
+            console.log('💾 Iniciando salvamento...');
+            console.log('📋 Dados recebidos:', data);
             
-            // CORREÇÃO: Obter CSRF token
-            const csrfResponse = await axios.get('/current-state/');
-            const csrfToken = csrfResponse.data.csrf_token;
+            // Obter CSRF token
+            let csrfToken;
+            try {
+                const csrfResponse = await axios.get('/current-state/');
+                csrfToken = csrfResponse.data.csrf_token;
+                console.log('🔐 CSRF token obtido');
+            } catch (csrfErr) {
+                console.error('❌ Erro CSRF:', csrfErr);
+                throw new Error('Erro ao obter token de segurança');
+            }
             
-            // CORREÇÃO: Preparar dados corretamente
+            // Preparar dados
             const projetoData = {
-                ...data,
-                // Garantir que criadores_ids seja array de strings
-                criadores_ids: Array.isArray(data.criadores_ids) 
-                    ? data.criadores_ids.map(id => id.toString())
-                    : [],
-                // Garantir que ferramentas_tecnologias seja array
-                ferramentas_tecnologias: Array.isArray(data.ferramentas_tecnologias)
-                    ? data.ferramentas_tecnologias
-                    : []
+                nome: data.nome?.trim(),
+                descricao: data.descricao?.trim(),
+                tipo_projeto: data.tipo_projeto,
+                departamento_atendido: data.departamento_atendido,
+                prioridade: data.prioridade || 'media',
+                complexidade: data.complexidade || 'media',
+                horas_totais: Number(data.horas_totais) || 0,
+                criadores_ids: Array.isArray(data.criadores_ids) ? data.criadores_ids : [],
+                ferramentas_tecnologias: Array.isArray(data.ferramentas_tecnologias) ? data.ferramentas_tecnologias : [],
+                link_projeto: data.link_projeto?.trim() || '',
+                usuarios_impactados: Number(data.usuarios_impactados) || 0,
+                frequencia_uso: data.frequencia_uso || 'diario',
+                valor_hora: Number(data.valor_hora) || 150,
+                custo_ferramentas_mensais: Number(data.custo_ferramentas_mensais) || 0,
+                custo_apis_mensais: Number(data.custo_apis_mensais) || 0,
+                economia_horas_mensais: Number(data.economia_horas_mensais) || 0,
+                valor_hora_economizada: Number(data.valor_hora_economizada) || 50,
             };
             
-            console.log('Dados que serão enviados:', projetoData);
+            console.log('🎯 Dados preparados:', projetoData);
+            
+            // Validar dados obrigatórios
+            if (!projetoData.nome) throw new Error('Nome é obrigatório');
+            if (!projetoData.descricao) throw new Error('Descrição é obrigatória');
+            if (!projetoData.tipo_projeto) throw new Error('Tipo de projeto é obrigatório');
+            if (!projetoData.departamento_atendido) throw new Error('Departamento é obrigatório');
+            if (projetoData.horas_totais <= 0) throw new Error('Horas totais deve ser maior que 0');
             
             const config = {
                 headers: {
@@ -754,43 +802,51 @@ function ProjetoDashboard() {
                 }
             };
             
+            let response;
             if (selectedProjeto) {
-                // Editar
-                await axios.patch(`/ia/projetos/${selectedProjeto.id}/`, projetoData, config);
-                notifications.show({
-                    title: 'Sucesso',
-                    message: 'Projeto atualizado com sucesso',
-                    color: 'green'
-                });
+                console.log(`📝 Editando projeto ${selectedProjeto.id}...`);
+                response = await axios.patch(`/ia/projetos/${selectedProjeto.id}/`, projetoData, config);
+                console.log('✅ Projeto editado:', response.data);
             } else {
-                // Criar
-                console.log('Criando novo projeto...');
-                const response = await axios.post('/ia/projetos/', projetoData, config);
-                console.log('Projeto criado:', response.data);
-                notifications.show({
-                    title: 'Sucesso',
-                    message: 'Projeto criado com sucesso',
-                    color: 'green'
-                });
+                console.log('➕ Criando novo projeto...');
+                response = await axios.post('/ia/projetos/', projetoData, config);
+                console.log('✅ Projeto criado:', response.data);
             }
+            
+            notifications.show({
+                title: 'Sucesso',
+                message: selectedProjeto ? 'Projeto atualizado!' : 'Projeto criado!',
+                color: 'green'
+            });
             
             setFormModalOpen(false);
             setSelectedProjeto(null);
             carregarProjetos();
-            carregarDadosIniciais(); // Recarregar stats
+            carregarDadosIniciais();
+            
         } catch (err) {
-            console.error('Erro ao salvar projeto:', err);
-            console.error('Resposta do erro:', err.response?.data);
+            console.error('💥 Erro completo:', err);
+            console.error('📋 Response data:', err.response?.data);
+            console.error('📋 Response status:', err.response?.status);
             
             let errorMessage = 'Erro ao salvar projeto';
-            if (err.response?.data?.detail) {
-                errorMessage = err.response.data.detail;
-            } else if (err.response?.data?.error) {
-                errorMessage = err.response.data.error;
-            } else if (err.response?.data) {
-                // Se for um objeto com erros de validação
-                const errors = Object.values(err.response.data).flat();
-                errorMessage = errors.join(', ');
+            
+            if (err.response?.status === 400) {
+                const errors = err.response.data;
+                if (typeof errors === 'object') {
+                    const errorList = Object.entries(errors).map(([field, msgs]) => 
+                        `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`
+                    );
+                    errorMessage = errorList.join(' | ');
+                } else {
+                    errorMessage = errors.detail || errors.error || 'Dados inválidos';
+                }
+            } else if (err.response?.status === 403) {
+                errorMessage = 'Sem permissão para esta ação';
+            } else if (err.response?.status === 500) {
+                errorMessage = 'Erro interno do servidor';
+            } else if (err.message) {
+                errorMessage = err.message;
             }
             
             notifications.show({
