@@ -137,7 +137,7 @@ class ProjetoIAAdmin(admin.ModelAdmin):
         }),
         ('Controle', {
             'fields': (
-                'ativo', 'criado_por', 'criado_em', 'atualizado_em'
+                'ativo', 'criado_em', 'atualizado_em'
             ),
             'classes': ('collapse',)
         })
@@ -148,12 +148,7 @@ class ProjetoIAAdmin(admin.ModelAdmin):
             obj.criado_por = request.user
         super().save_model(request, obj, form, change)
     
-    def get_form(self, request, obj=None, **kwargs):
-        """Pré-preenche o campo criado_por para novos objetos"""
-        form = super().get_form(request, obj, **kwargs)
-        if obj is None:  # Novo objeto
-            form.base_fields['criado_por'].initial = request.user
-        return form
+
     
     def prioridade_badge(self, obj):
         colors = {
