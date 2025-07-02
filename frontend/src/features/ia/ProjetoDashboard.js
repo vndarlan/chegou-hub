@@ -208,7 +208,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
         onSave(values);
     };
 
-    // Debug das opções específicas
+    // Opções processadas
     const tipoProjetoOptions = opcoes?.tipo_projeto_choices || [];
     const departamentoOptions = opcoes?.departamento_choices || [];
     const prioridadeOptions = opcoes?.prioridade_choices || [];
@@ -218,11 +218,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
         value: u.id.toString(),
         label: u.nome_completo
     })) || [];
-
-    console.log('🔍 Debug das opções:');
-    console.log('  - Tipo Projeto:', tipoProjetoOptions);
-    console.log('  - Departamento:', departamentoOptions);
-    console.log('  - Usuários:', usuariosOptions);
 
     return (
         <Modal 
@@ -252,7 +247,9 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 label="Nome do Projeto"
                                 placeholder="Ex: Chatbot de Atendimento"
                                 required
-                                {...form.getInputProps('nome')}
+                                value={form.values.nome}
+                                onChange={(e) => form.setFieldValue('nome', e.target.value)}
+                                error={form.errors.nome}
                             />
                             
                             <Textarea
@@ -260,7 +257,9 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 placeholder="Descreva o que o projeto faz..."
                                 rows={3}
                                 required
-                                {...form.getInputProps('descricao')}
+                                value={form.values.descricao}
+                                onChange={(e) => form.setFieldValue('descricao', e.target.value)}
+                                error={form.errors.descricao}
                             />
                             
                             <Grid>
@@ -271,15 +270,14 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         data={tipoProjetoOptions}
                                         required
                                         searchable
-                                        {...form.getInputProps('tipo_projeto')}
+                                        clearable
+                                        value={form.values.tipo_projeto}
                                         onChange={(value) => {
                                             console.log('🎯 Tipo selecionado:', value);
                                             form.setFieldValue('tipo_projeto', value);
                                         }}
+                                        error={form.errors.tipo_projeto}
                                     />
-                                    {tipoProjetoOptions.length === 0 && (
-                                        <Text size="xs" c="red">⚠️ Nenhuma opção carregada</Text>
-                                    )}
                                 </Grid.Col>
                                 <Grid.Col span={6}>
                                     <Select
@@ -288,15 +286,14 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         data={departamentoOptions}
                                         required
                                         searchable
-                                        {...form.getInputProps('departamento_atendido')}
+                                        clearable
+                                        value={form.values.departamento_atendido}
                                         onChange={(value) => {
                                             console.log('🏢 Departamento selecionado:', value);
                                             form.setFieldValue('departamento_atendido', value);
                                         }}
+                                        error={form.errors.departamento_atendido}
                                     />
-                                    {departamentoOptions.length === 0 && (
-                                        <Text size="xs" c="red">⚠️ Nenhuma opção carregada</Text>
-                                    )}
                                 </Grid.Col>
                             </Grid>
                             
@@ -305,14 +302,18 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                     <Select
                                         label="Prioridade"
                                         data={prioridadeOptions}
-                                        {...form.getInputProps('prioridade')}
+                                        value={form.values.prioridade}
+                                        onChange={(value) => form.setFieldValue('prioridade', value)}
+                                        clearable
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={4}>
                                     <Select
                                         label="Complexidade"
                                         data={complexidadeOptions}
-                                        {...form.getInputProps('complexidade')}
+                                        value={form.values.complexidade}
+                                        onChange={(value) => form.setFieldValue('complexidade', value)}
+                                        clearable
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={4}>
@@ -322,7 +323,8 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         min={0}
                                         step={0.5}
                                         required
-                                        {...form.getInputProps('horas_totais')}
+                                        value={form.values.horas_totais}
+                                        onChange={(value) => form.setFieldValue('horas_totais', value)}
                                     />
                                 </Grid.Col>
                             </Grid>
@@ -332,21 +334,23 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 placeholder="Selecione os responsáveis"
                                 data={usuariosOptions}
                                 searchable
-                                {...form.getInputProps('criadores_ids')}
+                                clearable
+                                value={form.values.criadores_ids}
+                                onChange={(value) => {
+                                    console.log('👥 Criadores selecionados:', value);
+                                    form.setFieldValue('criadores_ids', value);
+                                }}
                             />
-                            {usuariosOptions.length === 0 && (
-                                <Text size="xs" c="red">⚠️ Nenhum usuário carregado</Text>
-                            )}
                         </Stack>
                     </Tabs.Panel>
 
-                    {/* Resto das tabs iguais... */}
                     <Tabs.Panel value="detalhes" pt="md">
                         <Stack gap="md">
                             <TextInput
                                 label="Link do Projeto"
                                 placeholder="https://..."
-                                {...form.getInputProps('link_projeto')}
+                                value={form.values.link_projeto}
+                                onChange={(e) => form.setFieldValue('link_projeto', e.target.value)}
                             />
                             
                             <Grid>
@@ -355,14 +359,17 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         label="Usuários Impactados"
                                         placeholder="0"
                                         min={0}
-                                        {...form.getInputProps('usuarios_impactados')}
+                                        value={form.values.usuarios_impactados}
+                                        onChange={(value) => form.setFieldValue('usuarios_impactados', value)}
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={6}>
                                     <Select
                                         label="Frequência de Uso"
                                         data={frequenciaOptions}
-                                        {...form.getInputProps('frequencia_uso')}
+                                        value={form.values.frequencia_uso}
+                                        onChange={(value) => form.setFieldValue('frequencia_uso', value)}
+                                        clearable
                                     />
                                 </Grid.Col>
                             </Grid>
@@ -381,9 +388,71 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                     </Tabs.Panel>
 
                     <Tabs.Panel value="financeiro" pt="md">
-                        {/* Conteúdo da aba financeiro igual ao anterior */}
                         <Stack gap="md">
-                            <Text>Campos financeiros aqui...</Text>
+                            <Title order={5}>Custos</Title>
+                            
+                            <Grid>
+                                <Grid.Col span={6}>
+                                    <NumberInput
+                                        label="Valor/Hora (R$)"
+                                        placeholder="150"
+                                        min={0}
+                                        step={0.01}
+                                        value={form.values.valor_hora}
+                                        onChange={(value) => form.setFieldValue('valor_hora', value)}
+                                    />
+                                </Grid.Col>
+                            </Grid>
+                            
+                            <Text size="sm" weight={500}>Custos Recorrentes (Mensais)</Text>
+                            <Grid>
+                                <Grid.Col span={6}>
+                                    <NumberInput
+                                        label="Ferramentas/Licenças"
+                                        placeholder="0"
+                                        min={0}
+                                        step={0.01}
+                                        value={form.values.custo_ferramentas_mensais}
+                                        onChange={(value) => form.setFieldValue('custo_ferramentas_mensais', value)}
+                                    />
+                                </Grid.Col>
+                                <Grid.Col span={6}>
+                                    <NumberInput
+                                        label="APIs"
+                                        placeholder="0"
+                                        min={0}
+                                        step={0.01}
+                                        value={form.values.custo_apis_mensais}
+                                        onChange={(value) => form.setFieldValue('custo_apis_mensais', value)}
+                                    />
+                                </Grid.Col>
+                            </Grid>
+                            
+                            <Divider my="md" />
+                            
+                            <Title order={5}>Economias/Retornos</Title>
+                            <Grid>
+                                <Grid.Col span={6}>
+                                    <NumberInput
+                                        label="Horas Economizadas/Mês"
+                                        placeholder="0"
+                                        min={0}
+                                        step={0.5}
+                                        value={form.values.economia_horas_mensais}
+                                        onChange={(value) => form.setFieldValue('economia_horas_mensais', value)}
+                                    />
+                                </Grid.Col>
+                                <Grid.Col span={6}>
+                                    <NumberInput
+                                        label="Valor Hora Economizada (R$)"
+                                        placeholder="50"
+                                        min={0}
+                                        step={0.01}
+                                        value={form.values.valor_hora_economizada}
+                                        onChange={(value) => form.setFieldValue('valor_hora_economizada', value)}
+                                    />
+                                </Grid.Col>
+                            </Grid>
                         </Stack>
                     </Tabs.Panel>
                 </Tabs>
