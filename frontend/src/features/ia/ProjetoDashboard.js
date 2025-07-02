@@ -172,49 +172,37 @@ const ProjetoCard = ({ projeto, onEdit, onView, onArchive, onDuplicate, onNewVer
 
 // Modal de Formulário de Projeto
 const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading }) => {
-    console.log('🎯 ProjetoFormModal renderizado');
-    console.log('📋 Opções recebidas no modal:', opcoes);
-    
-    const form = useForm({
-        initialValues: {
-            nome: projeto?.nome || '',
-            descricao: projeto?.descricao || '',
-            tipo_projeto: projeto?.tipo_projeto || '',
-            departamento_atendido: projeto?.departamento_atendido || '',
-            prioridade: projeto?.prioridade || 'media',
-            complexidade: projeto?.complexidade || 'media',
-            horas_totais: projeto?.horas_totais || 0,
-            criadores_ids: projeto?.criadores?.map(c => c.id.toString()) || [],
-            ferramentas_tecnologias: projeto?.ferramentas_tecnologias || [],
-            link_projeto: projeto?.link_projeto || '',
-            usuarios_impactados: projeto?.usuarios_impactados || 0,
-            frequencia_uso: projeto?.frequencia_uso || 'diario',
-            
-            // Campos financeiros
-            valor_hora: projeto?.valor_hora || 150,
-            custo_ferramentas_mensais: projeto?.custo_ferramentas_mensais || 0,
-            custo_apis_mensais: projeto?.custo_apis_mensais || 0,
-            custo_infraestrutura_mensais: projeto?.custo_infraestrutura_mensais || 0,
-            custo_manutencao_mensais: projeto?.custo_manutencao_mensais || 0,
-            economia_horas_mensais: projeto?.economia_horas_mensais || 0,
-            valor_hora_economizada: projeto?.valor_hora_economizada || 50,
-            reducao_erros_mensais: projeto?.reducao_erros_mensais || 0,
-            economia_outros_mensais: projeto?.economia_outros_mensais || 0,
-        }
+    const [formData, setFormData] = useState({
+        nome: projeto?.nome || '',
+        descricao: projeto?.descricao || '',
+        tipo_projeto: projeto?.tipo_projeto || '',
+        departamento_atendido: projeto?.departamento_atendido || '',
+        prioridade: projeto?.prioridade || 'media',
+        complexidade: projeto?.complexidade || 'media',
+        horas_totais: projeto?.horas_totais || 0,
+        criadores_ids: projeto?.criadores?.map(c => c.id.toString()) || [],
+        ferramentas_tecnologias: projeto?.ferramentas_tecnologias || [],
+        link_projeto: projeto?.link_projeto || '',
+        usuarios_impactados: projeto?.usuarios_impactados || 0,
+        frequencia_uso: projeto?.frequencia_uso || 'diario',
+        valor_hora: projeto?.valor_hora || 150,
+        custo_ferramentas_mensais: projeto?.custo_ferramentas_mensais || 0,
+        custo_apis_mensais: projeto?.custo_apis_mensais || 0,
+        economia_horas_mensais: projeto?.economia_horas_mensais || 0,
+        valor_hora_economizada: projeto?.valor_hora_economizada || 50,
     });
 
-    const handleSubmit = (values) => {
-        console.log('📤 Enviando dados do formulário:', values);
-        onSave(values);
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave(formData);
     };
 
-    // Opções processadas
-    const tipoProjetoOptions = opcoes?.tipo_projeto_choices || [];
-    const departamentoOptions = opcoes?.departamento_choices || [];
+    const tipoOptions = opcoes?.tipo_projeto_choices || [];
+    const deptOptions = opcoes?.departamento_choices || [];
     const prioridadeOptions = opcoes?.prioridade_choices || [];
     const complexidadeOptions = opcoes?.complexidade_choices || [];
     const frequenciaOptions = opcoes?.frequencia_choices || [];
-    const usuariosOptions = opcoes?.usuarios_disponiveis?.map(u => ({
+    const userOptions = opcoes?.usuarios_disponiveis?.map(u => ({
         value: u.id.toString(),
         label: u.nome_completo
     })) || [];
@@ -227,7 +215,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
             size="xl"
             zIndex={1000}
         >
-            <form onSubmit={form.onSubmit(handleSubmit)}>
+            <form onSubmit={handleSubmit}>
                 <Tabs defaultValue="basico">
                     <Tabs.List>
                         <Tabs.Tab value="basico" leftSection={<IconBrain size={16} />}>
@@ -247,9 +235,8 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 label="Nome do Projeto"
                                 placeholder="Ex: Chatbot de Atendimento"
                                 required
-                                value={form.values.nome}
-                                onChange={(e) => form.setFieldValue('nome', e.target.value)}
-                                error={form.errors.nome}
+                                value={formData.nome}
+                                onChange={(e) => setFormData(prev => ({...prev, nome: e.target.value}))}
                             />
                             
                             <Textarea
@@ -257,9 +244,8 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 placeholder="Descreva o que o projeto faz..."
                                 rows={3}
                                 required
-                                value={form.values.descricao}
-                                onChange={(e) => form.setFieldValue('descricao', e.target.value)}
-                                error={form.errors.descricao}
+                                value={formData.descricao}
+                                onChange={(e) => setFormData(prev => ({...prev, descricao: e.target.value}))}
                             />
                             
                             <Grid>
@@ -267,32 +253,24 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                     <Select
                                         label="Tipo de Projeto"
                                         placeholder="Selecione o tipo"
-                                        data={tipoProjetoOptions}
+                                        data={tipoOptions}
                                         required
                                         searchable
-                                        clearable
-                                        value={form.values.tipo_projeto}
-                                        onChange={(value) => {
-                                            console.log('🎯 Tipo selecionado:', value);
-                                            form.setFieldValue('tipo_projeto', value);
-                                        }}
-                                        error={form.errors.tipo_projeto}
+                                        value={formData.tipo_projeto}
+                                        onChange={(value) => setFormData(prev => ({...prev, tipo_projeto: value}))}
+                                        comboboxProps={{ withinPortal: false }}
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={6}>
                                     <Select
                                         label="Departamento"
                                         placeholder="Selecione o departamento"
-                                        data={departamentoOptions}
+                                        data={deptOptions}
                                         required
                                         searchable
-                                        clearable
-                                        value={form.values.departamento_atendido}
-                                        onChange={(value) => {
-                                            console.log('🏢 Departamento selecionado:', value);
-                                            form.setFieldValue('departamento_atendido', value);
-                                        }}
-                                        error={form.errors.departamento_atendido}
+                                        value={formData.departamento_atendido}
+                                        onChange={(value) => setFormData(prev => ({...prev, departamento_atendido: value}))}
+                                        comboboxProps={{ withinPortal: false }}
                                     />
                                 </Grid.Col>
                             </Grid>
@@ -302,18 +280,18 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                     <Select
                                         label="Prioridade"
                                         data={prioridadeOptions}
-                                        value={form.values.prioridade}
-                                        onChange={(value) => form.setFieldValue('prioridade', value)}
-                                        clearable
+                                        value={formData.prioridade}
+                                        onChange={(value) => setFormData(prev => ({...prev, prioridade: value}))}
+                                        comboboxProps={{ withinPortal: false }}
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={4}>
                                     <Select
                                         label="Complexidade"
                                         data={complexidadeOptions}
-                                        value={form.values.complexidade}
-                                        onChange={(value) => form.setFieldValue('complexidade', value)}
-                                        clearable
+                                        value={formData.complexidade}
+                                        onChange={(value) => setFormData(prev => ({...prev, complexidade: value}))}
+                                        comboboxProps={{ withinPortal: false }}
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={4}>
@@ -323,8 +301,8 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         min={0}
                                         step={0.5}
                                         required
-                                        value={form.values.horas_totais}
-                                        onChange={(value) => form.setFieldValue('horas_totais', value)}
+                                        value={formData.horas_totais}
+                                        onChange={(value) => setFormData(prev => ({...prev, horas_totais: value}))}
                                     />
                                 </Grid.Col>
                             </Grid>
@@ -332,14 +310,11 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                             <MultiSelect
                                 label="Criadores/Responsáveis"
                                 placeholder="Selecione os responsáveis"
-                                data={usuariosOptions}
+                                data={userOptions}
                                 searchable
-                                clearable
-                                value={form.values.criadores_ids}
-                                onChange={(value) => {
-                                    console.log('👥 Criadores selecionados:', value);
-                                    form.setFieldValue('criadores_ids', value);
-                                }}
+                                value={formData.criadores_ids}
+                                onChange={(value) => setFormData(prev => ({...prev, criadores_ids: value}))}
+                                comboboxProps={{ withinPortal: false }}
                             />
                         </Stack>
                     </Tabs.Panel>
@@ -349,8 +324,8 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                             <TextInput
                                 label="Link do Projeto"
                                 placeholder="https://..."
-                                value={form.values.link_projeto}
-                                onChange={(e) => form.setFieldValue('link_projeto', e.target.value)}
+                                value={formData.link_projeto}
+                                onChange={(e) => setFormData(prev => ({...prev, link_projeto: e.target.value}))}
                             />
                             
                             <Grid>
@@ -359,17 +334,17 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         label="Usuários Impactados"
                                         placeholder="0"
                                         min={0}
-                                        value={form.values.usuarios_impactados}
-                                        onChange={(value) => form.setFieldValue('usuarios_impactados', value)}
+                                        value={formData.usuarios_impactados}
+                                        onChange={(value) => setFormData(prev => ({...prev, usuarios_impactados: value}))}
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={6}>
                                     <Select
                                         label="Frequência de Uso"
                                         data={frequenciaOptions}
-                                        value={form.values.frequencia_uso}
-                                        onChange={(value) => form.setFieldValue('frequencia_uso', value)}
-                                        clearable
+                                        value={formData.frequencia_uso}
+                                        onChange={(value) => setFormData(prev => ({...prev, frequencia_uso: value}))}
+                                        comboboxProps={{ withinPortal: false }}
                                     />
                                 </Grid.Col>
                             </Grid>
@@ -380,9 +355,9 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 description="Separadas por vírgula"
                                 onChange={(e) => {
                                     const techs = e.target.value.split(',').map(t => t.trim()).filter(t => t);
-                                    form.setFieldValue('ferramentas_tecnologias', techs);
+                                    setFormData(prev => ({...prev, ferramentas_tecnologias: techs}));
                                 }}
-                                defaultValue={form.values.ferramentas_tecnologias?.join(', ')}
+                                defaultValue={formData.ferramentas_tecnologias?.join(', ')}
                             />
                         </Stack>
                     </Tabs.Panel>
@@ -398,32 +373,18 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         placeholder="150"
                                         min={0}
                                         step={0.01}
-                                        value={form.values.valor_hora}
-                                        onChange={(value) => form.setFieldValue('valor_hora', value)}
-                                    />
-                                </Grid.Col>
-                            </Grid>
-                            
-                            <Text size="sm" weight={500}>Custos Recorrentes (Mensais)</Text>
-                            <Grid>
-                                <Grid.Col span={6}>
-                                    <NumberInput
-                                        label="Ferramentas/Licenças"
-                                        placeholder="0"
-                                        min={0}
-                                        step={0.01}
-                                        value={form.values.custo_ferramentas_mensais}
-                                        onChange={(value) => form.setFieldValue('custo_ferramentas_mensais', value)}
+                                        value={formData.valor_hora}
+                                        onChange={(value) => setFormData(prev => ({...prev, valor_hora: value}))}
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={6}>
                                     <NumberInput
-                                        label="APIs"
+                                        label="Ferramentas/Licenças (Mensal)"
                                         placeholder="0"
                                         min={0}
                                         step={0.01}
-                                        value={form.values.custo_apis_mensais}
-                                        onChange={(value) => form.setFieldValue('custo_apis_mensais', value)}
+                                        value={formData.custo_ferramentas_mensais}
+                                        onChange={(value) => setFormData(prev => ({...prev, custo_ferramentas_mensais: value}))}
                                     />
                                 </Grid.Col>
                             </Grid>
@@ -438,8 +399,8 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         placeholder="0"
                                         min={0}
                                         step={0.5}
-                                        value={form.values.economia_horas_mensais}
-                                        onChange={(value) => form.setFieldValue('economia_horas_mensais', value)}
+                                        value={formData.economia_horas_mensais}
+                                        onChange={(value) => setFormData(prev => ({...prev, economia_horas_mensais: value}))}
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={6}>
@@ -448,8 +409,8 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         placeholder="50"
                                         min={0}
                                         step={0.01}
-                                        value={form.values.valor_hora_economizada}
-                                        onChange={(value) => form.setFieldValue('valor_hora_economizada', value)}
+                                        value={formData.valor_hora_economizada}
+                                        onChange={(value) => setFormData(prev => ({...prev, valor_hora_economizada: value}))}
                                     />
                                 </Grid.Col>
                             </Grid>
