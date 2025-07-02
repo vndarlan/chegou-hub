@@ -61,7 +61,7 @@ class ProjetoIAAdmin(admin.ModelAdmin):
     list_display = [
         'nome', 'status', 'tipo_projeto', 'departamento_atendido',
         'prioridade_badge', 'horas_totais', 'criado_por', 'versao_atual',
-        'get_roi', 'criado_em'
+        'criado_em'
     ]
     list_filter = [
         'status', 'tipo_projeto', 'departamento_atendido', 'prioridade',
@@ -73,97 +73,65 @@ class ProjetoIAAdmin(admin.ModelAdmin):
     ]
     list_editable = ['status']
     
-    # CORREÇÃO: Readonly fields dinâmicos
-    def get_readonly_fields(self, request, obj=None):
-        if obj:  # Editando objeto existente
-            return [
-                'criado_por', 'criado_em', 'atualizado_em',
-                'custo_desenvolvimento', 'custos_recorrentes_mensais',
-                'custos_unicos_totais', 'economia_mensal_total',
-                'get_metricas_financeiras_display'
-            ]
-        else:  # Criando novo objeto
-            return [
-                'criado_em', 'atualizado_em',
-                'custo_desenvolvimento', 'custos_recorrentes_mensais',
-                'custos_unicos_totais', 'economia_mensal_total',
-                'get_metricas_financeiras_display'
-            ]
+    # CORREÇÃO: Campos readonly fixos para evitar erros
+    readonly_fields = [
+        'criado_por', 'criado_em', 'atualizado_em'
+    ]
     
     filter_horizontal = ['criadores', 'dependencias']
-    inlines = [VersaoProjetoInline]
     
-    # CORREÇÃO: Fieldsets dinâmicos
-    def get_fieldsets(self, request, obj=None):
-        fieldsets = [
-            ('Informações Básicas', {
-                'fields': (
-                    'nome', 'descricao', 'status', 'versao_atual',
-                    'link_projeto', 'criadores', 'dependencias'
-                )
-            }),
-            ('Classificação', {
-                'fields': (
-                    'tipo_projeto', 'departamento_atendido', 'prioridade', 'complexidade',
-                    'usuarios_impactados', 'frequencia_uso', 'ferramentas_tecnologias'
-                )
-            }),
-            ('Investimento de Tempo', {
-                'fields': (
-                    'horas_totais', 'horas_desenvolvimento', 'horas_testes',
-                    'horas_documentacao', 'horas_deploy', 'valor_hora'
-                )
-            }),
-            ('Custos Recorrentes (Mensais)', {
-                'fields': (
-                    'custo_ferramentas_mensais', 'custo_apis_mensais',
-                    'custo_infraestrutura_mensais', 'custo_manutencao_mensais'
-                ),
-                'classes': ('collapse',)
-            }),
-            ('Custos Únicos', {
-                'fields': (
-                    'custo_treinamentos', 'custo_consultoria', 'custo_setup_inicial'
-                ),
-                'classes': ('collapse',)
-            }),
-            ('Economias/Retornos', {
-                'fields': (
-                    'economia_horas_mensais', 'valor_hora_economizada',
-                    'reducao_erros_mensais', 'economia_outros_mensais'
-                ),
-                'classes': ('collapse',)
-            }),
-            ('Cálculos Automáticos', {
-                'fields': (
-                    'custo_desenvolvimento', 'custos_recorrentes_mensais',
-                    'custos_unicos_totais', 'economia_mensal_total',
-                    'get_metricas_financeiras_display'
-                ),
-                'classes': ('collapse',)
-            }),
-            ('Documentação', {
-                'fields': (
-                    'documentacao_tecnica', 'licoes_aprendidas',
-                    'proximos_passos', 'data_revisao'
-                ),
-                'classes': ('collapse',)
-            }),
-        ]
-        
-        # Adicionar seção de controle baseada no estado do objeto
-        if obj:  # Editando
-            fieldsets.append(('Controle', {
-                'fields': ('ativo', 'criado_por', 'criado_em', 'atualizado_em'),
-                'classes': ('collapse',)
-            }))
-        else:  # Criando
-            fieldsets.append(('Controle', {
-                'fields': ('ativo',),
-                'classes': ('collapse',)
-            }))
-        
-        return fieldsets
+    # CORREÇÃO: Fieldsets simplificados
+    fieldsets = [
+        ('Informações Básicas', {
+            'fields': (
+                'nome', 'descricao', 'status', 'versao_atual',
+                'link_projeto', 'criadores', 'dependencias'
+            )
+        }),
+        ('Classificação', {
+            'fields': (
+                'tipo_projeto', 'departamento_atendido', 'prioridade', 'complexidade',
+                'usuarios_impactados', 'frequencia_uso', 'ferramentas_tecnologias'
+            )
+        }),
+        ('Investimento de Tempo', {
+            'fields': (
+                'horas_totais', 'horas_desenvolvimento', 'horas_testes',
+                'horas_documentacao', 'horas_deploy', 'valor_hora'
+            )
+        }),
+        ('Custos Recorrentes (Mensais)', {
+            'fields': (
+                'custo_ferramentas_mensais', 'custo_apis_mensais',
+                'custo_infraestrutura_mensais', 'custo_manutencao_mensais'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Custos Únicos', {
+            'fields': (
+                'custo_treinamentos', 'custo_consultoria', 'custo_setup_inicial'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Economias/Retornos', {
+            'fields': (
+                'economia_horas_mensais', 'valor_hora_economizada',
+                'reducao_erros_mensais', 'economia_outros_mensais'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Documentação', {
+            'fields': (
+                'documentacao_tecnica', 'licoes_aprendidas',
+                'proximos_passos', 'data_revisao'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Controle', {
+            'fields': ('ativo', 'criado_por', 'criado_em', 'atualizado_em'),
+            'classes': ('collapse',)
+        }),
+    ]
     
     def save_model(self, request, obj, form, change):
         if not change:  # Novo objeto
@@ -184,48 +152,8 @@ class ProjetoIAAdmin(admin.ModelAdmin):
     prioridade_badge.short_description = 'Prioridade'
     prioridade_badge.admin_order_field = 'prioridade'
     
-    def get_roi(self, obj):
-        try:
-            metricas = obj.calcular_metricas_financeiras()
-            roi = metricas['roi']
-            color = '#28a745' if roi > 0 else '#dc3545'
-            return format_html(
-                '<span style="color: {}; font-weight: bold;">{:.1f}%</span>',
-                color, roi
-            )
-        except:
-            return format_html('<span style="color: #6c757d;">N/A</span>')
-    get_roi.short_description = 'ROI'
-    
-    def get_metricas_financeiras_display(self, obj):
-        try:
-            metricas = obj.calcular_metricas_financeiras()
-            return format_html(
-                '''
-                <div style="background: #f8f9fa; padding: 10px; border-radius: 5px;">
-                    <strong>Métricas Financeiras:</strong><br>
-                    • ROI: <span style="color: {};">{:.2f}%</span><br>
-                    • Payback: {:.1f} meses<br>
-                    • ROI/Hora: R$ {:.2f}<br>
-                    • Economia Acumulada: R$ {:.2f}<br>
-                    • Custo Total: R$ {:.2f}<br>
-                    • Meses de Operação: {:.1f}
-                </div>
-                ''',
-                '#28a745' if metricas['roi'] > 0 else '#dc3545',
-                metricas['roi'],
-                metricas['payback_meses'],
-                metricas['roi_por_hora'],
-                metricas['economia_acumulada'],
-                metricas['custo_total'],
-                metricas['meses_operacao']
-            )
-        except Exception as e:
-            return format_html(
-                '<div style="color: #dc3545;">Erro ao calcular: {}</div>',
-                str(e)
-            )
-    get_metricas_financeiras_display.short_description = 'Métricas Calculadas'
+    # CORREÇÃO: Remover métodos que causam erro
+    # Removemos get_roi e get_metricas_financeiras_display por enquanto
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(

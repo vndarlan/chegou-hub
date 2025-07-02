@@ -446,35 +446,105 @@ def dashboard_stats(request):
 def opcoes_formulario(request):
     """Retorna opções para formulários"""
     try:
-        logger.info("Carregando opções do formulário...")
+        print("=== INICIANDO CARREGAMENTO DE OPÇÕES ===")
         
-        opcoes = {
-            'status_choices': [{'value': k, 'label': v} for k, v in StatusProjeto.choices],
-            'tipo_projeto_choices': [{'value': k, 'label': v} for k, v in TipoProjeto.choices],
-            'departamento_choices': [{'value': k, 'label': v} for k, v in DepartamentoChoices.choices],
-            'prioridade_choices': [{'value': k, 'label': v} for k, v in PrioridadeChoices.choices],
-            'complexidade_choices': [{'value': k, 'label': v} for k, v in ComplexidadeChoices.choices],
-            'frequencia_choices': [{'value': k, 'label': v} for k, v in FrequenciaUsoChoices.choices],
-            'usuarios_disponiveis': [
+        # Testar importações das classes
+        from .models import (
+            StatusProjeto, TipoProjeto, DepartamentoChoices, 
+            PrioridadeChoices, ComplexidadeChoices, FrequenciaUsoChoices
+        )
+        
+        print("Importações das classes OK")
+        
+        # Construir opções passo a passo
+        opcoes = {}
+        
+        # Status
+        try:
+            opcoes['status_choices'] = [{'value': k, 'label': v} for k, v in StatusProjeto.choices]
+            print(f"Status choices: {len(opcoes['status_choices'])} itens")
+        except Exception as e:
+            print(f"Erro em status_choices: {e}")
+            opcoes['status_choices'] = []
+        
+        # Tipo de projeto
+        try:
+            opcoes['tipo_projeto_choices'] = [{'value': k, 'label': v} for k, v in TipoProjeto.choices]
+            print(f"Tipo projeto choices: {len(opcoes['tipo_projeto_choices'])} itens")
+        except Exception as e:
+            print(f"Erro em tipo_projeto_choices: {e}")
+            opcoes['tipo_projeto_choices'] = []
+        
+        # Departamento
+        try:
+            opcoes['departamento_choices'] = [{'value': k, 'label': v} for k, v in DepartamentoChoices.choices]
+            print(f"Departamento choices: {len(opcoes['departamento_choices'])} itens")
+        except Exception as e:
+            print(f"Erro em departamento_choices: {e}")
+            opcoes['departamento_choices'] = []
+        
+        # Prioridade
+        try:
+            opcoes['prioridade_choices'] = [{'value': k, 'label': v} for k, v in PrioridadeChoices.choices]
+            print(f"Prioridade choices: {len(opcoes['prioridade_choices'])} itens")
+        except Exception as e:
+            print(f"Erro em prioridade_choices: {e}")
+            opcoes['prioridade_choices'] = []
+        
+        # Complexidade
+        try:
+            opcoes['complexidade_choices'] = [{'value': k, 'label': v} for k, v in ComplexidadeChoices.choices]
+            print(f"Complexidade choices: {len(opcoes['complexidade_choices'])} itens")
+        except Exception as e:
+            print(f"Erro em complexidade_choices: {e}")
+            opcoes['complexidade_choices'] = []
+        
+        # Frequência
+        try:
+            opcoes['frequencia_choices'] = [{'value': k, 'label': v} for k, v in FrequenciaUsoChoices.choices]
+            print(f"Frequencia choices: {len(opcoes['frequencia_choices'])} itens")
+        except Exception as e:
+            print(f"Erro em frequencia_choices: {e}")
+            opcoes['frequencia_choices'] = []
+        
+        # Usuários
+        try:
+            usuarios = User.objects.filter(is_active=True).order_by('first_name', 'last_name')
+            opcoes['usuarios_disponiveis'] = [
                 {
                     'id': user.id,
                     'username': user.username,
                     'nome_completo': user.get_full_name() or user.username
                 }
-                for user in User.objects.filter(is_active=True).order_by('first_name', 'last_name')
+                for user in usuarios
             ]
-        }
+            print(f"Usuarios disponíveis: {len(opcoes['usuarios_disponiveis'])} itens")
+        except Exception as e:
+            print(f"Erro em usuarios_disponiveis: {e}")
+            opcoes['usuarios_disponiveis'] = []
         
-        logger.info(f"Opções carregadas com sucesso: {len(opcoes)} categorias")
+        print("=== OPÇÕES CARREGADAS COM SUCESSO ===")
+        print(f"Total de categorias: {len(opcoes)}")
+        
         return Response(opcoes)
         
     except Exception as e:
-        logger.error(f"Erro ao carregar opções do formulário: {str(e)}", exc_info=True)
-        return Response(
-            {'error': f'Erro ao carregar opções: {str(e)}'}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
+        print(f"ERRO GERAL ao carregar opções: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        # Retornar opções vazias em caso de erro
+        return Response({
+            'status_choices': [],
+            'tipo_projeto_choices': [],
+            'departamento_choices': [],
+            'prioridade_choices': [],
+            'complexidade_choices': [],
+            'frequencia_choices': [],
+            'usuarios_disponiveis': [],
+            'error': str(e)
+        })
+    
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def verificar_permissoes(request):

@@ -735,9 +735,35 @@ function ProjetoDashboard() {
         try {
             setFormLoading(true);
             
+            // CORREÇÃO: Obter CSRF token
+            const csrfResponse = await axios.get('/current-state/');
+            const csrfToken = csrfResponse.data.csrf_token;
+            
+            // CORREÇÃO: Preparar dados corretamente
+            const projetoData = {
+                ...data,
+                // Garantir que criadores_ids seja array de strings
+                criadores_ids: Array.isArray(data.criadores_ids) 
+                    ? data.criadores_ids.map(id => id.toString())
+                    : [],
+                // Garantir que ferramentas_tecnologias seja array
+                ferramentas_tecnologias: Array.isArray(data.ferramentas_tecnologias)
+                    ? data.ferramentas_tecnologias
+                    : []
+            };
+            
+            console.log('Dados que serão enviados:', projetoData);
+            
+            const config = {
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                }
+            };
+            
             if (selectedProjeto) {
                 // Editar
-                await axios.patch(`/ia/projetos/${selectedProjeto.id}/`, data);
+                await axios.patch(`/ia/projetos/${selectedProjeto.id}/`, projetoData, config);
                 notifications.show({
                     title: 'Sucesso',
                     message: 'Projeto atualizado com sucesso',
@@ -745,7 +771,9 @@ function ProjetoDashboard() {
                 });
             } else {
                 // Criar
-                await axios.post('/ia/projetos/', data);
+                console.log('Criando novo projeto...');
+                const response = await axios.post('/ia/projetos/', projetoData, config);
+                console.log('Projeto criado:', response.data);
                 notifications.show({
                     title: 'Sucesso',
                     message: 'Projeto criado com sucesso',
@@ -759,16 +787,29 @@ function ProjetoDashboard() {
             carregarDadosIniciais(); // Recarregar stats
         } catch (err) {
             console.error('Erro ao salvar projeto:', err);
+            console.error('Resposta do erro:', err.response?.data);
+            
+            let errorMessage = 'Erro ao salvar projeto';
+            if (err.response?.data?.detail) {
+                errorMessage = err.response.data.detail;
+            } else if (err.response?.data?.error) {
+                errorMessage = err.response.data.error;
+            } else if (err.response?.data) {
+                // Se for um objeto com erros de validação
+                const errors = Object.values(err.response.data).flat();
+                errorMessage = errors.join(', ');
+            }
+            
             notifications.show({
                 title: 'Erro',
-                message: err.response?.data?.detail || 'Erro ao salvar projeto',
+                message: errorMessage,
                 color: 'red'
             });
         } finally {
             setFormLoading(false);
         }
     };
-
+    
     const handleViewProjeto = async (projeto) => {
         try {
             const response = await axios.get(`/ia/projetos/${projeto.id}/`);
