@@ -293,35 +293,54 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def duplicar(self, request, pk=None):
         """Duplicar projeto como template"""
-        projeto_original = self.get_object()
-        
-        # Criar cópia
-        novo_projeto = ProjetoIA(
-            nome=f"{projeto_original.nome} - Cópia",
-            descricao=projeto_original.descricao,
-            tipo_projeto=projeto_original.tipo_projeto,
-            departamento_atendido=projeto_original.departamento_atendido,
-            prioridade=projeto_original.prioridade,
-            complexidade=projeto_original.complexidade,
-            horas_totais=projeto_original.horas_totais,
-            valor_hora=projeto_original.valor_hora,
-            ferramentas_tecnologias=projeto_original.ferramentas_tecnologias.copy(),
-            usuarios_impactados=projeto_original.usuarios_impactados,
-            frequencia_uso=projeto_original.frequencia_uso,
-            criado_por=request.user,
-            status=StatusProjeto.ATIVO,
-            versao_atual="1.0.0"
-        )
-        novo_projeto.save()
-        
-        # Copiar criadores
-        novo_projeto.criadores.set(projeto_original.criadores.all())
-        
-        serializer = ProjetoIADetailSerializer(novo_projeto, context={'request': request})
-        return Response({
-            'message': 'Projeto duplicado com sucesso',
-            'projeto': serializer.data
-        })
+        try:
+            projeto_original = self.get_object()
+            print(f"Duplicando projeto: {projeto_original.nome}")
+            
+            # Criar cópia com dados seguros
+            novo_projeto = ProjetoIA.objects.create(
+                nome=f"{projeto_original.nome} - Cópia",
+                descricao=projeto_original.descricao,
+                tipo_projeto=projeto_original.tipo_projeto,
+                departamento_atendido=projeto_original.departamento_atendido,
+                prioridade=projeto_original.prioridade,
+                complexidade=projeto_original.complexidade,
+                horas_totais=projeto_original.horas_totais,
+                valor_hora=projeto_original.valor_hora,
+                ferramentas_tecnologias=projeto_original.ferramentas_tecnologias or [],
+                usuarios_impactados=projeto_original.usuarios_impactados,
+                frequencia_uso=projeto_original.frequencia_uso,
+                criado_por=request.user,
+                status=StatusProjeto.ATIVO,
+                versao_atual="1.0.0"
+            )
+            
+            print(f"Projeto duplicado criado: {novo_projeto.id}")
+            
+            # Copiar criadores de forma segura
+            try:
+                criadores = projeto_original.criadores.all()
+                if criadores.exists():
+                    novo_projeto.criadores.set(criadores)
+                    print(f"Criadores copiados: {criadores.count()}")
+            except Exception as e:
+                print(f"Erro ao copiar criadores: {e}")
+            
+            # Retornar resposta simples
+            return Response({
+                'message': 'Projeto duplicado com sucesso',
+                'projeto_id': novo_projeto.id,
+                'projeto_nome': novo_projeto.nome
+            })
+            
+        except Exception as e:
+            print(f"Erro ao duplicar projeto: {e}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {'error': 'Erro ao duplicar projeto'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @action(detail=True, methods=['get'])
     def metricas_detalhadas(self, request, pk=None):

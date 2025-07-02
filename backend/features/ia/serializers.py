@@ -112,7 +112,7 @@ class VersaoProjetoSerializer(serializers.ModelSerializer):
 class ProjetoIAListSerializer(serializers.ModelSerializer):
     """Serializer para listagem de projetos (campos essenciais)"""
     criadores_nomes = serializers.SerializerMethodField()
-    criado_por_nome = serializers.CharField(source='criado_por.get_full_name', read_only=True)
+    criado_por_nome = serializers.SerializerMethodField()
     metricas_financeiras = serializers.SerializerMethodField()
     dias_sem_atualizacao = serializers.SerializerMethodField()
     
@@ -130,20 +130,25 @@ class ProjetoIAListSerializer(serializers.ModelSerializer):
     def get_criadores_nomes(self, obj):
         try:
             return [criador.get_full_name() or criador.username for criador in obj.criadores.all()]
-        except:
+        except Exception as e:
+            print(f"Erro get_criadores_nomes: {e}")
             return []
+    
+    def get_criado_por_nome(self, obj):
+        try:
+            return obj.criado_por.get_full_name() or obj.criado_por.username
+        except Exception as e:
+            print(f"Erro get_criado_por_nome: {e}")
+            return "N/A"
     
     def get_metricas_financeiras(self, obj):
         try:
-            # Só calcular se o usuário tem permissão para ver dados financeiros
             request = self.context.get('request')
-            if request and hasattr(request, 'user'):
+            if request and hasattr(request, 'user') and request.user.is_authenticated:
                 user = request.user
-                # Verificar se é admin ou tem permissão para financeiro
                 if user.is_superuser or user.groups.filter(name__in=['Diretoria', 'Gestão']).exists():
                     return obj.calcular_metricas_financeiras()
             
-            # Retornar apenas métricas básicas sem valores financeiros
             return {
                 'horas_totais': float(obj.horas_totais),
                 'economia_mensal_horas': float(obj.economia_horas_mensais),
@@ -151,9 +156,9 @@ class ProjetoIAListSerializer(serializers.ModelSerializer):
                 'acesso_restrito': True
             }
         except Exception as e:
-            print(f"Erro ao calcular métricas para projeto {obj.id}: {e}")
+            print(f"Erro get_metricas_financeiras: {e}")
             return {
-                'horas_totais': float(obj.horas_totais),
+                'horas_totais': float(obj.horas_totais or 0),
                 'roi': 'Erro no cálculo',
                 'acesso_restrito': True
             }
@@ -163,7 +168,8 @@ class ProjetoIAListSerializer(serializers.ModelSerializer):
             from django.utils import timezone
             delta = timezone.now().date() - obj.atualizado_em.date()
             return delta.days
-        except:
+        except Exception as e:
+            print(f"Erro get_dias_sem_atualizacao: {e}")
             return 0
 
 class ProjetoIADetailSerializer(serializers.ModelSerializer):
@@ -173,7 +179,8 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
         many=True,
         queryset=User.objects.all(),
         write_only=True,
-        source='criadores'
+        source='criadores',
+        required=False
     )
     dependencias = serializers.PrimaryKeyRelatedField(
         many=True,
@@ -183,100 +190,147 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
     dependencias_nomes = serializers.SerializerMethodField(read_only=True)
     projetos_dependentes = serializers.SerializerMethodField(read_only=True)
     
-    criado_por_nome = serializers.CharField(source='criado_por.get_full_name', read_only=True)
+    criado_por_nome = serializers.SerializerMethodField()
     versoes = VersaoProjetoSerializer(many=True, read_only=True)
     
     # Campos calculados
-    custo_desenvolvimento = serializers.ReadOnlyField()
-    custos_recorrentes_mensais = serializers.ReadOnlyField()
-    custos_unicos_totais = serializers.ReadOnlyField()
-    economia_mensal_total = serializers.ReadOnlyField()
+    custo_desenvolvimento = serializers.SerializerMethodField()
+    custos_recorrentes_mensais = serializers.SerializerMethodField()
+    custos_unicos_totais = serializers.SerializerMethodField()
+    economia_mensal_total = serializers.SerializerMethodField()
     metricas_financeiras = serializers.SerializerMethodField()
-    
-    # Campos para validação de breakdown de horas
-    total_horas_breakdown = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = ProjetoIA
         fields = '__all__'
         read_only_fields = [
-            'criado_por', 'criado_em', 'atualizado_em',
-            'custo_desenvolvimento', 'custos_recorrentes_mensais',
-            'custos_unicos_totais', 'economia_mensal_total'
+            'criado_por', 'criado_em', 'atualizado_em'
         ]
     
+    def get_criado_por_nome(self, obj):
+        try:
+            return obj.criado_por.get_full_name() or obj.criado_por.username
+        except Exception as e:
+            print(f"Erro get_criado_por_nome: {e}")
+            return "N/A"
+    
     def get_dependencias_nomes(self, obj):
-        return [{'id': dep.id, 'nome': dep.nome} for dep in obj.dependencias.all()]
+        try:
+            return [{'id': dep.id, 'nome': dep.nome} for dep in obj.dependencias.all()]
+        except Exception as e:
+            print(f"Erro get_dependencias_nomes: {e}")
+            return []
     
     def get_projetos_dependentes(self, obj):
-        return [{'id': dep.id, 'nome': dep.nome} for dep in obj.projetos_dependentes.all()]
+        try:
+            return [{'id': dep.id, 'nome': dep.nome} for dep in obj.projetos_dependentes.all()]
+        except Exception as e:
+            print(f"Erro get_projetos_dependentes: {e}")
+            return []
+    
+    def get_custo_desenvolvimento(self, obj):
+        try:
+            return float(obj.custo_desenvolvimento)
+        except Exception as e:
+            print(f"Erro get_custo_desenvolvimento: {e}")
+            return 0.0
+    
+    def get_custos_recorrentes_mensais(self, obj):
+        try:
+            return float(obj.custos_recorrentes_mensais)
+        except Exception as e:
+            print(f"Erro get_custos_recorrentes_mensais: {e}")
+            return 0.0
+    
+    def get_custos_unicos_totais(self, obj):
+        try:
+            return float(obj.custos_unicos_totais)
+        except Exception as e:
+            print(f"Erro get_custos_unicos_totais: {e}")
+            return 0.0
+    
+    def get_economia_mensal_total(self, obj):
+        try:
+            return float(obj.economia_mensal_total)
+        except Exception as e:
+            print(f"Erro get_economia_mensal_total: {e}")
+            return 0.0
     
     def get_metricas_financeiras(self, obj):
-        # Verificar permissões financeiras
-        request = self.context.get('request')
-        if request and hasattr(request, 'user'):
-            user = request.user
-            if user.is_superuser or user.groups.filter(name__in=['Diretoria', 'Gestão']).exists():
-                return obj.calcular_metricas_financeiras()
-        
-        return {'acesso_restrito': True, 'message': 'Sem permissão para dados financeiros'}
-    
-    def get_total_horas_breakdown(self, obj):
-        return float(
-            obj.horas_desenvolvimento + 
-            obj.horas_testes + 
-            obj.horas_documentacao + 
-            obj.horas_deploy
-        )
+        try:
+            request = self.context.get('request')
+            if request and hasattr(request, 'user') and request.user.is_authenticated:
+                user = request.user
+                if user.is_superuser or user.groups.filter(name__in=['Diretoria', 'Gestão']).exists():
+                    return obj.calcular_metricas_financeiras()
+            
+            return {'acesso_restrito': True, 'message': 'Sem permissão para dados financeiros'}
+        except Exception as e:
+            print(f"Erro get_metricas_financeiras: {e}")
+            return {'acesso_restrito': True, 'error': str(e)}
     
     def validate(self, data):
-        # Validar se o breakdown de horas não excede o total
-        horas_totais = data.get('horas_totais', 0)
-        horas_dev = data.get('horas_desenvolvimento', 0)
-        horas_test = data.get('horas_testes', 0)
-        horas_doc = data.get('horas_documentacao', 0)
-        horas_deploy = data.get('horas_deploy', 0)
-        
-        total_breakdown = horas_dev + horas_test + horas_doc + horas_deploy
-        
-        if total_breakdown > horas_totais:
-            raise serializers.ValidationError({
-                'horas_totais': f'O breakdown de horas ({total_breakdown}h) não pode exceder o total ({horas_totais}h)'
-            })
-        
-        return data
+        try:
+            # Validar se o breakdown de horas não excede o total
+            horas_totais = data.get('horas_totais', 0)
+            horas_dev = data.get('horas_desenvolvimento', 0)
+            horas_test = data.get('horas_testes', 0)
+            horas_doc = data.get('horas_documentacao', 0)
+            horas_deploy = data.get('horas_deploy', 0)
+            
+            total_breakdown = horas_dev + horas_test + horas_doc + horas_deploy
+            
+            if total_breakdown > horas_totais:
+                raise serializers.ValidationError({
+                    'horas_totais': f'O breakdown de horas ({total_breakdown}h) não pode exceder o total ({horas_totais}h)'
+                })
+            
+            return data
+        except Exception as e:
+            print(f"Erro na validação: {e}")
+            return data
     
     def create(self, validated_data):
-        criadores_data = validated_data.pop('criadores', [])
-        dependencias_data = validated_data.pop('dependencias', [])
-        
-        # Definir criado_por como o usuário atual
-        validated_data['criado_por'] = self.context['request'].user
-        
-        projeto = ProjetoIA.objects.create(**validated_data)
-        
-        # Adicionar criadores e dependências
-        projeto.criadores.set(criadores_data)
-        projeto.dependencias.set(dependencias_data)
-        
-        return projeto
+        try:
+            criadores_data = validated_data.pop('criadores', [])
+            dependencias_data = validated_data.pop('dependencias', [])
+            
+            # Definir criado_por como o usuário atual
+            validated_data['criado_por'] = self.context['request'].user
+            
+            projeto = ProjetoIA.objects.create(**validated_data)
+            
+            # Adicionar criadores e dependências
+            if criadores_data:
+                projeto.criadores.set(criadores_data)
+            if dependencias_data:
+                projeto.dependencias.set(dependencias_data)
+            
+            return projeto
+        except Exception as e:
+            print(f"Erro no create: {e}")
+            raise
     
     def update(self, instance, validated_data):
-        criadores_data = validated_data.pop('criadores', None)
-        dependencias_data = validated_data.pop('dependencias', None)
-        
-        # Atualizar campos normais
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        
-        # Atualizar relacionamentos se fornecidos
-        if criadores_data is not None:
-            instance.criadores.set(criadores_data)
-        if dependencias_data is not None:
-            instance.dependencias.set(dependencias_data)
-        
-        return instance
+        try:
+            criadores_data = validated_data.pop('criadores', None)
+            dependencias_data = validated_data.pop('dependencias', None)
+            
+            # Atualizar campos normais
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.save()
+            
+            # Atualizar relacionamentos se fornecidos
+            if criadores_data is not None:
+                instance.criadores.set(criadores_data)
+            if dependencias_data is not None:
+                instance.dependencias.set(dependencias_data)
+            
+            return instance
+        except Exception as e:
+            print(f"Erro no update: {e}")
+            raise
 
 class ProjetoIACreateSerializer(serializers.ModelSerializer):
     """Serializer para criação rápida de projetos"""
@@ -284,7 +338,8 @@ class ProjetoIACreateSerializer(serializers.ModelSerializer):
         many=True,
         queryset=User.objects.all(),
         write_only=True,
-        source='criadores'
+        source='criadores',
+        required=False
     )
     
     class Meta:
@@ -293,17 +348,23 @@ class ProjetoIACreateSerializer(serializers.ModelSerializer):
             'nome', 'descricao', 'tipo_projeto', 'departamento_atendido',
             'prioridade', 'complexidade', 'horas_totais', 'criadores_ids',
             'ferramentas_tecnologias', 'link_projeto', 'usuarios_impactados',
-            'frequencia_uso'
+            'frequencia_uso', 'valor_hora', 'custo_ferramentas_mensais',
+            'custo_apis_mensais', 'economia_horas_mensais', 'valor_hora_economizada'
         ]
     
     def create(self, validated_data):
-        criadores_data = validated_data.pop('criadores', [])
-        validated_data['criado_por'] = self.context['request'].user
-        
-        projeto = ProjetoIA.objects.create(**validated_data)
-        projeto.criadores.set(criadores_data)
-        
-        return projeto
+        try:
+            criadores_data = validated_data.pop('criadores', [])
+            validated_data['criado_por'] = self.context['request'].user
+            
+            projeto = ProjetoIA.objects.create(**validated_data)
+            if criadores_data:
+                projeto.criadores.set(criadores_data)
+            
+            return projeto
+        except Exception as e:
+            print(f"Erro no create: {e}")
+            raise
 
 class NovaVersaoSerializer(serializers.ModelSerializer):
     """Serializer para registrar nova versão"""
