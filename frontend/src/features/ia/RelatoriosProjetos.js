@@ -249,9 +249,9 @@ function RelatoriosProjetos() {
             if (tipoProjeto) params.append('tipo_projeto', tipoProjeto);
             
             const [projetosRes, statsRes, permissoesRes] = await Promise.all([
-                axios.get(`/api/ia/projetos/?${params}`),
-                axios.get('/api/ia/dashboard-stats/'),
-                axios.get('/api/ia/verificar-permissoes/')
+                axios.get(`/ia/projetos/?${params}`),
+                axios.get('/ia/dashboard-stats/'),
+                axios.get('/ia/verificar-permissoes/')
             ]);
             
             setDados(projetosRes.data.results || projetosRes.data);

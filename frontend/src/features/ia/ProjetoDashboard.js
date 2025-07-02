@@ -689,9 +689,9 @@ function ProjetoDashboard() {
         try {
             setLoading(true);
             const [statsRes, opcoesRes, permissoesRes] = await Promise.all([
-                axios.get('/api/ia/dashboard-stats/'),
-                axios.get('/api/ia/opcoes-formulario/'),
-                axios.get('/api/ia/verificar-permissoes/')
+                axios.get('/ia/dashboard-stats/'),
+                axios.get('/ia/opcoes-formulario/'),
+                axios.get('/ia/verificar-permissoes/')
             ]);
             
             setStats(statsRes.data);
@@ -719,7 +719,7 @@ function ProjetoDashboard() {
             
             params.append('ordering', sortOrder === 'desc' ? `-${sortBy}` : sortBy);
             
-            const response = await axios.get(`/api/ia/projetos/?${params}`);
+            const response = await axios.get(`/ia/projetos/?${params}`);
             setProjetos(response.data.results || response.data);
         } catch (err) {
             console.error('Erro ao carregar projetos:', err);
@@ -737,7 +737,7 @@ function ProjetoDashboard() {
             
             if (selectedProjeto) {
                 // Editar
-                await axios.patch(`/api/ia/projetos/${selectedProjeto.id}/`, data);
+                await axios.patch(`/ia/projetos/${selectedProjeto.id}/`, data);
                 notifications.show({
                     title: 'Sucesso',
                     message: 'Projeto atualizado com sucesso',
@@ -745,7 +745,7 @@ function ProjetoDashboard() {
                 });
             } else {
                 // Criar
-                await axios.post('/api/ia/projetos/', data);
+                await axios.post('/ia/projetos/', data);
                 notifications.show({
                     title: 'Sucesso',
                     message: 'Projeto criado com sucesso',
@@ -771,7 +771,7 @@ function ProjetoDashboard() {
 
     const handleViewProjeto = async (projeto) => {
         try {
-            const response = await axios.get(`/api/ia/projetos/${projeto.id}/`);
+            const response = await axios.get(`/ia/projetos/${projeto.id}/`);
             setSelectedProjeto(response.data);
             setDetailModalOpen(true);
         } catch (err) {
@@ -786,7 +786,7 @@ function ProjetoDashboard() {
 
     const handleArchiveProjeto = async (projeto) => {
         try {
-            await axios.post(`/api/ia/projetos/${projeto.id}/arquivar/`);
+            await axios.post(`/ia/projetos/${projeto.id}/arquivar/`);
             notifications.show({
                 title: 'Sucesso',
                 message: `Projeto ${projeto.status === 'arquivado' ? 'reativado' : 'arquivado'}`,
@@ -806,7 +806,7 @@ function ProjetoDashboard() {
 
     const handleDuplicateProjeto = async (projeto) => {
         try {
-            await axios.post(`/api/ia/projetos/${projeto.id}/duplicar/`);
+            await axios.post(`/ia/projetos/${projeto.id}/duplicar/`);
             notifications.show({
                 title: 'Sucesso',
                 message: 'Projeto duplicado com sucesso',
@@ -1115,7 +1115,7 @@ const NovaVersaoModal = ({ opened, onClose, projeto, onSave }) => {
         
         try {
             setLoading(true);
-            await axios.post(`/api/ia/projetos/${projeto.id}/nova_versao/`, values);
+            await axios.post(`/ia/projetos/${projeto.id}/nova_versao/`, values);
             
             notifications.show({
                 title: 'Sucesso',
