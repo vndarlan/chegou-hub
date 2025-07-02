@@ -4,8 +4,7 @@ import {
     Container, Grid, Title, Text, Paper, Group, Stack, Box,
     Button, Select, Badge, Table, Alert,
     LoadingOverlay, SimpleGrid, Progress, Card, Divider,
-    BarChart, LineChart, PieChart, AreaChart, Flex, Center,
-    ActionIcon, Menu, Tooltip, RingProgress, List, ThemeIcon
+    Flex, Center, ActionIcon, Menu, Tooltip, RingProgress, List, ThemeIcon
 } from '@mantine/core';
 import {
     IconChartBar, IconDownload, IconFilter, IconCalendar,
@@ -35,27 +34,34 @@ const ROIChart = ({ dados, userPermissions }) => {
         );
     }
 
-    const chartData = dados
+    const projetosComROI = dados
         ?.filter(p => p.metricas_financeiras && !p.metricas_financeiras.acesso_restrito)
-        .map(projeto => ({
-            name: projeto.nome.substring(0, 20) + (projeto.nome.length > 20 ? '...' : ''),
-            roi: parseFloat(projeto.metricas_financeiras.roi),
-            economia: parseFloat(projeto.metricas_financeiras.economia_mensal || 0)
-        }))
-        .sort((a, b) => b.roi - a.roi)
-        .slice(0, 10);
+        .sort((a, b) => b.metricas_financeiras.roi - a.metricas_financeiras.roi)
+        .slice(0, 5);
 
     return (
-        <BarChart
-            h={300}
-            data={chartData}
-            dataKey="name"
-            series={[
-                { name: 'roi', color: 'blue.6', label: 'ROI (%)' }
-            ]}
-            tickLine="xy"
-            gridAxis="xy"
-        />
+        <Stack gap="md">
+            {projetosComROI?.map((projeto, index) => (
+                <Paper key={projeto.id} p="sm" withBorder>
+                    <Group justify="space-between">
+                        <Text size="sm" weight={500}>
+                            {projeto.nome.substring(0, 30)}...
+                        </Text>
+                        <Group gap="xs">
+                            <Text size="sm" weight={700} c={projeto.metricas_financeiras.roi > 0 ? 'green' : 'red'}>
+                                {projeto.metricas_financeiras.roi}%
+                            </Text>
+                            <Progress 
+                                value={Math.min(Math.abs(projeto.metricas_financeiras.roi), 100)} 
+                                color={projeto.metricas_financeiras.roi > 0 ? 'green' : 'red'}
+                                size="sm"
+                                w={100}
+                            />
+                        </Group>
+                    </Group>
+                </Paper>
+            ))}
+        </Stack>
     );
 };
 
@@ -74,29 +80,32 @@ const EconomiaTimelineChart = ({ dados, userPermissions }) => {
         );
     }
 
-    // Simular evolução mensal (seria melhor vir do backend)
+    // Simular evolução mensal
     const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
     const economiaTotal = dados
         ?.filter(p => p.metricas_financeiras && !p.metricas_financeiras.acesso_restrito)
         .reduce((acc, p) => acc + parseFloat(p.metricas_financeiras.economia_mensal || 0), 0);
 
-    const chartData = meses.map((mes, index) => ({
-        month: mes,
-        economia: economiaTotal * (index + 1) * 0.8 + Math.random() * economiaTotal * 0.4,
-        acumulada: economiaTotal * (index + 1)
-    }));
-
     return (
-        <LineChart
-            h={300}
-            data={chartData}
-            dataKey="month"
-            series={[
-                { name: 'economia', color: 'teal.6', label: 'Economia Mensal' },
-                { name: 'acumulada', color: 'blue.6', label: 'Economia Acumulada' }
-            ]}
-            curveType="linear"
-        />
+        <SimpleGrid cols={6}>
+            {meses.map((mes, index) => {
+                const valor = economiaTotal * (index + 1) * 0.8;
+                return (
+                    <Paper key={mes} p="sm" withBorder>
+                        <Text size="xs" c="dimmed">{mes}</Text>
+                        <Text size="lg" weight={700}>
+                            R$ {valor.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+                        </Text>
+                        <Progress 
+                            value={(index + 1) * 16.66} 
+                            color="teal" 
+                            size="sm" 
+                            mt="xs"
+                        />
+                    </Paper>
+                );
+            })}
+        </SimpleGrid>
     );
 };
 
@@ -108,22 +117,28 @@ const DistribuicaoTipoChart = ({ dados }) => {
         return acc;
     }, {});
 
-    const chartData = Object.entries(distribuicao || {}).map(([tipo, count]) => ({
-        name: tipo.replace('_', ' ').toUpperCase(),
-        value: count,
-        color: `var(--mantine-color-blue-${Math.floor(Math.random() * 9)})`
-    }));
+    const total = Object.values(distribuicao || {}).reduce((acc, count) => acc + count, 0);
 
     return (
-        <PieChart
-            h={300}
-            data={chartData}
-            mx="auto"
-            withLabelsLine
-            labelsPosition="outside"
-            labelsType="percent"
-            withTooltip
-        />
+        <Stack gap="md">
+            {Object.entries(distribuicao || {}).map(([tipo, count]) => {
+                const percentage = total > 0 ? (count / total) * 100 : 0;
+                return (
+                    <Paper key={tipo} p="sm" withBorder>
+                        <Group justify="space-between" mb="xs">
+                            <Text size="sm" weight={500}>
+                                {tipo.replace('_', ' ').toUpperCase()}
+                            </Text>
+                            <Badge variant="light">{count}</Badge>
+                        </Group>
+                        <Progress value={percentage} color="blue" size="lg" />
+                        <Text size="xs" c="dimmed" mt="xs">
+                            {percentage.toFixed(1)}%
+                        </Text>
+                    </Paper>
+                );
+            })}
+        </Stack>
     );
 };
 
