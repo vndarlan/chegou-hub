@@ -128,29 +128,43 @@ class ProjetoIAListSerializer(serializers.ModelSerializer):
         ]
     
     def get_criadores_nomes(self, obj):
-        return [criador.get_full_name() or criador.username for criador in obj.criadores.all()]
+        try:
+            return [criador.get_full_name() or criador.username for criador in obj.criadores.all()]
+        except:
+            return []
     
     def get_metricas_financeiras(self, obj):
-        # Só calcular se o usuário tem permissão para ver dados financeiros
-        request = self.context.get('request')
-        if request and hasattr(request, 'user'):
-            user = request.user
-            # Verificar se é admin ou tem permissão para financeiro
-            if user.is_superuser or user.groups.filter(name__in=['Diretoria', 'Gestão']).exists():
-                return obj.calcular_metricas_financeiras()
-        
-        # Retornar apenas métricas básicas sem valores financeiros
-        return {
-            'horas_totais': float(obj.horas_totais),
-            'economia_mensal_horas': float(obj.economia_horas_mensais),
-            'roi': 'Sem permissão',
-            'acesso_restrito': True
-        }
+        try:
+            # Só calcular se o usuário tem permissão para ver dados financeiros
+            request = self.context.get('request')
+            if request and hasattr(request, 'user'):
+                user = request.user
+                # Verificar se é admin ou tem permissão para financeiro
+                if user.is_superuser or user.groups.filter(name__in=['Diretoria', 'Gestão']).exists():
+                    return obj.calcular_metricas_financeiras()
+            
+            # Retornar apenas métricas básicas sem valores financeiros
+            return {
+                'horas_totais': float(obj.horas_totais),
+                'economia_mensal_horas': float(obj.economia_horas_mensais),
+                'roi': 'Sem permissão',
+                'acesso_restrito': True
+            }
+        except Exception as e:
+            print(f"Erro ao calcular métricas para projeto {obj.id}: {e}")
+            return {
+                'horas_totais': float(obj.horas_totais),
+                'roi': 'Erro no cálculo',
+                'acesso_restrito': True
+            }
     
     def get_dias_sem_atualizacao(self, obj):
-        from django.utils import timezone
-        delta = timezone.now().date() - obj.atualizado_em.date()
-        return delta.days
+        try:
+            from django.utils import timezone
+            delta = timezone.now().date() - obj.atualizado_em.date()
+            return delta.days
+        except:
+            return 0
 
 class ProjetoIADetailSerializer(serializers.ModelSerializer):
     """Serializer completo para detalhes do projeto"""

@@ -1,4 +1,4 @@
-# backend/features/ia/views.py - VERSÃO ATUALIZADA COM PROJETOS
+# backend/features/ia/views.py - VERSÃO COMPLETA CORRIGIDA
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
@@ -25,6 +25,20 @@ from .serializers import (
 
 # Configurar logger
 logger = logging.getLogger(__name__)
+
+# ===== FUNÇÕES AUXILIARES =====
+def verificar_permissao_financeira(user):
+    """Verifica se o usuário tem permissão para ver dados financeiros"""
+    return user.is_superuser or user.groups.filter(name__in=['Diretoria', 'Gestão']).exists()
+
+def verificar_permissao_edicao(user, projeto):
+    """Verifica se o usuário pode editar o projeto"""
+    return (
+        user.is_superuser or
+        user == projeto.criado_por or
+        user in projeto.criadores.all() or
+        user.groups.filter(name__in=['Diretoria', 'Gestão']).exists()
+    )
 
 # ===== VIEWS DE LOGS (EXISTENTES) =====
 class LogEntryViewSet(viewsets.ModelViewSet):
@@ -111,19 +125,6 @@ class LogEntryViewSet(viewsets.ModelViewSet):
 
 # ===== VIEWS DE PROJETOS DE IA =====
 
-def verificar_permissao_financeira(user):
-    """Verifica se o usuário tem permissão para ver dados financeiros"""
-    return user.is_superuser or user.groups.filter(name__in=['Diretoria', 'Gestão']).exists()
-
-def verificar_permissao_edicao(user, projeto):
-    """Verifica se o usuário pode editar o projeto"""
-    return (
-        user.is_superuser or
-        user == projeto.criado_por or
-        user in projeto.criadores.all() or
-        user.groups.filter(name__in=['Diretoria', 'Gestão']).exists()
-    )
-
 class ProjetoIAViewSet(viewsets.ModelViewSet):
     """ViewSet para CRUD completo de projetos de IA"""
     
@@ -139,65 +140,93 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
             return ProjetoIADetailSerializer
     
     def get_queryset(self):
-        queryset = ProjetoIA.objects.filter(ativo=True)
-        
-        # Aplicar filtros baseados nos query params
-        filtros_serializer = FiltrosProjetosSerializer(data=self.request.query_params)
-        if filtros_serializer.is_valid():
-            filtros = filtros_serializer.validated_data
+        try:
+            queryset = ProjetoIA.objects.filter(ativo=True)
             
-            # Filtros básicos
-            if filtros.get('status'):
-                queryset = queryset.filter(status__in=filtros['status'])
+            # Aplicar filtros baseados nos query params
+            filtros_serializer = FiltrosProjetosSerializer(data=self.request.query_params)
+            if filtros_serializer.is_valid():
+                filtros = filtros_serializer.validated_data
+                
+                # Filtros básicos
+                if filtros.get('status'):
+                    queryset = queryset.filter(status__in=filtros['status'])
+                
+                if filtros.get('tipo_projeto'):
+                    queryset = queryset.filter(tipo_projeto__in=filtros['tipo_projeto'])
+                
+                if filtros.get('departamento'):
+                    queryset = queryset.filter(departamento_atendido__in=filtros['departamento'])
+                
+                if filtros.get('prioridade'):
+                    queryset = queryset.filter(prioridade__in=filtros['prioridade'])
+                
+                if filtros.get('complexidade'):
+                    queryset = queryset.filter(complexidade__in=filtros['complexidade'])
+                
+                if filtros.get('criadores'):
+                    queryset = queryset.filter(criadores__in=filtros['criadores']).distinct()
+                
+                # Filtros de data
+                if filtros.get('data_criacao_inicio'):
+                    queryset = queryset.filter(data_criacao__gte=filtros['data_criacao_inicio'])
+                
+                if filtros.get('data_criacao_fim'):
+                    queryset = queryset.filter(data_criacao__lte=filtros['data_criacao_fim'])
+                
+                # Filtros de horas
+                if filtros.get('horas_min'):
+                    queryset = queryset.filter(horas_totais__gte=filtros['horas_min'])
+                
+                if filtros.get('horas_max'):
+                    queryset = queryset.filter(horas_totais__lte=filtros['horas_max'])
+                
+                # Filtro de usuários impactados
+                if filtros.get('usuarios_impactados_min'):
+                    queryset = queryset.filter(usuarios_impactados__gte=filtros['usuarios_impactados_min'])
+                
+                # Busca textual
+                if filtros.get('busca'):
+                    busca = filtros['busca']
+                    queryset = queryset.filter(
+                        Q(nome__icontains=busca) |
+                        Q(descricao__icontains=busca) |
+                        Q(ferramentas_tecnologias__icontains=busca) |
+                        Q(criadores__first_name__icontains=busca) |
+                        Q(criadores__last_name__icontains=busca)
+                    ).distinct()
             
-            if filtros.get('tipo_projeto'):
-                queryset = queryset.filter(tipo_projeto__in=filtros['tipo_projeto'])
-            
-            if filtros.get('departamento'):
-                queryset = queryset.filter(departamento_atendido__in=filtros['departamento'])
-            
-            if filtros.get('prioridade'):
-                queryset = queryset.filter(prioridade__in=filtros['prioridade'])
-            
-            if filtros.get('complexidade'):
-                queryset = queryset.filter(complexidade__in=filtros['complexidade'])
-            
-            if filtros.get('criadores'):
-                queryset = queryset.filter(criadores__in=filtros['criadores']).distinct()
-            
-            # Filtros de data
-            if filtros.get('data_criacao_inicio'):
-                queryset = queryset.filter(data_criacao__gte=filtros['data_criacao_inicio'])
-            
-            if filtros.get('data_criacao_fim'):
-                queryset = queryset.filter(data_criacao__lte=filtros['data_criacao_fim'])
-            
-            # Filtros de horas
-            if filtros.get('horas_min'):
-                queryset = queryset.filter(horas_totais__gte=filtros['horas_min'])
-            
-            if filtros.get('horas_max'):
-                queryset = queryset.filter(horas_totais__lte=filtros['horas_max'])
-            
-            # Filtro de usuários impactados
-            if filtros.get('usuarios_impactados_min'):
-                queryset = queryset.filter(usuarios_impactados__gte=filtros['usuarios_impactados_min'])
-            
-            # Busca textual
-            if filtros.get('busca'):
-                busca = filtros['busca']
-                queryset = queryset.filter(
-                    Q(nome__icontains=busca) |
-                    Q(descricao__icontains=busca) |
-                    Q(ferramentas_tecnologias__icontains=busca) |
-                    Q(criadores__first_name__icontains=busca) |
-                    Q(criadores__last_name__icontains=busca)
-                ).distinct()
-        
-        return queryset.select_related('criado_por').prefetch_related('criadores', 'dependencias')
+            return queryset.select_related('criado_por').prefetch_related('criadores', 'dependencias')
+        except Exception as e:
+            print(f"Erro no get_queryset: {e}")
+            return ProjetoIA.objects.filter(ativo=True)
     
     def perform_create(self, serializer):
         serializer.save(criado_por=self.request.user)
+    
+    def list(self, request, *args, **kwargs):
+        try:
+            return super().list(request, *args, **kwargs)
+        except Exception as e:
+            print(f"Erro no list: {e}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {'error': 'Erro ao carregar projetos'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def create(self, request, *args, **kwargs):
+        try:
+            return super().create(request, *args, **kwargs)
+        except Exception as e:
+            print(f"Erro no create: {e}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {'error': 'Erro ao criar projeto'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     def update(self, request, *args, **kwargs):
         projeto = self.get_object()
@@ -344,102 +373,165 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
 def dashboard_stats(request):
     """Estatísticas gerais do dashboard de projetos"""
     
-    # Stats básicas
-    total_projetos = ProjetoIA.objects.filter(ativo=True).count()
-    projetos_ativos = ProjetoIA.objects.filter(ativo=True, status=StatusProjeto.ATIVO).count()
-    projetos_arquivados = ProjetoIA.objects.filter(ativo=True, status=StatusProjeto.ARQUIVADO).count()
-    projetos_manutencao = ProjetoIA.objects.filter(ativo=True, status=StatusProjeto.MANUTENCAO).count()
-    
-    # Horas totais investidas
-    horas_totais = ProjetoIA.objects.filter(ativo=True).aggregate(
-        total=Sum('horas_totais')
-    )['total'] or Decimal('0')
-    
-    # Distribuições por categoria
-    projetos_por_tipo = dict(
-        ProjetoIA.objects.filter(ativo=True)
-        .values('tipo_projeto')
-        .annotate(count=Count('id'))
-        .values_list('tipo_projeto', 'count')
-    )
-    
-    projetos_por_departamento = dict(
-        ProjetoIA.objects.filter(ativo=True)
-        .values('departamento_atendido')
-        .annotate(count=Count('id'))
-        .values_list('departamento_atendido', 'count')
-    )
-    
-    projetos_por_complexidade = dict(
-        ProjetoIA.objects.filter(ativo=True)
-        .values('complexidade')
-        .annotate(count=Count('id'))
-        .values_list('complexidade', 'count')
-    )
-    
-    # Projetos recentes
-    projetos_recentes = ProjetoIA.objects.filter(ativo=True).order_by('-criado_em')[:5]
-    projetos_recentes_data = ProjetoIAListSerializer(
-        projetos_recentes, 
-        many=True,
-        context={'request': request}
-    ).data
-    
-    # Preparar resposta base
-    stats = {
-        'total_projetos': total_projetos,
-        'projetos_ativos': projetos_ativos,
-        'projetos_arquivados': projetos_arquivados,
-        'projetos_manutencao': projetos_manutencao,
-        'horas_totais_investidas': horas_totais,
-        'projetos_por_tipo': projetos_por_tipo,
-        'projetos_por_departamento': projetos_por_departamento,
-        'projetos_por_complexidade': projetos_por_complexidade,
-        'projetos_recentes': projetos_recentes_data
-    }
-    
-    # Adicionar dados financeiros se o usuário tiver permissão
-    if verificar_permissao_financeira(request.user):
-        projetos_com_economia = ProjetoIA.objects.filter(
-            ativo=True,
-            economia_horas_mensais__gt=0
+    try:
+        print("=== CARREGANDO DASHBOARD STATS ===")
+        
+        # Stats básicas
+        total_projetos = ProjetoIA.objects.filter(ativo=True).count()
+        projetos_ativos = ProjetoIA.objects.filter(ativo=True, status=StatusProjeto.ATIVO).count()
+        projetos_arquivados = ProjetoIA.objects.filter(ativo=True, status=StatusProjeto.ARQUIVADO).count()
+        projetos_manutencao = ProjetoIA.objects.filter(ativo=True, status=StatusProjeto.MANUTENCAO).count()
+        
+        print(f"Stats básicas calculadas: {total_projetos}, {projetos_ativos}, {projetos_arquivados}, {projetos_manutencao}")
+        
+        # Horas totais investidas
+        try:
+            horas_totais = ProjetoIA.objects.filter(ativo=True).aggregate(
+                total=Sum('horas_totais')
+            )['total'] or Decimal('0')
+            print(f"Horas totais: {horas_totais}")
+        except Exception as e:
+            print(f"Erro ao calcular horas: {e}")
+            horas_totais = Decimal('0')
+        
+        # Distribuições por categoria
+        try:
+            projetos_por_tipo = dict(
+                ProjetoIA.objects.filter(ativo=True)
+                .values('tipo_projeto')
+                .annotate(count=Count('id'))
+                .values_list('tipo_projeto', 'count')
+            )
+            print(f"Projetos por tipo: {projetos_por_tipo}")
+        except Exception as e:
+            print(f"Erro projetos por tipo: {e}")
+            projetos_por_tipo = {}
+        
+        try:
+            projetos_por_departamento = dict(
+                ProjetoIA.objects.filter(ativo=True)
+                .values('departamento_atendido')
+                .annotate(count=Count('id'))
+                .values_list('departamento_atendido', 'count')
+            )
+            print(f"Projetos por dept: {projetos_por_departamento}")
+        except Exception as e:
+            print(f"Erro projetos por dept: {e}")
+            projetos_por_departamento = {}
+        
+        try:
+            projetos_por_complexidade = dict(
+                ProjetoIA.objects.filter(ativo=True)
+                .values('complexidade')
+                .annotate(count=Count('id'))
+                .values_list('complexidade', 'count')
+            )
+            print(f"Projetos por complexidade: {projetos_por_complexidade}")
+        except Exception as e:
+            print(f"Erro projetos por complexidade: {e}")
+            projetos_por_complexidade = {}
+        
+        # Projetos recentes
+        try:
+            projetos_recentes = ProjetoIA.objects.filter(ativo=True).order_by('-criado_em')[:5]
+            projetos_recentes_data = []
+            for projeto in projetos_recentes:
+                try:
+                    criadores_nomes = [criador.get_full_name() or criador.username for criador in projeto.criadores.all()]
+                    projetos_recentes_data.append({
+                        'id': projeto.id,
+                        'nome': projeto.nome,
+                        'status': projeto.status,
+                        'tipo_projeto': projeto.tipo_projeto,
+                        'criadores_nomes': criadores_nomes,
+                        'criado_em': projeto.criado_em,
+                        'horas_totais': float(projeto.horas_totais),
+                    })
+                except Exception as e:
+                    print(f"Erro ao processar projeto {projeto.id}: {e}")
+            print(f"Projetos recentes: {len(projetos_recentes_data)}")
+        except Exception as e:
+            print(f"Erro projetos recentes: {e}")
+            projetos_recentes_data = []
+        
+        # Preparar resposta base
+        stats = {
+            'total_projetos': total_projetos,
+            'projetos_ativos': projetos_ativos,
+            'projetos_arquivados': projetos_arquivados,
+            'projetos_manutencao': projetos_manutencao,
+            'horas_totais_investidas': float(horas_totais),
+            'projetos_por_tipo': projetos_por_tipo,
+            'projetos_por_departamento': projetos_por_departamento,
+            'projetos_por_complexidade': projetos_por_complexidade,
+            'projetos_recentes': projetos_recentes_data
+        }
+        
+        # Adicionar dados financeiros se o usuário tiver permissão
+        if verificar_permissao_financeira(request.user):
+            print("Calculando dados financeiros...")
+            try:
+                projetos_com_economia = ProjetoIA.objects.filter(
+                    ativo=True,
+                    economia_horas_mensais__gt=0
+                )
+                
+                economia_mensal_total = Decimal('0')
+                economia_acumulada_total = Decimal('0')
+                roi_values = []
+                
+                for projeto in projetos_com_economia:
+                    try:
+                        metricas = projeto.calcular_metricas_financeiras()
+                        economia_mensal_total += Decimal(str(metricas['economia_mensal']))
+                        economia_acumulada_total += Decimal(str(metricas['economia_acumulada']))
+                        if metricas['roi'] > -100:
+                            roi_values.append(metricas['roi'])
+                    except Exception as e:
+                        print(f"Erro ao calcular métricas do projeto {projeto.id}: {e}")
+                
+                roi_medio = sum(roi_values) / len(roi_values) if roi_values else 0
+                
+                # Top 5 projetos por ROI
+                top_projetos_roi = []
+                try:
+                    for projeto in projetos_com_economia.order_by('-economia_horas_mensais')[:5]:
+                        try:
+                            metricas = projeto.calcular_metricas_financeiras()
+                            top_projetos_roi.append({
+                                'id': projeto.id,
+                                'nome': projeto.nome,
+                                'roi': metricas['roi'],
+                                'economia_mensal': metricas['economia_mensal'],
+                                'economia_acumulada': metricas['economia_acumulada']
+                            })
+                        except Exception as e:
+                            print(f"Erro ao calcular top ROI projeto {projeto.id}: {e}")
+                except Exception as e:
+                    print(f"Erro ao calcular top projetos: {e}")
+                
+                # Adicionar dados financeiros
+                stats.update({
+                    'economia_mensal_total': float(economia_mensal_total),
+                    'roi_medio': round(roi_medio, 2),
+                    'economia_acumulada_total': float(economia_acumulada_total),
+                    'top_projetos_roi': top_projetos_roi
+                })
+                print("Dados financeiros calculados com sucesso")
+            except Exception as e:
+                print(f"Erro geral nos dados financeiros: {e}")
+        
+        print("=== DASHBOARD STATS CALCULADO COM SUCESSO ===")
+        return Response(stats)
+        
+    except Exception as e:
+        print(f"ERRO CRÍTICO no dashboard_stats: {e}")
+        import traceback
+        traceback.print_exc()
+        return Response(
+            {'error': 'Erro ao carregar estatísticas'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-        
-        # Calcular métricas financeiras agregadas
-        economia_mensal_total = Decimal('0')
-        economia_acumulada_total = Decimal('0')
-        roi_values = []
-        
-        for projeto in projetos_com_economia:
-            metricas = projeto.calcular_metricas_financeiras()
-            economia_mensal_total += Decimal(str(metricas['economia_mensal']))
-            economia_acumulada_total += Decimal(str(metricas['economia_acumulada']))
-            if metricas['roi'] > -100:  # Filtrar ROIs muito negativos
-                roi_values.append(metricas['roi'])
-        
-        roi_medio = sum(roi_values) / len(roi_values) if roi_values else 0
-        
-        # Top 5 projetos por ROI
-        top_projetos_roi = []
-        for projeto in projetos_com_economia.order_by('-economia_horas_mensais')[:5]:
-            metricas = projeto.calcular_metricas_financeiras()
-            top_projetos_roi.append({
-                'id': projeto.id,
-                'nome': projeto.nome,
-                'roi': metricas['roi'],
-                'economia_mensal': metricas['economia_mensal'],
-                'economia_acumulada': metricas['economia_acumulada']
-            })
-        
-        # Adicionar dados financeiros
-        stats.update({
-            'economia_mensal_total': economia_mensal_total,
-            'roi_medio': round(roi_medio, 2),
-            'economia_acumulada_total': economia_acumulada_total,
-            'top_projetos_roi': top_projetos_roi
-        })
-    
-    return Response(stats)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -544,7 +636,7 @@ def opcoes_formulario(request):
             'usuarios_disponiveis': [],
             'error': str(e)
         })
-    
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def verificar_permissoes(request):
