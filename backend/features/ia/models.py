@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from decimal import Decimal
+from datetime import date
 
 # ===== CLASSES DE ESCOLHAS =====
 class TipoFerramenta(models.TextChoices):
@@ -168,7 +169,7 @@ class ProjetoIA(models.Model):
         help_text="Nome descritivo do projeto"
     )
     data_criacao = models.DateField(
-        default=timezone.now,
+        default=date.today,  # CORREÇÃO: Usar date.today em vez de timezone.now
         verbose_name="Data de Criação",
         help_text="Data de início do projeto"
     )

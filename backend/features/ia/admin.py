@@ -72,83 +72,103 @@ class ProjetoIAAdmin(admin.ModelAdmin):
         'criado_por__last_name', 'criadores__first_name', 'criadores__last_name'
     ]
     list_editable = ['status']
-    readonly_fields = [
-        'criado_por', 'criado_em', 'atualizado_em',
-        'custo_desenvolvimento', 'custos_recorrentes_mensais',
-        'custos_unicos_totais', 'economia_mensal_total',
-        'get_metricas_financeiras_display'
-    ]
-    filter_horizontal = ['criadores', 'dependencias']
-    inlines = [VersaoProjetoInline]
     
-    fieldsets = (
-        ('Informações Básicas', {
-            'fields': (
-                'nome', 'descricao', 'status', 'versao_atual',
-                'link_projeto', 'criadores', 'dependencias'
-            )
-        }),
-        ('Classificação', {
-            'fields': (
-                'tipo_projeto', 'departamento_atendido', 'prioridade', 'complexidade',
-                'usuarios_impactados', 'frequencia_uso', 'ferramentas_tecnologias'
-            )
-        }),
-        ('Investimento de Tempo', {
-            'fields': (
-                'horas_totais', 'horas_desenvolvimento', 'horas_testes',
-                'horas_documentacao', 'horas_deploy', 'valor_hora'
-            )
-        }),
-        ('Custos Recorrentes (Mensais)', {
-            'fields': (
-                'custo_ferramentas_mensais', 'custo_apis_mensais',
-                'custo_infraestrutura_mensais', 'custo_manutencao_mensais'
-            ),
-            'classes': ('collapse',)
-        }),
-        ('Custos Únicos', {
-            'fields': (
-                'custo_treinamentos', 'custo_consultoria', 'custo_setup_inicial'
-            ),
-            'classes': ('collapse',)
-        }),
-        ('Economias/Retornos', {
-            'fields': (
-                'economia_horas_mensais', 'valor_hora_economizada',
-                'reducao_erros_mensais', 'economia_outros_mensais'
-            ),
-            'classes': ('collapse',)
-        }),
-        ('Cálculos Automáticos', {
-            'fields': (
+    # CORREÇÃO: Readonly fields dinâmicos
+    def get_readonly_fields(self, request, obj=None):
+        if obj:  # Editando objeto existente
+            return [
+                'criado_por', 'criado_em', 'atualizado_em',
                 'custo_desenvolvimento', 'custos_recorrentes_mensais',
                 'custos_unicos_totais', 'economia_mensal_total',
                 'get_metricas_financeiras_display'
-            ),
-            'classes': ('collapse',)
-        }),
-        ('Documentação', {
-            'fields': (
-                'documentacao_tecnica', 'licoes_aprendidas',
-                'proximos_passos', 'data_revisao'
-            ),
-            'classes': ('collapse',)
-        }),
-        ('Controle', {
-            'fields': (
-                'ativo', 'criado_em', 'atualizado_em'
-            ),
-            'classes': ('collapse',)
-        })
-    )
+            ]
+        else:  # Criando novo objeto
+            return [
+                'criado_em', 'atualizado_em',
+                'custo_desenvolvimento', 'custos_recorrentes_mensais',
+                'custos_unicos_totais', 'economia_mensal_total',
+                'get_metricas_financeiras_display'
+            ]
+    
+    filter_horizontal = ['criadores', 'dependencias']
+    inlines = [VersaoProjetoInline]
+    
+    # CORREÇÃO: Fieldsets dinâmicos
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = [
+            ('Informações Básicas', {
+                'fields': (
+                    'nome', 'descricao', 'status', 'versao_atual',
+                    'link_projeto', 'criadores', 'dependencias'
+                )
+            }),
+            ('Classificação', {
+                'fields': (
+                    'tipo_projeto', 'departamento_atendido', 'prioridade', 'complexidade',
+                    'usuarios_impactados', 'frequencia_uso', 'ferramentas_tecnologias'
+                )
+            }),
+            ('Investimento de Tempo', {
+                'fields': (
+                    'horas_totais', 'horas_desenvolvimento', 'horas_testes',
+                    'horas_documentacao', 'horas_deploy', 'valor_hora'
+                )
+            }),
+            ('Custos Recorrentes (Mensais)', {
+                'fields': (
+                    'custo_ferramentas_mensais', 'custo_apis_mensais',
+                    'custo_infraestrutura_mensais', 'custo_manutencao_mensais'
+                ),
+                'classes': ('collapse',)
+            }),
+            ('Custos Únicos', {
+                'fields': (
+                    'custo_treinamentos', 'custo_consultoria', 'custo_setup_inicial'
+                ),
+                'classes': ('collapse',)
+            }),
+            ('Economias/Retornos', {
+                'fields': (
+                    'economia_horas_mensais', 'valor_hora_economizada',
+                    'reducao_erros_mensais', 'economia_outros_mensais'
+                ),
+                'classes': ('collapse',)
+            }),
+            ('Cálculos Automáticos', {
+                'fields': (
+                    'custo_desenvolvimento', 'custos_recorrentes_mensais',
+                    'custos_unicos_totais', 'economia_mensal_total',
+                    'get_metricas_financeiras_display'
+                ),
+                'classes': ('collapse',)
+            }),
+            ('Documentação', {
+                'fields': (
+                    'documentacao_tecnica', 'licoes_aprendidas',
+                    'proximos_passos', 'data_revisao'
+                ),
+                'classes': ('collapse',)
+            }),
+        ]
+        
+        # Adicionar seção de controle baseada no estado do objeto
+        if obj:  # Editando
+            fieldsets.append(('Controle', {
+                'fields': ('ativo', 'criado_por', 'criado_em', 'atualizado_em'),
+                'classes': ('collapse',)
+            }))
+        else:  # Criando
+            fieldsets.append(('Controle', {
+                'fields': ('ativo',),
+                'classes': ('collapse',)
+            }))
+        
+        return fieldsets
     
     def save_model(self, request, obj, form, change):
-        if not change:  # Se for um novo objeto
+        if not change:  # Novo objeto
             obj.criado_por = request.user
         super().save_model(request, obj, form, change)
-    
-
     
     def prioridade_badge(self, obj):
         colors = {
