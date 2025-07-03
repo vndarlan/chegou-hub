@@ -50,6 +50,12 @@ if RAILWAY_PUBLIC_BACKEND_DOMAIN:
 # Para garantir que os healthchecks do Railway funcionem
 ALLOWED_HOSTS.append('.railway.app') # Permite qualquer subdomínio de railway.app
 
+# Adicionar domínio customizado
+ALLOWED_HOSTS.extend([
+    'chegouhub.com.br',
+    'www.chegouhub.com.br',
+])
+
 if DEBUG: # Local dev fallback
     ALLOWED_HOSTS.extend(['localhost', '127.0.0.1', '*'])
 elif not ALLOWED_HOSTS_ENV: # Produção sem ALLOWED_HOSTS_ENV é um erro
@@ -170,12 +176,21 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- Configurações CORS (SOLUÇÃO TEMPORÁRIA) ---
-# Usar CORS_ALLOW_ALL_ORIGINS para contornar o bug do Railway
-CORS_ALLOW_ALL_ORIGINS = True
+# --- Configurações CORS ---
+# ATUALIZADO: Configuração específica em vez de CORS_ALLOW_ALL_ORIGINS
+CORS_ALLOWED_ORIGINS = [
+    # Domínio customizado
+    "https://chegouhub.com.br",
+    "https://www.chegouhub.com.br",
+    
+    # URLs Railway (mantidas como backup)
+    "https://chegouhub.up.railway.app",
+    "https://chegou-hubb-production.up.railway.app",
+]
+
 CORS_ALLOW_CREDENTIALS = True
 
-print(f"CORS_ALLOW_ALL_ORIGINS: {CORS_ALLOW_ALL_ORIGINS}")
+print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
 
 CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
 CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
@@ -184,8 +199,13 @@ CORS_ALLOW_HEADERS = [
     "user-agent", "x-csrftoken", "x-requested-with",
 ]
 
-# --- Configuração CSRF (HARDCODED) ---
+# --- Configuração CSRF ---
 CSRF_TRUSTED_ORIGINS = [
+    # Domínio customizado
+    "https://chegouhub.com.br",
+    "https://www.chegouhub.com.br",
+    
+    # URLs Railway (mantidas como backup)
     "https://chegouhub.up.railway.app",
     "https://chegou-hubb-production.up.railway.app"
 ]
