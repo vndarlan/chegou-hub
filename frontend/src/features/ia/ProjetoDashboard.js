@@ -197,7 +197,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
         nome: '',
         descricao: '',
         tipo_projeto: '',
-        departamento_atendido: '',
+        departamentos_atendidos: [], // NOVO: Array em vez de string
         prioridade: 'media',
         complexidade: 'media',
         horas_totais: 0,
@@ -206,6 +206,11 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
         link_projeto: '',
         usuarios_impactados: 0,
         frequencia_uso: 'diario',
+        // Campos de breakdown de horas - CORREÇÃO PARA SALVAR
+        horas_desenvolvimento: 0,
+        horas_testes: 0,
+        horas_documentacao: 0,
+        horas_deploy: 0,
         // Novos campos financeiros
         custo_hora_empresa: 80,
         custo_apis_mensal: 0,
@@ -213,7 +218,12 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
         horas_economizadas_mes: 0,
         valor_monetario_economizado_mes: 0,
         data_break_even: null,
-        nivel_autonomia: 'total'
+        nivel_autonomia: 'total',
+        // Campos de documentação - CORREÇÃO PARA SALVAR
+        documentacao_tecnica: '',
+        licoes_aprendidas: '',
+        proximos_passos: '',
+        data_revisao: null
     });
 
     // CORREÇÃO: Atualizar formData quando projeto muda
@@ -223,7 +233,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                 nome: projeto.nome || '',
                 descricao: projeto.descricao || '',
                 tipo_projeto: projeto.tipo_projeto || '',
-                departamento_atendido: projeto.departamento_atendido || '',
+                departamentos_atendidos: projeto.departamentos_atendidos || [], // NOVO
                 prioridade: projeto.prioridade || 'media',
                 complexidade: projeto.complexidade || 'media',
                 horas_totais: projeto.horas_totais || 0,
@@ -232,6 +242,11 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                 link_projeto: projeto.link_projeto || '',
                 usuarios_impactados: projeto.usuarios_impactados || 0,
                 frequencia_uso: projeto.frequencia_uso || 'diario',
+                // CORREÇÃO: Campos de breakdown
+                horas_desenvolvimento: projeto.horas_desenvolvimento || 0,
+                horas_testes: projeto.horas_testes || 0,
+                horas_documentacao: projeto.horas_documentacao || 0,
+                horas_deploy: projeto.horas_deploy || 0,
                 // Novos campos financeiros
                 custo_hora_empresa: projeto.custo_hora_empresa || 80,
                 custo_apis_mensal: projeto.custo_apis_mensal || 0,
@@ -239,15 +254,20 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                 horas_economizadas_mes: projeto.horas_economizadas_mes || 0,
                 valor_monetario_economizado_mes: projeto.valor_monetario_economizado_mes || 0,
                 data_break_even: projeto.data_break_even || null,
-                nivel_autonomia: projeto.nivel_autonomia || 'total'
+                nivel_autonomia: projeto.nivel_autonomia || 'total',
+                // CORREÇÃO: Campos de documentação
+                documentacao_tecnica: projeto.documentacao_tecnica || '',
+                licoes_aprendidas: projeto.licoes_aprendidas || '',
+                proximos_passos: projeto.proximos_passos || '',
+                data_revisao: projeto.data_revisao || null
             });
         } else {
-            // Resetar para valores padrão quando não há projeto
+            // Reset para valores padrão
             setFormData({
                 nome: '',
                 descricao: '',
                 tipo_projeto: '',
-                departamento_atendido: '',
+                departamentos_atendidos: [], // NOVO
                 prioridade: 'media',
                 complexidade: 'media',
                 horas_totais: 0,
@@ -256,14 +276,21 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                 link_projeto: '',
                 usuarios_impactados: 0,
                 frequencia_uso: 'diario',
-                // Novos campos financeiros
+                horas_desenvolvimento: 0,
+                horas_testes: 0,
+                horas_documentacao: 0,
+                horas_deploy: 0,
                 custo_hora_empresa: 80,
                 custo_apis_mensal: 0,
                 lista_ferramentas: [],
                 horas_economizadas_mes: 0,
                 valor_monetario_economizado_mes: 0,
                 data_break_even: null,
-                nivel_autonomia: 'total'
+                nivel_autonomia: 'total',
+                documentacao_tecnica: '',
+                licoes_aprendidas: '',
+                proximos_passos: '',
+                data_revisao: null
             });
         }
     }, [projeto]);
@@ -338,14 +365,21 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={6}>
-                                    <Select
-                                        label="Departamento"
-                                        placeholder="Selecione o departamento"
-                                        data={deptOptions}
+                                    <MultiSelect // MUDOU DE Select PARA MultiSelect
+                                        label="Departamentos"
+                                        placeholder="Selecione os departamentos"
+                                        data={[
+                                            { value: 'diretoria', label: 'Diretoria' },
+                                            { value: 'gestao', label: 'Gestão' },
+                                            { value: 'operacional', label: 'Operacional' },
+                                            { value: 'ia_automacoes', label: 'IA & Automações' },
+                                            { value: 'suporte', label: 'Suporte' },
+                                            { value: 'trafego_pago', label: 'Tráfego Pago' }
+                                        ]}
                                         required
                                         searchable
-                                        value={formData.departamento_atendido}
-                                        onChange={(value) => setFormData(prev => ({...prev, departamento_atendido: value}))}
+                                        value={formData.departamentos_atendidos}
+                                        onChange={(value) => setFormData(prev => ({...prev, departamentos_atendidos: value}))}
                                         comboboxProps={{ withinPortal: false }}
                                     />
                                 </Grid.Col>
@@ -425,6 +459,51 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 </Grid.Col>
                             </Grid>
                             
+                            {/* CORREÇÃO: Adicionar breakdown de horas */}
+                            <Title order={5}>⏱️ Breakdown de Horas</Title>
+                            <Grid>
+                                <Grid.Col span={3}>
+                                    <NumberInput
+                                        label="Desenvolvimento"
+                                        placeholder="0"
+                                        min={0}
+                                        step={0.5}
+                                        value={formData.horas_desenvolvimento}
+                                        onChange={(value) => setFormData(prev => ({...prev, horas_desenvolvimento: value}))}
+                                    />
+                                </Grid.Col>
+                                <Grid.Col span={3}>
+                                    <NumberInput
+                                        label="Testes"
+                                        placeholder="0"
+                                        min={0}
+                                        step={0.5}
+                                        value={formData.horas_testes}
+                                        onChange={(value) => setFormData(prev => ({...prev, horas_testes: value}))}
+                                    />
+                                </Grid.Col>
+                                <Grid.Col span={3}>
+                                    <NumberInput
+                                        label="Documentação"
+                                        placeholder="0"
+                                        min={0}
+                                        step={0.5}
+                                        value={formData.horas_documentacao}
+                                        onChange={(value) => setFormData(prev => ({...prev, horas_documentacao: value}))}
+                                    />
+                                </Grid.Col>
+                                <Grid.Col span={3}>
+                                    <NumberInput
+                                        label="Deploy"
+                                        placeholder="0"
+                                        min={0}
+                                        step={0.5}
+                                        value={formData.horas_deploy}
+                                        onChange={(value) => setFormData(prev => ({...prev, horas_deploy: value}))}
+                                    />
+                                </Grid.Col>
+                            </Grid>
+                            
                             <Text size="sm" weight={500}>Ferramentas/Tecnologias</Text>
                             <TextInput
                                 placeholder="Ex: Python, OpenAI API, PostgreSQL"
@@ -434,6 +513,39 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                     setFormData(prev => ({...prev, ferramentas_tecnologias: techs}));
                                 }}
                                 defaultValue={formData.ferramentas_tecnologias?.join(', ')}
+                            />
+                            
+                            {/* CORREÇÃO: Adicionar campos de documentação */}
+                            <Title order={5}>📚 Documentação</Title>
+                            <TextInput
+                                label="Link da Documentação Técnica"
+                                placeholder="https://..."
+                                value={formData.documentacao_tecnica}
+                                onChange={(e) => setFormData(prev => ({...prev, documentacao_tecnica: e.target.value}))}
+                            />
+                            
+                            <Textarea
+                                label="Lições Aprendidas"
+                                placeholder="O que funcionou bem e quais foram os desafios..."
+                                rows={3}
+                                value={formData.licoes_aprendidas}
+                                onChange={(e) => setFormData(prev => ({...prev, licoes_aprendidas: e.target.value}))}
+                            />
+                            
+                            <Textarea
+                                label="Próximos Passos"
+                                placeholder="Melhorias e funcionalidades planejadas..."
+                                rows={3}
+                                value={formData.proximos_passos}
+                                onChange={(e) => setFormData(prev => ({...prev, proximos_passos: e.target.value}))}
+                            />
+                            
+                            <TextInput
+                                label="Data de Próxima Revisão (Opcional)"
+                                placeholder="YYYY-MM-DD"
+                                description="Ex: 2024-03-15"
+                                value={formData.data_revisao || ''}
+                                onChange={(e) => setFormData(prev => ({...prev, data_revisao: e.target.value || null}))}
                             />
                         </Stack>
                     </Tabs.Panel>
@@ -943,12 +1055,12 @@ function ProjetoDashboard() {
                 throw new Error('Erro ao obter token de segurança');
             }
             
-            // Preparar dados
+            // CORREÇÃO: Preparar dados com TODOS os campos
             const projetoData = {
                 nome: data.nome?.trim(),
                 descricao: data.descricao?.trim(),
                 tipo_projeto: data.tipo_projeto,
-                departamento_atendido: data.departamento_atendido,
+                departamentos_atendidos: Array.isArray(data.departamentos_atendidos) ? data.departamentos_atendidos : [], // NOVO
                 prioridade: data.prioridade || 'media',
                 complexidade: data.complexidade || 'media',
                 horas_totais: Number(data.horas_totais) || 0,
@@ -957,6 +1069,13 @@ function ProjetoDashboard() {
                 link_projeto: data.link_projeto?.trim() || '',
                 usuarios_impactados: Number(data.usuarios_impactados) || 0,
                 frequencia_uso: data.frequencia_uso || 'diario',
+                
+                // CORREÇÃO: Campos de breakdown de horas
+                horas_desenvolvimento: Number(data.horas_desenvolvimento) || 0,
+                horas_testes: Number(data.horas_testes) || 0,
+                horas_documentacao: Number(data.horas_documentacao) || 0,
+                horas_deploy: Number(data.horas_deploy) || 0,
+                
                 // Novos campos financeiros
                 custo_hora_empresa: Number(data.custo_hora_empresa) || 0,
                 custo_apis_mensal: Number(data.custo_apis_mensal) || 0,
@@ -964,7 +1083,13 @@ function ProjetoDashboard() {
                 horas_economizadas_mes: Number(data.horas_economizadas_mes) || 0,
                 valor_monetario_economizado_mes: Number(data.valor_monetario_economizado_mes) || 0,
                 data_break_even: data.data_break_even || null,
-                nivel_autonomia: data.nivel_autonomia || 'total'
+                nivel_autonomia: data.nivel_autonomia || 'total',
+                
+                // CORREÇÃO: Campos de documentação
+                documentacao_tecnica: data.documentacao_tecnica?.trim() || '',
+                licoes_aprendidas: data.licoes_aprendidas?.trim() || '',
+                proximos_passos: data.proximos_passos?.trim() || '',
+                data_revisao: data.data_revisao || null
             };
             
             console.log('🎯 Dados preparados:', projetoData);
@@ -973,7 +1098,7 @@ function ProjetoDashboard() {
             if (!projetoData.nome) throw new Error('Nome é obrigatório');
             if (!projetoData.descricao) throw new Error('Descrição é obrigatória');
             if (!projetoData.tipo_projeto) throw new Error('Tipo de projeto é obrigatório');
-            if (!projetoData.departamento_atendido) throw new Error('Departamento é obrigatório');
+            if (!projetoData.departamentos_atendidos.length) throw new Error('Pelo menos um departamento é obrigatório');
             if (projetoData.horas_totais <= 0) throw new Error('Horas totais deve ser maior que 0');
             
             const config = {

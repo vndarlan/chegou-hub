@@ -41,14 +41,12 @@ class TipoProjeto(models.TextChoices):
     OUTROS = 'outros', 'Outros'
 
 class DepartamentoChoices(models.TextChoices):
-    TI = 'ti', 'TI'
-    MARKETING = 'marketing', 'Marketing'
-    VENDAS = 'vendas', 'Vendas'
-    OPERACIONAL = 'operacional', 'Operacional'
-    FINANCEIRO = 'financeiro', 'Financeiro'
-    RH = 'rh', 'Recursos Humanos'
-    ATENDIMENTO = 'atendimento', 'Atendimento ao Cliente'
     DIRETORIA = 'diretoria', 'Diretoria'
+    GESTAO = 'gestao', 'Gestão'
+    OPERACIONAL = 'operacional', 'Operacional'
+    IA_AUTOMACOES = 'ia_automacoes', 'IA & Automações'
+    SUPORTE = 'suporte', 'Suporte'
+    TRAFEGO_PAGO = 'trafego_pago', 'Tráfego Pago'
 
 class PrioridadeChoices(models.TextChoices):
     BAIXA = 'baixa', 'Baixa'
@@ -218,11 +216,23 @@ class ProjetoIA(models.Model):
         choices=TipoProjeto.choices,
         verbose_name="Tipo de Projeto"
     )
+    
+    # NOVO: Campo departamentos múltiplos
+    departamentos_atendidos = models.JSONField(
+        default=list,
+        verbose_name="Departamentos Atendidos",
+        help_text="Lista de departamentos que o projeto atende"
+    )
+    
+    # Manter o campo antigo por compatibilidade (será removido após migração)
     departamento_atendido = models.CharField(
         max_length=20,
         choices=DepartamentoChoices.choices,
-        verbose_name="Departamento Atendido"
+        verbose_name="Departamento Atendido (LEGADO)",
+        blank=True,
+        null=True
     )
+    
     prioridade = models.CharField(
         max_length=10,
         choices=PrioridadeChoices.choices,
@@ -471,13 +481,22 @@ class ProjetoIA(models.Model):
         ordering = ['-criado_em']
         indexes = [
             models.Index(fields=['status', 'ativo']),
-            models.Index(fields=['tipo_projeto', 'departamento_atendido']),
+            models.Index(fields=['tipo_projeto', 'departamentos_atendidos']),
             models.Index(fields=['prioridade', 'complexidade']),
             models.Index(fields=['criado_em']),
         ]
     
     def __str__(self):
         return f"{self.nome} ({self.get_status_display()})"
+    
+    # NOVO: Método para exibir departamentos
+    def get_departamentos_display(self):
+        """Retorna os nomes dos departamentos selecionados"""
+        if not self.departamentos_atendidos:
+            return []
+        
+        choices_dict = dict(DepartamentoChoices.choices)
+        return [choices_dict.get(dept, dept) for dept in self.departamentos_atendidos]
     
     # ===== PROPRIEDADES CALCULADAS ATUALIZADAS =====
     @property

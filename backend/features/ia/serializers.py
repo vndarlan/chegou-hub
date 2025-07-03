@@ -115,13 +115,14 @@ class ProjetoIAListSerializer(serializers.ModelSerializer):
     criado_por_nome = serializers.SerializerMethodField()
     metricas_financeiras = serializers.SerializerMethodField()
     dias_sem_atualizacao = serializers.SerializerMethodField()
+    departamentos_display = serializers.SerializerMethodField()  # NOVO
     
     class Meta:
         model = ProjetoIA
         fields = [
             'id', 'nome', 'data_criacao', 'descricao', 'status',
-            'tipo_projeto', 'departamento_atendido', 'prioridade', 'complexidade',
-            'versao_atual', 'criadores_nomes', 'criado_por_nome',
+            'tipo_projeto', 'departamentos_atendidos', 'departamentos_display',  # ATUALIZADO
+            'prioridade', 'complexidade', 'versao_atual', 'criadores_nomes', 'criado_por_nome',
             'horas_totais', 'usuarios_impactados', 'frequencia_uso',
             'metricas_financeiras', 'criado_em', 'atualizado_em',
             'dias_sem_atualizacao', 'ativo'
@@ -140,6 +141,13 @@ class ProjetoIAListSerializer(serializers.ModelSerializer):
         except Exception as e:
             print(f"Erro get_criado_por_nome: {e}")
             return "N/A"
+    
+    def get_departamentos_display(self, obj):
+        try:
+            return obj.get_departamentos_display()
+        except Exception as e:
+            print(f"Erro get_departamentos_display: {e}")
+            return []
     
     def get_metricas_financeiras(self, obj):
         try:
@@ -191,6 +199,7 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
     )
     dependencias_nomes = serializers.SerializerMethodField(read_only=True)
     projetos_dependentes = serializers.SerializerMethodField(read_only=True)
+    departamentos_display = serializers.SerializerMethodField(read_only=True)  # NOVO
     
     criado_por_nome = serializers.SerializerMethodField()
     versoes = VersaoProjetoSerializer(many=True, read_only=True)
@@ -233,6 +242,13 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
             return [{'id': dep.id, 'nome': dep.nome} for dep in obj.projetos_dependentes.all()]
         except Exception as e:
             print(f"Erro get_projetos_dependentes: {e}")
+            return []
+    
+    def get_departamentos_display(self, obj):
+        try:
+            return obj.get_departamentos_display()
+        except Exception as e:
+            print(f"Erro get_departamentos_display: {e}")
             return []
     
     # Novos campos calculados
@@ -303,6 +319,21 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
     
     def validate(self, data):
         try:
+            # NOVO: Validar departamentos
+            departamentos = data.get('departamentos_atendidos', [])
+            if not departamentos:
+                raise serializers.ValidationError({
+                    'departamentos_atendidos': 'Pelo menos um departamento deve ser selecionado'
+                })
+            
+            # Validar se os departamentos são válidos
+            choices_validas = [choice[0] for choice in DepartamentoChoices.choices]
+            for dept in departamentos:
+                if dept not in choices_validas:
+                    raise serializers.ValidationError({
+                        'departamentos_atendidos': f'Departamento inválido: {dept}'
+                    })
+            
             # Validar se o breakdown de horas não excede o total
             horas_totais = data.get('horas_totais', 0)
             horas_dev = data.get('horas_desenvolvimento', 0)
@@ -353,24 +384,40 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
             raise
     
     def update(self, instance, validated_data):
+        """CORREÇÃO: Melhor handling da atualização"""
         try:
+            print(f"🔄 Atualizando projeto {instance.id} com dados: {list(validated_data.keys())}")
+            
+            # Extrair relacionamentos ManyToMany
             criadores_data = validated_data.pop('criadores', None)
             dependencias_data = validated_data.pop('dependencias', None)
             
             # Atualizar campos normais
             for attr, value in validated_data.items():
+                print(f"  ✏️ Atualizando {attr}: {value}")
                 setattr(instance, attr, value)
+            
             instance.save()
+            print(f"  ✅ Campos básicos salvos")
             
             # Atualizar relacionamentos se fornecidos
             if criadores_data is not None:
                 instance.criadores.set(criadores_data)
+                print(f"  ✅ Criadores atualizados: {len(criadores_data)}")
+            
             if dependencias_data is not None:
                 instance.dependencias.set(dependencias_data)
+                print(f"  ✅ Dependências atualizadas: {len(dependencias_data)}")
+            
+            # Recarregar da base de dados para garantir dados atualizados
+            instance.refresh_from_db()
+            print(f"  ✅ Projeto recarregado da DB")
             
             return instance
         except Exception as e:
-            print(f"Erro no update: {e}")
+            print(f"💥 Erro no update: {e}")
+            import traceback
+            traceback.print_exc()
             raise
 
 class ProjetoIACreateSerializer(serializers.ModelSerializer):
@@ -387,20 +434,28 @@ class ProjetoIACreateSerializer(serializers.ModelSerializer):
         model = ProjetoIA
         fields = [
             # Campos básicos
-            'nome', 'descricao', 'tipo_projeto', 'departamento_atendido',
+            'nome', 'descricao', 'tipo_projeto', 'departamentos_atendidos',  # ATUALIZADO
             'prioridade', 'complexidade', 'horas_totais', 'criadores_ids',
             'ferramentas_tecnologias', 'link_projeto', 'usuarios_impactados',
             'frequencia_uso',
+            
+            # Campos de breakdown de horas
+            'horas_desenvolvimento', 'horas_testes', 'horas_documentacao', 'horas_deploy',
             
             # Novos campos financeiros
             'custo_hora_empresa', 'custo_apis_mensal', 'lista_ferramentas',
             'custo_treinamentos', 'custo_setup_inicial', 'custo_consultoria',
             'horas_economizadas_mes', 'valor_monetario_economizado_mes',
-            'nivel_autonomia', 'data_break_even',
+            'data_break_even', 'nivel_autonomia',
             
             # Campos legados (compatibilidade)
             'valor_hora', 'custo_ferramentas_mensais', 'custo_apis_mensais',
-            'economia_horas_mensais', 'valor_hora_economizada'
+            'custo_infraestrutura_mensais', 'custo_manutencao_mensais',
+            'economia_horas_mensais', 'valor_hora_economizada',
+            'reducao_erros_mensais', 'economia_outros_mensais',
+            
+            # Documentação
+            'documentacao_tecnica', 'licoes_aprendidas', 'proximos_passos', 'data_revisao'
         ]
     
     def create(self, validated_data):
