@@ -15,7 +15,7 @@ import {
     IconSortAscending, IconSortDescending, IconRefresh, IconSettings,
     IconChevronDown, IconActivity, IconTrendingUp, IconTarget,
     IconBuilding, IconPriority, IconComplexity, IconCalendar,
-    IconFileText, IconLink, IconTag, IconBrain, IconRobot
+    IconFileText, IconLink, IconTag, IconBrain, IconRobot, IconWrench
 } from '@tabler/icons-react';
 import { DatePickerInput } from '@mantine/dates';
 import { useForm } from '@mantine/form';
@@ -59,7 +59,7 @@ const PrioridadeBadge = ({ prioridade }) => {
 };
 
 // Card de Projeto
-const ProjetoCard = ({ projeto, onEdit, onView, onArchive, onDuplicate, onNewVersion, userPermissions }) => {
+const ProjetoCard = ({ projeto, onEdit, onView, onArchive, onDuplicate, onNewVersion, onChangeStatus, userPermissions }) => {
     const metricas = projeto.metricas_financeiras;
     const podeVerFinanceiro = userPermissions?.pode_ver_financeiro && !metricas?.acesso_restrito;
     
@@ -136,7 +136,7 @@ const ProjetoCard = ({ projeto, onEdit, onView, onArchive, onDuplicate, onNewVer
                     </Text>
                 </Group>
                 
-                <Menu shadow="md" width={200}>
+                <Menu shadow="md" width={220}>
                     <Menu.Target>
                         <ActionIcon variant="subtle">
                             <IconChevronDown size={16} />
@@ -156,13 +156,34 @@ const ProjetoCard = ({ projeto, onEdit, onView, onArchive, onDuplicate, onNewVer
                             Duplicar
                         </Menu.Item>
                         <Menu.Divider />
-                        <Menu.Item 
-                            leftSection={<IconArchive size={14} />} 
-                            onClick={() => onArchive(projeto)}
-                            color={projeto.status === 'arquivado' ? 'blue' : 'orange'}
-                        >
-                            {projeto.status === 'arquivado' ? 'Reativar' : 'Arquivar'}
-                        </Menu.Item>
+                        <Menu.Label>Alterar Status</Menu.Label>
+                        {projeto.status !== 'ativo' && (
+                            <Menu.Item 
+                                leftSection={<IconActivity size={14} />} 
+                                onClick={() => onChangeStatus(projeto, 'ativo')}
+                                color="green"
+                            >
+                                Ativar
+                            </Menu.Item>
+                        )}
+                        {projeto.status !== 'manutencao' && (
+                            <Menu.Item 
+                                leftSection={<IconWrench size={14} />} 
+                                onClick={() => onChangeStatus(projeto, 'manutencao')}
+                                color="yellow"
+                            >
+                                Em Manutenção
+                            </Menu.Item>
+                        )}
+                        {projeto.status !== 'arquivado' && (
+                            <Menu.Item 
+                                leftSection={<IconArchive size={14} />} 
+                                onClick={() => onChangeStatus(projeto, 'arquivado')}
+                                color="orange"
+                            >
+                                Arquivar
+                            </Menu.Item>
+                        )}
                     </Menu.Dropdown>
                 </Menu>
             </Group>
@@ -173,24 +194,70 @@ const ProjetoCard = ({ projeto, onEdit, onView, onArchive, onDuplicate, onNewVer
 // Modal de Formulário de Projeto
 const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading }) => {
     const [formData, setFormData] = useState({
-        nome: projeto?.nome || '',
-        descricao: projeto?.descricao || '',
-        tipo_projeto: projeto?.tipo_projeto || '',
-        departamento_atendido: projeto?.departamento_atendido || '',
-        prioridade: projeto?.prioridade || 'media',
-        complexidade: projeto?.complexidade || 'media',
-        horas_totais: projeto?.horas_totais || 0,
-        criadores_ids: projeto?.criadores?.map(c => c.id.toString()) || [],
-        ferramentas_tecnologias: projeto?.ferramentas_tecnologias || [],
-        link_projeto: projeto?.link_projeto || '',
-        usuarios_impactados: projeto?.usuarios_impactados || 0,
-        frequencia_uso: projeto?.frequencia_uso || 'diario',
-        valor_hora: projeto?.valor_hora || 150,
-        custo_ferramentas_mensais: projeto?.custo_ferramentas_mensais || 0,
-        custo_apis_mensais: projeto?.custo_apis_mensais || 0,
-        economia_horas_mensais: projeto?.economia_horas_mensais || 0,
-        valor_hora_economizada: projeto?.valor_hora_economizada || 50,
+        nome: '',
+        descricao: '',
+        tipo_projeto: '',
+        departamento_atendido: '',
+        prioridade: 'media',
+        complexidade: 'media',
+        horas_totais: 0,
+        criadores_ids: [],
+        ferramentas_tecnologias: [],
+        link_projeto: '',
+        usuarios_impactados: 0,
+        frequencia_uso: 'diario',
+        valor_hora: 150,
+        custo_ferramentas_mensais: 0,
+        custo_apis_mensais: 0,
+        economia_horas_mensais: 0,
+        valor_hora_economizada: 50,
     });
+
+    // CORREÇÃO: Atualizar formData quando projeto muda
+    useEffect(() => {
+        if (projeto) {
+            setFormData({
+                nome: projeto.nome || '',
+                descricao: projeto.descricao || '',
+                tipo_projeto: projeto.tipo_projeto || '',
+                departamento_atendido: projeto.departamento_atendido || '',
+                prioridade: projeto.prioridade || 'media',
+                complexidade: projeto.complexidade || 'media',
+                horas_totais: projeto.horas_totais || 0,
+                criadores_ids: projeto.criadores?.map(c => c.id.toString()) || [],
+                ferramentas_tecnologias: projeto.ferramentas_tecnologias || [],
+                link_projeto: projeto.link_projeto || '',
+                usuarios_impactados: projeto.usuarios_impactados || 0,
+                frequencia_uso: projeto.frequencia_uso || 'diario',
+                valor_hora: projeto.valor_hora || 150,
+                custo_ferramentas_mensais: projeto.custo_ferramentas_mensais || 0,
+                custo_apis_mensais: projeto.custo_apis_mensais || 0,
+                economia_horas_mensais: projeto.economia_horas_mensais || 0,
+                valor_hora_economizada: projeto.valor_hora_economizada || 50,
+            });
+        } else {
+            // Resetar para valores padrão quando não há projeto
+            setFormData({
+                nome: '',
+                descricao: '',
+                tipo_projeto: '',
+                departamento_atendido: '',
+                prioridade: 'media',
+                complexidade: 'media',
+                horas_totais: 0,
+                criadores_ids: [],
+                ferramentas_tecnologias: [],
+                link_projeto: '',
+                usuarios_impactados: 0,
+                frequencia_uso: 'diario',
+                valor_hora: 150,
+                custo_ferramentas_mensais: 0,
+                custo_apis_mensais: 0,
+                economia_horas_mensais: 0,
+                valor_hora_economizada: 50,
+            });
+        }
+    }, [projeto]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -874,6 +941,45 @@ function ProjetoDashboard() {
         }
     };
 
+    // CORREÇÃO: Nova função para mudança de status
+    const handleChangeStatus = async (projeto, novoStatus) => {
+        try {
+            const csrfResponse = await axios.get('/current-state/');
+            const csrfToken = csrfResponse.data.csrf_token;
+            
+            const config = {
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                }
+            };
+            
+            await axios.patch(`/ia/projetos/${projeto.id}/`, { status: novoStatus }, config);
+            
+            const statusLabels = {
+                'ativo': 'ativado',
+                'arquivado': 'arquivado', 
+                'manutencao': 'em manutenção'
+            };
+            
+            notifications.show({
+                title: 'Sucesso',
+                message: `Projeto ${statusLabels[novoStatus]} com sucesso`,
+                color: 'green'
+            });
+            
+            carregarProjetos();
+            carregarDadosIniciais();
+        } catch (err) {
+            console.error('Erro ao alterar status:', err);
+            notifications.show({
+                title: 'Erro',
+                message: 'Erro ao alterar status do projeto',
+                color: 'red'
+            });
+        }
+    };
+
     const handleArchiveProjeto = async (projeto) => {
         try {
             await axios.post(`/ia/projetos/${projeto.id}/arquivar/`);
@@ -968,9 +1074,9 @@ function ProjetoDashboard() {
                 </Alert>
             )}
 
-            {/* Cards de Estatísticas */}
+            {/* Cards de Estatísticas - CORREÇÃO: Só mostrar 4º card se tiver dados financeiros */}
             {stats && (
-                <SimpleGrid cols={4} spacing="md" mb="xl">
+                <SimpleGrid cols={userPermissions?.pode_ver_financeiro && stats.economia_mensal_total ? 4 : 3} spacing="md" mb="xl">
                     <Paper withBorder p="md" bg="blue.0">
                         <Group gap="sm">
                             <IconBrain size={24} />
@@ -1001,6 +1107,7 @@ function ProjetoDashboard() {
                         </Group>
                     </Paper>
                     
+                    {/* CORREÇÃO: Só mostrar se tiver dados financeiros E permissão */}
                     {userPermissions?.pode_ver_financeiro && stats.economia_mensal_total && (
                         <Paper withBorder p="md" bg="teal.0">
                             <Group gap="sm">
@@ -1089,6 +1196,7 @@ function ProjetoDashboard() {
                                 setSelectedProjeto(p);
                                 setVersionModalOpen(true);
                             }}
+                            onChangeStatus={handleChangeStatus}
                             userPermissions={userPermissions}
                         />
                     ))}
