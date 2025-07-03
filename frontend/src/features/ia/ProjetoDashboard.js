@@ -15,7 +15,7 @@ import {
     IconSortAscending, IconSortDescending, IconRefresh, IconSettings,
     IconChevronDown, IconActivity, IconTrendingUp, IconTarget,
     IconBuilding, IconPriority, IconComplexity, IconCalendar,
-    IconFileText, IconLink, IconTag, IconBrain, IconRobot, IconWrench
+    IconFileText, IconLink, IconTag, IconBrain, IconRobot
 } from '@tabler/icons-react';
 import { DatePickerInput } from '@mantine/dates';
 import { useForm } from '@mantine/form';
@@ -168,7 +168,7 @@ const ProjetoCard = ({ projeto, onEdit, onView, onArchive, onDuplicate, onNewVer
                         )}
                         {projeto.status !== 'manutencao' && (
                             <Menu.Item 
-                                leftSection={<IconWrench size={14} />} 
+                                leftSection={<IconTool size={14} />} 
                                 onClick={() => onChangeStatus(projeto, 'manutencao')}
                                 color="yellow"
                             >
