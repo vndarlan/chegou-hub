@@ -206,11 +206,17 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
         link_projeto: '',
         usuarios_impactados: 0,
         frequencia_uso: 'diario',
-        valor_hora: 150,
-        custo_ferramentas_mensais: 0,
-        custo_apis_mensais: 0,
-        economia_horas_mensais: 0,
-        valor_hora_economizada: 50,
+        // Novos campos financeiros
+        custo_hora_empresa: 80,
+        custo_apis_mensal: 0,
+        lista_ferramentas: [],
+        custo_treinamentos: 0,
+        custo_setup_inicial: 0,
+        custo_consultoria: 0,
+        horas_economizadas_mes: 0,
+        valor_monetario_economizado_mes: 0,
+        data_break_even: null,
+        nivel_autonomia: 'total'
     });
 
     // CORREÇÃO: Atualizar formData quando projeto muda
@@ -229,11 +235,17 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                 link_projeto: projeto.link_projeto || '',
                 usuarios_impactados: projeto.usuarios_impactados || 0,
                 frequencia_uso: projeto.frequencia_uso || 'diario',
-                valor_hora: projeto.valor_hora || 150,
-                custo_ferramentas_mensais: projeto.custo_ferramentas_mensais || 0,
-                custo_apis_mensais: projeto.custo_apis_mensais || 0,
-                economia_horas_mensais: projeto.economia_horas_mensais || 0,
-                valor_hora_economizada: projeto.valor_hora_economizada || 50,
+                // Novos campos financeiros
+                custo_hora_empresa: projeto.custo_hora_empresa || 80,
+                custo_apis_mensal: projeto.custo_apis_mensal || 0,
+                lista_ferramentas: projeto.lista_ferramentas || [],
+                custo_treinamentos: projeto.custo_treinamentos || 0,
+                custo_setup_inicial: projeto.custo_setup_inicial || 0,
+                custo_consultoria: projeto.custo_consultoria || 0,
+                horas_economizadas_mes: projeto.horas_economizadas_mes || 0,
+                valor_monetario_economizado_mes: projeto.valor_monetario_economizado_mes || 0,
+                data_break_even: projeto.data_break_even || null,
+                nivel_autonomia: projeto.nivel_autonomia || 'total'
             });
         } else {
             // Resetar para valores padrão quando não há projeto
@@ -250,11 +262,17 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                 link_projeto: '',
                 usuarios_impactados: 0,
                 frequencia_uso: 'diario',
-                valor_hora: 150,
-                custo_ferramentas_mensais: 0,
-                custo_apis_mensais: 0,
-                economia_horas_mensais: 0,
-                valor_hora_economizada: 50,
+                // Novos campos financeiros
+                custo_hora_empresa: 80,
+                custo_apis_mensal: 0,
+                lista_ferramentas: [],
+                custo_treinamentos: 0,
+                custo_setup_inicial: 0,
+                custo_consultoria: 0,
+                horas_economizadas_mes: 0,
+                valor_monetario_economizado_mes: 0,
+                data_break_even: null,
+                nivel_autonomia: 'total'
             });
         }
     }, [projeto]);
@@ -431,34 +449,125 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
 
                     <Tabs.Panel value="financeiro" pt="md">
                         <Stack gap="md">
-                            <Title order={5}>Custos</Title>
+                            <Title order={5}>💰 Custos</Title>
                             
                             <Grid>
                                 <Grid.Col span={6}>
                                     <NumberInput
-                                        label="Valor/Hora (R$)"
-                                        placeholder="150"
+                                        label="Custo/Hora da Empresa (R$)"
+                                        placeholder="80"
                                         min={0}
                                         step={0.01}
-                                        value={formData.valor_hora}
-                                        onChange={(value) => setFormData(prev => ({...prev, valor_hora: value}))}
+                                        description="Quanto custa cada hora de trabalho"
+                                        value={formData.custo_hora_empresa}
+                                        onChange={(value) => setFormData(prev => ({...prev, custo_hora_empresa: value}))}
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={6}>
                                     <NumberInput
-                                        label="Ferramentas/Licenças (Mensal)"
+                                        label="Custo APIs/Mês (R$)"
                                         placeholder="0"
                                         min={0}
                                         step={0.01}
-                                        value={formData.custo_ferramentas_mensais}
-                                        onChange={(value) => setFormData(prev => ({...prev, custo_ferramentas_mensais: value}))}
+                                        description="ChatGPT, Claude, etc."
+                                        value={formData.custo_apis_mensal}
+                                        onChange={(value) => setFormData(prev => ({...prev, custo_apis_mensal: value}))}
+                                    />
+                                </Grid.Col>
+                            </Grid>
+
+                            <Box>
+                                <Text size="sm" weight={500} mb="xs">Ferramentas/Infraestrutura</Text>
+                                <Text size="xs" c="dimmed" mb="md">Adicione ferramentas e seus custos mensais</Text>
+                                
+                                {formData.lista_ferramentas.map((ferramenta, index) => (
+                                    <Group key={index} gap="xs" mb="xs">
+                                        <TextInput
+                                            placeholder="Nome da ferramenta"
+                                            value={ferramenta.nome || ''}
+                                            onChange={(e) => {
+                                                const novaLista = [...formData.lista_ferramentas];
+                                                novaLista[index] = { ...ferramenta, nome: e.target.value };
+                                                setFormData(prev => ({...prev, lista_ferramentas: novaLista}));
+                                            }}
+                                            style={{ flex: 1 }}
+                                        />
+                                        <NumberInput
+                                            placeholder="R$ 0"
+                                            min={0}
+                                            step={0.01}
+                                            value={ferramenta.valor || 0}
+                                            onChange={(value) => {
+                                                const novaLista = [...formData.lista_ferramentas];
+                                                novaLista[index] = { ...ferramenta, valor: value };
+                                                setFormData(prev => ({...prev, lista_ferramentas: novaLista}));
+                                            }}
+                                            style={{ width: 120 }}
+                                        />
+                                        <ActionIcon 
+                                            color="red" 
+                                            onClick={() => {
+                                                const novaLista = formData.lista_ferramentas.filter((_, i) => i !== index);
+                                                setFormData(prev => ({...prev, lista_ferramentas: novaLista}));
+                                            }}
+                                        >
+                                            <IconX size={16} />
+                                        </ActionIcon>
+                                    </Group>
+                                ))}
+                                
+                                <Button 
+                                    variant="light" 
+                                    size="sm"
+                                    leftSection={<IconPlus size={16} />}
+                                    onClick={() => {
+                                        setFormData(prev => ({
+                                            ...prev, 
+                                            lista_ferramentas: [...prev.lista_ferramentas, { nome: '', valor: 0 }]
+                                        }));
+                                    }}
+                                >
+                                    Adicionar Ferramenta
+                                </Button>
+                            </Box>
+
+                            <Text size="sm" weight={500}>Custos Únicos</Text>
+                            <Grid>
+                                <Grid.Col span={4}>
+                                    <NumberInput
+                                        label="Treinamentos (R$)"
+                                        placeholder="0"
+                                        min={0}
+                                        step={0.01}
+                                        value={formData.custo_treinamentos}
+                                        onChange={(value) => setFormData(prev => ({...prev, custo_treinamentos: value}))}
+                                    />
+                                </Grid.Col>
+                                <Grid.Col span={4}>
+                                    <NumberInput
+                                        label="Setup Inicial (R$)"
+                                        placeholder="0"
+                                        min={0}
+                                        step={0.01}
+                                        value={formData.custo_setup_inicial}
+                                        onChange={(value) => setFormData(prev => ({...prev, custo_setup_inicial: value}))}
+                                    />
+                                </Grid.Col>
+                                <Grid.Col span={4}>
+                                    <NumberInput
+                                        label="Consultoria (R$)"
+                                        placeholder="0"
+                                        min={0}
+                                        step={0.01}
+                                        value={formData.custo_consultoria}
+                                        onChange={(value) => setFormData(prev => ({...prev, custo_consultoria: value}))}
                                     />
                                 </Grid.Col>
                             </Grid>
                             
                             <Divider my="md" />
                             
-                            <Title order={5}>Economias/Retornos</Title>
+                            <Title order={5}>📈 Retornos/Economias</Title>
                             <Grid>
                                 <Grid.Col span={6}>
                                     <NumberInput
@@ -466,21 +575,65 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         placeholder="0"
                                         min={0}
                                         step={0.5}
-                                        value={formData.economia_horas_mensais}
-                                        onChange={(value) => setFormData(prev => ({...prev, economia_horas_mensais: value}))}
+                                        description="Quantas horas por mês o projeto economiza"
+                                        value={formData.horas_economizadas_mes}
+                                        onChange={(value) => setFormData(prev => ({...prev, horas_economizadas_mes: value}))}
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={6}>
                                     <NumberInput
-                                        label="Valor Hora Economizada (R$)"
-                                        placeholder="50"
+                                        label="Valor Monetário Economizado/Mês (R$)"
+                                        placeholder="0"
                                         min={0}
                                         step={0.01}
-                                        value={formData.valor_hora_economizada}
-                                        onChange={(value) => setFormData(prev => ({...prev, valor_hora_economizada: value}))}
+                                        description="Outros ganhos em reais (opcional)"
+                                        value={formData.valor_monetario_economizado_mes}
+                                        onChange={(value) => setFormData(prev => ({...prev, valor_monetario_economizado_mes: value}))}
                                     />
                                 </Grid.Col>
                             </Grid>
+
+                            <Divider my="md" />
+                            
+                            <Title order={5}>🎯 Controle</Title>
+                            <Grid>
+                                <Grid.Col span={6}>
+                                    <Select
+                                        label="Nível de Autonomia"
+                                        data={[
+                                            { value: 'total', label: 'Totalmente Autônomo' },
+                                            { value: 'parcial', label: 'Requer Supervisão' },
+                                            { value: 'manual', label: 'Processo Manual' }
+                                        ]}
+                                        value={formData.nivel_autonomia}
+                                        onChange={(value) => setFormData(prev => ({...prev, nivel_autonomia: value}))}
+                                        comboboxProps={{ withinPortal: false }}
+                                    />
+                                </Grid.Col>
+                                <Grid.Col span={6}>
+                                    <DateInput
+                                        label="Data Break-Even (Opcional)"
+                                        placeholder="Quando começou a dar retorno"
+                                        value={formData.data_break_even ? new Date(formData.data_break_even) : null}
+                                        onChange={(date) => setFormData(prev => ({...prev, data_break_even: date?.toISOString().split('T')[0] || null}))}
+                                    />
+                                </Grid.Col>
+                            </Grid>
+
+                            {/* Prévia dos cálculos */}
+                            {formData.horas_totais > 0 && formData.custo_hora_empresa > 0 && (
+                                <Paper withBorder p="md" bg="blue.0" mt="md">
+                                    <Text size="sm" weight={500} mb="xs">💡 Prévia dos Cálculos</Text>
+                                    <Text size="sm">
+                                        Investimento em desenvolvimento: R$ {(formData.horas_totais * formData.custo_hora_empresa).toLocaleString('pt-BR')}
+                                    </Text>
+                                    {formData.horas_economizadas_mes > 0 && (
+                                        <Text size="sm">
+                                            Economia/mês: {formData.horas_economizadas_mes}h × R$ {formData.custo_hora_empresa} = R$ {(formData.horas_economizadas_mes * formData.custo_hora_empresa).toLocaleString('pt-BR')}
+                                        </Text>
+                                    )}
+                                </Paper>
+                            )}
                         </Stack>
                     </Tabs.Panel>
                 </Tabs>
@@ -846,11 +999,17 @@ function ProjetoDashboard() {
                 link_projeto: data.link_projeto?.trim() || '',
                 usuarios_impactados: Number(data.usuarios_impactados) || 0,
                 frequencia_uso: data.frequencia_uso || 'diario',
-                valor_hora: Number(data.valor_hora) || 150,
-                custo_ferramentas_mensais: Number(data.custo_ferramentas_mensais) || 0,
-                custo_apis_mensais: Number(data.custo_apis_mensais) || 0,
-                economia_horas_mensais: Number(data.economia_horas_mensais) || 0,
-                valor_hora_economizada: Number(data.valor_hora_economizada) || 50,
+                // Novos campos financeiros
+                custo_hora_empresa: Number(data.custo_hora_empresa) || 0,
+                custo_apis_mensal: Number(data.custo_apis_mensal) || 0,
+                lista_ferramentas: Array.isArray(data.lista_ferramentas) ? data.lista_ferramentas : [],
+                custo_treinamentos: Number(data.custo_treinamentos) || 0,
+                custo_setup_inicial: Number(data.custo_setup_inicial) || 0,
+                custo_consultoria: Number(data.custo_consultoria) || 0,
+                horas_economizadas_mes: Number(data.horas_economizadas_mes) || 0,
+                valor_monetario_economizado_mes: Number(data.valor_monetario_economizado_mes) || 0,
+                data_break_even: data.data_break_even || null,
+                nivel_autonomia: data.nivel_autonomia || 'total'
             };
             
             console.log('🎯 Dados preparados:', projetoData);
