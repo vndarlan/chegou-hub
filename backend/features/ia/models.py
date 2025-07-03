@@ -1,4 +1,4 @@
-# backend/features/ia/models.py - VERSÃO ATUALIZADA COM PROJETOS
+# backend/features/ia/models.py - VERSÃO ATUALIZADA COM NOVOS CAMPOS FINANCEIROS
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -66,6 +66,11 @@ class FrequenciaUsoChoices(models.TextChoices):
     MENSAL = 'mensal', 'Mensal'
     TRIMESTRAL = 'trimestral', 'Trimestral'
     EVENTUAL = 'eventual', 'Eventual'
+
+class NivelAutonomiaChoices(models.TextChoices):
+    TOTAL = 'total', 'Totalmente Autônomo'
+    PARCIAL = 'parcial', 'Requer Supervisão'
+    MANUAL = 'manual', 'Processo Manual'
 
 # ===== MODELO DE LOGS (EXISTENTE) =====
 class LogEntry(models.Model):
@@ -169,7 +174,7 @@ class ProjetoIA(models.Model):
         help_text="Nome descritivo do projeto"
     )
     data_criacao = models.DateField(
-        default=date.today,  # CORREÇÃO: Usar date.today em vez de timezone.now
+        default=date.today,
         verbose_name="Data de Criação",
         help_text="Data de início do projeto"
     )
@@ -285,96 +290,135 @@ class ProjetoIA(models.Model):
         verbose_name="Horas de Deploy/Configuração",
         blank=True
     )
-    valor_hora = models.DecimalField(
+    
+    # ===== NOVOS CAMPOS FINANCEIROS =====
+    # Custos
+    custo_hora_empresa = models.DecimalField(
         max_digits=8,
         decimal_places=2,
-        default=150.00,
-        verbose_name="Valor por Hora (R$)",
-        help_text="Valor cobrado por hora de desenvolvimento"
+        default=80.00,
+        verbose_name="Custo/Hora da Empresa (R$)",
+        help_text="Quanto custa cada hora de trabalho na empresa"
     )
-    
-    # ===== MÓDULO FINANCEIRO =====
-    # Custos Recorrentes (mensais)
-    custo_ferramentas_mensais = models.DecimalField(
+    custo_apis_mensal = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=0,
-        verbose_name="Custos de Ferramentas/Licenças (Mensal)",
-        help_text="Custo mensal com ferramentas e licenças"
+        verbose_name="Custo APIs/Mês (R$)",
+        help_text="Custo mensal com APIs (ChatGPT, Claude, etc.)"
     )
-    custo_apis_mensais = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=0,
-        verbose_name="Custos de APIs (Mensal)",
-        help_text="Custo mensal com APIs e serviços externos"
+    lista_ferramentas = models.JSONField(
+        default=list,
+        verbose_name="Lista de Ferramentas",
+        help_text="Lista de ferramentas com seus custos mensais [{nome, valor}]"
     )
-    custo_infraestrutura_mensais = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=0,
-        verbose_name="Custos de Infraestrutura (Mensal)",
-        help_text="Custo mensal com servidores, cloud, hosting"
-    )
-    custo_manutencao_mensais = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=0,
-        verbose_name="Custos de Manutenção (Mensal)",
-        help_text="Custo mensal com manutenção e suporte"
-    )
-    
-    # Custos Únicos
     custo_treinamentos = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=0,
-        verbose_name="Custos de Treinamentos",
+        verbose_name="Custos de Treinamentos (R$)",
         help_text="Custo único com treinamentos"
-    )
-    custo_consultoria = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=0,
-        verbose_name="Custos de Consultoria Externa",
-        help_text="Custo único com consultoria externa"
     )
     custo_setup_inicial = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=0,
-        verbose_name="Custos de Setup Inicial",
+        verbose_name="Custos de Setup Inicial (R$)",
         help_text="Custo único com configuração inicial"
+    )
+    custo_consultoria = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name="Custos de Consultoria (R$)",
+        help_text="Custo único com consultoria externa"
     )
     
     # Retornos/Economias
-    economia_horas_mensais = models.DecimalField(
+    horas_economizadas_mes = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=0,
         verbose_name="Horas Economizadas por Mês",
         help_text="Quantidade de horas economizadas mensalmente"
     )
+    valor_monetario_economizado_mes = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name="Valor Monetário Economizado/Mês (R$)",
+        help_text="Outros ganhos em reais por mês"
+    )
+    
+    # Controle
+    nivel_autonomia = models.CharField(
+        max_length=10,
+        choices=NivelAutonomiaChoices.choices,
+        default=NivelAutonomiaChoices.TOTAL,
+        verbose_name="Nível de Autonomia"
+    )
+    data_break_even = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name="Data de Break-Even",
+        help_text="Quando o projeto começou a dar retorno"
+    )
+    
+    # ===== CAMPOS LEGADOS (manter compatibilidade) =====
+    valor_hora = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=150.00,
+        verbose_name="Valor por Hora (R$) [LEGADO]",
+        help_text="Campo legado - usar custo_hora_empresa"
+    )
+    custo_ferramentas_mensais = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name="Custos de Ferramentas/Licenças (Mensal) [LEGADO]"
+    )
+    custo_apis_mensais = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name="Custos de APIs (Mensal) [LEGADO]"
+    )
+    custo_infraestrutura_mensais = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name="Custos de Infraestrutura (Mensal) [LEGADO]"
+    )
+    custo_manutencao_mensais = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name="Custos de Manutenção (Mensal) [LEGADO]"
+    )
+    economia_horas_mensais = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name="Horas Economizadas por Mês [LEGADO]"
+    )
     valor_hora_economizada = models.DecimalField(
         max_digits=8,
         decimal_places=2,
         default=50.00,
-        verbose_name="Valor da Hora Economizada (R$)",
-        help_text="Valor estimado da hora economizada"
+        verbose_name="Valor da Hora Economizada (R$) [LEGADO]"
     )
     reducao_erros_mensais = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=0,
-        verbose_name="Economia com Redução de Erros (Mensal)",
-        help_text="Valor mensal economizado com redução de erros"
+        verbose_name="Economia com Redução de Erros (Mensal) [LEGADO]"
     )
     economia_outros_mensais = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=0,
-        verbose_name="Outras Economias (Mensal)",
-        help_text="Outras economias mensais (produtividade, etc.)"
+        verbose_name="Outras Economias (Mensal) [LEGADO]"
     )
     
     # ===== CAMPOS DE DOCUMENTAÇÃO =====
@@ -435,15 +479,47 @@ class ProjetoIA(models.Model):
     def __str__(self):
         return f"{self.nome} ({self.get_status_display()})"
     
-    # ===== PROPRIEDADES CALCULADAS =====
+    # ===== PROPRIEDADES CALCULADAS ATUALIZADAS =====
     @property
     def custo_desenvolvimento(self):
-        """Calcula o custo total de desenvolvimento"""
-        return self.horas_totais * self.valor_hora
+        """Calcula o custo total de desenvolvimento usando o novo campo"""
+        return self.horas_totais * self.custo_hora_empresa
     
     @property
+    def custos_ferramentas_total_mensal(self):
+        """Calcula o custo total mensal das ferramentas da lista"""
+        if not self.lista_ferramentas:
+            return Decimal('0')
+        return sum(Decimal(str(item.get('valor', 0))) for item in self.lista_ferramentas)
+    
+    @property
+    def custos_recorrentes_mensais_novo(self):
+        """Calcula total de custos recorrentes mensais com novos campos"""
+        return (
+            self.custo_apis_mensal +
+            self.custos_ferramentas_total_mensal
+        )
+    
+    @property
+    def custos_unicos_totais_novo(self):
+        """Calcula total de custos únicos com novos campos"""
+        return (
+            self.custo_desenvolvimento +
+            self.custo_treinamentos +
+            self.custo_consultoria +
+            self.custo_setup_inicial
+        )
+    
+    @property
+    def economia_mensal_total_novo(self):
+        """Calcula economia mensal total com novos campos"""
+        economia_horas = self.horas_economizadas_mes * self.custo_hora_empresa
+        return economia_horas + self.valor_monetario_economizado_mes
+    
+    # ===== PROPRIEDADES LEGADAS (compatibilidade) =====
+    @property
     def custos_recorrentes_mensais(self):
-        """Calcula total de custos recorrentes mensais"""
+        """Calcula total de custos recorrentes mensais (compatibilidade)"""
         return (
             self.custo_ferramentas_mensais +
             self.custo_apis_mensais +
@@ -453,9 +529,10 @@ class ProjetoIA(models.Model):
     
     @property
     def custos_unicos_totais(self):
-        """Calcula total de custos únicos"""
+        """Calcula total de custos únicos (compatibilidade)"""
+        custo_dev_legado = self.horas_totais * self.valor_hora
         return (
-            self.custo_desenvolvimento +
+            custo_dev_legado +
             self.custo_treinamentos +
             self.custo_consultoria +
             self.custo_setup_inicial
@@ -463,15 +540,16 @@ class ProjetoIA(models.Model):
     
     @property
     def economia_mensal_total(self):
-        """Calcula economia mensal total"""
+        """Calcula economia mensal total (compatibilidade)"""
         economia_horas = self.economia_horas_mensais * self.valor_hora_economizada
         return economia_horas + self.reducao_erros_mensais + self.economia_outros_mensais
     
-    def calcular_metricas_financeiras(self, meses_operacao=None):
+    def calcular_metricas_financeiras(self, meses_operacao=None, usar_novos_campos=True):
         """
         Calcula métricas financeiras do projeto
         Args:
             meses_operacao: Quantos meses o projeto está operando (default: calcular desde criação)
+            usar_novos_campos: Se deve usar os novos campos financeiros (default: True)
         """
         if meses_operacao is None:
             # Calcular meses desde a criação
@@ -479,11 +557,22 @@ class ProjetoIA(models.Model):
             delta = date.today() - self.data_criacao
             meses_operacao = max(1, delta.days / 30.44)  # Média de dias por mês
         
+        if usar_novos_campos:
+            # Usar nova estrutura financeira
+            custos_unicos = self.custos_unicos_totais_novo
+            custos_recorrentes_mensais = self.custos_recorrentes_mensais_novo
+            economia_mensal = self.economia_mensal_total_novo
+        else:
+            # Usar estrutura legada
+            custos_unicos = self.custos_unicos_totais
+            custos_recorrentes_mensais = self.custos_recorrentes_mensais
+            economia_mensal = self.economia_mensal_total
+        
         # Custos
-        custo_total = self.custos_unicos_totais + (self.custos_recorrentes_mensais * meses_operacao)
+        custo_total = custos_unicos + (custos_recorrentes_mensais * meses_operacao)
         
         # Economias
-        economia_acumulada = self.economia_mensal_total * meses_operacao
+        economia_acumulada = economia_mensal * meses_operacao
         
         # ROI = ((Ganhos - Custos) / Custos) × 100
         roi = 0
@@ -492,8 +581,8 @@ class ProjetoIA(models.Model):
         
         # Payback em meses = Investimento Inicial / Economia Mensal
         payback_meses = 0
-        if self.economia_mensal_total > 0:
-            payback_meses = self.custos_unicos_totais / self.economia_mensal_total
+        if economia_mensal > 0:
+            payback_meses = custos_unicos / economia_mensal
         
         # ROI por hora investida
         roi_por_hora = 0
@@ -501,16 +590,17 @@ class ProjetoIA(models.Model):
             roi_por_hora = economia_acumulada / float(self.horas_totais)
         
         return {
-            'custo_desenvolvimento': float(self.custo_desenvolvimento),
-            'custos_unicos_totais': float(self.custos_unicos_totais),
-            'custos_recorrentes_mensais': float(self.custos_recorrentes_mensais),
+            'custo_desenvolvimento': float(self.custo_desenvolvimento if usar_novos_campos else self.horas_totais * self.valor_hora),
+            'custos_unicos_totais': float(custos_unicos),
+            'custos_recorrentes_mensais': float(custos_recorrentes_mensais),
             'custo_total': float(custo_total),
-            'economia_mensal': float(self.economia_mensal_total),
+            'economia_mensal': float(economia_mensal),
             'economia_acumulada': float(economia_acumulada),
             'roi': round(roi, 2),
             'payback_meses': round(payback_meses, 2),
             'roi_por_hora': round(roi_por_hora, 2),
-            'meses_operacao': round(meses_operacao, 1)
+            'meses_operacao': round(meses_operacao, 1),
+            'usando_novos_campos': usar_novos_campos
         }
 
 class VersaoProjeto(models.Model):

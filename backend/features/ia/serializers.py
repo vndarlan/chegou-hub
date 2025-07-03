@@ -1,11 +1,11 @@
-# backend/features/ia/serializers.py - VERSÃO ATUALIZADA COM PROJETOS
+# backend/features/ia/serializers.py - VERSÃO ATUALIZADA COM NOVOS CAMPOS FINANCEIROS
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import (
     LogEntry, TipoFerramenta, NivelLog, PaisNicochat,
     ProjetoIA, VersaoProjeto, StatusProjeto, TipoProjeto,
     DepartamentoChoices, PrioridadeChoices, ComplexidadeChoices,
-    FrequenciaUsoChoices
+    FrequenciaUsoChoices, NivelAutonomiaChoices
 )
 
 # ===== SERIALIZERS DE LOGS (EXISTENTES) =====
@@ -147,11 +147,13 @@ class ProjetoIAListSerializer(serializers.ModelSerializer):
             if request and hasattr(request, 'user') and request.user.is_authenticated:
                 user = request.user
                 if user.is_superuser or user.groups.filter(name__in=['Diretoria', 'Gestão']).exists():
-                    return obj.calcular_metricas_financeiras()
+                    # Usar novos campos financeiros se disponíveis
+                    usar_novos = bool(obj.custo_hora_empresa and obj.custo_hora_empresa > 0)
+                    return obj.calcular_metricas_financeiras(usar_novos_campos=usar_novos)
             
             return {
                 'horas_totais': float(obj.horas_totais),
-                'economia_mensal_horas': float(obj.economia_horas_mensais),
+                'economia_mensal_horas': float(obj.horas_economizadas_mes or obj.economia_horas_mensais),
                 'roi': 'Sem permissão',
                 'acesso_restrito': True
             }
@@ -193,12 +195,17 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
     criado_por_nome = serializers.SerializerMethodField()
     versoes = VersaoProjetoSerializer(many=True, read_only=True)
     
-    # Campos calculados
+    # Campos calculados (novos)
     custo_desenvolvimento = serializers.SerializerMethodField()
+    custos_recorrentes_mensais_novo = serializers.SerializerMethodField()
+    custos_unicos_totais_novo = serializers.SerializerMethodField()
+    economia_mensal_total_novo = serializers.SerializerMethodField()
+    metricas_financeiras = serializers.SerializerMethodField()
+    
+    # Campos calculados (legados - compatibilidade)
     custos_recorrentes_mensais = serializers.SerializerMethodField()
     custos_unicos_totais = serializers.SerializerMethodField()
     economia_mensal_total = serializers.SerializerMethodField()
-    metricas_financeiras = serializers.SerializerMethodField()
     
     class Meta:
         model = ProjetoIA
@@ -228,6 +235,7 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
             print(f"Erro get_projetos_dependentes: {e}")
             return []
     
+    # Novos campos calculados
     def get_custo_desenvolvimento(self, obj):
         try:
             return float(obj.custo_desenvolvimento)
@@ -235,6 +243,28 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
             print(f"Erro get_custo_desenvolvimento: {e}")
             return 0.0
     
+    def get_custos_recorrentes_mensais_novo(self, obj):
+        try:
+            return float(obj.custos_recorrentes_mensais_novo)
+        except Exception as e:
+            print(f"Erro get_custos_recorrentes_mensais_novo: {e}")
+            return 0.0
+    
+    def get_custos_unicos_totais_novo(self, obj):
+        try:
+            return float(obj.custos_unicos_totais_novo)
+        except Exception as e:
+            print(f"Erro get_custos_unicos_totais_novo: {e}")
+            return 0.0
+    
+    def get_economia_mensal_total_novo(self, obj):
+        try:
+            return float(obj.economia_mensal_total_novo)
+        except Exception as e:
+            print(f"Erro get_economia_mensal_total_novo: {e}")
+            return 0.0
+    
+    # Campos legados (compatibilidade)
     def get_custos_recorrentes_mensais(self, obj):
         try:
             return float(obj.custos_recorrentes_mensais)
@@ -262,7 +292,9 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
             if request and hasattr(request, 'user') and request.user.is_authenticated:
                 user = request.user
                 if user.is_superuser or user.groups.filter(name__in=['Diretoria', 'Gestão']).exists():
-                    return obj.calcular_metricas_financeiras()
+                    # Determinar se deve usar novos campos
+                    usar_novos = bool(obj.custo_hora_empresa and obj.custo_hora_empresa > 0)
+                    return obj.calcular_metricas_financeiras(usar_novos_campos=usar_novos)
             
             return {'acesso_restrito': True, 'message': 'Sem permissão para dados financeiros'}
         except Exception as e:
@@ -284,6 +316,15 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     'horas_totais': f'O breakdown de horas ({total_breakdown}h) não pode exceder o total ({horas_totais}h)'
                 })
+            
+            # Validar lista de ferramentas
+            lista_ferramentas = data.get('lista_ferramentas', [])
+            if lista_ferramentas:
+                for ferramenta in lista_ferramentas:
+                    if not isinstance(ferramenta, dict) or 'nome' not in ferramenta or 'valor' not in ferramenta:
+                        raise serializers.ValidationError({
+                            'lista_ferramentas': 'Cada ferramenta deve ter "nome" e "valor"'
+                        })
             
             return data
         except Exception as e:
@@ -345,11 +386,21 @@ class ProjetoIACreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjetoIA
         fields = [
+            # Campos básicos
             'nome', 'descricao', 'tipo_projeto', 'departamento_atendido',
             'prioridade', 'complexidade', 'horas_totais', 'criadores_ids',
             'ferramentas_tecnologias', 'link_projeto', 'usuarios_impactados',
-            'frequencia_uso', 'valor_hora', 'custo_ferramentas_mensais',
-            'custo_apis_mensais', 'economia_horas_mensais', 'valor_hora_economizada'
+            'frequencia_uso',
+            
+            # Novos campos financeiros
+            'custo_hora_empresa', 'custo_apis_mensal', 'lista_ferramentas',
+            'custo_treinamentos', 'custo_setup_inicial', 'custo_consultoria',
+            'horas_economizadas_mes', 'valor_monetario_economizado_mes',
+            'nivel_autonomia', 'data_break_even',
+            
+            # Campos legados (compatibilidade)
+            'valor_hora', 'custo_ferramentas_mensais', 'custo_apis_mensais',
+            'economia_horas_mensais', 'valor_hora_economizada'
         ]
     
     def create(self, validated_data):
