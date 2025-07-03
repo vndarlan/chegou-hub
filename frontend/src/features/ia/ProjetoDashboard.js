@@ -210,9 +210,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
         custo_hora_empresa: 80,
         custo_apis_mensal: 0,
         lista_ferramentas: [],
-        custo_treinamentos: 0,
-        custo_setup_inicial: 0,
-        custo_consultoria: 0,
         horas_economizadas_mes: 0,
         valor_monetario_economizado_mes: 0,
         data_break_even: null,
@@ -239,9 +236,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                 custo_hora_empresa: projeto.custo_hora_empresa || 80,
                 custo_apis_mensal: projeto.custo_apis_mensal || 0,
                 lista_ferramentas: projeto.lista_ferramentas || [],
-                custo_treinamentos: projeto.custo_treinamentos || 0,
-                custo_setup_inicial: projeto.custo_setup_inicial || 0,
-                custo_consultoria: projeto.custo_consultoria || 0,
                 horas_economizadas_mes: projeto.horas_economizadas_mes || 0,
                 valor_monetario_economizado_mes: projeto.valor_monetario_economizado_mes || 0,
                 data_break_even: projeto.data_break_even || null,
@@ -266,9 +260,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                 custo_hora_empresa: 80,
                 custo_apis_mensal: 0,
                 lista_ferramentas: [],
-                custo_treinamentos: 0,
-                custo_setup_inicial: 0,
-                custo_consultoria: 0,
                 horas_economizadas_mes: 0,
                 valor_monetario_economizado_mes: 0,
                 data_break_even: null,
@@ -530,40 +521,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                     Adicionar Ferramenta
                                 </Button>
                             </Box>
-
-                            <Text size="sm" weight={500}>Custos Únicos</Text>
-                            <Grid>
-                                <Grid.Col span={4}>
-                                    <NumberInput
-                                        label="Treinamentos (R$)"
-                                        placeholder="0"
-                                        min={0}
-                                        step={0.01}
-                                        value={formData.custo_treinamentos}
-                                        onChange={(value) => setFormData(prev => ({...prev, custo_treinamentos: value}))}
-                                    />
-                                </Grid.Col>
-                                <Grid.Col span={4}>
-                                    <NumberInput
-                                        label="Setup Inicial (R$)"
-                                        placeholder="0"
-                                        min={0}
-                                        step={0.01}
-                                        value={formData.custo_setup_inicial}
-                                        onChange={(value) => setFormData(prev => ({...prev, custo_setup_inicial: value}))}
-                                    />
-                                </Grid.Col>
-                                <Grid.Col span={4}>
-                                    <NumberInput
-                                        label="Consultoria (R$)"
-                                        placeholder="0"
-                                        min={0}
-                                        step={0.01}
-                                        value={formData.custo_consultoria}
-                                        onChange={(value) => setFormData(prev => ({...prev, custo_consultoria: value}))}
-                                    />
-                                </Grid.Col>
-                            </Grid>
                             
                             <Divider my="md" />
                             
@@ -611,11 +568,12 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={6}>
-                                    <DatePickerInput
+                                    <TextInput
                                         label="Data Break-Even (Opcional)"
-                                        placeholder="Quando começou a dar retorno"
-                                        value={formData.data_break_even ? new Date(formData.data_break_even) : null}
-                                        onChange={(date) => setFormData(prev => ({...prev, data_break_even: date?.toISOString().split('T')[0] || null}))}
+                                        placeholder="YYYY-MM-DD"
+                                        description="Ex: 2024-03-15"
+                                        value={formData.data_break_even || ''}
+                                        onChange={(e) => setFormData(prev => ({...prev, data_break_even: e.target.value || null}))}
                                     />
                                 </Grid.Col>
                             </Grid>
@@ -1003,9 +961,6 @@ function ProjetoDashboard() {
                 custo_hora_empresa: Number(data.custo_hora_empresa) || 0,
                 custo_apis_mensal: Number(data.custo_apis_mensal) || 0,
                 lista_ferramentas: Array.isArray(data.lista_ferramentas) ? data.lista_ferramentas : [],
-                custo_treinamentos: Number(data.custo_treinamentos) || 0,
-                custo_setup_inicial: Number(data.custo_setup_inicial) || 0,
-                custo_consultoria: Number(data.custo_consultoria) || 0,
                 horas_economizadas_mes: Number(data.horas_economizadas_mes) || 0,
                 valor_monetario_economizado_mes: Number(data.valor_monetario_economizado_mes) || 0,
                 data_break_even: data.data_break_even || null,
