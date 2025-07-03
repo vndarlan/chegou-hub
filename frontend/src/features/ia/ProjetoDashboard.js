@@ -4,7 +4,7 @@ import {
     Box, Grid, Title, Text, Button, Group, Stack, Card, Badge, 
     Modal, TextInput, Textarea, Select, MultiSelect, NumberInput,
     LoadingOverlay, Alert, Notification, ActionIcon, Tabs, 
-    Progress, Timeline, Tooltip, Switch, DateInput, Paper,
+    Progress, Timeline, Tooltip, Switch, Paper,
     Menu, Divider, ScrollArea, Table, RingProgress, BarChart,
     LineChart, PieChart, Flex, Container, SimpleGrid
 } from '@mantine/core';
@@ -611,7 +611,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={6}>
-                                    <DateInput
+                                    <DatePickerInput
                                         label="Data Break-Even (Opcional)"
                                         placeholder="Quando começou a dar retorno"
                                         value={formData.data_break_even ? new Date(formData.data_break_even) : null}
