@@ -1,816 +1,512 @@
-// src/pages/AgendaPage.js
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-    Box,
-    Title,
-    Text,
-    Tabs,
-    Select,
-    TextInput,
-    Textarea,
-    Button,
-    Grid,
-    Stack,
-    Paper,
-    Notification,
-    Group,
-    ActionIcon,
-    ScrollArea,
-    List,
-    Code,
-    Alert,
-    LoadingOverlay,
-    Modal,
-    ColorSwatch,
-    Badge,
-    AspectRatio,
-    Skeleton,
-    Tooltip
+// frontend/src/features/mapa/MapaPage.js
+import React, { useState, useEffect, useMemo } from 'react';
+import { MapContainer, TileLayer, GeoJSON, Marker, Tooltip } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import { 
+    Box, Grid, Title, Text, List, LoadingOverlay, Alert, Stack, Group, Button,
+    Modal, Select, Notification, ActionIcon, Badge, Paper, Tabs
 } from '@mantine/core';
-import { useMediaQuery } from '@mantine/hooks';
-import {
-    IconX,
-    IconCheck,
-    IconTrash,
-    IconCalendar,
-    IconTools,
-    IconInfoCircle,
-    IconAlertCircle,
-    IconPencil,
-    IconRefresh,
-    IconLink,
-    IconExternalLink
-} from '@tabler/icons-react';
+import { IconAlertCircle, IconSettings, IconPlus, IconCheck, IconX } from '@tabler/icons-react';
 import axios from 'axios';
 
-// Função para extrair SRC do Iframe
-const extractSrcFromIframe = (iframeString) => {
-    if (!iframeString || typeof iframeString !== 'string') return null;
-    
-    const matchSrc = iframeString.match(/src\s*=\s*["']([^"']+)["']/i);
-    
-    if (matchSrc && matchSrc[1]) {
-        return matchSrc[1];
-    }
-    
-    const urlMatch = iframeString.match(/(https?:\/\/[^\s"'<>]+)/i);
-    return urlMatch ? urlMatch[1] : null;
+// URL do GeoJSON - atualizada
+const FULL_GEOJSON_URL = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
+
+// Coordenadas dos países do mundo
+const COUNTRY_COORDINATES = {
+    'Afghanistan': [33.9391, 67.7100],
+    'Albania': [41.1533, 20.1683],
+    'Algeria': [28.0339, 1.6596],
+    'Argentina': [-38.4161, -63.6167],
+    'Armenia': [40.0691, 45.0382],
+    'Australia': [-25.2744, 133.7751],
+    'Austria': [47.5162, 14.5501],
+    'Azerbaijan': [40.1431, 47.5769],
+    'Bangladesh': [23.6850, 90.3563],
+    'Belarus': [53.7098, 27.9534],
+    'Belgium': [50.5039, 4.4699],
+    'Bolivia': [-16.2902, -63.5887],
+    'Brazil': [-15.7801, -47.9292],
+    'Bulgaria': [42.7339, 25.4858],
+    'Cambodia': [12.5657, 104.9910],
+    'Cameroon': [7.3697, 12.3547],
+    'Canada': [56.1304, -106.3468],
+    'Chile': [-35.6751, -71.5430],
+    'China': [35.8617, 104.1954],
+    'Colombia': [4.5709, -74.2973],
+    'Croatia': [45.1000, 15.2000],
+    'Cuba': [21.5218, -77.7812],
+    'Czech Republic': [49.8175, 15.4730],
+    'Denmark': [56.2639, 9.5018],
+    'Ecuador': [-1.8312, -78.1834],
+    'Egypt': [26.0975, 31.2357],
+    'Estonia': [58.5953, 25.0136],
+    'Finland': [61.9241, 25.7482],
+    'France': [46.6034, 1.8883],
+    'Germany': [51.1657, 10.4515],
+    'Ghana': [7.9465, -1.0232],
+    'Greece': [39.0742, 21.8243],
+    'Hungary': [47.1625, 19.5033],
+    'Iceland': [64.9631, -19.0208],
+    'India': [20.5937, 78.9629],
+    'Indonesia': [-0.7893, 113.9213],
+    'Iran': [32.4279, 53.6880],
+    'Iraq': [33.2232, 43.6793],
+    'Ireland': [53.4129, -8.2439],
+    'Israel': [31.0461, 34.8516],
+    'Italy': [41.8719, 12.5674],
+    'Japan': [36.2048, 138.2529],
+    'Kazakhstan': [48.0196, 66.9237],
+    'Kenya': [-0.0236, 37.9062],
+    'Latvia': [56.8796, 24.6032],
+    'Lithuania': [55.1694, 23.8813],
+    'Malaysia': [4.2105, 101.9758],
+    'Mexico': [23.6345, -102.5528],
+    'Morocco': [31.7917, -7.0926],
+    'Netherlands': [52.1326, 5.2913],
+    'New Zealand': [-40.9006, 174.8860],
+    'Nigeria': [9.0820, 8.6753],
+    'Norway': [60.4720, 8.4689],
+    'Pakistan': [30.3753, 69.3451],
+    'Paraguay': [-23.4425, -58.4438],
+    'Peru': [-9.1900, -75.0152],
+    'Philippines': [12.8797, 121.7740],
+    'Poland': [51.9194, 19.1451],
+    'Portugal': [39.3999, -8.2245],
+    'Romania': [45.9432, 24.9668],
+    'Russia': [61.5240, 105.3188],
+    'Saudi Arabia': [23.8859, 45.0792],
+    'South Africa': [-30.5595, 22.9375],
+    'South Korea': [35.9078, 127.7669],
+    'Spain': [40.4637, -3.7492],
+    'Sweden': [60.1282, 18.6435],
+    'Switzerland': [46.8182, 8.2275],
+    'Thailand': [15.8700, 100.9925],
+    'Turkey': [38.9637, 35.2433],
+    'Ukraine': [48.3794, 31.1656],
+    'United Arab Emirates': [23.4241, 53.8478],
+    'United Kingdom': [55.3781, -3.4360],
+    'United States of America': [39.8283, -98.5795],
+    'Uruguay': [-32.5228, -55.7658],
+    'Venezuela': [6.4238, -66.5897],
+    'Vietnam': [14.0583, 108.2772],
 };
 
-// Função para adicionar cor a calendário privado
-const addColorToPrivateCalendar = (originalUrl, calendarName) => {
-    if (!originalUrl) return null;
-    
-    try {
-        const url = new URL(originalUrl);
-        
-        // Se já tem cor, retorna como está
-        if (url.searchParams.has('color')) {
-            return originalUrl;
-        }
-        
-        // Adiciona cor baseada no nome
-        const color = getColorForCalendar(calendarName);
-        url.searchParams.set('color', encodeURIComponent(color));
-        
-        console.log(`🎨 Cor adicionada para "${calendarName}": ${color}`);
-        return url.toString();
-    } catch (e) {
-        console.warn("Erro ao adicionar cor:", e);
-        return originalUrl;
-    }
-};
+// Correção do ícone do Leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+});
 
-// Cores do Google Calendar para calendários privados
-const getColorForCalendar = (calendarName) => {
-    const colors = [
-        '#D50000', '#E67C73', '#F4511E', '#F6BF26', '#33B679', 
-        '#0B8043', '#039BE5', '#3F51B5', '#7986CB', '#9C27B0'
-    ];
+function MapaPage() {
+    const [geoJsonData, setGeoJsonData] = useState(null);
+    const [paisesData, setPaisesData] = useState([]);
+    const [statusColors, setStatusColors] = useState({});
+    const [statusList, setStatusList] = useState([]);
+    const [availableCountries, setAvailableCountries] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [showAdmin, setShowAdmin] = useState(false);
+    const [canManage, setCanManage] = useState(false);
     
-    if (!calendarName) return colors[0];
-    
-    let hash = 0;
-    for (let i = 0; i < calendarName.length; i++) {
-        hash = calendarName.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    
-    return colors[Math.abs(hash) % colors.length];
-};
+    // Estados para adição de país
+    const [addModalOpen, setAddModalOpen] = useState(false);
+    const [selectedCountry, setSelectedCountry] = useState(null);
+    const [selectedStatus, setSelectedStatus] = useState(null);
+    const [addLoading, setAddLoading] = useState(false);
+    const [notification, setNotification] = useState(null);
 
-// Função para gerar cores Mantine (para UI)
-const generateCalendarColor = (calendarName) => {
-    if (!calendarName) return 'blue';
-    
-    const colors = ['blue', 'indigo', 'purple', 'pink', 'red', 'orange', 'yellow', 'teal', 'green', 'cyan'];
-    
-    let hash = 0;
-    for (let i = 0; i < calendarName.length; i++) {
-        hash = calendarName.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    
-    const colorIndex = Math.abs(hash) % colors.length;
-    return colors[colorIndex];
-};
-
-function AgendaPage() {
-    // Estados principais
-    const [activeTab, setActiveTab] = useState('visualizar');
-    const [calendarios, setCalendarios] = useState([]);
-    const [selectedDbId, setSelectedDbId] = useState(null);
-    const [isLoadingCalendars, setIsLoadingCalendars] = useState(true);
-    const [fetchError, setFetchError] = useState(null);
-    const [iframeLoaded, setIframeLoaded] = useState(false);
-    const [selectOptions, setSelectOptions] = useState([]);
-
-    // Estados para o formulário de adição
-    const [novoNome, setNovoNome] = useState('');
-    const [novoIframeCode, setNovoIframeCode] = useState('');
-    const [addNotification, setAddNotification] = useState(null);
-    const [isAdding, setIsAdding] = useState(false);
-    
-    // Estados para o formulário de edição
-    const [editModalOpen, setEditModalOpen] = useState(false);
-    const [editingCalendar, setEditingCalendar] = useState(null);
-    const [editName, setEditName] = useState('');
-    const [editIframeCode, setEditIframeCode] = useState('');
-    const [isEditing, setIsEditing] = useState(false);
-    const [editNotification, setEditNotification] = useState(null);
-    
-    // Estados para dimensões responsivas
-    const isMobile = useMediaQuery('(max-width: 768px)');
-    const iframeHeight = useMemo(() => isMobile ? 400 : 600, [isMobile]);
-
-    // --- Funções da API ---
-
-    // Buscar calendários
-    const fetchCalendars = useCallback(async (selectFirst = true) => {
-        setIsLoadingCalendars(true);
-        setFetchError(null);
-        console.log("Buscando calendários (iframe) da API...");
-        try {
-            const response = await axios.get('/calendars/');
-            console.log("Calendários (iframe) recebidos:", response.data);
-            
-            const calendarData = response.data;
-            setCalendarios(calendarData);
-
-            // Define seleção inicial baseado no ID do banco se selectFirst for true
-            if (selectFirst) {
-                if (calendarData.length > 0) {
-                    setSelectedDbId(calendarData[0].id);
-                } else {
-                    setSelectedDbId(null);
-                }
-            }
-
-        } catch (error) {
-            console.error("Erro ao buscar calendários (iframe):", error.response?.data || error.message);
-            setFetchError("Falha ao carregar a lista de calendários. Verifique a conexão ou tente recarregar.");
-            setCalendarios([]);
-            setSelectedDbId(null);
-        } finally {
-            setIsLoadingCalendars(false);
-        }
-    }, []); // Removido selectedDbId das dependências
-
-    // Busca inicial
+    // Verificar permissões
     useEffect(() => {
-        fetchCalendars(true);
-    }, [fetchCalendars]);
-
-    // Atualiza as opções do select quando os calendários mudam
-    useEffect(() => {
-        if (Array.isArray(calendarios) && calendarios.length > 0) {
+        const checkPermissions = async () => {
             try {
-                const options = calendarios.map(cal => ({
-                    value: cal.id.toString(),
-                    label: cal.name || "Calendário sem nome",
-                }));
-                setSelectOptions(options);
-            } catch (error) {
-                console.error("Erro ao processar opções do select:", error);
-                setSelectOptions([]);
+                const response = await axios.get('/check-permissions/');
+                setCanManage(response.data.can_manage);
+            } catch (err) {
+                console.log("Erro ao verificar permissões:", err);
+                setCanManage(false);
             }
-        } else {
-            setSelectOptions([]);
-        }
-    }, [calendarios]);
+        };
+        checkPermissions();
+    }, []);
 
-    // --- Lógica de Geração da URL do Iframe (com tentativa de cor) ---
-    const iframeSrc = useMemo(() => {
-        if (selectedDbId) {
-            const selectedCal = calendarios.find(cal => cal.id === selectedDbId);
-            if (selectedCal) {
-                // Tenta adicionar cor mesmo para calendários privados
-                const originalSrc = extractSrcFromIframe(selectedCal.iframe_code);
-                const coloredSrc = addColorToPrivateCalendar(originalSrc, selectedCal.name);
-                console.log(`📅 URL para "${selectedCal.name}":`, coloredSrc);
-                return coloredSrc;
-            }
-        }
-        return null;
-    }, [selectedDbId, calendarios]);
-
-    // --- Funções de Manipulação (Adicionar/Remover/Editar) ---
-
-    // Abrir modal de edição
-    const handleOpenEditModal = (calendar) => {
-        setEditingCalendar(calendar);
-        setEditName(calendar.name);
-        setEditIframeCode(calendar.iframe_code);
-        setEditNotification(null);
-        setEditModalOpen(true);
-    };
-
-    // Fechar modal de edição
-    const handleCloseEditModal = () => {
-        setEditModalOpen(false);
-        setEditingCalendar(null);
-        setEditName('');
-        setEditIframeCode('');
-        setEditNotification(null);
-    };
-
-    // Adicionar calendário
-    const handleAddCalendario = async () => {
-        setAddNotification(null);
-        if (!novoNome || !novoIframeCode) {
-            setAddNotification({ 
-                type: 'error', 
-                message: 'Por favor, preencha Nome e Código Iframe.' 
-            });
-            return;
-        }
-        
-        // Validação aprimorada
-        if (!novoIframeCode.includes('<iframe') || !novoIframeCode.includes('src=')) {
-            setAddNotification({ 
-                type: 'error', 
-                message: 'O código fornecido não parece um iframe válido. Certifique-se de copiar o código completo do calendário.' 
-            });
-            return;
-        }
-
-        setIsAdding(true);
-        try {
-            const response = await axios.post('/calendars/', {
-                name: novoNome.trim(),
-                iframe_code: novoIframeCode.trim()
-            });
-            
-            setNovoNome('');
-            setNovoIframeCode('');
-            setAddNotification({ 
-                type: 'success', 
-                message: `Calendário "${response.data.name}" adicionado com sucesso!` 
-            });
-            
-            // Atualiza a lista de calendários
-            await fetchCalendars(false);
-
-        } catch (error) {
-            console.error("Erro ao adicionar calendário:", error.response?.data || error.message);
-            
-            // Tratamento de erro aprimorado
-            const backendError = error.response?.data;
-            let errorMessage = "Erro desconhecido ao adicionar o calendário.";
-            
-            if (backendError) {
-                if (backendError.iframe_code) {
-                    errorMessage = `Código Iframe: ${backendError.iframe_code[0]}`;
-                } else if (backendError.name) {
-                    errorMessage = `Nome: ${backendError.name[0]}`;
-                } else if (typeof backendError === 'string') {
-                    errorMessage = backendError;
-                } else if (backendError.detail) {
-                    errorMessage = backendError.detail;
+    // Buscar dados do mapa da API
+    useEffect(() => {
+        const fetchMapaData = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                
+                // Buscar dados dos países
+                const response = await axios.get('/mapa-data/');
+                const data = response.data;
+                
+                setPaisesData(data.paises);
+                setStatusColors(data.status_colors);
+                
+                // Buscar lista de status
+                if (canManage) {
+                    const statusResponse = await axios.get('/status/');
+                    setStatusList(statusResponse.data);
+                    
+                    // Buscar países disponíveis
+                    const countriesResponse = await axios.get('/available-countries/');
+                    setAvailableCountries(countriesResponse.data);
                 }
+                
+                // Buscar GeoJSON
+                const geoResponse = await fetch(FULL_GEOJSON_URL);
+                if (!geoResponse.ok) {
+                    throw new Error(`Erro GeoJSON: ${geoResponse.status}`);
+                }
+                const geoData = await geoResponse.json();
+                setGeoJsonData(geoData);
+                
+            } catch (err) {
+                console.error("Erro ao carregar dados:", err);
+                setError(`Erro ao carregar dados: ${err.message}`);
+            } finally {
+                setLoading(false);
             }
+        };
+
+        fetchMapaData();
+    }, [canManage]);
+
+    // Adicionar país
+    const handleAddCountry = async () => {
+        if (!selectedCountry || !selectedStatus) {
+            setNotification({ type: 'error', message: 'Selecione país e status.' });
+            return;
+        }
+
+        setAddLoading(true);
+        try {
+            // Garantir que temos um token CSRF válido
+            await axios.get('/current-state/');
             
-            setAddNotification({ 
+            const coordinates = COUNTRY_COORDINATES[selectedCountry.nome_geojson] || [0, 0];
+            
+            await axios.post('/add-pais/', {
+                nome_display: selectedCountry.nome_display,
+                nome_geojson: selectedCountry.nome_geojson,
+                status: selectedStatus,
+                latitude: coordinates[0],
+                longitude: coordinates[1],
+                ativo: true
+            });
+
+            setNotification({ type: 'success', message: `${selectedCountry.nome_display} adicionado com sucesso!` });
+            setAddModalOpen(false);
+            setSelectedCountry(null);
+            setSelectedStatus(null);
+            
+            // Recarregar dados
+            window.location.reload();
+            
+        } catch (err) {
+            console.error("Erro ao adicionar país:", err);
+            setNotification({ 
                 type: 'error', 
-                message: errorMessage 
+                message: err.response?.data?.detail || 'Erro ao adicionar país.' 
             });
         } finally {
-            setIsAdding(false);
+            setAddLoading(false);
         }
     };
 
-    // Editar calendário
-    const handleEditCalendario = async () => {
-        setEditNotification(null);
-        if (!editName || !editIframeCode) {
-            setEditNotification({ 
-                type: 'error', 
-                message: 'Por favor, preencha Nome e Código Iframe.' 
-            });
-            return;
-        }
-        
-        // Validação aprimorada
-        if (!editIframeCode.includes('<iframe') || !editIframeCode.includes('src=')) {
-            setEditNotification({ 
-                type: 'error', 
-                message: 'O código fornecido não parece um iframe válido.' 
-            });
-            return;
-        }
+    // Mapa de países por status
+    const countryStatusMap = useMemo(() => {
+        const map = new Map();
+        paisesData.forEach(pais => {
+            map.set(pais.nome_geojson, pais.status);
+        });
+        return map;
+    }, [paisesData]);
 
-        setIsEditing(true);
-        try {
-            await axios.put(`/calendars/${editingCalendar.id}/`, {
-                name: editName.trim(),
-                iframe_code: editIframeCode.trim()
-            });
-            
-            setEditNotification({ 
-                type: 'success', 
-                message: `Calendário "${editName}" atualizado com sucesso!` 
-            });
-            
-            // Atualiza a lista de calendários
-            await fetchCalendars(false);
-            
-            // Fecha o modal após um breve delay para que o usuário veja a mensagem de sucesso
-            setTimeout(() => {
-                handleCloseEditModal();
-            }, 1500);
-
-        } catch (error) {
-            console.error("Erro ao editar calendário:", error.response?.data || error.message);
-            
-            // Tratamento de erro aprimorado
-            const backendError = error.response?.data;
-            let errorMessage = "Erro desconhecido ao atualizar o calendário.";
-            
-            if (backendError) {
-                if (backendError.iframe_code) {
-                    errorMessage = `Código Iframe: ${backendError.iframe_code[0]}`;
-                } else if (backendError.name) {
-                    errorMessage = `Nome: ${backendError.name[0]}`;
-                } else if (typeof backendError === 'string') {
-                    errorMessage = backendError;
-                } else if (backendError.detail) {
-                    errorMessage = backendError.detail;
-                }
+    // Países agrupados por status
+    const paisesPorStatus = useMemo(() => {
+        const grupos = {};
+        paisesData.forEach(pais => {
+            if (!grupos[pais.status]) {
+                grupos[pais.status] = [];
             }
-            
-            setEditNotification({ 
-                type: 'error', 
-                message: errorMessage 
-            });
-        } finally {
-            setIsEditing(false);
+            grupos[pais.status].push(pais.nome_display);
+        });
+        return grupos;
+    }, [paisesData]);
+
+    // Estilo do GeoJSON
+    const styleGeoJson = (feature) => {
+        const countryName = feature?.properties?.name;
+        const status = countryStatusMap.get(countryName);
+        const statusInfo = statusColors[status];
+        
+        const fillColor = statusInfo ? statusInfo.color : '#D3D3D3';
+        const fillOpacity = statusInfo ? 0.65 : 0.2;
+
+        return {
+            fillColor: fillColor,
+            weight: 0.5,
+            opacity: 1,
+            color: '#333333',
+            fillOpacity: fillOpacity
+        };
+    };
+
+    // Tooltip no hover
+    const onEachFeature = (feature, layer) => {
+        if (feature?.properties?.name) {
+            const countryName = feature.properties.name;
+            const pais = paisesData.find(p => p.nome_geojson === countryName);
+            const displayName = pais ? pais.nome_display : countryName;
+            layer.bindTooltip(displayName, { sticky: false });
         }
     };
 
-    // Remover calendário
-    const handleRemoveCalendario = async (idToRemove) => {
-        const calToRemove = calendarios.find(c => c.id === idToRemove);
-        if (!calToRemove) return;
-        
-        const calNameToRemove = calToRemove.name;
-        
-        if (!window.confirm(`Tem certeza que deseja remover "${calNameToRemove}"?`)) {
-            return;
-        }
+    // Marcadores
+    const markers = useMemo(() => {
+        return paisesData.map((pais, index) => (
+            <Marker 
+                position={pais.coordinates} 
+                key={`${pais.nome_geojson}-marker-${index}`}
+            >
+                <Tooltip>
+                    {`${pais.nome_display} - ${statusColors[pais.status]?.description || pais.status}`}
+                </Tooltip>
+            </Marker>
+        ));
+    }, [paisesData, statusColors]);
 
-        setAddNotification(null);
-        try {
-            await axios.delete(`/calendars/${idToRemove}/`);
-            
-            setAddNotification({ 
-                type: 'info', 
-                message: `Calendário "${calNameToRemove}" removido com sucesso.` 
-            });
-            
-            // Atualiza a lista de calendários
-            await fetchCalendars(false);
+    // Componente da Legenda
+    const Legend = () => (
+        <Stack gap="xs">
+            <Group justify="space-between">
+                <Title order={5}>Legenda</Title>
+                <Group gap="xs">
+                    {canManage && (
+                        <Button 
+                            size="xs" 
+                            variant="light"
+                            leftSection={<IconPlus size={14} />}
+                            onClick={() => setAddModalOpen(true)}
+                        >
+                            Adicionar
+                        </Button>
+                    )}
+                    <Button 
+                        size="xs" 
+                        variant="light"
+                        leftSection={<IconSettings size={14} />}
+                        onClick={() => setShowAdmin(!showAdmin)}
+                    >
+                        Config
+                    </Button>
+                </Group>
+            </Group>
+            {Object.entries(statusColors).map(([status, info]) => (
+                <Group key={status} gap="xs" wrap="nowrap">
+                    <Box 
+                        w={16} 
+                        h={16} 
+                        bg={info.color} 
+                        style={{ border: '1px solid #333' }}
+                    />
+                    <Text size="sm">{info.description}</Text>
+                </Group>
+            ))}
+            <Group gap="xs" wrap="nowrap">
+                <Box 
+                    w={16} 
+                    h={16} 
+                    bg="#D3D3D3" 
+                    style={{ border: '1px solid #333' }}
+                />
+                <Text size="sm">Outros Países</Text>
+            </Group>
+        </Stack>
+    );
 
-        } catch (error) {
-            console.error("Erro ao remover calendário:", error.response?.data || error.message);
-            
-            setAddNotification({ 
-                type: 'error', 
-                message: `Erro ao remover o calendário: ${error.response?.data?.detail || 'Falha na comunicação com o servidor.'}` 
-            });
-        }
-    };
+    // Listas de países
+    const CountryLists = () => (
+        <Stack gap="md" mt="xl">
+            {Object.entries(paisesPorStatus).map(([status, paises]) => {
+                const statusInfo = statusColors[status];
+                return (
+                    <Box key={status}>
+                        <Title 
+                            order={5} 
+                            style={{ color: statusInfo?.color || '#000' }}
+                        >
+                            {statusInfo?.description || status} ({paises.length})
+                        </Title>
+                        <List size="sm" mt="xs" pl={5}>
+                            {paises.length > 0 ? (
+                                paises.map((pais, index) => (
+                                    <List.Item key={`${status}-${pais}-${index}`}>
+                                        {pais}
+                                    </List.Item>
+                                ))
+                            ) : (
+                                <Text size="sm" c="dimmed">Nenhum</Text>
+                            )}
+                        </List>
+                    </Box>
+                );
+            })}
+        </Stack>
+    );
 
-    // Função para verificar a URL do iframe
-    const checkIframeUrl = (code) => {
-        const src = extractSrcFromIframe(code);
-        if (!src) return false;
-        
-        try {
-            new URL(src);
-            return true;
-        } catch (e) {
-            return false;
-        }
-    };
-
-    // --- Renderização ---
     return (
         <Box p="md">
-            <Title order={2} mb="xl">📅 Agenda da Empresa</Title>
+            <Group justify="space-between" mb="md">
+                <Box>
+                    <Title order={2} mb="xs">🗺️ Mapa de Atuação</Title>
+                    <Text>
+                        Visualize os países onde o Grupo Chegou atua ou já atuou.
+                    </Text>
+                </Box>
+                {canManage && (
+                    <Badge color="blue" variant="light">
+                        Pode gerenciar
+                    </Badge>
+                )}
+            </Group>
 
-            <LoadingOverlay 
-                visible={isLoadingCalendars} 
-                overlayProps={{ radius: "sm", blur: 2 }} 
-            />
-            
-            {fetchError && !isLoadingCalendars && (
-                <Alert 
-                    color="red" 
-                    title="Erro de Carregamento" 
-                    icon={<IconAlertCircle size="1.1rem" />} 
-                    mb="md" 
-                    withCloseButton 
-                    onClose={() => setFetchError(null)}
+            {notification && (
+                <Notification
+                    icon={notification.type === 'success' ? <IconCheck size="1.1rem" /> : <IconX size="1.1rem" />}
+                    color={notification.type === 'success' ? 'teal' : 'red'}
+                    title={notification.type === 'success' ? 'Sucesso!' : 'Erro!'}
+                    onClose={() => setNotification(null)}
+                    mb="md"
                 >
-                    {fetchError}
+                    {notification.message}
+                </Notification>
+            )}
+
+            <LoadingOverlay visible={loading} overlayProps={{ radius: "sm", blur: 2 }} />
+
+            {error && !loading && (
+                <Alert 
+                    icon={<IconAlertCircle size="1rem" />} 
+                    title="Erro ao Carregar Mapa" 
+                    color="red" 
+                    radius="md" 
+                    mb="md"
+                >
+                    {error}
                 </Alert>
             )}
 
-            <Tabs value={activeTab} onChange={setActiveTab}>
-                <Tabs.List>
-                    <Tabs.Tab 
-                        value="visualizar" 
-                        leftSection={<IconCalendar size={16} />}
-                    >
-                        Visualizar
-                    </Tabs.Tab>
-                    <Tabs.Tab 
-                        value="gerenciar" 
-                        leftSection={<IconTools size={16} />}
-                    >
-                        Gerenciar
-                    </Tabs.Tab>
-                    <Tabs.Tab 
-                        value="instrucoes" 
-                        leftSection={<IconInfoCircle size={16} />}
-                    >
-                        Instruções
-                    </Tabs.Tab>
-                </Tabs.List>
+            {!loading && !error && geoJsonData && (
+                <Grid>
+                    <Grid.Col span={{ base: 12, md: 9 }}>
+                        <Box style={{ 
+                            height: '650px', 
+                            width: '100%', 
+                            border: '1px solid #ccc', 
+                            borderRadius: 'var(--mantine-radius-md)', 
+                            overflow: 'hidden' 
+                        }}>
+                            <MapContainer
+                                center={[20, -30]}
+                                zoom={2.5}
+                                style={{ height: "100%", width: "100%" }}
+                                scrollWheelZoom={true}
+                                worldCopyJump={true}
+                            >
+                                <TileLayer
+                                    attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                                />
+                                <GeoJSON
+                                    key={JSON.stringify(geoJsonData)}
+                                    data={geoJsonData}
+                                    style={styleGeoJson}
+                                    onEachFeature={onEachFeature}
+                                />
+                                {markers}
+                            </MapContainer>
+                        </Box>
+                    </Grid.Col>
 
-                {/* --- Painel Aba Visualizar --- */}
-                <Tabs.Panel value="visualizar" pt="lg">
-                    {!isLoadingCalendars && !fetchError && (
-                        <Stack gap="md">
-                            {calendarios.length > 0 ? (
-                                <>
-                                    <Grid gutter="md">
-                                        <Grid.Col span={{ base: 12, md: 10 }}>
-                                            <Select
-                                                label="Selecione um calendário para visualizar:"
-                                                placeholder="Escolha um calendário"
-                                                data={selectOptions}
-                                                value={selectedDbId ? selectedDbId.toString() : null}
-                                                onChange={(value) => {
-                                                    setSelectedDbId(value ? parseInt(value, 10) : null);
-                                                    setIframeLoaded(false); // Reset loading state
-                                                }}
-                                                searchable
-                                                clearable
-                                                style={{ flexGrow: 1 }}
-                                                nothingFoundMessage="Nenhum calendário encontrado"
-                                            />
-                                        </Grid.Col>
-                                        <Grid.Col span={{ base: 12, md: 2 }}>
-                                            <Box mt={isMobile ? 0 : 25}>
-                                                <Button 
-                                                    leftIcon={<IconRefresh size={16} />}
-                                                    variant="outline"
-                                                    onClick={() => fetchCalendars(false)}
-                                                    fullWidth
-                                                >
-                                                    Atualizar
-                                                </Button>
-                                            </Box>
-                                        </Grid.Col>
-                                    </Grid>
-
-                                    {/* Indicador do calendário selecionado */}
-                                    {selectedDbId && (
-                                        <Paper p="xs" withBorder radius="md" style={{ backgroundColor: '#f8f9fa' }}>
-                                            <Group spacing="xs">
-                                                <Text size="sm" color="dimmed">Visualizando:</Text>
-                                                <Text size="sm" weight={500}>
-                                                    {calendarios.find(c => c.id === selectedDbId)?.name}
-                                                </Text>
-                                            </Group>
-                                        </Paper>
-                                    )}
-
-                                    {/* Container do iframe com skeleton loader */}
-                                    <Paper 
-                                        shadow="sm" 
-                                        radius="md" 
-                                        withBorder 
-                                        style={{ overflow: 'hidden', position: 'relative' }}
-                                    >
-                                        {iframeSrc ? (
-                                            <>
-                                                {!iframeLoaded && (
-                                                    <Box
-                                                        style={{
-                                                            position: 'absolute',
-                                                            top: 0,
-                                                            left: 0,
-                                                            width: '100%',
-                                                            height: '100%',
-                                                            zIndex: 1
-                                                        }}
-                                                    >
-                                                        <Skeleton height={iframeHeight} width="100%" />
-                                                    </Box>
-                                                )}
-                                                <AspectRatio ratio={isMobile ? 4/3 : 16/9} style={{ minHeight: iframeHeight }}>
-                                                    <iframe
-                                                        key={iframeSrc} // Força recarga se URL mudar
-                                                        src={iframeSrc}
-                                                        style={{ 
-                                                            border: 0, 
-                                                            display: 'block', 
-                                                            width: '100%', 
-                                                            height: '100%'
-                                                        }}
-                                                        frameBorder="0"
-                                                        scrolling="no"
-                                                        title={`Google Calendar View`}
-                                                        onLoad={() => setIframeLoaded(true)}
-                                                    ></iframe>
-                                                </AspectRatio>
-                                                {/* Botão para abrir em nova guia */}
-                                                <Box 
-                                                    style={{ 
-                                                        position: 'absolute', 
-                                                        top: 10, 
-                                                        right: 10, 
-                                                        zIndex: 10 
-                                                    }}
-                                                >
-                                                    <Tooltip label="Abrir em nova janela">
-                                                        <ActionIcon 
-                                                            component="a" 
-                                                            href={iframeSrc} 
-                                                            target="_blank" 
-                                                            rel="noopener noreferrer"
-                                                            variant="filled"
-                                                            color="gray"
-                                                            size="md"
-                                                        >
-                                                            <IconExternalLink size={16} />
-                                                        </ActionIcon>
-                                                    </Tooltip>
-                                                </Box>
-                                            </>
-                                        ) : (
-                                            <Box p="xl" style={{ height: iframeHeight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                <Text c="dimmed" ta="center">
-                                                    Selecione um calendário para visualizar.
-                                                </Text>
-                                            </Box>
-                                        )}
-                                    </Paper>
-                                </>
-                            ) : (
-                                <Notification 
-                                    title="Nenhum Calendário" 
-                                    color="blue" 
-                                    mt="md" 
-                                    icon={<IconInfoCircle size="1.1rem"/>}
-                                >
-                                    Nenhum calendário foi adicionado ainda. Use a aba "Gerenciar".
-                                </Notification>
-                            )}
+                    <Grid.Col span={{ base: 12, md: 3 }}>
+                        <Stack gap="lg">
+                            <Legend />
+                            <CountryLists />
                         </Stack>
-                    )}
-                </Tabs.Panel>
+                    </Grid.Col>
+                </Grid>
+            )}
 
-                {/* --- Painel Aba Gerenciar --- */}
-                <Tabs.Panel value="gerenciar" pt="lg">
-                    {!isLoadingCalendars && !fetchError && (
-                        <Grid>
-                            {/* Coluna Esquerda: Adicionar */}
-                            <Grid.Col span={{ base: 12, md: 7 }}>
-                                <Paper shadow="xs" p="lg" withBorder>
-                                    <Title order={4} mb="lg">Adicionar Sua Agenda ao Chegou Hub</Title>
-                                    <Stack gap="md">
-                                        <TextInput
-                                            label="Nome (Identificação)"
-                                            placeholder="Ex: João Silva"
-                                            value={novoNome}
-                                            onChange={(event) => setNovoNome(event.currentTarget.value)}
-                                            required
-                                        />
-                                        <Textarea
-                                            label="Código Iframe do Google Calendar"
-                                            placeholder="Cole aqui o código"
-                                            value={novoIframeCode}
-                                            onChange={(event) => setNovoIframeCode(event.currentTarget.value)}
-                                            required
-                                            minRows={3}
-                                            autosize
-                                        />
-                                        {/* Área de Notificação */}
-                                        {addNotification && (
-                                            <Notification
-                                                icon={addNotification.type === 'success' 
-                                                    ? <IconCheck size="1.1rem" /> 
-                                                    : addNotification.type === 'info' 
-                                                        ? <IconInfoCircle size="1.1rem"/> 
-                                                        : <IconX size="1.1rem" />
-                                                }
-                                                color={addNotification.type === 'success' 
-                                                    ? 'teal' 
-                                                    : addNotification.type === 'info' 
-                                                        ? 'blue' 
-                                                        : 'red'
-                                                }
-                                                title={addNotification.type === 'success' 
-                                                    ? 'Sucesso' 
-                                                    : addNotification.type === 'info' 
-                                                        ? 'Info' 
-                                                        : 'Erro'
-                                                }
-                                                onClose={() => setAddNotification(null)}
-                                                mt="xs"
-                                                withCloseButton
-                                            >
-                                                {addNotification.message}
-                                            </Notification>
-                                        )}
-                                        <Button
-                                            onClick={handleAddCalendario}
-                                            loading={isAdding}
-                                            fullWidth
-                                            mt="md"
-                                            leftIcon={<IconCalendar size={16} />}
-                                            disabled={!novoNome || !novoIframeCode}
-                                        >
-                                            Conectar Minha Agenda
-                                        </Button>
-                                    </Stack>
-                                </Paper>
-                            </Grid.Col>
+            {showAdmin && (
+                <Box mt="xl" p="md" style={{ border: '1px solid #ddd', borderRadius: '8px' }}>
+                    <Title order={4} mb="md">⚙️ Administração</Title>
+                    <Text size="sm" c="dimmed">
+                        Para configurações avançadas, acesse: 
+                        <Text 
+                            component="a" 
+                            href="/admin/mapa/" 
+                            target="_blank" 
+                            c="blue" 
+                            style={{ textDecoration: 'underline', marginLeft: '4px' }}
+                        >
+                            Painel Admin
+                        </Text>
+                    </Text>
+                </Box>
+            )}
 
-                            {/* Coluna Direita: Lista */}
-                            <Grid.Col span={{ base: 12, md: 5 }}>
-                                <Paper shadow="xs" p="lg" withBorder>
-                                    <Group position="apart" mb="lg">
-                                        <Title order={4}>Calendários Cadastrados</Title>
-                                        <Badge color="blue" size="lg">{calendarios.length}</Badge>
-                                    </Group>
-                                    <ScrollArea style={{ height: 350 }}>
-                                        {calendarios.length === 0 ? (
-                                            <Text c="dimmed" ta="center">Nenhum calendário cadastrado.</Text>
-                                        ) : (
-                                            <Stack gap="sm">
-                                                {calendarios.map((cal) => {
-                                                    const calColor = generateCalendarColor(cal.name);
-                                                    const isUrlValid = checkIframeUrl(cal.iframe_code);
-                                                    
-                                                    return (
-                                                        <Paper key={cal.id} p="xs" withBorder radius="sm">
-                                                            <Group position="apart" noWrap>
-                                                                <Box style={{ overflow: 'hidden', flexGrow: 1 }}>
-                                                                    <Group spacing="xs">
-                                                                        <ColorSwatch color={`var(--mantine-color-${calColor}-6)`} size={16} />
-                                                                        <Text fw={500} size="sm" truncate>
-                                                                            {cal.name}
-                                                                        </Text>
-                                                                    </Group>
-                                                                    <Group spacing="xs" mt={4}>
-                                                                        <IconLink size={12} color={isUrlValid ? "green" : "red"} />
-                                                                        <Text c="dimmed" size="xs" truncate style={{ maxWidth: '180px' }}>
-                                                                            {extractSrcFromIframe(cal.iframe_code)?.substring(0,35) || '[URL inválida]'}...
-                                                                        </Text>
-                                                                    </Group>
-                                                                </Box>
-                                                                <Group spacing={8} noWrap>
-                                                                    <Tooltip label="Editar calendário">
-                                                                        <ActionIcon
-                                                                            variant="light"
-                                                                            color="blue"
-                                                                            onClick={() => handleOpenEditModal(cal)}
-                                                                            size="sm"
-                                                                        >
-                                                                            <IconPencil size={16} />
-                                                                        </ActionIcon>
-                                                                    </Tooltip>
-                                                                    <Tooltip label="Remover calendário">
-                                                                        <ActionIcon
-                                                                            variant="light"
-                                                                            color="red"
-                                                                            onClick={() => handleRemoveCalendario(cal.id)}
-                                                                            size="sm"
-                                                                        >
-                                                                            <IconTrash size={16} />
-                                                                        </ActionIcon>
-                                                                    </Tooltip>
-                                                                </Group>
-                                                            </Group>
-                                                        </Paper>
-                                                    );
-                                                })}
-                                            </Stack>
-                                        )}
-                                    </ScrollArea>
-                                </Paper>
-                            </Grid.Col>
-                        </Grid>
-                    )}
-                </Tabs.Panel>
-
-                {/* --- Painel Aba Instruções --- */}
-                <Tabs.Panel value="instrucoes" pt="lg">
-                    <Paper shadow="xs" p="lg" withBorder>
-                        <Title order={4} mb="lg">Como Compartilhar sua Agenda no Chegou Hub</Title>
-                        <Stack gap="md">
-                            <Text>Para que sua agenda apareça no Chegou Hub, você precisa compartilhá-la diretamente pelo Google Calendar com nossa conta de integração.</Text>
-                            
-                            <Title order={5} mt="lg" mb="sm">Siga estes passos simples:</Title>
-                            <List type="ordered" spacing="sm">
-                                <List.Item>Acesse o <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer">Google Calendar</a> no seu navegador.</List.Item>
-                                <List.Item>Na barra lateral esquerda, localize a agenda que deseja compartilhar com a equipe.</List.Item>
-                                <List.Item>Passe o mouse sobre o nome da agenda e clique nos três pontinhos (⋮) que aparecem ao lado.</List.Item>
-                                <List.Item>Selecione a opção <Code>Configurações e compartilhamento</Code>.</List.Item>
-                                <List.Item>Role a página até a seção <Code>Compartilhado com pessoas e grupos</Code> e clique em <Code>Adicionar pessoas e grupos</Code>.</List.Item>
-                                <List.Item>Adicione o e-mail: <Code>viniciuschegouoperacional@gmail.com.</Code></List.Item>
-                                <List.Item>Em permissões, selecione <Code>Mais detalhes de todos os eventos</Code>.</List.Item>
-                                <List.Item>Clique em <Code>Enviar</Code> para concluir o compartilhamento.</List.Item>
-                                <List.Item>Role um pouco mais a página até encontrar a seção <Code>Incorporar código</Code> e copie o código exibido.</List.Item>
-                            </List>
-                            
-                            <Title order={5} mt="lg" mb="sm">Adicionando no Chegou Hub:</Title>
-                            <List type="ordered" spacing="sm">
-                                <List.Item>Vá para a aba <Code>Gerenciar</Code> aqui nesta página.</List.Item>
-                                <List.Item>No formulário, digite seu nome no campo <Code>Nome (Identificação)</Code> para que os outros membros possam identificar de quem é a agenda.</List.Item>
-                                <List.Item>Cole o código Iframe do Google Calendar.</List.Item>
-                                <List.Item>Clique em <Code>Adicionar Calendário</Code>.</List.Item>
-                            </List>
-                            
-                            <Text mt="md">Uma vez adicionada, sua agenda estará disponível na aba <Code>Visualizar</Code> e poderá ser vista pelos outros membros da equipe com as cores configuradas no Google Calendar.</Text>
-                        </Stack>
-                    </Paper>
-                </Tabs.Panel>
-            </Tabs>
-
-            {/* Modal de Edição */}
+            {/* Modal para adicionar país */}
             <Modal 
-                opened={editModalOpen} 
-                onClose={handleCloseEditModal}
-                title={<Text size="lg" weight={700}>Editar Calendário</Text>}
-                size="lg"
+                opened={addModalOpen} 
+                onClose={() => setAddModalOpen(false)}
+                title="Adicionar País"
+                size="md"
+                zIndex={2000}
             >
                 <Stack gap="md">
-                    <TextInput
-                        label="Nome (Identificação)"
-                        placeholder="Ex: Marketing, Feriados Nacionais"
-                        value={editName}
-                        onChange={(event) => setEditName(event.currentTarget.value)}
+                    <Select
+                        label="País"
+                        placeholder="Selecione um país"
+                        data={availableCountries.map(c => ({ 
+                            value: JSON.stringify(c), 
+                            label: c.nome_display 
+                        }))}
+                        value={selectedCountry ? JSON.stringify(selectedCountry) : null}
+                        onChange={(value) => setSelectedCountry(value ? JSON.parse(value) : null)}
+                        searchable
                         required
+                        comboboxProps={{ zIndex: 2001 }}
                     />
-                    <Textarea
-                        label="Código Iframe do Google Calendar"
-                        placeholder='Cole o código <iframe src="..."></iframe> aqui'
-                        value={editIframeCode}
-                        onChange={(event) => setEditIframeCode(event.currentTarget.value)}
+                    
+                    <Select
+                        label="Status"
+                        placeholder="Selecione o status"
+                        data={statusList.map(s => ({ 
+                            value: s.id.toString(), 
+                            label: s.descricao 
+                        }))}
+                        value={selectedStatus}
+                        onChange={setSelectedStatus}
                         required
-                        minRows={4}
-                        autosize
-                        error={editIframeCode && !checkIframeUrl(editIframeCode) ? "O código não parece conter um URL válido" : null}
+                        comboboxProps={{ zIndex: 2001 }}
                     />
-                    {/* Área de Notificação */}
-                    {editNotification && (
-                        <Notification
-                            icon={editNotification.type === 'success' 
-                                ? <IconCheck size="1.1rem" /> 
-                                : <IconX size="1.1rem" />
-                            }
-                            color={editNotification.type === 'success' ? 'teal' : 'red'}
-                            title={editNotification.type === 'success' ? 'Sucesso' : 'Erro'}
-                            onClose={() => setEditNotification(null)}
-                            mt="xs"
-                            withCloseButton
-                        >
-                            {editNotification.message}
-                        </Notification>
-                    )}
-                    <Group position="right" mt="md">
-                        <Button variant="outline" onClick={handleCloseEditModal}>
+                    
+                    <Group justify="flex-end" mt="md">
+                        <Button variant="outline" onClick={() => setAddModalOpen(false)}>
                             Cancelar
                         </Button>
                         <Button 
-                            onClick={handleEditCalendario} 
-                            loading={isEditing}
-                            disabled={!editName || !editIframeCode}
+                            onClick={handleAddCountry} 
+                            loading={addLoading}
+                            disabled={!selectedCountry || !selectedStatus}
                         >
-                            Salvar Alterações
+                            Adicionar País
                         </Button>
                     </Group>
                 </Stack>
@@ -819,4 +515,4 @@ function AgendaPage() {
     );
 }
 
-export default AgendaPage;
+export default MapaPage;
