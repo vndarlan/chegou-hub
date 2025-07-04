@@ -43,28 +43,6 @@ import {
 } from '@tabler/icons-react';
 import axios from 'axios';
 
-// Cores hexadecimais do Google Calendar
-const GOOGLE_CALENDAR_COLORS = [
-    '#D50000', // Vermelho
-    '#E67C73', // Vermelho claro
-    '#F4511E', // Laranja
-    '#F6BF26', // Amarelo
-    '#33B679', // Verde
-    '#0B8043', // Verde escuro
-    '#039BE5', // Azul claro
-    '#3F51B5', // Azul
-    '#7986CB', // Azul acinzentado
-    '#9C27B0', // Roxo
-    '#673AB7', // Roxo escuro
-    '#8E24AA', // Rosa escuro
-    '#AD1457', // Pink
-    '#D81B60', // Rosa
-    '#E91E63', // Rosa forte
-    '#795548', // Marrom
-    '#616161', // Cinza
-    '#A79B8E'  // Bege
-];
-
 // Função para extrair SRC do Iframe
 const extractSrcFromIframe = (iframeString) => {
     if (!iframeString || typeof iframeString !== 'string') return null;
@@ -92,29 +70,9 @@ const getColorForCalendar = (calendarName) => {
     return GOOGLE_CALENDAR_COLORS[colorIndex];
 };
 
-// Função para adicionar cor ao iframe se não tiver
-const addColorToIframeUrl = (originalUrl, calendarName) => {
-    if (!originalUrl) return null;
-    
-    try {
-        const url = new URL(originalUrl);
-        
-        // Se já tem cor definida, retorna como está
-        if (url.searchParams.has('color')) {
-            console.log(`✅ Calendário "${calendarName}" já tem cor definida`);
-            return originalUrl;
-        }
-        
-        // Adiciona cor baseada no nome do calendário
-        const color = getColorForCalendar(calendarName);
-        url.searchParams.set('color', encodeURIComponent(color));
-        
-        console.log(`🎨 Adicionada cor ${color} para calendário "${calendarName}"`);
-        return url.toString();
-    } catch (e) {
-        console.warn("Erro ao adicionar cor ao iframe:", e);
-        return originalUrl;
-    }
+// Função que apenas extrai a URL original (cores vêm do Google Calendar)
+const getOriginalIframeUrl = (originalUrl) => {
+    return originalUrl; // Google Calendar gerencia as cores internamente
 };
 
 // Função para gerar cores Mantine (para UI)
@@ -223,16 +181,15 @@ function AgendaPage() {
         }
     }, [calendarios]);
 
-    // --- Lógica de Geração da URL do Iframe (com cores) ---
+    // --- Lógica de Geração da URL do Iframe ---
     const iframeSrc = useMemo(() => {
         if (selectedDbId) {
             const selectedCal = calendarios.find(cal => cal.id === selectedDbId);
             if (selectedCal) {
-                // Extrai URL original e adiciona cor se necessário
+                // Usa URL original - cores vêm das configurações do Google Calendar
                 const originalSrc = extractSrcFromIframe(selectedCal.iframe_code);
-                const coloredSrc = addColorToIframeUrl(originalSrc, selectedCal.name);
-                console.log(`🎨 URL com cor para "${selectedCal.name}":`, coloredSrc);
-                return coloredSrc;
+                console.log(`📅 URL para "${selectedCal.name}":`, originalSrc);
+                return originalSrc;
             }
         }
         return null;
@@ -519,15 +476,11 @@ function AgendaPage() {
                                         </Grid.Col>
                                     </Grid>
 
-                                    {/* Indicador de cor do calendário selecionado */}
+                                    {/* Indicador do calendário selecionado */}
                                     {selectedDbId && (
                                         <Paper p="xs" withBorder radius="md" style={{ backgroundColor: '#f8f9fa' }}>
                                             <Group spacing="xs">
                                                 <Text size="sm" color="dimmed">Visualizando:</Text>
-                                                <ColorSwatch 
-                                                    color={getColorForCalendar(calendarios.find(c => c.id === selectedDbId)?.name)} 
-                                                    size={16} 
-                                                />
                                                 <Text size="sm" weight={500}>
                                                     {calendarios.find(c => c.id === selectedDbId)?.name}
                                                 </Text>
@@ -646,16 +599,6 @@ function AgendaPage() {
                                             minRows={3}
                                             autosize
                                         />
-                                        {/* Preview da cor que será aplicada */}
-                                        {novoNome && (
-                                            <Group spacing="xs">
-                                                <Text size="sm" color="dimmed">Cor que será aplicada:</Text>
-                                                <ColorSwatch color={getColorForCalendar(novoNome)} size={20} />
-                                                <Text size="sm" color="dimmed">
-                                                    {getColorForCalendar(novoNome)}
-                                                </Text>
-                                            </Group>
-                                        )}
                                         {/* Área de Notificação */}
                                         {addNotification && (
                                             <Notification
@@ -778,14 +721,19 @@ function AgendaPage() {
                             <List type="ordered" spacing="sm">
                                 <List.Item>Acesse o <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer">Google Calendar</a> no seu navegador.</List.Item>
                                 <List.Item>Na barra lateral esquerda, localize a agenda que deseja compartilhar com a equipe.</List.Item>
-                                <List.Item>Passe o mouse sobre o nome da agenda e clique nos três pontinhos (⋮) que aparecem ao lado.</List.Item>
-                                <List.Item>Selecione a opção <Code>Configurações e compartilhamento</Code>.</List.Item>
-                                <List.Item>Role a página até a seção <Code>Compartilhado com pessoas e grupos</Code> e clique em <Code>Adicionar pessoas e grupos</Code>.</List.Item>
-                                <List.Item>Adicione o e-mail: <Code>viniciuschegouoperacional@gmail.com.</Code></List.Item>
-                                <List.Item>Em permissões, selecione <Code>Mais detalhes de todos os eventos</Code>.</List.Item>
-                                <List.Item>Clique em <Code>Enviar</Code> para concluir o compartilhamento.</List.Item>
-                                <List.Item>Role um pouco mais a página até encontrar a seção <Code>Incorporar código</Code> e copie o código exibido.</List.Item>
+                                <List.Item><strong>IMPORTANTE:</strong> Clique nos três pontinhos (⋮) ao lado do nome da agenda e vá em <Code>Configurações e compartilhamento</Code>.</List.Item>
+                                <List.Item>Na seção <Code>Permissões de acesso</Code>, marque <Code>Disponibilizar publicamente</Code> e selecione <Code>Ver todos os detalhes do evento</Code>.</List.Item>
+                                <List.Item>Para definir cor: ainda nas configurações, escolha uma cor no seletor de cores do calendário.</List.Item>
+                                <List.Item>Role até <Code>Compartilhado com pessoas e grupos</Code> e adicione: <Code>viniciuschegouoperacional@gmail.com</Code> com permissão <Code>Mais detalhes de todos os eventos</Code>.</List.Item>
+                                <List.Item>Role até <Code>Incorporar código</Code> e copie o código iframe.</List.Item>
                             </List>
+                            
+                            <Alert color="orange" title="Para as cores funcionarem" icon={<IconAlertCircle size="1.1rem" />} mt="md" mb="sm">
+                                <Text size="sm">
+                                    ⚠️ <strong>Muito importante:</strong> O calendário deve ser tornado <strong>público</strong> 
+                                    (não apenas compartilhado) para que as cores apareçam no iframe. Sem isso, todos eventos aparecerão em azul.
+                                </Text>
+                            </Alert>
                             
                             <Title order={5} mt="lg" mb="sm">Adicionando no Chegou Hub:</Title>
                             <List type="ordered" spacing="sm">
@@ -795,12 +743,7 @@ function AgendaPage() {
                                 <List.Item>Clique em <Code>Adicionar Calendário</Code>.</List.Item>
                             </List>
                             
-                            <Alert color="blue" title="Sobre as Cores" icon={<IconInfoCircle size="1.1rem" />} mt="lg">
-                                O sistema automaticamente aplica uma cor única para cada calendário baseada no nome. 
-                                Isso ajuda a distinguir visualmente as diferentes agendas da equipe.
-                            </Alert>
-                                                        
-                            <Text mt="md">Uma vez adicionada, sua agenda estará disponível na aba <Code>Visualizar</Code> e poderá ser vista pelos outros membros da equipe.</Text>
+                            <Text mt="md">Uma vez adicionada, sua agenda estará disponível na aba <Code>Visualizar</Code> e poderá ser vista pelos outros membros da equipe com as cores configuradas no Google Calendar.</Text>
                         </Stack>
                     </Paper>
                 </Tabs.Panel>
@@ -821,16 +764,6 @@ function AgendaPage() {
                         onChange={(event) => setEditName(event.currentTarget.value)}
                         required
                     />
-                    {/* Preview da cor no modal de edição */}
-                    {editName && (
-                        <Group spacing="xs">
-                            <Text size="sm" color="dimmed">Cor que será aplicada:</Text>
-                            <ColorSwatch color={getColorForCalendar(editName)} size={20} />
-                            <Text size="sm" color="dimmed">
-                                {getColorForCalendar(editName)}
-                            </Text>
-                        </Group>
-                    )}
                     <Textarea
                         label="Código Iframe do Google Calendar"
                         placeholder='Cole o código <iframe src="..."></iframe> aqui'
