@@ -201,41 +201,58 @@ function AgendaPage() {
                 return null; // Nenhum calendário visível
             }
             
-            // Extrai URLs válidas, codifica e junta
-            const validSrcs = visibleCals
+            // 🔄 NOVA LÓGICA MELHORADA PARA MÚLTIPLOS CALENDÁRIOS:
+            const calendarSrcs = visibleCals
                 .map(cal => {
+                    // Usa a função melhorada para extrair o src
                     const src = extractSrcFromIframe(cal.iframe_code);
                     if (!src) return null;
                     
-                    // Tenta extrair apenas a query string 'src' da URL completa
                     try {
                         const url = new URL(src);
-                        // Se for um URL do Google Calendar e tiver um parâmetro 'src'
-                        if (url.hostname.includes('calendar.google.com') && url.searchParams.has('src')) {
-                            return encodeURIComponent(url.searchParams.get('src'));
-                        }
-                        // Caso contrário, apenas codifica o URL inteiro
-                        return encodeURIComponent(src);
+                        // Extrai apenas o valor do parâmetro 'src' que é o ID do calendário
+                        const calendarId = url.searchParams.get('src');
+                        return calendarId;
                     } catch (e) {
-                        console.warn("Não foi possível parsear URL do iframe:", src, e);
-                        // Tenta usar o src diretamente se não conseguir parsear
-                        return encodeURIComponent(src);
+                        console.warn("Erro ao extrair ID do calendário:", src, e);
+                        return null;
                     }
                 })
-                .filter(encodedSrc => encodedSrc !== null);
+                .filter(src => src !== null);
 
-            if (validSrcs.length > 0) {
-                // Monta a URL base + múltiplos parâmetros src=
-                return `https://calendar.google.com/calendar/embed?src=${validSrcs.join('&src=')}&ctz=America%2FSao_Paulo`;
+            if (calendarSrcs.length > 0) {
+                // 🎨 CONSTRÓI URL OTIMIZADA PARA PRESERVAR CORES:
+                const baseUrl = 'https://calendar.google.com/calendar/embed';
+                const params = new URLSearchParams();
+                
+                // Adiciona cada calendário como parâmetro 'src'
+                calendarSrcs.forEach(calSrc => {
+                    params.append('src', calSrc);
+                });
+                
+                // 🎨 PARÂMETROS ESSENCIAIS PARA CORES:
+                params.set('showCalendars', '1');        // 🔑 CHAVE: Lista de calendários com cores
+                params.set('showTitle', '1');            // Título
+                params.set('showTabs', '1');             // Abas
+                params.set('showPrint', '0');            // Sem botão imprimir
+                params.set('showTz', '0');               // Sem timezone
+                params.set('mode', 'MONTH');             // Modo mês (melhor para cores)
+                params.set('ctz', 'America/Sao_Paulo'); // Timezone Brasil
+                params.set('hl', 'pt-BR');               // Português
+                params.set('wkst', '1');                 // Semana começa segunda
+                params.set('bgcolor', '%23FFFFFF');     // Fundo branco
+                
+                const finalUrl = `${baseUrl}?${params.toString()}`;
+                console.log("🎨 URL combinada otimizada:", finalUrl);
+                return finalUrl;
             }
         } else if (selectedDbId) {
-            // Encontra o calendário selecionado pelo ID do banco
+            // Para calendário único, usa a função já melhorada
             const selectedCal = calendarios.find(cal => cal.id === selectedDbId);
             if (selectedCal) {
-                // Extrai a URL src do código iframe dele
-                const extractedSrc = extractSrcFromIframe(selectedCal.iframe_code);
-                console.log(`SRC Extraído para ID ${selectedDbId}:`, extractedSrc);
-                return extractedSrc;
+                const enhancedSrc = extractSrcFromIframe(selectedCal.iframe_code);
+                console.log(`🎨 URL individual otimizada para ID ${selectedDbId}:`, enhancedSrc);
+                return enhancedSrc;
             }
         }
         return null;
