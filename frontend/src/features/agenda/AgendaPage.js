@@ -43,22 +43,81 @@ import {
 } from '@tabler/icons-react';
 import axios from 'axios';
 
-// Função para extrair SRC do Iframe preservando cores
+// Cores hexadecimais do Google Calendar
+const GOOGLE_CALENDAR_COLORS = [
+    '#D50000', // Vermelho
+    '#E67C73', // Vermelho claro
+    '#F4511E', // Laranja
+    '#F6BF26', // Amarelo
+    '#33B679', // Verde
+    '#0B8043', // Verde escuro
+    '#039BE5', // Azul claro
+    '#3F51B5', // Azul
+    '#7986CB', // Azul acinzentado
+    '#9C27B0', // Roxo
+    '#673AB7', // Roxo escuro
+    '#8E24AA', // Rosa escuro
+    '#AD1457', // Pink
+    '#D81B60', // Rosa
+    '#E91E63', // Rosa forte
+    '#795548', // Marrom
+    '#616161', // Cinza
+    '#A79B8E'  // Bege
+];
+
+// Função para extrair SRC do Iframe
 const extractSrcFromIframe = (iframeString) => {
     if (!iframeString || typeof iframeString !== 'string') return null;
     
-    // Regex para capturar o src completo com todos os parâmetros
     const matchSrc = iframeString.match(/src\s*=\s*["']([^"']+)["']/i);
     
     if (matchSrc && matchSrc[1]) {
-        return matchSrc[1]; // Retorna a URL completa com parâmetros de cor
+        return matchSrc[1];
     }
     
     const urlMatch = iframeString.match(/(https?:\/\/[^\s"'<>]+)/i);
     return urlMatch ? urlMatch[1] : null;
 };
 
-// Função para gerar cores aleatórias com base no nome do calendário (consistentes)
+// Função para gerar cor baseada no nome
+const getColorForCalendar = (calendarName) => {
+    if (!calendarName) return GOOGLE_CALENDAR_COLORS[0];
+    
+    let hash = 0;
+    for (let i = 0; i < calendarName.length; i++) {
+        hash = calendarName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    const colorIndex = Math.abs(hash) % GOOGLE_CALENDAR_COLORS.length;
+    return GOOGLE_CALENDAR_COLORS[colorIndex];
+};
+
+// Função para adicionar cor ao iframe se não tiver
+const addColorToIframeUrl = (originalUrl, calendarName) => {
+    if (!originalUrl) return null;
+    
+    try {
+        const url = new URL(originalUrl);
+        
+        // Se já tem cor definida, retorna como está
+        if (url.searchParams.has('color')) {
+            console.log(`✅ Calendário "${calendarName}" já tem cor definida`);
+            return originalUrl;
+        }
+        
+        // Adiciona cor baseada no nome do calendário
+        const color = getColorForCalendar(calendarName);
+        url.searchParams.set('color', encodeURIComponent(color));
+        
+        console.log(`🎨 Adicionada cor ${color} para calendário "${calendarName}"`);
+        return url.toString();
+    } catch (e) {
+        console.warn("Erro ao adicionar cor ao iframe:", e);
+        return originalUrl;
+    }
+};
+
+// Função para gerar cores Mantine (para UI)
 const generateCalendarColor = (calendarName) => {
     if (!calendarName) return 'blue';
     
@@ -164,15 +223,16 @@ function AgendaPage() {
         }
     }, [calendarios]);
 
-    // --- Lógica de Geração da URL do Iframe (corrigida) ---
+    // --- Lógica de Geração da URL do Iframe (com cores) ---
     const iframeSrc = useMemo(() => {
         if (selectedDbId) {
             const selectedCal = calendarios.find(cal => cal.id === selectedDbId);
             if (selectedCal) {
-                // Usa o iframe original preservando todas as cores e configurações
+                // Extrai URL original e adiciona cor se necessário
                 const originalSrc = extractSrcFromIframe(selectedCal.iframe_code);
-                console.log(`🎨 URL com cores originais preservadas para ID ${selectedDbId}:`, originalSrc);
-                return originalSrc;
+                const coloredSrc = addColorToIframeUrl(originalSrc, selectedCal.name);
+                console.log(`🎨 URL com cor para "${selectedCal.name}":`, coloredSrc);
+                return coloredSrc;
             }
         }
         return null;
@@ -435,7 +495,10 @@ function AgendaPage() {
                                                 placeholder="Escolha um calendário"
                                                 data={selectOptions}
                                                 value={selectedDbId ? selectedDbId.toString() : null}
-                                                onChange={(value) => setSelectedDbId(value ? parseInt(value, 10) : null)}
+                                                onChange={(value) => {
+                                                    setSelectedDbId(value ? parseInt(value, 10) : null);
+                                                    setIframeLoaded(false); // Reset loading state
+                                                }}
                                                 searchable
                                                 clearable
                                                 style={{ flexGrow: 1 }}
@@ -455,6 +518,22 @@ function AgendaPage() {
                                             </Box>
                                         </Grid.Col>
                                     </Grid>
+
+                                    {/* Indicador de cor do calendário selecionado */}
+                                    {selectedDbId && (
+                                        <Paper p="xs" withBorder radius="md" style={{ backgroundColor: '#f8f9fa' }}>
+                                            <Group spacing="xs">
+                                                <Text size="sm" color="dimmed">Visualizando:</Text>
+                                                <ColorSwatch 
+                                                    color={getColorForCalendar(calendarios.find(c => c.id === selectedDbId)?.name)} 
+                                                    size={16} 
+                                                />
+                                                <Text size="sm" weight={500}>
+                                                    {calendarios.find(c => c.id === selectedDbId)?.name}
+                                                </Text>
+                                            </Group>
+                                        </Paper>
+                                    )}
 
                                     {/* Container do iframe com skeleton loader */}
                                     <Paper 
@@ -567,6 +646,16 @@ function AgendaPage() {
                                             minRows={3}
                                             autosize
                                         />
+                                        {/* Preview da cor que será aplicada */}
+                                        {novoNome && (
+                                            <Group spacing="xs">
+                                                <Text size="sm" color="dimmed">Cor que será aplicada:</Text>
+                                                <ColorSwatch color={getColorForCalendar(novoNome)} size={20} />
+                                                <Text size="sm" color="dimmed">
+                                                    {getColorForCalendar(novoNome)}
+                                                </Text>
+                                            </Group>
+                                        )}
                                         {/* Área de Notificação */}
                                         {addNotification && (
                                             <Notification
@@ -623,6 +712,7 @@ function AgendaPage() {
                                             <Stack gap="sm">
                                                 {calendarios.map((cal) => {
                                                     const calColor = generateCalendarColor(cal.name);
+                                                    const calGoogleColor = getColorForCalendar(cal.name);
                                                     const isUrlValid = checkIframeUrl(cal.iframe_code);
                                                     
                                                     return (
@@ -630,7 +720,7 @@ function AgendaPage() {
                                                             <Group position="apart" noWrap>
                                                                 <Box style={{ overflow: 'hidden', flexGrow: 1 }}>
                                                                     <Group spacing="xs">
-                                                                        <ColorSwatch color={`var(--mantine-color-${calColor}-6)`} size={16} />
+                                                                        <ColorSwatch color={calGoogleColor} size={16} />
                                                                         <Text fw={500} size="sm" truncate>
                                                                             {cal.name}
                                                                         </Text>
@@ -704,6 +794,11 @@ function AgendaPage() {
                                 <List.Item>Cole o código Iframe do Google Calendar.</List.Item>
                                 <List.Item>Clique em <Code>Adicionar Calendário</Code>.</List.Item>
                             </List>
+                            
+                            <Alert color="blue" title="Sobre as Cores" icon={<IconInfoCircle size="1.1rem" />} mt="lg">
+                                O sistema automaticamente aplica uma cor única para cada calendário baseada no nome. 
+                                Isso ajuda a distinguir visualmente as diferentes agendas da equipe.
+                            </Alert>
                                                         
                             <Text mt="md">Uma vez adicionada, sua agenda estará disponível na aba <Code>Visualizar</Code> e poderá ser vista pelos outros membros da equipe.</Text>
                         </Stack>
@@ -726,6 +821,16 @@ function AgendaPage() {
                         onChange={(event) => setEditName(event.currentTarget.value)}
                         required
                     />
+                    {/* Preview da cor no modal de edição */}
+                    {editName && (
+                        <Group spacing="xs">
+                            <Text size="sm" color="dimmed">Cor que será aplicada:</Text>
+                            <ColorSwatch color={getColorForCalendar(editName)} size={20} />
+                            <Text size="sm" color="dimmed">
+                                {getColorForCalendar(editName)}
+                            </Text>
+                        </Group>
+                    )}
                     <Textarea
                         label="Código Iframe do Google Calendar"
                         placeholder='Cole o código <iframe src="..."></iframe> aqui'
