@@ -57,9 +57,45 @@ const extractSrcFromIframe = (iframeString) => {
     return urlMatch ? urlMatch[1] : null;
 };
 
-// Função que apenas extrai a URL original (cores vêm do Google Calendar)
-const getOriginalIframeUrl = (originalUrl) => {
-    return originalUrl; // Google Calendar gerencia as cores internamente
+// Função para adicionar cor a calendário privado
+const addColorToPrivateCalendar = (originalUrl, calendarName) => {
+    if (!originalUrl) return null;
+    
+    try {
+        const url = new URL(originalUrl);
+        
+        // Se já tem cor, retorna como está
+        if (url.searchParams.has('color')) {
+            return originalUrl;
+        }
+        
+        // Adiciona cor baseada no nome
+        const color = getColorForCalendar(calendarName);
+        url.searchParams.set('color', encodeURIComponent(color));
+        
+        console.log(`🎨 Cor adicionada para "${calendarName}": ${color}`);
+        return url.toString();
+    } catch (e) {
+        console.warn("Erro ao adicionar cor:", e);
+        return originalUrl;
+    }
+};
+
+// Cores do Google Calendar para calendários privados
+const getColorForCalendar = (calendarName) => {
+    const colors = [
+        '#D50000', '#E67C73', '#F4511E', '#F6BF26', '#33B679', 
+        '#0B8043', '#039BE5', '#3F51B5', '#7986CB', '#9C27B0'
+    ];
+    
+    if (!calendarName) return colors[0];
+    
+    let hash = 0;
+    for (let i = 0; i < calendarName.length; i++) {
+        hash = calendarName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    return colors[Math.abs(hash) % colors.length];
 };
 
 // Função para gerar cores Mantine (para UI)
@@ -168,15 +204,16 @@ function AgendaPage() {
         }
     }, [calendarios]);
 
-    // --- Lógica de Geração da URL do Iframe ---
+    // --- Lógica de Geração da URL do Iframe (com tentativa de cor) ---
     const iframeSrc = useMemo(() => {
         if (selectedDbId) {
             const selectedCal = calendarios.find(cal => cal.id === selectedDbId);
             if (selectedCal) {
-                // Usa URL original - cores vêm das configurações do Google Calendar
+                // Tenta adicionar cor mesmo para calendários privados
                 const originalSrc = extractSrcFromIframe(selectedCal.iframe_code);
-                console.log(`📅 URL para "${selectedCal.name}":`, originalSrc);
-                return originalSrc;
+                const coloredSrc = addColorToPrivateCalendar(originalSrc, selectedCal.name);
+                console.log(`📅 URL para "${selectedCal.name}":`, coloredSrc);
+                return coloredSrc;
             }
         }
         return null;
@@ -703,23 +740,30 @@ function AgendaPage() {
                         <Stack gap="md">
                             <Text>Para que sua agenda apareça no Chegou Hub, você precisa compartilhá-la diretamente pelo Google Calendar com nossa conta de integração.</Text>
                             
-                            <Title order={5} mt="lg" mb="sm">Siga estes passos simples:</Title>
-                            <List type="ordered" spacing="sm">
-                                <List.Item>Acesse o <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer">Google Calendar</a> no seu navegador.</List.Item>
-                                <List.Item>Na barra lateral esquerda, localize a agenda que deseja compartilhar com a equipe.</List.Item>
-                                <List.Item><strong>IMPORTANTE:</strong> Clique nos três pontinhos (⋮) ao lado do nome da agenda e vá em <Code>Configurações e compartilhamento</Code>.</List.Item>
-                                <List.Item>Na seção <Code>Permissões de acesso</Code>, marque <Code>Disponibilizar publicamente</Code> e selecione <Code>Ver todos os detalhes do evento</Code>.</List.Item>
-                                <List.Item>Para definir cor: ainda nas configurações, escolha uma cor no seletor de cores do calendário.</List.Item>
-                                <List.Item>Role até <Code>Compartilhado com pessoas e grupos</Code> e adicione: <Code>viniciuschegouoperacional@gmail.com</Code> com permissão <Code>Mais detalhes de todos os eventos</Code>.</List.Item>
-                                <List.Item>Role até <Code>Incorporar código</Code> e copie o código iframe.</List.Item>
-                            </List>
+                            <Title order={5} mt="lg" mb="sm">Opções para adicionar cores:</Title>
                             
-                            <Alert color="orange" title="Para as cores funcionarem" icon={<IconAlertCircle size="1.1rem" />} mt="md" mb="sm">
+                            <Alert color="blue" title="Opção 1: Calendário Privado (Limitado)" icon={<IconInfoCircle size="1.1rem" />} mb="md">
                                 <Text size="sm">
-                                    ⚠️ <strong>Muito importante:</strong> O calendário deve ser tornado <strong>público</strong> 
-                                    (não apenas compartilhado) para que as cores apareçam no iframe. Sem isso, todos eventos aparecerão em azul.
+                                    Para calendários privados como o seu, o sistema tentará adicionar cores via parâmetros na URL, 
+                                    mas pode não funcionar sempre. Copie seu iframe normalmente.
                                 </Text>
                             </Alert>
+
+                            <Alert color="green" title="Opção 2: Calendários Separados (Recomendado)" icon={<IconCheck size="1.1rem" />} mb="md">
+                                <Text size="sm">
+                                    <strong>Melhor alternativa:</strong> Crie calendários separados no Google Calendar para diferentes tipos de eventos 
+                                    (Ex: "Reuniões", "Pessoal", "Feriados") e defina uma cor para cada um. 
+                                    Cada pessoa adiciona apenas seus próprios calendários.
+                                </Text>
+                            </Alert>
+
+                            <List type="ordered" spacing="sm">
+                                <List.Item>Acesse o <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer">Google Calendar</a>.</List.Item>
+                                <List.Item>Na lateral esquerda, localize seu calendário ou crie calendários separados por tipo.</List.Item>
+                                <List.Item>Clique nos três pontinhos (⋮) ao lado do calendário e vá em <Code>Configurações e compartilhamento</Code>.</List.Item>
+                                <List.Item>Compartilhe com: <Code>viniciuschegouoperacional@gmail.com</Code> com permissão <Code>Ver todos os detalhes do evento</Code>.</List.Item>
+                                <List.Item>Role até <Code>Incorporar código</Code> e copie o iframe.</List.Item>
+                            </List>
                             
                             <Title order={5} mt="lg" mb="sm">Adicionando no Chegou Hub:</Title>
                             <List type="ordered" spacing="sm">
