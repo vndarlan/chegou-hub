@@ -758,16 +758,16 @@ function AgendaPage() {
                     <Paper shadow="xs" p="lg" withBorder>
                         <Title order={4} mb="lg">Como Compartilhar sua Agenda no Chegou Hub</Title>
                         <Stack gap="md">
-                            <Text>Para que sua agenda apareça no Chegou Hub, você precisa compartilhá-la diretamente pelo Google Calendar com nossa conta de integração.</Text>
+                            <Text>Para que sua agenda apareça no Chegou Hub, você precisa compartilhá-la diretamente pelo Google Calendar.</Text>
                             
-                            <Title order={5} mt="lg" mb="sm">Siga estes passos simples:</Title>
+                            <Title order={5} mt="lg" mb="sm">Siga estes passos:</Title>
                             <List type="ordered" spacing="sm">
                                 <List.Item>Acesse o <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer">Google Calendar</a> no seu navegador.</List.Item>
                                 <List.Item>Na barra lateral esquerda, localize a agenda que deseja compartilhar com a equipe.</List.Item>
                                 <List.Item>Passe o mouse sobre o nome da agenda e clique nos três pontinhos (⋮) que aparecem ao lado.</List.Item>
                                 <List.Item>Selecione a opção <Code>Configurações e compartilhamento</Code>.</List.Item>
                                 <List.Item>Role a página até a seção <Code>Compartilhado com pessoas e grupos</Code> e clique em <Code>Adicionar pessoas e grupos</Code>.</List.Item>
-                                <List.Item>Adicione o e-mail: <Code>viniciuschegouoperacional@gmail.com.</Code></List.Item>
+                                <List.Item>Adicione os e-mails: <Code>viniciuschegouoperacional@gmail.com</Code>, <Code>felipechegouoperacional@gmail.com</Code>, <Code>joaobento@loja-chegou.com</Code>, <Code>marcoschegouoperacional@gmail.com</Code>, <Code>matheuschegouoperacional@gmail.com</Code>, <Code>murillochegouoperacional@gmail.com</Code>, <Code>nathaliarochachegou@gmail.com</Code> e <Code>ricardomachadochegou@gmail.com</Code>.</List.Item>
                                 <List.Item>Em permissões, selecione <Code>Mais detalhes de todos os eventos</Code>.</List.Item>
                                 <List.Item>Clique em <Code>Enviar</Code> para concluir o compartilhamento.</List.Item>
                                 <List.Item>Role um pouco mais a página até encontrar a seção <Code>Incorporar código</Code> e copie o código exibido.</List.Item>
@@ -781,7 +781,7 @@ function AgendaPage() {
                                 <List.Item>Clique em <Code>Adicionar Calendário</Code>.</List.Item>
                             </List>
                             
-                            <Text mt="md">Uma vez adicionada, sua agenda estará disponível na aba <Code>Visualizar</Code> e poderá ser vista pelos outros membros da equipe com as cores configuradas no Google Calendar.</Text>
+                            <Text mt="md">Uma vez adicionada, sua agenda estará disponível na aba <Code>Visualizar</Code> e poderá ser vista pelos outros membros da equipe.</Text>
                         </Stack>
                     </Paper>
                 </Tabs.Panel>
