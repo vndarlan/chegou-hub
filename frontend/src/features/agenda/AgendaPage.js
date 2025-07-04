@@ -57,19 +57,6 @@ const extractSrcFromIframe = (iframeString) => {
     return urlMatch ? urlMatch[1] : null;
 };
 
-// Função para gerar cor baseada no nome
-const getColorForCalendar = (calendarName) => {
-    if (!calendarName) return GOOGLE_CALENDAR_COLORS[0];
-    
-    let hash = 0;
-    for (let i = 0; i < calendarName.length; i++) {
-        hash = calendarName.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    
-    const colorIndex = Math.abs(hash) % GOOGLE_CALENDAR_COLORS.length;
-    return GOOGLE_CALENDAR_COLORS[colorIndex];
-};
-
 // Função que apenas extrai a URL original (cores vêm do Google Calendar)
 const getOriginalIframeUrl = (originalUrl) => {
     return originalUrl; // Google Calendar gerencia as cores internamente
@@ -655,7 +642,6 @@ function AgendaPage() {
                                             <Stack gap="sm">
                                                 {calendarios.map((cal) => {
                                                     const calColor = generateCalendarColor(cal.name);
-                                                    const calGoogleColor = getColorForCalendar(cal.name);
                                                     const isUrlValid = checkIframeUrl(cal.iframe_code);
                                                     
                                                     return (
@@ -663,7 +649,7 @@ function AgendaPage() {
                                                             <Group position="apart" noWrap>
                                                                 <Box style={{ overflow: 'hidden', flexGrow: 1 }}>
                                                                     <Group spacing="xs">
-                                                                        <ColorSwatch color={calGoogleColor} size={16} />
+                                                                        <ColorSwatch color={`var(--mantine-color-${calColor}-6)`} size={16} />
                                                                         <Text fw={500} size="sm" truncate>
                                                                             {cal.name}
                                                                         </Text>
