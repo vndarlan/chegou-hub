@@ -6,7 +6,6 @@ import {
     Text,
     Tabs,
     Select,
-    Checkbox,
     TextInput,
     Textarea,
     Button,
@@ -23,7 +22,6 @@ import {
     LoadingOverlay,
     Modal,
     ColorSwatch,
-    SimpleGrid,
     Badge,
     AspectRatio,
     Skeleton,
@@ -39,27 +37,23 @@ import {
     IconInfoCircle,
     IconAlertCircle,
     IconPencil,
-    IconEye,
-    IconEyeOff,
     IconRefresh,
     IconLink,
     IconExternalLink
 } from '@tabler/icons-react';
 import axios from 'axios';
 
-// Função melhorada para extrair SRC do Iframe com flexibilidade para diferentes formatos
+// Função para extrair SRC do Iframe preservando cores
 const extractSrcFromIframe = (iframeString) => {
     if (!iframeString || typeof iframeString !== 'string') return null;
     
-    // Regex para capturar o src com tolerância para diferentes formatos de aspas e espaços
+    // Regex para capturar o src completo com todos os parâmetros
     const matchSrc = iframeString.match(/src\s*=\s*["']([^"']+)["']/i);
     
     if (matchSrc && matchSrc[1]) {
-        // Se encontrou o src diretamente, retorna
-        return matchSrc[1];
+        return matchSrc[1]; // Retorna a URL completa com parâmetros de cor
     }
     
-    // Caso não encontre o padrão normal, procura por qualquer URL no código
     const urlMatch = iframeString.match(/(https?:\/\/[^\s"'<>]+)/i);
     return urlMatch ? urlMatch[1] : null;
 };
@@ -68,16 +62,13 @@ const extractSrcFromIframe = (iframeString) => {
 const generateCalendarColor = (calendarName) => {
     if (!calendarName) return 'blue';
     
-    // Lista de cores do Mantine que não são muito claras nem escuras
     const colors = ['blue', 'indigo', 'purple', 'pink', 'red', 'orange', 'yellow', 'teal', 'green', 'cyan'];
     
-    // Usar o nome para gerar um índice consistente
     let hash = 0;
     for (let i = 0; i < calendarName.length; i++) {
         hash = calendarName.charCodeAt(i) + ((hash << 5) - hash);
     }
     
-    // Converte o hash para um índice na lista de cores
     const colorIndex = Math.abs(hash) % colors.length;
     return colors[colorIndex];
 };
@@ -87,12 +78,10 @@ function AgendaPage() {
     const [activeTab, setActiveTab] = useState('visualizar');
     const [calendarios, setCalendarios] = useState([]);
     const [selectedDbId, setSelectedDbId] = useState(null);
-    const [viewAll, setViewAll] = useState(false);
-    const [visibleCalendars, setVisibleCalendars] = useState({});
     const [isLoadingCalendars, setIsLoadingCalendars] = useState(true);
     const [fetchError, setFetchError] = useState(null);
     const [iframeLoaded, setIframeLoaded] = useState(false);
-    const [selectOptions, setSelectOptions] = useState([]); // Novo estado para as opções do select
+    const [selectOptions, setSelectOptions] = useState([]);
 
     // Estados para o formulário de adição
     const [novoNome, setNovoNome] = useState('');
@@ -114,7 +103,7 @@ function AgendaPage() {
 
     // --- Funções da API ---
 
-    // Buscar calendários - CORRIGIDO: removido visibleCalendars das dependências
+    // Buscar calendários
     const fetchCalendars = useCallback(async (selectFirst = true) => {
         setIsLoadingCalendars(true);
         setFetchError(null);
@@ -128,7 +117,7 @@ function AgendaPage() {
 
             // Define seleção inicial baseado no ID do banco se selectFirst for true
             if (selectFirst) {
-                if (!viewAll && calendarData.length > 0) {
+                if (calendarData.length > 0) {
                     setSelectedDbId(calendarData[0].id);
                 } else {
                     setSelectedDbId(null);
@@ -137,7 +126,7 @@ function AgendaPage() {
                 // Se não for para selecionar o primeiro, garante que a seleção atual ainda é válida
                 if (selectedDbId && !calendarData.some(c => c.id === selectedDbId)) {
                     setSelectedDbId(calendarData.length > 0 ? calendarData[0].id : null);
-                } else if (!selectedDbId && !viewAll && calendarData.length > 0) {
+                } else if (!selectedDbId && calendarData.length > 0) {
                     setSelectedDbId(calendarData[0].id);
                 }
             }
@@ -150,28 +139,12 @@ function AgendaPage() {
         } finally {
             setIsLoadingCalendars(false);
         }
-    }, [viewAll, selectedDbId]); // IMPORTANTE: Removido visibleCalendars das dependências para evitar loop infinito
+    }, [selectedDbId]);
 
     // Busca inicial
     useEffect(() => {
         fetchCalendars(true);
     }, [fetchCalendars]);
-    
-    // NOVO: Efeito separado para gerenciar visibilidade dos calendários
-    useEffect(() => {
-        // Inicializar estados de visibilidade para novos calendários
-        if (calendarios.length > 0) {
-            setVisibleCalendars(prev => {
-                const newVisibleCalendars = {...prev};
-                calendarios.forEach(cal => {
-                    if (newVisibleCalendars[cal.id] === undefined) {
-                        newVisibleCalendars[cal.id] = true;
-                    }
-                });
-                return newVisibleCalendars;
-            });
-        }
-    }, [calendarios]); // Este efeito depende apenas de calendarios
 
     // Atualiza as opções do select quando os calendários mudam
     useEffect(() => {
@@ -191,72 +164,19 @@ function AgendaPage() {
         }
     }, [calendarios]);
 
-    // --- Lógica de Geração da URL do Iframe (melhorada) ---
+    // --- Lógica de Geração da URL do Iframe (corrigida) ---
     const iframeSrc = useMemo(() => {
-        if (viewAll && calendarios.length > 0) {
-            // Filtra apenas os calendários marcados como visíveis
-            const visibleCals = calendarios.filter(cal => visibleCalendars[cal.id]);
-            
-            if (visibleCals.length === 0) {
-                return null; // Nenhum calendário visível
-            }
-            
-            // 🔄 NOVA LÓGICA MELHORADA PARA MÚLTIPLOS CALENDÁRIOS:
-            const calendarSrcs = visibleCals
-                .map(cal => {
-                    // Usa a função melhorada para extrair o src
-                    const src = extractSrcFromIframe(cal.iframe_code);
-                    if (!src) return null;
-                    
-                    try {
-                        const url = new URL(src);
-                        // Extrai apenas o valor do parâmetro 'src' que é o ID do calendário
-                        const calendarId = url.searchParams.get('src');
-                        return calendarId;
-                    } catch (e) {
-                        console.warn("Erro ao extrair ID do calendário:", src, e);
-                        return null;
-                    }
-                })
-                .filter(src => src !== null);
-
-            if (calendarSrcs.length > 0) {
-                // 🎨 CONSTRÓI URL OTIMIZADA PARA PRESERVAR CORES:
-                const baseUrl = 'https://calendar.google.com/calendar/embed';
-                const params = new URLSearchParams();
-                
-                // Adiciona cada calendário como parâmetro 'src'
-                calendarSrcs.forEach(calSrc => {
-                    params.append('src', calSrc);
-                });
-                
-                // 🎨 PARÂMETROS ESSENCIAIS PARA CORES:
-                params.set('showCalendars', '1');        // 🔑 CHAVE: Lista de calendários com cores
-                params.set('showTitle', '1');            // Título
-                params.set('showTabs', '1');             // Abas
-                params.set('showPrint', '0');            // Sem botão imprimir
-                params.set('showTz', '0');               // Sem timezone
-                params.set('mode', 'MONTH');             // Modo mês (melhor para cores)
-                params.set('ctz', 'America/Sao_Paulo'); // Timezone Brasil
-                params.set('hl', 'pt-BR');               // Português
-                params.set('wkst', '1');                 // Semana começa segunda
-                params.set('bgcolor', '%23FFFFFF');     // Fundo branco
-                
-                const finalUrl = `${baseUrl}?${params.toString()}`;
-                console.log("🎨 URL combinada otimizada:", finalUrl);
-                return finalUrl;
-            }
-        } else if (selectedDbId) {
-            // Para calendário único, usa a função já melhorada
+        if (selectedDbId) {
             const selectedCal = calendarios.find(cal => cal.id === selectedDbId);
             if (selectedCal) {
-                const enhancedSrc = extractSrcFromIframe(selectedCal.iframe_code);
-                console.log(`🎨 URL individual otimizada para ID ${selectedDbId}:`, enhancedSrc);
-                return enhancedSrc;
+                // Usa o iframe original preservando todas as cores e configurações
+                const originalSrc = extractSrcFromIframe(selectedCal.iframe_code);
+                console.log(`🎨 URL com cores originais preservadas para ID ${selectedDbId}:`, originalSrc);
+                return originalSrc;
             }
         }
         return null;
-    }, [viewAll, selectedDbId, calendarios, visibleCalendars]);
+    }, [selectedDbId, calendarios]);
 
     // --- Funções de Manipulação (Adicionar/Remover/Editar) ---
 
@@ -444,14 +364,6 @@ function AgendaPage() {
         }
     };
 
-    // Atualizar visibilidade de um calendário
-    const toggleCalendarVisibility = (calId) => {
-        setVisibleCalendars(prev => ({
-            ...prev,
-            [calId]: !prev[calId]
-        }));
-    };
-
     // Função para verificar a URL do iframe
     const checkIframeUrl = (code) => {
         const src = extractSrcFromIframe(code);
@@ -463,61 +375,6 @@ function AgendaPage() {
         } catch (e) {
             return false;
         }
-    };
-
-    // --- Componente para Calendar Card (na visualização de todos) ---
-    const CalendarCard = ({ calendar }) => {
-        if (!calendar || typeof calendar !== 'object') {
-            return null; // Não renderiza nada se o calendário não for válido
-        }
-        
-        const isVisible = calendar.id !== undefined ? visibleCalendars[calendar.id] : false;
-        const calColor = generateCalendarColor(calendar.name || '');
-        
-        return (
-            <Paper withBorder p="xs" radius="md" shadow="sm">
-                <Group position="apart" mb="xs">
-                    <Group spacing="xs">
-                        <ColorSwatch color={`var(--mantine-color-${calColor}-6)`} size={16} />
-                        <Text weight={500} size="sm" lineClamp={1}>
-                            {calendar.name || 'Calendário sem nome'}
-                        </Text>
-                    </Group>
-                    <Group spacing={8}>
-                        <Tooltip label={isVisible ? "Ocultar calendário" : "Mostrar calendário"}>
-                            <ActionIcon 
-                                size="sm" 
-                                color={isVisible ? "blue" : "gray"}
-                                onClick={() => toggleCalendarVisibility(calendar.id)}
-                            >
-                                {isVisible ? <IconEye size={16} /> : <IconEyeOff size={16} />}
-                            </ActionIcon>
-                        </Tooltip>
-                        <Tooltip label="Editar calendário">
-                            <ActionIcon 
-                                size="sm" 
-                                color="orange"
-                                onClick={() => handleOpenEditModal(calendar)}
-                            >
-                                <IconPencil size={16} />
-                            </ActionIcon>
-                        </Tooltip>
-                        <Tooltip label="Remover calendário">
-                            <ActionIcon 
-                                size="sm" 
-                                color="red"
-                                onClick={() => handleRemoveCalendario(calendar.id)}
-                            >
-                                <IconTrash size={16} />
-                            </ActionIcon>
-                        </Tooltip>
-                    </Group>
-                </Group>
-                <Text size="xs" color="dimmed" lineClamp={1}>
-                    URL: {extractSrcFromIframe(calendar.iframe_code)?.substring(0,35) || '[URL inválida]'}...
-                </Text>
-            </Paper>
-        );
     };
 
     // --- Renderização ---
@@ -565,84 +422,39 @@ function AgendaPage() {
                     </Tabs.Tab>
                 </Tabs.List>
 
-                {/* --- Painel Aba Visualizar (Aprimorado) --- */}
+                {/* --- Painel Aba Visualizar --- */}
                 <Tabs.Panel value="visualizar" pt="lg">
                     {!isLoadingCalendars && !fetchError && (
                         <Stack gap="md">
                             {calendarios.length > 0 ? (
                                 <>
                                     <Grid gutter="md">
-                                        <Grid.Col span={{ base: 12, md: 8 }}>
-                                            <Group position="apart" align="flex-end" mb="xs">
-                                                <Select
-                                                    label="Selecione um calendário para visualizar:"
-                                                    placeholder="Escolha um calendário"
-                                                    data={selectOptions}
-                                                    value={selectedDbId ? selectedDbId.toString() : null}
-                                                    onChange={(value) => setSelectedDbId(value ? parseInt(value, 10) : null)}
-                                                    disabled={viewAll}
-                                                    searchable
-                                                    clearable
-                                                    style={{ flexGrow: 1 }}
-                                                    nothingFoundMessage="Nenhum calendário encontrado"
-                                                />
+                                        <Grid.Col span={{ base: 12, md: 10 }}>
+                                            <Select
+                                                label="Selecione um calendário para visualizar:"
+                                                placeholder="Escolha um calendário"
+                                                data={selectOptions}
+                                                value={selectedDbId ? selectedDbId.toString() : null}
+                                                onChange={(value) => setSelectedDbId(value ? parseInt(value, 10) : null)}
+                                                searchable
+                                                clearable
+                                                style={{ flexGrow: 1 }}
+                                                nothingFoundMessage="Nenhum calendário encontrado"
+                                            />
+                                        </Grid.Col>
+                                        <Grid.Col span={{ base: 12, md: 2 }}>
+                                            <Box mt={isMobile ? 0 : 25}>
                                                 <Button 
                                                     leftIcon={<IconRefresh size={16} />}
                                                     variant="outline"
                                                     onClick={() => fetchCalendars(false)}
-                                                    compact
+                                                    fullWidth
                                                 >
                                                     Atualizar
                                                 </Button>
-                                            </Group>
-                                        </Grid.Col>
-                                        <Grid.Col span={{ base: 12, md: 4 }}>
-                                            <Checkbox
-                                                label={<Text weight={500}>Visualizar todos os calendários juntos</Text>}
-                                                description="Combine múltiplos calendários em uma única visualização"
-                                                checked={viewAll}
-                                                onChange={(event) => {
-                                                    const isChecked = event.currentTarget.checked;
-                                                    setViewAll(isChecked);
-                                                    if (isChecked) {
-                                                        setSelectedDbId(null);
-                                                    } else if (calendarios.length > 0 && !selectedDbId) {
-                                                        setSelectedDbId(calendarios[0].id);
-                                                    }
-                                                }}
-                                                size="md"
-                                            />
+                                            </Box>
                                         </Grid.Col>
                                     </Grid>
-
-                                    {/* Seção de visibilidade dos calendários (aparece apenas quando "Visualizar todos" está marcado) */}
-                                    {viewAll && (
-                                        <Paper shadow="xs" p="md" radius="md" withBorder>
-                                            <Group position="apart" mb="sm">
-                                                <Text weight={500} size="sm">Gerenciar visibilidade dos calendários</Text>
-                                                <Badge 
-                                                    color="blue" 
-                                                    variant="outline"
-                                                    size="sm"
-                                                >
-                                                    {Object.values(visibleCalendars).filter(v => v).length} 
-                                                    {' '}
-                                                    calendários visíveis
-                                                </Badge>
-                                            </Group>
-                                            <SimpleGrid 
-                                                cols={{ base: 1, sm: 2, md: 3 }}
-                                                spacing="sm"
-                                            >
-                                                {calendarios.map(cal => (
-                                                    <CalendarCard 
-                                                        key={cal.id} 
-                                                        calendar={cal} 
-                                                    />
-                                                ))}
-                                            </SimpleGrid>
-                                        </Paper>
-                                    )}
 
                                     {/* Container do iframe com skeleton loader */}
                                     <Paper 
@@ -710,9 +522,7 @@ function AgendaPage() {
                                         ) : (
                                             <Box p="xl" style={{ height: iframeHeight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                 <Text c="dimmed" ta="center">
-                                                    {viewAll && calendarios.length > 0
-                                                        ? "Nenhum calendário visível selecionado. Ative pelo menos um calendário acima."
-                                                        : "Selecione um calendário ou marque \"Visualizar todos\"."}
+                                                    Selecione um calendário para visualizar.
                                                 </Text>
                                             </Box>
                                         )}
@@ -732,7 +542,7 @@ function AgendaPage() {
                     )}
                 </Tabs.Panel>
 
-                {/* --- Painel Aba Gerenciar (Aprimorado) --- */}
+                {/* --- Painel Aba Gerenciar --- */}
                 <Tabs.Panel value="gerenciar" pt="lg">
                     {!isLoadingCalendars && !fetchError && (
                         <Grid>
@@ -867,7 +677,7 @@ function AgendaPage() {
                     )}
                 </Tabs.Panel>
 
-                {/* --- Painel Aba Instruções (Atualizado com o processo correto) --- */}
+                {/* --- Painel Aba Instruções --- */}
                 <Tabs.Panel value="instrucoes" pt="lg">
                     <Paper shadow="xs" p="lg" withBorder>
                         <Title order={4} mb="lg">Como Compartilhar sua Agenda no Chegou Hub</Title>
