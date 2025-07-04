@@ -62,7 +62,8 @@ function LogsPage() {
 
     const carregarStats = async () => {
         try {
-            const response = await axios.get('/ia/dashboard-stats/');
+            // CORREÇÃO: Endpoint correto para logs
+            const response = await axios.get('/ia/dashboard-logs-stats/');
             const data = response.data;
             
             // Focar apenas em estatísticas de erro

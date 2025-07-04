@@ -62,7 +62,8 @@ function NicochatPage() {
 
     const carregarStatsErros = async () => {
         try {
-            const response = await axios.get('/ia/dashboard-stats/');
+            // CORREÇÃO: Endpoint correto para logs
+            const response = await axios.get('/ia/dashboard-logs-stats/');
             const stats = response.data;
             
             // Apenas estatísticas de erros

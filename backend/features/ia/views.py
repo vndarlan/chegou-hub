@@ -60,8 +60,15 @@ class LogEntryViewSet(viewsets.ModelViewSet):
         if ferramenta:
             queryset = queryset.filter(ferramenta=ferramenta)
         
+        # CORREÇÃO: Processar múltiplos valores no filtro de nível
         if nivel:
-            queryset = queryset.filter(nivel=nivel)
+            if ',' in nivel:
+                # Se contém vírgula, dividir e filtrar por múltiplos valores
+                niveis = [n.strip() for n in nivel.split(',')]
+                queryset = queryset.filter(nivel__in=niveis)
+            else:
+                # Filtro simples
+                queryset = queryset.filter(nivel=nivel)
         
         if pais:
             queryset = queryset.filter(pais=pais)
