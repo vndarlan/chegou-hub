@@ -33,7 +33,7 @@ import {
     IconAlertTriangle,
     IconTrendingUp,
     IconTrendingDown,
-    IconStore,
+    IconBuilding,
     IconChartBar
 } from '@tabler/icons-react';
 import axios from 'axios';
@@ -208,7 +208,7 @@ function EcomhubPage() {
                                 <Text size="xl" fw={700}>{total.toLocaleString()}</Text>
                             </div>
                             <ThemeIcon color="blue" variant="light" size="xl">
-                                <IconStore size={24} />
+                                <IconBuilding size={24} />
                             </ThemeIcon>
                         </Group>
                     </Card>

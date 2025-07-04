@@ -11,7 +11,7 @@ import {
   IconHome,
   IconChartBar,
   IconTrendingUp,
-  IconStore
+  IconBuilding
 } from '@tabler/icons-react';
 import { Code, Group, ScrollArea, Box, Image, Text } from '@mantine/core';
 import { LinksGroup } from './NavbarNested/LinksGroup';
@@ -47,7 +47,7 @@ const navigationData = [
     initiallyOpened: false,
     links: [
       { label: 'PRIMECOD', link: '/workspace/metricas/primecod', icon: IconTrendingUp },
-      { label: 'ECOMHUB', link: '/workspace/metricas/ecomhub', icon: IconStore },
+      { label: 'ECOMHUB', link: '/workspace/metricas/ecomhub', icon: IconBuilding },
     ],
   },
   {
