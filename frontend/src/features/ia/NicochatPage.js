@@ -1,11 +1,11 @@
-// frontend/src/features/ia/NicochatPage.js - APENAS ERROS
+// frontend/src/features/ia/NicochatPage.js - VERSÃO COMPLETA COM PAGINAÇÃO
 import React, { useState, useEffect } from 'react';
 import {
     Box, Title, Text, Card, Group, Stack, Table, Badge, 
     Button, Select, TextInput, Grid, ActionIcon,
     Modal, Textarea, Alert, Notification,
     LoadingOverlay, ScrollArea, Code, JsonInput,
-    Paper, Divider, ThemeIcon
+    Paper, Divider, ThemeIcon, Pagination
 } from '@mantine/core';
 import {
     IconSearch, IconRefresh, IconCheck, IconX,
@@ -20,6 +20,13 @@ function NicochatPage() {
     const [loading, setLoading] = useState(false);
     const [notification, setNotification] = useState(null);
     const [statsErros, setStatsErros] = useState(null);
+    
+    // Estado para paginação
+    const [paginacao, setPaginacao] = useState({
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0
+    });
     
     // Filtros apenas para erros
     const [filtros, setFiltros] = useState({
@@ -38,11 +45,11 @@ function NicochatPage() {
     const [observacoesResolucao, setObservacoesResolucao] = useState('');
 
     useEffect(() => {
-        carregarLogs();
+        carregarLogs(1);
         carregarStatsErros();
     }, [filtros]);
 
-    const carregarLogs = async () => {
+    const carregarLogs = async (page = 1) => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
@@ -50,8 +57,17 @@ function NicochatPage() {
                 if (value) params.append(key, value);
             });
             
+            params.append('page', page);
+            
             const response = await axios.get(`/ia/logs/?${params}`);
-            setLogs(response.data.results || response.data);
+            const data = response.data;
+            
+            setLogs(data.results || []);
+            setPaginacao({
+                currentPage: page,
+                totalPages: Math.ceil(data.count / 10),
+                totalItems: data.count
+            });
         } catch (error) {
             console.error('Erro ao carregar logs:', error);
             setNotification({ type: 'error', message: 'Erro ao carregar logs' });
@@ -66,8 +82,9 @@ function NicochatPage() {
             const response = await axios.get('/ia/dashboard-logs-stats/');
             const stats = response.data;
             
-            // Apenas estatísticas de erros
+            // Usar dados dos últimos 7 dias para o total
             const errosStats = {
+                total_erros_7d: stats.resumo?.total_logs_7d || 0,  // NOVO: 7 dias
                 total_erros: stats.por_ferramenta?.find(f => f.ferramenta === 'Nicochat')?.erros || 0,
                 nao_resolvidos: stats.por_ferramenta?.find(f => f.ferramenta === 'Nicochat')?.nao_resolvidos || 0,
                 criticos_7d: stats.resumo?.logs_criticos_7d || 0,
@@ -78,6 +95,11 @@ function NicochatPage() {
         } catch (error) {
             console.error('Erro ao carregar estatísticas:', error);
         }
+    };
+
+    // Função para mudança de página
+    const handlePageChange = (page) => {
+        carregarLogs(page);
     };
 
     const marcarResolvido = async (logId, resolvido) => {
@@ -98,7 +120,7 @@ function NicochatPage() {
             });
             setModalResolucao(false);
             setObservacoesResolucao('');
-            carregarLogs();
+            carregarLogs(paginacao.currentPage);
             carregarStatsErros();
         } catch (error) {
             console.error('Erro ao marcar log:', error);
@@ -140,9 +162,9 @@ function NicochatPage() {
                     <Card shadow="sm" padding="lg" radius="md" withBorder>
                         <Group justify="space-between">
                             <Box>
-                                <Text c="dimmed" size="sm" fw={600}>Erros (24h)</Text>
-                                <Text fw={700} size="xl" c="red">{statsErros.total_erros}</Text>
-                                <Text size="xs" c="dimmed">Falhas no sistema</Text>
+                                <Text c="dimmed" size="sm" fw={600}>Erros (7d)</Text>
+                                <Text fw={700} size="xl" c="red">{statsErros.total_erros_7d}</Text>
+                                <Text size="xs" c="dimmed">Últimos 7 dias</Text>
                             </Box>
                             <ThemeIcon size="xl" radius="md" variant="light" color="red">
                                 <IconAlertTriangle size={24} />
@@ -240,7 +262,7 @@ function NicochatPage() {
                 </Box>
                 <Button
                     leftSection={<IconRefresh size={16} />}
-                    onClick={() => { carregarLogs(); carregarStatsErros(); }}
+                    onClick={() => { carregarLogs(paginacao.currentPage); carregarStatsErros(); }}
                     loading={loading}
                     variant="light"
                 >
@@ -338,7 +360,7 @@ function NicochatPage() {
                         <IconChartBar size={16} />
                     </ThemeIcon>
                     <Title order={4}>Erros do Nicochat</Title>
-                    <Badge variant="light" color="red">{logs.length} erros</Badge>
+                    <Badge variant="light" color="red">{paginacao.totalItems} erros</Badge>
                 </Group>
                 
                 <ScrollArea>
@@ -425,6 +447,23 @@ function NicochatPage() {
                     </Table>
                 </ScrollArea>
 
+                {/* Paginação */}
+                {logs.length > 0 && (
+                    <Group justify="center" mt="md">
+                        <Pagination
+                            value={paginacao.currentPage}
+                            onChange={handlePageChange}
+                            total={paginacao.totalPages}
+                            size="sm"
+                            withEdges
+                        />
+                        <Text size="sm" c="dimmed">
+                            Página {paginacao.currentPage} de {paginacao.totalPages} 
+                            ({paginacao.totalItems} erros no total)
+                        </Text>
+                    </Group>
+                )}
+
                 {logs.length === 0 && !loading && (
                     <Box ta="center" py="xl">
                         <ThemeIcon size="xl" radius="md" variant="light" color="green" mx="auto" mb="md">
@@ -438,7 +477,7 @@ function NicochatPage() {
                 )}
             </Card>
 
-            {/* Modals permanecem iguais */}
+            {/* Modal de Detalhes */}
             <Modal
                 opened={modalDetalhes}
                 onClose={() => setModalDetalhes(false)}
@@ -482,6 +521,7 @@ function NicochatPage() {
                 )}
             </Modal>
 
+            {/* Modal de Resolução */}
             <Modal
                 opened={modalResolucao}
                 onClose={() => setModalResolucao(false)}

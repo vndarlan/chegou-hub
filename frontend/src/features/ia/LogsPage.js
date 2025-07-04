@@ -1,11 +1,11 @@
-// frontend/src/features/ia/LogsPage.js - APENAS ERROS
+// frontend/src/features/ia/LogsPage.js - VERSÃO COMPLETA COM PAGINAÇÃO
 import React, { useState, useEffect } from 'react';
 import {
     Box, Title, Text, Card, Group, Stack, Table, Badge, 
     Button, Select, TextInput, Grid, ActionIcon,
     Modal, Textarea, Alert, Notification,
     LoadingOverlay, ScrollArea, Code, JsonInput,
-    Paper, Divider, ThemeIcon
+    Paper, Divider, ThemeIcon, Pagination
 } from '@mantine/core';
 import {
     IconSearch, IconRefresh, IconCheck, IconX,
@@ -20,6 +20,13 @@ function LogsPage() {
     const [loading, setLoading] = useState(false);
     const [notification, setNotification] = useState(null);
     const [stats, setStats] = useState(null);
+    
+    // Estado para paginação
+    const [paginacao, setPaginacao] = useState({
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0
+    });
     
     // Filtros apenas para erros e críticos
     const [filtros, setFiltros] = useState({
@@ -38,11 +45,11 @@ function LogsPage() {
     const [observacoesResolucao, setObservacoesResolucao] = useState('');
 
     useEffect(() => {
-        carregarLogs();
+        carregarLogs(1); // Sempre volta pra página 1 quando filtro muda
         carregarStats();
     }, [filtros]);
 
-    const carregarLogs = async () => {
+    const carregarLogs = async (page = 1) => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
@@ -50,8 +57,19 @@ function LogsPage() {
                 if (value) params.append(key, value);
             });
             
+            // Adicionar parâmetro de página
+            params.append('page', page);
+            
             const response = await axios.get(`/ia/logs/?${params}`);
-            setLogs(response.data.results || response.data);
+            const data = response.data;
+            
+            // Estrutura paginada do Django REST Framework
+            setLogs(data.results || []);
+            setPaginacao({
+                currentPage: page,
+                totalPages: Math.ceil(data.count / 10), // 10 itens por página
+                totalItems: data.count
+            });
         } catch (error) {
             console.error('Erro ao carregar logs:', error);
             setNotification({ type: 'error', message: 'Erro ao carregar logs' });
@@ -66,8 +84,9 @@ function LogsPage() {
             const response = await axios.get('/ia/dashboard-logs-stats/');
             const data = response.data;
             
-            // Focar apenas em estatísticas de erro
+            // Usar dados dos últimos 7 dias para o total
             const errorStats = {
+                total_erros_7d: data.resumo?.total_logs_7d || 0,  // NOVO: 7 dias
                 total_erros: (data.por_ferramenta || []).reduce((sum, f) => sum + (f.erros || 0), 0),
                 nao_resolvidos: data.resumo?.logs_nao_resolvidos || 0,
                 criticos_7d: data.resumo?.logs_criticos_7d || 0,
@@ -79,6 +98,11 @@ function LogsPage() {
         } catch (error) {
             console.error('Erro ao carregar estatísticas:', error);
         }
+    };
+
+    // Função para mudança de página
+    const handlePageChange = (page) => {
+        carregarLogs(page);
     };
 
     const marcarResolvido = async (logId, resolvido) => {
@@ -99,7 +123,7 @@ function LogsPage() {
             });
             setModalResolucao(false);
             setObservacoesResolucao('');
-            carregarLogs();
+            carregarLogs(paginacao.currentPage);
             carregarStats();
         } catch (error) {
             console.error('Erro ao marcar log:', error);
@@ -142,8 +166,8 @@ function LogsPage() {
                         <Group justify="space-between">
                             <Box>
                                 <Text c="dimmed" size="sm" fw={600}>Total de Erros</Text>
-                                <Text fw={700} size="xl" c="red">{stats.total_erros}</Text>
-                                <Text size="xs" c="dimmed">Todas as ferramentas</Text>
+                                <Text fw={700} size="xl" c="red">{stats.total_erros_7d}</Text>
+                                <Text size="xs" c="dimmed">Últimos 7 dias</Text>
                             </Box>
                             <ThemeIcon size="xl" radius="md" variant="light" color="red">
                                 <IconAlertTriangle size={24} />
@@ -254,7 +278,7 @@ function LogsPage() {
                 </Box>
                 <Button
                     leftSection={<IconRefresh size={16} />}
-                    onClick={() => { carregarLogs(); carregarStats(); }}
+                    onClick={() => { carregarLogs(paginacao.currentPage); carregarStats(); }}
                     loading={loading}
                     variant="light"
                 >
@@ -381,7 +405,7 @@ function LogsPage() {
                         <IconChartBar size={16} />
                     </ThemeIcon>
                     <Title order={4}>Central de Erros</Title>
-                    <Badge variant="light" color="red">{logs.length} erros</Badge>
+                    <Badge variant="light" color="red">{paginacao.totalItems} erros</Badge>
                 </Group>
                 
                 <ScrollArea>
@@ -476,6 +500,23 @@ function LogsPage() {
                     </Table>
                 </ScrollArea>
 
+                {/* Paginação */}
+                {logs.length > 0 && (
+                    <Group justify="center" mt="md">
+                        <Pagination
+                            value={paginacao.currentPage}
+                            onChange={handlePageChange}
+                            total={paginacao.totalPages}
+                            size="sm"
+                            withEdges
+                        />
+                        <Text size="sm" c="dimmed">
+                            Página {paginacao.currentPage} de {paginacao.totalPages} 
+                            ({paginacao.totalItems} erros no total)
+                        </Text>
+                    </Group>
+                )}
+
                 {logs.length === 0 && !loading && (
                     <Box ta="center" py="xl">
                         <ThemeIcon size="xl" radius="md" variant="light" color="green" mx="auto" mb="md">
@@ -489,7 +530,7 @@ function LogsPage() {
                 )}
             </Card>
 
-            {/* Modais iguais aos anteriores */}
+            {/* Modal de Detalhes */}
             <Modal
                 opened={modalDetalhes}
                 onClose={() => setModalDetalhes(false)}
@@ -568,6 +609,7 @@ function LogsPage() {
                 )}
             </Modal>
 
+            {/* Modal de Resolução */}
             <Modal
                 opened={modalResolucao}
                 onClose={() => setModalResolucao(false)}

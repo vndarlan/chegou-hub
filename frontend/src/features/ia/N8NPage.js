@@ -1,11 +1,11 @@
-// frontend/src/features/ia/N8NPage.js - APENAS ERROS
+// frontend/src/features/ia/N8NPage.js - VERSÃO COMPLETA COM PAGINAÇÃO
 import React, { useState, useEffect } from 'react';
 import {
     Box, Title, Text, Card, Group, Stack, Table, Badge, 
     Button, Select, TextInput, Grid, ActionIcon,
     Modal, Textarea, Alert, Notification,
     LoadingOverlay, ScrollArea, Code, JsonInput,
-    Paper, Divider, ThemeIcon
+    Paper, Divider, ThemeIcon, Pagination
 } from '@mantine/core';
 import {
     IconSearch, IconRefresh, IconCheck, IconX,
@@ -20,6 +20,13 @@ function N8NPage() {
     const [loading, setLoading] = useState(false);
     const [notification, setNotification] = useState(null);
     const [statsErros, setStatsErros] = useState(null);
+    
+    // Estado para paginação
+    const [paginacao, setPaginacao] = useState({
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0
+    });
     
     // Filtros apenas para erros
     const [filtros, setFiltros] = useState({
@@ -37,11 +44,11 @@ function N8NPage() {
     const [observacoesResolucao, setObservacoesResolucao] = useState('');
 
     useEffect(() => {
-        carregarLogs();
+        carregarLogs(1);
         carregarStatsErros();
     }, [filtros]);
 
-    const carregarLogs = async () => {
+    const carregarLogs = async (page = 1) => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
@@ -49,8 +56,17 @@ function N8NPage() {
                 if (value) params.append(key, value);
             });
             
+            params.append('page', page);
+            
             const response = await axios.get(`/ia/logs/?${params}`);
-            setLogs(response.data.results || response.data);
+            const data = response.data;
+            
+            setLogs(data.results || []);
+            setPaginacao({
+                currentPage: page,
+                totalPages: Math.ceil(data.count / 10),
+                totalItems: data.count
+            });
         } catch (error) {
             console.error('Erro ao carregar logs do N8N:', error);
             setNotification({ type: 'error', message: 'Erro ao carregar logs do N8N' });
@@ -65,8 +81,9 @@ function N8NPage() {
             const response = await axios.get('/ia/dashboard-logs-stats/');
             const stats = response.data;
             
-            // Apenas estatísticas de erros do N8N
+            // Usar dados dos últimos 7 dias para o total
             const errosStats = {
+                total_erros_7d: stats.resumo?.total_logs_7d || 0,  // NOVO: 7 dias
                 total_erros: stats.por_ferramenta?.find(f => f.ferramenta === 'N8N')?.erros || 0,
                 nao_resolvidos: stats.por_ferramenta?.find(f => f.ferramenta === 'N8N')?.nao_resolvidos || 0,
                 criticos_7d: stats.resumo?.logs_criticos_7d || 0
@@ -76,6 +93,11 @@ function N8NPage() {
         } catch (error) {
             console.error('Erro ao carregar estatísticas do N8N:', error);
         }
+    };
+
+    // Função para mudança de página
+    const handlePageChange = (page) => {
+        carregarLogs(page);
     };
 
     const marcarResolvido = async (logId, resolvido) => {
@@ -96,7 +118,7 @@ function N8NPage() {
             });
             setModalResolucao(false);
             setObservacoesResolucao('');
-            carregarLogs();
+            carregarLogs(paginacao.currentPage);
             carregarStatsErros();
         } catch (error) {
             console.error('Erro ao marcar log:', error);
@@ -122,9 +144,9 @@ function N8NPage() {
                     <Card shadow="sm" padding="lg" radius="md" withBorder>
                         <Group justify="space-between">
                             <Box>
-                                <Text c="dimmed" size="sm" fw={600}>Falhas (24h)</Text>
-                                <Text fw={700} size="xl" c="red">{statsErros.total_erros}</Text>
-                                <Text size="xs" c="dimmed">Workflows com erro</Text>
+                                <Text c="dimmed" size="sm" fw={600}>Falhas (7d)</Text>
+                                <Text fw={700} size="xl" c="red">{statsErros.total_erros_7d}</Text>
+                                <Text size="xs" c="dimmed">Últimos 7 dias</Text>
                             </Box>
                             <ThemeIcon size="xl" radius="md" variant="light" color="red">
                                 <IconAlertTriangle size={24} />
@@ -181,7 +203,7 @@ function N8NPage() {
                 </Box>
                 <Button
                     leftSection={<IconRefresh size={16} />}
-                    onClick={() => { carregarLogs(); carregarStatsErros(); }}
+                    onClick={() => { carregarLogs(paginacao.currentPage); carregarStatsErros(); }}
                     loading={loading}
                     variant="light"
                 >
@@ -274,7 +296,7 @@ function N8NPage() {
                         <IconChartBar size={16} />
                     </ThemeIcon>
                     <Title order={4}>Falhas do N8N</Title>
-                    <Badge variant="light" color="red">{logs.length} erros</Badge>
+                    <Badge variant="light" color="red">{paginacao.totalItems} erros</Badge>
                 </Group>
                 
                 <ScrollArea>
@@ -353,6 +375,23 @@ function N8NPage() {
                         </Table.Tbody>
                     </Table>
                 </ScrollArea>
+
+                {/* Paginação */}
+                {logs.length > 0 && (
+                    <Group justify="center" mt="md">
+                        <Pagination
+                            value={paginacao.currentPage}
+                            onChange={handlePageChange}
+                            total={paginacao.totalPages}
+                            size="sm"
+                            withEdges
+                        />
+                        <Text size="sm" c="dimmed">
+                            Página {paginacao.currentPage} de {paginacao.totalPages} 
+                            ({paginacao.totalItems} erros no total)
+                        </Text>
+                    </Group>
+                )}
 
                 {logs.length === 0 && !loading && (
                     <Box ta="center" py="xl">

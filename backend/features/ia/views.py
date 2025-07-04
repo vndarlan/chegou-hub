@@ -3,6 +3,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.pagination import PageNumberPagination
 from django.utils import timezone
 from django.db.models import Q, Count, Sum, Avg, F
 from django.contrib.auth.models import User
@@ -26,6 +27,12 @@ from .serializers import (
 # Configurar logger
 logger = logging.getLogger(__name__)
 
+# ===== PAGINAÇÃO =====
+class LogsPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
 # ===== FUNÇÕES AUXILIARES =====
 def verificar_permissao_financeira(user):
     """Verifica se o usuário tem permissão para ver dados financeiros"""
@@ -40,11 +47,12 @@ def verificar_permissao_edicao(user, projeto):
         user.groups.filter(name__in=['Diretoria', 'Gestão']).exists()
     )
 
-# ===== VIEWS DE LOGS (EXISTENTES) =====
+# ===== VIEWS DE LOGS =====
 class LogEntryViewSet(viewsets.ModelViewSet):
     queryset = LogEntry.objects.all()
     serializer_class = LogEntrySerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = LogsPagination
     
     def get_queryset(self):
         queryset = LogEntry.objects.all()
@@ -706,16 +714,16 @@ def dashboard_logs_stats(request):
     last_24h = now - timedelta(days=1)
     last_7d = now - timedelta(days=7)
     
-    # Stats gerais
-    total_logs = LogEntry.objects.count()
+    # Stats gerais - CORREÇÃO: Total dos últimos 7 dias
+    total_logs_7d = LogEntry.objects.filter(timestamp__gte=last_7d).count()
     logs_24h = LogEntry.objects.filter(timestamp__gte=last_24h).count()
     logs_nao_resolvidos = LogEntry.objects.filter(resolvido=False).count()
-    logs_criticos = LogEntry.objects.filter(
+    logs_criticos_7d = LogEntry.objects.filter(
         nivel='critical', 
         timestamp__gte=last_7d
     ).count()
     
-    # Stats por ferramenta
+    # Stats por ferramenta - 24h para detalhes
     stats_ferramentas = LogEntry.objects.filter(
         timestamp__gte=last_24h
     ).values('ferramenta').annotate(
@@ -724,7 +732,7 @@ def dashboard_logs_stats(request):
         nao_resolvidos=Count('id', filter=Q(resolvido=False))
     )
     
-    # Stats por país (Nicochat)
+    # Stats por país (Nicochat) - 24h para detalhes
     stats_paises = LogEntry.objects.filter(
         ferramenta=TipoFerramenta.NICOCHAT,
         timestamp__gte=last_24h
@@ -735,10 +743,10 @@ def dashboard_logs_stats(request):
     
     return Response({
         'resumo': {
-            'total_logs': total_logs,
+            'total_logs_7d': total_logs_7d,  # NOVO: Total dos últimos 7 dias
             'logs_24h': logs_24h,
             'logs_nao_resolvidos': logs_nao_resolvidos,
-            'logs_criticos_7d': logs_criticos
+            'logs_criticos_7d': logs_criticos_7d
         },
         'por_ferramenta': list(stats_ferramentas),
         'por_pais_nicochat': list(stats_paises)
