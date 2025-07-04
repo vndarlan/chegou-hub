@@ -740,29 +740,17 @@ function AgendaPage() {
                         <Stack gap="md">
                             <Text>Para que sua agenda apareça no Chegou Hub, você precisa compartilhá-la diretamente pelo Google Calendar com nossa conta de integração.</Text>
                             
-                            <Title order={5} mt="lg" mb="sm">Opções para adicionar cores:</Title>
-                            
-                            <Alert color="blue" title="Opção 1: Calendário Privado (Limitado)" icon={<IconInfoCircle size="1.1rem" />} mb="md">
-                                <Text size="sm">
-                                    Para calendários privados como o seu, o sistema tentará adicionar cores via parâmetros na URL, 
-                                    mas pode não funcionar sempre. Copie seu iframe normalmente.
-                                </Text>
-                            </Alert>
-
-                            <Alert color="green" title="Opção 2: Calendários Separados (Recomendado)" icon={<IconCheck size="1.1rem" />} mb="md">
-                                <Text size="sm">
-                                    <strong>Melhor alternativa:</strong> Crie calendários separados no Google Calendar para diferentes tipos de eventos 
-                                    (Ex: "Reuniões", "Pessoal", "Feriados") e defina uma cor para cada um. 
-                                    Cada pessoa adiciona apenas seus próprios calendários.
-                                </Text>
-                            </Alert>
-
+                            <Title order={5} mt="lg" mb="sm">Siga estes passos simples:</Title>
                             <List type="ordered" spacing="sm">
-                                <List.Item>Acesse o <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer">Google Calendar</a>.</List.Item>
-                                <List.Item>Na lateral esquerda, localize seu calendário ou crie calendários separados por tipo.</List.Item>
-                                <List.Item>Clique nos três pontinhos (⋮) ao lado do calendário e vá em <Code>Configurações e compartilhamento</Code>.</List.Item>
-                                <List.Item>Compartilhe com: <Code>viniciuschegouoperacional@gmail.com</Code> com permissão <Code>Ver todos os detalhes do evento</Code>.</List.Item>
-                                <List.Item>Role até <Code>Incorporar código</Code> e copie o iframe.</List.Item>
+                                <List.Item>Acesse o <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer">Google Calendar</a> no seu navegador.</List.Item>
+                                <List.Item>Na barra lateral esquerda, localize a agenda que deseja compartilhar com a equipe.</List.Item>
+                                <List.Item>Passe o mouse sobre o nome da agenda e clique nos três pontinhos (⋮) que aparecem ao lado.</List.Item>
+                                <List.Item>Selecione a opção <Code>Configurações e compartilhamento</Code>.</List.Item>
+                                <List.Item>Role a página até a seção <Code>Compartilhado com pessoas e grupos</Code> e clique em <Code>Adicionar pessoas e grupos</Code>.</List.Item>
+                                <List.Item>Adicione o e-mail: <Code>viniciuschegouoperacional@gmail.com.</Code></List.Item>
+                                <List.Item>Em permissões, selecione <Code>Mais detalhes de todos os eventos</Code>.</List.Item>
+                                <List.Item>Clique em <Code>Enviar</Code> para concluir o compartilhamento.</List.Item>
+                                <List.Item>Role um pouco mais a página até encontrar a seção <Code>Incorporar código</Code> e copie o código exibido.</List.Item>
                             </List>
                             
                             <Title order={5} mt="lg" mb="sm">Adicionando no Chegou Hub:</Title>
