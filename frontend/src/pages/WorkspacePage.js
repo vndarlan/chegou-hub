@@ -1,21 +1,25 @@
-// frontend/src/pages/WorkspacePage.js - CORREÇÃO DOS IMPORTS
+// frontend/src/pages/WorkspacePage.js - VERSÃO ATUALIZADA COM MÉTRICAS
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { DoubleNavbar } from '../components/DoubleNavbar';
 import { Box, LoadingOverlay, Title, Text } from '@mantine/core';
 
-// --- Importar páginas das funcionalidades ---
+// --- Importar páginas das funcionalidades existentes ---
 import MapaPage from '../features/mapa/MapaPage';
 import AgendaPage from '../features/agenda/AgendaPage';
 import EngajamentoPage from '../features/engajamento/EngajamentoPage';
 
-// ← CORREÇÃO: Usar ../ em vez de ./
+// --- Importar páginas de IA ---
 import LogsPage from '../features/ia/LogsPage';
 import NicochatPage from '../features/ia/NicochatPage';
 import N8NPage from '../features/ia/N8NPage';
 import ProjetoDashboard from '../features/ia/ProjetoDashboard';
 import RelatoriosProjetos from '../features/ia/RelatoriosProjetos';
+
+// --- Importar páginas de MÉTRICAS (NOVAS) ---
+import PrimecodPage from '../features/metricas/PrimecodPage';
+import EcomhubPage from '../features/metricas/EcomhubPage';
 
 function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
     const [loadingSession, setLoadingSession] = useState(true);
@@ -94,12 +98,16 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     <Route path="agenda" element={<AgendaPage />} />
                     <Route path="mapa" element={<MapaPage />} />
 
-                    {/* 🤖 Páginas da área IA & AUTOMAÇÕES - ROTAS DIRETAS */}
+                    {/* 🤖 Páginas da área IA & AUTOMAÇÕES */}
                     <Route path="logs" element={<LogsPage />} />
                     <Route path="nicochat" element={<NicochatPage />} />
                     <Route path="n8n" element={<N8NPage />} />
                     <Route path="projetos" element={<ProjetoDashboard />} />        
                     <Route path="relatorios" element={<RelatoriosProjetos />} />
+
+                    {/* 📊 Páginas da área MÉTRICAS (NOVAS) */}
+                    <Route path="metricas/primecod" element={<PrimecodPage />} />
+                    <Route path="metricas/ecomhub" element={<EcomhubPage />} />
 
                     {/* Páginas da área OPERACIONAL */}
                     <Route path="engajamento" element={<EngajamentoPage />} />

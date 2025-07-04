@@ -1,6 +1,4 @@
-// frontend/src/components/DoubleNavbar.js
-// VERSÃO FINAL - USANDO ESTRUTURA MANTINE COM GRUPOS EXPANSÍVEIS
-
+// frontend/src/components/DoubleNavbar.js - VERSÃO ATUALIZADA COM MÉTRICAS
 import React from 'react';
 import {
   IconCalendar,
@@ -10,14 +8,17 @@ import {
   IconGitBranch,
   IconHeart,
   IconHeadphones,
-  IconHome
+  IconHome,
+  IconChartBar,
+  IconTrendingUp,
+  IconStore
 } from '@tabler/icons-react';
 import { Code, Group, ScrollArea, Box, Image, Text } from '@mantine/core';
 import { LinksGroup } from './NavbarNested/LinksGroup';
 import { UserButton } from './NavbarNested/UserButton';
 import classes from './NavbarNested/NavbarNested.module.css';
 
-// Dados de navegação com grupos expansíveis
+// Dados de navegação com grupos expansíveis - INCLUINDO MÉTRICAS
 const navigationData = [
   {
     label: 'HOME',
@@ -33,12 +34,21 @@ const navigationData = [
       icon: IconActivity,
       initiallyOpened: false,
       links: [
-        { label: 'Dashboard de Projetos', link: '/workspace/projetos', icon: IconRobot },  // NOVA
-        { label: 'Relatórios & Análise', link: '/workspace/relatorios', icon: IconActivity }, // NOVA
+        { label: 'Dashboard de Projetos', link: '/workspace/projetos', icon: IconRobot },
+        { label: 'Relatórios & Análise', link: '/workspace/relatorios', icon: IconActivity },
         { label: 'Logs Gerais', link: '/workspace/logs', icon: IconActivity },
         { label: 'Nicochat', link: '/workspace/nicochat', icon: IconRobot },
         { label: 'N8N', link: '/workspace/n8n', icon: IconGitBranch },
       ],
+  },
+  {
+    label: 'MÉTRICAS', // ← NOVA SEÇÃO
+    icon: IconChartBar,
+    initiallyOpened: false,
+    links: [
+      { label: 'PRIMECOD', link: '/workspace/metricas/primecod', icon: IconTrendingUp },
+      { label: 'ECOMHUB', link: '/workspace/metricas/ecomhub', icon: IconStore },
+    ],
   },
   {
     label: 'OPERACIONAL',
@@ -83,8 +93,8 @@ export function DoubleNavbar({ userName, userEmail, onLogout, toggleColorScheme,
     <LinksGroup
       {...item}
       key={item.label}
-      activePage={null} // Pode ser implementado se necessário
-      setActivePage={() => {}} // Pode ser implementado se necessário
+      activePage={null}
+      setActivePage={() => {}}
       collapsed={false}
       activeMenu={null}
       setActiveMenu={() => {}}
