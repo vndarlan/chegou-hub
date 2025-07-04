@@ -531,83 +531,82 @@ function LogsPage() {
             </Card>
 
             {/* Modal de Detalhes */}
-            <Modal
-                opened={modalDetalhes}
-                onClose={() => setModalDetalhes(false)}
-                title={<Group><IconAlertTriangle size={16} color="red" /><Text fw={600}>Detalhes do Erro</Text></Group>}
-                size="lg"
-            >
-                {logSelecionado && (
-                    <Stack gap="md">
-                        <Group>
-                            <Badge variant="light" color={logSelecionado.ferramenta === 'Nicochat' ? 'blue' : 'purple'}>
-                                {logSelecionado.ferramenta === 'Nicochat' ? '🤖' : '⚙️'} {logSelecionado.ferramenta}
-                            </Badge>
-                            <Badge 
-                                variant="light" 
-                                color={getNivelColor(logSelecionado.nivel)}
-                                leftSection={getNivelIcon(logSelecionado.nivel)({ size: 16 })}
-                            >
-                                {logSelecionado.nivel.toUpperCase()}
-                            </Badge>
-                            {logSelecionado.pais && (
-                                <Badge variant="light" color="cyan" 
-                                       leftSection={<span>{getPaisFlag(logSelecionado.pais)}</span>}>
-                                    {getPaisDisplayName(logSelecionado.pais)}
-                                </Badge>
+                        <Modal
+                            opened={modalDetalhes}
+                            onClose={() => setModalDetalhes(false)}
+                            title={<Group><IconAlertTriangle size={16} color="red" /><Text fw={600}>Detalhes do Erro</Text></Group>}
+                            size="lg"
+                        >
+                            {logSelecionado && (
+                                <Stack gap="md">
+                                    <Group>
+                                        <Badge variant="light" color={logSelecionado.ferramenta === 'Nicochat' ? 'blue' : 'purple'}>
+                                            {logSelecionado.ferramenta === 'Nicochat' ? '🤖' : '⚙️'} {logSelecionado.ferramenta}
+                                        </Badge>
+                                        <Badge 
+                                            variant="light" 
+                                            color={getNivelColor(logSelecionado.nivel)}
+                                        >
+                                            {logSelecionado.nivel.toUpperCase()}
+                                        </Badge>
+                                        {logSelecionado.pais && (
+                                            <Badge variant="light" color="cyan" 
+                                                leftSection={<span>{getPaisFlag(logSelecionado.pais)}</span>}>
+                                                {getPaisDisplayName(logSelecionado.pais)}
+                                            </Badge>
+                                        )}
+                                    </Group>
+                                    
+                                    <Divider />
+                                    
+                                    <Box>
+                                        <Text fw={600} mb="xs">🚨 Mensagem de Erro:</Text>
+                                        <Paper p="sm" withBorder style={{ backgroundColor: 'var(--mantine-color-red-0)' }}>
+                                            <Text c="red">{logSelecionado.mensagem}</Text>
+                                        </Paper>
+                                    </Box>
+                                    
+                                    {logSelecionado.id_conversa && (
+                                        <Box>
+                                            <Text fw={600} mb="xs">💬 ID da Conversa:</Text>
+                                            <Code block>{logSelecionado.id_conversa}</Code>
+                                        </Box>
+                                    )}
+                                    
+                                    {logSelecionado.detalhes && Object.keys(logSelecionado.detalhes).length > 0 && (
+                                        <Box>
+                                            <Text fw={600} mb="xs">🔧 Detalhes Técnicos:</Text>
+                                            <JsonInput
+                                                value={JSON.stringify(logSelecionado.detalhes, null, 2)}
+                                                readOnly
+                                                minRows={4}
+                                                maxRows={8}
+                                            />
+                                        </Box>
+                                    )}
+                                    
+                                    <Divider />
+                                    
+                                    <Grid>
+                                        <Grid.Col span={6}>
+                                            <Text size="sm" c="dimmed" fw={600}>🕒 Ocorreu em:</Text>
+                                            <Text size="sm">{new Date(logSelecionado.timestamp).toLocaleString()}</Text>
+                                        </Grid.Col>
+                                        <Grid.Col span={6}>
+                                            <Text size="sm" c="dimmed" fw={600}>🌐 IP de Origem:</Text>
+                                            <Text size="sm">{logSelecionado.ip_origem || 'N/A'}</Text>
+                                        </Grid.Col>
+                                    </Grid>
+                                    
+                                    {logSelecionado.resolvido && (
+                                        <Alert color="green" icon={<IconCheck size={16} />}>
+                                            <Text fw={600}>✅ Erro resolvido por: {logSelecionado.resolvido_por_nome}</Text>
+                                            <Text size="sm">🕒 Em: {new Date(logSelecionado.data_resolucao).toLocaleString()}</Text>
+                                        </Alert>
+                                    )}
+                                </Stack>
                             )}
-                        </Group>
-                        
-                        <Divider />
-                        
-                        <Box>
-                            <Text fw={600} mb="xs">🚨 Mensagem de Erro:</Text>
-                            <Paper p="sm" withBorder style={{ backgroundColor: 'var(--mantine-color-red-0)' }}>
-                                <Text c="red">{logSelecionado.mensagem}</Text>
-                            </Paper>
-                        </Box>
-                        
-                        {logSelecionado.id_conversa && (
-                            <Box>
-                                <Text fw={600} mb="xs">💬 ID da Conversa:</Text>
-                                <Code block>{logSelecionado.id_conversa}</Code>
-                            </Box>
-                        )}
-                        
-                        {logSelecionado.detalhes && Object.keys(logSelecionado.detalhes).length > 0 && (
-                            <Box>
-                                <Text fw={600} mb="xs">🔧 Detalhes Técnicos:</Text>
-                                <JsonInput
-                                    value={JSON.stringify(logSelecionado.detalhes, null, 2)}
-                                    readOnly
-                                    minRows={4}
-                                    maxRows={8}
-                                />
-                            </Box>
-                        )}
-                        
-                        <Divider />
-                        
-                        <Grid>
-                            <Grid.Col span={6}>
-                                <Text size="sm" c="dimmed" fw={600}>🕒 Ocorreu em:</Text>
-                                <Text size="sm">{new Date(logSelecionado.timestamp).toLocaleString()}</Text>
-                            </Grid.Col>
-                            <Grid.Col span={6}>
-                                <Text size="sm" c="dimmed" fw={600}>🌐 IP de Origem:</Text>
-                                <Text size="sm">{logSelecionado.ip_origem || 'N/A'}</Text>
-                            </Grid.Col>
-                        </Grid>
-                        
-                        {logSelecionado.resolvido && (
-                            <Alert color="green" icon={<IconCheck size={16} />}>
-                                <Text fw={600}>✅ Erro resolvido por: {logSelecionado.resolvido_por_nome}</Text>
-                                <Text size="sm">🕒 Em: {new Date(logSelecionado.data_resolucao).toLocaleString()}</Text>
-                            </Alert>
-                        )}
-                    </Stack>
-                )}
-            </Modal>
+                        </Modal>
 
             {/* Modal de Resolução */}
             <Modal
