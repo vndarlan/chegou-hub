@@ -14,4 +14,5 @@ urlpatterns = [
     path('api/', include('features.engajamento.urls')),
     path('api/ia/', include('features.ia.urls')),
     path('api/metricas/', include('features.metricas.urls')),
+    path('api/novelties/', include('features.novelties.urls')),
 ]

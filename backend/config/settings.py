@@ -87,7 +87,8 @@ INSTALLED_APPS = [
     'features.mapa',
     'features.engajamento',
     'features.ia',
-    'features.metricas'
+    'features.metricas',
+    'features.novelties'
 ]
 
 MIDDLEWARE = [

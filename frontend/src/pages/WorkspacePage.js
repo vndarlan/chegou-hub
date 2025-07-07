@@ -21,6 +21,9 @@ import RelatoriosProjetos from '../features/ia/RelatoriosProjetos';
 import PrimecodPage from '../features/metricas/PrimecodPage';
 import EcomhubPage from '../features/metricas/EcomhubPage';
 
+// --- Importar página de NOVELTIES (NOVA) ---
+import NoveltiesPage from '../features/novelties/NoveltiesPage';  // ← NOVA IMPORTAÇÃO
+
 function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
     const [loadingSession, setLoadingSession] = useState(true);
     const [errorSession, setErrorSession] = useState('');
@@ -104,6 +107,7 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     <Route path="n8n" element={<N8NPage />} />
                     <Route path="projetos" element={<ProjetoDashboard />} />        
                     <Route path="relatorios" element={<RelatoriosProjetos />} />
+                    <Route path="novelties" element={<NoveltiesPage />} />  {/* ← NOVA ROTA */}
 
                     {/* 📊 Páginas da área MÉTRICAS (NOVAS) */}
                     <Route path="metricas/primecod" element={<PrimecodPage />} />

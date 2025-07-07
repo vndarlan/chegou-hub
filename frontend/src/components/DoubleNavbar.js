@@ -11,7 +11,8 @@ import {
   IconHome,
   IconChartBar,
   IconTrendingUp,
-  IconBuilding
+  IconBuilding,
+  IconBrandChrome
 } from '@tabler/icons-react';
 import { Code, Group, ScrollArea, Box, Image, Text } from '@mantine/core';
 import { LinksGroup } from './NavbarNested/LinksGroup';
@@ -39,6 +40,7 @@ const navigationData = [
         { label: 'Logs Gerais', link: '/workspace/logs', icon: IconActivity },
         { label: 'Nicochat', link: '/workspace/nicochat', icon: IconRobot },
         { label: 'N8N', link: '/workspace/n8n', icon: IconGitBranch },
+        { label: 'Novelties Chile', link: '/workspace/novelties', icon: IconBrandChrome },
       ],
   },
   {
