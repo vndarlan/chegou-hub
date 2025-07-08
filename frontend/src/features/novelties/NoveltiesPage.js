@@ -41,7 +41,7 @@ function NoveltiesPage() {
     useEffect(() => {
         const checkPermissions = async () => {
             try {
-                const response = await axios.get('/api/novelties/check-permissions/');
+                const response = await axios.get('/novelties/check-permissions/');
                 setCanView(response.data.can_view);
                 if (!response.data.can_view) {
                     setError('Você não tem permissão para visualizar esta página.');
