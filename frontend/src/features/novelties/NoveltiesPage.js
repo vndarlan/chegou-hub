@@ -119,11 +119,8 @@ function NoveltiesPage() {
     const StatsCards = () => {
         if (!dashboardStats) return null;
 
-        // Cálculo do tempo economizado
-        const MANUAL_TIME_PER_NOVELTY = 4; // 4min por novelty manual
-        const manualTime = dashboardStats.total_processed * MANUAL_TIME_PER_NOVELTY;
-        const automationTime = dashboardStats.avg_execution_time * dashboardStats.total_executions;
-        const timeSaved = manualTime - automationTime;
+        // Cálculo do tempo economizado - CORRIGIDO
+        const timeSaved = dashboardStats.total_processed * dashboardStats.avg_execution_time;
         
         const formatTime = (minutes) => {
             if (minutes < 60) return `${Math.round(minutes)}min`;
@@ -154,16 +151,22 @@ function NoveltiesPage() {
                 color: dashboardStats.success_rate >= 90 ? 'green' : 'orange'
             },
             {
+                title: 'Tempo Médio',
+                value: `${dashboardStats.avg_execution_time}min`,
+                icon: IconClock,
+                color: 'grape'
+            },
+            {
                 title: 'Tempo Economizado',
                 value: formatTime(timeSaved),
                 icon: IconClock,
                 color: 'orange',
-                subtitle: `${dashboardStats.total_processed} × 4min vs ${formatTime(automationTime)}`
+                subtitle: `${dashboardStats.total_processed} × ${dashboardStats.avg_execution_time}min`
             }
         ];
 
         return (
-            <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md">
+            <SimpleGrid cols={{ base: 1, sm: 2, md: 5 }} spacing="md">
                 {cards.map((card, index) => (
                     <Card key={index} padding="lg" radius="md" withBorder>
                         <Group justify="space-between">
