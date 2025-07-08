@@ -32,12 +32,12 @@ const mainLinksMockdata = [
 const linksBySection = {
   home: [
     { label: 'Agenda da Empresa', link: '/workspace/agenda' },
-    { label: 'Mapa de Países', link: '/workspace/mapa' },
+    { label: 'Mapa de Atuação', link: '/workspace/mapa' },
   ],
   ia: [
-    { label: 'Dashboard de Projetos', link: '/workspace/projetos' },
+    { label: 'Projetos', link: '/workspace/projetos' },
     { label: 'Relatórios & Análise', link: '/workspace/relatorios' },
-    { label: 'Logs Gerais', link: '/workspace/logs' },
+    { label: 'Logs de Erros', link: '/workspace/logs' },
     { label: 'Nicochat', link: '/workspace/nicochat' },
     { label: 'N8N', link: '/workspace/n8n' },
   ],
