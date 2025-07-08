@@ -4,11 +4,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   IconCalendar,
   IconWorld,
-  IconActivity,
+  IconInputAi,
   IconRobot,
   IconGitBranch,
-  IconHeart,
-  IconHeadphones,
+  IconPlugConnected,
+  IconPhoneRinging,
   IconHome,
   IconChartBar,
   IconTrendingUp,
@@ -22,9 +22,10 @@ import classes from './DoubleNavbar.module.css';
 // Dados principais da barra lateral
 const mainLinksMockdata = [
   { icon: IconHome, label: 'HOME', key: 'home' },
-  { icon: IconActivity, label: 'IA & Automações', key: 'ia' },
+  { icon: IconInputAi, label: 'IA & Automações', key: 'ia' },
   { icon: IconChartBar, label: 'MÉTRICAS', key: 'metricas' },
-  { icon: IconHeart, label: 'OPERACIONAL', key: 'operacional' },
+  { icon: IconPlugConnected, label: 'OPERACIONAL', key: 'operacional' },
+  { icon: IconPhoneRinging, label: 'SUPORTE', key: 'suporte' },
 ];
 
 // Mapeamento dos links por seção
@@ -39,7 +40,6 @@ const linksBySection = {
     { label: 'Logs Gerais', link: '/workspace/logs' },
     { label: 'Nicochat', link: '/workspace/nicochat' },
     { label: 'N8N', link: '/workspace/n8n' },
-    { label: 'Novelties Chile', link: '/workspace/novelties' },
   ],
   metricas: [
     { label: 'PRIMECOD', link: '/workspace/metricas/primecod' },
@@ -47,6 +47,9 @@ const linksBySection = {
   ],
   operacional: [
     { label: 'Engajamento', link: '/workspace/engajamento' },
+    { label: 'Novelties Chile', link: '/workspace/novelties' },
+  ],
+  suporte: [
     { label: 'Suporte', link: '/workspace/suporte' },
   ],
 };
@@ -61,8 +64,9 @@ export function DoubleNavbar({ userName, userEmail, onLogout, toggleColorScheme,
     const path = location.pathname;
     if (path.includes('/metricas/')) return 'metricas';
     if (path.includes('/projetos') || path.includes('/relatorios') || path.includes('/logs') || 
-        path.includes('/nicochat') || path.includes('/n8n') || path.includes('/novelties')) return 'ia';
-    if (path.includes('/engajamento') || path.includes('/suporte')) return 'operacional';
+        path.includes('/nicochat') || path.includes('/n8n')) return 'ia';
+    if (path.includes('/engajamento') || path.includes('/novelties')) return 'operacional';
+    if (path.includes('/suporte')) return 'suporte';
     return 'home';
   };
 
@@ -110,9 +114,11 @@ export function DoubleNavbar({ userName, userEmail, onLogout, toggleColorScheme,
       <div className={classes.wrapper}>
         <div className={classes.aside}>
           <div className={classes.logo}>
-            <Box className={classes.logoIcon}>
-              CH
-            </Box>
+            <img 
+              src="/logo192.png" 
+              alt="Logo"
+              className={classes.logoImage}
+            />
           </div>
           {mainLinks}
           <div className={classes.userSection}>
