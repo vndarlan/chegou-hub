@@ -147,12 +147,12 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_serializer_class(self):
-        """CORREÇÃO: Usar serializer unificado para todas as operações"""
         if self.action == 'list':
             return ProjetoIAListSerializer
+        elif self.action == 'create':
+            return ProjetoIACreateSerializer
         else:
-            # Usar o serializer unificado para create, retrieve, update, partial_update
-            return ProjetoIASerializer
+            return ProjetoIADetailSerializer
     
     def get_queryset(self):
         try:
@@ -217,9 +217,7 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
             return ProjetoIA.objects.filter(ativo=True)
     
     def perform_create(self, serializer):
-        """CORREÇÃO: Simplificar perform_create"""
-        print(f"🔧 perform_create chamado")
-        serializer.save()
+        serializer.save(criado_por=self.request.user)
     
     def list(self, request, *args, **kwargs):
         try:
@@ -234,12 +232,9 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
             )
     
     def create(self, request, *args, **kwargs):
-        """CORREÇÃO: Melhorar logging do create"""
-        print(f"📥 CREATE - dados recebidos: {list(request.data.keys())}")
         try:
-            response = super().create(request, *args, **kwargs)
-            print(f"✅ CREATE - sucesso: {response.status_code}")
-            return response
+            print(f"📥 CREATE - dados recebidos: {list(request.data.keys())}")
+            return super().create(request, *args, **kwargs)
         except Exception as e:
             print(f"❌ CREATE - erro: {e}")
             import traceback
@@ -250,46 +245,57 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
             )
     
     def update(self, request, *args, **kwargs):
-        """CORREÇÃO: Melhorar logging do update"""
-        print(f"📝 UPDATE - dados recebidos: {list(request.data.keys())}")
-        projeto = self.get_object()
-        if not verificar_permissao_edicao(request.user, projeto):
-            return Response(
-                {'error': 'Sem permissão para editar este projeto'},
-                status=status.HTTP_403_FORBIDDEN
-            )
         try:
-            response = super().update(request, *args, **kwargs)
-            print(f"✅ UPDATE - sucesso: {response.status_code}")
-            return response
+            print(f"📝 UPDATE - dados recebidos: {list(request.data.keys())}")
+            projeto = self.get_object()
+            if not verificar_permissao_edicao(request.user, projeto):
+                return Response(
+                    {'error': 'Sem permissão para editar este projeto'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Log do estado atual vs dados recebidos
+            print(f"📋 Projeto atual ID: {projeto.id}")
+            print(f"📋 Dados atuais - departamentos_atendidos: {projeto.departamentos_atendidos}")
+            print(f"📋 Dados novos - departamentos_atendidos: {request.data.get('departamentos_atendidos')}")
+            
+            return super().update(request, *args, **kwargs)
         except Exception as e:
-            print(f"❌ UPDATE - erro: {e}")
+            print(f"❌ UPDATE - erro detalhado: {str(e)}")
+            print(f"❌ UPDATE - tipo do erro: {type(e)}")
             import traceback
             traceback.print_exc()
             return Response(
-                {'error': 'Erro ao atualizar projeto'}, 
+                {'error': f'Erro ao atualizar projeto: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
     def partial_update(self, request, *args, **kwargs):
-        """CORREÇÃO: Melhorar logging do partial_update"""
-        print(f"📝 PARTIAL_UPDATE - dados recebidos: {list(request.data.keys())}")
-        projeto = self.get_object()
-        if not verificar_permissao_edicao(request.user, projeto):
-            return Response(
-                {'error': 'Sem permissão para editar este projeto'},
-                status=status.HTTP_403_FORBIDDEN
-            )
         try:
-            response = super().partial_update(request, *args, **kwargs)
-            print(f"✅ PARTIAL_UPDATE - sucesso: {response.status_code}")
-            return response
+            print(f"📝 PARTIAL_UPDATE - dados recebidos: {list(request.data.keys())}")
+            projeto = self.get_object()
+            if not verificar_permissao_edicao(request.user, projeto):
+                return Response(
+                    {'error': 'Sem permissão para editar este projeto'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Log detalhado para debugging
+            for key, value in request.data.items():
+                if hasattr(projeto, key):
+                    current_value = getattr(projeto, key)
+                    print(f"📋 {key}: {current_value} → {value}")
+                else:
+                    print(f"⚠️ Campo {key} não existe no modelo")
+            
+            return super().partial_update(request, *args, **kwargs)
         except Exception as e:
-            print(f"❌ PARTIAL_UPDATE - erro: {e}")
+            print(f"❌ PARTIAL_UPDATE - erro detalhado: {str(e)}")
+            print(f"❌ PARTIAL_UPDATE - tipo do erro: {type(e)}")
             import traceback
             traceback.print_exc()
             return Response(
-                {'error': 'Erro ao atualizar projeto'}, 
+                {'error': f'Erro ao atualizar projeto: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
