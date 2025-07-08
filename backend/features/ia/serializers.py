@@ -182,7 +182,7 @@ class ProjetoIAListSerializer(serializers.ModelSerializer):
             return 0
 
 class ProjetoIADetailSerializer(serializers.ModelSerializer):
-    """Serializer completo para detalhes do projeto - CORRIGIDO"""
+    """Serializer completo para detalhes do projeto - CAMPOS EXPLÍCITOS"""
     criadores = UserBasicoSerializer(many=True, read_only=True)
     criadores_ids = serializers.PrimaryKeyRelatedField(
         many=True,
@@ -217,9 +217,56 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = ProjetoIA
-        fields = '__all__'
+        # CORREÇÃO: Listar EXPLICITAMENTE todos os campos que podem ser salvos
+        fields = [
+            # Campos básicos
+            'id', 'nome', 'data_criacao', 'descricao', 'status', 'link_projeto',
+            'ferramentas_tecnologias', 'versao_atual',
+            
+            # Campos estratégicos
+            'tipo_projeto', 'departamentos_atendidos', 'departamento_atendido',
+            'prioridade', 'complexidade', 'usuarios_impactados', 'frequencia_uso',
+            
+            # Relacionamentos
+            'criadores', 'criadores_ids', 'dependencias', 'dependencias_nomes',
+            'projetos_dependentes', 'criado_por', 'criado_por_nome', 'versoes',
+            
+            # Investimento de tempo
+            'horas_totais', 'horas_desenvolvimento', 'horas_testes', 
+            'horas_documentacao', 'horas_deploy',
+            
+            # NOVOS CAMPOS FINANCEIROS - EXPLÍCITOS
+            'custo_hora_empresa', 'custo_apis_mensal', 'lista_ferramentas',
+            'custo_treinamentos', 'custo_setup_inicial', 'custo_consultoria',
+            'horas_economizadas_mes', 'valor_monetario_economizado_mes',
+            'data_break_even', 'nivel_autonomia',
+            
+            # Campos legados (compatibilidade)
+            'valor_hora', 'custo_ferramentas_mensais', 'custo_apis_mensais',
+            'custo_infraestrutura_mensais', 'custo_manutencao_mensais',
+            'economia_horas_mensais', 'valor_hora_economizada',
+            'reducao_erros_mensais', 'economia_outros_mensais',
+            
+            # CAMPOS DE DOCUMENTAÇÃO - EXPLÍCITOS
+            'documentacao_tecnica', 'licoes_aprendidas', 'proximos_passos', 'data_revisao',
+            
+            # Campos calculados (read-only)
+            'custo_desenvolvimento', 'custos_recorrentes_mensais_novo',
+            'custos_unicos_totais_novo', 'economia_mensal_total_novo',
+            'custos_recorrentes_mensais', 'custos_unicos_totais', 'economia_mensal_total',
+            'metricas_financeiras', 'departamentos_display',
+            
+            # Campos de controle
+            'criado_em', 'atualizado_em', 'ativo'
+        ]
         read_only_fields = [
-            'criado_por', 'criado_em', 'atualizado_em'
+            'criado_por', 'criado_em', 'atualizado_em',
+            # Campos calculados são read-only
+            'custo_desenvolvimento', 'custos_recorrentes_mensais_novo',
+            'custos_unicos_totais_novo', 'economia_mensal_total_novo',
+            'custos_recorrentes_mensais', 'custos_unicos_totais', 'economia_mensal_total',
+            'metricas_financeiras', 'departamentos_display', 'criado_por_nome',
+            'dependencias_nomes', 'projetos_dependentes', 'versoes'
         ]
     
     def get_criado_por_nome(self, obj):
@@ -316,114 +363,63 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
             return {'acesso_restrito': True, 'error': str(e)}
     
     def validate(self, data):
-        """CORREÇÃO: Validação com logging detalhado e mais tolerante"""
-        print(f"🔍 ProjetoIADetailSerializer.validate - dados recebidos: {list(data.keys())}")
+        """Validação simplificada"""
+        print(f"🔍 Validando: {list(data.keys())}")
         
-        try:
-            # Validar campos obrigatórios apenas se fornecidos
-            if 'nome' in data and not data.get('nome', '').strip():
-                raise serializers.ValidationError({'nome': 'Nome é obrigatório'})
-            
-            if 'descricao' in data and not data.get('descricao', '').strip():
-                raise serializers.ValidationError({'descricao': 'Descrição é obrigatória'})
-            
-            if 'tipo_projeto' in data and not data.get('tipo_projeto'):
-                raise serializers.ValidationError({'tipo_projeto': 'Tipo de projeto é obrigatório'})
-            
-            # CORREÇÃO: Validar departamentos_atendidos apenas se fornecido
-            if 'departamentos_atendidos' in data:
-                departamentos = data.get('departamentos_atendidos', [])
-                if not departamentos:
-                    raise serializers.ValidationError({
-                        'departamentos_atendidos': 'Pelo menos um departamento deve ser selecionado'
-                    })
-                
-                choices_validas = [choice[0] for choice in DepartamentoChoices.choices]
-                for dept in departamentos:
-                    if dept not in choices_validas:
-                        raise serializers.ValidationError({
-                            'departamentos_atendidos': f'Departamento inválido: {dept}'
-                        })
-            
-            # Validar horas totais apenas se fornecido
-            if 'horas_totais' in data:
-                horas_totais = data.get('horas_totais', 0)
-                if horas_totais <= 0:
-                    raise serializers.ValidationError({'horas_totais': 'Horas totais deve ser maior que 0'})
-                
-                # Validar breakdown de horas
-                horas_dev = data.get('horas_desenvolvimento', 0)
-                horas_test = data.get('horas_testes', 0)
-                horas_doc = data.get('horas_documentacao', 0)
-                horas_deploy = data.get('horas_deploy', 0)
-                
-                total_breakdown = horas_dev + horas_test + horas_doc + horas_deploy
-                if total_breakdown > horas_totais:
-                    raise serializers.ValidationError({
-                        'horas_totais': f'O breakdown de horas ({total_breakdown}h) não pode exceder o total ({horas_totais}h)'
-                    })
-            
-            # Validar lista de ferramentas apenas se fornecida
-            if 'lista_ferramentas' in data:
-                lista_ferramentas = data.get('lista_ferramentas', [])
-                if lista_ferramentas:
-                    for ferramenta in lista_ferramentas:
-                        if not isinstance(ferramenta, dict) or 'nome' not in ferramenta or 'valor' not in ferramenta:
-                            raise serializers.ValidationError({
-                                'lista_ferramentas': 'Cada ferramenta deve ter "nome" e "valor"'
-                            })
-            
-            print(f"✅ ProjetoIADetailSerializer.validate - validação concluída")
-            return data
-            
-        except Exception as e:
-            print(f"❌ ProjetoIADetailSerializer.validate - erro: {e}")
-            raise
+        # Validar departamentos se fornecido
+        if 'departamentos_atendidos' in data:
+            departamentos = data.get('departamentos_atendidos', [])
+            if not departamentos:
+                raise serializers.ValidationError({
+                    'departamentos_atendidos': 'Pelo menos um departamento deve ser selecionado'
+                })
+        
+        print(f"✅ Validação OK")
+        return data
     
     def create(self, validated_data):
         try:
+            print(f"➕ CREATE - dados: {list(validated_data.keys())}")
+            
             criadores_data = validated_data.pop('criadores', [])
             dependencias_data = validated_data.pop('dependencias', [])
             
-            # Definir criado_por como o usuário atual
             validated_data['criado_por'] = self.context['request'].user
             
             projeto = ProjetoIA.objects.create(**validated_data)
             
-            # Adicionar criadores e dependências
             if criadores_data:
                 projeto.criadores.set(criadores_data)
             if dependencias_data:
                 projeto.dependencias.set(dependencias_data)
             
+            print(f"✅ CREATE - projeto {projeto.id} criado")
             return projeto
         except Exception as e:
-            print(f"Erro no create: {e}")
+            print(f"❌ CREATE - erro: {e}")
             raise
     
     def update(self, instance, validated_data):
-        """CORREÇÃO: Método update com logging detalhado e tratamento robusto"""
-        print(f"📝 ProjetoIADetailSerializer.update - iniciando atualização do projeto {instance.id}")
-        print(f"📋 Dados validados: {list(validated_data.keys())}")
-        
+        """Método update SIMPLIFICADO"""
         try:
+            print(f"📝 UPDATE projeto {instance.id} - dados: {list(validated_data.keys())}")
+            
             # Extrair relacionamentos ManyToMany
             criadores_data = validated_data.pop('criadores', None)
             dependencias_data = validated_data.pop('dependencias', None)
             
-            # Atualizar campos normais
-            campos_atualizados = []
+            # Log dos campos que serão atualizados
+            for campo, valor in validated_data.items():
+                if hasattr(instance, campo):
+                    print(f"  ✏️ {campo}: {getattr(instance, campo)} → {valor}")
+            
+            # Atualizar TODOS os campos de uma vez
             for attr, value in validated_data.items():
                 if hasattr(instance, attr):
-                    valor_anterior = getattr(instance, attr)
                     setattr(instance, attr, value)
-                    campos_atualizados.append(attr)
-                    print(f"  ✏️ {attr}: {valor_anterior} → {value}")
-                else:
-                    print(f"  ⚠️ Campo {attr} não existe no modelo")
             
             instance.save()
-            print(f"✅ Campos salvos: {campos_atualizados}")
+            print(f"✅ Campos salvos no banco")
             
             # Atualizar relacionamentos se fornecidos
             if criadores_data is not None:
@@ -434,14 +430,14 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
                 instance.dependencias.set(dependencias_data)
                 print(f"✅ Dependências atualizadas: {len(dependencias_data)}")
             
-            # Recarregar da base de dados
+            # Verificar se realmente foi salvo
             instance.refresh_from_db()
-            print(f"✅ Projeto {instance.id} atualizado com sucesso")
+            print(f"✅ UPDATE concluído - projeto {instance.id}")
             
             return instance
             
         except Exception as e:
-            print(f"❌ ProjetoIADetailSerializer.update - erro: {e}")
+            print(f"❌ UPDATE erro: {e}")
             import traceback
             traceback.print_exc()
             raise
