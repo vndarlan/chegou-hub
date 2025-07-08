@@ -147,12 +147,12 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_serializer_class(self):
+        """CORREÇÃO: Usar serializer unificado para todas as operações"""
         if self.action == 'list':
             return ProjetoIAListSerializer
-        elif self.action == 'create':
-            return ProjetoIACreateSerializer
         else:
-            return ProjetoIADetailSerializer
+            # Usar o serializer unificado para create, retrieve, update, partial_update
+            return ProjetoIASerializer
     
     def get_queryset(self):
         try:
@@ -217,7 +217,9 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
             return ProjetoIA.objects.filter(ativo=True)
     
     def perform_create(self, serializer):
-        serializer.save(criado_por=self.request.user)
+        """CORREÇÃO: Simplificar perform_create"""
+        print(f"🔧 perform_create chamado")
+        serializer.save()
     
     def list(self, request, *args, **kwargs):
         try:
@@ -232,10 +234,14 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
             )
     
     def create(self, request, *args, **kwargs):
+        """CORREÇÃO: Melhorar logging do create"""
+        print(f"📥 CREATE - dados recebidos: {list(request.data.keys())}")
         try:
-            return super().create(request, *args, **kwargs)
+            response = super().create(request, *args, **kwargs)
+            print(f"✅ CREATE - sucesso: {response.status_code}")
+            return response
         except Exception as e:
-            print(f"Erro no create: {e}")
+            print(f"❌ CREATE - erro: {e}")
             import traceback
             traceback.print_exc()
             return Response(
@@ -244,22 +250,48 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
             )
     
     def update(self, request, *args, **kwargs):
+        """CORREÇÃO: Melhorar logging do update"""
+        print(f"📝 UPDATE - dados recebidos: {list(request.data.keys())}")
         projeto = self.get_object()
         if not verificar_permissao_edicao(request.user, projeto):
             return Response(
                 {'error': 'Sem permissão para editar este projeto'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        return super().update(request, *args, **kwargs)
+        try:
+            response = super().update(request, *args, **kwargs)
+            print(f"✅ UPDATE - sucesso: {response.status_code}")
+            return response
+        except Exception as e:
+            print(f"❌ UPDATE - erro: {e}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {'error': 'Erro ao atualizar projeto'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     def partial_update(self, request, *args, **kwargs):
+        """CORREÇÃO: Melhorar logging do partial_update"""
+        print(f"📝 PARTIAL_UPDATE - dados recebidos: {list(request.data.keys())}")
         projeto = self.get_object()
         if not verificar_permissao_edicao(request.user, projeto):
             return Response(
                 {'error': 'Sem permissão para editar este projeto'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        return super().partial_update(request, *args, **kwargs)
+        try:
+            response = super().partial_update(request, *args, **kwargs)
+            print(f"✅ PARTIAL_UPDATE - sucesso: {response.status_code}")
+            return response
+        except Exception as e:
+            print(f"❌ PARTIAL_UPDATE - erro: {e}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {'error': 'Erro ao atualizar projeto'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @action(detail=True, methods=['post'])
     def nova_versao(self, request, pk=None):
@@ -317,11 +349,11 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
                 nome=f"{projeto_original.nome} - Cópia",
                 descricao=projeto_original.descricao,
                 tipo_projeto=projeto_original.tipo_projeto,
-                departamento_atendido=projeto_original.departamento_atendido,
+                departamentos_atendidos=projeto_original.departamentos_atendidos,
                 prioridade=projeto_original.prioridade,
                 complexidade=projeto_original.complexidade,
                 horas_totais=projeto_original.horas_totais,
-                valor_hora=projeto_original.valor_hora,
+                custo_hora_empresa=projeto_original.custo_hora_empresa,
                 ferramentas_tecnologias=projeto_original.ferramentas_tecnologias or [],
                 usuarios_impactados=projeto_original.usuarios_impactados,
                 frequencia_uso=projeto_original.frequencia_uso,
@@ -385,20 +417,13 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
             },
             'breakdown_custos': {
                 'desenvolvimento': float(projeto.custo_desenvolvimento),
-                'ferramentas_mensais': float(projeto.custo_ferramentas_mensais),
-                'apis_mensais': float(projeto.custo_apis_mensais),
-                'infraestrutura_mensais': float(projeto.custo_infraestrutura_mensais),
-                'manutencao_mensais': float(projeto.custo_manutencao_mensais),
-                'treinamentos': float(projeto.custo_treinamentos),
-                'consultoria': float(projeto.custo_consultoria),
-                'setup_inicial': float(projeto.custo_setup_inicial)
+                'custos_recorrentes_mensais': float(projeto.custos_recorrentes_mensais_novo),
+                'custos_unicos_totais': float(projeto.custos_unicos_totais_novo)
             },
             'breakdown_economias': {
-                'economia_horas_mensais': float(projeto.economia_horas_mensais),
-                'valor_hora_economizada': float(projeto.valor_hora_economizada),
-                'reducao_erros_mensais': float(projeto.reducao_erros_mensais),
-                'economia_outros_mensais': float(projeto.economia_outros_mensais),
-                'economia_mensal_total': float(projeto.economia_mensal_total)
+                'horas_economizadas_mes': float(projeto.horas_economizadas_mes),
+                'valor_monetario_economizado_mes': float(projeto.valor_monetario_economizado_mes),
+                'economia_mensal_total': float(projeto.economia_mensal_total_novo)
             }
         })
 

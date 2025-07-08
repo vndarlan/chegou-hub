@@ -47,7 +47,7 @@ const linksBySection = {
   ],
   operacional: [
     { label: 'Engajamento', link: '/workspace/engajamento' },
-    { label: 'Novelties Chile', link: '/workspace/novelties' },
+    { label: 'Novelties', link: '/workspace/novelties' },
   ],
   suporte: [
     { label: 'Suporte', link: '/workspace/suporte' },
