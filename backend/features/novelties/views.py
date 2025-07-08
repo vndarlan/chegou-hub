@@ -1,7 +1,7 @@
-# backend/features/novelties/views.py
+# backend/features/novelties/views.py - CORREÇÃO DEFINITIVA
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes, action
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
 from rest_framework.response import Response
 from django.contrib.auth.models import Group
 from django.views.decorators.csrf import csrf_exempt
@@ -20,19 +20,19 @@ from .serializers import (
     NoveltyFailureSerializer
 )
 
-# Permissão customizada para novelties
-class CanViewNoveltiesPermission:
+# CORREÇÃO: Classe de permissão correta para DRF
+class CanViewNoveltiesPermission(BasePermission):
+    """Permissão para visualizar novelties"""
+    
     def has_permission(self, request, view):
         if not request.user.is_authenticated:
             return False
         
-        # Superuser sempre pode
         if request.user.is_superuser:
             return True
         
-        # Grupos que podem visualizar novelties
         allowed_groups = ['Diretoria', 'Operacional', 'Gestão', 'IA & Automações']
-        user_groups = request.user.groups.values_list('name', flat=True)
+        user_groups = list(request.user.groups.values_list('name', flat=True))
         
         return any(group in allowed_groups for group in user_groups)
 
@@ -85,6 +85,31 @@ class NoveltyExecutionViewSet(viewsets.ModelViewSet):
             all_executions = NoveltyExecution.objects.all()
             total_executions = all_executions.count()
             
+            # Se não há dados, retorna estrutura vazia mas válida
+            if total_executions == 0:
+                empty_stats = {
+                    'total_executions': 0,
+                    'total_processed': 0,
+                    'total_successful': 0,
+                    'total_failed': 0,
+                    'success_rate': 0.0,
+                    'today_executions': 0,
+                    'today_processed': 0,
+                    'week_executions': 0,
+                    'week_processed': 0,
+                    'last_execution_date': None,
+                    'last_execution_status': None,
+                    'avg_execution_time': 0.0,
+                    'daily_stats': [],
+                    'status_distribution': {
+                        'Sucesso': 0,
+                        'Parcial': 0,
+                        'Falha': 0,
+                        'Erro Crítico': 0
+                    }
+                }
+                return Response(empty_stats)
+            
             aggregates = all_executions.aggregate(
                 total_processed=Sum('total_processed') or 0,
                 total_successful=Sum('successful') or 0,
@@ -93,7 +118,7 @@ class NoveltyExecutionViewSet(viewsets.ModelViewSet):
             )
             
             # Taxa de sucesso geral
-            success_rate = 0
+            success_rate = 0.0
             if aggregates['total_processed'] > 0:
                 success_rate = round((aggregates['total_successful'] / aggregates['total_processed']) * 100, 1)
             
@@ -149,30 +174,27 @@ class NoveltyExecutionViewSet(viewsets.ModelViewSet):
                 'week_processed': week_processed,
                 'last_execution_date': last_execution_date,
                 'last_execution_status': last_execution_status,
-                'avg_execution_time': round(aggregates['avg_execution_time'] / 60, 2),  # em minutos
+                'avg_execution_time': round(aggregates['avg_execution_time'] / 60, 2) if aggregates['avg_execution_time'] else 0.0,
                 'daily_stats': daily_stats,
                 'status_distribution': status_distribution
             }
             
-            serializer = DashboardStatsSerializer(stats_data)
-            return Response(serializer.data)
+            return Response(stats_data)
             
         except Exception as e:
+            print(f"ERROR dashboard_stats: {e}")
+            import traceback
+            traceback.print_exc()
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
 @api_view(['POST'])
-@permission_classes([AllowAny])  # Chile Bot chamará sem autenticação
+@permission_classes([AllowAny])
 def receive_execution_data(request):
-    """
-    Endpoint para receber dados de execução do Chile Bot
-    URL: /api/novelties/chile-bot/execution/
-    """
+    """Endpoint para receber dados de execução do Chile Bot"""
     try:
-        # Log da requisição
         print(f"📊 Recebendo dados do Chile Bot: {request.data}")
         
-        # Validar dados básicos
         required_fields = ['country', 'total_processed', 'successful', 'failed', 'execution_time']
         for field in required_fields:
             if field not in request.data:
@@ -180,7 +202,6 @@ def receive_execution_data(request):
                     'error': f'Campo obrigatório ausente: {field}'
                 }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Criar execução
         serializer = NoveltyExecutionCreateSerializer(data=request.data)
         if serializer.is_valid():
             execution = serializer.save()
@@ -251,7 +272,6 @@ def execution_trends(request):
         end_date = timezone.now().date()
         start_date = end_date - timedelta(days=days)
         
-        # Dados por dia
         daily_data = []
         for i in range(days):
             date = start_date + timedelta(days=i)
