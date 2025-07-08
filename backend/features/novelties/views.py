@@ -75,14 +75,20 @@ class NoveltyExecutionViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def dashboard_stats(self, request):
-        """Endpoint para estatísticas do dashboard"""
+        """Endpoint para estatísticas do dashboard - MULTI-PAÍS"""
         try:
+            # NOVO: Filtro por país
+            country_filter = request.query_params.get('country', None)
+            
             now = timezone.now()
             today = now.date()
             week_ago = today - timedelta(days=7)
             
-            # Estatísticas gerais
+            # Estatísticas gerais com filtro
             all_executions = NoveltyExecution.objects.all()
+            if country_filter and country_filter != 'all':
+                all_executions = all_executions.filter(country=country_filter)
+            
             total_executions = all_executions.count()
             
             # Se não há dados, retorna estrutura vazia mas válida
@@ -254,10 +260,16 @@ def check_novelties_permissions(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, CanViewNoveltiesPermission])
 def recent_executions(request):
-    """Retorna execuções recentes para widgets"""
+    """Retorna execuções recentes - MULTI-PAÍS"""
     try:
         limit = int(request.query_params.get('limit', 10))
-        executions = NoveltyExecution.objects.all()[:limit]
+        country_filter = request.query_params.get('country', None)
+        
+        executions = NoveltyExecution.objects.all()
+        if country_filter and country_filter != 'all':
+            executions = executions.filter(country=country_filter)
+            
+        executions = executions[:limit]
         serializer = NoveltyExecutionSerializer(executions, many=True)
         return Response(serializer.data)
     except Exception as e:
@@ -266,9 +278,11 @@ def recent_executions(request):
 @api_view(['GET'])  
 @permission_classes([IsAuthenticated, CanViewNoveltiesPermission])
 def execution_trends(request):
-    """Retorna dados para gráficos de tendência"""
+    """Retorna dados para gráficos - MULTI-PAÍS"""
     try:
         days = int(request.query_params.get('days', 30))
+        country_filter = request.query_params.get('country', None)
+        
         end_date = timezone.now().date()
         start_date = end_date - timedelta(days=days)
         
@@ -276,6 +290,9 @@ def execution_trends(request):
         for i in range(days):
             date = start_date + timedelta(days=i)
             day_executions = NoveltyExecution.objects.filter(execution_date__date=date)
+            
+            if country_filter and country_filter != 'all':
+                day_executions = day_executions.filter(country=country_filter)
             
             daily_data.append({
                 'date': date.strftime('%Y-%m-%d'),
@@ -287,7 +304,8 @@ def execution_trends(request):
         
         return Response({
             'daily_data': daily_data,
-            'period': f'{days} dias'
+            'period': f'{days} dias',
+            'country': country_filter or 'all'
         })
         
     except Exception as e:

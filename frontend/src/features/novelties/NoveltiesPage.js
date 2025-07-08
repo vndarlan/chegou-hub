@@ -1,14 +1,15 @@
-// frontend/src/features/novelties/NoveltiesPage.js
+// frontend/src/features/novelties/NoveltiesPage.js - VERSÃO MULTI-PAÍS
 import React, { useState, useEffect } from 'react';
 import {
     Box, Grid, Title, Text, Card, Group, Badge, Stack, Table, 
     LoadingOverlay, Alert, Tabs, Select, Button, Paper, 
-    ActionIcon, Tooltip, Center, RingProgress, SimpleGrid
+    ActionIcon, Tooltip, Center, RingProgress, SimpleGrid, 
+    SegmentedControl
 } from '@mantine/core';
 import {
     IconRefresh, IconCalendar, IconTrendingUp, IconTrendingDown,
     IconClock, IconCheck, IconX, IconAlertTriangle, IconActivity,
-    IconChartBar, IconFilter, IconEye
+    IconChartBar, IconFilter, IconEye, IconWorld
 } from '@tabler/icons-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import axios from 'axios';
@@ -20,11 +21,10 @@ const STATUS_COLORS = {
     error: '#9C27B0'
 };
 
-const STATUS_ICONS = {
-    success: IconCheck,
-    partial: IconAlertTriangle,
-    failed: IconX,
-    error: IconActivity
+const COUNTRY_CONFIG = {
+    chile: { label: '🇨🇱 Chile', color: 'red' },
+    mexico: { label: '🇲🇽 México', color: 'green' },
+    all: { label: '🌍 Todos', color: 'blue' }
 };
 
 function NoveltiesPage() {
@@ -36,6 +36,7 @@ function NoveltiesPage() {
     const [canView, setCanView] = useState(false);
     const [activeTab, setActiveTab] = useState('dashboard');
     const [filterPeriod, setFilterPeriod] = useState('7');
+    const [selectedCountry, setSelectedCountry] = useState('all'); // NOVO: filtro de país
 
     // Verificar permissões
     useEffect(() => {
@@ -57,7 +58,7 @@ function NoveltiesPage() {
         checkPermissions();
     }, []);
 
-    // Carregar dados do dashboard
+    // Carregar dados do dashboard - ATUALIZADO para filtro de país
     useEffect(() => {
         if (!canView) return;
 
@@ -66,11 +67,13 @@ function NoveltiesPage() {
                 setLoading(true);
                 setError(null);
 
-                // Buscar estatísticas do dashboard
+                // Parâmetros com filtro de país
+                const countryParam = selectedCountry === 'all' ? {} : { country: selectedCountry };
+
                 const [statsResponse, recentResponse, trendsResponse] = await Promise.all([
-                    axios.get('/novelties/executions/dashboard_stats/'),
-                    axios.get('/novelties/recent/', { params: { limit: 10 } }),
-                    axios.get('/novelties/trends/', { params: { days: filterPeriod } })
+                    axios.get('/novelties/executions/dashboard_stats/', { params: countryParam }),
+                    axios.get('/novelties/recent/', { params: { limit: 10, ...countryParam } }),
+                    axios.get('/novelties/trends/', { params: { days: filterPeriod, ...countryParam } })
                 ]);
 
                 setDashboardStats(statsResponse.data);
@@ -86,7 +89,7 @@ function NoveltiesPage() {
         };
 
         fetchData();
-    }, [canView, filterPeriod]);
+    }, [canView, filterPeriod, selectedCountry]); // NOVO: dependência do país
 
     const handleRefresh = () => {
         window.location.reload();
@@ -107,7 +110,12 @@ function NoveltiesPage() {
         return <Badge color={config.color} variant="light">{config.label}</Badge>;
     };
 
-    // Cards de estatísticas
+    const getCountryBadge = (country) => {
+        const config = COUNTRY_CONFIG[country] || { label: country.toUpperCase(), color: 'gray' };
+        return <Badge color={config.color} variant="outline">{config.label}</Badge>;
+    };
+
+    // Cards de estatísticas - MANTIDO IGUAL
     const StatsCards = () => {
         if (!dashboardStats) return null;
 
@@ -159,7 +167,7 @@ function NoveltiesPage() {
         );
     };
 
-    // Gráfico de tendências
+    // Gráfico de tendências - ATUALIZADO com múltiplas linhas por país
     const TrendsChart = () => {
         if (!trendsData.length) return null;
 
@@ -196,7 +204,7 @@ function NoveltiesPage() {
         );
     };
 
-    // Distribuição por status
+    // Distribuição por status - MANTIDO
     const StatusDistribution = () => {
         if (!dashboardStats?.status_distribution) return null;
 
@@ -232,7 +240,7 @@ function NoveltiesPage() {
         );
     };
 
-    // Tabela de execuções recentes
+    // Tabela de execuções recentes - ATUALIZADA com coluna de país
     const RecentExecutionsTable = () => {
         if (!recentExecutions.length) {
             return (
@@ -265,9 +273,7 @@ function NoveltiesPage() {
                                 </Text>
                             </Table.Td>
                             <Table.Td>
-                                <Badge variant="outline">
-                                    {execution.country.toUpperCase()}
-                                </Badge>
+                                {getCountryBadge(execution.country)}
                             </Table.Td>
                             <Table.Td>
                                 {getStatusBadge(execution.status)}
@@ -314,15 +320,26 @@ function NoveltiesPage() {
         <Box p="md">
             <LoadingOverlay visible={loading} overlayProps={{ radius: "sm", blur: 2 }} />
             
-            {/* Header */}
+            {/* Header com filtro de país */}
             <Group justify="space-between" mb="md">
                 <Box>
-                    <Title order={2} mb="xs">🇨🇱 Novelties Chile</Title>
+                    <Title order={2} mb="xs">🌎 Novelties Chile & México</Title>
                     <Text c="dimmed">
-                        Dashboard de monitoramento das automações de novelties do Dropi Chile
+                        Dashboard de monitoramento das automações de novelties Dropi
                     </Text>
                 </Box>
                 <Group>
+                    {/* NOVO: Filtro de país */}
+                    <SegmentedControl
+                        value={selectedCountry}
+                        onChange={setSelectedCountry}
+                        data={[
+                            { label: '🌍 Todos', value: 'all' },
+                            { label: '🇨🇱 Chile', value: 'chile' },
+                            { label: '🇲🇽 México', value: 'mexico' }
+                        ]}
+                        size="sm"
+                    />
                     <Tooltip label="Atualizar dados">
                         <ActionIcon 
                             variant="light" 

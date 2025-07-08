@@ -62,15 +62,25 @@ class NoveltyExecution(models.Model):
     
     def determine_status(self):
         """Determina status automático baseado nos resultados"""
+        # Se há mensagem de erro, é erro crítico
+        if self.error_message:
+            return 'error'
+        
+        # Se não processou nada mas não há erro, é sucesso (sem novelties disponíveis)
         if self.total_processed == 0:
-            return 'failed'
+            return 'success'
+        
+        # Se processou tudo com sucesso
         elif self.successful == self.total_processed:
             return 'success' 
+        
+        # Se processou alguns com sucesso
         elif self.successful > 0:
             return 'partial'
+        
+        # Se processou mas nenhum sucesso
         else:
             return 'failed'
-
 
 class NoveltyFailure(models.Model):
     """Modelo para armazenar detalhes das falhas específicas"""
