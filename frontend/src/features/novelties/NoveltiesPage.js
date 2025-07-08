@@ -68,9 +68,9 @@ function NoveltiesPage() {
 
                 // Buscar estatísticas do dashboard
                 const [statsResponse, recentResponse, trendsResponse] = await Promise.all([
-                    axios.get('/api/novelties/executions/dashboard_stats/'),
-                    axios.get('/api/novelties/recent/', { params: { limit: 10 } }),
-                    axios.get('/api/novelties/trends/', { params: { days: filterPeriod } })
+                    axios.get('/novelties/executions/dashboard_stats/'),
+                    axios.get('/novelties/recent/', { params: { limit: 10 } }),
+                    axios.get('/novelties/trends/', { params: { days: filterPeriod } })
                 ]);
 
                 setDashboardStats(statsResponse.data);
