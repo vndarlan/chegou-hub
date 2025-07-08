@@ -1,5 +1,6 @@
-// frontend/src/components/DoubleNavbar.js - VERSÃO ATUALIZADA COM MÉTRICAS
-import React from 'react';
+// frontend/src/components/DoubleNavbar.js - NOVA ESTRUTURA
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   IconCalendar,
   IconWorld,
@@ -14,123 +15,126 @@ import {
   IconBuilding,
   IconBrandChrome
 } from '@tabler/icons-react';
-import { Code, Group, ScrollArea, Box, Image, Text } from '@mantine/core';
-import { LinksGroup } from './NavbarNested/LinksGroup';
+import { Title, Tooltip, UnstyledButton, Text, Box } from '@mantine/core';
 import { UserButton } from './NavbarNested/UserButton';
-import classes from './NavbarNested/NavbarNested.module.css';
+import classes from './DoubleNavbar.module.css';
 
-// Dados de navegação com grupos expansíveis - INCLUINDO MÉTRICAS
-const navigationData = [
-  {
-    label: 'HOME',
-    icon: IconHome,
-    initiallyOpened: true,
-    links: [
-      { label: 'Agenda da Empresa', link: '/workspace/agenda', icon: IconCalendar },
-      { label: 'Mapa de Países', link: '/workspace/mapa', icon: IconWorld },
-    ],
-  },
-  {
-      label: 'IA & Automações', 
-      icon: IconActivity,
-      initiallyOpened: false,
-      links: [
-        { label: 'Dashboard de Projetos', link: '/workspace/projetos', icon: IconRobot },
-        { label: 'Relatórios & Análise', link: '/workspace/relatorios', icon: IconActivity },
-        { label: 'Logs Gerais', link: '/workspace/logs', icon: IconActivity },
-        { label: 'Nicochat', link: '/workspace/nicochat', icon: IconRobot },
-        { label: 'N8N', link: '/workspace/n8n', icon: IconGitBranch },
-        { label: 'Novelties Chile', link: '/workspace/novelties', icon: IconBrandChrome },
-      ],
-  },
-  {
-    label: 'MÉTRICAS', // ← NOVA SEÇÃO
-    icon: IconChartBar,
-    initiallyOpened: false,
-    links: [
-      { label: 'PRIMECOD', link: '/workspace/metricas/primecod', icon: IconTrendingUp },
-      { label: 'ECOMHUB', link: '/workspace/metricas/ecomhub', icon: IconBuilding },
-    ],
-  },
-  {
-    label: 'OPERACIONAL',
-    icon: IconHeart,
-    initiallyOpened: false,
-    links: [
-      { label: 'Engajamento', link: '/workspace/engajamento', icon: IconHeart },
-      { label: 'Suporte', link: '/workspace/suporte', icon: IconHeadphones },
-    ],
-  },
+// Dados principais da barra lateral
+const mainLinksMockdata = [
+  { icon: IconHome, label: 'HOME', key: 'home' },
+  { icon: IconActivity, label: 'IA & Automações', key: 'ia' },
+  { icon: IconChartBar, label: 'MÉTRICAS', key: 'metricas' },
+  { icon: IconHeart, label: 'OPERACIONAL', key: 'operacional' },
 ];
 
-// Componente de Logo personalizada
-function Logo({ style }) {
-  return (
-    <Group gap="sm" style={style}>
-      <Image
-        src="/logo192.png"
-        alt="ChegouHub Logo"
-        width={32}
-        height={32}
-        fit="contain"
-        fallbackSrc="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3e%3crect width='32' height='32' rx='6' fill='%23fd7e14'/%3e%3ctext x='16' y='20' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='12'%3eCH%3c/text%3e%3c/svg%3e"
-      />
-      <Box>
-        <Text
-          size="lg"
-          fw={700}
-          variant="gradient"
-          gradient={{ from: 'orange', to: 'red', deg: 45 }}
-        >
-          ChegouHub
-        </Text>
-      </Box>
-    </Group>
-  );
-}
+// Mapeamento dos links por seção
+const linksBySection = {
+  home: [
+    { label: 'Agenda da Empresa', link: '/workspace/agenda' },
+    { label: 'Mapa de Países', link: '/workspace/mapa' },
+  ],
+  ia: [
+    { label: 'Dashboard de Projetos', link: '/workspace/projetos' },
+    { label: 'Relatórios & Análise', link: '/workspace/relatorios' },
+    { label: 'Logs Gerais', link: '/workspace/logs' },
+    { label: 'Nicochat', link: '/workspace/nicochat' },
+    { label: 'N8N', link: '/workspace/n8n' },
+    { label: 'Novelties Chile', link: '/workspace/novelties' },
+  ],
+  metricas: [
+    { label: 'PRIMECOD', link: '/workspace/metricas/primecod' },
+    { label: 'ECOMHUB', link: '/workspace/metricas/ecomhub' },
+  ],
+  operacional: [
+    { label: 'Engajamento', link: '/workspace/engajamento' },
+    { label: 'Suporte', link: '/workspace/suporte' },
+  ],
+};
 
 export function DoubleNavbar({ userName, userEmail, onLogout, toggleColorScheme, colorScheme }) {
-  // Criar os grupos com as props necessárias
-  const links = navigationData.map((item) => (
-    <LinksGroup
-      {...item}
-      key={item.label}
-      activePage={null}
-      setActivePage={() => {}}
-      collapsed={false}
-      activeMenu={null}
-      setActiveMenu={() => {}}
-    />
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [active, setActive] = useState('home');
+
+  // Determinar qual seção está ativa baseada na URL atual
+  const getCurrentSection = () => {
+    const path = location.pathname;
+    if (path.includes('/metricas/')) return 'metricas';
+    if (path.includes('/projetos') || path.includes('/relatorios') || path.includes('/logs') || 
+        path.includes('/nicochat') || path.includes('/n8n') || path.includes('/novelties')) return 'ia';
+    if (path.includes('/engajamento') || path.includes('/suporte')) return 'operacional';
+    return 'home';
+  };
+
+  React.useEffect(() => {
+    setActive(getCurrentSection());
+  }, [location.pathname]);
+
+  // Gerar links principais da barra lateral
+  const mainLinks = mainLinksMockdata.map((link) => (
+    <Tooltip
+      label={link.label}
+      position="right"
+      withArrow
+      transitionProps={{ duration: 0 }}
+      key={link.label}
+    >
+      <UnstyledButton
+        onClick={() => setActive(link.key)}
+        className={classes.mainLink}
+        data-active={link.key === active || undefined}
+      >
+        <link.icon size={22} stroke={1.5} />
+      </UnstyledButton>
+    </Tooltip>
   ));
 
+  // Gerar links da área principal
+  const links = linksBySection[active]?.map((link) => (
+    <a
+      className={classes.link}
+      data-active={location.pathname === link.link || undefined}
+      href="#"
+      onClick={(event) => {
+        event.preventDefault();
+        navigate(link.link);
+      }}
+      key={link.label}
+    >
+      {link.label}
+    </a>
+  )) || [];
+
   return (
-    <Box className={classes.navbar}>
-      {/* Header com Logo e Versão */}
-      <Box className={classes.header}>
-        <Group justify="space-between">
-          <Logo style={{ width: 180 }} />
-          <Code fw={700} c="orange.6" size="xs">
-            Centro de Comando
-          </Code>
-        </Group>
-      </Box>
-
-      {/* Área de Links com Scroll */}
-      <ScrollArea className={classes.links}>
-        <Box className={classes.linksInner}>{links}</Box>
-      </ScrollArea>
-
-      {/* Rodapé com Usuário */}
-      <Box className={classes.footer}>
-        <UserButton 
-          userName={userName}
-          userEmail={userEmail}
-          onLogout={onLogout}
-          toggleColorScheme={toggleColorScheme}
-          colorScheme={colorScheme}
-          collapsed={false}
-        />
-      </Box>
-    </Box>
+    <nav className={classes.navbar}>
+      <div className={classes.wrapper}>
+        <div className={classes.aside}>
+          <div className={classes.logo}>
+            <Box className={classes.logoIcon}>
+              CH
+            </Box>
+          </div>
+          {mainLinks}
+          <div className={classes.userSection}>
+            <UserButton 
+              userName={userName}
+              userEmail={userEmail}
+              onLogout={onLogout}
+              toggleColorScheme={toggleColorScheme}
+              colorScheme={colorScheme}
+              collapsed={true}
+            />
+          </div>
+        </div>
+        <div className={classes.main}>
+          <Title order={4} className={classes.title}>
+            {mainLinksMockdata.find(link => link.key === active)?.label || 'HOME'}
+          </Title>
+          <div className={classes.links}>
+            {links}
+          </div>
+        </div>
+      </div>
+    </nav>
   );
 }

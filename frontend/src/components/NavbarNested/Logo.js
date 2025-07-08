@@ -1,4 +1,4 @@
-// frontend/src/components/NavbarNested/Logo.js
+// frontend/src/components/NavbarNested/Logo.js - ATUALIZADO
 import React from 'react';
 import { Text, Group, Image, Box } from '@mantine/core';
 
@@ -17,14 +17,13 @@ export function Logo(props) {
         <Text
           fw={700}
           size="lg"
-          variant="gradient"
-          gradient={{ from: 'orange', to: 'red', deg: 45 }}
-          style={{ lineHeight: 1.2 }}
+          c="black"
+          style={{ 
+            lineHeight: 1.2,
+            color: 'light-dark(var(--mantine-color-black), var(--mantine-color-white))'
+          }}
         >
-          ChegouHub
-        </Text>
-        <Text size="xs" c="dimmed" style={{ lineHeight: 1 }}>
-          Centro de Comando
+          Chegou Hub
         </Text>
       </Box>
     </Group>
