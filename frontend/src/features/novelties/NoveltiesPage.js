@@ -119,6 +119,21 @@ function NoveltiesPage() {
     const StatsCards = () => {
         if (!dashboardStats) return null;
 
+        // Cálculo do tempo economizado
+        const MANUAL_TIME_PER_NOVELTY = 4; // 4min por novelty manual
+        const manualTime = dashboardStats.total_processed * MANUAL_TIME_PER_NOVELTY;
+        const automationTime = dashboardStats.avg_execution_time * dashboardStats.total_executions;
+        const timeSaved = manualTime - automationTime;
+        
+        const formatTime = (minutes) => {
+            if (minutes < 60) return `${Math.round(minutes)}min`;
+            const hours = Math.floor(minutes / 60);
+            const mins = Math.round(minutes % 60);
+            return hours >= 24 ? 
+                `${Math.floor(hours/24)}d ${hours%24}h` : 
+                `${hours}h ${mins > 0 ? mins + 'min' : ''}`;
+        };
+
         const cards = [
             {
                 title: 'Execuções Total',
@@ -139,10 +154,11 @@ function NoveltiesPage() {
                 color: dashboardStats.success_rate >= 90 ? 'green' : 'orange'
             },
             {
-                title: 'Tempo Médio',
-                value: `${dashboardStats.avg_execution_time}min`,
+                title: 'Tempo Economizado',
+                value: formatTime(timeSaved),
                 icon: IconClock,
-                color: 'grape'
+                color: 'orange',
+                subtitle: `${dashboardStats.total_processed} × 4min vs ${formatTime(automationTime)}`
             }
         ];
 
@@ -158,6 +174,11 @@ function NoveltiesPage() {
                                 <Text fw={700} size="xl">
                                     {card.value}
                                 </Text>
+                                {card.subtitle && (
+                                    <Text c="dimmed" size="xs">
+                                        {card.subtitle}
+                                    </Text>
+                                )}
                             </div>
                             <card.icon size={32} color={`var(--mantine-color-${card.color}-6)`} />
                         </Group>
