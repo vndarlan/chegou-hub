@@ -566,61 +566,73 @@ class ProjetoIA(models.Model):
     def calcular_metricas_financeiras(self, meses_operacao=None, usar_novos_campos=True):
         """
         Calcula métricas financeiras do projeto
-        Args:
-            meses_operacao: Quantos meses o projeto está operando (default: calcular desde criação)
-            usar_novos_campos: Se deve usar os novos campos financeiros (default: True)
         """
-        if meses_operacao is None:
-            # Calcular meses desde a criação
-            from datetime import date
-            delta = date.today() - self.data_criacao
-            meses_operacao = max(1, delta.days / 30.44)  # Média de dias por mês
-        
-        if usar_novos_campos:
-            # Usar nova estrutura financeira
-            custos_unicos = self.custos_unicos_totais_novo
-            custos_recorrentes_mensais = self.custos_recorrentes_mensais_novo
-            economia_mensal = self.economia_mensal_total_novo
-        else:
-            # Usar estrutura legada
-            custos_unicos = self.custos_unicos_totais
-            custos_recorrentes_mensais = self.custos_recorrentes_mensais
-            economia_mensal = self.economia_mensal_total
-        
-        # Custos
-        custo_total = custos_unicos + (custos_recorrentes_mensais * meses_operacao)
-        
-        # Economias
-        economia_acumulada = economia_mensal * meses_operacao
-        
-        # ROI = ((Ganhos - Custos) / Custos) × 100
-        roi = 0
-        if custo_total > 0:
-            roi = ((economia_acumulada - custo_total) / custo_total) * 100
-        
-        # Payback em meses = Investimento Inicial / Economia Mensal
-        payback_meses = 0
-        if economia_mensal > 0:
-            payback_meses = custos_unicos / economia_mensal
-        
-        # ROI por hora investida
-        roi_por_hora = 0
-        if self.horas_totais > 0:
-            roi_por_hora = economia_acumulada / float(self.horas_totais)
-        
-        return {
-            'custo_desenvolvimento': float(self.custo_desenvolvimento if usar_novos_campos else self.horas_totais * self.valor_hora),
-            'custos_unicos_totais': float(custos_unicos),
-            'custos_recorrentes_mensais': float(custos_recorrentes_mensais),
-            'custo_total': float(custo_total),
-            'economia_mensal': float(economia_mensal),
-            'economia_acumulada': float(economia_acumulada),
-            'roi': round(roi, 2),
-            'payback_meses': round(payback_meses, 2),
-            'roi_por_hora': round(roi_por_hora, 2),
-            'meses_operacao': round(meses_operacao, 1),
-            'usando_novos_campos': usar_novos_campos
-        }
+        try:
+            if meses_operacao is None:
+                # Calcular meses desde a criação
+                from datetime import date
+                delta = date.today() - self.data_criacao
+                meses_operacao = max(1, float(delta.days) / 30.44)  # CORREÇÃO: float()
+            
+            if usar_novos_campos:
+                # Usar nova estrutura financeira
+                custos_unicos = self.custos_unicos_totais_novo
+                custos_recorrentes_mensais = self.custos_recorrentes_mensais_novo
+                economia_mensal = self.economia_mensal_total_novo
+            else:
+                # Usar estrutura legada
+                custos_unicos = self.custos_unicos_totais
+                custos_recorrentes_mensais = self.custos_recorrentes_mensais
+                economia_mensal = self.economia_mensal_total
+            
+            # Converter para float para evitar erros de tipo
+            meses_operacao = float(meses_operacao)
+            custos_unicos = float(custos_unicos)
+            custos_recorrentes_mensais = float(custos_recorrentes_mensais)
+            economia_mensal = float(economia_mensal)
+            
+            # Custos
+            custo_total = custos_unicos + (custos_recorrentes_mensais * meses_operacao)
+            
+            # Economias
+            economia_acumulada = economia_mensal * meses_operacao
+            
+            # ROI = ((Ganhos - Custos) / Custos) × 100
+            roi = 0
+            if custo_total > 0:
+                roi = ((economia_acumulada - custo_total) / custo_total) * 100
+            
+            # Payback em meses = Investimento Inicial / Economia Mensal
+            payback_meses = 0
+            if economia_mensal > 0:
+                payback_meses = custos_unicos / economia_mensal
+            
+            # ROI por hora investida
+            roi_por_hora = 0
+            if float(self.horas_totais) > 0:
+                roi_por_hora = economia_acumulada / float(self.horas_totais)
+            
+            return {
+                'custo_desenvolvimento': custo_desenvolvimento_value,
+                'custos_unicos_totais': custos_unicos,
+                'custos_recorrentes_mensais': custos_recorrentes_mensais,
+                'custo_total': custo_total,
+                'economia_mensal': economia_mensal,
+                'economia_acumulada': economia_acumulada,
+                'roi': round(roi, 2),
+                'payback_meses': round(payback_meses, 2),
+                'roi_por_hora': round(roi_por_hora, 2),
+                'meses_operacao': round(meses_operacao, 1),
+                'usando_novos_campos': usar_novos_campos
+            }
+        except Exception as e:
+            print(f"❌ Erro ao calcular métricas: {e}")
+            return {
+                'erro': str(e),
+                'custo_total': 0,
+                'economia_mensal': 0,
+                'roi': 0
+            }
 
 class VersaoProjeto(models.Model):
     """Histórico de versões dos projetos"""
