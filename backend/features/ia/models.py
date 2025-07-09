@@ -569,27 +569,27 @@ class ProjetoIA(models.Model):
         """
         try:
             if meses_operacao is None:
-                # Calcular meses desde a criação
                 from datetime import date
                 delta = date.today() - self.data_criacao
-                meses_operacao = max(1, float(delta.days) / 30.44)  # CORREÇÃO: float()
+                meses_operacao = max(1, float(delta.days) / 30.44)
             
             if usar_novos_campos:
-                # Usar nova estrutura financeira
                 custos_unicos = self.custos_unicos_totais_novo
                 custos_recorrentes_mensais = self.custos_recorrentes_mensais_novo
                 economia_mensal = self.economia_mensal_total_novo
+                custo_desenvolvimento = self.custo_desenvolvimento  # CORREÇÃO: usar property
             else:
-                # Usar estrutura legada
                 custos_unicos = self.custos_unicos_totais
                 custos_recorrentes_mensais = self.custos_recorrentes_mensais
                 economia_mensal = self.economia_mensal_total
+                custo_desenvolvimento = float(self.horas_totais * self.valor_hora)
             
-            # Converter para float para evitar erros de tipo
+            # Converter para float
             meses_operacao = float(meses_operacao)
             custos_unicos = float(custos_unicos)
             custos_recorrentes_mensais = float(custos_recorrentes_mensais)
             economia_mensal = float(economia_mensal)
+            custo_desenvolvimento = float(custo_desenvolvimento)
             
             # Custos
             custo_total = custos_unicos + (custos_recorrentes_mensais * meses_operacao)
@@ -613,7 +613,7 @@ class ProjetoIA(models.Model):
                 roi_por_hora = economia_acumulada / float(self.horas_totais)
             
             return {
-                'custo_desenvolvimento': custo_desenvolvimento_value,
+                'custo_desenvolvimento': custo_desenvolvimento,  # CORREÇÃO: variável correta
                 'custos_unicos_totais': custos_unicos,
                 'custos_recorrentes_mensais': custos_recorrentes_mensais,
                 'custo_total': custo_total,
@@ -627,11 +627,14 @@ class ProjetoIA(models.Model):
             }
         except Exception as e:
             print(f"❌ Erro ao calcular métricas: {e}")
+            import traceback
+            traceback.print_exc()
             return {
                 'erro': str(e),
                 'custo_total': 0,
                 'economia_mensal': 0,
-                'roi': 0
+                'roi': 0,
+                'acesso_restrito': True
             }
 
 class VersaoProjeto(models.Model):

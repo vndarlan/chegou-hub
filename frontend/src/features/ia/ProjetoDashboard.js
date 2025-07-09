@@ -1167,11 +1167,29 @@ function ProjetoDashboard() {
 
     const handleViewProjeto = async (projeto) => {
         try {
+            console.log('👁️ handleViewProjeto chamado para projeto:', projeto.id);
+            console.log('📋 Dados do projeto (lista):', {
+                licoes_aprendidas: projeto.licoes_aprendidas,
+                proximos_passos: projeto.proximos_passos,
+                custo_apis_mensal: projeto.custo_apis_mensal,
+                valor_monetario_economizado_mes: projeto.valor_monetario_economizado_mes
+            });
+            
             const response = await axios.get(`/ia/projetos/${projeto.id}/`);
+            console.log('📥 Resposta da API (detalhes):', response.data);
+            console.log('📋 Campos específicos na resposta:', {
+                licoes_aprendidas: response.data.licoes_aprendidas,
+                proximos_passos: response.data.proximos_passos,
+                custo_apis_mensal: response.data.custo_apis_mensal,
+                valor_monetario_economizado_mes: response.data.valor_monetario_economizado_mes,
+                horas_desenvolvimento: response.data.horas_desenvolvimento,
+                documentacao_tecnica: response.data.documentacao_tecnica
+            });
+            
             setSelectedProjeto(response.data);
             setDetailModalOpen(true);
         } catch (err) {
-            console.error('Erro ao carregar detalhes:', err);
+            console.error('❌ Erro ao carregar detalhes:', err);
             notifications.show({
                 title: 'Erro',
                 message: 'Erro ao carregar detalhes do projeto',
@@ -1179,6 +1197,7 @@ function ProjetoDashboard() {
             });
         }
     };
+
 
     // CORREÇÃO: Nova função para mudança de status
     const handleChangeStatus = async (projeto, novoStatus) => {
