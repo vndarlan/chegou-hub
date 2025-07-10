@@ -210,28 +210,21 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
         descricao: '',
         tipo_projeto: '',
         departamentos_atendidos: [],
-        prioridade: 'media',
-        complexidade: 'media',
-        horas_totais: 0,
         criadores_ids: [],
         ferramentas_tecnologias: [],
         link_projeto: '',
         usuarios_impactados: 0,
         frequencia_uso: 'diario',
         
-        // === BREAKDOWN DE HORAS ===
-        horas_desenvolvimento: 0,
-        horas_testes: 0,
-        horas_documentacao: 0,
-        horas_deploy: 0,
+        // === CAMPOS DE DETALHES ===
+        horas_totais: 0,
+        prioridade: 'media',
+        complexidade: 'media',
         
         // === NOVOS CAMPOS FINANCEIROS ===
         custo_hora_empresa: 80,
         custo_apis_mensal: 0,
         lista_ferramentas: [],
-        custo_treinamentos: 0,
-        custo_setup_inicial: 0,
-        custo_consultoria: 0,
         horas_economizadas_mes: 0,
         valor_monetario_economizado_mes: 0,
         data_break_even: null,
@@ -282,9 +275,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                 departamentos_atendidos: Array.isArray(projeto.departamentos_atendidos) 
                     ? projeto.departamentos_atendidos 
                     : (projeto.departamento_atendido ? [projeto.departamento_atendido] : []),
-                prioridade: projeto.prioridade || 'media',
-                complexidade: projeto.complexidade || 'media',
-                horas_totais: Number(projeto.horas_totais) || 0,
                 criadores_ids: Array.isArray(projeto.criadores) 
                     ? projeto.criadores.map(c => c.id?.toString() || c.toString()) 
                     : [],
@@ -295,11 +285,10 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                 usuarios_impactados: Number(projeto.usuarios_impactados) || 0,
                 frequencia_uso: projeto.frequencia_uso || 'diario',
                 
-                // === BREAKDOWN DE HORAS ===
-                horas_desenvolvimento: Number(projeto.horas_desenvolvimento) || 0,
-                horas_testes: Number(projeto.horas_testes) || 0,
-                horas_documentacao: Number(projeto.horas_documentacao) || 0,
-                horas_deploy: Number(projeto.horas_deploy) || 0,
+                // === CAMPOS DE DETALHES ===
+                horas_totais: Number(projeto.horas_totais) || 0,
+                prioridade: projeto.prioridade || 'media',
+                complexidade: projeto.complexidade || 'media',
                 
                 // === NOVOS CAMPOS FINANCEIROS ===
                 custo_hora_empresa: Number(projeto.custo_hora_empresa) || 80,
@@ -307,9 +296,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                 lista_ferramentas: Array.isArray(projeto.lista_ferramentas) 
                     ? projeto.lista_ferramentas 
                     : [],
-                custo_treinamentos: Number(projeto.custo_treinamentos) || 0,
-                custo_setup_inicial: Number(projeto.custo_setup_inicial) || 0,
-                custo_consultoria: Number(projeto.custo_consultoria) || 0,
                 horas_economizadas_mes: Number(projeto.horas_economizadas_mes) || 0,
                 valor_monetario_economizado_mes: Number(projeto.valor_monetario_economizado_mes) || 0,
                 data_break_even: projeto.data_break_even || null,
@@ -481,37 +467,18 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 </Grid.Col>
                             </Grid>
                             
-                            <Grid>
-                                <Grid.Col span={4}>
-                                    <Select
-                                        label="Prioridade"
-                                        data={prioridadeOptions}
-                                        value={formData.prioridade}
-                                        onChange={(value) => setFormData(prev => ({...prev, prioridade: value}))}
-                                        comboboxProps={{ withinPortal: false }}
-                                    />
-                                </Grid.Col>
-                                <Grid.Col span={4}>
-                                    <Select
-                                        label="Complexidade"
-                                        data={complexidadeOptions}
-                                        value={formData.complexidade}
-                                        onChange={(value) => setFormData(prev => ({...prev, complexidade: value}))}
-                                        comboboxProps={{ withinPortal: false }}
-                                    />
-                                </Grid.Col>
-                                <Grid.Col span={4}>
-                                    <NumberInput
-                                        label="Horas Totais"
-                                        placeholder="0"
-                                        min={0}
-                                        step={0.5}
-                                        required
-                                        value={formData.horas_totais}
-                                        onChange={(value) => setFormData(prev => ({...prev, horas_totais: value}))}
-                                    />
-                                </Grid.Col>
-                            </Grid>
+                            <MultiSelect
+                                label="Criadores/Responsáveis"
+                                placeholder="Selecione os responsáveis"
+                                data={userOptions}
+                                searchable
+                                value={formData.criadores_ids}
+                                onChange={(value) => {
+                                    console.log('🔄 Alterando criadores_ids:', value);
+                                    setFormData(prev => ({...prev, criadores_ids: value}));
+                                }}
+                                comboboxProps={{ withinPortal: false }}
+                            />
                             
                             <MultiSelect
                                 label="Criadores/Responsáveis"
@@ -530,6 +497,38 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
 
                     <Tabs.Panel value="detalhes" pt="md">
                         <Stack gap="md">
+                            <Grid>
+                                <Grid.Col span={4}>
+                                    <NumberInput
+                                        label="Horas Totais"
+                                        placeholder="0"
+                                        min={0}
+                                        step={0.5}
+                                        required
+                                        value={formData.horas_totais}
+                                        onChange={(value) => setFormData(prev => ({...prev, horas_totais: value}))}
+                                    />
+                                </Grid.Col>
+                                <Grid.Col span={4}>
+                                    <Select
+                                        label="Prioridade"
+                                        data={prioridadeOptions}
+                                        value={formData.prioridade}
+                                        onChange={(value) => setFormData(prev => ({...prev, prioridade: value}))}
+                                        comboboxProps={{ withinPortal: false }}
+                                    />
+                                </Grid.Col>
+                                <Grid.Col span={4}>
+                                    <Select
+                                        label="Complexidade"
+                                        data={complexidadeOptions}
+                                        value={formData.complexidade}
+                                        onChange={(value) => setFormData(prev => ({...prev, complexidade: value}))}
+                                        comboboxProps={{ withinPortal: false }}
+                                    />
+                                </Grid.Col>
+                            </Grid>
+                            
                             <TextInput
                                 label="Link do Projeto"
                                 placeholder="https://..."
@@ -558,53 +557,9 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 </Grid.Col>
                             </Grid>
                             
-                            {/* BREAKDOWN DE HORAS */}
-                            <Title order={5}>⏱️ Breakdown de Horas</Title>
-                            <Grid>
-                                <Grid.Col span={3}>
-                                    <NumberInput
-                                        label="Desenvolvimento"
-                                        placeholder="0"
-                                        min={0}
-                                        step={0.5}
-                                        value={formData.horas_desenvolvimento}
-                                        onChange={(value) => setFormData(prev => ({...prev, horas_desenvolvimento: value}))}
-                                    />
-                                </Grid.Col>
-                                <Grid.Col span={3}>
-                                    <NumberInput
-                                        label="Testes"
-                                        placeholder="0"
-                                        min={0}
-                                        step={0.5}
-                                        value={formData.horas_testes}
-                                        onChange={(value) => setFormData(prev => ({...prev, horas_testes: value}))}
-                                    />
-                                </Grid.Col>
-                                <Grid.Col span={3}>
-                                    <NumberInput
-                                        label="Documentação"
-                                        placeholder="0"
-                                        min={0}
-                                        step={0.5}
-                                        value={formData.horas_documentacao}
-                                        onChange={(value) => setFormData(prev => ({...prev, horas_documentacao: value}))}
-                                    />
-                                </Grid.Col>
-                                <Grid.Col span={3}>
-                                    <NumberInput
-                                        label="Deploy"
-                                        placeholder="0"
-                                        min={0}
-                                        step={0.5}
-                                        value={formData.horas_deploy}
-                                        onChange={(value) => setFormData(prev => ({...prev, horas_deploy: value}))}
-                                    />
-                                </Grid.Col>
-                            </Grid>
-                            
-                            <Text size="sm" weight={500}>Ferramentas/Tecnologias</Text>
+                            {/* CORREÇÃO: Input de Ferramentas/Tecnologias */}
                             <TextInput
+                                label="Ferramentas/Tecnologias"
                                 placeholder="Ex: Python, OpenAI API, PostgreSQL"
                                 description="Separadas por vírgula"
                                 value={formData.ferramentas_tecnologias?.join(', ') || ''}
@@ -732,41 +687,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                     Adicionar Ferramenta
                                 </Button>
                             </Box>
-                            
-                            {/* CUSTOS ÚNICOS */}
-                            <Title order={5}>🏗️ Custos Únicos</Title>
-                            <Grid>
-                                <Grid.Col span={4}>
-                                    <NumberInput
-                                        label="Treinamentos (R$)"
-                                        placeholder="0"
-                                        min={0}
-                                        step={0.01}
-                                        value={formData.custo_treinamentos}
-                                        onChange={(value) => setFormData(prev => ({...prev, custo_treinamentos: value}))}
-                                    />
-                                </Grid.Col>
-                                <Grid.Col span={4}>
-                                    <NumberInput
-                                        label="Setup Inicial (R$)"
-                                        placeholder="0"
-                                        min={0}
-                                        step={0.01}
-                                        value={formData.custo_setup_inicial}
-                                        onChange={(value) => setFormData(prev => ({...prev, custo_setup_inicial: value}))}
-                                    />
-                                </Grid.Col>
-                                <Grid.Col span={4}>
-                                    <NumberInput
-                                        label="Consultoria (R$)"
-                                        placeholder="0"
-                                        min={0}
-                                        step={0.01}
-                                        value={formData.custo_consultoria}
-                                        onChange={(value) => setFormData(prev => ({...prev, custo_consultoria: value}))}
-                                    />
-                                </Grid.Col>
-                            </Grid>
                             
                             <Divider my="md" />
                             
