@@ -1,4 +1,4 @@
-// frontend/src/features/ia/ProjetoDashboard.js
+// frontend/src/features/ia/ProjetoDashboard.js - VERSÃO CORRIGIDA COMPLETA
 import React, { useState, useEffect, useMemo } from 'react';
 import {
     Box, Grid, Title, Text, Button, Group, Stack, Card, Badge, 
@@ -85,8 +85,19 @@ const ProjetoCard = ({ projeto, onEdit, onView, onArchive, onDuplicate, onNewVer
                     <Text size="sm" weight={500}>{projeto.tipo_projeto}</Text>
                 </Box>
                 <Box>
-                    <Text size="xs" c="dimmed">Departamento</Text>
-                    <Text size="sm" weight={500}>{projeto.departamento_atendido}</Text>
+                    <Text size="xs" c="dimmed">Departamentos</Text>
+                    <Group gap="xs">
+                        {projeto.departamentos_display?.length > 0 ? (
+                            projeto.departamentos_display.slice(0, 2).map((dept, i) => (
+                                <Badge key={i} size="xs">{dept}</Badge>
+                            ))
+                        ) : (
+                            <Text size="sm" weight={500}>{projeto.departamento_atendido || 'N/A'}</Text>
+                        )}
+                        {projeto.departamentos_display?.length > 2 && (
+                            <Badge size="xs">+{projeto.departamentos_display.length - 2}</Badge>
+                        )}
+                    </Group>
                 </Box>
                 <Box>
                     <Text size="xs" c="dimmed">Horas Investidas</Text>
@@ -191,13 +202,14 @@ const ProjetoCard = ({ projeto, onEdit, onView, onArchive, onDuplicate, onNewVer
     );
 };
 
-// Modal de Formulário de Projeto
+// Modal de Formulário de Projeto - COMPLETAMENTE CORRIGIDO
 const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading }) => {
     const [formData, setFormData] = useState({
+        // === CAMPOS BÁSICOS ===
         nome: '',
         descricao: '',
         tipo_projeto: '',
-        departamentos_atendidos: [], // NOVO: Array em vez de string
+        departamentos_atendidos: [],
         prioridade: 'media',
         complexidade: 'media',
         horas_totais: 0,
@@ -206,81 +218,126 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
         link_projeto: '',
         usuarios_impactados: 0,
         frequencia_uso: 'diario',
-        // Campos de breakdown de horas - CORREÇÃO PARA SALVAR
+        
+        // === BREAKDOWN DE HORAS ===
         horas_desenvolvimento: 0,
         horas_testes: 0,
         horas_documentacao: 0,
         horas_deploy: 0,
-        // Novos campos financeiros
+        
+        // === NOVOS CAMPOS FINANCEIROS ===
         custo_hora_empresa: 80,
         custo_apis_mensal: 0,
         lista_ferramentas: [],
+        custo_treinamentos: 0,
+        custo_setup_inicial: 0,
+        custo_consultoria: 0,
         horas_economizadas_mes: 0,
         valor_monetario_economizado_mes: 0,
         data_break_even: null,
         nivel_autonomia: 'total',
-        // Campos de documentação - CORREÇÃO PARA SALVAR
+        
+        // === CAMPOS LEGADOS ===
+        valor_hora: 150,
+        custo_ferramentas_mensais: 0,
+        custo_apis_mensais: 0,
+        custo_infraestrutura_mensais: 0,
+        custo_manutencao_mensais: 0,
+        economia_horas_mensais: 0,
+        valor_hora_economizada: 50,
+        reducao_erros_mensais: 0,
+        economia_outros_mensais: 0,
+        
+        // === DOCUMENTAÇÃO ===
         documentacao_tecnica: '',
         licoes_aprendidas: '',
         proximos_passos: '',
         data_revisao: null
     });
 
-    // CORREÇÃO: Atualizar formData quando projeto muda
+    // CORREÇÃO COMPLETA: useEffect para carregar TODOS os campos do projeto
     useEffect(() => {
-        console.log('🔄 useEffect projeto mudou:', projeto?.id);
+        console.log('🔄 useEffect - projeto mudou:', projeto?.id);
         
         if (projeto) {
-            console.log('📋 Carregando dados do projeto:', {
+            console.log('📋 CARREGANDO PROJETO - dados completos:', {
+                id: projeto.id,
+                nome: projeto.nome,
+                departamentos_atendidos: projeto.departamentos_atendidos,
+                criadores: projeto.criadores,
                 licoes_aprendidas: projeto.licoes_aprendidas,
                 proximos_passos: projeto.proximos_passos,
                 custo_apis_mensal: projeto.custo_apis_mensal,
-                horas_desenvolvimento: projeto.horas_desenvolvimento
+                horas_desenvolvimento: projeto.horas_desenvolvimento,
+                horas_testes: projeto.horas_testes,
+                documentacao_tecnica: projeto.documentacao_tecnica,
+                lista_ferramentas: projeto.lista_ferramentas
             });
             
             setFormData({
-                // === BÁSICO ===
+                // === CAMPOS BÁSICOS ===
                 nome: projeto.nome || '',
                 descricao: projeto.descricao || '',
                 tipo_projeto: projeto.tipo_projeto || '',
-                departamentos_atendidos: projeto.departamentos_atendidos || [],
+                departamentos_atendidos: Array.isArray(projeto.departamentos_atendidos) 
+                    ? projeto.departamentos_atendidos 
+                    : (projeto.departamento_atendido ? [projeto.departamento_atendido] : []),
                 prioridade: projeto.prioridade || 'media',
                 complexidade: projeto.complexidade || 'media',
-                horas_totais: projeto.horas_totais || 0,
-                criadores_ids: projeto.criadores?.map(c => c.id.toString()) || [],
-                ferramentas_tecnologias: projeto.ferramentas_tecnologias || [],
+                horas_totais: Number(projeto.horas_totais) || 0,
+                criadores_ids: Array.isArray(projeto.criadores) 
+                    ? projeto.criadores.map(c => c.id?.toString() || c.toString()) 
+                    : [],
+                ferramentas_tecnologias: Array.isArray(projeto.ferramentas_tecnologias) 
+                    ? projeto.ferramentas_tecnologias 
+                    : [],
                 link_projeto: projeto.link_projeto || '',
-                usuarios_impactados: projeto.usuarios_impactados || 0,
+                usuarios_impactados: Number(projeto.usuarios_impactados) || 0,
                 frequencia_uso: projeto.frequencia_uso || 'diario',
                 
-                // === DETALHES - BREAKDOWN DE HORAS ===
+                // === BREAKDOWN DE HORAS ===
                 horas_desenvolvimento: Number(projeto.horas_desenvolvimento) || 0,
                 horas_testes: Number(projeto.horas_testes) || 0,
                 horas_documentacao: Number(projeto.horas_documentacao) || 0,
                 horas_deploy: Number(projeto.horas_deploy) || 0,
                 
-                // === DETALHES - DOCUMENTAÇÃO ===
-                documentacao_tecnica: projeto.documentacao_tecnica || '',
-                licoes_aprendidas: projeto.licoes_aprendidas || '',
-                proximos_passos: projeto.proximos_passos || '',
-                data_revisao: projeto.data_revisao || null,
-                
-                // === FINANCEIRO - CUSTOS ===
+                // === NOVOS CAMPOS FINANCEIROS ===
                 custo_hora_empresa: Number(projeto.custo_hora_empresa) || 80,
                 custo_apis_mensal: Number(projeto.custo_apis_mensal) || 0,
-                lista_ferramentas: projeto.lista_ferramentas || [],
-                
-                // === FINANCEIRO - RETORNOS ===
+                lista_ferramentas: Array.isArray(projeto.lista_ferramentas) 
+                    ? projeto.lista_ferramentas 
+                    : [],
+                custo_treinamentos: Number(projeto.custo_treinamentos) || 0,
+                custo_setup_inicial: Number(projeto.custo_setup_inicial) || 0,
+                custo_consultoria: Number(projeto.custo_consultoria) || 0,
                 horas_economizadas_mes: Number(projeto.horas_economizadas_mes) || 0,
                 valor_monetario_economizado_mes: Number(projeto.valor_monetario_economizado_mes) || 0,
                 data_break_even: projeto.data_break_even || null,
-                nivel_autonomia: projeto.nivel_autonomia || 'total'
+                nivel_autonomia: projeto.nivel_autonomia || 'total',
+                
+                // === CAMPOS LEGADOS ===
+                valor_hora: Number(projeto.valor_hora) || 150,
+                custo_ferramentas_mensais: Number(projeto.custo_ferramentas_mensais) || 0,
+                custo_apis_mensais: Number(projeto.custo_apis_mensais) || 0,
+                custo_infraestrutura_mensais: Number(projeto.custo_infraestrutura_mensais) || 0,
+                custo_manutencao_mensais: Number(projeto.custo_manutencao_mensais) || 0,
+                economia_horas_mensais: Number(projeto.economia_horas_mensais) || 0,
+                valor_hora_economizada: Number(projeto.valor_hora_economizada) || 50,
+                reducao_erros_mensais: Number(projeto.reducao_erros_mensais) || 0,
+                economia_outros_mensais: Number(projeto.economia_outros_mensais) || 0,
+                
+                // === DOCUMENTAÇÃO ===
+                documentacao_tecnica: projeto.documentacao_tecnica || '',
+                licoes_aprendidas: projeto.licoes_aprendidas || '',
+                proximos_passos: projeto.proximos_passos || '',
+                data_revisao: projeto.data_revisao || null
             });
             
-            console.log('✅ FormData setado com todos os campos');
+            console.log('✅ FORMDATA CONFIGURADO - todos os campos carregados');
         } else {
             // Reset para valores padrão quando não há projeto
             setFormData({
+                // === CAMPOS BÁSICOS ===
                 nome: '',
                 descricao: '',
                 tipo_projeto: '',
@@ -293,28 +350,49 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                 link_projeto: '',
                 usuarios_impactados: 0,
                 frequencia_uso: 'diario',
+                
+                // === BREAKDOWN DE HORAS ===
                 horas_desenvolvimento: 0,
                 horas_testes: 0,
                 horas_documentacao: 0,
                 horas_deploy: 0,
+                
+                // === NOVOS CAMPOS FINANCEIROS ===
                 custo_hora_empresa: 80,
                 custo_apis_mensal: 0,
                 lista_ferramentas: [],
+                custo_treinamentos: 0,
+                custo_setup_inicial: 0,
+                custo_consultoria: 0,
                 horas_economizadas_mes: 0,
                 valor_monetario_economizado_mes: 0,
                 data_break_even: null,
                 nivel_autonomia: 'total',
+                
+                // === CAMPOS LEGADOS ===
+                valor_hora: 150,
+                custo_ferramentas_mensais: 0,
+                custo_apis_mensais: 0,
+                custo_infraestrutura_mensais: 0,
+                custo_manutencao_mensais: 0,
+                economia_horas_mensais: 0,
+                valor_hora_economizada: 50,
+                reducao_erros_mensais: 0,
+                economia_outros_mensais: 0,
+                
+                // === DOCUMENTAÇÃO ===
                 documentacao_tecnica: '',
                 licoes_aprendidas: '',
                 proximos_passos: '',
                 data_revisao: null
             });
-            console.log('🔄 FormData resetado para valores padrão');
+            console.log('🔄 FORMDATA RESETADO para valores padrão');
         }
     }, [projeto]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        console.log('📤 ENVIANDO FORM - dados completos:', formData);
         onSave(formData);
     };
 
@@ -383,7 +461,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={6}>
-                                    <MultiSelect // MUDOU DE Select PARA MultiSelect
+                                    <MultiSelect
                                         label="Departamentos"
                                         placeholder="Selecione os departamentos"
                                         data={[
@@ -441,7 +519,10 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 data={userOptions}
                                 searchable
                                 value={formData.criadores_ids}
-                                onChange={(value) => setFormData(prev => ({...prev, criadores_ids: value}))}
+                                onChange={(value) => {
+                                    console.log('🔄 Alterando criadores_ids:', value);
+                                    setFormData(prev => ({...prev, criadores_ids: value}));
+                                }}
                                 comboboxProps={{ withinPortal: false }}
                             />
                         </Stack>
@@ -477,7 +558,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 </Grid.Col>
                             </Grid>
                             
-                            {/* CORREÇÃO: Adicionar breakdown de horas */}
+                            {/* BREAKDOWN DE HORAS */}
                             <Title order={5}>⏱️ Breakdown de Horas</Title>
                             <Grid>
                                 <Grid.Col span={3}>
@@ -526,14 +607,14 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                             <TextInput
                                 placeholder="Ex: Python, OpenAI API, PostgreSQL"
                                 description="Separadas por vírgula"
+                                value={formData.ferramentas_tecnologias?.join(', ') || ''}
                                 onChange={(e) => {
                                     const techs = e.target.value.split(',').map(t => t.trim()).filter(t => t);
                                     setFormData(prev => ({...prev, ferramentas_tecnologias: techs}));
                                 }}
-                                defaultValue={formData.ferramentas_tecnologias?.join(', ')}
                             />
                             
-                            {/* CORREÇÃO: Adicionar campos de documentação */}
+                            {/* DOCUMENTAÇÃO */}
                             <Title order={5}>📚 Documentação</Title>
                             <TextInput
                                 label="Link da Documentação Técnica"
@@ -652,6 +733,41 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 </Button>
                             </Box>
                             
+                            {/* CUSTOS ÚNICOS */}
+                            <Title order={5}>🏗️ Custos Únicos</Title>
+                            <Grid>
+                                <Grid.Col span={4}>
+                                    <NumberInput
+                                        label="Treinamentos (R$)"
+                                        placeholder="0"
+                                        min={0}
+                                        step={0.01}
+                                        value={formData.custo_treinamentos}
+                                        onChange={(value) => setFormData(prev => ({...prev, custo_treinamentos: value}))}
+                                    />
+                                </Grid.Col>
+                                <Grid.Col span={4}>
+                                    <NumberInput
+                                        label="Setup Inicial (R$)"
+                                        placeholder="0"
+                                        min={0}
+                                        step={0.01}
+                                        value={formData.custo_setup_inicial}
+                                        onChange={(value) => setFormData(prev => ({...prev, custo_setup_inicial: value}))}
+                                    />
+                                </Grid.Col>
+                                <Grid.Col span={4}>
+                                    <NumberInput
+                                        label="Consultoria (R$)"
+                                        placeholder="0"
+                                        min={0}
+                                        step={0.01}
+                                        value={formData.custo_consultoria}
+                                        onChange={(value) => setFormData(prev => ({...prev, custo_consultoria: value}))}
+                                    />
+                                </Grid.Col>
+                            </Grid>
+                            
                             <Divider my="md" />
                             
                             <Title order={5}>📈 Retornos/Economias</Title>
@@ -739,12 +855,22 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
     );
 };
 
-// Modal de Detalhes do Projeto
+// Modal de Detalhes do Projeto - TOTALMENTE CORRIGIDO
 const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
     if (!projeto) return null;
     
     const podeVerFinanceiro = userPermissions?.pode_ver_financeiro;
     const metricas = projeto.metricas_financeiras;
+
+    console.log('👁️ ProjetoDetailModal - dados recebidos:', {
+        id: projeto.id,
+        licoes_aprendidas: projeto.licoes_aprendidas,
+        proximos_passos: projeto.proximos_passos,
+        documentacao_tecnica: projeto.documentacao_tecnica,
+        custo_apis_mensal: projeto.custo_apis_mensal,
+        horas_desenvolvimento: projeto.horas_desenvolvimento,
+        lista_ferramentas: projeto.lista_ferramentas
+    });
 
     return (
         <Modal 
@@ -788,9 +914,13 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                             <Paper withBorder p="sm">
                                 <Text size="xs" c="dimmed">Departamentos</Text>
                                 <Group gap="xs">
-                                    {projeto.departamentos_display?.map((dept, i) => (
-                                        <Badge key={i} size="xs">{dept}</Badge>
-                                    )) || <Text size="sm">{projeto.departamento_atendido}</Text>}
+                                    {projeto.departamentos_display?.length > 0 ? (
+                                        projeto.departamentos_display.map((dept, i) => (
+                                            <Badge key={i} size="xs">{dept}</Badge>
+                                        ))
+                                    ) : (
+                                        <Text size="sm">{projeto.departamento_atendido || 'N/A'}</Text>
+                                    )}
                                 </Group>
                             </Paper>
                         </SimpleGrid>
@@ -806,7 +936,7 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                             </Paper>
                         </SimpleGrid>
 
-                        {/* === BREAKDOWN DE HORAS === */}
+                        {/* BREAKDOWN DE HORAS - CORRIGIDO */}
                         <Paper withBorder p="md">
                             <Title order={5} mb="md">⏱️ Breakdown de Horas</Title>
                             <SimpleGrid cols={5} spacing="md">
@@ -833,7 +963,7 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                             </SimpleGrid>
                         </Paper>
 
-                        {/* === INFORMAÇÕES ADICIONAIS === */}
+                        {/* INFORMAÇÕES ADICIONAIS */}
                         <SimpleGrid cols={2} spacing="md">
                             <Paper withBorder p="sm">
                                 <Text size="xs" c="dimmed">Usuários Impactados</Text>
@@ -845,7 +975,7 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                             </Paper>
                         </SimpleGrid>
 
-                        {/* === FERRAMENTAS === */}
+                        {/* FERRAMENTAS */}
                         {projeto.ferramentas_tecnologias?.length > 0 && (
                             <Paper withBorder p="md">
                                 <Text size="sm" c="dimmed" mb="xs">Ferramentas/Tecnologias</Text>
@@ -857,7 +987,7 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                             </Paper>
                         )}
 
-                        {/* === DOCUMENTAÇÃO === */}
+                        {/* DOCUMENTAÇÃO - CORRIGIDO */}
                         {(projeto.documentacao_tecnica || projeto.licoes_aprendidas || projeto.proximos_passos) && (
                             <Paper withBorder p="md">
                                 <Title order={5} mb="md">📚 Documentação</Title>
@@ -894,7 +1024,7 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                             </Paper>
                         )}
 
-                        {/* === LINK DO PROJETO === */}
+                        {/* LINK DO PROJETO */}
                         {projeto.link_projeto && (
                             <Paper withBorder p="md">
                                 <Text size="sm" c="dimmed" mb="xs">Link do Projeto</Text>
@@ -909,34 +1039,151 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                             </Paper>
                         )}
 
-                        {/* === CRIADORES === */}
+                        {/* CRIADORES */}
                         <Paper withBorder p="md">
                             <Text size="sm" c="dimmed" mb="xs">Criadores/Responsáveis</Text>
                             <Group gap="xs">
-                                {projeto.criadores?.map((criador, i) => (
-                                    <Badge key={i} variant="outline">{criador.nome_completo}</Badge>
-                                )) || <Text size="sm">Nenhum criador definido</Text>}
+                                {projeto.criadores?.length > 0 ? (
+                                    projeto.criadores.map((criador, i) => (
+                                        <Badge key={i} variant="outline">{criador.nome_completo || criador.username}</Badge>
+                                    ))
+                                ) : (
+                                    <Text size="sm">Nenhum criador definido</Text>
+                                )}
                             </Group>
                         </Paper>
                     </Stack>
                 </Tabs.Panel>
 
-                {/* Resto das abas permanecem iguais */}
+                {/* ABA FINANCEIRO - CORRIGIDA */}
                 {podeVerFinanceiro && !metricas?.acesso_restrito && (
                     <Tabs.Panel value="financeiro" pt="md">
-                        {/* Código financeiro existente */}
+                        <Stack gap="md">
+                            {/* CUSTOS */}
+                            <Paper withBorder p="md">
+                                <Title order={5} mb="md">💰 Custos</Title>
+                                <SimpleGrid cols={2} spacing="md">
+                                    <Box>
+                                        <Text size="xs" c="dimmed">Custo/Hora Empresa</Text>
+                                        <Text size="sm" weight={500}>R$ {projeto.custo_hora_empresa || 0}</Text>
+                                    </Box>
+                                    <Box>
+                                        <Text size="xs" c="dimmed">APIs/Mês</Text>
+                                        <Text size="sm" weight={500}>R$ {projeto.custo_apis_mensal || 0}</Text>
+                                    </Box>
+                                </SimpleGrid>
+                                
+                                {/* LISTA DE FERRAMENTAS */}
+                                {projeto.lista_ferramentas?.length > 0 && (
+                                    <Box mt="md">
+                                        <Text size="sm" c="dimmed" mb="xs">Ferramentas/Infraestrutura</Text>
+                                        <Stack gap="xs">
+                                            {projeto.lista_ferramentas.map((ferramenta, i) => (
+                                                <Group key={i} justify="space-between">
+                                                    <Text size="sm">{ferramenta.nome}</Text>
+                                                    <Text size="sm" weight={500}>R$ {ferramenta.valor}</Text>
+                                                </Group>
+                                            ))}
+                                        </Stack>
+                                    </Box>
+                                )}
+                            </Paper>
+
+                            {/* RETORNOS */}
+                            <Paper withBorder p="md">
+                                <Title order={5} mb="md">📈 Retornos</Title>
+                                <SimpleGrid cols={2} spacing="md">
+                                    <Box>
+                                        <Text size="xs" c="dimmed">Horas Economizadas/Mês</Text>
+                                        <Text size="sm" weight={500}>{projeto.horas_economizadas_mes || 0}h</Text>
+                                    </Box>
+                                    <Box>
+                                        <Text size="xs" c="dimmed">Valor Monetário/Mês</Text>
+                                        <Text size="sm" weight={500}>R$ {projeto.valor_monetario_economizado_mes || 0}</Text>
+                                    </Box>
+                                </SimpleGrid>
+                            </Paper>
+
+                            {/* MÉTRICAS CALCULADAS */}
+                            {metricas && (
+                                <Paper withBorder p="md" bg="blue.0">
+                                    <Title order={5} mb="md">📊 Métricas Calculadas</Title>
+                                    <SimpleGrid cols={3} spacing="md">
+                                        <Box>
+                                            <Text size="xs" c="dimmed">ROI</Text>
+                                            <Text size="lg" weight={700} c={metricas.roi > 0 ? 'green' : 'red'}>
+                                                {metricas.roi}%
+                                            </Text>
+                                        </Box>
+                                        <Box>
+                                            <Text size="xs" c="dimmed">Economia/Mês</Text>
+                                            <Text size="lg" weight={700}>
+                                                R$ {metricas.economia_mensal?.toLocaleString('pt-BR')}
+                                            </Text>
+                                        </Box>
+                                        <Box>
+                                            <Text size="xs" c="dimmed">Payback (meses)</Text>
+                                            <Text size="lg" weight={700}>
+                                                {metricas.payback_meses}
+                                            </Text>
+                                        </Box>
+                                    </SimpleGrid>
+                                </Paper>
+                            )}
+                        </Stack>
                     </Tabs.Panel>
                 )}
 
                 <Tabs.Panel value="historico" pt="md">
-                    {/* Código histórico existente */}
+                    <Stack gap="md">
+                        <Paper withBorder p="md">
+                            <Title order={5} mb="md">📋 Informações do Sistema</Title>
+                            <SimpleGrid cols={2} spacing="md">
+                                <Box>
+                                    <Text size="xs" c="dimmed">Criado em</Text>
+                                    <Text size="sm">{new Date(projeto.criado_em).toLocaleDateString('pt-BR')}</Text>
+                                </Box>
+                                <Box>
+                                    <Text size="xs" c="dimmed">Última atualização</Text>
+                                    <Text size="sm">{new Date(projeto.atualizado_em).toLocaleDateString('pt-BR')}</Text>
+                                </Box>
+                                <Box>
+                                    <Text size="xs" c="dimmed">Criado por</Text>
+                                    <Text size="sm">{projeto.criado_por_nome}</Text>
+                                </Box>
+                                <Box>
+                                    <Text size="xs" c="dimmed">Versão atual</Text>
+                                    <Text size="sm">{projeto.versao_atual}</Text>
+                                </Box>
+                            </SimpleGrid>
+                        </Paper>
+
+                        {/* HISTÓRICO DE VERSÕES */}
+                        {projeto.versoes?.length > 0 && (
+                            <Paper withBorder p="md">
+                                <Title order={5} mb="md">📝 Histórico de Versões</Title>
+                                <Timeline active={projeto.versoes.length}>
+                                    {projeto.versoes.map((versao, i) => (
+                                        <Timeline.Item key={i}>
+                                            <Text size="sm" weight={500}>v{versao.versao}</Text>
+                                            <Text size="xs" c="dimmed">{versao.responsavel_nome}</Text>
+                                            <Text size="xs" c="dimmed">
+                                                {new Date(versao.data_lancamento).toLocaleDateString('pt-BR')}
+                                            </Text>
+                                            <Text size="sm">{versao.motivo_mudanca}</Text>
+                                        </Timeline.Item>
+                                    ))}
+                                </Timeline>
+                            </Paper>
+                        )}
+                    </Stack>
                 </Tabs.Panel>
             </Tabs>
         </Modal>
     );
 };
 
-// Componente Principal
+// Componente Principal - PRINCIPAIS CORRIGIDOS
 function ProjetoDashboard() {
     // === ESTADOS ===
     const [projetos, setProjetos] = useState([]);
@@ -1067,8 +1314,7 @@ function ProjetoDashboard() {
     const handleSaveProjeto = async (data) => {
         try {
             setFormLoading(true);
-            console.log('💾 Iniciando salvamento...');
-            console.log('📋 Dados recebidos:', data);
+            console.log('💾 SALVANDO PROJETO - dados completos:', data);
             
             // Obter CSRF token
             let csrfToken;
@@ -1081,12 +1327,13 @@ function ProjetoDashboard() {
                 throw new Error('Erro ao obter token de segurança');
             }
             
-            // CORREÇÃO: Preparar dados com TODOS os campos
+            // PREPARAR DADOS COMPLETOS - TODOS OS CAMPOS
             const projetoData = {
+                // === CAMPOS BÁSICOS ===
                 nome: data.nome?.trim(),
                 descricao: data.descricao?.trim(),
                 tipo_projeto: data.tipo_projeto,
-                departamentos_atendidos: Array.isArray(data.departamentos_atendidos) ? data.departamentos_atendidos : [], // NOVO
+                departamentos_atendidos: Array.isArray(data.departamentos_atendidos) ? data.departamentos_atendidos : [],
                 prioridade: data.prioridade || 'media',
                 complexidade: data.complexidade || 'media',
                 horas_totais: Number(data.horas_totais) || 0,
@@ -1096,29 +1343,43 @@ function ProjetoDashboard() {
                 usuarios_impactados: Number(data.usuarios_impactados) || 0,
                 frequencia_uso: data.frequencia_uso || 'diario',
                 
-                // CORREÇÃO: Campos de breakdown de horas
+                // === BREAKDOWN DE HORAS ===
                 horas_desenvolvimento: Number(data.horas_desenvolvimento) || 0,
                 horas_testes: Number(data.horas_testes) || 0,
                 horas_documentacao: Number(data.horas_documentacao) || 0,
                 horas_deploy: Number(data.horas_deploy) || 0,
                 
-                // Novos campos financeiros
+                // === NOVOS CAMPOS FINANCEIROS ===
                 custo_hora_empresa: Number(data.custo_hora_empresa) || 0,
                 custo_apis_mensal: Number(data.custo_apis_mensal) || 0,
                 lista_ferramentas: Array.isArray(data.lista_ferramentas) ? data.lista_ferramentas : [],
+                custo_treinamentos: Number(data.custo_treinamentos) || 0,
+                custo_setup_inicial: Number(data.custo_setup_inicial) || 0,
+                custo_consultoria: Number(data.custo_consultoria) || 0,
                 horas_economizadas_mes: Number(data.horas_economizadas_mes) || 0,
                 valor_monetario_economizado_mes: Number(data.valor_monetario_economizado_mes) || 0,
                 data_break_even: data.data_break_even || null,
                 nivel_autonomia: data.nivel_autonomia || 'total',
                 
-                // CORREÇÃO: Campos de documentação
+                // === CAMPOS LEGADOS ===
+                valor_hora: Number(data.valor_hora) || 150,
+                custo_ferramentas_mensais: Number(data.custo_ferramentas_mensais) || 0,
+                custo_apis_mensais: Number(data.custo_apis_mensais) || 0,
+                custo_infraestrutura_mensais: Number(data.custo_infraestrutura_mensais) || 0,
+                custo_manutencao_mensais: Number(data.custo_manutencao_mensais) || 0,
+                economia_horas_mensais: Number(data.economia_horas_mensais) || 0,
+                valor_hora_economizada: Number(data.valor_hora_economizada) || 50,
+                reducao_erros_mensais: Number(data.reducao_erros_mensais) || 0,
+                economia_outros_mensais: Number(data.economia_outros_mensais) || 0,
+                
+                // === DOCUMENTAÇÃO ===
                 documentacao_tecnica: data.documentacao_tecnica?.trim() || '',
                 licoes_aprendidas: data.licoes_aprendidas?.trim() || '',
                 proximos_passos: data.proximos_passos?.trim() || '',
                 data_revisao: data.data_revisao || null
             };
             
-            console.log('🎯 Dados preparados:', projetoData);
+            console.log('🎯 DADOS FINAIS PREPARADOS:', projetoData);
             
             // Validar dados obrigatórios
             if (!projetoData.nome) throw new Error('Nome é obrigatório');
@@ -1136,13 +1397,13 @@ function ProjetoDashboard() {
             
             let response;
             if (selectedProjeto) {
-                console.log(`📝 Editando projeto ${selectedProjeto.id}...`);
+                console.log(`📝 EDITANDO projeto ${selectedProjeto.id}...`);
                 response = await axios.patch(`/ia/projetos/${selectedProjeto.id}/`, projetoData, config);
-                console.log('✅ Projeto editado:', response.data);
+                console.log('✅ PROJETO EDITADO:', response.data);
             } else {
-                console.log('➕ Criando novo projeto...');
+                console.log('➕ CRIANDO novo projeto...');
                 response = await axios.post('/ia/projetos/', projetoData, config);
-                console.log('✅ Projeto criado:', response.data);
+                console.log('✅ PROJETO CRIADO:', response.data);
             }
             
             notifications.show({
@@ -1157,7 +1418,7 @@ function ProjetoDashboard() {
             carregarDadosIniciais();
             
         } catch (err) {
-            console.error('💥 Erro completo:', err);
+            console.error('💥 ERRO COMPLETO:', err);
             console.error('📋 Response data:', err.response?.data);
             console.error('📋 Response status:', err.response?.status);
             
@@ -1193,23 +1454,22 @@ function ProjetoDashboard() {
 
     const handleViewProjeto = async (projeto) => {
         try {
-            console.log('👁️ handleViewProjeto chamado para projeto:', projeto.id);
-            console.log('📋 Dados do projeto (lista):', {
+            console.log('👁️ CARREGANDO DETALHES do projeto:', projeto.id);
+            console.log('📋 Dados da listagem:', {
                 licoes_aprendidas: projeto.licoes_aprendidas,
                 proximos_passos: projeto.proximos_passos,
-                custo_apis_mensal: projeto.custo_apis_mensal,
-                valor_monetario_economizado_mes: projeto.valor_monetario_economizado_mes
+                custo_apis_mensal: projeto.custo_apis_mensal
             });
             
             const response = await axios.get(`/ia/projetos/${projeto.id}/`);
-            console.log('📥 Resposta da API (detalhes):', response.data);
+            console.log('📥 RESPOSTA DETALHES API:', response.data);
             console.log('📋 Campos específicos na resposta:', {
                 licoes_aprendidas: response.data.licoes_aprendidas,
                 proximos_passos: response.data.proximos_passos,
                 custo_apis_mensal: response.data.custo_apis_mensal,
-                valor_monetario_economizado_mes: response.data.valor_monetario_economizado_mes,
                 horas_desenvolvimento: response.data.horas_desenvolvimento,
-                documentacao_tecnica: response.data.documentacao_tecnica
+                documentacao_tecnica: response.data.documentacao_tecnica,
+                lista_ferramentas: response.data.lista_ferramentas
             });
             
             setSelectedProjeto(response.data);
@@ -1224,6 +1484,25 @@ function ProjetoDashboard() {
         }
     };
 
+    const handleEditProjeto = async (projeto) => {
+        try {
+            console.log('✏️ EDITANDO projeto:', projeto.id);
+            
+            // Carregar dados completos para edição
+            const response = await axios.get(`/ia/projetos/${projeto.id}/`);
+            console.log('📥 DADOS COMPLETOS PARA EDIÇÃO:', response.data);
+            
+            setSelectedProjeto(response.data);
+            setFormModalOpen(true);
+        } catch (err) {
+            console.error('❌ Erro ao carregar projeto para edição:', err);
+            notifications.show({
+                title: 'Erro',
+                message: 'Erro ao carregar projeto para edição',
+                color: 'red'
+            });
+        }
+    };
 
     // CORREÇÃO: Nova função para mudança de status
     const handleChangeStatus = async (projeto, novoStatus) => {
@@ -1469,10 +1748,7 @@ function ProjetoDashboard() {
                         <ProjetoCard
                             key={projeto.id}
                             projeto={projeto}
-                            onEdit={(p) => {
-                                setSelectedProjeto(p);
-                                setFormModalOpen(true);
-                            }}
+                            onEdit={handleEditProjeto}
                             onView={handleViewProjeto}
                             onArchive={handleArchiveProjeto}
                             onDuplicate={handleDuplicateProjeto}
@@ -1526,10 +1802,7 @@ function ProjetoDashboard() {
                                             <ActionIcon size="sm" onClick={() => handleViewProjeto(projeto)}>
                                                 <IconEye size={14} />
                                             </ActionIcon>
-                                            <ActionIcon size="sm" onClick={() => {
-                                                setSelectedProjeto(projeto);
-                                                setFormModalOpen(true);
-                                            }}>
+                                            <ActionIcon size="sm" onClick={() => handleEditProjeto(projeto)}>
                                                 <IconEdit size={14} />
                                             </ActionIcon>
                                         </Group>

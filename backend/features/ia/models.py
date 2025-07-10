@@ -1,4 +1,4 @@
-# backend/features/ia/models.py - VERSÃO ATUALIZADA COM NOVOS CAMPOS FINANCEIROS
+# backend/features/ia/models.py - VERSÃO CORRIGIDA COMPLETA
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -163,7 +163,7 @@ class LogEntry(models.Model):
 # ===== NOVOS MODELOS PARA PROJETOS DE IA =====
 
 class ProjetoIA(models.Model):
-    """Modelo principal para projetos de IA e automação"""
+    """Modelo principal para projetos de IA e automação - CORRIGIDO"""
     
     # ===== CAMPOS BÁSICOS =====
     nome = models.CharField(
@@ -489,107 +489,162 @@ class ProjetoIA(models.Model):
     def __str__(self):
         return f"{self.nome} ({self.get_status_display()})"
     
-    # NOVO: Método para exibir departamentos
+    # CORREÇÃO: Método para exibir departamentos
     def get_departamentos_display(self):
         """Retorna os nomes dos departamentos selecionados"""
-        if not self.departamentos_atendidos:
+        try:
+            if not self.departamentos_atendidos:
+                # Fallback para campo legado
+                if self.departamento_atendido:
+                    choices_dict = dict(DepartamentoChoices.choices)
+                    return [choices_dict.get(self.departamento_atendido, self.departamento_atendido)]
+                return []
+            
+            choices_dict = dict(DepartamentoChoices.choices)
+            return [choices_dict.get(dept, dept) for dept in self.departamentos_atendidos]
+        except Exception as e:
+            print(f"Erro em get_departamentos_display: {e}")
             return []
-        
-        choices_dict = dict(DepartamentoChoices.choices)
-        return [choices_dict.get(dept, dept) for dept in self.departamentos_atendidos]
     
     # ===== PROPRIEDADES CALCULADAS ATUALIZADAS =====
     @property
     def custo_desenvolvimento(self):
         """Calcula o custo total de desenvolvimento usando o novo campo"""
-        return self.horas_totais * self.custo_hora_empresa
+        try:
+            horas = Decimal(str(self.horas_totais or 0))
+            custo_hora = Decimal(str(self.custo_hora_empresa or 80))
+            return horas * custo_hora
+        except Exception as e:
+            print(f"Erro em custo_desenvolvimento: {e}")
+            return Decimal('0')
     
     @property
     def custos_ferramentas_total_mensal(self):
         """Calcula o custo total mensal das ferramentas da lista"""
-        if not self.lista_ferramentas:
+        try:
+            if not self.lista_ferramentas:
+                return Decimal('0')
+            total = Decimal('0')
+            for item in self.lista_ferramentas:
+                if isinstance(item, dict) and 'valor' in item:
+                    valor = item.get('valor', 0)
+                    total += Decimal(str(valor or 0))
+            return total
+        except Exception as e:
+            print(f"Erro em custos_ferramentas_total_mensal: {e}")
             return Decimal('0')
-        return sum(Decimal(str(item.get('valor', 0))) for item in self.lista_ferramentas)
     
     @property
     def custos_recorrentes_mensais_novo(self):
         """Calcula total de custos recorrentes mensais com novos campos"""
-        return (
-            self.custo_apis_mensal +
-            self.custos_ferramentas_total_mensal
-        )
+        try:
+            custo_apis = Decimal(str(self.custo_apis_mensal or 0))
+            custo_ferramentas = self.custos_ferramentas_total_mensal
+            return custo_apis + custo_ferramentas
+        except Exception as e:
+            print(f"Erro em custos_recorrentes_mensais_novo: {e}")
+            return Decimal('0')
     
     @property
     def custos_unicos_totais_novo(self):
         """Calcula total de custos únicos com novos campos"""
-        return (
-            self.custo_desenvolvimento +
-            self.custo_treinamentos +
-            self.custo_consultoria +
-            self.custo_setup_inicial
-        )
+        try:
+            custo_dev = self.custo_desenvolvimento
+            custo_trein = Decimal(str(self.custo_treinamentos or 0))
+            custo_consul = Decimal(str(self.custo_consultoria or 0))
+            custo_setup = Decimal(str(self.custo_setup_inicial or 0))
+            return custo_dev + custo_trein + custo_consul + custo_setup
+        except Exception as e:
+            print(f"Erro em custos_unicos_totais_novo: {e}")
+            return Decimal('0')
     
     @property
     def economia_mensal_total_novo(self):
         """Calcula economia mensal total com novos campos"""
-        economia_horas = self.horas_economizadas_mes * self.custo_hora_empresa
-        return economia_horas + self.valor_monetario_economizado_mes
+        try:
+            horas_econ = Decimal(str(self.horas_economizadas_mes or 0))
+            custo_hora = Decimal(str(self.custo_hora_empresa or 80))
+            economia_horas = horas_econ * custo_hora
+            
+            valor_monetario = Decimal(str(self.valor_monetario_economizado_mes or 0))
+            return economia_horas + valor_monetario
+        except Exception as e:
+            print(f"Erro em economia_mensal_total_novo: {e}")
+            return Decimal('0')
     
     # ===== PROPRIEDADES LEGADAS (compatibilidade) =====
     @property
     def custos_recorrentes_mensais(self):
         """Calcula total de custos recorrentes mensais (compatibilidade)"""
-        return (
-            self.custo_ferramentas_mensais +
-            self.custo_apis_mensais +
-            self.custo_infraestrutura_mensais +
-            self.custo_manutencao_mensais
-        )
+        try:
+            ferramentas = Decimal(str(self.custo_ferramentas_mensais or 0))
+            apis = Decimal(str(self.custo_apis_mensais or 0))
+            infra = Decimal(str(self.custo_infraestrutura_mensais or 0))
+            manut = Decimal(str(self.custo_manutencao_mensais or 0))
+            return ferramentas + apis + infra + manut
+        except Exception as e:
+            print(f"Erro em custos_recorrentes_mensais: {e}")
+            return Decimal('0')
     
     @property
     def custos_unicos_totais(self):
         """Calcula total de custos únicos (compatibilidade)"""
-        custo_dev_legado = self.horas_totais * self.valor_hora
-        return (
-            custo_dev_legado +
-            self.custo_treinamentos +
-            self.custo_consultoria +
-            self.custo_setup_inicial
-        )
+        try:
+            horas = Decimal(str(self.horas_totais or 0))
+            valor_hora = Decimal(str(self.valor_hora or 150))
+            custo_dev_legado = horas * valor_hora
+            
+            custo_trein = Decimal(str(self.custo_treinamentos or 0))
+            custo_consul = Decimal(str(self.custo_consultoria or 0))
+            custo_setup = Decimal(str(self.custo_setup_inicial or 0))
+            
+            return custo_dev_legado + custo_trein + custo_consul + custo_setup
+        except Exception as e:
+            print(f"Erro em custos_unicos_totais: {e}")
+            return Decimal('0')
     
     @property
     def economia_mensal_total(self):
         """Calcula economia mensal total (compatibilidade)"""
-        economia_horas = self.economia_horas_mensais * self.valor_hora_economizada
-        return economia_horas + self.reducao_erros_mensais + self.economia_outros_mensais
+        try:
+            horas_econ = Decimal(str(self.economia_horas_mensais or 0))
+            valor_hora_econ = Decimal(str(self.valor_hora_economizada or 50))
+            economia_horas = horas_econ * valor_hora_econ
+            
+            reducao_erros = Decimal(str(self.reducao_erros_mensais or 0))
+            economia_outros = Decimal(str(self.economia_outros_mensais or 0))
+            
+            return economia_horas + reducao_erros + economia_outros
+        except Exception as e:
+            print(f"Erro em economia_mensal_total: {e}")
+            return Decimal('0')
     
     def calcular_metricas_financeiras(self, meses_operacao=None, usar_novos_campos=True):
         """
-        Calcula métricas financeiras do projeto
+        Calcula métricas financeiras do projeto - CORRIGIDO
         """
         try:
+            print(f"📊 Calculando métricas para projeto {self.id} - usar_novos_campos: {usar_novos_campos}")
+            
             if meses_operacao is None:
-                from datetime import date
                 delta = date.today() - self.data_criacao
                 meses_operacao = max(1, float(delta.days) / 30.44)
             
             if usar_novos_campos:
-                custos_unicos = self.custos_unicos_totais_novo
-                custos_recorrentes_mensais = self.custos_recorrentes_mensais_novo
-                economia_mensal = self.economia_mensal_total_novo
-                custo_desenvolvimento = self.custo_desenvolvimento  # CORREÇÃO: usar property
+                custos_unicos = float(self.custos_unicos_totais_novo)
+                custos_recorrentes_mensais = float(self.custos_recorrentes_mensais_novo)
+                economia_mensal = float(self.economia_mensal_total_novo)
+                custo_desenvolvimento = float(self.custo_desenvolvimento)
+                print(f"📊 Usando NOVOS campos - economia_mensal: {economia_mensal}")
             else:
-                custos_unicos = self.custos_unicos_totais
-                custos_recorrentes_mensais = self.custos_recorrentes_mensais
-                economia_mensal = self.economia_mensal_total
+                custos_unicos = float(self.custos_unicos_totais)
+                custos_recorrentes_mensais = float(self.custos_recorrentes_mensais)
+                economia_mensal = float(self.economia_mensal_total)
                 custo_desenvolvimento = float(self.horas_totais * self.valor_hora)
+                print(f"📊 Usando campos LEGADOS - economia_mensal: {economia_mensal}")
             
             # Converter para float
             meses_operacao = float(meses_operacao)
-            custos_unicos = float(custos_unicos)
-            custos_recorrentes_mensais = float(custos_recorrentes_mensais)
-            economia_mensal = float(economia_mensal)
-            custo_desenvolvimento = float(custo_desenvolvimento)
             
             # Custos
             custo_total = custos_unicos + (custos_recorrentes_mensais * meses_operacao)
@@ -612,8 +667,8 @@ class ProjetoIA(models.Model):
             if float(self.horas_totais) > 0:
                 roi_por_hora = economia_acumulada / float(self.horas_totais)
             
-            return {
-                'custo_desenvolvimento': custo_desenvolvimento,  # CORREÇÃO: variável correta
+            resultado = {
+                'custo_desenvolvimento': custo_desenvolvimento,
                 'custos_unicos_totais': custos_unicos,
                 'custos_recorrentes_mensais': custos_recorrentes_mensais,
                 'custo_total': custo_total,
@@ -625,6 +680,10 @@ class ProjetoIA(models.Model):
                 'meses_operacao': round(meses_operacao, 1),
                 'usando_novos_campos': usar_novos_campos
             }
+            
+            print(f"📊 Métricas calculadas: ROI={resultado['roi']}%, economia_mensal={resultado['economia_mensal']}")
+            return resultado
+            
         except Exception as e:
             print(f"❌ Erro ao calcular métricas: {e}")
             import traceback

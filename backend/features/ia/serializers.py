@@ -125,7 +125,9 @@ class ProjetoIAListSerializer(serializers.ModelSerializer):
             'prioridade', 'complexidade', 'versao_atual', 'criadores_nomes', 'criado_por_nome',
             'horas_totais', 'usuarios_impactados', 'frequencia_uso',
             'metricas_financeiras', 'criado_em', 'atualizado_em',
-            'dias_sem_atualizacao', 'ativo'
+            'dias_sem_atualizacao', 'ativo',
+            # CORREÇÃO: Adicionar campo legado para compatibilidade
+            'departamento_atendido'
         ]
     
     def get_criadores_nomes(self, obj):
@@ -182,8 +184,17 @@ class ProjetoIAListSerializer(serializers.ModelSerializer):
             return 0
 
 class ProjetoIADetailSerializer(serializers.ModelSerializer):
-    """Serializer completo para detalhes do projeto - CAMPOS EXPLÍCITOS"""
+    """Serializer completo para detalhes do projeto - TODOS OS CAMPOS EXPLÍCITOS"""
+    
+    # === RELACIONAMENTOS READ-ONLY ===
     criadores = UserBasicoSerializer(many=True, read_only=True)
+    dependencias_nomes = serializers.SerializerMethodField(read_only=True)
+    projetos_dependentes = serializers.SerializerMethodField(read_only=True)
+    departamentos_display = serializers.SerializerMethodField(read_only=True)
+    criado_por_nome = serializers.SerializerMethodField(read_only=True)
+    versoes = VersaoProjetoSerializer(many=True, read_only=True)
+    
+    # === RELACIONAMENTOS WRITE-ONLY ===
     criadores_ids = serializers.PrimaryKeyRelatedField(
         many=True,
         queryset=User.objects.all(),
@@ -196,156 +207,143 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
         queryset=ProjetoIA.objects.all(),
         required=False
     )
-    dependencias_nomes = serializers.SerializerMethodField(read_only=True)
-    projetos_dependentes = serializers.SerializerMethodField(read_only=True)
-    departamentos_display = serializers.SerializerMethodField(read_only=True)
     
-    criado_por_nome = serializers.SerializerMethodField()
-    versoes = VersaoProjetoSerializer(many=True, read_only=True)
+    # === CAMPOS CALCULADOS READ-ONLY ===
+    custo_desenvolvimento = serializers.SerializerMethodField(read_only=True)
+    custos_recorrentes_mensais_novo = serializers.SerializerMethodField(read_only=True)
+    custos_unicos_totais_novo = serializers.SerializerMethodField(read_only=True)
+    economia_mensal_total_novo = serializers.SerializerMethodField(read_only=True)
+    metricas_financeiras = serializers.SerializerMethodField(read_only=True)
     
-    # Campos calculados (novos)
-    custo_desenvolvimento = serializers.SerializerMethodField()
-    custos_recorrentes_mensais_novo = serializers.SerializerMethodField()
-    custos_unicos_totais_novo = serializers.SerializerMethodField()
-    economia_mensal_total_novo = serializers.SerializerMethodField()
-    metricas_financeiras = serializers.SerializerMethodField()
-    
-    # Campos calculados (legados - compatibilidade)
-    custos_recorrentes_mensais = serializers.SerializerMethodField()
-    custos_unicos_totais = serializers.SerializerMethodField()
-    economia_mensal_total = serializers.SerializerMethodField()
+    # === CAMPOS CALCULADOS LEGADOS ===
+    custos_recorrentes_mensais = serializers.SerializerMethodField(read_only=True)
+    custos_unicos_totais = serializers.SerializerMethodField(read_only=True)
+    economia_mensal_total = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = ProjetoIA
-        # CORREÇÃO: Listar EXPLICITAMENTE todos os campos que podem ser salvos
         fields = [
-            # Campos básicos
+            # === CAMPOS BÁSICOS (READ/WRITE) ===
             'id', 'nome', 'data_criacao', 'descricao', 'status', 'link_projeto',
-            'ferramentas_tecnologias', 'versao_atual',
+            'ferramentas_tecnologias', 'versao_atual', 'ativo',
             
-            # Campos estratégicos
+            # === CAMPOS ESTRATÉGICOS (READ/WRITE) ===
             'tipo_projeto', 'departamentos_atendidos', 'departamento_atendido',
             'prioridade', 'complexidade', 'usuarios_impactados', 'frequencia_uso',
             
-            # Relacionamentos
-            'criadores', 'criadores_ids', 'dependencias', 'dependencias_nomes',
-            'projetos_dependentes', 'criado_por', 'criado_por_nome', 'versoes',
-            
-            # Investimento de tempo
+            # === INVESTIMENTO DE TEMPO (READ/WRITE) ===
             'horas_totais', 'horas_desenvolvimento', 'horas_testes', 
             'horas_documentacao', 'horas_deploy',
             
-            # NOVOS CAMPOS FINANCEIROS - EXPLÍCITOS
+            # === NOVOS CAMPOS FINANCEIROS (READ/WRITE) ===
             'custo_hora_empresa', 'custo_apis_mensal', 'lista_ferramentas',
             'custo_treinamentos', 'custo_setup_inicial', 'custo_consultoria',
             'horas_economizadas_mes', 'valor_monetario_economizado_mes',
             'data_break_even', 'nivel_autonomia',
             
-            # Campos legados (compatibilidade)
+            # === CAMPOS LEGADOS (READ/WRITE) ===
             'valor_hora', 'custo_ferramentas_mensais', 'custo_apis_mensais',
             'custo_infraestrutura_mensais', 'custo_manutencao_mensais',
             'economia_horas_mensais', 'valor_hora_economizada',
             'reducao_erros_mensais', 'economia_outros_mensais',
             
-            # CAMPOS DE DOCUMENTAÇÃO - EXPLÍCITOS
+            # === DOCUMENTAÇÃO (READ/WRITE) ===
             'documentacao_tecnica', 'licoes_aprendidas', 'proximos_passos', 'data_revisao',
             
-            # Campos calculados (read-only)
+            # === RELACIONAMENTOS ===
+            'criadores', 'criadores_ids', 'dependencias', 'dependencias_nomes',
+            'projetos_dependentes', 'criado_por', 'criado_por_nome', 'versoes',
+            'departamentos_display',
+            
+            # === CAMPOS CALCULADOS (READ-ONLY) ===
             'custo_desenvolvimento', 'custos_recorrentes_mensais_novo',
             'custos_unicos_totais_novo', 'economia_mensal_total_novo',
             'custos_recorrentes_mensais', 'custos_unicos_totais', 'economia_mensal_total',
-            'metricas_financeiras', 'departamentos_display',
+            'metricas_financeiras',
             
-            # Campos de controle
-            'criado_em', 'atualizado_em', 'ativo'
+            # === CAMPOS DE CONTROLE (READ-ONLY) ===
+            'criado_em', 'atualizado_em'
         ]
+        
         read_only_fields = [
-            'criado_por', 'criado_em', 'atualizado_em',
+            'id', 'criado_por', 'criado_em', 'atualizado_em',
             # Campos calculados são read-only
             'custo_desenvolvimento', 'custos_recorrentes_mensais_novo',
             'custos_unicos_totais_novo', 'economia_mensal_total_novo',
             'custos_recorrentes_mensais', 'custos_unicos_totais', 'economia_mensal_total',
             'metricas_financeiras', 'departamentos_display', 'criado_por_nome',
-            'dependencias_nomes', 'projetos_dependentes', 'versoes'
+            'dependencias_nomes', 'projetos_dependentes', 'versoes',
+            # Relacionamentos read-only
+            'criadores'
         ]
     
+    # === MÉTODOS DE SERIALIZAÇÃO ===
     def get_criado_por_nome(self, obj):
         try:
             return obj.criado_por.get_full_name() or obj.criado_por.username
-        except Exception as e:
-            print(f"Erro get_criado_por_nome: {e}")
+        except Exception:
             return "N/A"
     
     def get_dependencias_nomes(self, obj):
         try:
             return [{'id': dep.id, 'nome': dep.nome} for dep in obj.dependencias.all()]
-        except Exception as e:
-            print(f"Erro get_dependencias_nomes: {e}")
+        except Exception:
             return []
     
     def get_projetos_dependentes(self, obj):
         try:
             return [{'id': dep.id, 'nome': dep.nome} for dep in obj.projetos_dependentes.all()]
-        except Exception as e:
-            print(f"Erro get_projetos_dependentes: {e}")
+        except Exception:
             return []
     
     def get_departamentos_display(self, obj):
         try:
             return obj.get_departamentos_display()
-        except Exception as e:
-            print(f"Erro get_departamentos_display: {e}")
+        except Exception:
             return []
     
-    # Novos campos calculados
+    # === CAMPOS CALCULADOS NOVOS ===
     def get_custo_desenvolvimento(self, obj):
         try:
             return float(obj.custo_desenvolvimento)
-        except Exception as e:
-            print(f"Erro get_custo_desenvolvimento: {e}")
+        except Exception:
             return 0.0
     
     def get_custos_recorrentes_mensais_novo(self, obj):
         try:
             return float(obj.custos_recorrentes_mensais_novo)
-        except Exception as e:
-            print(f"Erro get_custos_recorrentes_mensais_novo: {e}")
+        except Exception:
             return 0.0
     
     def get_custos_unicos_totais_novo(self, obj):
         try:
             return float(obj.custos_unicos_totais_novo)
-        except Exception as e:
-            print(f"Erro get_custos_unicos_totais_novo: {e}")
+        except Exception:
             return 0.0
     
     def get_economia_mensal_total_novo(self, obj):
         try:
             return float(obj.economia_mensal_total_novo)
-        except Exception as e:
-            print(f"Erro get_economia_mensal_total_novo: {e}")
+        except Exception:
             return 0.0
     
-    # Campos legados (compatibilidade)
+    # === CAMPOS CALCULADOS LEGADOS ===
     def get_custos_recorrentes_mensais(self, obj):
         try:
             return float(obj.custos_recorrentes_mensais)
-        except Exception as e:
-            print(f"Erro get_custos_recorrentes_mensais: {e}")
+        except Exception:
             return 0.0
     
     def get_custos_unicos_totais(self, obj):
         try:
             return float(obj.custos_unicos_totais)
-        except Exception as e:
-            print(f"Erro get_custos_unicos_totais: {e}")
+        except Exception:
             return 0.0
     
     def get_economia_mensal_total(self, obj):
         try:
             return float(obj.economia_mensal_total)
-        except Exception as e:
-            print(f"Erro get_economia_mensal_total: {e}")
+        except Exception:
             return 0.0
     
     def get_metricas_financeiras(self, obj):
@@ -359,12 +357,11 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
             
             return {'acesso_restrito': True, 'message': 'Sem permissão para dados financeiros'}
         except Exception as e:
-            print(f"Erro get_metricas_financeiras: {e}")
             return {'acesso_restrito': True, 'error': str(e)}
     
+    # === VALIDAÇÃO ===
     def validate(self, data):
-        """Validação simplificada"""
-        print(f"🔍 Validando: {list(data.keys())}")
+        print(f"🔍 VALIDAÇÃO - dados recebidos: {list(data.keys())}")
         
         # Validar departamentos se fornecido
         if 'departamentos_atendidos' in data:
@@ -374,70 +371,223 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
                     'departamentos_atendidos': 'Pelo menos um departamento deve ser selecionado'
                 })
         
-        print(f"✅ Validação OK")
+        print(f"✅ VALIDAÇÃO OK")
         return data
     
+    # === CREATE ===
     def create(self, validated_data):
         try:
-            print(f"➕ CREATE - dados: {list(validated_data.keys())}")
+            print(f"➕ CREATE - campos recebidos: {list(validated_data.keys())}")
             
+            # Extrair relacionamentos ManyToMany
             criadores_data = validated_data.pop('criadores', [])
             dependencias_data = validated_data.pop('dependencias', [])
             
+            # Definir criado_por
             validated_data['criado_por'] = self.context['request'].user
             
+            # Criar projeto com todos os campos
             projeto = ProjetoIA.objects.create(**validated_data)
+            print(f"✅ CREATE - projeto {projeto.id} criado com {len(validated_data)} campos")
             
+            # Definir relacionamentos
             if criadores_data:
                 projeto.criadores.set(criadores_data)
+                print(f"✅ CREATE - {len(criadores_data)} criadores definidos")
             if dependencias_data:
                 projeto.dependencias.set(dependencias_data)
+                print(f"✅ CREATE - {len(dependencias_data)} dependências definidas")
             
-            print(f"✅ CREATE - projeto {projeto.id} criado")
             return projeto
+            
         except Exception as e:
             print(f"❌ CREATE - erro: {e}")
             raise
     
+    # === UPDATE ===
     def update(self, instance, validated_data):
-        """Método update SIMPLIFICADO"""
         try:
-            print(f"📝 UPDATE projeto {instance.id} - dados: {list(validated_data.keys())}")
+            print(f"📝 UPDATE projeto {instance.id} - campos recebidos: {list(validated_data.keys())}")
             
             # Extrair relacionamentos ManyToMany
             criadores_data = validated_data.pop('criadores', None)
             dependencias_data = validated_data.pop('dependencias', None)
             
-            # Log dos campos que serão atualizados
-            for campo, valor in validated_data.items():
-                if hasattr(instance, campo):
-                    print(f"  ✏️ {campo}: {getattr(instance, campo)} → {valor}")
+            # === ATUALIZAR TODOS OS CAMPOS EXPLICITAMENTE ===
             
-            # Atualizar TODOS os campos de uma vez
-            for attr, value in validated_data.items():
-                if hasattr(instance, attr):
-                    setattr(instance, attr, value)
+            # CAMPOS BÁSICOS
+            if 'nome' in validated_data:
+                instance.nome = validated_data['nome']
+                print(f"  📝 nome: {instance.nome}")
             
+            if 'descricao' in validated_data:
+                instance.descricao = validated_data['descricao']
+                print(f"  📝 descricao: {len(instance.descricao)} chars")
+            
+            if 'status' in validated_data:
+                instance.status = validated_data['status']
+                print(f"  📝 status: {instance.status}")
+            
+            if 'link_projeto' in validated_data:
+                instance.link_projeto = validated_data['link_projeto']
+                print(f"  📝 link_projeto: {instance.link_projeto}")
+            
+            if 'ferramentas_tecnologias' in validated_data:
+                instance.ferramentas_tecnologias = validated_data['ferramentas_tecnologias']
+                print(f"  📝 ferramentas_tecnologias: {len(instance.ferramentas_tecnologias)} itens")
+            
+            if 'versao_atual' in validated_data:
+                instance.versao_atual = validated_data['versao_atual']
+                print(f"  📝 versao_atual: {instance.versao_atual}")
+            
+            # CAMPOS ESTRATÉGICOS
+            if 'tipo_projeto' in validated_data:
+                instance.tipo_projeto = validated_data['tipo_projeto']
+                print(f"  📝 tipo_projeto: {instance.tipo_projeto}")
+            
+            if 'departamentos_atendidos' in validated_data:
+                instance.departamentos_atendidos = validated_data['departamentos_atendidos']
+                print(f"  📝 departamentos_atendidos: {instance.departamentos_atendidos}")
+            
+            if 'prioridade' in validated_data:
+                instance.prioridade = validated_data['prioridade']
+                print(f"  📝 prioridade: {instance.prioridade}")
+            
+            if 'complexidade' in validated_data:
+                instance.complexidade = validated_data['complexidade']
+                print(f"  📝 complexidade: {instance.complexidade}")
+            
+            if 'usuarios_impactados' in validated_data:
+                instance.usuarios_impactados = validated_data['usuarios_impactados']
+                print(f"  📝 usuarios_impactados: {instance.usuarios_impactados}")
+            
+            if 'frequencia_uso' in validated_data:
+                instance.frequencia_uso = validated_data['frequencia_uso']
+                print(f"  📝 frequencia_uso: {instance.frequencia_uso}")
+            
+            # CAMPOS DE TEMPO
+            if 'horas_totais' in validated_data:
+                instance.horas_totais = validated_data['horas_totais']
+                print(f"  📝 horas_totais: {instance.horas_totais}")
+            
+            if 'horas_desenvolvimento' in validated_data:
+                instance.horas_desenvolvimento = validated_data['horas_desenvolvimento']
+                print(f"  📝 horas_desenvolvimento: {instance.horas_desenvolvimento}")
+            
+            if 'horas_testes' in validated_data:
+                instance.horas_testes = validated_data['horas_testes']
+                print(f"  📝 horas_testes: {instance.horas_testes}")
+            
+            if 'horas_documentacao' in validated_data:
+                instance.horas_documentacao = validated_data['horas_documentacao']
+                print(f"  📝 horas_documentacao: {instance.horas_documentacao}")
+            
+            if 'horas_deploy' in validated_data:
+                instance.horas_deploy = validated_data['horas_deploy']
+                print(f"  📝 horas_deploy: {instance.horas_deploy}")
+            
+            # CAMPOS FINANCEIROS NOVOS
+            if 'custo_hora_empresa' in validated_data:
+                instance.custo_hora_empresa = validated_data['custo_hora_empresa']
+                print(f"  📝 custo_hora_empresa: {instance.custo_hora_empresa}")
+            
+            if 'custo_apis_mensal' in validated_data:
+                instance.custo_apis_mensal = validated_data['custo_apis_mensal']
+                print(f"  📝 custo_apis_mensal: {instance.custo_apis_mensal}")
+            
+            if 'lista_ferramentas' in validated_data:
+                instance.lista_ferramentas = validated_data['lista_ferramentas']
+                print(f"  📝 lista_ferramentas: {len(instance.lista_ferramentas)} ferramentas")
+            
+            if 'custo_treinamentos' in validated_data:
+                instance.custo_treinamentos = validated_data['custo_treinamentos']
+                print(f"  📝 custo_treinamentos: {instance.custo_treinamentos}")
+            
+            if 'custo_setup_inicial' in validated_data:
+                instance.custo_setup_inicial = validated_data['custo_setup_inicial']
+                print(f"  📝 custo_setup_inicial: {instance.custo_setup_inicial}")
+            
+            if 'custo_consultoria' in validated_data:
+                instance.custo_consultoria = validated_data['custo_consultoria']
+                print(f"  📝 custo_consultoria: {instance.custo_consultoria}")
+            
+            if 'horas_economizadas_mes' in validated_data:
+                instance.horas_economizadas_mes = validated_data['horas_economizadas_mes']
+                print(f"  📝 horas_economizadas_mes: {instance.horas_economizadas_mes}")
+            
+            if 'valor_monetario_economizado_mes' in validated_data:
+                instance.valor_monetario_economizado_mes = validated_data['valor_monetario_economizado_mes']
+                print(f"  📝 valor_monetario_economizado_mes: {instance.valor_monetario_economizado_mes}")
+            
+            if 'data_break_even' in validated_data:
+                instance.data_break_even = validated_data['data_break_even']
+                print(f"  📝 data_break_even: {instance.data_break_even}")
+            
+            if 'nivel_autonomia' in validated_data:
+                instance.nivel_autonomia = validated_data['nivel_autonomia']
+                print(f"  📝 nivel_autonomia: {instance.nivel_autonomia}")
+            
+            # CAMPOS DE DOCUMENTAÇÃO
+            if 'documentacao_tecnica' in validated_data:
+                instance.documentacao_tecnica = validated_data['documentacao_tecnica']
+                print(f"  📝 documentacao_tecnica: {len(instance.documentacao_tecnica or '')} chars")
+            
+            if 'licoes_aprendidas' in validated_data:
+                instance.licoes_aprendidas = validated_data['licoes_aprendidas']
+                print(f"  📝 licoes_aprendidas: {len(instance.licoes_aprendidas or '')} chars")
+            
+            if 'proximos_passos' in validated_data:
+                instance.proximos_passos = validated_data['proximos_passos']
+                print(f"  📝 proximos_passos: {len(instance.proximos_passos or '')} chars")
+            
+            if 'data_revisao' in validated_data:
+                instance.data_revisao = validated_data['data_revisao']
+                print(f"  📝 data_revisao: {instance.data_revisao}")
+            
+            # CAMPOS LEGADOS (para compatibilidade)
+            if 'valor_hora' in validated_data:
+                instance.valor_hora = validated_data['valor_hora']
+            if 'custo_ferramentas_mensais' in validated_data:
+                instance.custo_ferramentas_mensais = validated_data['custo_ferramentas_mensais']
+            if 'custo_apis_mensais' in validated_data:
+                instance.custo_apis_mensais = validated_data['custo_apis_mensais']
+            if 'custo_infraestrutura_mensais' in validated_data:
+                instance.custo_infraestrutura_mensais = validated_data['custo_infraestrutura_mensais']
+            if 'custo_manutencao_mensais' in validated_data:
+                instance.custo_manutencao_mensais = validated_data['custo_manutencao_mensais']
+            if 'economia_horas_mensais' in validated_data:
+                instance.economia_horas_mensais = validated_data['economia_horas_mensais']
+            if 'valor_hora_economizada' in validated_data:
+                instance.valor_hora_economizada = validated_data['valor_hora_economizada']
+            if 'reducao_erros_mensais' in validated_data:
+                instance.reducao_erros_mensais = validated_data['reducao_erros_mensais']
+            if 'economia_outros_mensais' in validated_data:
+                instance.economia_outros_mensais = validated_data['economia_outros_mensais']
+            
+            if 'ativo' in validated_data:
+                instance.ativo = validated_data['ativo']
+            
+            # SALVAR TODAS AS ALTERAÇÕES
             instance.save()
-            print(f"✅ Campos salvos no banco")
+            print(f"✅ UPDATE - todos os campos salvos no banco")
             
-            # Atualizar relacionamentos se fornecidos
+            # ATUALIZAR RELACIONAMENTOS
             if criadores_data is not None:
                 instance.criadores.set(criadores_data)
-                print(f"✅ Criadores atualizados: {len(criadores_data)}")
+                print(f"✅ UPDATE - {len(criadores_data)} criadores atualizados")
             
             if dependencias_data is not None:
                 instance.dependencias.set(dependencias_data)
-                print(f"✅ Dependências atualizadas: {len(dependencias_data)}")
+                print(f"✅ UPDATE - {len(dependencias_data)} dependências atualizadas")
             
-            # Verificar se realmente foi salvo
+            # VERIFICAR SE REALMENTE FOI SALVO
             instance.refresh_from_db()
-            print(f"✅ UPDATE concluído - projeto {instance.id}")
+            print(f"✅ UPDATE - projeto {instance.id} totalmente atualizado")
             
             return instance
             
         except Exception as e:
-            print(f"❌ UPDATE erro: {e}")
+            print(f"❌ UPDATE - erro: {e}")
             import traceback
             traceback.print_exc()
             raise
