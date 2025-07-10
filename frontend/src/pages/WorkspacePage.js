@@ -1,4 +1,4 @@
-// frontend/src/pages/WorkspacePage.js - VERSÃO ATUALIZADA COM MÉTRICAS
+// frontend/src/pages/WorkspacePage.js - VERSÃO ATUALIZADA COM ADMIN
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Routes, Route, Navigate } from 'react-router-dom';
@@ -17,18 +17,19 @@ import N8NPage from '../features/ia/N8NPage';
 import ProjetoDashboard from '../features/ia/ProjetoDashboard';
 import RelatoriosProjetos from '../features/ia/RelatoriosProjetos';
 
-// --- Importar páginas de MÉTRICAS (NOVAS) ---
+// --- Importar páginas de MÉTRICAS ---
 import PrimecodPage from '../features/metricas/PrimecodPage';
 import EcomhubPage from '../features/metricas/EcomhubPage';
 
-// --- Importar página de NOVELTIES (NOVA) ---
-import NoveltiesPage from '../features/novelties/NoveltiesPage';  // ← NOVA IMPORTAÇÃO
+// --- Importar página de NOVELTIES ---
+import NoveltiesPage from '../features/novelties/NoveltiesPage';
 
 function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
     const [loadingSession, setLoadingSession] = useState(true);
     const [errorSession, setErrorSession] = useState('');
     const [userName, setUserName] = useState('Usuário');
     const [userEmail, setUserEmail] = useState('');
+    const [isAdmin, setIsAdmin] = useState(false); // NOVO ESTADO
 
     useEffect(() => {
         const fetchSessionData = async () => {
@@ -39,6 +40,7 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                 if (response.status === 200 && response.data?.logged_in) {
                     setUserName(response.data.name || response.data.email || 'Usuário');
                     setUserEmail(response.data.email || '');
+                    setIsAdmin(response.data.is_admin || false); // NOVA LINHA
                 } else {
                     console.warn("API /current-state/ indica não logado ou resposta inválida. Forçando logout.");
                     setIsLoggedIn(false);
@@ -80,6 +82,7 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                 onLogout={handleLogout}
                 toggleColorScheme={toggleColorScheme}
                 colorScheme={colorScheme}
+                isAdmin={isAdmin} // NOVA PROP
             />
 
             {/* Área de Conteúdo Principal */}
@@ -107,9 +110,9 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     <Route path="n8n" element={<N8NPage />} />
                     <Route path="projetos" element={<ProjetoDashboard />} />        
                     <Route path="relatorios" element={<RelatoriosProjetos />} />
-                    <Route path="novelties" element={<NoveltiesPage />} />  {/* ← NOVA ROTA */}
+                    <Route path="novelties" element={<NoveltiesPage />} />
 
-                    {/* 📊 Páginas da área MÉTRICAS (NOVAS) */}
+                    {/* 📊 Páginas da área MÉTRICAS */}
                     <Route path="metricas/primecod" element={<PrimecodPage />} />
                     <Route path="metricas/ecomhub" element={<EcomhubPage />} />
 

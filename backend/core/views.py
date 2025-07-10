@@ -49,6 +49,7 @@ class CurrentStateView(APIView):
                 'logged_in': True,
                 'name': request.user.get_full_name() or request.user.username,
                 'email': request.user.email,
+                'is_admin': request.user.is_staff or request.user.is_superuser,  # NOVA LINHA
                 'csrf_token': csrf_token
             })
         return Response({'logged_in': False, 'csrf_token': csrf_token})

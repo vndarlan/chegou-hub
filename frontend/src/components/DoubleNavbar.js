@@ -1,4 +1,4 @@
-// frontend/src/components/DoubleNavbar.js - NOVA ESTRUTURA
+// frontend/src/components/DoubleNavbar.js - VERSÃO COM ADMIN
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -13,20 +13,34 @@ import {
   IconChartBar,
   IconTrendingUp,
   IconBuilding,
-  IconBrandChrome
+  IconBrandChrome,
+  IconSettings // NOVO ÍCONE PARA ADMIN
 } from '@tabler/icons-react';
 import { Title, Tooltip, UnstyledButton, Text, Box } from '@mantine/core';
 import { UserButton } from './NavbarNested/UserButton';
 import classes from './DoubleNavbar.module.css';
 
-// Dados principais da barra lateral
-const mainLinksMockdata = [
-  { icon: IconHome, label: 'HOME', key: 'home' },
-  { icon: IconInputAi, label: 'IA & Automações', key: 'ia' },
-  { icon: IconChartBar, label: 'MÉTRICAS', key: 'metricas' },
-  { icon: IconPlugConnected, label: 'OPERACIONAL', key: 'operacional' },
-  { icon: IconPhoneRinging, label: 'SUPORTE', key: 'suporte' },
-];
+// Função para gerar dados principais da barra lateral
+const getMainLinksMockdata = (isAdmin = false) => {
+  const baseLinks = [
+    { icon: IconHome, label: 'HOME', key: 'home' },
+    { icon: IconInputAi, label: 'IA & Automações', key: 'ia' },
+    { icon: IconChartBar, label: 'MÉTRICAS', key: 'metricas' },
+    { icon: IconPlugConnected, label: 'OPERACIONAL', key: 'operacional' },
+    { icon: IconPhoneRinging, label: 'SUPORTE', key: 'suporte' },
+  ];
+
+  // Adiciona o link de admin apenas se o usuário for admin
+  if (isAdmin) {
+    baseLinks.push({
+      icon: IconSettings,
+      label: 'ADMIN',
+      key: 'admin'
+    });
+  }
+
+  return baseLinks;
+};
 
 // Mapeamento dos links por seção
 const linksBySection = {
@@ -52,9 +66,16 @@ const linksBySection = {
   suporte: [
     { label: 'Suporte', link: '/workspace/suporte' },
   ],
+  admin: [
+    { 
+      label: 'Django Admin', 
+      link: 'https://chegou-hubb-production.up.railway.app/admin/',
+      external: true // Marca como link externo
+    },
+  ],
 };
 
-export function DoubleNavbar({ userName, userEmail, onLogout, toggleColorScheme, colorScheme }) {
+export function DoubleNavbar({ userName, userEmail, onLogout, toggleColorScheme, colorScheme, isAdmin = false }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [active, setActive] = useState('home');
@@ -74,7 +95,9 @@ export function DoubleNavbar({ userName, userEmail, onLogout, toggleColorScheme,
     setActive(getCurrentSection());
   }, [location.pathname]);
 
-  // Gerar links principais da barra lateral
+  // Gerar links principais da barra lateral (incluindo admin se aplicável)
+  const mainLinksMockdata = getMainLinksMockdata(isAdmin);
+  
   const mainLinks = mainLinksMockdata.map((link) => (
     <Tooltip
       label={link.label}
@@ -98,14 +121,22 @@ export function DoubleNavbar({ userName, userEmail, onLogout, toggleColorScheme,
     <a
       className={classes.link}
       data-active={location.pathname === link.link || undefined}
-      href="#"
+      href={link.external ? link.link : "#"}
+      target={link.external ? "_blank" : undefined}
+      rel={link.external ? "noopener noreferrer" : undefined}
       onClick={(event) => {
-        event.preventDefault();
-        navigate(link.link);
+        if (!link.external) {
+          event.preventDefault();
+          navigate(link.link);
+        }
+        // Para links externos, deixa o comportamento padrão do browser
       }}
       key={link.label}
     >
       {link.label}
+      {link.external && (
+        <Text size="xs" c="dimmed" ml="auto">↗</Text>
+      )}
     </a>
   )) || [];
 
