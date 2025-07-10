@@ -221,6 +221,14 @@ CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 
+# Configurações de cookies via variáveis de ambiente
+SESSION_COOKIE_SAMESITE = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax')
+SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
+CSRF_COOKIE_SAMESITE = os.getenv('CSRF_COOKIE_SAMESITE', 'Lax')
+CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', 'False').lower() == 'true'
+
+CSRF_COOKIE_HTTPONLY = False
+
 # --- Configuração REST Framework ---
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
