@@ -10,6 +10,7 @@ from django.contrib.auth.models import User
 from datetime import timedelta
 from decimal import Decimal
 import logging
+from django.core.cache import cache
 
 from .models import (
     LogEntry, TipoFerramenta, PaisNicochat,
@@ -554,6 +555,12 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
 def dashboard_stats(request):
     """Estatísticas gerais do dashboard de projetos - CORRIGIDO"""
     
+    cache_key = f'dashboard_stats_{request.user.id}'
+    stats = cache.get(cache_key)
+    
+    if stats:
+        return Response(stats)
+    
     try:
         print("=== CARREGANDO DASHBOARD STATS ===")
         
@@ -720,6 +727,7 @@ def dashboard_stats(request):
                 print(f"Erro geral nos dados financeiros: {e}")
         
         print("=== DASHBOARD STATS CALCULADO COM SUCESSO ===")
+        cache.set(cache_key, stats, 180)  # Cache por 3 minutos
         return Response(stats)
         
     except Exception as e:

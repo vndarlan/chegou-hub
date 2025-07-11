@@ -1,5 +1,6 @@
 // frontend/src/features/ia/ProjetoDashboard.js - VERSÃO CORRIGIDA COMPLETA
 import React, { useState, useEffect, useMemo } from 'react';
+import { useDebouncedValue } from '@mantine/hooks';
 import {
     Box, Grid, Title, Text, Button, Group, Stack, Card, Badge, 
     Modal, TextInput, Textarea, Select, MultiSelect, NumberInput,
@@ -1121,6 +1122,8 @@ function ProjetoDashboard() {
     const [formLoading, setFormLoading] = useState(false);
     
     // Estados de filtros
+    const [searchValue, setSearchValue] = useState('');
+    const [debouncedSearch] = useDebouncedValue(searchValue, 500);
     const [filtros, setFiltros] = useState({
         busca: '',
         status: [],
@@ -1137,6 +1140,10 @@ function ProjetoDashboard() {
     useEffect(() => {
         carregarDadosIniciais();
     }, []);
+
+    useEffect(() => {
+        setFiltros(prev => ({ ...prev, busca: debouncedSearch }));
+    }, [debouncedSearch]);
 
     useEffect(() => {
         if (opcoes) {
@@ -1614,8 +1621,8 @@ function ProjetoDashboard() {
                         <TextInput
                             placeholder="Buscar projetos..."
                             leftSection={<IconSearch size={16} />}
-                            value={filtros.busca}
-                            onChange={(e) => setFiltros(prev => ({ ...prev, busca: e.target.value }))}
+                            value={searchValue}
+                            onChange={(e) => setSearchValue(e.target.value)}
                         />
                     </Grid.Col>
                     <Grid.Col span={2}>
