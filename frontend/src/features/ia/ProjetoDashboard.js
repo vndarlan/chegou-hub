@@ -342,6 +342,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         searchable
                                         value={formData.tipo_projeto}
                                         onChange={(value) => setFormData(prev => ({...prev, tipo_projeto: value}))}
+                                        comboboxProps={{ withinPortal: true, zIndex: 1001 }}
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={6}>
@@ -360,6 +361,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         searchable
                                         value={formData.departamentos_atendidos}
                                         onChange={(value) => setFormData(prev => ({...prev, departamentos_atendidos: value}))}
+                                        comboboxProps={{ withinPortal: true, zIndex: 1001 }}
                                     />
                                 </Grid.Col>
                             </Grid>
@@ -373,6 +375,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 onChange={(value) => {
                                     setFormData(prev => ({...prev, criadores_ids: value}));
                                 }}
+                                comboboxProps={{ withinPortal: true, zIndex: 1001 }}
                             />
                         </Stack>
                     </Tabs.Panel>
@@ -609,6 +612,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         ]}
                                         value={formData.nivel_autonomia}
                                         onChange={(value) => setFormData(prev => ({...prev, nivel_autonomia: value}))}
+                                        comboboxProps={{ withinPortal: true, zIndex: 1001 }}
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={6}>
