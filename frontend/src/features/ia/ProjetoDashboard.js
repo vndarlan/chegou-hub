@@ -250,129 +250,25 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
 
     // CORREÇÃO COMPLETA: useEffect para carregar TODOS os campos do projeto
     useEffect(() => {
-        console.log('🔄 useEffect - projeto mudou:', projeto?.id);
-        
         if (projeto) {
-            console.log('📋 CARREGANDO PROJETO - dados completos:', {
-                id: projeto.id,
-                nome: projeto.nome,
-                departamentos_atendidos: projeto.departamentos_atendidos,
-                criadores: projeto.criadores,
-                licoes_aprendidas: projeto.licoes_aprendidas,
-                proximos_passos: projeto.proximos_passos,
-                custo_apis_mensal: projeto.custo_apis_mensal,
-                horas_desenvolvimento: projeto.horas_desenvolvimento,
-                horas_testes: projeto.horas_testes,
-                documentacao_tecnica: projeto.documentacao_tecnica,
-                lista_ferramentas: projeto.lista_ferramentas
-            });
-            
             setFormData({
-                // === CAMPOS BÁSICOS ===
-                nome: projeto.nome || '',
-                descricao: projeto.descricao || '',
-                tipo_projeto: projeto.tipo_projeto || '',
-                departamentos_atendidos: Array.isArray(projeto.departamentos_atendidos) 
-                    ? projeto.departamentos_atendidos 
-                    : (projeto.departamento_atendido ? [projeto.departamento_atendido] : []),
-                criadores_ids: Array.isArray(projeto.criadores) 
-                    ? projeto.criadores.map(c => c.id?.toString() || c.toString()) 
-                    : [],
-                ferramentas_tecnologias: Array.isArray(projeto.ferramentas_tecnologias) 
-                    ? projeto.ferramentas_tecnologias 
-                    : [],
-                link_projeto: projeto.link_projeto || '',
-                usuarios_impactados: Number(projeto.usuarios_impactados) || 0,
-                frequencia_uso: projeto.frequencia_uso || 'diario',
-                
-                // === CAMPOS DE DETALHES ===
+                ...projeto,
+                criadores_ids: projeto.criadores?.map(c => c.id?.toString()) || [],
+                departamentos_atendidos: projeto.departamentos_atendidos || [],
                 horas_totais: Number(projeto.horas_totais) || 0,
-                prioridade: projeto.prioridade || 'media',
-                complexidade: projeto.complexidade || 'media',
-                
-                // === NOVOS CAMPOS FINANCEIROS ===
-                custo_hora_empresa: Number(projeto.custo_hora_empresa) || 80,
-                custo_apis_mensal: Number(projeto.custo_apis_mensal) || 0,
-                lista_ferramentas: Array.isArray(projeto.lista_ferramentas) 
-                    ? projeto.lista_ferramentas 
-                    : [],
-                horas_economizadas_mes: Number(projeto.horas_economizadas_mes) || 0,
-                valor_monetario_economizado_mes: Number(projeto.valor_monetario_economizado_mes) || 0,
-                data_break_even: projeto.data_break_even || null,
-                nivel_autonomia: projeto.nivel_autonomia || 'total',
-                
-                // === CAMPOS LEGADOS ===
-                valor_hora: Number(projeto.valor_hora) || 150,
-                custo_ferramentas_mensais: Number(projeto.custo_ferramentas_mensais) || 0,
-                custo_apis_mensais: Number(projeto.custo_apis_mensais) || 0,
-                custo_infraestrutura_mensais: Number(projeto.custo_infraestrutura_mensais) || 0,
-                custo_manutencao_mensais: Number(projeto.custo_manutencao_mensais) || 0,
-                economia_horas_mensais: Number(projeto.economia_horas_mensais) || 0,
-                valor_hora_economizada: Number(projeto.valor_hora_economizada) || 50,
-                reducao_erros_mensais: Number(projeto.reducao_erros_mensais) || 0,
-                economia_outros_mensais: Number(projeto.economia_outros_mensais) || 0,
-                
-                // === DOCUMENTAÇÃO ===
-                documentacao_tecnica: projeto.documentacao_tecnica || '',
-                licoes_aprendidas: projeto.licoes_aprendidas || '',
-                proximos_passos: projeto.proximos_passos || '',
-                data_revisao: projeto.data_revisao || null
+                custo_hora_empresa: Number(projeto.custo_hora_empresa) || 80
             });
-            
-            console.log('✅ FORMDATA CONFIGURADO - todos os campos carregados');
         } else {
-            // Reset para valores padrão quando não há projeto
             setFormData({
-                // === CAMPOS BÁSICOS ===
-                nome: '',
-                descricao: '',
-                tipo_projeto: '',
-                departamentos_atendidos: [],
-                prioridade: 'media',
-                complexidade: 'media',
-                horas_totais: 0,
-                criadores_ids: [],
-                ferramentas_tecnologias: [],
-                link_projeto: '',
-                usuarios_impactados: 0,
-                frequencia_uso: 'diario',
-                
-                // === BREAKDOWN DE HORAS ===
-                horas_desenvolvimento: 0,
-                horas_testes: 0,
-                horas_documentacao: 0,
-                horas_deploy: 0,
-                
-                // === NOVOS CAMPOS FINANCEIROS ===
-                custo_hora_empresa: 80,
-                custo_apis_mensal: 0,
-                lista_ferramentas: [],
-                custo_treinamentos: 0,
-                custo_setup_inicial: 0,
-                custo_consultoria: 0,
-                horas_economizadas_mes: 0,
-                valor_monetario_economizado_mes: 0,
-                data_break_even: null,
-                nivel_autonomia: 'total',
-                
-                // === CAMPOS LEGADOS ===
-                valor_hora: 150,
-                custo_ferramentas_mensais: 0,
-                custo_apis_mensais: 0,
-                custo_infraestrutura_mensais: 0,
-                custo_manutencao_mensais: 0,
-                economia_horas_mensais: 0,
-                valor_hora_economizada: 50,
-                reducao_erros_mensais: 0,
-                economia_outros_mensais: 0,
-                
-                // === DOCUMENTAÇÃO ===
-                documentacao_tecnica: '',
-                licoes_aprendidas: '',
-                proximos_passos: '',
-                data_revisao: null
+                nome: '', descricao: '', tipo_projeto: '', departamentos_atendidos: [],
+                criadores_ids: [], horas_totais: 0, prioridade: 'media', complexidade: 'media',
+                custo_hora_empresa: 80, custo_apis_mensal: 0, lista_ferramentas: [],
+                horas_economizadas_mes: 0, valor_monetario_economizado_mes: 0,
+                nivel_autonomia: 'total', frequencia_uso: 'diario',
+                ferramentas_tecnologias: [], usuarios_impactados: 0,
+                documentacao_tecnica: '', licoes_aprendidas: '', proximos_passos: '',
+                horas_desenvolvimento: 0, horas_testes: 0, horas_documentacao: 0, horas_deploy: 0
             });
-            console.log('🔄 FORMDATA RESETADO para valores padrão');
         }
     }, [projeto]);
 
@@ -421,7 +317,10 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 placeholder="Ex: Chatbot de Atendimento"
                                 required
                                 value={formData.nome}
-                                onChange={(e) => setFormData(prev => ({...prev, nome: e.target.value}))}
+                                onChange={useCallback((e) => {
+                                    const value = e.target?.value ?? e;
+                                    setFormData(prev => ({...prev, nome: value}));
+                                }, [])}
                             />
                             
                             <Textarea
@@ -443,7 +342,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         searchable
                                         value={formData.tipo_projeto}
                                         onChange={(value) => setFormData(prev => ({...prev, tipo_projeto: value}))}
-                                        comboboxProps={{ withinPortal: false }}
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={6}>
@@ -462,7 +360,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         searchable
                                         value={formData.departamentos_atendidos}
                                         onChange={(value) => setFormData(prev => ({...prev, departamentos_atendidos: value}))}
-                                        comboboxProps={{ withinPortal: false }}
                                     />
                                 </Grid.Col>
                             </Grid>
@@ -477,7 +374,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                     console.log('🔄 Alterando criadores_ids:', value);
                                     setFormData(prev => ({...prev, criadores_ids: value}));
                                 }}
-                                comboboxProps={{ withinPortal: false }}
                             />
                             
                             <MultiSelect
@@ -490,7 +386,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                     console.log('🔄 Alterando criadores_ids:', value);
                                     setFormData(prev => ({...prev, criadores_ids: value}));
                                 }}
-                                comboboxProps={{ withinPortal: false }}
                             />
                         </Stack>
                     </Tabs.Panel>
@@ -515,7 +410,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         data={prioridadeOptions}
                                         value={formData.prioridade}
                                         onChange={(value) => setFormData(prev => ({...prev, prioridade: value}))}
-                                        comboboxProps={{ withinPortal: false }}
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={4}>
@@ -524,7 +418,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         data={complexidadeOptions}
                                         value={formData.complexidade}
                                         onChange={(value) => setFormData(prev => ({...prev, complexidade: value}))}
-                                        comboboxProps={{ withinPortal: false }}
                                     />
                                 </Grid.Col>
                             </Grid>
@@ -552,7 +445,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         data={frequenciaOptions}
                                         value={formData.frequencia_uso}
                                         onChange={(value) => setFormData(prev => ({...prev, frequencia_uso: value}))}
-                                        comboboxProps={{ withinPortal: false }}
                                     />
                                 </Grid.Col>
                             </Grid>
@@ -730,7 +622,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         ]}
                                         value={formData.nivel_autonomia}
                                         onChange={(value) => setFormData(prev => ({...prev, nivel_autonomia: value}))}
-                                        comboboxProps={{ withinPortal: false }}
                                     />
                                 </Grid.Col>
                                 <Grid.Col span={6}>
@@ -1670,7 +1561,7 @@ function ProjetoDashboard() {
             {/* Lista de Projetos */}
             {viewMode === 'cards' ? (
                 <SimpleGrid cols={{ base: 1, md: 2, lg: 3 }} spacing="md">
-                    {projetosFiltrados.map((projeto) => (
+                    {projetosFiltrados.slice(0, 20).map((projeto) => (
                         <ProjetoCard
                             key={projeto.id}
                             projeto={projeto}
