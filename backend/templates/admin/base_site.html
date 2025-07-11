@@ -9,15 +9,14 @@
 
 {% block extrahead %}
 <style>
-    /* Trocar azul padrão por laranja */
-    .module h2, .module caption, .inline-group h2 {
-        background: #FD7E14 !important;
-    }
+    /* Trocar apenas elementos azuis por laranja, mantendo legibilidade */
     
+    /* Header */
     #header {
         background: #FD7E14 !important;
     }
     
+    /* Botões */
     .button, input[type=submit], input[type=button], .submit-row input, a.button {
         background: #FD7E14 !important;
         border-color: #FD7E14 !important;
@@ -28,12 +27,31 @@
         border-color: #e56b00 !important;
     }
     
+    /* Links */
     a:link, a:visited {
         color: #FD7E14 !important;
     }
     
+    /* Cabeçalhos de módulos - só borda, não fundo */
+    .module h2, .module caption, .inline-group h2 {
+        border-bottom: 3px solid #FD7E14 !important;
+        background: #f8f9fa !important;
+        color: #333 !important;
+    }
+    
+    /* Ícone de modo escuro/claro */
+    .theme-toggle {
+        color: white !important;
+    }
+    
+    /* Elementos selecionados */
     .selector-chosen h2 {
         background: #FD7E14 !important;
+    }
+    
+    /* Campos ativos */
+    .form-row .required label, label.required {
+        color: #FD7E14 !important;
     }
 </style>
 {% endblock %}
