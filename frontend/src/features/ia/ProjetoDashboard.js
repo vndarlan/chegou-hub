@@ -1,5 +1,5 @@
 // frontend/src/features/ia/ProjetoDashboard.js - VERSÃO CORRIGIDA COMPLETA
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useDebouncedValue } from '@mantine/hooks';
 import {
     Box, Grid, Title, Text, Button, Group, Stack, Card, Badge, 
@@ -60,7 +60,8 @@ const PrioridadeBadge = ({ prioridade }) => {
 };
 
 // Card de Projeto
-const ProjetoCard = React.memo(({ projeto, onEdit, onView, onArchive, onDuplicate, onNewVersion, onChangeStatus, userPermissions }) => {    const metricas = projeto.metricas_financeiras;
+const ProjetoCard = React.memo(({ projeto, onEdit, onView, onArchive, onDuplicate, onNewVersion, onChangeStatus, userPermissions }) => {
+    const metricas = projeto.metricas_financeiras;
     const podeVerFinanceiro = userPermissions?.pode_ver_financeiro && !metricas?.acesso_restrito;
     
     return (
@@ -274,7 +275,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        console.log('📤 ENVIANDO FORM - dados completos:', formData);
         onSave(formData);
     };
 
@@ -371,19 +371,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 searchable
                                 value={formData.criadores_ids}
                                 onChange={(value) => {
-                                    console.log('🔄 Alterando criadores_ids:', value);
-                                    setFormData(prev => ({...prev, criadores_ids: value}));
-                                }}
-                            />
-                            
-                            <MultiSelect
-                                label="Criadores/Responsáveis"
-                                placeholder="Selecione os responsáveis"
-                                data={userOptions}
-                                searchable
-                                value={formData.criadores_ids}
-                                onChange={(value) => {
-                                    console.log('🔄 Alterando criadores_ids:', value);
                                     setFormData(prev => ({...prev, criadores_ids: value}));
                                 }}
                             />
@@ -672,16 +659,6 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
     
     const podeVerFinanceiro = userPermissions?.pode_ver_financeiro;
     const metricas = projeto.metricas_financeiras;
-
-    console.log('👁️ ProjetoDetailModal - dados recebidos:', {
-        id: projeto.id,
-        licoes_aprendidas: projeto.licoes_aprendidas,
-        proximos_passos: projeto.proximos_passos,
-        documentacao_tecnica: projeto.documentacao_tecnica,
-        custo_apis_mensal: projeto.custo_apis_mensal,
-        horas_desenvolvimento: projeto.horas_desenvolvimento,
-        lista_ferramentas: projeto.lista_ferramentas
-    });
 
     return (
         <Modal 
@@ -1045,26 +1022,21 @@ function ProjetoDashboard() {
     const carregarDadosIniciais = async () => {
         try {
             setLoading(true);
-            console.log('🔄 Iniciando carregamento...');
             
             // Testar cada API individualmente
             let statsData = null, opcoesData = null, permissoesData = null;
             
             try {
-                console.log('📊 Carregando stats...');
                 const statsRes = await axios.get('/ia/dashboard-stats/');
                 statsData = statsRes.data;
-                console.log('✅ Stats OK:', statsData);
             } catch (statsErr) {
                 console.error('❌ Erro stats:', statsErr.response?.data || statsErr.message);
                 statsData = { total_projetos: 0, projetos_ativos: 0, horas_totais_investidas: 0 };
             }
             
             try {
-                console.log('⚙️ Carregando opções...');
                 const opcoesRes = await axios.get('/ia/opcoes-formulario/');
                 opcoesData = opcoesRes.data;
-                console.log('✅ Opções OK:', opcoesData);
             } catch (opcoesErr) {
                 console.error('❌ Erro opções:', opcoesErr.response?.data || opcoesErr.message);
                 opcoesData = {
@@ -1079,10 +1051,8 @@ function ProjetoDashboard() {
             }
             
             try {
-                console.log('🔐 Carregando permissões...');
                 const permissoesRes = await axios.get('/ia/verificar-permissoes/');
                 permissoesData = permissoesRes.data;
-                console.log('✅ Permissões OK:', permissoesData);
             } catch (permErr) {
                 console.error('❌ Erro permissões:', permErr.response?.data || permErr.message);
                 permissoesData = { pode_ver_financeiro: false, pode_criar_projetos: true };
@@ -1092,7 +1062,6 @@ function ProjetoDashboard() {
             setOpcoes(opcoesData);
             setUserPermissions(permissoesData);
             
-            console.log('✅ Todos os dados carregados');
             
         } catch (err) {
             console.error('💥 Erro geral:', err);
@@ -1131,14 +1100,12 @@ function ProjetoDashboard() {
     const handleSaveProjeto = async (data) => {
         try {
             setFormLoading(true);
-            console.log('💾 SALVANDO PROJETO - dados completos:', data);
             
             // Obter CSRF token
             let csrfToken;
             try {
                 const csrfResponse = await axios.get('/current-state/');
                 csrfToken = csrfResponse.data.csrf_token;
-                console.log('🔐 CSRF token obtido');
             } catch (csrfErr) {
                 console.error('❌ Erro CSRF:', csrfErr);
                 throw new Error('Erro ao obter token de segurança');
@@ -1195,9 +1162,7 @@ function ProjetoDashboard() {
                 proximos_passos: data.proximos_passos?.trim() || '',
                 data_revisao: data.data_revisao || null
             };
-            
-            console.log('🎯 DADOS FINAIS PREPARADOS:', projetoData);
-            
+                        
             // Validar dados obrigatórios
             if (!projetoData.nome) throw new Error('Nome é obrigatório');
             if (!projetoData.descricao) throw new Error('Descrição é obrigatória');
@@ -1214,13 +1179,9 @@ function ProjetoDashboard() {
             
             let response;
             if (selectedProjeto) {
-                console.log(`📝 EDITANDO projeto ${selectedProjeto.id}...`);
                 response = await axios.patch(`/ia/projetos/${selectedProjeto.id}/`, projetoData, config);
-                console.log('✅ PROJETO EDITADO:', response.data);
             } else {
-                console.log('➕ CRIANDO novo projeto...');
                 response = await axios.post('/ia/projetos/', projetoData, config);
-                console.log('✅ PROJETO CRIADO:', response.data);
             }
             
             notifications.show({
@@ -1271,24 +1232,7 @@ function ProjetoDashboard() {
 
     const handleViewProjeto = async (projeto) => {
         try {
-            console.log('👁️ CARREGANDO DETALHES do projeto:', projeto.id);
-            console.log('📋 Dados da listagem:', {
-                licoes_aprendidas: projeto.licoes_aprendidas,
-                proximos_passos: projeto.proximos_passos,
-                custo_apis_mensal: projeto.custo_apis_mensal
-            });
-            
             const response = await axios.get(`/ia/projetos/${projeto.id}/`);
-            console.log('📥 RESPOSTA DETALHES API:', response.data);
-            console.log('📋 Campos específicos na resposta:', {
-                licoes_aprendidas: response.data.licoes_aprendidas,
-                proximos_passos: response.data.proximos_passos,
-                custo_apis_mensal: response.data.custo_apis_mensal,
-                horas_desenvolvimento: response.data.horas_desenvolvimento,
-                documentacao_tecnica: response.data.documentacao_tecnica,
-                lista_ferramentas: response.data.lista_ferramentas
-            });
-            
             setSelectedProjeto(response.data);
             setDetailModalOpen(true);
         } catch (err) {
@@ -1302,13 +1246,9 @@ function ProjetoDashboard() {
     };
 
     const handleEditProjeto = async (projeto) => {
-        try {
-            console.log('✏️ EDITANDO projeto:', projeto.id);
-            
+        try {            
             // Carregar dados completos para edição
-            const response = await axios.get(`/ia/projetos/${projeto.id}/`);
-            console.log('📥 DADOS COMPLETOS PARA EDIÇÃO:', response.data);
-            
+            const response = await axios.get(`/ia/projetos/${projeto.id}/`);            
             setSelectedProjeto(response.data);
             setFormModalOpen(true);
         } catch (err) {
