@@ -60,8 +60,7 @@ const PrioridadeBadge = ({ prioridade }) => {
 };
 
 // Card de Projeto
-const ProjetoCard = ({ projeto, onEdit, onView, onArchive, onDuplicate, onNewVersion, onChangeStatus, userPermissions }) => {
-    const metricas = projeto.metricas_financeiras;
+const ProjetoCard = React.memo(({ projeto, onEdit, onView, onArchive, onDuplicate, onNewVersion, onChangeStatus, userPermissions }) => {    const metricas = projeto.metricas_financeiras;
     const podeVerFinanceiro = userPermissions?.pode_ver_financeiro && !metricas?.acesso_restrito;
     
     return (
@@ -201,7 +200,7 @@ const ProjetoCard = ({ projeto, onEdit, onView, onArchive, onDuplicate, onNewVer
             </Group>
         </Card>
     );
-};
+});
 
 // Modal de Formulário de Projeto - COMPLETAMENTE CORRIGIDO
 const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading }) => {
