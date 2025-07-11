@@ -14,7 +14,7 @@ import {
   IconTrendingUp,
   IconBuilding,
   IconBrandChrome,
-  IconSettings // NOVO ÍCONE PARA ADMIN
+  IconLock // NOVO ÍCONE PARA ADMIN
 } from '@tabler/icons-react';
 import { Title, Tooltip, UnstyledButton, Text, Box } from '@mantine/core';
 import { UserButton } from './NavbarNested/UserButton';
@@ -33,7 +33,7 @@ const getMainLinksMockdata = (isAdmin = false) => {
   // Adiciona o link de admin apenas se o usuário for admin
   if (isAdmin) {
     baseLinks.push({
-      icon: IconSettings,
+      icon: IconLock,
       label: 'ADMIN',
       key: 'admin'
     });
@@ -68,7 +68,7 @@ const linksBySection = {
   ],
   admin: [
     { 
-      label: 'Django Admin', 
+      label: 'Acessar', 
       link: 'https://chegou-hubb-production.up.railway.app/admin/',
       external: true // Marca como link externo
     },

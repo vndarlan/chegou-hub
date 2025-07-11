@@ -1,0 +1,41 @@
+<!-- backend/templates/admin/base_site.html -->
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrahead %}
+<link rel="stylesheet" type="text/css" href="{% static 'admin/css/custom-admin.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}
+
+{% block branding %}
+<div id="site-name">
+    <a href="{% url 'admin:index' %}" class="admin-header">
+        <i class="fas fa-rocket" style="color: #FD7E14; margin-right: 10px;"></i>
+        <span class="header-text">{{ site_header|default:_('Django administration') }}</span>
+    </a>
+</div>
+{% endblock %}
+
+{% block nav-global %}
+<div class="admin-nav">
+    <ul class="nav-links">
+        <li><a href="{% url 'admin:index' %}" class="nav-link">
+            <i class="fas fa-home"></i> Dashboard
+        </a></li>
+        <li><a href="{% url 'admin:auth_user_changelist' %}" class="nav-link">
+            <i class="fas fa-users"></i> Usuários
+        </a></li>
+        <li><a href="{% url 'admin:ia_logentry_changelist' %}" class="nav-link">
+            <i class="fas fa-robot"></i> Logs IA
+        </a></li>
+        <li><a href="{% url 'admin:ia_projetoia_changelist' %}" class="nav-link">
+            <i class="fas fa-project-diagram"></i> Projetos
+        </a></li>
+        <li><a href="/admin/logout/" class="nav-link logout">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </a></li>
+    </ul>
+</div>
+{% endblock %}
