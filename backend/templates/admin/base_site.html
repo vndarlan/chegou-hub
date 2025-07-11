@@ -13,7 +13,9 @@
     :root {
         --admin-primary: #FD7E14;
         --admin-primary-dark: #e56b00;
-        --admin-primary-light: #ff8f2b;
+        --admin-primary-light: #fff3e6;
+        --admin-text-dark: #333;
+        --admin-text-light: #666;
     }
 
     /* ===== HEADER ===== */
@@ -33,7 +35,7 @@
 
     /* ===== BOTÕES ===== */
     .button, input[type=submit], input[type=button], .submit-row input, a.button,
-    .object-tools a, .addlink, .changelink, .deletelink {
+    .object-tools a, .addlink, .changelink {
         background: var(--admin-primary) !important;
         border-color: var(--admin-primary) !important;
         color: white !important;
@@ -67,8 +69,71 @@
     }
 
     .module h3, .inline-group h3 {
-        background: var(--admin-primary-light) !important;
+        background: #f8f9fa !important;
+        color: var(--admin-text-dark) !important;
+        border-bottom: 2px solid var(--admin-primary) !important;
+    }
+
+    /* ===== DASHBOARD MODULES ===== */
+    .dashboard .module {
+        background: white !important;
+        border: 1px solid #ddd !important;
+    }
+
+    .dashboard .module table td a {
+        color: var(--admin-text-dark) !important;
+    }
+
+    .dashboard .module table {
+        background: white !important;
+    }
+
+    .dashboard .module table td {
+        color: var(--admin-text-dark) !important;
+        background: white !important;
+    }
+
+    /* ===== TEXTOS GERAIS - CORRIGIR CONTRASTE ===== */
+    .module table tbody td {
+        color: var(--admin-text-dark) !important;
+        background: white !important;
+    }
+
+    .module ul, .module li {
+        color: var(--admin-text-dark) !important;
+    }
+
+    /* ===== DASHBOARD ESPECÍFICO ===== */
+    .dashboard #content {
+        background: #f8f9fa !important;
+    }
+
+    .dashboard .module table th {
+        background: var(--admin-primary) !important;
         color: white !important;
+    }
+
+    .dashboard .module h2 a {
+        color: white !important;
+    }
+
+    /* ===== SIDEBAR AÇÕES RECENTES ===== */
+    #recent-actions-module h2 {
+        background: var(--admin-primary) !important;
+        color: white !important;
+    }
+
+    #recent-actions-module ul li {
+        background: white !important;
+        border-bottom: 1px solid #eee !important;
+    }
+
+    #recent-actions-module ul li a {
+        color: var(--admin-text-dark) !important;
+    }
+
+    #recent-actions-module .mini {
+        color: var(--admin-text-light) !important;
     }
 
     /* ===== TABELAS ===== */
