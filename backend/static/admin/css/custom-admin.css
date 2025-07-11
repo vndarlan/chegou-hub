@@ -22,14 +22,11 @@
 }
 
 .header-text {
-    background: linear-gradient(45deg, var(--primary-orange), var(--primary-orange-light));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--primary-orange) !important;
 }
 
 #header {
-    background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%) !important;
+    background: white !important;
     border-bottom: 3px solid var(--primary-orange) !important;
     box-shadow: var(--shadow) !important;
 }
@@ -66,7 +63,6 @@
 .nav-link:hover {
     background: var(--primary-orange-dark) !important;
     color: white !important;
-    transform: translateY(-1px) !important;
 }
 
 .nav-link i {
@@ -82,178 +78,6 @@
     background: #dc3545 !important;
 }
 
-/* === DASHBOARD PRINCIPAL === */
-.admin-dashboard {
-    padding: 30px !important;
-    background: var(--bg-light) !important;
-    min-height: 100vh !important;
-}
-
-.admin-dashboard h2 {
-    color: var(--text-dark) !important;
-    margin-bottom: 25px !important;
-    font-size: 1.8em !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 10px !important;
-}
-
-.admin-dashboard h2 i {
-    color: var(--primary-orange) !important;
-}
-
-/* === QUICK LINKS === */
-.quick-links-section {
-    margin-bottom: 40px !important;
-}
-
-.quick-links-grid {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
-    gap: 20px !important;
-}
-
-.quick-link-card {
-    background: white !important;
-    border: 1px solid var(--border-color) !important;
-    border-radius: 12px !important;
-    padding: 20px !important;
-    text-decoration: none !important;
-    color: var(--text-dark) !important;
-    box-shadow: var(--shadow) !important;
-    transition: all 0.3s ease !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 15px !important;
-}
-
-.quick-link-card:hover {
-    transform: translateY(-3px) !important;
-    box-shadow: 0 6px 20px rgba(253, 126, 20, 0.15) !important;
-    border-color: var(--primary-orange) !important;
-    color: var(--text-dark) !important;
-    text-decoration: none !important;
-}
-
-.quick-link-icon {
-    font-size: 2.5em !important;
-    min-width: 60px !important;
-    text-align: center !important;
-}
-
-.quick-link-content h3 {
-    margin: 0 0 8px 0 !important;
-    color: var(--primary-orange) !important;
-    font-size: 1.1em !important;
-    font-weight: 600 !important;
-}
-
-.quick-link-content p {
-    margin: 0 !important;
-    color: #6c757d !important;
-    font-size: 0.9em !important;
-    line-height: 1.4 !important;
-}
-
-/* === APP GROUPS === */
-.app-groups {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)) !important;
-    gap: 30px !important;
-}
-
-.app-group {
-    background: white !important;
-    border-radius: 12px !important;
-    border: 1px solid var(--border-color) !important;
-    box-shadow: var(--shadow) !important;
-    overflow: hidden !important;
-}
-
-.app-group h3 {
-    background: var(--primary-orange) !important;
-    color: white !important;
-    margin: 0 !important;
-    padding: 15px 20px !important;
-    font-size: 1.2em !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 10px !important;
-}
-
-.app-list {
-    padding: 20px !important;
-}
-
-.app-card {
-    margin-bottom: 20px !important;
-    border: 1px solid #e9ecef !important;
-    border-radius: 8px !important;
-    overflow: hidden !important;
-}
-
-.app-card:last-child {
-    margin-bottom: 0 !important;
-}
-
-.app-card h4 {
-    background: #f8f9fa !important;
-    margin: 0 !important;
-    padding: 12px 15px !important;
-    font-size: 1em !important;
-    color: var(--text-dark) !important;
-    border-bottom: 1px solid #e9ecef !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-}
-
-.app-card h4 i {
-    color: var(--primary-orange) !important;
-}
-
-.model-link {
-    padding: 8px 15px !important;
-    border-bottom: 1px solid #f1f3f4 !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-}
-
-.model-link:last-child {
-    border-bottom: none !important;
-}
-
-.model-link a {
-    color: var(--text-dark) !important;
-    text-decoration: none !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    flex: 1 !important;
-    transition: color 0.3s ease !important;
-}
-
-.model-link a:hover {
-    color: var(--primary-orange) !important;
-}
-
-.add-link {
-    background: var(--primary-orange) !important;
-    color: white !important;
-    padding: 4px 8px !important;
-    border-radius: 4px !important;
-    font-size: 0.8em !important;
-    margin-left: 10px !important;
-    transition: all 0.3s ease !important;
-}
-
-.add-link:hover {
-    background: var(--primary-orange-dark) !important;
-    color: white !important;
-    transform: scale(1.05) !important;
-}
-
 /* === BOTÕES GERAIS === */
 .default, input[type="submit"], .submit-row input, .button {
     background: var(--primary-orange) !important;
@@ -266,7 +90,31 @@
 
 .default:hover, input[type="submit"]:hover, .submit-row input:hover, .button:hover {
     background: var(--primary-orange-dark) !important;
-    transform: translateY(-1px) !important;
+}
+
+/* === LINKS === */
+a {
+    color: var(--primary-orange) !important;
+}
+
+a:hover {
+    color: var(--primary-orange-dark) !important;
+}
+
+/* === TABELAS === */
+#result_list th {
+    background: var(--primary-orange) !important;
+    color: white !important;
+}
+
+#result_list tr:hover {
+    background: rgba(253, 126, 20, 0.05) !important;
+}
+
+/* === SIDEBAR === */
+.module h2, .module caption, .inline-group h2 {
+    background: var(--primary-orange) !important;
+    color: white !important;
 }
 
 /* === BREADCRUMBS === */
@@ -280,51 +128,4 @@
 
 .breadcrumbs a {
     color: var(--primary-orange) !important;
-}
-
-/* === TABELAS === */
-.results {
-    border-radius: 8px !important;
-    overflow: hidden !important;
-    box-shadow: var(--shadow) !important;
-}
-
-#result_list {
-    border: 1px solid var(--border-color) !important;
-}
-
-#result_list th {
-    background: var(--primary-orange) !important;
-    color: white !important;
-}
-
-#result_list tr:hover {
-    background: rgba(253, 126, 20, 0.05) !important;
-}
-
-/* === RESPONSIVO === */
-@media (max-width: 768px) {
-    .nav-links {
-        flex-direction: column !important;
-        align-items: stretch !important;
-    }
-    
-    .quick-links-grid {
-        grid-template-columns: 1fr !important;
-    }
-    
-    .app-groups {
-        grid-template-columns: 1fr !important;
-    }
-    
-    .admin-dashboard {
-        padding: 20px !important;
-    }
-}
-
-/* === SIDEBAR (se necessário) === */
-.sidebar {
-    background: white !important;
-    border-right: 3px solid var(--primary-orange) !important;
-    box-shadow: var(--shadow) !important;
 }
