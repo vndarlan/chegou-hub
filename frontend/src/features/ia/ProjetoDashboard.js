@@ -212,6 +212,28 @@ const ProjetoCard = React.memo(({ projeto, onEdit, onView, onArchive, onDuplicat
 
 // Modal de Formulário de Projeto - COMPLETAMENTE CORRIGIDO
 const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading }) => {
+    // VERIFICAÇÃO INICIAL - RETORNA EARLY SE NÃO TIVER DADOS
+    if (!opcoes || !opened) {
+        return (
+            <Modal opened={opened} onClose={onClose} title="Carregando...">
+                <LoadingOverlay visible={true} />
+            </Modal>
+        );
+    }
+
+    // OPÇÕES SEGURAS - DEFINIR ANTES DO ESTADO
+    const tipoOptions = opcoes?.tipo_projeto_choices || [];
+    const deptOptions = opcoes?.departamento_choices || [];
+    const prioridadeOptions = opcoes?.prioridade_choices || [];
+    const complexidadeOptions = opcoes?.complexidade_choices || [];
+    const frequenciaOptions = opcoes?.frequencia_choices || [];
+    const userOptions = (opcoes?.usuarios_disponiveis && Array.isArray(opcoes.usuarios_disponiveis)) 
+        ? opcoes.usuarios_disponiveis.map(u => ({
+            value: (u?.id || '').toString(),
+            label: u?.nome_completo || u?.username || 'Usuário'
+        }))
+        : [];
+
     const [formData, setFormData] = useState({
         // === CAMPOS BÁSICOS ===
         nome: '',
@@ -256,13 +278,17 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
         data_revisao: null
     });
 
-    // CORREÇÃO: useEffect para carregar TODOS os campos do projeto
+    // useEffect DEPOIS das definições
     useEffect(() => {
         if (projeto) {
             setFormData({
                 ...projeto,
-                criadores_ids: projeto.criadores?.map(c => c.id?.toString()) || [],
+                criadores_ids: (projeto.criadores && Array.isArray(projeto.criadores)) 
+                    ? projeto.criadores.map(c => (c?.id || '').toString()) 
+                    : [],
                 departamentos_atendidos: projeto.departamentos_atendidos || [],
+                lista_ferramentas: projeto.lista_ferramentas || [],
+                ferramentas_tecnologias: projeto.ferramentas_tecnologias || [],
                 horas_totais: Number(projeto.horas_totais) || 0,
                 custo_hora_empresa: Number(projeto.custo_hora_empresa) || 80
             });
@@ -284,28 +310,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
         e.preventDefault();
         onSave(formData);
     };
-
-    // CORREÇÃO: Verificações de segurança para prevenir erro de map
-    if (!opcoes) {
-        return (
-            <Modal opened={opened} onClose={onClose} title="Carregando...">
-                <LoadingOverlay visible={true} />
-            </Modal>
-        );
-    }
-
-    // CORREÇÃO: Definir opções APÓS verificação
-    const tipoOptions = opcoes?.tipo_projeto_choices || [];
-    const deptOptions = opcoes?.departamento_choices || [];
-    const prioridadeOptions = opcoes?.prioridade_choices || [];
-    const complexidadeOptions = opcoes?.complexidade_choices || [];
-    const frequenciaOptions = opcoes?.frequencia_choices || [];
-    const userOptions = (opcoes?.usuarios_disponiveis && Array.isArray(opcoes.usuarios_disponiveis)) 
-        ? opcoes.usuarios_disponiveis.map(u => ({
-            value: u.id.toString(),
-            label: u.nome_completo
-        }))
-        : [];
 
     return (
         <Modal 
@@ -341,7 +345,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 }}
                             />
                             
-                            {/* CORREÇÃO 3: Textarea com autosize */}
                             <Textarea
                                 label="Descrição"
                                 placeholder="Descreva o que o projeto faz..."
@@ -381,7 +384,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         ]}
                                         required
                                         searchable
-                                        value={formData.departamentos_atendidos}
+                                        value={formData.departamentos_atendidos || []}
                                         onChange={(value) => setFormData(prev => ({...prev, departamentos_atendidos: value}))}
                                         comboboxProps={{ withinPortal: true, zIndex: 1001 }}
                                     />
@@ -393,7 +396,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 placeholder="Selecione os responsáveis"
                                 data={userOptions}
                                 searchable
-                                value={formData.criadores_ids}
+                                value={formData.criadores_ids || []}
                                 onChange={(value) => {
                                     setFormData(prev => ({...prev, criadores_ids: value}));
                                 }}
@@ -465,14 +468,13 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 label="Ferramentas/Tecnologias"
                                 placeholder="Ex: Python, OpenAI API, PostgreSQL"
                                 description="Separadas por vírgula"
-                                value={formData.ferramentas_tecnologias?.join(', ') || ''}
+                                value={(formData.ferramentas_tecnologias || []).join(', ')}
                                 onChange={(e) => {
                                     const techs = e.target.value.split(',').map(t => t.trim()).filter(t => t);
                                     setFormData(prev => ({...prev, ferramentas_tecnologias: techs}));
                                 }}
                             />
                             
-                            {/* DOCUMENTAÇÃO */}
                             <Title order={5}>📚 Documentação</Title>
                             <TextInput
                                 label="Link da Documentação Técnica"
@@ -481,7 +483,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 onChange={(e) => setFormData(prev => ({...prev, documentacao_tecnica: e.target.value}))}
                             />
                             
-                            {/* CORREÇÃO 3: Textarea com autosize para lições aprendidas */}
                             <Textarea
                                 label="Lições Aprendidas"
                                 placeholder="O que funcionou bem e quais foram os desafios..."
@@ -493,7 +494,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 onChange={(e) => setFormData(prev => ({...prev, licoes_aprendidas: e.target.value}))}
                             />
                             
-                            {/* CORREÇÃO 3: Textarea com autosize para próximos passos */}
                             <Textarea
                                 label="Próximos Passos"
                                 placeholder="Melhorias e funcionalidades planejadas..."
@@ -548,13 +548,13 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 <Text size="sm" weight={500} mb="xs">Ferramentas/Infraestrutura</Text>
                                 <Text size="xs" c="dimmed" mb="md">Adicione ferramentas e seus custos mensais</Text>
                                 
-                                {formData.lista_ferramentas.map((ferramenta, index) => (
+                                {(formData.lista_ferramentas || []).map((ferramenta, index) => (
                                     <Group key={index} gap="xs" mb="xs">
                                         <TextInput
                                             placeholder="Nome da ferramenta"
-                                            value={ferramenta.nome || ''}
+                                            value={ferramenta?.nome || ''}
                                             onChange={(e) => {
-                                                const novaLista = [...formData.lista_ferramentas];
+                                                const novaLista = [...(formData.lista_ferramentas || [])];
                                                 novaLista[index] = { ...ferramenta, nome: e.target.value };
                                                 setFormData(prev => ({...prev, lista_ferramentas: novaLista}));
                                             }}
@@ -564,9 +564,9 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                             placeholder="R$ 0"
                                             min={0}
                                             step={0.01}
-                                            value={ferramenta.valor || 0}
+                                            value={ferramenta?.valor || 0}
                                             onChange={(value) => {
-                                                const novaLista = [...formData.lista_ferramentas];
+                                                const novaLista = [...(formData.lista_ferramentas || [])];
                                                 novaLista[index] = { ...ferramenta, valor: value };
                                                 setFormData(prev => ({...prev, lista_ferramentas: novaLista}));
                                             }}
@@ -575,7 +575,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         <ActionIcon 
                                             color="red" 
                                             onClick={() => {
-                                                const novaLista = formData.lista_ferramentas.filter((_, i) => i !== index);
+                                                const novaLista = (formData.lista_ferramentas || []).filter((_, i) => i !== index);
                                                 setFormData(prev => ({...prev, lista_ferramentas: novaLista}));
                                             }}
                                         >
@@ -591,7 +591,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                     onClick={() => {
                                         setFormData(prev => ({
                                             ...prev, 
-                                            lista_ferramentas: [...prev.lista_ferramentas, { nome: '', valor: 0 }]
+                                            lista_ferramentas: [...(prev.lista_ferramentas || []), { nome: '', valor: 0 }]
                                         }));
                                     }}
                                 >
@@ -655,7 +655,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 </Grid.Col>
                             </Grid>
 
-                            {/* Prévia dos cálculos */}
                             {formData.horas_totais > 0 && formData.custo_hora_empresa > 0 && (
                                 <Paper withBorder p="md" bg="blue.0" mt="md">
                                     <Text size="sm" weight={500} mb="xs">💡 Prévia dos Cálculos</Text>
