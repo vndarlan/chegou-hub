@@ -76,7 +76,14 @@ const ProjetoCard = React.memo(({ projeto, onEdit, onView, onArchive, onDuplicat
                 </Group>
             </Card.Section>
 
-            <Text size="sm" c="dimmed" mt="sm" lineClamp={2}>
+            {/* CORREÇÃO: Descrição com formatação preservada */}
+            <Text 
+                size="sm" 
+                c="dimmed" 
+                mt="sm" 
+                lineClamp={2}
+                style={{ whiteSpace: 'pre-wrap' }}
+            >
                 {projeto.descricao}
             </Text>
 
@@ -249,7 +256,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
         data_revisao: null
     });
 
-    // CORREÇÃO COMPLETA: useEffect para carregar TODOS os campos do projeto
+    // CORREÇÃO: useEffect para carregar TODOS os campos do projeto
     useEffect(() => {
         if (projeto) {
             setFormData({
@@ -278,15 +285,25 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
         onSave(formData);
     };
 
+    // CORREÇÃO: Verificações de segurança para prevenir erro de map
     const tipoOptions = opcoes?.tipo_projeto_choices || [];
     const deptOptions = opcoes?.departamento_choices || [];
     const prioridadeOptions = opcoes?.prioridade_choices || [];
     const complexidadeOptions = opcoes?.complexidade_choices || [];
     const frequenciaOptions = opcoes?.frequencia_choices || [];
-    const userOptions = opcoes?.usuarios_disponiveis?.map(u => ({
+    const userOptions = (opcoes?.usuarios_disponiveis || []).map(u => ({
         value: u.id.toString(),
         label: u.nome_completo
-    })) || [];
+    }));
+
+    // CORREÇÃO: Verificar se opcoes existe antes de renderizar o modal
+    if (!opcoes) {
+        return (
+            <Modal opened={opened} onClose={onClose} title="Carregando...">
+                <LoadingOverlay visible={true} />
+            </Modal>
+        );
+    }
 
     return (
         <Modal 
@@ -323,11 +340,15 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 }, [])}
                             />
                             
+                            {/* CORREÇÃO 3: Textarea com autosize */}
                             <Textarea
                                 label="Descrição"
                                 placeholder="Descreva o que o projeto faz..."
                                 rows={3}
                                 required
+                                autosize
+                                minRows={3}
+                                maxRows={10}
                                 value={formData.descricao}
                                 onChange={(e) => setFormData(prev => ({...prev, descricao: e.target.value}))}
                             />
@@ -439,7 +460,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 </Grid.Col>
                             </Grid>
                             
-                            {/* CORREÇÃO: Input de Ferramentas/Tecnologias */}
                             <TextInput
                                 label="Ferramentas/Tecnologias"
                                 placeholder="Ex: Python, OpenAI API, PostgreSQL"
@@ -460,18 +480,26 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 onChange={(e) => setFormData(prev => ({...prev, documentacao_tecnica: e.target.value}))}
                             />
                             
+                            {/* CORREÇÃO 3: Textarea com autosize para lições aprendidas */}
                             <Textarea
                                 label="Lições Aprendidas"
                                 placeholder="O que funcionou bem e quais foram os desafios..."
                                 rows={3}
+                                autosize
+                                minRows={3}
+                                maxRows={8}
                                 value={formData.licoes_aprendidas}
                                 onChange={(e) => setFormData(prev => ({...prev, licoes_aprendidas: e.target.value}))}
                             />
                             
+                            {/* CORREÇÃO 3: Textarea com autosize para próximos passos */}
                             <Textarea
                                 label="Próximos Passos"
                                 placeholder="Melhorias e funcionalidades planejadas..."
                                 rows={3}
+                                autosize
+                                minRows={3}
+                                maxRows={8}
                                 value={formData.proximos_passos}
                                 onChange={(e) => setFormData(prev => ({...prev, proximos_passos: e.target.value}))}
                             />
@@ -689,9 +717,10 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
 
                 <Tabs.Panel value="info" pt="md">
                     <Stack gap="md">
+                        {/* CORREÇÃO 2: Descrição com formatação preservada */}
                         <Paper withBorder p="md">
                             <Text size="sm" c="dimmed" mb="xs">Descrição</Text>
-                            <Text>{projeto.descricao}</Text>
+                            <Text style={{ whiteSpace: 'pre-wrap' }}>{projeto.descricao}</Text>
                         </Paper>
                         
                         <SimpleGrid cols={3} spacing="md">
@@ -728,7 +757,7 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                             </Paper>
                         </SimpleGrid>
 
-                        {/* BREAKDOWN DE HORAS - CORRIGIDO */}
+                        {/* BREAKDOWN DE HORAS */}
                         <Paper withBorder p="md">
                             <Title order={5} mb="md">⏱️ Breakdown de Horas</Title>
                             <SimpleGrid cols={5} spacing="md">
@@ -779,7 +808,7 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                             </Paper>
                         )}
 
-                        {/* DOCUMENTAÇÃO - CORRIGIDO */}
+                        {/* CORREÇÃO 2: Documentação com formatação preservada */}
                         {(projeto.documentacao_tecnica || projeto.licoes_aprendidas || projeto.proximos_passos) && (
                             <Paper withBorder p="md">
                                 <Title order={5} mb="md">📚 Documentação</Title>
@@ -802,14 +831,18 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                                     {projeto.licoes_aprendidas && (
                                         <Box>
                                             <Text size="sm" c="dimmed" mb="xs">Lições Aprendidas</Text>
-                                            <Text size="sm">{projeto.licoes_aprendidas}</Text>
+                                            <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
+                                                {projeto.licoes_aprendidas}
+                                            </Text>
                                         </Box>
                                     )}
                                     
                                     {projeto.proximos_passos && (
                                         <Box>
                                             <Text size="sm" c="dimmed" mb="xs">Próximos Passos</Text>
-                                            <Text size="sm">{projeto.proximos_passos}</Text>
+                                            <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
+                                                {projeto.proximos_passos}
+                                            </Text>
                                         </Box>
                                     )}
                                 </Stack>
@@ -847,7 +880,7 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                     </Stack>
                 </Tabs.Panel>
 
-                {/* ABA FINANCEIRO - CORRIGIDA */}
+                {/* ABA FINANCEIRO */}
                 {podeVerFinanceiro && !metricas?.acesso_restrito && (
                     <Tabs.Panel value="financeiro" pt="md">
                         <Stack gap="md">
