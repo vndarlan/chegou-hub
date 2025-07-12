@@ -334,10 +334,9 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 placeholder="Ex: Chatbot de Atendimento"
                                 required
                                 value={formData.nome}
-                                onChange={useCallback((e) => {
-                                    const value = e.target?.value ?? e;
-                                    setFormData(prev => ({...prev, nome: value}));
-                                }, [])}
+                                onChange={(e) => {
+                                    setFormData(prev => ({...prev, nome: e.target.value}));
+                                }}
                             />
                             
                             {/* CORREÇÃO 3: Textarea com autosize */}
