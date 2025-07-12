@@ -1547,6 +1547,14 @@ function ProjetoDashboard() {
                             onArchive={handleArchiveProjeto}
                             onDuplicate={handleDuplicateProjeto}
                             onNewVersion={(p) => {
+                                if (!opcoes) {
+                                    notifications.show({
+                                        title: 'Aviso',
+                                        message: 'Aguarde o carregamento das opções',
+                                        color: 'yellow'
+                                    });
+                                    return;
+                                }
                                 setSelectedProjeto(p);
                                 setVersionModalOpen(true);
                             }}
