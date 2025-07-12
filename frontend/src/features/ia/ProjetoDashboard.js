@@ -212,28 +212,7 @@ const ProjetoCard = React.memo(({ projeto, onEdit, onView, onArchive, onDuplicat
 
 // Modal de Formulário de Projeto - COMPLETAMENTE CORRIGIDO
 const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading }) => {
-    // VERIFICAÇÃO INICIAL - RETORNA EARLY SE NÃO TIVER DADOS
-    if (!opcoes || !opened) {
-        return (
-            <Modal opened={opened} onClose={onClose} title="Carregando...">
-                <LoadingOverlay visible={true} />
-            </Modal>
-        );
-    }
-
-    // OPÇÕES SEGURAS - DEFINIR ANTES DO ESTADO
-    const tipoOptions = opcoes?.tipo_projeto_choices || [];
-    const deptOptions = opcoes?.departamento_choices || [];
-    const prioridadeOptions = opcoes?.prioridade_choices || [];
-    const complexidadeOptions = opcoes?.complexidade_choices || [];
-    const frequenciaOptions = opcoes?.frequencia_choices || [];
-    const userOptions = (opcoes?.usuarios_disponiveis && Array.isArray(opcoes.usuarios_disponiveis)) 
-        ? opcoes.usuarios_disponiveis.map(u => ({
-            value: (u?.id || '').toString(),
-            label: u?.nome_completo || u?.username || 'Usuário'
-        }))
-        : [];
-
+    // HOOKS PRIMEIRO - SEMPRE NO TOPO
     const [formData, setFormData] = useState({
         // === CAMPOS BÁSICOS ===
         nome: '',
@@ -278,7 +257,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
         data_revisao: null
     });
 
-    // useEffect DEPOIS das definições
     useEffect(() => {
         if (projeto) {
             setFormData({
@@ -305,6 +283,28 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
             });
         }
     }, [projeto]);
+
+    // VERIFICAÇÃO CONDICIONAL DEPOIS DOS HOOKS
+    if (!opcoes) {
+        return (
+            <Modal opened={opened} onClose={onClose} title="Carregando...">
+                <LoadingOverlay visible={true} />
+            </Modal>
+        );
+    }
+
+    // OPÇÕES SEGURAS - DEFINIDAS DEPOIS DA VERIFICAÇÃO
+    const tipoOptions = opcoes?.tipo_projeto_choices || [];
+    const deptOptions = opcoes?.departamento_choices || [];
+    const prioridadeOptions = opcoes?.prioridade_choices || [];
+    const complexidadeOptions = opcoes?.complexidade_choices || [];
+    const frequenciaOptions = opcoes?.frequencia_choices || [];
+    const userOptions = (opcoes?.usuarios_disponiveis && Array.isArray(opcoes.usuarios_disponiveis)) 
+        ? opcoes.usuarios_disponiveis.map(u => ({
+            value: (u?.id || '').toString(),
+            label: u?.nome_completo || u?.username || 'Usuário'
+        }))
+        : [];
 
     const handleSubmit = (e) => {
         e.preventDefault();
