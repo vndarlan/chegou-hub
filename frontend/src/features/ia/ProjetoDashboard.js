@@ -1618,17 +1618,19 @@ function ProjetoDashboard() {
             )}
 
             {/* Modais */}
-            <ProjetoFormModal
-                opened={formModalOpen}
-                onClose={() => {
-                    setFormModalOpen(false);
-                    setSelectedProjeto(null);
-                }}
-                projeto={selectedProjeto}
-                onSave={handleSaveProjeto}
-                opcoes={opcoes}
-                loading={formLoading}
-            />
+            {opcoes && (
+                <ProjetoFormModal
+                    opened={formModalOpen}
+                    onClose={() => {
+                        setFormModalOpen(false);
+                        setSelectedProjeto(null);
+                    }}
+                    projeto={selectedProjeto}
+                    onSave={handleSaveProjeto}
+                    opcoes={opcoes}
+                    loading={formLoading}
+                />
+            )}
 
             <ProjetoDetailModal
                 opened={detailModalOpen}
