@@ -300,7 +300,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
     const prioridadeOptions = opcoes?.prioridade_choices || [];
     const complexidadeOptions = opcoes?.complexidade_choices || [];
     const frequenciaOptions = opcoes?.frequencia_choices || [];
-    const userOptions = Array.isArray(opcoes?.usuarios_disponiveis) 
+    const userOptions = (opcoes?.usuarios_disponiveis && Array.isArray(opcoes.usuarios_disponiveis)) 
         ? opcoes.usuarios_disponiveis.map(u => ({
             value: u.id.toString(),
             label: u.nome_completo
