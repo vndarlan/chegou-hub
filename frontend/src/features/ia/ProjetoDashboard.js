@@ -286,17 +286,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
     };
 
     // CORREÇÃO: Verificações de segurança para prevenir erro de map
-    const tipoOptions = opcoes?.tipo_projeto_choices || [];
-    const deptOptions = opcoes?.departamento_choices || [];
-    const prioridadeOptions = opcoes?.prioridade_choices || [];
-    const complexidadeOptions = opcoes?.complexidade_choices || [];
-    const frequenciaOptions = opcoes?.frequencia_choices || [];
-    const userOptions = (opcoes?.usuarios_disponiveis || []).map(u => ({
-        value: u.id.toString(),
-        label: u.nome_completo
-    }));
-
-    // CORREÇÃO: Verificar se opcoes existe antes de renderizar o modal
     if (!opcoes) {
         return (
             <Modal opened={opened} onClose={onClose} title="Carregando...">
@@ -304,6 +293,19 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
             </Modal>
         );
     }
+
+    // CORREÇÃO: Definir opções APÓS verificação
+    const tipoOptions = opcoes?.tipo_projeto_choices || [];
+    const deptOptions = opcoes?.departamento_choices || [];
+    const prioridadeOptions = opcoes?.prioridade_choices || [];
+    const complexidadeOptions = opcoes?.complexidade_choices || [];
+    const frequenciaOptions = opcoes?.frequencia_choices || [];
+    const userOptions = Array.isArray(opcoes?.usuarios_disponiveis) 
+        ? opcoes.usuarios_disponiveis.map(u => ({
+            value: u.id.toString(),
+            label: u.nome_completo
+        }))
+        : [];
 
     return (
         <Modal 
