@@ -62,7 +62,7 @@ function EcomhubPage() {
         try {
             const response = await axios.get('/metricas/analises/');
             const ecomhubAnalises = response.data.filter(a => a.tipo === 'ECOMHUB');
-            setAnalisesSalvas(ecomhubAnalises);
+            setAnalisesSalvas([...ecomhubAnalises]);
         } catch (error) {
             console.error('Erro ao buscar análises:', error);
             showNotification('error', 'Erro ao carregar análises salvas');

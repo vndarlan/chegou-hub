@@ -21,7 +21,7 @@ class AnaliseEfetividadeViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        return AnaliseEfetividade.objects.filter(criado_por=self.request.user)
+        return AnaliseEfetividade.objects.all().order_by('-atualizado_em')
     
     @action(detail=False, methods=['post'], parser_classes=[MultiPartParser, FormParser])
     def upload_csv(self, request):

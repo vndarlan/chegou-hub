@@ -64,7 +64,7 @@ function PrimecodPage() {
         try {
             const response = await axios.get('/metricas/analises/');
             const primecodAnalises = response.data.filter(a => a.tipo === 'PRIMECOD');
-            setAnalisesSalvas(primecodAnalises);
+            setAnalisesSalvas([...primecodAnalises]);
         } catch (error) {
             console.error('Erro ao buscar análises:', error);
             showNotification('error', 'Erro ao carregar análises salvas');
