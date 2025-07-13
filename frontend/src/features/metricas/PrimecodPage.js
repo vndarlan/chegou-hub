@@ -383,7 +383,7 @@ function PrimecodPage() {
             <Group justify="space-between" mb="xl">
                 <div>
                     <Title order={2}>📊 Dashboard Prime COD</Title>
-                    <Text c="dimmed">Análise de efetividade de leads para pedidos</Text>
+                    <Text c="dimmed">Análise de efetividade</Text>
                 </div>
                 <Group>
                     <Button 
