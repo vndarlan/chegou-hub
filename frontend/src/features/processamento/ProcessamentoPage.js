@@ -1,12 +1,6 @@
 // frontend/src/features/processamento/ProcessamentoPage.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-
-// Forçar URLs corretas sem /api/
-const processamentoAPI = {
-    get: (url) => axios.get(url.replace('/api/', '/')),
-    post: (url, data) => axios.post(url.replace('/api/', '/'), data)
-};
 import {
     Box, Grid, Title, Text, Button, TextInput, PasswordInput,
     LoadingOverlay, Alert, Card, Group, Stack, Tabs, Table,
@@ -18,6 +12,12 @@ import {
     IconRefresh, IconTrash, IconSettings, IconHistory,
     IconExternalLink, IconCloudCheck, IconCloudX
 } from '@tabler/icons-react';
+
+// Forçar URLs corretas sem /api/
+const processamentoAPI = {
+    get: (url) => axios.get(url.replace('/api/', '/')),
+    post: (url, data) => axios.post(url.replace('/api/', '/'), data)
+};
 
 function ProcessamentoPage() {
     // Estados para configuração
