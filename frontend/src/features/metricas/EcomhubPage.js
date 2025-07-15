@@ -1,40 +1,14 @@
-// frontend/src/features/metricas/EcomhubPage.js - VERSÃO AUTOCONTIDA
+// frontend/src/features/metricas/EcomhubPage.js - VERSÃO COMPLETA COM SHOPIFY
 import React, { useState, useEffect } from 'react';
 import {
-    Box,
-    Title,
-    Text,
-    Paper,
-    Group,
-    Button,
-    Table,
-    Badge,
-    FileInput,
-    TextInput,
-    Stack,
-    Grid,
-    Alert,
-    LoadingOverlay,
-    ActionIcon,
-    Modal,
-    Card,
-    List,
-    RingProgress,
-    ThemeIcon
+    Box, Title, Text, Paper, Group, Button, Table, Badge, FileInput, TextInput, Stack, Grid,
+    Alert, LoadingOverlay, ActionIcon, Modal, Card, List, RingProgress, ThemeIcon, Select,
+    Tabs, Textarea, Switch, NumberInput, Divider, Code, Container, Accordion, SegmentedControl
 } from '@mantine/core';
 import {
-    IconUpload,
-    IconDownload,
-    IconTrash,
-    IconRefresh,
-    IconFileText,
-    IconCheck,
-    IconX,
-    IconAlertTriangle,
-    IconTrendingUp,
-    IconTrendingDown,
-    IconBuilding,
-    IconChartBar
+    IconUpload, IconDownload, IconTrash, IconRefresh, IconFileText, IconCheck, IconX, IconAlertTriangle,
+    IconTrendingUp, IconTrendingDown, IconBuilding, IconChartBar, IconPlus, IconEdit, IconTestPipe,
+    IconCloudOff, IconCloudCheck, IconSettings, IconShoppingBag, IconDatabase, IconBrandShopify
 } from '@tabler/icons-react';
 import axios from 'axios';
 
@@ -44,9 +18,16 @@ function EcomhubPage() {
     const [analisesSalvas, setAnalisesSalvas] = useState([]);
     const [analiseSelecionada, setAnaliseSelecionada] = useState(null);
     
+    // Estados Shopify
+    const [lojasShopify, setLojasShopify] = useState([]);
+    const [lojaSelecionada, setLojaSelecionada] = useState(null);
+    const [modalLoja, setModalLoja] = useState(false);
+    const [editandoLoja, setEditandoLoja] = useState(null);
+    
     // Estados para upload
     const [arquivoEcomhub, setArquivoEcomhub] = useState(null);
     const [dadosEcomhub, setDadosEcomhub] = useState(null);
+    const [modoProcessamento, setModoProcessamento] = useState('produto');
     
     // Estados para salvar
     const [modalSalvar, setModalSalvar] = useState(false);
@@ -54,36 +35,58 @@ function EcomhubPage() {
     
     // Estados de notificação
     const [notification, setNotification] = useState(null);
+    
+    // Estados do formulário de loja
+    const [formLoja, setFormLoja] = useState({
+        nome: '',
+        shopify_domain: '',
+        access_token: '',
+        api_version: '2024-01',
+        descricao: '',
+        pais: '',
+        moeda: ''
+    });
 
-    // ======================== FUNÇÕES DE API ========================
+    // ======================== FUNÇÕES DE API - ANÁLISES ========================
 
-    // Buscar análises salvas
     const fetchAnalises = async () => {
         try {
             const response = await axios.get('/metricas/ecomhub/analises/');
-            const ecomhubAnalises = response.data.filter(a => a.tipo === 'ECOMHUB');
-            setAnalisesSalvas([...ecomhubAnalises]);
+            setAnalisesSalvas(response.data);
         } catch (error) {
             console.error('Erro ao buscar análises:', error);
             showNotification('error', 'Erro ao carregar análises salvas');
         }
     };
 
-    // Upload de arquivo
     const uploadArquivo = async () => {
         if (!arquivoEcomhub) return;
+        
+        if (modoProcessamento === 'produto' && !lojaSelecionada) {
+            showNotification('error', 'Para processamento por produto, selecione uma loja Shopify');
+            return;
+        }
         
         setIsLoading(true);
         const formData = new FormData();
         formData.append('arquivo', arquivoEcomhub);
-        formData.append('tipo_arquivo', 'ecomhub');
+        formData.append('modo_processamento', modoProcessamento);
+        if (lojaSelecionada) {
+            formData.append('loja_shopify_id', lojaSelecionada);
+        }
         
         try {
             const response = await axios.post('/metricas/ecomhub/analises/upload_csv/', formData);
             
             if (response.data.status === 'success') {
                 setDadosEcomhub(response.data.dados_processados);
-                showNotification('success', 'Arquivo ECOMHUB processado com sucesso!');
+                showNotification('success', `Arquivo ECOMHUB processado com sucesso! Modo: ${modoProcessamento}`);
+                
+                if (response.data.produtos_nao_encontrados?.length > 0) {
+                    showNotification('warning', 
+                        `Alguns produtos não foram encontrados na Shopify (${response.data.produtos_nao_encontrados.length} pedidos)`
+                    );
+                }
             }
         } catch (error) {
             showNotification('error', `Erro ao processar arquivo: ${error.response?.data?.message || error.message}`);
@@ -92,7 +95,6 @@ function EcomhubPage() {
         }
     };
 
-    // Salvar análise
     const salvarAnalise = async () => {
         if (!nomeAnalise || !dadosEcomhub) {
             showNotification('error', 'Nome da análise e dados são obrigatórios');
@@ -103,8 +105,9 @@ function EcomhubPage() {
         try {
             const response = await axios.post('/metricas/ecomhub/analises/processar_analise/', {
                 nome_analise: nomeAnalise,
-                tipo: 'ECOMHUB',
-                dados_ecomhub: dadosEcomhub
+                dados_ecomhub: dadosEcomhub,
+                tipo_metrica: modoProcessamento,
+                loja_shopify_id: lojaSelecionada
             });
             
             if (response.data.status === 'success') {
@@ -120,14 +123,16 @@ function EcomhubPage() {
         }
     };
 
-    // Carregar análise
     const carregarAnalise = (analise) => {
         setDadosEcomhub(analise.dados_efetividade);
         setAnaliseSelecionada(analise);
+        setModoProcessamento(analise.tipo_metrica || 'produto');
+        if (analise.loja_shopify) {
+            setLojaSelecionada(analise.loja_shopify);
+        }
         showNotification('success', `Análise '${analise.nome.replace('[ECOMHUB] ', '')}' carregada!`);
     };
 
-    // Deletar análise
     const deletarAnalise = async (id, nome) => {
         const nomeDisplay = nome.replace('[ECOMHUB] ', '');
         if (!window.confirm(`Deseja deletar a análise '${nomeDisplay}'?`)) return;
@@ -149,15 +154,113 @@ function EcomhubPage() {
         }
     };
 
+    // ======================== FUNÇÕES DE API - SHOPIFY ========================
+
+    const fetchLojasShopify = async () => {
+        try {
+            const response = await axios.get('/metricas/ecomhub/lojas-shopify/lojas_ativas/');
+            setLojasShopify(response.data);
+        } catch (error) {
+            console.error('Erro ao buscar lojas Shopify:', error);
+            showNotification('error', 'Erro ao carregar lojas Shopify');
+        }
+    };
+
+    const salvarLoja = async () => {
+        if (!formLoja.nome || !formLoja.shopify_domain || !formLoja.access_token) {
+            showNotification('error', 'Nome, domínio e access token são obrigatórios');
+            return;
+        }
+        
+        setIsLoading(true);
+        try {
+            if (editandoLoja) {
+                await axios.put(`/metricas/ecomhub/lojas-shopify/${editandoLoja}/`, formLoja);
+                showNotification('success', 'Loja Shopify atualizada com sucesso!');
+            } else {
+                await axios.post('/metricas/ecomhub/lojas-shopify/', formLoja);
+                showNotification('success', 'Loja Shopify cadastrada com sucesso!');
+            }
+            
+            setModalLoja(false);
+            resetFormLoja();
+            fetchLojasShopify();
+        } catch (error) {
+            showNotification('error', `Erro ao salvar loja: ${error.response?.data?.message || error.message}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const testarConexaoLoja = async (lojaId) => {
+        setIsLoading(true);
+        try {
+            const response = await axios.post(`/metricas/ecomhub/lojas-shopify/${lojaId}/testar_conexao/`);
+            
+            if (response.data.status === 'success') {
+                showNotification('success', `Conexão testada com sucesso! Loja: ${response.data.shop_info.name}`);
+                fetchLojasShopify(); // Atualizar status
+            }
+        } catch (error) {
+            showNotification('error', `Erro na conexão: ${error.response?.data?.message || error.message}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const deletarLoja = async (id, nome) => {
+        if (!window.confirm(`Deseja deletar a loja '${nome}'?`)) return;
+        
+        setIsLoading(true);
+        try {
+            await axios.delete(`/metricas/ecomhub/lojas-shopify/${id}/`);
+            showNotification('success', `Loja '${nome}' deletada!`);
+            fetchLojasShopify();
+            
+            if (lojaSelecionada === id) {
+                setLojaSelecionada(null);
+            }
+        } catch (error) {
+            showNotification('error', `Erro ao deletar loja: ${error.response?.data?.message || error.message}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     // ======================== FUNÇÕES AUXILIARES ========================
 
-    // Sistema de notificações
     const showNotification = (type, message) => {
         setNotification({ type, message });
         setTimeout(() => setNotification(null), 5000);
     };
 
-    // Cores para efetividade
+    const resetFormLoja = () => {
+        setFormLoja({
+            nome: '',
+            shopify_domain: '',
+            access_token: '',
+            api_version: '2024-01',
+            descricao: '',
+            pais: '',
+            moeda: ''
+        });
+        setEditandoLoja(null);
+    };
+
+    const editarLoja = (loja) => {
+        setFormLoja({
+            nome: loja.nome,
+            shopify_domain: loja.shopify_domain,
+            access_token: '', // Não preencher por segurança
+            api_version: loja.api_version,
+            descricao: loja.descricao || '',
+            pais: loja.pais || '',
+            moeda: loja.moeda || ''
+        });
+        setEditandoLoja(loja.id);
+        setModalLoja(true);
+    };
+
     const getEfetividadeCor = (valor) => {
         if (!valor || typeof valor !== 'string') return {};
         
@@ -169,12 +272,13 @@ function EcomhubPage() {
         return { backgroundColor: '#F44336', color: 'white', fontWeight: 'bold' };
     };
 
-    // Obter top lojas
-    const getTopLojas = () => {
+    const getTopItens = () => {
         if (!dadosEcomhub) return [];
         
+        const coluna = modoProcessamento === 'produto' ? 'Produto' : 'Loja';
+        
         return dadosEcomhub
-            .filter(row => row.Loja !== 'Total')
+            .filter(row => row[coluna] !== 'Total')
             .sort((a, b) => {
                 const efetA = parseFloat(a.Efetividade?.replace('%', '') || '0');
                 const efetB = parseFloat(b.Efetividade?.replace('%', '') || '0');
@@ -185,11 +289,69 @@ function EcomhubPage() {
 
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
-    // Cards de estatísticas
+    const renderGerenciamentoLojas = () => (
+        <Paper shadow="sm" p="md" mb="xl">
+            <Group justify="space-between" mb="md">
+                <Title order={4}>🏪 Lojas Shopify Configuradas</Title>
+                <Button leftSection={<IconPlus size={16} />} onClick={() => setModalLoja(true)}>
+                    Nova Loja
+                </Button>
+            </Group>
+            
+            {lojasShopify.length === 0 ? (
+                <Alert color="blue" icon={<IconBrandShopify size={16} />}>
+                    Nenhuma loja Shopify configurada. Adicione uma loja para processar por produto.
+                </Alert>
+            ) : (
+                <Grid>
+                    {lojasShopify.map(loja => (
+                        <Grid.Col span={{ base: 12, sm: 6, md: 4 }} key={loja.id}>
+                            <Card withBorder>
+                                <Group justify="space-between" mb="xs">
+                                    <Text fw={500} truncate>{loja.nome}</Text>
+                                    <Badge 
+                                        color={loja.status_conexao === 'conectado' ? 'green' : 
+                                              loja.status_conexao === 'erro' ? 'red' : 'gray'} 
+                                        variant="light"
+                                    >
+                                        {loja.status_conexao === 'conectado' ? 'Conectado' :
+                                         loja.status_conexao === 'erro' ? 'Erro' : 'Não testado'}
+                                    </Badge>
+                                </Group>
+                                <Text size="xs" c="dimmed" mb="xs">{loja.shopify_domain}</Text>
+                                {loja.pais && <Text size="xs" c="dimmed" mb="md">País: {loja.pais}</Text>}
+                                
+                                <Group justify="space-between">
+                                    <Group>
+                                        <ActionIcon variant="light" onClick={() => testarConexaoLoja(loja.id)}>
+                                            <IconTestPipe size={16} />
+                                        </ActionIcon>
+                                        <ActionIcon variant="light" onClick={() => editarLoja(loja)}>
+                                            <IconEdit size={16} />
+                                        </ActionIcon>
+                                    </Group>
+                                    <ActionIcon 
+                                        color="red" 
+                                        variant="light" 
+                                        onClick={() => deletarLoja(loja.id, loja.nome)}
+                                    >
+                                        <IconTrash size={16} />
+                                    </ActionIcon>
+                                </Group>
+                            </Card>
+                        </Grid.Col>
+                    ))}
+                </Grid>
+            )}
+        </Paper>
+    );
+
     const renderEstatisticas = () => {
         if (!dadosEcomhub || dadosEcomhub.length === 0) return null;
         
-        const totalRow = dadosEcomhub.find(row => row.Loja === 'Total');
+        const totalRow = dadosEcomhub.find(row => 
+            row[modoProcessamento === 'produto' ? 'Produto' : 'Loja'] === 'Total'
+        );
         if (!totalRow) return null;
         
         const total = totalRow.Total || 0;
@@ -271,18 +433,20 @@ function EcomhubPage() {
         );
     };
 
-    // Top Lojas
-    const renderTopLojas = () => {
+    const renderTopItens = () => {
         if (!dadosEcomhub) return null;
         
-        const topLojas = getTopLojas();
-        if (topLojas.length === 0) return null;
+        const topItens = getTopItens();
+        if (topItens.length === 0) return null;
+        
+        const coluna = modoProcessamento === 'produto' ? 'Produto' : 'Loja';
+        const titulo = modoProcessamento === 'produto' ? '🏆 Top 5 Produtos por Efetividade' : '🏆 Top 5 Lojas por Efetividade';
         
         return (
             <Paper shadow="sm" p="md" mb="xl">
-                <Title order={4} mb="md">🏆 Top 5 Lojas por Efetividade</Title>
+                <Title order={4} mb="md">{titulo}</Title>
                 <Grid>
-                    {topLojas.map((loja, idx) => (
+                    {topItens.map((item, idx) => (
                         <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2.4 }} key={idx}>
                             <Card withBorder>
                                 <Stack gap="xs">
@@ -294,14 +458,14 @@ function EcomhubPage() {
                                             #{idx + 1}
                                         </Badge>
                                         <Text size="lg" fw={700} c="blue">
-                                            {loja.Efetividade}
+                                            {item.Efetividade}
                                         </Text>
                                     </Group>
                                     <Text size="sm" fw={500} truncate>
-                                        {loja.Loja}
+                                        {item[coluna]}
                                     </Text>
                                     <Text size="xs" c="dimmed">
-                                        {loja.delivered || 0} de {loja.Total || 0} entregues
+                                        {item.delivered || 0} de {item.Total || 0} entregues
                                     </Text>
                                 </Stack>
                             </Card>
@@ -312,15 +476,16 @@ function EcomhubPage() {
         );
     };
 
-    // Tabela ECOMHUB
-    const renderTabelaEcomhub = () => {
+    const renderTabela = () => {
         if (!dadosEcomhub || dadosEcomhub.length === 0) return null;
         
         const colunas = Object.keys(dadosEcomhub[0]);
+        const coluna = modoProcessamento === 'produto' ? 'Produto' : 'Loja';
+        const titulo = modoProcessamento === 'produto' ? '🛍️ Efetividade por Produto' : '🏪 Efetividade por Loja';
         
         return (
             <Paper shadow="sm" p="md" mt="md">
-                <Title order={4} mb="md">🏪 Efetividade por Loja</Title>
+                <Title order={4} mb="md">{titulo}</Title>
                 <Text size="sm" c="dimmed" mb="md">
                     📊 <strong>Cálculo de Efetividade:</strong> (Status 'delivered' ÷ Total registros) × 100
                 </Text>
@@ -336,8 +501,8 @@ function EcomhubPage() {
                         <Table.Tbody>
                             {dadosEcomhub.map((row, idx) => (
                                 <Table.Tr key={idx} style={{ 
-                                    backgroundColor: row.Loja === 'Total' ? '#f8f9fa' : undefined,
-                                    fontWeight: row.Loja === 'Total' ? 'bold' : undefined
+                                    backgroundColor: row[coluna] === 'Total' ? '#f8f9fa' : undefined,
+                                    fontWeight: row[coluna] === 'Total' ? 'bold' : undefined
                                 }}>
                                     {colunas.map(col => (
                                         <Table.Td 
@@ -359,32 +524,29 @@ function EcomhubPage() {
     // ======================== EFEITOS ========================
     useEffect(() => {
         fetchAnalises();
+        fetchLojasShopify();
     }, []);
 
     // ======================== RENDER PRINCIPAL ========================
     return (
-        <Box p="md">
+        <Container fluid p="md">
             <LoadingOverlay visible={isLoading} />
             
             {/* Header */}
             <Group justify="space-between" mb="xl">
                 <div>
-                    <Title order={2}>🏪 Dashboard ECOMHUB</Title>
-                    <Text c="dimmed">Análise de efetividade por loja baseada em dados de importação</Text>
+                    <Title order={2}>🛍️ Dashboard ECOMHUB com Shopify</Title>
+                    <Text c="dimmed">Análise de efetividade por produto/loja com integração Shopify</Text>
                 </div>
                 <Group>
-                    <Button 
-                        leftSection={<IconRefresh size={16} />} 
-                        variant="outline" 
-                        onClick={fetchAnalises}
-                    >
+                    <Button leftSection={<IconRefresh size={16} />} variant="outline" onClick={() => {
+                        fetchAnalises();
+                        fetchLojasShopify();
+                    }}>
                         Atualizar
                     </Button>
                     {dadosEcomhub && (
-                        <Button 
-                            leftSection={<IconDownload size={16} />} 
-                            onClick={() => setModalSalvar(true)}
-                        >
+                        <Button leftSection={<IconDownload size={16} />} onClick={() => setModalSalvar(true)}>
                             Salvar Análise
                         </Button>
                     )}
@@ -406,96 +568,241 @@ function EcomhubPage() {
                 </Alert>
             )}
 
-            {/* Análises Salvas */}
-            {analisesSalvas.length > 0 && (
-                <Paper shadow="sm" p="md" mb="xl">
-                    <Title order={4} mb="md">💾 Análises ECOMHUB Salvas</Title>
-                    <Grid>
-                        {analisesSalvas.map(analise => (
-                            <Grid.Col span={{ base: 12, sm: 6, md: 4 }} key={analise.id}>
-                                <Card withBorder>
-                                    <Group justify="space-between" mb="xs">
-                                        <Text fw={500} truncate>
-                                            {analise.nome.replace('[ECOMHUB] ', '')}
-                                        </Text>
-                                        <Badge color="orange" variant="light">ECOMHUB</Badge>
-                                    </Group>
-                                    <Text size="xs" c="dimmed" mb="md">
-                                        {new Date(analise.criado_em).toLocaleDateString('pt-BR')} por {analise.criado_por_nome}
-                                    </Text>
-                                    <Group justify="space-between">
-                                        <Button size="xs" variant="light" onClick={() => carregarAnalise(analise)}>
-                                            Carregar
-                                        </Button>
-                                        <ActionIcon 
-                                            color="red" 
-                                            variant="light" 
-                                            onClick={() => deletarAnalise(analise.id, analise.nome)}
-                                        >
-                                            <IconTrash size={16} />
-                                        </ActionIcon>
-                                    </Group>
-                                </Card>
-                            </Grid.Col>
-                        ))}
-                    </Grid>
-                </Paper>
-            )}
+            <Tabs defaultValue="upload" mb="xl">
+                <Tabs.List>
+                    <Tabs.Tab value="upload" leftSection={<IconUpload size={16} />}>
+                        Importar Dados
+                    </Tabs.Tab>
+                    <Tabs.Tab value="lojas" leftSection={<IconBrandShopify size={16} />}>
+                        Gerenciar Lojas Shopify
+                    </Tabs.Tab>
+                    <Tabs.Tab value="analises" leftSection={<IconDatabase size={16} />}>
+                        Análises Salvas
+                    </Tabs.Tab>
+                </Tabs.List>
 
-            {/* Upload de Arquivo */}
-            <Grid gutter="md" mb="xl">
-                <Grid.Col span={{ base: 12, md: 8 }}>
-                    <Paper shadow="sm" p="md">
-                        <Title order={4} mb="md">📁 Importação de Arquivo ECOMHUB</Title>
+                <Tabs.Panel value="upload">
+                    {/* Seleção de Modo */}
+                    <Paper shadow="sm" p="md" mb="md">
+                        <Title order={4} mb="md">⚙️ Configuração de Processamento</Title>
                         <Stack>
-                            <FileInput
-                                label="Arquivo CSV ECOMHUB"
-                                placeholder="Selecione o arquivo CSV exportado da ECOMHUB"
-                                accept=".csv"
-                                value={arquivoEcomhub}
-                                onChange={setArquivoEcomhub}
-                                leftSection={<IconFileText size={16} />}
+                            <SegmentedControl
+                                value={modoProcessamento}
+                                onChange={setModoProcessamento}
+                                data={[
+                                    { label: '🛍️ Por Produto (Shopify)', value: 'produto' },
+                                    { label: '🏪 Por Loja (Tradicional)', value: 'loja' }
+                                ]}
                             />
-                            <Button 
-                                fullWidth 
-                                leftSection={<IconUpload size={16} />}
-                                onClick={uploadArquivo}
-                                disabled={!arquivoEcomhub}
-                            >
-                                Processar Arquivo ECOMHUB
-                            </Button>
-                            {dadosEcomhub && (
-                                <Alert color="green" icon={<IconCheck size={16} />}>
-                                    Arquivo ECOMHUB processado! {dadosEcomhub.length - 1} lojas encontradas.
-                                </Alert>
+                            
+                            {modoProcessamento === 'produto' && (
+                                <Select
+                                    label="Loja Shopify"
+                                    placeholder="Selecione a loja Shopify para buscar produtos"
+                                    data={lojasShopify.map(loja => ({ value: loja.id.toString(), label: loja.nome }))}
+                                    value={lojaSelecionada?.toString()}
+                                    onChange={(value) => setLojaSelecionada(value ? parseInt(value) : null)}
+                                    required
+                                    leftSection={<IconBrandShopify size={16} />}
+                                />
                             )}
                         </Stack>
                     </Paper>
-                </Grid.Col>
-                
-                <Grid.Col span={{ base: 12, md: 4 }}>
-                    <Paper shadow="sm" p="md">
-                        <Title order={4} mb="md">📋 Instruções</Title>
-                        <List size="sm">
-                            <List.Item>Importe o arquivo CSV exportado da ECOMHUB</List.Item>
-                            <List.Item>O arquivo deve conter dados de pedidos por loja</List.Item>
-                            <List.Item>A efetividade será calculada automaticamente</List.Item>
-                            <List.Item>Salve sua análise para acessá-la depois</List.Item>
-                        </List>
-                    </Paper>
-                </Grid.Col>
-            </Grid>
 
-            {/* Top Lojas */}
-            {renderTopLojas()}
+                    {/* Upload de Arquivo */}
+                    <Grid gutter="md" mb="xl">
+                        <Grid.Col span={{ base: 12, md: 8 }}>
+                            <Paper shadow="sm" p="md">
+                                <Title order={4} mb="md">📁 Importação de Arquivo ECOMHUB</Title>
+                                <Stack>
+                                    <FileInput
+                                        label="Arquivo CSV ECOMHUB"
+                                        placeholder="Selecione o arquivo CSV exportado da ECOMHUB"
+                                        accept=".csv"
+                                        value={arquivoEcomhub}
+                                        onChange={setArquivoEcomhub}
+                                        leftSection={<IconFileText size={16} />}
+                                    />
+                                    <Button 
+                                        fullWidth 
+                                        leftSection={<IconUpload size={16} />}
+                                        onClick={uploadArquivo}
+                                        disabled={!arquivoEcomhub || (modoProcessamento === 'produto' && !lojaSelecionada)}
+                                    >
+                                        Processar Arquivo ECOMHUB
+                                    </Button>
+                                    {dadosEcomhub && (
+                                        <Alert color="green" icon={<IconCheck size={16} />}>
+                                            Arquivo ECOMHUB processado! {dadosEcomhub.length - 1} {modoProcessamento === 'produto' ? 'produtos' : 'lojas'} encontrados.
+                                        </Alert>
+                                    )}
+                                </Stack>
+                            </Paper>
+                        </Grid.Col>
+                        
+                        <Grid.Col span={{ base: 12, md: 4 }}>
+                            <Paper shadow="sm" p="md">
+                                <Title order={4} mb="md">📋 Instruções</Title>
+                                <List size="sm">
+                                    <List.Item>Escolha o modo de processamento (produto ou loja)</List.Item>
+                                    <List.Item>Para modo produto, configure uma loja Shopify</List.Item>
+                                    <List.Item>Importe o arquivo CSV da ECOMHUB</List.Item>
+                                    <List.Item>A efetividade será calculada automaticamente</List.Item>
+                                    <List.Item>Salve sua análise para acessá-la depois</List.Item>
+                                </List>
+                            </Paper>
+                        </Grid.Col>
+                    </Grid>
 
-            {/* Estatísticas */}
-            {renderEstatisticas()}
+                    {/* Resultados */}
+                    {renderTopItens()}
+                    {renderEstatisticas()}
+                    {renderTabela()}
+                </Tabs.Panel>
 
-            {/* Tabela */}
-            {renderTabelaEcomhub()}
+                <Tabs.Panel value="lojas">
+                    {renderGerenciamentoLojas()}
+                </Tabs.Panel>
 
-            {/* Modal para salvar */}
+                <Tabs.Panel value="analises">
+                    {/* Análises Salvas */}
+                    {analisesSalvas.length > 0 && (
+                        <Paper shadow="sm" p="md">
+                            <Title order={4} mb="md">💾 Análises ECOMHUB Salvas</Title>
+                            <Grid>
+                                {analisesSalvas.map(analise => (
+                                    <Grid.Col span={{ base: 12, sm: 6, md: 4 }} key={analise.id}>
+                                        <Card withBorder>
+                                            <Group justify="space-between" mb="xs">
+                                                <Text fw={500} truncate>
+                                                    {analise.nome.replace('[ECOMHUB] ', '')}
+                                                </Text>
+                                                <Badge 
+                                                    color={analise.tipo_metrica === 'produto' ? 'blue' : 'orange'} 
+                                                    variant="light"
+                                                >
+                                                    {analise.tipo_metrica === 'produto' ? 'Produto' : 'Loja'}
+                                                </Badge>
+                                            </Group>
+                                            {analise.loja_shopify_nome && (
+                                                <Text size="xs" c="blue" mb="xs">
+                                                    🏪 {analise.loja_shopify_nome}
+                                                </Text>
+                                            )}
+                                            <Text size="xs" c="dimmed" mb="md">
+                                                {new Date(analise.criado_em).toLocaleDateString('pt-BR')} por {analise.criado_por_nome}
+                                            </Text>
+                                            <Group justify="space-between">
+                                                <Button size="xs" variant="light" onClick={() => carregarAnalise(analise)}>
+                                                    Carregar
+                                                </Button>
+                                                <ActionIcon 
+                                                    color="red" 
+                                                    variant="light" 
+                                                    onClick={() => deletarAnalise(analise.id, analise.nome)}
+                                                >
+                                                    <IconTrash size={16} />
+                                                </ActionIcon>
+                                            </Group>
+                                        </Card>
+                                    </Grid.Col>
+                                ))}
+                            </Grid>
+                        </Paper>
+                    )}
+                </Tabs.Panel>
+            </Tabs>
+
+            {/* Modal para cadastrar/editar loja */}
+            <Modal 
+                opened={modalLoja} 
+                onClose={() => {
+                    setModalLoja(false);
+                    resetFormLoja();
+                }}
+                title={editandoLoja ? "✏️ Editar Loja Shopify" : "➕ Nova Loja Shopify"}
+                size="lg"
+            >
+                <Stack>
+                    <Grid>
+                        <Grid.Col span={6}>
+                            <TextInput
+                                label="Nome da Loja"
+                                placeholder="Ex: Chile, Brasil, Argentina"
+                                value={formLoja.nome}
+                                onChange={(e) => setFormLoja({...formLoja, nome: e.target.value})}
+                                required
+                            />
+                        </Grid.Col>
+                        <Grid.Col span={6}>
+                            <TextInput
+                                label="Domínio Shopify"
+                                placeholder="minhaloja.myshopify.com"
+                                value={formLoja.shopify_domain}
+                                onChange={(e) => setFormLoja({...formLoja, shopify_domain: e.target.value})}
+                                required
+                            />
+                        </Grid.Col>
+                    </Grid>
+                    
+                    <TextInput
+                        label="Access Token"
+                        placeholder="Access Token privado da API Shopify"
+                        value={formLoja.access_token}
+                        onChange={(e) => setFormLoja({...formLoja, access_token: e.target.value})}
+                        required={!editandoLoja}
+                        description={editandoLoja ? "Deixe em branco para manter o token atual" : "Obtenha no painel admin da Shopify"}
+                    />
+                    
+                    <Grid>
+                        <Grid.Col span={4}>
+                            <TextInput
+                                label="Versão da API"
+                                value={formLoja.api_version}
+                                onChange={(e) => setFormLoja({...formLoja, api_version: e.target.value})}
+                            />
+                        </Grid.Col>
+                        <Grid.Col span={4}>
+                            <TextInput
+                                label="País"
+                                placeholder="Ex: Brasil"
+                                value={formLoja.pais}
+                                onChange={(e) => setFormLoja({...formLoja, pais: e.target.value})}
+                            />
+                        </Grid.Col>
+                        <Grid.Col span={4}>
+                            <TextInput
+                                label="Moeda"
+                                placeholder="Ex: BRL"
+                                value={formLoja.moeda}
+                                onChange={(e) => setFormLoja({...formLoja, moeda: e.target.value})}
+                            />
+                        </Grid.Col>
+                    </Grid>
+                    
+                    <Textarea
+                        label="Descrição"
+                        placeholder="Descrição opcional da loja"
+                        value={formLoja.descricao}
+                        onChange={(e) => setFormLoja({...formLoja, descricao: e.target.value})}
+                        rows={3}
+                    />
+                    
+                    <Group justify="flex-end">
+                        <Button variant="outline" onClick={() => {
+                            setModalLoja(false);
+                            resetFormLoja();
+                        }}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={salvarLoja} loading={isLoading}>
+                            {editandoLoja ? 'Atualizar' : 'Cadastrar'}
+                        </Button>
+                    </Group>
+                </Stack>
+            </Modal>
+
+            {/* Modal para salvar análise */}
             <Modal 
                 opened={modalSalvar} 
                 onClose={() => setModalSalvar(false)}
@@ -503,11 +810,17 @@ function EcomhubPage() {
             >
                 <Stack>
                     <Alert color="blue" mb="md">
-                        As análises da ECOMHUB são salvas separadamente das análises Prime COD
+                        Salvando análise em modo: <strong>{modoProcessamento === 'produto' ? 'Por Produto' : 'Por Loja'}</strong>
+                        {lojaSelecionada && (
+                            <>
+                            <br />
+                            <span>Loja Shopify: <strong>{lojasShopify.find(l => l.id === parseInt(lojaSelecionada))?.nome}</strong></span>
+                        </>
+                        )}
                     </Alert>
                     <TextInput
                         label="Nome da Análise"
-                        placeholder="Ex: Maio 2025 - Lojas Brasil"
+                        placeholder="Ex: Maio 2025 - Produtos Chile"
                         value={nomeAnalise}
                         onChange={(e) => setNomeAnalise(e.target.value)}
                         required
@@ -516,17 +829,13 @@ function EcomhubPage() {
                         <Button variant="outline" onClick={() => setModalSalvar(false)}>
                             Cancelar
                         </Button>
-                        <Button 
-                            onClick={salvarAnalise} 
-                            disabled={!nomeAnalise}
-                            loading={isLoading}
-                        >
+                        <Button onClick={salvarAnalise} disabled={!nomeAnalise} loading={isLoading}>
                             Salvar
                         </Button>
                     </Group>
                 </Stack>
             </Modal>
-        </Box>
+        </Container>
     );
 }
 
