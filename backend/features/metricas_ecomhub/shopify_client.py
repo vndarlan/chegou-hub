@@ -187,7 +187,7 @@ class ShopifyClient:
             return None
     
     def get_orders_batch(self, order_numbers):
-        """Busca múltiplos pedidos com rate limiting otimizados"""
+        """Busca múltiplos pedidos com rate limiting otimizado"""
         results = {}
         
         # Primeiro verifica cache
