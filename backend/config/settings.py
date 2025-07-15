@@ -1,4 +1,3 @@
-# backend/config/settings.py
 """
 Django settings for config project.
 """
@@ -13,8 +12,7 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # --- Carregar variáveis de ambiente do .env (APENAS PARA DESENVOLVIMENTO LOCAL) ---
-# Em produção (Railway), as variáveis de ambiente devem ser definidas no painel do Railway.
-IS_RAILWAY_DEPLOYMENT = os.getenv('RAILWAY_ENVIRONMENT_NAME') is not None # Railway define esta variável
+IS_RAILWAY_DEPLOYMENT = os.getenv('RAILWAY_ENVIRONMENT_NAME') is not None
 
 if not IS_RAILWAY_DEPLOYMENT:
     print("Ambiente local detectado, carregando .env")
@@ -26,48 +24,41 @@ else:
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'local-dev-insecure-fallback-key')
 
 # --- DEBUG ---
-# No Railway, a variável de ambiente DEBUG deve ser a string "False"
-# No .env local, pode ser "True"
-DEBUG_ENV_VAR = os.getenv('DEBUG', 'True' if not IS_RAILWAY_DEPLOYMENT else 'False') # Default para True local, False Railway
+DEBUG_ENV_VAR = os.getenv('DEBUG', 'True' if not IS_RAILWAY_DEPLOYMENT else 'False')
 DEBUG = DEBUG_ENV_VAR.lower() == 'true'
 
 # --- ALLOWED_HOSTS ---
-ALLOWED_HOSTS_ENV = os.getenv('ALLOWED_HOSTS') # Ex: "frontend.com,backend.com"
+ALLOWED_HOSTS_ENV = os.getenv('ALLOWED_HOSTS')
 ALLOWED_HOSTS = []
 if ALLOWED_HOSTS_ENV:
     ALLOWED_HOSTS.extend([host.strip() for host in ALLOWED_HOSTS_ENV.split(',')])
 
-# Adicionar domínios específicos do Railway para healthchecks e comunicação interna
-RAILWAY_PUBLIC_BACKEND_DOMAIN = os.getenv('RAILWAY_PUBLIC_DOMAIN') # O Railway pode definir isso com seu domínio público
+RAILWAY_PUBLIC_BACKEND_DOMAIN = os.getenv('RAILWAY_PUBLIC_DOMAIN')
 if RAILWAY_PUBLIC_BACKEND_DOMAIN:
     ALLOWED_HOSTS.append(RAILWAY_PUBLIC_BACKEND_DOMAIN)
-    # Adiciona o host sem o subdomínio mais específico se for tipo `servico.usuario.railway.app`
     parts = RAILWAY_PUBLIC_BACKEND_DOMAIN.split('.')
     if len(parts) > 2:
-         ALLOWED_HOSTS.append('.'.join(parts[-(len(parts)//2):])) # Tenta pegar um domínio mais genérico
+         ALLOWED_HOSTS.append('.'.join(parts[-(len(parts)//2):]))
          ALLOWED_HOSTS.append(f".{'.'.join(parts[-(len(parts)//2):])}")
 
-# Para garantir que os healthchecks do Railway funcionem
-ALLOWED_HOSTS.append('.railway.app') # Permite qualquer subdomínio de railway.app
-
-# Adicionar domínio customizado
+ALLOWED_HOSTS.append('.railway.app')
 ALLOWED_HOSTS.extend([
     'chegouhub.com.br',
     'www.chegouhub.com.br',
 ])
 
-if DEBUG: # Local dev fallback
+if DEBUG:
     ALLOWED_HOSTS.extend(['localhost', '127.0.0.1', '*'])
-elif not ALLOWED_HOSTS_ENV: # Produção sem ALLOWED_HOSTS_ENV é um erro
+elif not ALLOWED_HOSTS_ENV:
     print("ERRO CRÍTICO: ALLOWED_HOSTS (env var) não definida no ambiente de produção!")
-    ALLOWED_HOSTS = [] # Isso fará o Django falhar se não corrigido
+    ALLOWED_HOSTS = []
 
-ALLOWED_HOSTS = list(set(ALLOWED_HOSTS)) # Remover duplicatas
+ALLOWED_HOSTS = list(set(ALLOWED_HOSTS))
 if not ALLOWED_HOSTS and not DEBUG:
     print("ALERTA DE SEGURANÇA: ALLOWED_HOSTS está vazia em produção. Adicionando '*' como último recurso.")
     ALLOWED_HOSTS.append('*')
 
-# Application definition ⭐ ATUALIZADO ⭐
+# Application definition ⭐ ATUALIZADO COM SEPARAÇÃO DE MÉTRICAS ⭐
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -87,9 +78,12 @@ INSTALLED_APPS = [
     'features.mapa',
     'features.engajamento',
     'features.ia',
-    'features.metricas',
     'features.novelties',
     'features.processamento',
+    
+    # Métricas Separadas
+    'features.metricas_primecod',
+    'features.metricas_ecomhub',
 ]
 
 MIDDLEWARE = [
@@ -190,19 +184,14 @@ STORAGES = {
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # --- Configurações CORS ---
-# ATUALIZADO: Configuração específica em vez de CORS_ALLOW_ALL_ORIGINS
 CORS_ALLOWED_ORIGINS = [
-    # Domínio customizado
     "https://chegouhub.com.br",
     "https://www.chegouhub.com.br",
-    
-    # URLs Railway (mantidas como backup)
     "https://chegouhub.up.railway.app",
     "https://chegou-hubb-production.up.railway.app",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
-
 print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
 
 CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
@@ -214,18 +203,14 @@ CORS_ALLOW_HEADERS = [
 
 # --- Configuração CSRF ---
 CSRF_TRUSTED_ORIGINS = [
-    # Domínio customizado
     "https://chegouhub.com.br",
     "https://www.chegouhub.com.br",
-    
-    # URLs Railway (mantidas como backup)
     "https://chegouhub.up.railway.app",
     "https://chegou-hubb-production.up.railway.app"
 ]
 
 print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
 
-# Configurações de cookies via variáveis de ambiente
 SESSION_COOKIE_SAMESITE = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax')
 SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
 CSRF_COOKIE_SAMESITE = os.getenv('CSRF_COOKIE_SAMESITE', 'Lax')
