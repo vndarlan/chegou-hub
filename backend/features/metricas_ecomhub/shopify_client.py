@@ -1,4 +1,4 @@
-# backend/features/metricas_ecomhub/shopify_client.py - VERSÃO ATUALIZADA
+# backend/features/metricas_ecomhub/shopify_client.py - CORREÇÃO DA BUSCA
 import requests
 from django.utils import timezone
 from .models import CacheProdutoShopify
@@ -55,7 +55,7 @@ class ShopifyClient:
             raise Exception(f"Falha ao obter informações da loja: {str(e)}")
     
     def get_order_by_number(self, order_number):
-        """Busca pedido pelo número"""
+        """Busca pedido pelo número - VERSÃO CORRIGIDA"""
         try:
             # Primeiro tenta buscar no cache
             cache_entry = CacheProdutoShopify.objects.filter(
@@ -73,23 +73,46 @@ class ShopifyClient:
                     'from_cache': True
                 }
             
-            # Se não está no cache, busca na API
+            # Se não está no cache, busca na API usando diferentes estratégias
             logger.info(f"Buscando pedido #{order_number} na API Shopify")
             
+            # Estratégia 1: Buscar por nome do pedido
             params = {
                 'name': f"#{order_number}",
                 'limit': 1,
-                'fields': 'id,name,line_items'
+                'fields': 'id,name,line_items',
+                'status': 'any'
             }
             
             data = self._make_request('orders.json', params=params)
             orders = data.get('orders', [])
             
+            # Estratégia 2: Se não encontrou, buscar sem #
             if not orders:
-                logger.warning(f"Pedido #{order_number} não encontrado")
+                logger.info(f"Tentando buscar pedido {order_number} sem #")
+                params['name'] = str(order_number)
+                data = self._make_request('orders.json', params=params)
+                orders = data.get('orders', [])
+            
+            # Estratégia 3: Se ainda não encontrou, buscar por order_number field
+            if not orders:
+                logger.info(f"Tentando buscar pedido {order_number} por order_number")
+                params = {
+                    'order_number': str(order_number),
+                    'limit': 1,
+                    'fields': 'id,name,line_items,order_number',
+                    'status': 'any'
+                }
+                data = self._make_request('orders.json', params=params)
+                orders = data.get('orders', [])
+            
+            if not orders:
+                logger.warning(f"Pedido #{order_number} não encontrado em nenhuma estratégia")
                 return None
             
             order = orders[0]
+            logger.info(f"Pedido encontrado: {order.get('name', 'N/A')} (ID: {order.get('id', 'N/A')})")
+            
             line_items = order.get('line_items', [])
             
             if not line_items:
@@ -106,6 +129,8 @@ class ShopifyClient:
                 'sku': first_item.get('sku', ''),
                 'from_cache': False
             }
+            
+            logger.info(f"Produto encontrado: {produto_info['produto_nome']}")
             
             # Salva no cache
             try:
@@ -130,7 +155,7 @@ class ShopifyClient:
             return None
     
     def get_orders_batch(self, order_numbers):
-        """Busca múltiplos pedidos de uma vez (otimização)"""
+        """Busca múltiplos pedidos de uma vez - VERSÃO CORRIGIDA"""
         results = {}
         
         # Primeiro verifica cache
@@ -148,64 +173,22 @@ class ShopifyClient:
                 'from_cache': True
             }
         
-        # Busca os que não estão em cache
+        # Busca os que não estão em cache individualmente
         missing_orders = [num for num in order_numbers if str(num) not in results]
         
-        if missing_orders:
-            logger.info(f"Buscando {len(missing_orders)} pedidos na API Shopify")
-            
-            # Busca em lotes configuráveis
-            batch_size = self.config['batch_size']
-            for i in range(0, len(missing_orders), batch_size):
-                batch = missing_orders[i:i + batch_size]
-                
-                try:
-                    params = {
-                        'limit': 250,
-                        'fields': 'id,name,line_items'
-                    }
-                    
-                    data = self._make_request('orders.json', params=params)
-                    orders = data.get('orders', [])
-                    
-                    # Filtra pelos números que queremos
-                    for order in orders:
-                        order_name = order.get('name', '')
-                        order_number = order_name.replace('#', '')
-                        
-                        if order_number in [str(num) for num in batch]:
-                            line_items = order.get('line_items', [])
-                            if line_items:
-                                first_item = line_items[0]
-                                
-                                produto_info = {
-                                    'produto_nome': first_item.get('name', 'Produto Desconhecido'),
-                                    'produto_id': str(first_item.get('product_id', '')),
-                                    'variant_id': str(first_item.get('variant_id', '')),
-                                    'sku': first_item.get('sku', ''),
-                                    'from_cache': False
-                                }
-                                
-                                results[order_number] = produto_info
-                                
-                                # Salva no cache
-                                try:
-                                    CacheProdutoShopify.objects.update_or_create(
-                                        loja_shopify=self.loja,
-                                        order_number=order_number,
-                                        defaults={
-                                            'produto_nome': produto_info['produto_nome'],
-                                            'produto_id': produto_info['produto_id'],
-                                            'variant_id': produto_info['variant_id'],
-                                            'sku': produto_info['sku']
-                                        }
-                                    )
-                                except Exception as cache_error:
-                                    logger.error(f"Erro ao salvar no cache: {cache_error}")
-                
-                except Exception as e:
-                    logger.error(f"Erro ao buscar lote de pedidos: {e}")
+        logger.info(f"Cache: {len(results)} encontrados, {len(missing_orders)} para buscar na API")
         
+        if missing_orders:
+            for order_number in missing_orders:
+                logger.info(f"Buscando individualmente pedido #{order_number}")
+                produto_info = self.get_order_by_number(order_number)
+                
+                if produto_info:
+                    results[str(order_number)] = produto_info
+                else:
+                    logger.warning(f"Pedido #{order_number} não encontrado")
+        
+        logger.info(f"Total de produtos encontrados: {len(results)}")
         return results
     
     def clear_cache(self):
