@@ -15,5 +15,6 @@ urlpatterns = [
     path('api/ia/', include('features.ia.urls')),
     path('api/metricas/', include('features.metricas.urls')),
     path('api/novelties/', include('features.novelties.urls')),
-    path('api/processamento/', include('features.processamento.urls')),
+    path('processamento/', include('features.processamento.urls')),
+
 ]

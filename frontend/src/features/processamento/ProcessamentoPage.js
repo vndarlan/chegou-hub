@@ -50,7 +50,7 @@ function ProcessamentoPage() {
 
     const loadConfig = async () => {
         try {
-            const response = await axios.get('/api/processamento/config/');
+            const response = await axios.get('/processamento/config/');
             if (response.data.shop_url) {
                 setConfig(response.data);
                 setShopUrl(response.data.shop_url);
@@ -65,7 +65,7 @@ function ProcessamentoPage() {
     const loadLogs = async () => {
         try {
             setLoadingLogs(true);
-            const response = await axios.get('/api/processamento/historico-logs/');
+            const response = await axios.get('/processamento/historico-logs/');
             setLogs(response.data.logs || []);
         } catch (error) {
             console.error('Erro ao carregar logs:', error);
@@ -84,7 +84,7 @@ function ProcessamentoPage() {
         setConnectionResult(null);
 
         try {
-            const response = await axios.post('/api/processamento/test-connection/', {
+            const response = await axios.post('/processamento/test-connection/', {
                 shop_url: shopUrl,
                 access_token: accessToken
             });
@@ -129,7 +129,7 @@ function ProcessamentoPage() {
         setDuplicates([]);
 
         try {
-            const response = await axios.get('/api/processamento/buscar-duplicatas/');
+            const response = await axios.get('/processamento/buscar-duplicatas/');
             setDuplicates(response.data.duplicates || []);
             showNotification(`${response.data.count} duplicatas encontradas`);
             loadLogs(); // Atualiza logs
@@ -144,7 +144,7 @@ function ProcessamentoPage() {
         setCancellingOrder(duplicate.duplicate_order.id);
 
         try {
-            const response = await axios.post('/api/processamento/cancelar-pedido/', {
+            const response = await axios.post('/processamento/cancelar-pedido/', {
                 order_id: duplicate.duplicate_order.id,
                 order_number: duplicate.duplicate_order.number
             });
@@ -172,7 +172,7 @@ function ProcessamentoPage() {
 
         try {
             const orderIds = duplicates.map(d => d.duplicate_order.id);
-            const response = await axios.post('/api/processamento/cancelar-lote/', {
+            const response = await axios.post('/processamento/cancelar-lote/', {
                 order_ids: orderIds
             });
 
