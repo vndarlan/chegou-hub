@@ -16,5 +16,4 @@ urlpatterns = [
     path('api/metricas/', include('features.metricas.urls')),
     path('api/novelties/', include('features.novelties.urls')),
     path('processamento/', include('features.processamento.urls')),
-
 ]
