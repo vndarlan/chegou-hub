@@ -62,7 +62,7 @@ function PrimecodPage() {
     // Buscar análises salvas
     const fetchAnalises = async () => {
         try {
-            const response = await axios.get('/metricas/analises/');
+            const response = await axios.get('/metricas/primecod/analises/');
             const primecodAnalises = response.data.filter(a => a.tipo === 'PRIMECOD');
             setAnalisesSalvas([...primecodAnalises]);
         } catch (error) {
@@ -81,7 +81,7 @@ function PrimecodPage() {
         formData.append('tipo_arquivo', tipo);
         
         try {
-            const response = await axios.post('/metricas/analises/upload_csv/', formData);
+            const response = await axios.post('/metricas/primecod/analises/upload_csv/', formData);
             
             if (response.data.status === 'success') {
                 const dados = response.data.dados_processados;
@@ -124,7 +124,7 @@ function PrimecodPage() {
         
         setIsLoading(true);
         try {
-            const response = await axios.post('/metricas/analises/processar_analise/', {
+            const response = await axios.post('/metricas/primecod/analises/processar_analise/', {
                 nome_analise: nomeAnalise,
                 tipo: 'PRIMECOD',
                 dados_leads: dadosLeads,
@@ -158,7 +158,7 @@ function PrimecodPage() {
         
         setIsLoading(true);
         try {
-            await axios.delete(`/metricas/analises/${id}/`);
+            await axios.delete(`/metricas/primecod/analises/${id}/`);
             showNotification('success', `Análise '${nome}' deletada!`);
             fetchAnalises();
             

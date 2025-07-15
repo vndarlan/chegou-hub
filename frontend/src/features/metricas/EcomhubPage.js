@@ -60,7 +60,7 @@ function EcomhubPage() {
     // Buscar análises salvas
     const fetchAnalises = async () => {
         try {
-            const response = await axios.get('/metricas/analises/');
+            const response = await axios.get('/metricas/ecomhub/analises/');
             const ecomhubAnalises = response.data.filter(a => a.tipo === 'ECOMHUB');
             setAnalisesSalvas([...ecomhubAnalises]);
         } catch (error) {
@@ -79,7 +79,7 @@ function EcomhubPage() {
         formData.append('tipo_arquivo', 'ecomhub');
         
         try {
-            const response = await axios.post('/metricas/analises/upload_csv/', formData);
+            const response = await axios.post('/metricas/ecomhub/analises/upload_csv/', formData);
             
             if (response.data.status === 'success') {
                 setDadosEcomhub(response.data.dados_processados);
@@ -101,7 +101,7 @@ function EcomhubPage() {
         
         setIsLoading(true);
         try {
-            const response = await axios.post('/metricas/analises/processar_analise/', {
+            const response = await axios.post('/metricas/ecomhub/analises/processar_analise/', {
                 nome_analise: nomeAnalise,
                 tipo: 'ECOMHUB',
                 dados_ecomhub: dadosEcomhub
@@ -134,7 +134,7 @@ function EcomhubPage() {
         
         setIsLoading(true);
         try {
-            await axios.delete(`/metricas/analises/${id}/`);
+            await axios.delete(`/metricas/ecomhub/analises/${id}/`);
             showNotification('success', `Análise '${nomeDisplay}' deletada!`);
             fetchAnalises();
             
