@@ -1,6 +1,12 @@
 // frontend/src/features/processamento/ProcessamentoPage.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+
+// Forçar URLs corretas sem /api/
+const processamentoAPI = {
+    get: (url) => axios.get(url.replace('/api/', '/')),
+    post: (url, data) => axios.post(url.replace('/api/', '/'), data)
+};
 import {
     Box, Grid, Title, Text, Button, TextInput, PasswordInput,
     LoadingOverlay, Alert, Card, Group, Stack, Tabs, Table,
@@ -50,13 +56,14 @@ function ProcessamentoPage() {
 
     const loadConfig = async () => {
         try {
-            const response = await axios.get('/processamento/config/');
+            console.log('🔧 Carregando config em:', '/processamento/config/');
+            const response = await processamentoAPI.get('/processamento/config/');
             if (response.data.shop_url) {
                 setConfig(response.data);
                 setShopUrl(response.data.shop_url);
             }
         } catch (error) {
-            console.error('Erro ao carregar configuração:', error);
+            console.error('❌ Erro ao carregar configuração:', error.response?.status, error.response?.config?.url);
         } finally {
             setLoading(false);
         }
@@ -65,10 +72,11 @@ function ProcessamentoPage() {
     const loadLogs = async () => {
         try {
             setLoadingLogs(true);
-            const response = await axios.get('/processamento/historico-logs/');
+            console.log('📊 Carregando logs em:', '/processamento/historico-logs/');
+            const response = await processamentoAPI.get('/processamento/historico-logs/');
             setLogs(response.data.logs || []);
         } catch (error) {
-            console.error('Erro ao carregar logs:', error);
+            console.error('❌ Erro ao carregar logs:', error.response?.status, error.response?.config?.url);
         } finally {
             setLoadingLogs(false);
         }
@@ -84,7 +92,7 @@ function ProcessamentoPage() {
         setConnectionResult(null);
 
         try {
-            const response = await axios.post('/processamento/test-connection/', {
+            const response = await processamentoAPI.post('/processamento/test-connection/', {
                 shop_url: shopUrl,
                 access_token: accessToken
             });
@@ -106,7 +114,7 @@ function ProcessamentoPage() {
         }
 
         try {
-            const response = await axios.post('/processamento/config/', {
+            const response = await processamentoAPI.post('/processamento/config/', {
                 shop_url: shopUrl,
                 access_token: accessToken
             });
@@ -129,7 +137,7 @@ function ProcessamentoPage() {
         setDuplicates([]);
 
         try {
-            const response = await axios.get('/processamento/buscar-duplicatas/');
+            const response = await processamentoAPI.get('/processamento/buscar-duplicatas/');
             setDuplicates(response.data.duplicates || []);
             showNotification(`${response.data.count} duplicatas encontradas`);
             loadLogs(); // Atualiza logs
@@ -144,7 +152,7 @@ function ProcessamentoPage() {
         setCancellingOrder(duplicate.duplicate_order.id);
 
         try {
-            const response = await axios.post('/processamento/cancelar-pedido/', {
+            const response = await processamentoAPI.post('/processamento/cancelar-pedido/', {
                 order_id: duplicate.duplicate_order.id,
                 order_number: duplicate.duplicate_order.number
             });
@@ -172,7 +180,7 @@ function ProcessamentoPage() {
 
         try {
             const orderIds = duplicates.map(d => d.duplicate_order.id);
-            const response = await axios.post('/processamento/cancelar-lote/', {
+            const response = await processamentoAPI.post('/processamento/cancelar-lote/', {
                 order_ids: orderIds
             });
 
