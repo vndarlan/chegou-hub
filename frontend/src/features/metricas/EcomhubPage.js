@@ -8,7 +8,7 @@ import {
 import {
     IconUpload, IconDownload, IconTrash, IconRefresh, IconFileText, IconCheck, IconX, IconAlertTriangle,
     IconTrendingUp, IconTrendingDown, IconBuilding, IconChartBar, IconPlus, IconEdit, IconTestPipe,
-    IconCloudOff, IconCloudCheck, IconSettings, IconShoppingBag, IconDatabase, IconBrandShopify
+    IconCloudOff, IconCloudCheck, IconSettings, IconShoppingBag, IconDatabase, IconBuildingStore
 } from '@tabler/icons-react';
 import axios from 'axios';
 
@@ -299,7 +299,7 @@ function EcomhubPage() {
             </Group>
             
             {lojasShopify.length === 0 ? (
-                <Alert color="blue" icon={<IconBrandShopify size={16} />}>
+                <Alert color="blue" icon={<IconBuildingStore size={16} />}>
                     Nenhuma loja Shopify configurada. Adicione uma loja para processar por produto.
                 </Alert>
             ) : (
@@ -573,7 +573,7 @@ function EcomhubPage() {
                     <Tabs.Tab value="upload" leftSection={<IconUpload size={16} />}>
                         Importar Dados
                     </Tabs.Tab>
-                    <Tabs.Tab value="lojas" leftSection={<IconBrandShopify size={16} />}>
+                    <Tabs.Tab value="lojas" leftSection={<IconBuildingStore size={16} />}>
                         Gerenciar Lojas Shopify
                     </Tabs.Tab>
                     <Tabs.Tab value="analises" leftSection={<IconDatabase size={16} />}>
@@ -603,7 +603,7 @@ function EcomhubPage() {
                                     value={lojaSelecionada?.toString()}
                                     onChange={(value) => setLojaSelecionada(value ? parseInt(value) : null)}
                                     required
-                                    leftSection={<IconBrandShopify size={16} />}
+                                    leftSection={<IconBuildingStore size={16} />}
                                 />
                             )}
                         </Stack>
