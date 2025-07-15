@@ -1,5 +1,6 @@
 # backend/features/metricas_ecomhub/models.py - VERSÃO ATUALIZADA COM SHOPIFY
 from django.db import models
+from django.utils import timezone
 from django.contrib.auth.models import User
 from cryptography.fernet import Fernet
 from django.conf import settings
@@ -128,7 +129,7 @@ class LojaShopify(models.Model):
             shop_info = client.get_shop_info()
             
             self.ultimo_erro = None
-            self.testado_em = models.DateTimeField.auto_now_add
+            self.testado_em = timezone.now()
             self.save()
             
             return True, shop_info
