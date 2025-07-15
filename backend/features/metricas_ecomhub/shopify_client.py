@@ -1,5 +1,6 @@
-# backend/features/metricas_ecomhub/shopify_client.py - CORREÇÃO DA BUSCA
+# backend/features/metricas_ecomhub/shopify_client.py - COM RATE LIMITING
 import requests
+import time
 from django.utils import timezone
 from .models import CacheProdutoShopify
 from .config import get_shopify_config
@@ -8,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class ShopifyClient:
-    """Cliente para interagir com API Shopify"""
+    """Cliente para interagir com API Shopify com Rate Limiting"""
     
     def __init__(self, loja_shopify):
         self.loja = loja_shopify
@@ -20,11 +21,29 @@ class ShopifyClient:
         # Carregar configurações
         self.config = get_shopify_config()
         
+        # Rate limiting
+        self.last_request_time = 0
+        self.min_request_interval = 0.5  # 500ms entre requisições
+        
         if not self.access_token:
             raise ValueError("Access token inválido ou não descriptografado")
     
-    def _make_request(self, endpoint, method='GET', params=None):
-        """Faz requisição à API Shopify"""
+    def _wait_for_rate_limit(self):
+        """Aguarda o intervalo mínimo entre requisições"""
+        current_time = time.time()
+        time_since_last = current_time - self.last_request_time
+        
+        if time_since_last < self.min_request_interval:
+            sleep_time = self.min_request_interval - time_since_last
+            logger.debug(f"Rate limiting: aguardando {sleep_time:.2f}s")
+            time.sleep(sleep_time)
+        
+        self.last_request_time = time.time()
+    
+    def _make_request(self, endpoint, method='GET', params=None, retry_count=0):
+        """Faz requisição à API Shopify com retry automático"""
+        self._wait_for_rate_limit()
+        
         url = f"{self.base_url}/{endpoint}"
         headers = {
             'X-Shopify-Access-Token': self.access_token,
@@ -39,10 +58,27 @@ class ShopifyClient:
             else:
                 response = requests.request(method, url, headers=headers, json=params, timeout=timeout)
             
+            # Verificar rate limit
+            if response.status_code == 429:
+                if retry_count < 3:
+                    # Backoff exponencial: 2, 4, 8 segundos
+                    wait_time = 2 ** (retry_count + 1)
+                    logger.warning(f"Rate limit atingido. Aguardando {wait_time}s antes de tentar novamente...")
+                    time.sleep(wait_time)
+                    return self._make_request(endpoint, method, params, retry_count + 1)
+                else:
+                    raise Exception("Rate limit excedido após 3 tentativas")
+            
             response.raise_for_status()
             return response.json()
             
         except requests.exceptions.RequestException as e:
+            if "429" in str(e) and retry_count < 3:
+                wait_time = 2 ** (retry_count + 1)
+                logger.warning(f"Rate limit detectado. Aguardando {wait_time}s...")
+                time.sleep(wait_time)
+                return self._make_request(endpoint, method, params, retry_count + 1)
+            
             logger.error(f"Erro na requisição Shopify: {e}")
             raise Exception(f"Erro ao conectar com Shopify: {str(e)}")
     
@@ -55,7 +91,7 @@ class ShopifyClient:
             raise Exception(f"Falha ao obter informações da loja: {str(e)}")
     
     def get_order_by_number(self, order_number):
-        """Busca pedido pelo número - VERSÃO CORRIGIDA"""
+        """Busca pedido pelo número com rate limiting"""
         try:
             # Primeiro tenta buscar no cache
             cache_entry = CacheProdutoShopify.objects.filter(
@@ -64,7 +100,7 @@ class ShopifyClient:
             ).first()
             
             if cache_entry:
-                logger.info(f"Produto encontrado no cache para pedido #{order_number}")
+                logger.debug(f"Cache hit para pedido #{order_number}")
                 return {
                     'produto_nome': cache_entry.produto_nome,
                     'produto_id': cache_entry.produto_id,
@@ -73,7 +109,7 @@ class ShopifyClient:
                     'from_cache': True
                 }
             
-            # Se não está no cache, busca na API usando diferentes estratégias
+            # Se não está no cache, busca na API
             logger.info(f"Buscando pedido #{order_number} na API Shopify")
             
             # Estratégia 1: Buscar por nome do pedido
@@ -89,14 +125,14 @@ class ShopifyClient:
             
             # Estratégia 2: Se não encontrou, buscar sem #
             if not orders:
-                logger.info(f"Tentando buscar pedido {order_number} sem #")
+                logger.debug(f"Tentando buscar pedido {order_number} sem #")
                 params['name'] = str(order_number)
                 data = self._make_request('orders.json', params=params)
                 orders = data.get('orders', [])
             
             # Estratégia 3: Se ainda não encontrou, buscar por order_number field
             if not orders:
-                logger.info(f"Tentando buscar pedido {order_number} por order_number")
+                logger.debug(f"Tentando buscar pedido {order_number} por order_number")
                 params = {
                     'order_number': str(order_number),
                     'limit': 1,
@@ -107,12 +143,10 @@ class ShopifyClient:
                 orders = data.get('orders', [])
             
             if not orders:
-                logger.warning(f"Pedido #{order_number} não encontrado em nenhuma estratégia")
+                logger.warning(f"Pedido #{order_number} não encontrado")
                 return None
             
             order = orders[0]
-            logger.info(f"Pedido encontrado: {order.get('name', 'N/A')} (ID: {order.get('id', 'N/A')})")
-            
             line_items = order.get('line_items', [])
             
             if not line_items:
@@ -130,8 +164,6 @@ class ShopifyClient:
                 'from_cache': False
             }
             
-            logger.info(f"Produto encontrado: {produto_info['produto_nome']}")
-            
             # Salva no cache
             try:
                 CacheProdutoShopify.objects.update_or_create(
@@ -144,7 +176,7 @@ class ShopifyClient:
                         'sku': produto_info['sku']
                     }
                 )
-                logger.info(f"Produto salvo no cache para pedido #{order_number}")
+                logger.debug(f"Produto salvo no cache para pedido #{order_number}")
             except Exception as cache_error:
                 logger.error(f"Erro ao salvar no cache: {cache_error}")
             
@@ -155,7 +187,7 @@ class ShopifyClient:
             return None
     
     def get_orders_batch(self, order_numbers):
-        """Busca múltiplos pedidos de uma vez - VERSÃO CORRIGIDA"""
+        """Busca múltiplos pedidos com rate limiting otimizado"""
         results = {}
         
         # Primeiro verifica cache
@@ -173,20 +205,29 @@ class ShopifyClient:
                 'from_cache': True
             }
         
-        # Busca os que não estão em cache individualmente
+        # Busca os que não estão em cache
         missing_orders = [num for num in order_numbers if str(num) not in results]
         
         logger.info(f"Cache: {len(results)} encontrados, {len(missing_orders)} para buscar na API")
         
         if missing_orders:
-            for order_number in missing_orders:
-                logger.info(f"Buscando individualmente pedido #{order_number}")
-                produto_info = self.get_order_by_number(order_number)
+            # Processar em lotes menores para evitar rate limit
+            batch_size = min(10, len(missing_orders))  # Máximo 10 por vez
+            
+            for i in range(0, len(missing_orders), batch_size):
+                batch = missing_orders[i:i + batch_size]
+                logger.info(f"Processando lote {i//batch_size + 1} com {len(batch)} pedidos")
                 
-                if produto_info:
-                    results[str(order_number)] = produto_info
-                else:
-                    logger.warning(f"Pedido #{order_number} não encontrado")
+                for order_number in batch:
+                    produto_info = self.get_order_by_number(order_number)
+                    
+                    if produto_info:
+                        results[str(order_number)] = produto_info
+                
+                # Pausa entre lotes se ainda há mais para processar
+                if i + batch_size < len(missing_orders):
+                    logger.info("Pausa de 2s entre lotes para respeitar rate limit")
+                    time.sleep(2)
         
         logger.info(f"Total de produtos encontrados: {len(results)}")
         return results
