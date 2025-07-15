@@ -106,7 +106,7 @@ function ProcessamentoPage() {
         }
 
         try {
-            const response = await axios.post('/api/processamento/config/', {
+            const response = await axios.post('/processamento/config/', {
                 shop_url: shopUrl,
                 access_token: accessToken
             });
