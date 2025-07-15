@@ -382,7 +382,7 @@ function PrimecodPage() {
             {/* Header */}
             <Group justify="space-between" mb="xl">
                 <div>
-                    <Title order={2}>📊 Dashboard Prime COD</Title>
+                    <Title order={2}>📊 vndarlan/dashprimecod Prime COD</Title>
                     <Text c="dimmed">Análise de efetividade</Text>
                 </div>
                 <Group>

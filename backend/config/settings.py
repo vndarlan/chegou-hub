@@ -88,7 +88,8 @@ INSTALLED_APPS = [
     'features.engajamento',
     'features.ia',
     'features.metricas',
-    'features.novelties'
+    'features.novelties',
+    'features.processamento'
 ]
 
 MIDDLEWARE = [

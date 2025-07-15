@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { DoubleNavbar } from '../components/DoubleNavbar';
 import { Box, LoadingOverlay, Title, Text } from '@mantine/core';
+import ProcessamentoPage from '../features/processamento/ProcessamentoPage';
 
 // --- Importar páginas das funcionalidades existentes ---
 import MapaPage from '../features/mapa/MapaPage';
@@ -120,6 +121,7 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     <Route path="engajamento" element={<EngajamentoPage />} />
                     
                     {/* Placeholder para Suporte */}
+                    <Route path="processamento" element={<ProcessamentoPage />} /> {/* NOVA LINHA ADICIONADA */}
                     <Route path="suporte" element={
                         <Box p="xl" style={{ 
                             backgroundColor: 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-7))',

@@ -64,13 +64,14 @@ const linksBySection = {
     { label: 'Novelties', link: '/workspace/novelties' },
   ],
   suporte: [
+    { label: 'Processamento', link: '/workspace/processamento' }, // NOVA LINHA ADICIONADA
     { label: 'Suporte', link: '/workspace/suporte' },
   ],
   admin: [
     { 
       label: 'Acessar', 
       link: 'https://chegou-hubb-production.up.railway.app/admin/',
-      external: true // Marca como link externo
+      external: true
     },
   ],
 };
