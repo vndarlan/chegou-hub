@@ -211,23 +211,28 @@ class ShopifyClient:
         logger.info(f"Cache: {len(results)} encontrados, {len(missing_orders)} para buscar na API")
         
         if missing_orders:
-            # Processar em lotes menores para evitar rate limit
-            batch_size = min(10, len(missing_orders))  # Máximo 10 por vez
+            # REDUZIR BATCH SIZE para evitar timeout
+            batch_size = min(5, len(missing_orders))  # REDUZIDO DE 10 PARA 5
             
             for i in range(0, len(missing_orders), batch_size):
                 batch = missing_orders[i:i + batch_size]
                 logger.info(f"Processando lote {i//batch_size + 1} com {len(batch)} pedidos")
                 
                 for order_number in batch:
-                    produto_info = self.get_order_by_number(order_number)
-                    
-                    if produto_info:
-                        results[str(order_number)] = produto_info
+                    # ADICIONAR TIMEOUT POR PEDIDO
+                    try:
+                        produto_info = self.get_order_by_number(order_number)
+                        if produto_info:
+                            results[str(order_number)] = produto_info
+                    except Exception as e:
+                        logger.error(f"Erro ao buscar pedido {order_number}: {e}")
+                        # CONTINUA mesmo com erro
+                        continue
                 
-                # Pausa entre lotes se ainda há mais para processar
+                # AUMENTAR PAUSA entre lotes
                 if i + batch_size < len(missing_orders):
-                    logger.info("Pausa de 2s entre lotes para respeitar rate limit")
-                    time.sleep(2)
+                    logger.info("Pausa de 3s entre lotes para respeitar rate limit")
+                    time.sleep(3)  # AUMENTADO DE 2 PARA 3 SEGUNDOS
         
         logger.info(f"Total de produtos encontrados: {len(results)}")
         return results
