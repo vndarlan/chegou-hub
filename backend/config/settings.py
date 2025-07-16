@@ -246,11 +246,11 @@ REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 if not IS_RAILWAY_DEPLOYMENT:
     RQ_QUEUES = {
         'default': {
-            'HOST': 'localhost',
-            'PORT': 6379,
-            'DB': 0,
-            'PASSWORD': '',
-            'DEFAULT_TIMEOUT': 3600,  # 1 hora
+            'host': 'localhost',     # era 'HOST'
+            'port': 6379,           # era 'PORT' 
+            'db': 0,                # era 'DB'
+            'password': '',         # era 'PASSWORD'
+            'default_timeout': 3600,
             'CONNECTION_KWARGS': {
                 'health_check_interval': 30,
             },
