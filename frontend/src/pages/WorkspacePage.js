@@ -20,7 +20,7 @@ import RelatoriosProjetos from '../features/ia/RelatoriosProjetos';
 
 // --- Importar páginas de MÉTRICAS ---
 import PrimecodPage from '../features/metricas/PrimecodPage';
-import EcomhubPage from '../features/metricas/EcomhubPage';
+import EcomhubAsyncPage from '../features/metricas/EcomhubAsyncPage';
 
 // --- Importar página de NOVELTIES ---
 import NoveltiesPage from '../features/novelties/NoveltiesPage';
@@ -115,7 +115,7 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
 
                     {/* 📊 Páginas da área MÉTRICAS */}
                     <Route path="metricas/primecod" element={<PrimecodPage />} />
-                    <Route path="metricas/ecomhub" element={<EcomhubPage />} />
+                    <Route path="metricas/ecomhub" element={<EcomhubAsyncPage />} />
 
                     {/* Páginas da área OPERACIONAL */}
                     <Route path="engajamento" element={<EngajamentoPage />} />
