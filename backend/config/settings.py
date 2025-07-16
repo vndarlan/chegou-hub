@@ -246,11 +246,11 @@ REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 if not IS_RAILWAY_DEPLOYMENT:
     RQ_QUEUES = {
         'default': {
-            'host': 'localhost',     # era 'HOST'
-            'port': 6379,           # era 'PORT' 
-            'db': 0,                # era 'DB'
-            'password': '',         # era 'PASSWORD'
-            'default_timeout': 3600,
+            'HOST': 'localhost',
+            'PORT': 6379,
+            'DB': 0,
+            'PASSWORD': '',
+            'DEFAULT_TIMEOUT': 3600,  # 1 hora
             'CONNECTION_KWARGS': {
                 'health_check_interval': 30,
             },
@@ -259,12 +259,17 @@ if not IS_RAILWAY_DEPLOYMENT:
 else:
     # Para produção (Railway, Heroku, etc)
     import redis
+
+    REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+
     RQ_QUEUES = {
         'default': {
             'CONNECTION': redis.from_url(REDIS_URL),
             'DEFAULT_TIMEOUT': 3600,
         }
     }
+
+    print(f"RQ configurado com Redis: {REDIS_URL}")
 
 # Criar diretório de logs se não existir
 LOG_DIR = BASE_DIR / 'logs'
