@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
+    'django_rq',
     
     # Core (apenas autenticação)
     'core.apps.CoreConfig',
@@ -233,3 +234,104 @@ SESSION_COOKIE_AGE = 86400 * 7
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 print(f"--- Django Settings Loaded ---")
+
+
+# ======================== CONFIGURAÇÃO DJANGO-RQ ========================
+import os
+
+# Configuração Redis para Django-RQ
+REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+
+# Para desenvolvimento local
+if not IS_RAILWAY_DEPLOYMENT:
+    RQ_QUEUES = {
+        'default': {
+            'HOST': 'localhost',
+            'PORT': 6379,
+            'DB': 0,
+            'PASSWORD': '',
+            'DEFAULT_TIMEOUT': 3600,  # 1 hora
+            'CONNECTION_KWARGS': {
+                'health_check_interval': 30,
+            },
+        }
+    }
+else:
+    # Para produção (Railway, Heroku, etc)
+    import redis
+    RQ_QUEUES = {
+        'default': {
+            'CONNECTION': redis.from_url(REDIS_URL),
+            'DEFAULT_TIMEOUT': 3600,
+        }
+    }
+
+# Criar diretório de logs se não existir
+LOG_DIR = BASE_DIR / 'logs'
+LOG_DIR.mkdir(exist_ok=True)
+
+# Configurações de logging para RQ
+if 'LOGGING' not in locals():
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'verbose': {
+                'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+                'style': '{',
+            },
+            'rq': {
+                'format': '[RQ] {levelname} {asctime} - {message}',
+                'style': '{',
+            },
+        },
+        'handlers': {
+            'file_rq': {
+                'level': 'INFO',
+                'class': 'logging.FileHandler',
+                'filename': LOG_DIR / 'rq.log',
+                'formatter': 'rq',
+            },
+            'console': {
+                'level': 'INFO',
+                'class': 'logging.StreamHandler',
+                'formatter': 'verbose',
+            },
+        },
+        'loggers': {
+            'rq.worker': {
+                'handlers': ['file_rq', 'console'],
+                'level': 'INFO',
+                'propagate': False,
+            },
+            'features.metricas_ecomhub': {
+                'handlers': ['file_rq', 'console'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+        },
+    }
+else:
+    # Se LOGGING já existe, adicionar configurações RQ
+    LOGGING['formatters']['rq'] = {
+        'format': '[RQ] {levelname} {asctime} - {message}',
+        'style': '{',
+    }
+    LOGGING['handlers']['file_rq'] = {
+        'level': 'INFO',
+        'class': 'logging.FileHandler',
+        'filename': LOG_DIR / 'rq.log',
+        'formatter': 'rq',
+    }
+    LOGGING['loggers']['rq.worker'] = {
+        'handlers': ['file_rq', 'console'],
+        'level': 'INFO',
+        'propagate': False,
+    }
+    LOGGING['loggers']['features.metricas_ecomhub'] = {
+        'handlers': ['file_rq', 'console'],
+        'level': 'DEBUG',
+        'propagate': False,
+    }
+
+print(f"RQ configurado com Redis: {REDIS_URL}")
