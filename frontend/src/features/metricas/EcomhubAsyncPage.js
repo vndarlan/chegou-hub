@@ -77,7 +77,7 @@ function EcomhubAsyncPage() {
         }
         
         try {
-            const eventSource = new EventSource(`/api/metricas/ecomhub/jobs/${jobId}/progress/`);
+            const eventSource = new EventSource(`/metricas/ecomhub/jobs/${jobId}/progress/`);
             eventSourceRef.current = eventSource;
             
             eventSource.onmessage = (event) => {
@@ -142,7 +142,7 @@ function EcomhubAsyncPage() {
     const fetchAnalises = async () => {
         setLoadingAnalises(true);
         try {
-            const response = await axios.get('/api/metricas/ecomhub/analises/');
+            const response = await axios.get('/metricas/ecomhub/analises/');
             setAnalisesSalvas(response.data);
         } catch (error) {
             console.error('Erro ao buscar análises:', error);
@@ -154,7 +154,7 @@ function EcomhubAsyncPage() {
 
     const fetchJobsAtivos = async () => {
         try {
-            const response = await axios.get('/api/metricas/ecomhub/jobs/ativos/');
+            const response = await axios.get('/metricas/ecomhub/jobs/ativos/');
             setJobsAtivos(response.data);
         } catch (error) {
             console.error('Erro ao buscar jobs ativos:', error);
@@ -163,7 +163,7 @@ function EcomhubAsyncPage() {
 
     const fetchLojasShopify = async () => {
         try {
-            const response = await axios.get('/api/metricas/ecomhub/lojas-shopify/lojas_ativas/');
+            const response = await axios.get('/metricas/ecomhub/lojas-shopify/lojas_ativas/');
             setLojasShopify(response.data);
         } catch (error) {
             console.error('Erro ao buscar lojas Shopify:', error);
@@ -193,7 +193,7 @@ function EcomhubAsyncPage() {
         }
         
         try {
-            const response = await axios.post('/api/metricas/ecomhub/analises/upload_csv_async/', formData);
+            const response = await axios.post('/metricas/ecomhub/analises/upload_csv_async/', formData);
             
             if (response.data.status === 'success') {
                 const jobId = response.data.job_id;
@@ -221,7 +221,7 @@ function EcomhubAsyncPage() {
         if (!window.confirm('Tem certeza que deseja cancelar este processamento?')) return;
         
         try {
-            await axios.post(`/api/metricas/ecomhub/jobs/${jobId}/cancelar/`);
+            await axios.post(`/metricas/ecomhub/jobs/${jobId}/cancelar/`);
             showNotification('success', '✅ Job cancelado com sucesso');
             fetchJobsAtivos();
             
@@ -237,7 +237,7 @@ function EcomhubAsyncPage() {
 
     const buscarResultadoJob = async (jobId) => {
         try {
-            const response = await axios.get(`/api/metricas/ecomhub/jobs/${jobId}/`);
+            const response = await axios.get(`/metricas/ecomhub/jobs/${jobId}/`);
             
             if (response.data.dados_resultado) {
                 setDadosResultado(response.data.dados_resultado);
@@ -259,7 +259,7 @@ function EcomhubAsyncPage() {
         
         setLoadingSalvar(true);
         try {
-            const response = await axios.post('/api/metricas/ecomhub/analises/salvar_de_job/', {
+            const response = await axios.post('/metricas/ecomhub/analises/salvar_de_job/', {
                 job_id: jobSelecionado.job_id,
                 nome_analise: nomeAnalise
             });
@@ -288,10 +288,10 @@ function EcomhubAsyncPage() {
         setLoadingLoja(true);
         try {
             if (editandoLoja) {
-                await axios.put(`/api/metricas/ecomhub/lojas-shopify/${editandoLoja}/`, formLoja);
+                await axios.put(`/metricas/ecomhub/lojas-shopify/${editandoLoja}/`, formLoja);
                 showNotification('success', '✅ Loja Shopify atualizada com sucesso!');
             } else {
-                await axios.post('/api/metricas/ecomhub/lojas-shopify/', formLoja);
+                await axios.post('/metricas/ecomhub/lojas-shopify/', formLoja);
                 showNotification('success', '✅ Loja Shopify cadastrada com sucesso!');
             }
             
@@ -308,7 +308,7 @@ function EcomhubAsyncPage() {
     const testarConexaoLoja = async (lojaId) => {
         setLoadingTeste(prev => ({ ...prev, [lojaId]: true }));
         try {
-            const response = await axios.post(`/api/metricas/ecomhub/lojas-shopify/${lojaId}/testar_conexao/`);
+            const response = await axios.post(`/metricas/ecomhub/lojas-shopify/${lojaId}/testar_conexao/`);
             
             if (response.data.status === 'success') {
                 showNotification('success', `✅ Conexão testada com sucesso! Loja: ${response.data.shop_info.name}`);
@@ -326,7 +326,7 @@ function EcomhubAsyncPage() {
         
         setLoadingDelete(prev => ({ ...prev, [`loja_${id}`]: true }));
         try {
-            await axios.delete(`/api/metricas/ecomhub/lojas-shopify/${id}/`);
+            await axios.delete(`/metricas/ecomhub/lojas-shopify/${id}/`);
             showNotification('success', `✅ Loja '${nome}' deletada!`);
             fetchLojasShopify();
             
@@ -346,7 +346,7 @@ function EcomhubAsyncPage() {
         
         setLoadingDelete(prev => ({ ...prev, [id]: true }));
         try {
-            await axios.delete(`/api/metricas/ecomhub/analises/${id}/`);
+            await axios.delete(`/metricas/ecomhub/analises/${id}/`);
             showNotification('success', `✅ Análise '${nomeDisplay}' deletada!`);
             fetchAnalises();
             
