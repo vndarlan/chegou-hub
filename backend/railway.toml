@@ -3,7 +3,6 @@ builder = "dockerfile"
 dockerfilePath = "backend/Dockerfile"
 
 [deploy]
-startCommand = "${RAILWAY_START_COMMAND}"
 healthcheckPath = "/api/debug/cors/"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"
