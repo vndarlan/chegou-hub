@@ -10,7 +10,7 @@ import {
     IconAlertTriangle, IconTrendingUp, IconBuilding, IconChartBar, IconPlus,
     IconEye, IconActivity, IconSearch, IconWorldWww
 } from '@tabler/icons-react';
-import { TextInput } from '@mantine/core';
+
 import axios from 'axios';
 
 // Países disponíveis
@@ -138,7 +138,7 @@ function EcomhubPage() {
             showNotification('success', `✅ Análise deletada!`);
             fetchAnalises();
             
-            if (dadosResultado && analise?.id === id) {
+            if (dadosResultado && dadosResultado?.id === id) {
                 setDadosResultado(null);
             }
         } catch (error) {
@@ -206,15 +206,12 @@ function EcomhubPage() {
                 </Grid.Col>
                 
                 <Grid.Col span={{ base: 12, sm: 4 }}>
-                    <DatePickerInput
+                    <TextInput
+                        type="date"
                         label="Data de Fim"
-                        placeholder="Selecione a data"
-                        value={dataFim}
-                        onChange={setDataFim}
-                        maxDate={new Date()}
-                        minDate={dataInicio}
+                        value={dataFim ? dataFim.toISOString().split('T')[0] : ''}
+                        onChange={(e) => setDataFim(e.target.value ? new Date(e.target.value) : null)}
                         disabled={loadingProcessar}
-                        leftSection={<IconCalendar size={16} />}
                     />
                 </Grid.Col>
                 
