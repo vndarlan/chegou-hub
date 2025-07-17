@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Box, Title, Text, Paper, Group, Button, Table, Badge, Stack, Grid,
     Alert, ActionIcon, Modal, Card, Select, Container, Progress,
-    Notification, ScrollArea, Loader, Divider
+    Notification, ScrollArea, Loader, Divider, TextInput
 } from '@mantine/core';
 import {
     IconCalendar, IconDownload, IconTrash, IconRefresh, IconCheck, IconX, 
