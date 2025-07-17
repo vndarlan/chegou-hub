@@ -3,7 +3,7 @@ builder = "dockerfile"
 dockerfilePath = "backend/Dockerfile"
 
 [deploy]
-startCommand = "sh -c 'python manage.py migrate && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --log-level info --timeout 120'"
+startCommand = "${RAILWAY_START_COMMAND}"
 healthcheckPath = "/api/debug/cors/"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"
