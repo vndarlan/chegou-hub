@@ -10,7 +10,7 @@ import {
     IconAlertTriangle, IconTrendingUp, IconBuilding, IconChartBar, IconPlus,
     IconEye, IconActivity, IconSearch, IconWorldWww
 } from '@tabler/icons-react';
-import { DatePickerInput } from '@mantine/dates';
+import { TextInput } from '@mantine/core';
 import axios from 'axios';
 
 // Países disponíveis
@@ -196,14 +196,12 @@ function EcomhubPage() {
             
             <Grid>
                 <Grid.Col span={{ base: 12, sm: 4 }}>
-                    <DatePickerInput
+                    <TextInput
+                        type="date"
                         label="Data de Início"
-                        placeholder="Selecione a data"
-                        value={dataInicio}
-                        onChange={setDataInicio}
-                        maxDate={new Date()}
+                        value={dataInicio ? dataInicio.toISOString().split('T')[0] : ''}
+                        onChange={(e) => setDataInicio(e.target.value ? new Date(e.target.value) : null)}
                         disabled={loadingProcessar}
-                        leftSection={<IconCalendar size={16} />}
                     />
                 </Grid.Col>
                 
