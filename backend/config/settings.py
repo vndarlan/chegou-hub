@@ -340,3 +340,7 @@ else:
     }
 
 print(f"RQ configurado com Redis: {REDIS_URL}")
+
+# ======================== CONFIGURAÇÃO SERVIDOR SELENIUM ECOMHUB ========================
+ECOMHUB_SELENIUM_SERVER = os.getenv('ECOMHUB_SELENIUM_SERVER', 'https://ecomhub-selenium-production.up.railway.app')
+print(f"Servidor Selenium EcomHub configurado: {ECOMHUB_SELENIUM_SERVER}")
