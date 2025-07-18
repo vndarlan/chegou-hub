@@ -71,7 +71,7 @@ function EcomhubPage() {
         setProgressoAtual({ etapa: 'Iniciando automação...', porcentagem: 0 });
 
         try {
-            const response = await axios.post('/metricas/ecomhub/processar-selenium/', {
+            const response = await axios.post('/metricas/ecomhub/analises/processar_selenium/', {
                 data_inicio: dataInicio.toISOString().split('T')[0],
                 data_fim: dataFim.toISOString().split('T')[0],
                 pais_id: paisSelecionado
