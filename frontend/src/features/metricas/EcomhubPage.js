@@ -1,4 +1,3 @@
-// frontend/src/features/metricas/EcomhubPage.js
 import React, { useState, useEffect } from 'react';
 import {
     Box, Title, Text, Paper, Group, Button, Table, Stack, Grid,
@@ -35,40 +34,27 @@ function EcomhubPage() {
     const [progressoAtual, setProgressoAtual] = useState(null);
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
-    // Mock API calls - replace with actual API calls
+    // Real API calls using fetch
     const apiCall = async (method, url, data = null) => {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const config = {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        };
         
-        if (url.includes('analises/processar_selenium')) {
-            return {
-                data: {
-                    status: 'success',
-                    dados_processados: [
-                        {
-                            Imagem: 'https://api.ecomhub.app/public/products/featuredImage-1736857928656-374d84ce.jpeg',
-                            Produto: 'Drone W8 PRO MAX',
-                            Total: 7,
-                            ready_to_ship: 7,
-                            Efetividade: '0%'
-                        },
-                        {
-                            Imagem: null,
-                            Produto: 'Total',
-                            Total: 7,
-                            ready_to_ship: 7,
-                            Efetividade: '0% (Média)'
-                        }
-                    ]
-                }
-            };
+        if (data) {
+            config.body = JSON.stringify(data);
         }
         
-        if (url.includes('analises/') && method === 'GET') {
-            return { data: [] };
+        const response = await fetch(url, config);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        return { data: { id: 1 } };
+        const result = await response.json();
+        return { data: result };
     };
 
     const fetchAnalises = async () => {
