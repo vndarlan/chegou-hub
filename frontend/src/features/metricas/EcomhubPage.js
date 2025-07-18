@@ -1,66 +1,55 @@
+// frontend/src/features/metricas/EcomhubPage.js
 import React, { useState, useEffect } from 'react';
 import {
-    Box, Title, Text, Paper, Group, Button, Table, Stack, Grid,
+    Box, Title, Text, Paper, Group, Button, Table, Badge, Stack, Grid,
     Alert, ActionIcon, Modal, Card, Select, Container, Progress,
-    ScrollArea, Loader, TextInput, Badge
+    Notification, ScrollArea, Loader, Divider, TextInput
 } from '@mantine/core';
 import {
     IconCalendar, IconDownload, IconTrash, IconRefresh, IconCheck, IconX, 
-    IconAlertTriangle, IconBuilding, IconChartBar,
-    IconEye, IconActivity, IconSearch, IconWorldWww, IconChevronUp, IconChevronDown
+    IconAlertTriangle, IconTrendingUp, IconBuilding, IconChartBar, IconPlus,
+    IconEye, IconActivity, IconSearch, IconWorldWww
 } from '@tabler/icons-react';
 
+import axios from 'axios';
+
+// Países disponíveis
 const PAISES = [
-    { value: '164', label: 'Espanha' },
-    { value: '41', label: 'Croácia' },
-    { value: '66', label: 'Grécia' },
-    { value: '82', label: 'Itália' },
-    { value: '142', label: 'Romênia' }
+    { value: '164', label: '🇪🇸 Espanha' },
+    { value: '41', label: '🇭🇷 Croácia' },
+    { value: '66', label: '🇬🇷 Grécia' },
+    { value: '82', label: '🇮🇹 Itália' },
+    { value: '142', label: '🇷🇴 Romênia' }
 ];
 
 function EcomhubPage() {
+    // Estados principais
     const [analisesSalvas, setAnalisesSalvas] = useState([]);
     const [dadosResultado, setDadosResultado] = useState(null);
+    
+    // Estados do formulário
     const [dataInicio, setDataInicio] = useState(null);
     const [dataFim, setDataFim] = useState(null);
-    const [paisSelecionado, setPaisSelecionado] = useState('164');
+    const [paisSelecionado, setPaisSelecionado] = useState('164'); // Espanha default
+    
+    // Estados de modal e loading
     const [modalSalvar, setModalSalvar] = useState(false);
     const [nomeAnalise, setNomeAnalise] = useState('');
     const [loadingProcessar, setLoadingProcessar] = useState(false);
     const [loadingSalvar, setLoadingSalvar] = useState(false);
     const [loadingAnalises, setLoadingAnalises] = useState(false);
     const [loadingDelete, setLoadingDelete] = useState({});
+    
+    // Estados de notificação e progresso
     const [notification, setNotification] = useState(null);
     const [progressoAtual, setProgressoAtual] = useState(null);
-    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
-    // Real API calls using fetch
-    const apiCall = async (method, url, data = null) => {
-        const config = {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        };
-        
-        if (data) {
-            config.body = JSON.stringify(data);
-        }
-        
-        const response = await fetch(url, config);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        return { data: result };
-    };
+    // ======================== FUNÇÕES DE API ========================
 
     const fetchAnalises = async () => {
         setLoadingAnalises(true);
         try {
-            const response = await apiCall('GET', '/metricas/ecomhub/analises/');
+            const response = await axios.get('/metricas/ecomhub/analises/');
             setAnalisesSalvas(response.data);
         } catch (error) {
             console.error('Erro ao buscar análises:', error);
@@ -81,19 +70,11 @@ function EcomhubPage() {
             return;
         }
 
-        const diffTime = Math.abs(dataFim - dataInicio);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        if (diffDays === 0) {
-            showNotification('error', 'Selecione um período de pelo menos 2 dias');
-            return;
-        }
-
         setLoadingProcessar(true);
         setProgressoAtual({ etapa: 'Iniciando automação...', porcentagem: 0 });
 
         try {
-            const response = await apiCall('POST', '/metricas/ecomhub/analises/processar_selenium/', {
+            const response = await axios.post('/metricas/ecomhub/analises/processar_selenium/', {
                 data_inicio: dataInicio.toISOString().split('T')[0],
                 data_fim: dataFim.toISOString().split('T')[0],
                 pais_id: paisSelecionado
@@ -101,15 +82,16 @@ function EcomhubPage() {
 
             if (response.data.status === 'success') {
                 setDadosResultado(response.data.dados_processados);
-                showNotification('success', 'Dados processados com sucesso!');
+                showNotification('success', '✅ Dados processados com sucesso!');
                 
+                // Gerar nome automático para análise
                 const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
                 const dataStr = `${dataInicio.toLocaleDateString()} - ${dataFim.toLocaleDateString()}`;
                 setNomeAnalise(`${paisNome} ${dataStr}`);
             }
         } catch (error) {
             console.error('Erro no processamento:', error);
-            showNotification('error', `Erro: ${error.message}`);
+            showNotification('error', `❌ Erro: ${error.response?.data?.message || error.message}`);
         } finally {
             setLoadingProcessar(false);
             setProgressoAtual(null);
@@ -124,7 +106,7 @@ function EcomhubPage() {
 
         setLoadingSalvar(true);
         try {
-            const response = await apiCall('POST', '/metricas/ecomhub/analises/', {
+            const response = await axios.post('/metricas/ecomhub/analises/', {
                 nome: nomeAnalise,
                 dados_efetividade: dadosResultado,
                 tipo_metrica: 'produto',
@@ -132,13 +114,13 @@ function EcomhubPage() {
             });
 
             if (response.data.id) {
-                showNotification('success', `Análise '${nomeAnalise}' salva!`);
+                showNotification('success', `✅ Análise '${nomeAnalise}' salva!`);
                 setModalSalvar(false);
                 setNomeAnalise('');
                 fetchAnalises();
             }
         } catch (error) {
-            showNotification('error', `Erro ao salvar: ${error.message}`);
+            showNotification('error', `❌ Erro ao salvar: ${error.response?.data?.message || error.message}`);
         } finally {
             setLoadingSalvar(false);
         }
@@ -146,7 +128,7 @@ function EcomhubPage() {
 
     const carregarAnalise = (analise) => {
         setDadosResultado(analise.dados_efetividade);
-        showNotification('success', 'Análise carregada!');
+        showNotification('success', '✅ Análise carregada!');
     };
 
     const deletarAnalise = async (id, nome) => {
@@ -155,19 +137,21 @@ function EcomhubPage() {
 
         setLoadingDelete(prev => ({ ...prev, [id]: true }));
         try {
-            await apiCall('DELETE', `/metricas/ecomhub/analises/${id}/`);
-            showNotification('success', 'Análise deletada!');
+            await axios.delete(`/metricas/ecomhub/analises/${id}/`);
+            showNotification('success', `✅ Análise deletada!`);
             fetchAnalises();
             
             if (dadosResultado && dadosResultado?.id === id) {
                 setDadosResultado(null);
             }
         } catch (error) {
-            showNotification('error', `Erro ao deletar: ${error.message}`);
+            showNotification('error', `❌ Erro ao deletar: ${error.response?.data?.message || error.message}`);
         } finally {
             setLoadingDelete(prev => ({ ...prev, [id]: false }));
         }
     };
+
+    // ======================== FUNÇÕES AUXILIARES ========================
 
     const showNotification = (type, message) => {
         setNotification({ type, message });
@@ -185,34 +169,7 @@ function EcomhubPage() {
         return { backgroundColor: '#F44336', color: 'white', fontWeight: 'bold' };
     };
 
-    const handleSort = (key) => {
-        let direction = 'asc';
-        if (sortConfig.key === key && sortConfig.direction === 'asc') {
-            direction = 'desc';
-        }
-        setSortConfig({ key, direction });
-    };
-
-    const sortedData = React.useMemo(() => {
-        if (!dadosResultado || !sortConfig.key) return dadosResultado;
-        
-        return [...dadosResultado].sort((a, b) => {
-            let aValue = a[sortConfig.key];
-            let bValue = b[sortConfig.key];
-            
-            if (sortConfig.key === 'Efetividade') {
-                aValue = parseFloat(aValue?.replace('%', '').replace('(Média)', '') || 0);
-                bValue = parseFloat(bValue?.replace('%', '').replace('(Média)', '') || 0);
-            } else if (typeof aValue === 'string' && !isNaN(aValue)) {
-                aValue = parseFloat(aValue) || 0;
-                bValue = parseFloat(bValue) || 0;
-            }
-            
-            if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-            if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-            return 0;
-        });
-    }, [dadosResultado, sortConfig]);
+    // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
     const renderFormulario = () => (
         <Paper shadow="sm" p="md" mb="md" style={{ position: 'relative' }}>
@@ -238,7 +195,7 @@ function EcomhubPage() {
                 </div>
             )}
 
-            <Title order={4} mb="md">Processamento Automático</Title>
+            <Title order={4} mb="md">🤖 Processamento Automático - EcomHub</Title>
             
             <Grid>
                 <Grid.Col span={{ base: 12, sm: 4 }}>
@@ -248,7 +205,6 @@ function EcomhubPage() {
                         value={dataInicio ? dataInicio.toISOString().split('T')[0] : ''}
                         onChange={(e) => setDataInicio(e.target.value ? new Date(e.target.value) : null)}
                         disabled={loadingProcessar}
-                        leftSection={<IconCalendar size={16} />}
                     />
                 </Grid.Col>
                 
@@ -259,7 +215,6 @@ function EcomhubPage() {
                         value={dataFim ? dataFim.toISOString().split('T')[0] : ''}
                         onChange={(e) => setDataFim(e.target.value ? new Date(e.target.value) : null)}
                         disabled={loadingProcessar}
-                        leftSection={<IconCalendar size={16} />}
                     />
                 </Grid.Col>
                 
@@ -275,7 +230,11 @@ function EcomhubPage() {
                 </Grid.Col>
             </Grid>
 
-            <Group justify="flex-end" mt="md">
+            <Group justify="space-between" mt="md">
+                <Text size="sm" c="dimmed">
+                    🔄 Automação via Selenium - Servidor externo
+                </Text>
+                
                 <Button
                     leftSection={loadingProcessar ? <Loader size="xs" /> : <IconSearch size={16} />}
                     onClick={processarDados}
@@ -291,17 +250,11 @@ function EcomhubPage() {
 
     const renderResultados = () => {
         if (!dadosResultado || !Array.isArray(dadosResultado)) return null;
-        
-        const dataToRender = sortedData || dadosResultado;
-        const columns = Object.keys(dataToRender[0] || {});
 
         return (
             <Paper shadow="sm" p="md" mb="md">
                 <Group justify="space-between" mb="md">
-                    <Box>
-                        <Title order={3}>Lista de produtos</Title>
-                        <Text c="dimmed">Veja dados segmentados por produto</Text>
-                    </Box>
+                    <Title order={4}>📊 Efetividade por Produto</Title>
                     <Button
                         leftSection={<IconDownload size={16} />}
                         onClick={() => setModalSalvar(true)}
@@ -315,29 +268,13 @@ function EcomhubPage() {
                     <Table striped highlightOnHover>
                         <Table.Thead>
                             <Table.Tr>
-                                {columns.map(col => (
-                                    <Table.Th 
-                                        key={col}
-                                        style={{ 
-                                            width: col === 'Imagem' ? '80px' : 'auto',
-                                            cursor: col !== 'Imagem' ? 'pointer' : 'default'
-                                        }}
-                                        onClick={() => col !== 'Imagem' && handleSort(col)}
-                                    >
-                                        <Group gap="xs" wrap="nowrap">
-                                            <Text size="sm" fw={500}>{col}</Text>
-                                            {col !== 'Imagem' && sortConfig.key === col && (
-                                                sortConfig.direction === 'asc' ? 
-                                                <IconChevronUp size={14} /> : 
-                                                <IconChevronDown size={14} />
-                                            )}
-                                        </Group>
-                                    </Table.Th>
+                                {Object.keys(dadosResultado[0] || {}).map(col => (
+                                    <Table.Th key={col}>{col}</Table.Th>
                                 ))}
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
-                            {dataToRender.map((row, idx) => (
+                            {dadosResultado.map((row, idx) => (
                                 <Table.Tr
                                     key={idx}
                                     style={{
@@ -350,41 +287,7 @@ function EcomhubPage() {
                                             key={col}
                                             style={col === 'Efetividade' ? getEfetividadeCor(value) : {}}
                                         >
-                                            {col === 'Imagem' ? (
-                                                <Box style={{ width: '60px', height: '60px', position: 'relative' }}>
-                                                    {value ? (
-                                                        <img 
-                                                            src={value} 
-                                                            alt="Produto" 
-                                                            style={{
-                                                                width: '100%',
-                                                                height: '100%',
-                                                                objectFit: 'cover',
-                                                                borderRadius: '8px',
-                                                                border: '1px solid #e0e0e0'
-                                                            }}
-                                                            onError={(e) => {
-                                                                e.target.style.display = 'none';
-                                                            }}
-                                                        />
-                                                    ) : (
-                                                        <Box style={{
-                                                            width: '100%',
-                                                            height: '100%',
-                                                            backgroundColor: '#f5f5f5',
-                                                            borderRadius: '8px',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            border: '1px solid #e0e0e0'
-                                                        }}>
-                                                            <IconBuilding size={24} color="#999" />
-                                                        </Box>
-                                                    )}
-                                                </Box>
-                                            ) : (
-                                                typeof value === 'number' ? value.toLocaleString() : value
-                                            )}
+                                            {typeof value === 'number' ? value.toLocaleString() : value}
                                         </Table.Td>
                                     ))}
                                 </Table.Tr>
@@ -413,7 +316,7 @@ function EcomhubPage() {
             )}
 
             <Group justify="space-between" mb="md">
-                <Title order={4}>Análises Salvas ({analisesSalvas.length})</Title>
+                <Title order={4}>💾 Análises Salvas ({analisesSalvas.length})</Title>
                 <Button
                     leftSection={<IconRefresh size={16} />}
                     variant="outline"
@@ -455,12 +358,12 @@ function EcomhubPage() {
                                         {analise.nome.replace('[ECOMHUB] ', '')}
                                     </Text>
                                     <Badge color="blue" variant="light">
-                                        Produto
+                                        🛍️ Produto
                                     </Badge>
                                 </Group>
 
                                 <Text size="xs" c="dimmed" mb="md">
-                                    {new Date(analise.criado_em).toLocaleDateString('pt-BR')} por {analise.criado_por_nome}
+                                    📅 {new Date(analise.criado_em).toLocaleDateString('pt-BR')} por {analise.criado_por_nome}
                                 </Text>
 
                                 <Group justify="space-between">
@@ -489,23 +392,28 @@ function EcomhubPage() {
         </Paper>
     );
 
+    // ======================== EFEITOS ========================
+
     useEffect(() => {
         fetchAnalises();
     }, []);
 
+    // ======================== RENDER PRINCIPAL ========================
+
     return (
         <Container fluid p="md">
+            {/* Header */}
             <Group justify="space-between" mb="xl">
                 <div>
-                    <Title order={2}>ECOMHUB - Automação Selenium</Title>
+                    <Title order={2}>🤖 ECOMHUB - Automação Selenium</Title>
                     <Text c="dimmed">Processamento automático de dados via automação web</Text>
                 </div>
                 <Badge color="green" variant="light" size="lg">
-                    <IconActivity size={16} style={{ marginRight: 4 }} />
                     Servidor Externo
                 </Badge>
             </Group>
 
+            {/* Notificações */}
             {notification && (
                 <Alert
                     color={notification.type === 'success' ? 'green' : notification.type === 'warning' ? 'yellow' : 'red'}
@@ -520,14 +428,20 @@ function EcomhubPage() {
                 </Alert>
             )}
 
+            {/* Formulário de Processamento */}
             {renderFormulario()}
+
+            {/* Resultados */}
             {renderResultados()}
+
+            {/* Análises Salvas */}
             {renderAnalisesSalvas()}
 
+            {/* Modal para salvar análise */}
             <Modal
                 opened={modalSalvar}
                 onClose={() => setModalSalvar(false)}
-                title="Salvar Análise"
+                title="💾 Salvar Análise"
             >
                 <Stack style={{ position: 'relative' }}>
                     {loadingSalvar && (
