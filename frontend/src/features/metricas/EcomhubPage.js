@@ -3,23 +3,24 @@ import React, { useState, useEffect } from 'react';
 import {
     Box, Title, Text, Paper, Group, Button, Table, Badge, Stack, Grid,
     Alert, ActionIcon, Modal, Card, Select, Container, Progress,
-    Notification, ScrollArea, Loader, Divider, TextInput
+    Notification, ScrollArea, Loader, Divider, TextInput, ThemeIcon
 } from '@mantine/core';
 import {
     IconCalendar, IconDownload, IconTrash, IconRefresh, IconCheck, IconX, 
     IconAlertTriangle, IconTrendingUp, IconBuilding, IconChartBar, IconPlus,
-    IconEye, IconActivity, IconSearch, IconWorldWww
+    IconEye, IconActivity, IconSearch, IconWorldWww, IconSortAscending,
+    IconSortDescending, IconPackage, IconTarget, IconPercentage
 } from '@tabler/icons-react';
 
 import axios from 'axios';
 
 // Países disponíveis
 const PAISES = [
-    { value: '164', label: '🇪🇸 Espanha' },
-    { value: '41', label: '🇭🇷 Croácia' },
-    { value: '66', label: '🇬🇷 Grécia' },
-    { value: '82', label: '🇮🇹 Itália' },
-    { value: '142', label: '🇷🇴 Romênia' }
+    { value: '164', label: 'Espanha' },
+    { value: '41', label: 'Croácia' },
+    { value: '66', label: 'Grécia' },
+    { value: '82', label: 'Itália' },
+    { value: '142', label: 'Romênia' }
 ];
 
 function EcomhubPage() {
@@ -43,6 +44,10 @@ function EcomhubPage() {
     // Estados de notificação e progresso
     const [notification, setNotification] = useState(null);
     const [progressoAtual, setProgressoAtual] = useState(null);
+
+    // Estados para ordenação
+    const [sortBy, setSortBy] = useState(null);
+    const [sortOrder, setSortOrder] = useState('asc');
 
     // ======================== FUNÇÕES DE API ========================
 
@@ -82,7 +87,7 @@ function EcomhubPage() {
 
             if (response.data.status === 'success') {
                 setDadosResultado(response.data.dados_processados);
-                showNotification('success', '✅ Dados processados com sucesso!');
+                showNotification('success', 'Dados processados com sucesso!');
                 
                 // Gerar nome automático para análise
                 const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
@@ -91,7 +96,7 @@ function EcomhubPage() {
             }
         } catch (error) {
             console.error('Erro no processamento:', error);
-            showNotification('error', `❌ Erro: ${error.response?.data?.message || error.message}`);
+            showNotification('error', `Erro: ${error.response?.data?.message || error.message}`);
         } finally {
             setLoadingProcessar(false);
             setProgressoAtual(null);
@@ -114,13 +119,13 @@ function EcomhubPage() {
             });
 
             if (response.data.id) {
-                showNotification('success', `✅ Análise '${nomeAnalise}' salva!`);
+                showNotification('success', `Análise '${nomeAnalise}' salva!`);
                 setModalSalvar(false);
                 setNomeAnalise('');
                 fetchAnalises();
             }
         } catch (error) {
-            showNotification('error', `❌ Erro ao salvar: ${error.response?.data?.message || error.message}`);
+            showNotification('error', `Erro ao salvar: ${error.response?.data?.message || error.message}`);
         } finally {
             setLoadingSalvar(false);
         }
@@ -128,7 +133,7 @@ function EcomhubPage() {
 
     const carregarAnalise = (analise) => {
         setDadosResultado(analise.dados_efetividade);
-        showNotification('success', '✅ Análise carregada!');
+        showNotification('success', 'Análise carregada!');
     };
 
     const deletarAnalise = async (id, nome) => {
@@ -138,14 +143,14 @@ function EcomhubPage() {
         setLoadingDelete(prev => ({ ...prev, [id]: true }));
         try {
             await axios.delete(`/metricas/ecomhub/analises/${id}/`);
-            showNotification('success', `✅ Análise deletada!`);
+            showNotification('success', `Análise deletada!`);
             fetchAnalises();
             
             if (dadosResultado && dadosResultado?.id === id) {
                 setDadosResultado(null);
             }
         } catch (error) {
-            showNotification('error', `❌ Erro ao deletar: ${error.response?.data?.message || error.message}`);
+            showNotification('error', `Erro ao deletar: ${error.response?.data?.message || error.message}`);
         } finally {
             setLoadingDelete(prev => ({ ...prev, [id]: false }));
         }
@@ -169,7 +174,118 @@ function EcomhubPage() {
         return { backgroundColor: '#F44336', color: 'white', fontWeight: 'bold' };
     };
 
+    // Ordenação da tabela
+    const sortData = (data, sortBy, sortOrder) => {
+        if (!sortBy) return data;
+        
+        return [...data].sort((a, b) => {
+            let aVal = a[sortBy];
+            let bVal = b[sortBy];
+            
+            // Converter percentuais para números
+            if (typeof aVal === 'string' && aVal.includes('%')) {
+                aVal = parseFloat(aVal.replace('%', ''));
+            }
+            if (typeof bVal === 'string' && bVal.includes('%')) {
+                bVal = parseFloat(bVal.replace('%', ''));
+            }
+            
+            // Converter números como strings
+            if (typeof aVal === 'string' && !isNaN(aVal)) aVal = parseFloat(aVal);
+            if (typeof bVal === 'string' && !isNaN(bVal)) bVal = parseFloat(bVal);
+            
+            if (sortOrder === 'asc') {
+                return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+            } else {
+                return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+            }
+        });
+    };
+
+    const handleSort = (column) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('asc');
+        }
+    };
+
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
+
+    const renderEstatisticas = () => {
+        if (!dadosResultado || !Array.isArray(dadosResultado)) return null;
+        
+        const produtos = dadosResultado.filter(item => item.Produto !== 'Total');
+        const totalProdutos = produtos.length;
+        const efetividadeMedia = produtos.reduce((sum, item) => {
+            const ef = parseFloat(item.Efetividade?.replace('%', '') || 0);
+            return sum + ef;
+        }, 0) / totalProdutos;
+        
+        const totalVendas = produtos.reduce((sum, item) => sum + (item.Delivered || 0), 0);
+        const totalLeads = produtos.reduce((sum, item) => sum + (item['Confirmed (Leads)'] || 0), 0);
+        
+        return (
+            <Grid gutter="md" mb="xl">
+                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+                    <Card withBorder>
+                        <Group justify="space-between">
+                            <div>
+                                <Text size="sm" c="dimmed">Produtos</Text>
+                                <Text size="xl" fw={700}>{totalProdutos}</Text>
+                            </div>
+                            <ThemeIcon color="blue" variant="light" size="xl">
+                                <IconPackage size={24} />
+                            </ThemeIcon>
+                        </Group>
+                    </Card>
+                </Grid.Col>
+                
+                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+                    <Card withBorder>
+                        <Group justify="space-between">
+                            <div>
+                                <Text size="sm" c="dimmed">Total Vendas</Text>
+                                <Text size="xl" fw={700} c="green">{totalVendas.toLocaleString()}</Text>
+                            </div>
+                            <ThemeIcon color="green" variant="light" size="xl">
+                                <IconTrendingUp size={24} />
+                            </ThemeIcon>
+                        </Group>
+                    </Card>
+                </Grid.Col>
+                
+                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+                    <Card withBorder>
+                        <Group justify="space-between">
+                            <div>
+                                <Text size="sm" c="dimmed">Total Leads</Text>
+                                <Text size="xl" fw={700} c="blue">{totalLeads.toLocaleString()}</Text>
+                            </div>
+                            <ThemeIcon color="blue" variant="light" size="xl">
+                                <IconTarget size={24} />
+                            </ThemeIcon>
+                        </Group>
+                    </Card>
+                </Grid.Col>
+                
+                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+                    <Card withBorder>
+                        <Group justify="space-between">
+                            <div>
+                                <Text size="sm" c="dimmed">Efetividade Média</Text>
+                                <Text size="xl" fw={700} c="orange">{efetividadeMedia.toFixed(1)}%</Text>
+                            </div>
+                            <ThemeIcon color="orange" variant="light" size="xl">
+                                <IconPercentage size={24} />
+                            </ThemeIcon>
+                        </Group>
+                    </Card>
+                </Grid.Col>
+            </Grid>
+        );
+    };
 
     const renderFormulario = () => (
         <Paper shadow="sm" p="md" mb="md" style={{ position: 'relative' }}>
@@ -185,7 +301,7 @@ function EcomhubPage() {
                     zIndex: 10
                 }}>
                     <Loader size="lg" />
-                    <Text mt="md" fw={500}>Processando dados via automação...</Text>
+                    <Text mt="md" fw={500}>Processando dados...</Text>
                     {progressoAtual && (
                         <>
                             <Progress value={progressoAtual.porcentagem} w="60%" mt="md" />
@@ -195,7 +311,10 @@ function EcomhubPage() {
                 </div>
             )}
 
-            <Title order={4} mb="md">🤖 Processamento Automático - EcomHub</Title>
+            <Group gap="sm" mb="md">
+                <IconSearch size={20} />
+                <Title order={4}>Gerar Métricas</Title>
+            </Group>
             
             <Grid>
                 <Grid.Col span={{ base: 12, sm: 4 }}>
@@ -230,11 +349,7 @@ function EcomhubPage() {
                 </Grid.Col>
             </Grid>
 
-            <Group justify="space-between" mt="md">
-                <Text size="sm" c="dimmed">
-                    🔄 Automação via Selenium - Servidor externo
-                </Text>
-                
+            <Group justify="flex-end" mt="md">
                 <Button
                     leftSection={loadingProcessar ? <Loader size="xs" /> : <IconSearch size={16} />}
                     onClick={processarDados}
@@ -242,7 +357,7 @@ function EcomhubPage() {
                     loading={loadingProcessar}
                     size="md"
                 >
-                    {loadingProcessar ? 'Processando...' : 'Processar Dados'}
+                    {loadingProcessar ? 'Processando...' : 'Processar'}
                 </Button>
             </Group>
         </Paper>
@@ -251,30 +366,50 @@ function EcomhubPage() {
     const renderResultados = () => {
         if (!dadosResultado || !Array.isArray(dadosResultado)) return null;
 
+        const colunas = Object.keys(dadosResultado[0] || {});
+        const dadosOrdenados = sortData(dadosResultado, sortBy, sortOrder);
+
         return (
             <Paper shadow="sm" p="md" mb="md">
                 <Group justify="space-between" mb="md">
-                    <Title order={4}>📊 Efetividade por Produto</Title>
-                    <Button
-                        leftSection={<IconDownload size={16} />}
-                        onClick={() => setModalSalvar(true)}
-                        variant="light"
-                    >
-                        Salvar Análise
-                    </Button>
+                    <Title order={4}>Métricas de Produtos</Title>
+                    <Group>
+                        <Badge variant="light" color="blue">
+                            {dadosResultado.length} registros
+                        </Badge>
+                        <Button
+                            leftSection={<IconDownload size={16} />}
+                            onClick={() => setModalSalvar(true)}
+                            variant="light"
+                        >
+                            Salvar Análise
+                        </Button>
+                    </Group>
                 </Group>
 
                 <ScrollArea>
                     <Table striped highlightOnHover>
                         <Table.Thead>
                             <Table.Tr>
-                                {Object.keys(dadosResultado[0] || {}).map(col => (
-                                    <Table.Th key={col}>{col}</Table.Th>
+                                {colunas.map(col => (
+                                    <Table.Th key={col}>
+                                        <Group gap="xs" style={{ cursor: 'pointer' }} onClick={() => handleSort(col)}>
+                                            <Text size="sm" fw={500}>{col}</Text>
+                                            {sortBy === col && (
+                                                <ActionIcon size="xs" variant="transparent">
+                                                    {sortOrder === 'asc' ? 
+                                                        <IconSortAscending size={12} /> : 
+                                                        <IconSortDescending size={12} />
+                                                    }
+                                                </ActionIcon>
+                                            )}
+                                        </Group>
+                                    </Table.Th>
                                 ))}
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
-                            {dadosResultado.map((row, idx) => (
+                            {dadosOrdenados.map((row, idx) => (
                                 <Table.Tr
                                     key={idx}
                                     style={{
@@ -316,15 +451,21 @@ function EcomhubPage() {
             )}
 
             <Group justify="space-between" mb="md">
-                <Title order={4}>💾 Análises Salvas ({analisesSalvas.length})</Title>
-                <Button
-                    leftSection={<IconRefresh size={16} />}
-                    variant="outline"
-                    size="sm"
-                    onClick={fetchAnalises}
-                >
-                    Atualizar
-                </Button>
+                <Group gap="sm">
+                    <IconChartBar size={20} />
+                    <Title order={4}>Análises Salvas</Title>
+                </Group>
+                <Group>
+                    <Badge variant="light">{analisesSalvas.length}</Badge>
+                    <Button
+                        leftSection={<IconRefresh size={16} />}
+                        variant="outline"
+                        size="sm"
+                        onClick={fetchAnalises}
+                    >
+                        Atualizar
+                    </Button>
+                </Group>
             </Group>
 
             {analisesSalvas.length === 0 ? (
@@ -358,12 +499,12 @@ function EcomhubPage() {
                                         {analise.nome.replace('[ECOMHUB] ', '')}
                                     </Text>
                                     <Badge color="blue" variant="light">
-                                        🛍️ Produto
+                                        ECOMHUB
                                     </Badge>
                                 </Group>
 
                                 <Text size="xs" c="dimmed" mb="md">
-                                    📅 {new Date(analise.criado_em).toLocaleDateString('pt-BR')} por {analise.criado_por_nome}
+                                    {new Date(analise.criado_em).toLocaleDateString('pt-BR')} por {analise.criado_por_nome}
                                 </Text>
 
                                 <Group justify="space-between">
@@ -405,12 +546,12 @@ function EcomhubPage() {
             {/* Header */}
             <Group justify="space-between" mb="xl">
                 <div>
-                    <Title order={2}>🤖 ECOMHUB - Automação Selenium</Title>
-                    <Text c="dimmed">Processamento automático de dados via automação web</Text>
+                    <Group gap="sm">
+                        <IconChartBar size={28} color="var(--mantine-color-blue-6)" />
+                        <Title order={2}>Métricas ECOMHUB</Title>
+                    </Group>
+                    <Text c="dimmed">Análise de efetividade de produtos</Text>
                 </div>
-                <Badge color="green" variant="light" size="lg">
-                    Servidor Externo
-                </Badge>
             </Group>
 
             {/* Notificações */}
@@ -431,6 +572,9 @@ function EcomhubPage() {
             {/* Formulário de Processamento */}
             {renderFormulario()}
 
+            {/* Estatísticas */}
+            {renderEstatisticas()}
+
             {/* Resultados */}
             {renderResultados()}
 
@@ -441,7 +585,7 @@ function EcomhubPage() {
             <Modal
                 opened={modalSalvar}
                 onClose={() => setModalSalvar(false)}
-                title="💾 Salvar Análise"
+                title="Salvar Análise"
             >
                 <Stack style={{ position: 'relative' }}>
                     {loadingSalvar && (
@@ -457,16 +601,6 @@ function EcomhubPage() {
                             <Loader size="lg" />
                         </div>
                     )}
-
-                    <Alert color="blue" mb="md" icon={<IconChartBar size={16} />}>
-                        <Text fw={500} mb="xs">Salvando resultado do processamento</Text>
-                        <Text size="sm">
-                            País: {PAISES.find(p => p.value === paisSelecionado)?.label}
-                        </Text>
-                        <Text size="sm">
-                            Período: {dataInicio?.toLocaleDateString()} - {dataFim?.toLocaleDateString()}
-                        </Text>
-                    </Alert>
 
                     <TextInput
                         label="Nome da Análise"
@@ -487,7 +621,7 @@ function EcomhubPage() {
                             loading={loadingSalvar}
                             leftSection={loadingSalvar ? <Loader size="xs" /> : <IconDownload size={16} />}
                         >
-                            {loadingSalvar ? 'Salvando...' : 'Salvar Análise'}
+                            {loadingSalvar ? 'Salvando...' : 'Salvar'}
                         </Button>
                     </Group>
                 </Stack>
