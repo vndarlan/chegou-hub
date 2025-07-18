@@ -91,8 +91,9 @@ function EcomhubPage() {
                 
                 // Gerar nome automático para análise
                 const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
-                const dataStr = `${dataInicio.toLocaleDateString()} - ${dataFim.toLocaleDateString()}`;
-                setNomeAnalise(`${paisNome} ${dataStr}`);
+                const dataInicioStr = `${dataInicio.getDate().toString().padStart(2, '0')}/${(dataInicio.getMonth() + 1).toString().padStart(2, '0')}/${dataInicio.getFullYear()}`;
+                const dataFimStr = `${dataFim.getDate().toString().padStart(2, '0')}/${(dataFim.getMonth() + 1).toString().padStart(2, '0')}/${dataFim.getFullYear()}`;
+                setNomeAnalise(`${paisNome} ${dataInicioStr} - ${dataFimStr}`);
             }
         } catch (error) {
             console.error('Erro no processamento:', error);
@@ -288,7 +289,7 @@ function EcomhubPage() {
     };
 
     const renderFormulario = () => (
-        <Paper shadow="sm" p="md" mb="md" style={{ position: 'relative' }}>
+        <Paper shadow="sm" p="sm" mb="md" style={{ position: 'relative' }}>
             {loadingProcessar && (
                 <div style={{
                     position: 'absolute',
@@ -311,33 +312,35 @@ function EcomhubPage() {
                 </div>
             )}
 
-            <Group gap="sm" mb="md">
-                <IconSearch size={20} />
-                <Title order={4}>Gerar Métricas</Title>
+            <Group gap="sm" mb="sm">
+                <IconSearch size={18} />
+                <Title order={5}>Gerar Métricas</Title>
             </Group>
             
             <Grid>
-                <Grid.Col span={{ base: 12, sm: 4 }}>
+                <Grid.Col span={{ base: 12, sm: 3 }}>
                     <TextInput
                         type="date"
                         label="Data de Início"
                         value={dataInicio ? dataInicio.toISOString().split('T')[0] : ''}
                         onChange={(e) => setDataInicio(e.target.value ? new Date(e.target.value) : null)}
                         disabled={loadingProcessar}
+                        size="sm"
                     />
                 </Grid.Col>
                 
-                <Grid.Col span={{ base: 12, sm: 4 }}>
+                <Grid.Col span={{ base: 12, sm: 3 }}>
                     <TextInput
                         type="date"
                         label="Data de Fim"
                         value={dataFim ? dataFim.toISOString().split('T')[0] : ''}
                         onChange={(e) => setDataFim(e.target.value ? new Date(e.target.value) : null)}
                         disabled={loadingProcessar}
+                        size="sm"
                     />
                 </Grid.Col>
                 
-                <Grid.Col span={{ base: 12, sm: 4 }}>
+                <Grid.Col span={{ base: 12, sm: 3 }}>
                     <Select
                         label="País"
                         data={PAISES}
@@ -345,21 +348,24 @@ function EcomhubPage() {
                         onChange={setPaisSelecionado}
                         disabled={loadingProcessar}
                         leftSection={<IconWorldWww size={16} />}
+                        size="sm"
                     />
                 </Grid.Col>
+                
+                <Grid.Col span={{ base: 12, sm: 3 }}>
+                    <Text size="sm" fw={500} mb="xs">Ação</Text>
+                    <Button
+                        fullWidth
+                        leftSection={loadingProcessar ? <Loader size="xs" /> : <IconSearch size={16} />}
+                        onClick={processarDados}
+                        disabled={!dataInicio || !dataFim || !paisSelecionado || loadingProcessar}
+                        loading={loadingProcessar}
+                        size="sm"
+                    >
+                        {loadingProcessar ? 'Processando...' : 'Processar'}
+                    </Button>
+                </Grid.Col>
             </Grid>
-
-            <Group justify="flex-end" mt="md">
-                <Button
-                    leftSection={loadingProcessar ? <Loader size="xs" /> : <IconSearch size={16} />}
-                    onClick={processarDados}
-                    disabled={!dataInicio || !dataFim || !paisSelecionado || loadingProcessar}
-                    loading={loadingProcessar}
-                    size="md"
-                >
-                    {loadingProcessar ? 'Processando...' : 'Processar'}
-                </Button>
-            </Group>
         </Paper>
     );
 
@@ -422,7 +428,38 @@ function EcomhubPage() {
                                             key={col}
                                             style={col === 'Efetividade' ? getEfetividadeCor(value) : {}}
                                         >
-                                            {typeof value === 'number' ? value.toLocaleString() : value}
+                                            {col === 'Imagem' && value && typeof value === 'string' && value.startsWith('http') ? (
+                                                <img 
+                                                    src={value} 
+                                                    alt="Produto" 
+                                                    style={{ 
+                                                        width: '60px', 
+                                                        height: '60px', 
+                                                        objectFit: 'cover', 
+                                                        borderRadius: '4px' 
+                                                    }} 
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                        e.target.nextSibling.style.display = 'block';
+                                                    }}
+                                                />
+                                            ) : col === 'Imagem' ? (
+                                                <div style={{
+                                                    width: '60px', 
+                                                    height: '60px', 
+                                                    backgroundColor: '#f1f3f4',
+                                                    borderRadius: '4px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '10px',
+                                                    color: '#666'
+                                                }}>
+                                                    Sem imagem
+                                                </div>
+                                            ) : (
+                                                typeof value === 'number' ? value.toLocaleString() : value
+                                            )}
                                         </Table.Td>
                                     ))}
                                 </Table.Tr>
