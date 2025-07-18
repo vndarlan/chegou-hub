@@ -1,246 +1,169 @@
-// frontend/src/features/metricas/PrimecodPage.js - VERSÃO AUTOCONTIDA
+// frontend/src/features/metricas/EcomhubPage.js
 import React, { useState, useEffect } from 'react';
 import {
-    Box,
-    Title,
-    Text,
-    Paper,
-    Group,
-    Button,
-    Table,
-    Badge,
-    FileInput,
-    TextInput,
-    Stack,
-    Grid,
-    Alert,
-    LoadingOverlay,
-    ActionIcon,
-    Modal,
-    Card,
-    List,
-    ThemeIcon
+    Box, Title, Text, Paper, Group, Button, Table, Badge, Stack, Grid,
+    Alert, ActionIcon, Modal, Card, Select, Container, Progress,
+    Notification, ScrollArea, Loader, Divider, TextInput, ThemeIcon
 } from '@mantine/core';
 import {
-    IconUpload,
-    IconDownload,
-    IconTrash,
-    IconRefresh,
-    IconFileText,
-    IconCheck,
-    IconX,
-    IconAlertTriangle,
-    IconTrendingUp,
-    IconUsers,
-    IconCopy,
-    IconChartBar
+    IconCalendar, IconDownload, IconTrash, IconRefresh, IconCheck, IconX, 
+    IconAlertTriangle, IconTrendingUp, IconBuilding, IconChartBar, IconPlus,
+    IconEye, IconActivity, IconSearch, IconWorldWww, IconSortAscending,
+    IconSortDescending, IconPackage, IconTarget, IconPercentage
 } from '@tabler/icons-react';
+
 import axios from 'axios';
 
-function PrimecodPage() {
+// Países disponíveis
+const PAISES = [
+    { value: '164', label: 'Espanha' },
+    { value: '41', label: 'Croácia' },
+    { value: '66', label: 'Grécia' },
+    { value: '82', label: 'Itália' },
+    { value: '142', label: 'Romênia' }
+];
+
+function EcomhubPage() {
     // Estados principais
-    const [isLoading, setIsLoading] = useState(false);
     const [analisesSalvas, setAnalisesSalvas] = useState([]);
-    const [analiseSelecionada, setAnaliseSelecionada] = useState(null);
+    const [dadosResultado, setDadosResultado] = useState(null);
     
-    // Estados para upload
-    const [arquivoLeads, setArquivoLeads] = useState(null);
-    const [arquivoOrders, setArquivoOrders] = useState(null);
-    const [dadosLeads, setDadosLeads] = useState(null);
-    const [dadosOrders, setDadosOrders] = useState(null);
-    const [dadosEfetividade, setDadosEfetividade] = useState(null);
+    // Estados do formulário
+    const [dataInicio, setDataInicio] = useState(null);
+    const [dataFim, setDataFim] = useState(null);
+    const [paisSelecionado, setPaisSelecionado] = useState('164'); // Espanha default
     
-    // Estados para salvar
+    // Estados de modal e loading
     const [modalSalvar, setModalSalvar] = useState(false);
     const [nomeAnalise, setNomeAnalise] = useState('');
+    const [loadingProcessar, setLoadingProcessar] = useState(false);
+    const [loadingSalvar, setLoadingSalvar] = useState(false);
+    const [loadingAnalises, setLoadingAnalises] = useState(false);
+    const [loadingDelete, setLoadingDelete] = useState({});
     
-    // Estados de notificação
+    // Estados de notificação e progresso
     const [notification, setNotification] = useState(null);
+    const [progressoAtual, setProgressoAtual] = useState(null);
+
+    // Estados para ordenação
+    const [sortBy, setSortBy] = useState(null);
+    const [sortOrder, setSortOrder] = useState('asc');
 
     // ======================== FUNÇÕES DE API ========================
 
-    // Buscar análises salvas
     const fetchAnalises = async () => {
+        setLoadingAnalises(true);
         try {
-            const response = await axios.get('/metricas/primecod/analises/');
-            const primecodAnalises = response.data.filter(a => a.tipo === 'PRIMECOD');
-            setAnalisesSalvas([...primecodAnalises]);
+            const response = await axios.get('/metricas/ecomhub/analises/');
+            setAnalisesSalvas(response.data);
         } catch (error) {
             console.error('Erro ao buscar análises:', error);
             showNotification('error', 'Erro ao carregar análises salvas');
-        }
-    };
-
-    // Upload de arquivo
-    const uploadArquivo = async (arquivo, tipo) => {
-        if (!arquivo) return;
-        
-        setIsLoading(true);
-        const formData = new FormData();
-        formData.append('arquivo', arquivo);
-        formData.append('tipo_arquivo', tipo);
-        
-        try {
-            const response = await axios.post('/metricas/primecod/analises/upload_csv/', formData);
-            
-            if (response.data.status === 'success') {
-                const dados = response.data.dados_processados;
-                const unmapped = response.data.status_nao_mapeados || [];
-                
-                if (tipo === 'leads') {
-                    setDadosLeads(dados);
-                    if (unmapped.length > 0) {
-                        showNotification('warning', `Status não mapeados encontrados: ${unmapped.join(', ')}`);
-                    }
-                } else if (tipo === 'orders') {
-                    setDadosOrders(dados);
-                    if (unmapped.length > 0) {
-                        showNotification('warning', `Status de shipping não mapeados: ${unmapped.join(', ')}`);
-                    }
-                }
-                
-                // Se ambos os arquivos foram processados, gerar efetividade
-                if (dadosLeads && tipo === 'orders') {
-                    gerarEfetividade(dadosLeads, dados);
-                } else if (dadosOrders && tipo === 'leads') {
-                    gerarEfetividade(dados, dadosOrders);
-                }
-                
-                showNotification('success', `Arquivo de ${tipo} processado com sucesso!`);
-            }
-        } catch (error) {
-            showNotification('error', `Erro ao processar arquivo: ${error.response?.data?.message || error.message}`);
         } finally {
-            setIsLoading(false);
+            setLoadingAnalises(false);
         }
     };
 
-    // Salvar análise
-    const salvarAnalise = async () => {
-        if (!nomeAnalise || !dadosLeads) {
-            showNotification('error', 'Nome da análise e dados de leads são obrigatórios');
+    const processarDados = async () => {
+        if (!dataInicio || !dataFim || !paisSelecionado) {
+            showNotification('error', 'Selecione as datas e o país');
             return;
         }
-        
-        setIsLoading(true);
+
+        if (dataInicio > dataFim) {
+            showNotification('error', 'Data de início deve ser anterior à data fim');
+            return;
+        }
+
+        setLoadingProcessar(true);
+        setProgressoAtual({ etapa: 'Iniciando automação...', porcentagem: 0 });
+
         try {
-            const response = await axios.post('/metricas/primecod/analises/processar_analise/', {
-                nome_analise: nomeAnalise,
-                tipo: 'PRIMECOD',
-                dados_leads: dadosLeads,
-                dados_orders: dadosOrders || {}
+            const response = await axios.post('/metricas/ecomhub/analises/processar_selenium/', {
+                data_inicio: dataInicio.toISOString().split('T')[0],
+                data_fim: dataFim.toISOString().split('T')[0],
+                pais_id: paisSelecionado
             });
-            
+
             if (response.data.status === 'success') {
-                showNotification('success', `Análise '${nomeAnalise}' salva com sucesso!`);
+                setDadosResultado(response.data.dados_processados);
+                showNotification('success', 'Dados processados com sucesso!');
+                
+                // Gerar nome automático para análise
+                const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
+                const dataInicioStr = `${dataInicio.getDate().toString().padStart(2, '0')}/${(dataInicio.getMonth() + 1).toString().padStart(2, '0')}/${dataInicio.getFullYear()}`;
+                const dataFimStr = `${dataFim.getDate().toString().padStart(2, '0')}/${(dataFim.getMonth() + 1).toString().padStart(2, '0')}/${dataFim.getFullYear()}`;
+                setNomeAnalise(`${paisNome} ${dataInicioStr} - ${dataFimStr}`);
+            }
+        } catch (error) {
+            console.error('Erro no processamento:', error);
+            showNotification('error', `Erro: ${error.response?.data?.message || error.message}`);
+        } finally {
+            setLoadingProcessar(false);
+            setProgressoAtual(null);
+        }
+    };
+
+    const salvarAnalise = async () => {
+        if (!dadosResultado || !nomeAnalise) {
+            showNotification('error', 'Dados ou nome da análise inválidos');
+            return;
+        }
+
+        setLoadingSalvar(true);
+        try {
+            const response = await axios.post('/metricas/ecomhub/analises/', {
+                nome: nomeAnalise,
+                dados_efetividade: dadosResultado,
+                tipo_metrica: 'produto',
+                descricao: `Automação Selenium - ${PAISES.find(p => p.value === paisSelecionado)?.label}`
+            });
+
+            if (response.data.id) {
+                showNotification('success', `Análise '${nomeAnalise}' salva!`);
                 setModalSalvar(false);
                 setNomeAnalise('');
                 fetchAnalises();
             }
         } catch (error) {
-            showNotification('error', `Erro ao salvar análise: ${error.response?.data?.message || error.message}`);
+            showNotification('error', `Erro ao salvar: ${error.response?.data?.message || error.message}`);
         } finally {
-            setIsLoading(false);
+            setLoadingSalvar(false);
         }
     };
 
-    // Carregar análise
     const carregarAnalise = (analise) => {
-        setDadosLeads(analise.dados_leads);
-        setDadosEfetividade(analise.dados_efetividade);
-        setAnaliseSelecionada(analise);
-        showNotification('success', `Análise '${analise.nome}' carregada!`);
+        setDadosResultado(analise.dados_efetividade);
+        showNotification('success', 'Análise carregada!');
     };
 
-    // Deletar análise
     const deletarAnalise = async (id, nome) => {
-        if (!window.confirm(`Deseja deletar a análise '${nome}'?`)) return;
-        
-        setIsLoading(true);
+        const nomeDisplay = nome.replace('[ECOMHUB] ', '');
+        if (!window.confirm(`Deletar análise '${nomeDisplay}'?`)) return;
+
+        setLoadingDelete(prev => ({ ...prev, [id]: true }));
         try {
-            await axios.delete(`/metricas/primecod/analises/${id}/`);
-            showNotification('success', `Análise '${nome}' deletada!`);
+            await axios.delete(`/metricas/ecomhub/analises/${id}/`);
+            showNotification('success', `Análise deletada!`);
             fetchAnalises();
             
-            if (analiseSelecionada?.id === id) {
-                setAnaliseSelecionada(null);
-                setDadosLeads(null);
-                setDadosEfetividade(null);
+            if (dadosResultado && dadosResultado?.id === id) {
+                setDadosResultado(null);
             }
         } catch (error) {
-            showNotification('error', `Erro ao deletar análise: ${error.response?.data?.message || error.message}`);
+            showNotification('error', `Erro ao deletar: ${error.response?.data?.message || error.message}`);
         } finally {
-            setIsLoading(false);
+            setLoadingDelete(prev => ({ ...prev, [id]: false }));
         }
     };
 
     // ======================== FUNÇÕES AUXILIARES ========================
 
-    // Sistema de notificações
     const showNotification = (type, message) => {
         setNotification({ type, message });
         setTimeout(() => setNotification(null), 5000);
     };
 
-    // Gerar efetividade combinada
-    const gerarEfetividade = (leadsData, ordersData) => {
-        const efetividade = [];
-        
-        leadsData.forEach(leadRow => {
-            if (leadRow.Product === 'Total') return;
-            
-            const product = leadRow.Product;
-            const confirmed = leadRow.Confirmed || 0;
-            const totalMinusDup = leadRow['Total - duplicados'] || 0;
-            
-            const orderInfo = ordersData[product] || {};
-            const delivered = orderInfo.Delivered || 0;
-            
-            const efetividadePercent = totalMinusDup > 0 ? (delivered / totalMinusDup * 100) : 0;
-            
-            efetividade.push({
-                Product: product,
-                'Confirmed (Leads)': confirmed,
-                Delivered: delivered,
-                Returned: orderInfo.Returned || 0,
-                Refused: orderInfo.Refused || 0,
-                Incident: orderInfo.Incident || 0,
-                'Order Placed': orderInfo['Order Placed'] || 0,
-                'Out of Stock': orderInfo['Out of Stock'] || 0,
-                Returning: orderInfo.Returning || 0,
-                'Out for Delivery': orderInfo['Out for Delivery'] || 0,
-                Shipped: orderInfo.Shipped || 0,
-                Canceled: orderInfo.Canceled || 0,
-                'Outros Orders': orderInfo.Outros || 0,
-                Efetividade: `${efetividadePercent.toFixed(0)}%`
-            });
-        });
-        
-        // Adicionar totais
-        if (efetividade.length > 0) {
-            const totals = { Product: 'Total' };
-            const numericCols = [
-                'Confirmed (Leads)', 'Delivered', 'Returned', 'Refused', 'Incident',
-                'Order Placed', 'Out of Stock', 'Returning', 'Out for Delivery', 
-                'Shipped', 'Canceled', 'Outros Orders'
-            ];
-            
-            numericCols.forEach(col => {
-                totals[col] = efetividade.reduce((sum, row) => sum + (row[col] || 0), 0);
-            });
-            
-            const totalDelivered = totals.Delivered;
-            const totalLeads = leadsData.find(row => row.Product === 'Total')?.[('Total - duplicados')] || 1;
-            const efetividadeMedia = (totalDelivered / totalLeads * 100);
-            totals.Efetividade = `${efetividadeMedia.toFixed(0)}% (Média)`;
-            
-            efetividade.push(totals);
-        }
-        
-        setDadosEfetividade(efetividade);
-    };
-
-    // Cores para efetividade
     const getEfetividadeCor = (valor) => {
         if (!valor || typeof valor !== 'string') return {};
         
@@ -252,19 +175,57 @@ function PrimecodPage() {
         return { backgroundColor: '#F44336', color: 'white', fontWeight: 'bold' };
     };
 
+    // Ordenação da tabela
+    const sortData = (data, sortBy, sortOrder) => {
+        if (!sortBy) return data;
+        
+        return [...data].sort((a, b) => {
+            let aVal = a[sortBy];
+            let bVal = b[sortBy];
+            
+            // Converter percentuais para números
+            if (typeof aVal === 'string' && aVal.includes('%')) {
+                aVal = parseFloat(aVal.replace('%', ''));
+            }
+            if (typeof bVal === 'string' && bVal.includes('%')) {
+                bVal = parseFloat(bVal.replace('%', ''));
+            }
+            
+            // Converter números como strings
+            if (typeof aVal === 'string' && !isNaN(aVal)) aVal = parseFloat(aVal);
+            if (typeof bVal === 'string' && !isNaN(bVal)) bVal = parseFloat(bVal);
+            
+            if (sortOrder === 'asc') {
+                return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+            } else {
+                return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+            }
+        });
+    };
+
+    const handleSort = (column) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('asc');
+        }
+    };
+
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
-    // Cards de estatísticas
     const renderEstatisticas = () => {
-        if (!dadosLeads) return null;
+        if (!dadosResultado || !Array.isArray(dadosResultado)) return null;
         
-        const totalRow = dadosLeads.find(row => row.Product === 'Total');
-        if (!totalRow) return null;
+        const produtos = dadosResultado.filter(item => item.Produto !== 'Total');
+        const totalProdutos = produtos.length;
+        const efetividadeMedia = produtos.reduce((sum, item) => {
+            const ef = parseFloat(item.Efetividade?.replace('%', '') || 0);
+            return sum + ef;
+        }, 0) / totalProdutos;
         
-        const total = totalRow['Total - duplicados'] || 0;
-        const confirmados = totalRow.Confirmed || 0;
-        const duplicados = totalRow.Duplicate || 0;
-        const taxaConfirmacao = total > 0 ? (confirmados / total * 100) : 0;
+        const totalVendas = produtos.reduce((sum, item) => sum + (item.Delivered || 0), 0);
+        const totalLeads = produtos.reduce((sum, item) => sum + (item['Confirmed (Leads)'] || 0), 0);
         
         return (
             <Grid gutter="md" mb="xl">
@@ -272,11 +233,11 @@ function PrimecodPage() {
                     <Card withBorder>
                         <Group justify="space-between">
                             <div>
-                                <Text size="sm" c="dimmed">Total de Leads</Text>
-                                <Text size="xl" fw={700}>{total.toLocaleString()}</Text>
+                                <Text size="sm" c="dimmed">Produtos</Text>
+                                <Text size="xl" fw={700}>{totalProdutos}</Text>
                             </div>
                             <ThemeIcon color="blue" variant="light" size="xl">
-                                <IconUsers size={24} />
+                                <IconPackage size={24} />
                             </ThemeIcon>
                         </Group>
                     </Card>
@@ -286,11 +247,11 @@ function PrimecodPage() {
                     <Card withBorder>
                         <Group justify="space-between">
                             <div>
-                                <Text size="sm" c="dimmed">Confirmados</Text>
-                                <Text size="xl" fw={700} c="green">{confirmados.toLocaleString()}</Text>
+                                <Text size="sm" c="dimmed">Total Vendas</Text>
+                                <Text size="xl" fw={700} c="green">{totalVendas.toLocaleString()}</Text>
                             </div>
                             <ThemeIcon color="green" variant="light" size="xl">
-                                <IconCheck size={24} />
+                                <IconTrendingUp size={24} />
                             </ThemeIcon>
                         </Group>
                     </Card>
@@ -300,25 +261,25 @@ function PrimecodPage() {
                     <Card withBorder>
                         <Group justify="space-between">
                             <div>
-                                <Text size="sm" c="dimmed">Duplicados</Text>
-                                <Text size="xl" fw={700} c="orange">{duplicados.toLocaleString()}</Text>
-                            </div>
-                            <ThemeIcon color="orange" variant="light" size="xl">
-                                <IconCopy size={24} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
-                
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card withBorder>
-                        <Group justify="space-between">
-                            <div>
-                                <Text size="sm" c="dimmed">Taxa de Confirmação</Text>
-                                <Text size="xl" fw={700} c="blue">{taxaConfirmacao.toFixed(1)}%</Text>
+                                <Text size="sm" c="dimmed">Total Leads</Text>
+                                <Text size="xl" fw={700} c="blue">{totalLeads.toLocaleString()}</Text>
                             </div>
                             <ThemeIcon color="blue" variant="light" size="xl">
-                                <IconChartBar size={24} />
+                                <IconTarget size={24} />
+                            </ThemeIcon>
+                        </Group>
+                    </Card>
+                </Grid.Col>
+                
+                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+                    <Card withBorder>
+                        <Group justify="space-between">
+                            <div>
+                                <Text size="sm" c="dimmed">Efetividade Média</Text>
+                                <Text size="xl" fw={700} c="orange">{efetividadeMedia.toFixed(1)}%</Text>
+                            </div>
+                            <ThemeIcon color="orange" variant="light" size="xl">
+                                <IconPercentage size={24} />
                             </ThemeIcon>
                         </Group>
                     </Card>
@@ -327,241 +288,383 @@ function PrimecodPage() {
         );
     };
 
-    // Renderizar tabela
-    const renderTabela = (dados, titulo, aplicarCores = false) => {
-        if (!dados || dados.length === 0) return null;
-        
-        const colunas = Object.keys(dados[0]);
-        
+    const renderFormulario = () => (
+        <Paper shadow="sm" p="sm" mb="md" style={{ position: 'relative' }}>
+            {loadingProcessar && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(255,255,255,0.95)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 10
+                }}>
+                    <Loader size="lg" />
+                    <Text mt="md" fw={500}>Processando dados...</Text>
+                    {progressoAtual && (
+                        <>
+                            <Progress value={progressoAtual.porcentagem} w="60%" mt="md" />
+                            <Text size="sm" c="dimmed" mt="xs">{progressoAtual.etapa}</Text>
+                        </>
+                    )}
+                </div>
+            )}
+
+            <Group gap="sm" mb="sm">
+                <IconSearch size={18} />
+                <Title order={5}>Gerar Métricas</Title>
+            </Group>
+            
+            <Grid>
+                <Grid.Col span={{ base: 12, sm: 3 }}>
+                    <TextInput
+                        type="date"
+                        label="Data de Início"
+                        value={dataInicio ? dataInicio.toISOString().split('T')[0] : ''}
+                        onChange={(e) => setDataInicio(e.target.value ? new Date(e.target.value) : null)}
+                        disabled={loadingProcessar}
+                        size="sm"
+                    />
+                </Grid.Col>
+                
+                <Grid.Col span={{ base: 12, sm: 3 }}>
+                    <TextInput
+                        type="date"
+                        label="Data de Fim"
+                        value={dataFim ? dataFim.toISOString().split('T')[0] : ''}
+                        onChange={(e) => setDataFim(e.target.value ? new Date(e.target.value) : null)}
+                        disabled={loadingProcessar}
+                        size="sm"
+                    />
+                </Grid.Col>
+                
+                <Grid.Col span={{ base: 12, sm: 3 }}>
+                    <Select
+                        label="País"
+                        data={PAISES}
+                        value={paisSelecionado}
+                        onChange={setPaisSelecionado}
+                        disabled={loadingProcessar}
+                        leftSection={<IconWorldWww size={16} />}
+                        size="sm"
+                    />
+                </Grid.Col>
+                
+                <Grid.Col span={{ base: 12, sm: 3 }}>
+                    <Text size="sm" fw={500} mb="xs">Ação</Text>
+                    <Button
+                        fullWidth
+                        leftSection={loadingProcessar ? <Loader size="xs" /> : <IconSearch size={16} />}
+                        onClick={processarDados}
+                        disabled={!dataInicio || !dataFim || !paisSelecionado || loadingProcessar}
+                        loading={loadingProcessar}
+                        size="sm"
+                    >
+                        {loadingProcessar ? 'Processando...' : 'Processar'}
+                    </Button>
+                </Grid.Col>
+            </Grid>
+        </Paper>
+    );
+
+    const renderResultados = () => {
+        if (!dadosResultado || !Array.isArray(dadosResultado)) return null;
+
+        const colunas = Object.keys(dadosResultado[0] || {});
+        const dadosOrdenados = sortData(dadosResultado, sortBy, sortOrder);
+
         return (
-            <Paper shadow="sm" p="md" mt="md">
-                <Title order={4} mb="md">{titulo}</Title>
-                <Box style={{ overflowX: 'auto' }}>
+            <Paper shadow="sm" p="md" mb="md">
+                <Group justify="space-between" mb="md">
+                    <Title order={4}>Métricas de Produtos</Title>
+                    <Group>
+                        <Badge variant="light" color="blue">
+                            {dadosResultado.length} registros
+                        </Badge>
+                        <Button
+                            leftSection={<IconDownload size={16} />}
+                            onClick={() => setModalSalvar(true)}
+                            variant="light"
+                        >
+                            Salvar Análise
+                        </Button>
+                    </Group>
+                </Group>
+
+                <ScrollArea>
                     <Table striped highlightOnHover>
                         <Table.Thead>
                             <Table.Tr>
                                 {colunas.map(col => (
-                                    <Table.Th key={col}>{col}</Table.Th>
+                                    <Table.Th key={col}>
+                                        <Group gap="xs" style={{ cursor: 'pointer' }} onClick={() => handleSort(col)}>
+                                            <Text size="sm" fw={500}>{col}</Text>
+                                            {sortBy === col && (
+                                                <ActionIcon size="xs" variant="transparent">
+                                                    {sortOrder === 'asc' ? 
+                                                        <IconSortAscending size={12} /> : 
+                                                        <IconSortDescending size={12} />
+                                                    }
+                                                </ActionIcon>
+                                            )}
+                                        </Group>
+                                    </Table.Th>
                                 ))}
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
-                            {dados.map((row, idx) => (
-                                <Table.Tr key={idx} style={{ 
-                                    backgroundColor: row.Product === 'Total' ? '#f8f9fa' : undefined,
-                                    fontWeight: row.Product === 'Total' ? 'bold' : undefined
-                                }}>
-                                    {colunas.map(col => (
-                                        <Table.Td 
-                                            key={col} 
-                                            style={aplicarCores && col === 'Efetividade' ? 
-                                                getEfetividadeCor(row[col]) : {}}
+                            {dadosOrdenados.map((row, idx) => (
+                                <Table.Tr
+                                    key={idx}
+                                    style={{
+                                        backgroundColor: row.Produto === 'Total' ? '#f8f9fa' : undefined,
+                                        fontWeight: row.Produto === 'Total' ? 'bold' : undefined
+                                    }}
+                                >
+                                    {Object.entries(row).map(([col, value]) => (
+                                        <Table.Td
+                                            key={col}
+                                            style={col === 'Efetividade' ? getEfetividadeCor(value) : {}}
                                         >
-                                            {typeof row[col] === 'number' ? row[col].toLocaleString() : row[col]}
+                                            {col === 'Imagem' && value && typeof value === 'string' && value.startsWith('http') ? (
+                                                <img 
+                                                    src={value} 
+                                                    alt="Produto" 
+                                                    style={{ 
+                                                        width: '60px', 
+                                                        height: '60px', 
+                                                        objectFit: 'cover', 
+                                                        borderRadius: '4px' 
+                                                    }} 
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                        e.target.nextSibling.style.display = 'block';
+                                                    }}
+                                                />
+                                            ) : col === 'Imagem' ? (
+                                                <div style={{
+                                                    width: '60px', 
+                                                    height: '60px', 
+                                                    backgroundColor: '#f1f3f4',
+                                                    borderRadius: '4px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '10px',
+                                                    color: '#666'
+                                                }}>
+                                                    Sem imagem
+                                                </div>
+                                            ) : (
+                                                typeof value === 'number' ? value.toLocaleString() : value
+                                            )}
                                         </Table.Td>
                                     ))}
                                 </Table.Tr>
                             ))}
                         </Table.Tbody>
                     </Table>
-                </Box>
+                </ScrollArea>
             </Paper>
         );
     };
 
+    const renderAnalisesSalvas = () => (
+        <Paper shadow="sm" p="md" style={{ position: 'relative' }}>
+            {loadingAnalises && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(255,255,255,0.8)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 10
+                }}>
+                    <Loader size="lg" />
+                </div>
+            )}
+
+            <Group justify="space-between" mb="md">
+                <Group gap="sm">
+                    <IconChartBar size={20} />
+                    <Title order={4}>Análises Salvas</Title>
+                </Group>
+                <Group>
+                    <Badge variant="light">{analisesSalvas.length}</Badge>
+                    <Button
+                        leftSection={<IconRefresh size={16} />}
+                        variant="outline"
+                        size="sm"
+                        onClick={fetchAnalises}
+                    >
+                        Atualizar
+                    </Button>
+                </Group>
+            </Group>
+
+            {analisesSalvas.length === 0 ? (
+                <Alert color="blue" icon={<IconChartBar size={16} />}>
+                    <Text fw={500} mb="xs">Nenhuma análise salva</Text>
+                    <Text size="sm" c="dimmed">
+                        Processe dados e salve o resultado para vê-lo aqui.
+                    </Text>
+                </Alert>
+            ) : (
+                <Grid>
+                    {analisesSalvas.map(analise => (
+                        <Grid.Col span={{ base: 12, sm: 6, md: 4 }} key={analise.id}>
+                            <Card withBorder style={{ position: 'relative' }}>
+                                {loadingDelete[analise.id] && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 0, left: 0, right: 0, bottom: 0,
+                                        backgroundColor: 'rgba(255,255,255,0.8)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        zIndex: 10
+                                    }}>
+                                        <Loader size="sm" />
+                                    </div>
+                                )}
+
+                                <Group justify="space-between" mb="xs">
+                                    <Text fw={500} truncate style={{ maxWidth: '70%' }}>
+                                        {analise.nome.replace('[ECOMHUB] ', '')}
+                                    </Text>
+                                    <Badge color="blue" variant="light">
+                                        ECOMHUB
+                                    </Badge>
+                                </Group>
+
+                                <Text size="xs" c="dimmed" mb="md">
+                                    {new Date(analise.criado_em).toLocaleDateString('pt-BR')} por {analise.criado_por_nome}
+                                </Text>
+
+                                <Group justify="space-between">
+                                    <Button
+                                        size="xs"
+                                        variant="light"
+                                        onClick={() => carregarAnalise(analise)}
+                                        leftSection={<IconEye size={14} />}
+                                    >
+                                        Carregar
+                                    </Button>
+                                    <ActionIcon
+                                        color="red"
+                                        variant="light"
+                                        onClick={() => deletarAnalise(analise.id, analise.nome)}
+                                        loading={loadingDelete[analise.id]}
+                                    >
+                                        <IconTrash size={16} />
+                                    </ActionIcon>
+                                </Group>
+                            </Card>
+                        </Grid.Col>
+                    ))}
+                </Grid>
+            )}
+        </Paper>
+    );
+
     // ======================== EFEITOS ========================
+
     useEffect(() => {
         fetchAnalises();
     }, []);
 
     // ======================== RENDER PRINCIPAL ========================
+
     return (
-        <Box p="md">
-            <LoadingOverlay visible={isLoading} />
-            
+        <Container fluid p="md">
             {/* Header */}
             <Group justify="space-between" mb="xl">
                 <div>
-                    <Title order={2}>📊 vndarlan/dashprimecod Prime COD</Title>
-                    <Text c="dimmed">Análise de efetividade</Text>
+                    <Group gap="sm">
+                        <IconChartBar size={28} color="var(--mantine-color-blue-6)" />
+                        <Title order={2}>Métricas ECOMHUB</Title>
+                    </Group>
+                    <Text c="dimmed">Análise de efetividade de produtos</Text>
                 </div>
-                <Group>
-                    <Button 
-                        leftSection={<IconRefresh size={16} />} 
-                        variant="outline" 
-                        onClick={fetchAnalises}
-                    >
-                        Atualizar
-                    </Button>
-                    {(dadosLeads || dadosEfetividade) && (
-                        <Button 
-                            leftSection={<IconDownload size={16} />} 
-                            onClick={() => setModalSalvar(true)}
-                        >
-                            Salvar Análise
-                        </Button>
-                    )}
-                </Group>
             </Group>
 
             {/* Notificações */}
             {notification && (
-                <Alert 
+                <Alert
                     color={notification.type === 'success' ? 'green' : notification.type === 'warning' ? 'yellow' : 'red'}
                     title={notification.type === 'success' ? 'Sucesso' : notification.type === 'warning' ? 'Atenção' : 'Erro'}
                     mb="md"
                     withCloseButton
                     onClose={() => setNotification(null)}
-                    icon={notification.type === 'success' ? <IconCheck size={16} /> : 
-                          notification.type === 'warning' ? <IconAlertTriangle size={16} /> : <IconX size={16} />}
+                    icon={notification.type === 'success' ? <IconCheck size={16} /> :
+                        notification.type === 'warning' ? <IconAlertTriangle size={16} /> : <IconX size={16} />}
                 >
                     {notification.message}
                 </Alert>
             )}
 
-            {/* Análises Salvas */}
-            {analisesSalvas.length > 0 && (
-                <Paper shadow="sm" p="md" mb="xl">
-                    <Title order={4} mb="md">💾 Análises Salvas</Title>
-                    <Grid>
-                        {analisesSalvas.map(analise => (
-                            <Grid.Col span={{ base: 12, sm: 6, md: 4 }} key={analise.id}>
-                                <Card withBorder>
-                                    <Group justify="space-between" mb="xs">
-                                        <Text fw={500} truncate>{analise.nome}</Text>
-                                        <Badge color="blue" variant="light">PRIMECOD</Badge>
-                                    </Group>
-                                    <Text size="xs" c="dimmed" mb="md">
-                                        {new Date(analise.criado_em).toLocaleDateString('pt-BR')} por {analise.criado_por_nome}
-                                    </Text>
-                                    <Group justify="space-between">
-                                        <Button size="xs" variant="light" onClick={() => carregarAnalise(analise)}>
-                                            Carregar
-                                        </Button>
-                                        <ActionIcon 
-                                            color="red" 
-                                            variant="light" 
-                                            onClick={() => deletarAnalise(analise.id, analise.nome)}
-                                        >
-                                            <IconTrash size={16} />
-                                        </ActionIcon>
-                                    </Group>
-                                </Card>
-                            </Grid.Col>
-                        ))}
-                    </Grid>
-                </Paper>
-            )}
-
-            {/* Upload de Arquivos */}
-            <Grid gutter="md" mb="xl">
-                <Grid.Col span={{ base: 12, md: 6 }}>
-                    <Paper shadow="sm" p="md">
-                        <Title order={4} mb="md">1️⃣ Arquivo de Leads</Title>
-                        <Stack>
-                            <FileInput
-                                label="Leads Export CSV"
-                                placeholder="Selecione o arquivo leadsexport.csv"
-                                accept=".csv"
-                                value={arquivoLeads}
-                                onChange={setArquivoLeads}
-                                leftSection={<IconFileText size={16} />}
-                            />
-                            <Button 
-                                fullWidth 
-                                leftSection={<IconUpload size={16} />}
-                                onClick={() => uploadArquivo(arquivoLeads, 'leads')}
-                                disabled={!arquivoLeads}
-                            >
-                                Processar Leads
-                            </Button>
-                            {dadosLeads && (
-                                <Alert color="green" icon={<IconCheck size={16} />}>
-                                    Arquivo de leads processado! {dadosLeads.length - 1} produtos encontrados.
-                                </Alert>
-                            )}
-                        </Stack>
-                    </Paper>
-                </Grid.Col>
-                
-                <Grid.Col span={{ base: 12, md: 6 }}>
-                    <Paper shadow="sm" p="md">
-                        <Title order={4} mb="md">2️⃣ Arquivo de Orders</Title>
-                        <Stack>
-                            <FileInput
-                                label="Orders Export CSV"
-                                placeholder="Selecione o arquivo ordersexport.csv"
-                                accept=".csv"
-                                value={arquivoOrders}
-                                onChange={setArquivoOrders}
-                                leftSection={<IconFileText size={16} />}
-                            />
-                            <Button 
-                                fullWidth 
-                                leftSection={<IconUpload size={16} />}
-                                onClick={() => uploadArquivo(arquivoOrders, 'orders')}
-                                disabled={!arquivoOrders}
-                            >
-                                Processar Orders
-                            </Button>
-                            {dadosOrders && (
-                                <Alert color="green" icon={<IconCheck size={16} />}>
-                                    Arquivo de orders processado!
-                                </Alert>
-                            )}
-                        </Stack>
-                    </Paper>
-                </Grid.Col>
-            </Grid>
-
-            {/* Instruções */}
-            <Paper shadow="sm" p="md" mb="xl">
-                <Title order={4} mb="md">📋 Instruções</Title>
-                <List size="sm">
-                    <List.Item>Faça upload do arquivo <strong>leadsexport.csv</strong> exportado da seção de leads do Prime COD</List.Item>
-                    <List.Item>Faça upload do arquivo <strong>ordersexport.csv</strong> exportado da seção de orders do Prime COD</List.Item>
-                    <List.Item>A tabela de efetividade será gerada automaticamente combinando os dois arquivos</List.Item>
-                    <List.Item>Salve sua análise para acessá-la posteriormente</List.Item>
-                </List>
-            </Paper>
+            {/* Formulário de Processamento */}
+            {renderFormulario()}
 
             {/* Estatísticas */}
             {renderEstatisticas()}
 
-            {/* Tabelas */}
-            {renderTabela(dadosLeads, "📊 Tabela de Leads")}
-            {renderTabela(dadosEfetividade, "📦 Tabela de Efetividade", true)}
+            {/* Resultados */}
+            {renderResultados()}
 
-            {/* Modal para salvar */}
-            <Modal 
-                opened={modalSalvar} 
+            {/* Análises Salvas */}
+            {renderAnalisesSalvas()}
+
+            {/* Modal para salvar análise */}
+            <Modal
+                opened={modalSalvar}
                 onClose={() => setModalSalvar(false)}
-                title="💾 Salvar Análise"
+                title="Salvar Análise"
             >
-                <Stack>
+                <Stack style={{ position: 'relative' }}>
+                    {loadingSalvar && (
+                        <div style={{
+                            position: 'absolute',
+                            top: 0, left: 0, right: 0, bottom: 0,
+                            backgroundColor: 'rgba(255,255,255,0.9)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 10
+                        }}>
+                            <Loader size="lg" />
+                        </div>
+                    )}
+
                     <TextInput
                         label="Nome da Análise"
-                        placeholder="Ex: Análise Maio 2025 - Espanha"
+                        placeholder="Ex: Espanha Junho 2025"
                         value={nomeAnalise}
                         onChange={(e) => setNomeAnalise(e.target.value)}
                         required
+                        disabled={loadingSalvar}
                     />
+
                     <Group justify="flex-end">
-                        <Button variant="outline" onClick={() => setModalSalvar(false)}>
+                        <Button variant="outline" onClick={() => setModalSalvar(false)} disabled={loadingSalvar}>
                             Cancelar
                         </Button>
-                        <Button 
-                            onClick={salvarAnalise} 
+                        <Button
+                            onClick={salvarAnalise}
                             disabled={!nomeAnalise}
-                            loading={isLoading}
+                            loading={loadingSalvar}
+                            leftSection={loadingSalvar ? <Loader size="xs" /> : <IconDownload size={16} />}
                         >
-                            Salvar
+                            {loadingSalvar ? 'Salvando...' : 'Salvar'}
                         </Button>
                     </Group>
                 </Stack>
             </Modal>
-        </Box>
+        </Container>
     );
 }
 
-export default PrimecodPage;
+export default EcomhubPage;
