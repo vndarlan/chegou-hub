@@ -22,7 +22,6 @@ import {
 } from '@mantine/core';
 import {
     IconChartBar,
-    IconPlus,
     IconTrash,
     IconRefresh,
     IconSortAscending,
@@ -100,7 +99,7 @@ function EcomhubPage() {
             
             if (response.data.status === 'success') {
                 setDadosEfetividade(response.data.dados_processados || []);
-                setAnaliseSelecionada(null); // Limpa análise selecionada
+                setAnaliseSelecionada(null);
                 showNotification('success', 'Métricas processadas com sucesso!');
             }
         } catch (error) {
