@@ -16,7 +16,10 @@ import axios from 'axios';
 // Países disponíveis
 const PAISES = [
     { value: '164', label: '🇪🇸 Espanha' },
-    { value: '41', label: '🇭🇷 Croácia' }
+    { value: '41', label: '🇭🇷 Croácia' },
+    { value: '66', label: '🇬🇷 Grécia' },
+    { value: '82', label: '🇮🇹 Itália' },
+    { value: '142', label: '🇷🇴 Romênia' }
 ];
 
 function EcomhubPage() {
