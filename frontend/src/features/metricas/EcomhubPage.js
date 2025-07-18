@@ -18,9 +18,7 @@ import {
     Modal,
     Card,
     ThemeIcon,
-    Tooltip,
-    Select,
-    NumberInput
+    Select
 } from '@mantine/core';
 import {
     IconChartBar,
@@ -33,11 +31,11 @@ import {
     IconPackage,
     IconTarget,
     IconPercentage,
-    IconCalendar,
     IconDeviceAnalytics,
     IconCheck,
     IconX,
-    IconAlertTriangle
+    IconAlertTriangle,
+    IconDownload
 } from '@tabler/icons-react';
 import { DateInput } from '@mantine/dates';
 import axios from 'axios';
@@ -49,11 +47,13 @@ function EcomhubPage() {
     const [analiseSelecionada, setAnaliseSelecionada] = useState(null);
     const [dadosEfetividade, setDadosEfetividade] = useState([]);
     
-    // Estados para nova análise
-    const [modalNova, setModalNova] = useState(false);
+    // Estados para processamento
     const [dataInicio, setDataInicio] = useState(null);
     const [dataFim, setDataFim] = useState(null);
     const [paisId, setPaisId] = useState('');
+    
+    // Estados para salvar
+    const [modalSalvar, setModalSalvar] = useState(false);
     const [nomeAnalise, setNomeAnalise] = useState('');
     
     // Estados para ordenação
@@ -84,8 +84,8 @@ function EcomhubPage() {
         }
     };
 
-    const processarAnalise = async () => {
-        if (!dataInicio || !dataFim || !paisId || !nomeAnalise) {
+    const processarMetricas = async () => {
+        if (!dataInicio || !dataFim || !paisId) {
             showNotification('error', 'Preencha todos os campos');
             return;
         }
@@ -99,21 +99,37 @@ function EcomhubPage() {
             });
             
             if (response.data.status === 'success') {
-                // Salvar análise
-                const analiseResponse = await axios.post('/metricas/ecomhub/analises/', {
-                    nome: nomeAnalise,
-                    dados_efetividade: response.data.dados_processados,
-                    tipo_metrica: 'produto'
-                });
-                
                 setDadosEfetividade(response.data.dados_processados || []);
-                setAnaliseSelecionada(analiseResponse.data);
-                setModalNova(false);
-                fetchAnalises();
-                showNotification('success', 'Análise processada com sucesso!');
+                setAnaliseSelecionada(null); // Limpa análise selecionada
+                showNotification('success', 'Métricas processadas com sucesso!');
             }
         } catch (error) {
             showNotification('error', `Erro: ${error.response?.data?.message || error.message}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const salvarAnalise = async () => {
+        if (!nomeAnalise || !dadosEfetividade.length) {
+            showNotification('error', 'Nome da análise e dados são obrigatórios');
+            return;
+        }
+        
+        setIsLoading(true);
+        try {
+            const response = await axios.post('/metricas/ecomhub/analises/', {
+                nome: nomeAnalise,
+                dados_efetividade: dadosEfetividade,
+                tipo_metrica: 'produto'
+            });
+            
+            showNotification('success', `Análise '${nomeAnalise}' salva com sucesso!`);
+            setModalSalvar(false);
+            setNomeAnalise('');
+            fetchAnalises();
+        } catch (error) {
+            showNotification('error', `Erro ao salvar: ${error.response?.data?.message || error.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -344,12 +360,14 @@ function EcomhubPage() {
                     >
                         Atualizar
                     </Button>
-                    <Button 
-                        leftSection={<IconPlus size={16} />} 
-                        onClick={() => setModalNova(true)}
-                    >
-                        Nova Análise
-                    </Button>
+                    {dadosEfetividade.length > 0 && (
+                        <Button 
+                            leftSection={<IconDownload size={16} />} 
+                            onClick={() => setModalSalvar(true)}
+                        >
+                            Salvar Análise
+                        </Button>
+                    )}
                 </Group>
             </Group>
 
@@ -366,6 +384,55 @@ function EcomhubPage() {
                     {notification.message}
                 </Alert>
             )}
+
+            {/* Formulário de Processamento */}
+            <Paper shadow="sm" p="md" mb="xl">
+                <Group justify="space-between" mb="md">
+                    <Group gap="sm">
+                        <IconDeviceAnalytics size={20} />
+                        <Title order={4}>Gerar Métricas</Title>
+                    </Group>
+                </Group>
+                
+                <Grid>
+                    <Grid.Col span={{ base: 12, md: 3 }}>
+                        <Select
+                            label="País"
+                            placeholder="Selecione"
+                            data={paisesOptions}
+                            value={paisId}
+                            onChange={setPaisId}
+                        />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, md: 3 }}>
+                        <DateInput
+                            label="Data Início"
+                            value={dataInicio}
+                            onChange={setDataInicio}
+                            placeholder="dd/mm/aaaa"
+                        />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, md: 3 }}>
+                        <DateInput
+                            label="Data Fim"
+                            value={dataFim}
+                            onChange={setDataFim}
+                            placeholder="dd/mm/aaaa"
+                        />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, md: 3 }}>
+                        <Text size="sm" fw={500} mb="xs">Ação</Text>
+                        <Button 
+                            fullWidth
+                            onClick={processarMetricas}
+                            disabled={!paisId || !dataInicio || !dataFim}
+                            loading={isLoading}
+                        >
+                            Processar
+                        </Button>
+                    </Grid.Col>
+                </Grid>
+            </Paper>
 
             {/* Análises Salvas */}
             {analisesSalvas.length > 0 && (
@@ -393,15 +460,13 @@ function EcomhubPage() {
                                         <Button size="xs" variant="light" onClick={() => carregarAnalise(analise)}>
                                             Carregar
                                         </Button>
-                                        <Tooltip label="Deletar">
-                                            <ActionIcon 
-                                                color="red" 
-                                                variant="light" 
-                                                onClick={() => deletarAnalise(analise.id, analise.nome)}
-                                            >
-                                                <IconTrash size={16} />
-                                            </ActionIcon>
-                                        </Tooltip>
+                                        <ActionIcon 
+                                            color="red" 
+                                            variant="light" 
+                                            onClick={() => deletarAnalise(analise.id, analise.nome)}
+                                        >
+                                            <IconTrash size={16} />
+                                        </ActionIcon>
                                     </Group>
                                 </Card>
                             </Grid.Col>
@@ -416,17 +481,11 @@ function EcomhubPage() {
             {/* Tabela */}
             {renderTabela()}
 
-            {/* Modal para nova análise */}
+            {/* Modal para salvar */}
             <Modal 
-                opened={modalNova} 
-                onClose={() => setModalNova(false)}
-                title={
-                    <Group gap="sm">
-                        <IconPlus size={20} />
-                        <Text>Nova Análise</Text>
-                    </Group>
-                }
-                size="md"
+                opened={modalSalvar} 
+                onClose={() => setModalSalvar(false)}
+                title="Salvar Análise"
             >
                 <Stack>
                     <TextInput
@@ -436,43 +495,16 @@ function EcomhubPage() {
                         onChange={(e) => setNomeAnalise(e.target.value)}
                         required
                     />
-                    
-                    <Select
-                        label="País"
-                        placeholder="Selecione o país"
-                        data={paisesOptions}
-                        value={paisId}
-                        onChange={setPaisId}
-                        required
-                    />
-                    
-                    <Group grow>
-                        <DateInput
-                            label="Data Início"
-                            value={dataInicio}
-                            onChange={setDataInicio}
-                            placeholder="dd/mm/aaaa"
-                            required
-                        />
-                        <DateInput
-                            label="Data Fim"
-                            value={dataFim}
-                            onChange={setDataFim}
-                            placeholder="dd/mm/aaaa"
-                            required
-                        />
-                    </Group>
-                    
-                    <Group justify="flex-end" mt="md">
-                        <Button variant="outline" onClick={() => setModalNova(false)}>
+                    <Group justify="flex-end">
+                        <Button variant="outline" onClick={() => setModalSalvar(false)}>
                             Cancelar
                         </Button>
                         <Button 
-                            onClick={processarAnalise} 
-                            disabled={!nomeAnalise || !paisId || !dataInicio || !dataFim}
+                            onClick={salvarAnalise} 
+                            disabled={!nomeAnalise}
                             loading={isLoading}
                         >
-                            Processar
+                            Salvar
                         </Button>
                     </Group>
                 </Stack>
