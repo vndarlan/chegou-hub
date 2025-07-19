@@ -58,6 +58,7 @@ const linksBySection = {
   metricas: [
     { label: 'PRIMECOD', link: '/workspace/metricas/primecod' },
     { label: 'ECOMHUB', link: '/workspace/metricas/ecomhub' },
+    { label: 'DROPI MX', link: '/workspace/metricas/dropi' },
   ],
   operacional: [
     { label: 'Engajamento', link: '/workspace/engajamento' },

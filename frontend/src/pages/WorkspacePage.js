@@ -6,6 +6,7 @@ import { DoubleNavbar } from '../components/DoubleNavbar';
 import { Box, LoadingOverlay, Title, Text } from '@mantine/core';
 import ProcessamentoPage from '../features/processamento/ProcessamentoPage';
 
+
 // --- Importar páginas das funcionalidades existentes ---
 import MapaPage from '../features/mapa/MapaPage';
 import AgendaPage from '../features/agenda/AgendaPage';
@@ -21,6 +22,7 @@ import RelatoriosProjetos from '../features/ia/RelatoriosProjetos';
 // --- Importar páginas de MÉTRICAS ---
 import PrimecodPage from '../features/metricas/PrimecodPage';
 import EcomhubPage from '../features/metricas/EcomhubPage';
+import DropiPage from '../features/metricas/DropiPage';
 
 // --- Importar página de NOVELTIES ---
 import NoveltiesPage from '../features/novelties/NoveltiesPage';
@@ -116,7 +118,7 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     {/* 📊 Páginas da área MÉTRICAS */}
                     <Route path="metricas/primecod" element={<PrimecodPage />} />
                     <Route path="metricas/ecomhub" element={<EcomhubPage />} />
-
+                    <Route path="metricas/dropi" element={<DropiPage />} />
 
                     {/* Páginas da área OPERACIONAL */}
                     <Route path="engajamento" element={<EngajamentoPage />} />

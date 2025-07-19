@@ -85,6 +85,7 @@ INSTALLED_APPS = [
     # Métricas Separadas
     'features.metricas_primecod',
     'features.metricas_ecomhub',
+    'features.metricas_dropi',
 ]
 
 MIDDLEWARE = [
@@ -344,3 +345,11 @@ print(f"RQ configurado com Redis: {REDIS_URL}")
 # ======================== CONFIGURAÇÃO SERVIDOR SELENIUM ECOMHUB ========================
 ECOMHUB_SELENIUM_SERVER = os.getenv('ECOMHUB_SELENIUM_SERVER', 'https://ecomhub-selenium-production.up.railway.app')
 print(f"Servidor Selenium EcomHub configurado: {ECOMHUB_SELENIUM_SERVER}")
+
+# ======================== CONFIGURAÇÃO SERVIDOR EXTRATOR DROPI ========================
+DROPI_EXTRACTOR_SERVER = os.getenv('DROPI_EXTRACTOR_SERVER', 'http://localhost:8002')
+print(f"Servidor Extrator Dropi configurado: {DROPI_EXTRACTOR_SERVER}")
+
+# ======================== CONFIGURAÇÃO SERVIDOR EXTRATOR DROPI ========================
+DROPI_EXTRACTOR_SERVER = os.getenv('DROPI_EXTRACTOR_SERVER', 'http://localhost:8002')
+print(f"Servidor Extrator Dropi configurado: {DROPI_EXTRACTOR_SERVER}")

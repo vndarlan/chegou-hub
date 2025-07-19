@@ -19,4 +19,5 @@ urlpatterns = [
     # URLs das Métricas Separadas
     path('api/metricas/primecod/', include('features.metricas_primecod.urls')),
     path('api/metricas/ecomhub/', include('features.metricas_ecomhub.urls')),
+    path('api/metricas/dropi/', include('features.metricas_dropi.urls')),
 ]
