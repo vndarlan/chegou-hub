@@ -353,3 +353,14 @@ print(f"Servidor Extrator Dropi configurado: {DROPI_EXTRACTOR_SERVER}")
 # ======================== CONFIGURAÇÃO SERVIDOR EXTRATOR DROPI ========================
 DROPI_EXTRACTOR_SERVER = os.getenv('DROPI_EXTRACTOR_SERVER', 'http://localhost:8002')
 print(f"Servidor Extrator Dropi configurado: {DROPI_EXTRACTOR_SERVER}")
+
+# Token Service URL
+DROPI_TOKEN_SERVICE_URL = os.getenv('DROPI_TOKEN_SERVICE_URL', 'http://localhost:8002')
+
+# Cache para tokens (opcional, melhora performance)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'dropi-cache',
+    }
+}
