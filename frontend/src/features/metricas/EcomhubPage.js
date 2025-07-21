@@ -200,23 +200,11 @@ function EcomhubPage() {
             return {};
         }
 
-        // Para visualização otimizada, diferentes cores por tipo de coluna
+        // Para visualização otimizada, apenas efetividades com cores
         switch (coluna) {
             case 'Efetividade_Total':
             case 'Efetividade_Parcial':
                 return getEfetividadeCor(valor);
-            
-            case 'PCT_Transito':
-                const pctTransito = parseFloat(valor.replace('%', '') || 0);
-                if (pctTransito >= 30) return { backgroundColor: '#FFA726', color: 'black', fontWeight: 'bold' };
-                if (pctTransito >= 15) return { backgroundColor: '#FFD54F', color: 'black', fontWeight: 'bold' };
-                return { backgroundColor: '#E8F5E8', color: 'black' };
-            
-            case 'PCT_Devolvidos':
-                const pctDev = parseFloat(valor.replace('%', '') || 0);
-                if (pctDev >= 10) return { backgroundColor: '#F44336', color: 'white', fontWeight: 'bold' };
-                if (pctDev >= 5) return { backgroundColor: '#FF9800', color: 'black', fontWeight: 'bold' };
-                return { backgroundColor: '#E8F5E8', color: 'black' };
             
             default:
                 return {};
@@ -350,7 +338,7 @@ function EcomhubPage() {
                 <div>
                     <Title order={5} c="teal">Percentuais Calculados:</Title>
                     <Stack gap="xs">
-                        <Text size="sm">• <strong>% Em Trânsito:</strong> (Em Trânsito ÷ Totais) × 100</Text>
+                        <Text size="sm">• <strong>% A Caminho:</strong> (Em Trânsito ÷ Totais) × 100</Text>
                         <Text size="sm">• <strong>% Devolvidos:</strong> (Devolução ÷ Totais) × 100</Text>
                         <Text size="sm">• <strong>Efetividade Parcial:</strong> (Entregues ÷ Enviados) × 100</Text>
                         <Text size="sm">• <strong>Efetividade Total:</strong> (Entregues ÷ Totais) × 100</Text>
@@ -474,81 +462,101 @@ function EcomhubPage() {
         );
     };
 
-    const renderFormulario = () => (
-        <Paper shadow="sm" p="xs" mb="md" style={{ position: 'relative' }}>
-            {loadingProcessar && (
-                <div style={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'rgba(255,255,255,0.95)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 10
-                }}>
-                    <Loader size="lg" />
-                    <Text mt="md" fw={500}>Processando dados...</Text>
-                    {progressoAtual && (
-                        <>
-                            <Progress value={progressoAtual.porcentagem} w="60%" mt="md" />
-                            <Text size="sm" c="dimmed" mt="xs">{progressoAtual.etapa}</Text>
-                        </>
-                    )}
-                </div>
-            )}
+    const renderFormulario = () => {
+        // Data máxima (hoje)
+        const hoje = new Date();
+        const maxDate = hoje.toISOString().split('T')[0];
+        
+        return (
+            <Paper shadow="sm" p="xs" mb="md" style={{ position: 'relative' }}>
+                {loadingProcessar && (
+                    <div style={{
+                        position: 'absolute',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: 'rgba(255,255,255,0.95)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 10
+                    }}>
+                        <Loader size="lg" />
+                        <Text mt="md" fw={500}>Processando dados...</Text>
+                        {progressoAtual && (
+                            <>
+                                <Progress value={progressoAtual.porcentagem} w="60%" mt="md" />
+                                <Text size="sm" c="dimmed" mt="xs">{progressoAtual.etapa}</Text>
+                            </>
+                        )}
+                    </div>
+                )}
 
-            <Group gap="sm" mb="sm">
-                <IconSearch size={20} />
-                <Title order={4}>Gerar Métricas</Title>
-            </Group>
-            
-            <Grid gutter="sm">
-                <Grid.Col span={{ base: 12, sm: 4 }}>
-                    <TextInput
-                        type="date"
-                        label="Data de Início"
-                        value={dataInicio ? dataInicio.toISOString().split('T')[0] : ''}
-                        onChange={(e) => setDataInicio(e.target.value ? new Date(e.target.value) : null)}
-                        disabled={loadingProcessar}
-                    />
-                </Grid.Col>
+                <Group gap="sm" mb="sm">
+                    <IconSearch size={20} />
+                    <Title order={4}>Gerar Métricas</Title>
+                </Group>
                 
-                <Grid.Col span={{ base: 12, sm: 4 }}>
-                    <TextInput
-                        type="date"
-                        label="Data de Fim"
-                        value={dataFim ? dataFim.toISOString().split('T')[0] : ''}
-                        onChange={(e) => setDataFim(e.target.value ? new Date(e.target.value) : null)}
-                        disabled={loadingProcessar}
-                    />
-                </Grid.Col>
-                
-                <Grid.Col span={{ base: 12, sm: 4 }}>
-                    <Select
-                        label="País"
-                        data={PAISES}
-                        value={paisSelecionado}
-                        onChange={setPaisSelecionado}
-                        disabled={loadingProcessar}
-                        leftSection={<IconWorldWww size={16} />}
-                    />
-                </Grid.Col>
-            </Grid>
+                <Grid gutter="sm">
+                    <Grid.Col span={{ base: 12, sm: 4 }}>
+                        <TextInput
+                            type="date"
+                            label="Data de Início"
+                            value={dataInicio ? dataInicio.toISOString().split('T')[0] : ''}
+                            onChange={(e) => setDataInicio(e.target.value ? new Date(e.target.value) : null)}
+                            disabled={loadingProcessar}
+                            max={maxDate}
+                            style={{ cursor: 'pointer' }}
+                            styles={{
+                                input: {
+                                    cursor: 'pointer'
+                                }
+                            }}
+                        />
+                    </Grid.Col>
+                    
+                    <Grid.Col span={{ base: 12, sm: 4 }}>
+                        <TextInput
+                            type="date"
+                            label="Data de Fim"
+                            value={dataFim ? dataFim.toISOString().split('T')[0] : ''}
+                            onChange={(e) => setDataFim(e.target.value ? new Date(e.target.value) : null)}
+                            disabled={loadingProcessar}
+                            max={maxDate}
+                            style={{ cursor: 'pointer' }}
+                            styles={{
+                                input: {
+                                    cursor: 'pointer'
+                                }
+                            }}
+                        />
+                    </Grid.Col>
+                    
+                    <Grid.Col span={{ base: 12, sm: 4 }}>
+                        <Select
+                            label="País"
+                            data={PAISES}
+                            value={paisSelecionado}
+                            onChange={setPaisSelecionado}
+                            disabled={loadingProcessar}
+                            leftSection={<IconWorldWww size={16} />}
+                        />
+                    </Grid.Col>
+                </Grid>
 
-            <Group justify="flex-end" mt="sm">
-                <Button
-                    leftSection={loadingProcessar ? <Loader size="xs" /> : <IconSearch size={16} />}
-                    onClick={processarDados}
-                    disabled={!dataInicio || !dataFim || !paisSelecionado || loadingProcessar}
-                    loading={loadingProcessar}
-                    size="md"
-                >
-                    {loadingProcessar ? 'Processando...' : 'Processar'}
-                </Button>
-            </Group>
-        </Paper>
-    );
+                <Group justify="flex-end" mt="sm">
+                    <Button
+                        leftSection={loadingProcessar ? <Loader size="xs" /> : <IconSearch size={16} />}
+                        onClick={processarDados}
+                        disabled={!dataInicio || !dataFim || !paisSelecionado || loadingProcessar}
+                        loading={loadingProcessar}
+                        size="md"
+                    >
+                        {loadingProcessar ? 'Processando...' : 'Processar'}
+                    </Button>
+                </Group>
+            </Paper>
+        );
+    };
 
     // Componente para seleção de tipo de visualização
     const renderSeletorVisualizacao = () => {
