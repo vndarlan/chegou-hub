@@ -1,4 +1,4 @@
-// frontend/src/features/metricas/EcomhubPage.js - CORRIGIDO
+// frontend/src/features/metricas/EcomhubPage.js - CORRIGIDO COMPLETO
 import React, { useState, useEffect } from 'react';
 import {
     Box, Title, Text, Paper, Group, Button, Table, Badge, Stack, Grid,
@@ -262,7 +262,7 @@ function EcomhubPage() {
 
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
-    // Renderizar navegação por seções (movido para canto superior direito)
+    // Renderizar navegação por seções (canto superior direito)
     const renderNavegacao = () => (
         <Group justify="flex-end" mb="md">
             <Button
@@ -386,6 +386,8 @@ function EcomhubPage() {
             </Stack>
         </Paper>
     );
+
+    const renderEstatisticas = () => {
         const dados = getDadosVisualizacao();
         
         // Removido para visualização total conforme pedido
@@ -471,8 +473,6 @@ function EcomhubPage() {
             </Grid>
         );
     };
-
-    const renderEstatisticas = () => {
 
     const renderFormulario = () => (
         <Paper shadow="sm" p="xs" mb="md" style={{ position: 'relative' }}>
@@ -826,16 +826,8 @@ function EcomhubPage() {
 
     return (
         <Container fluid p="md">
-            {/* Header */}
-            <Group justify="space-between" mb="xl">
-                <div>
-                    <Group gap="sm">
-                        <IconChartBar size={28} color="var(--mantine-color-blue-6)" />
-                        <Title order={2}>Métricas ECOMHUB</Title>
-                    </Group>
-                    <Text c="dimmed">Análise de efetividade de produtos</Text>
-                </div>
-            </Group>
+            {/* Navegação por Seções (canto superior direito) */}
+            {renderNavegacao()}
 
             {/* Notificações */}
             {notification && (
@@ -852,28 +844,21 @@ function EcomhubPage() {
                 </Alert>
             )}
 
-            {/* Navegação por Seções */}
-            {renderNavegacao()}
-
             {/* Seção Gerar Métricas */}
             {secaoAtiva === 'gerar' && (
                 <>
-                    {/* Formulário de Processamento */}
                     {renderFormulario()}
-
-                    {/* Seletor de Visualização */}
                     {renderSeletorVisualizacao()}
-
-                    {/* Estatísticas */}
                     {renderEstatisticas()}
-
-                    {/* Resultados */}
                     {renderResultados()}
                 </>
             )}
 
             {/* Seção Métricas Salvas */}
             {secaoAtiva === 'salvas' && renderAnalisesSalvas()}
+
+            {/* Seção Instruções */}
+            {secaoAtiva === 'instrucoes' && renderInstrucoes()}
 
             {/* Modal para salvar análise */}
             <Modal
