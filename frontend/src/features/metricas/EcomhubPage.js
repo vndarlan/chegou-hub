@@ -96,7 +96,7 @@ function EcomhubPage() {
         }
 
         setLoadingProcessar(true);
-        setProgressoAtual({ etapa: 'Iniciando automação...', porcentagem: 0 });
+        setProgressoAtual({ etapa: 'Iniciando...', porcentagem: 0 });
 
         try {
             const response = await axios.post('/metricas/ecomhub/analises/processar_selenium/', {
