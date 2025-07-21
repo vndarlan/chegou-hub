@@ -1,15 +1,17 @@
-// frontend/src/features/metricas/EcomhubPage.js
+// frontend/src/features/metricas/EcomhubPage.js - COM VISUALIZAÇÃO OTIMIZADA
 import React, { useState, useEffect } from 'react';
 import {
     Box, Title, Text, Paper, Group, Button, Table, Badge, Stack, Grid,
     Alert, ActionIcon, Modal, Card, Select, Container, Progress,
-    Notification, ScrollArea, Loader, Divider, TextInput, ThemeIcon
+    Notification, ScrollArea, Loader, Divider, TextInput, ThemeIcon,
+    SegmentedControl
 } from '@mantine/core';
 import {
     IconCalendar, IconDownload, IconTrash, IconRefresh, IconCheck, IconX, 
     IconAlertTriangle, IconTrendingUp, IconBuilding, IconChartBar, IconPlus,
     IconEye, IconActivity, IconSearch, IconWorldWww, IconSortAscending,
-    IconSortDescending, IconPackage, IconTarget, IconPercentage
+    IconSortDescending, IconPackage, IconTarget, IconPercentage, IconToggleLeft,
+    IconToggleRight, IconListDetails, IconChartPie
 } from '@tabler/icons-react';
 
 import axios from 'axios';
@@ -27,6 +29,9 @@ function EcomhubPage() {
     // Estados principais
     const [analisesSalvas, setAnalisesSalvas] = useState([]);
     const [dadosResultado, setDadosResultado] = useState(null);
+    
+    // NOVO: Tipo de visualização
+    const [tipoVisualizacao, setTipoVisualizacao] = useState('otimizada'); // 'otimizada' ou 'total'
     
     // Estados do formulário
     const [dataInicio, setDataInicio] = useState(null);
@@ -86,6 +91,7 @@ function EcomhubPage() {
             });
 
             if (response.data.status === 'success') {
+                // AGORA OS DADOS VÊM COM AMBAS AS VISUALIZAÇÕES
                 setDadosResultado(response.data.dados_processados);
                 showNotification('success', 'Dados processados com sucesso!');
                 
@@ -174,6 +180,50 @@ function EcomhubPage() {
         return { backgroundColor: '#F44336', color: 'white', fontWeight: 'bold' };
     };
 
+    // NOVA: Função para obter dados de acordo com o tipo de visualização
+    const getDadosVisualizacao = () => {
+        if (!dadosResultado) return null;
+        
+        if (tipoVisualizacao === 'otimizada') {
+            return dadosResultado.visualizacao_otimizada || dadosResultado;
+        } else {
+            return dadosResultado.visualizacao_total || dadosResultado;
+        }
+    };
+
+    // NOVA: Cores específicas para colunas da visualização otimizada
+    const getCorColuna = (coluna, valor) => {
+        if (tipoVisualizacao !== 'otimizada') {
+            // Para visualização total, usar cor apenas na efetividade
+            if (coluna === 'Efetividade') {
+                return getEfetividadeCor(valor);
+            }
+            return {};
+        }
+
+        // Para visualização otimizada, diferentes cores por tipo de coluna
+        switch (coluna) {
+            case 'Efetividade_Total':
+            case 'Efetividade_Parcial':
+                return getEfetividadeCor(valor);
+            
+            case 'PCT_Transito':
+                const pctTransito = parseFloat(valor.replace('%', '') || 0);
+                if (pctTransito >= 30) return { backgroundColor: '#FFA726', color: 'black', fontWeight: 'bold' };
+                if (pctTransito >= 15) return { backgroundColor: '#FFD54F', color: 'black', fontWeight: 'bold' };
+                return { backgroundColor: '#E8F5E8', color: 'black' };
+            
+            case 'PCT_Devolvidos':
+                const pctDev = parseFloat(valor.replace('%', '') || 0);
+                if (pctDev >= 10) return { backgroundColor: '#F44336', color: 'white', fontWeight: 'bold' };
+                if (pctDev >= 5) return { backgroundColor: '#FF9800', color: 'black', fontWeight: 'bold' };
+                return { backgroundColor: '#E8F5E8', color: 'black' };
+            
+            default:
+                return {};
+        }
+    };
+
     // Ordenação da tabela
     const sortData = (data, sortBy, sortOrder) => {
         if (!sortBy) return data;
@@ -214,17 +264,33 @@ function EcomhubPage() {
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
     const renderEstatisticas = () => {
-        if (!dadosResultado || !Array.isArray(dadosResultado)) return null;
+        const dados = getDadosVisualizacao();
+        if (!dados || !Array.isArray(dados)) return null;
         
-        const produtos = dadosResultado.filter(item => item.Produto !== 'Total');
+        const produtos = dados.filter(item => item.Produto !== 'Total');
         const totalProdutos = produtos.length;
-        const efetividadeMedia = produtos.reduce((sum, item) => {
-            const ef = parseFloat(item.Efetividade?.replace('%', '') || 0);
-            return sum + ef;
-        }, 0) / totalProdutos;
         
-        const totalVendas = produtos.reduce((sum, item) => sum + (item.Delivered || 0), 0);
-        const totalLeads = produtos.reduce((sum, item) => sum + (item['Confirmed (Leads)'] || 0), 0);
+        let efetividadeMedia = 0;
+        let totalVendas = 0;
+        let totalLeads = 0;
+
+        if (tipoVisualizacao === 'otimizada') {
+            efetividadeMedia = produtos.reduce((sum, item) => {
+                const ef = parseFloat(item.Efetividade_Total?.replace('%', '') || 0);
+                return sum + ef;
+            }, 0) / totalProdutos;
+            
+            totalVendas = produtos.reduce((sum, item) => sum + (item.Entregues || 0), 0);
+            totalLeads = produtos.reduce((sum, item) => sum + (item.Pedidos_Totais || 0), 0);
+        } else {
+            efetividadeMedia = produtos.reduce((sum, item) => {
+                const ef = parseFloat(item.Efetividade?.replace('%', '') || 0);
+                return sum + ef;
+            }, 0) / totalProdutos;
+            
+            totalVendas = produtos.reduce((sum, item) => sum + (item.Delivered || 0), 0);
+            totalLeads = produtos.reduce((sum, item) => sum + (item['Confirmed (Leads)'] || 0), 0);
+        }
         
         return (
             <Grid gutter="md" mb="xl">
@@ -246,7 +312,9 @@ function EcomhubPage() {
                     <Card withBorder>
                         <Group justify="space-between">
                             <div>
-                                <Text size="sm" c="dimmed">Total Vendas</Text>
+                                <Text size="sm" c="dimmed">
+                                    {tipoVisualizacao === 'otimizada' ? 'Entregues' : 'Total Vendas'}
+                                </Text>
                                 <Text size="xl" fw={700} c="green">{totalVendas.toLocaleString()}</Text>
                             </div>
                             <ThemeIcon color="green" variant="light" size="xl">
@@ -260,7 +328,9 @@ function EcomhubPage() {
                     <Card withBorder>
                         <Group justify="space-between">
                             <div>
-                                <Text size="sm" c="dimmed">Total Leads</Text>
+                                <Text size="sm" c="dimmed">
+                                    {tipoVisualizacao === 'otimizada' ? 'Pedidos Totais' : 'Total Leads'}
+                                </Text>
                                 <Text size="xl" fw={700} c="blue">{totalLeads.toLocaleString()}</Text>
                             </div>
                             <ThemeIcon color="blue" variant="light" size="xl">
@@ -363,19 +433,71 @@ function EcomhubPage() {
         </Paper>
     );
 
-    const renderResultados = () => {
-        if (!dadosResultado || !Array.isArray(dadosResultado)) return null;
+    // NOVO: Componente para seleção de tipo de visualização
+    const renderSeletorVisualizacao = () => {
+        if (!dadosResultado) return null;
 
-        const colunas = Object.keys(dadosResultado[0] || {});
-        const dadosOrdenados = sortData(dadosResultado, sortBy, sortOrder);
+        return (
+            <Paper shadow="sm" p="sm" mb="md">
+                <Group justify="space-between" align="center">
+                    <Group gap="sm">
+                        <IconChartPie size={20} />
+                        <Title order={5}>Tipo de Visualização</Title>
+                    </Group>
+                    
+                    <SegmentedControl
+                        value={tipoVisualizacao}
+                        onChange={setTipoVisualizacao}
+                        data={[
+                            {
+                                label: 'Otimizada',
+                                value: 'otimizada'
+                            },
+                            {
+                                label: 'Total',
+                                value: 'total'
+                            }
+                        ]}
+                    />
+                </Group>
+
+                {tipoVisualizacao === 'otimizada' && (
+                    <Alert color="blue" mt="sm" icon={<IconChartPie size={16} />}>
+                        <Text size="sm">
+                            <strong>Visualização Otimizada:</strong> Status agrupados em colunas mais analíticas 
+                            (Pedidos Totais, Enviados, Em Trânsito, Problemas, etc.) com percentuais e efetividades calculadas.
+                        </Text>
+                    </Alert>
+                )}
+
+                {tipoVisualizacao === 'total' && (
+                    <Alert color="orange" mt="sm" icon={<IconListDetails size={16} />}>
+                        <Text size="sm">
+                            <strong>Visualização Total:</strong> Todos os status individuais conforme retornados 
+                            da ECOMHUB, sem agrupamentos ou cálculos adicionais.
+                        </Text>
+                    </Alert>
+                )}
+            </Paper>
+        );
+    };
+
+    const renderResultados = () => {
+        const dados = getDadosVisualizacao();
+        if (!dados || !Array.isArray(dados)) return null;
+
+        const colunas = Object.keys(dados[0] || {});
+        const dadosOrdenados = sortData(dados, sortBy, sortOrder);
 
         return (
             <Paper shadow="sm" p="md" mb="md">
                 <Group justify="space-between" mb="md">
-                    <Title order={4}>Métricas de Produtos</Title>
+                    <Title order={4}>
+                        Métricas de Produtos - {tipoVisualizacao === 'otimizada' ? 'Otimizada' : 'Total'}
+                    </Title>
                     <Group>
                         <Badge variant="light" color="blue">
-                            {dadosResultado.length} registros
+                            {dados.length} registros
                         </Badge>
                         <Button
                             leftSection={<IconDownload size={16} />}
@@ -394,7 +516,9 @@ function EcomhubPage() {
                                 {colunas.map(col => (
                                     <Table.Th key={col}>
                                         <Group gap="xs" style={{ cursor: 'pointer' }} onClick={() => handleSort(col)}>
-                                            <Text size="sm" fw={500}>{col}</Text>
+                                            <Text size="sm" fw={500}>
+                                                {col.replace('_', ' ').replace(/([A-Z])/g, ' $1').trim()}
+                                            </Text>
                                             {sortBy === col && (
                                                 <ActionIcon size="xs" variant="transparent">
                                                     {sortOrder === 'asc' ? 
@@ -420,9 +544,18 @@ function EcomhubPage() {
                                     {Object.entries(row).map(([col, value]) => (
                                         <Table.Td
                                             key={col}
-                                            style={col === 'Efetividade' ? getEfetividadeCor(value) : {}}
+                                            style={getCorColuna(col, value)}
                                         >
-                                            {typeof value === 'number' ? value.toLocaleString() : value}
+                                            {col === 'Imagem' && value ? (
+                                                <img 
+                                                    src={value} 
+                                                    alt="Produto" 
+                                                    style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }}
+                                                    onError={(e) => e.target.style.display = 'none'}
+                                                />
+                                            ) : (
+                                                typeof value === 'number' ? value.toLocaleString() : value
+                                            )}
                                         </Table.Td>
                                     ))}
                                 </Table.Tr>
@@ -571,6 +704,9 @@ function EcomhubPage() {
 
             {/* Formulário de Processamento */}
             {renderFormulario()}
+
+            {/* NOVO: Seletor de Visualização */}
+            {renderSeletorVisualizacao()}
 
             {/* Estatísticas */}
             {renderEstatisticas()}
