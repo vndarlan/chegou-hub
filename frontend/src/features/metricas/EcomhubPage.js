@@ -52,9 +52,10 @@ function EcomhubPage() {
     const [notification, setNotification] = useState(null);
     const [progressoAtual, setProgressoAtual] = useState(null);
 
-    // Estados para ordenação
+    // Estados para ordenação e controle de imagens
     const [sortBy, setSortBy] = useState(null);
     const [sortOrder, setSortOrder] = useState('asc');
+    const [imagensComErro, setImagensComErro] = useState(new Set());
 
     // ======================== FUNÇÕES DE API ========================
 
@@ -497,29 +498,42 @@ function EcomhubPage() {
         );
     };
 
-    const renderImagemProduto = (value) => {
-        if (value) {
+    const renderImagemProduto = (value, rowIndex) => {
+        const imageKey = `${rowIndex}-${value}`;
+        const hasError = imagensComErro.has(imageKey);
+        
+        if (!value || hasError) {
             return (
-                <img 
-                    src={value} 
-                    alt="Produto" 
-                    style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }}
-                    onError={(e) => {
-                        e.target.style.display = 'none';
-                        const placeholder = document.createElement('div');
-                        placeholder.style.cssText = 'width:40px;height:40px;background:#f1f3f4;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;';
-                        placeholder.innerHTML = '📦';
-                        e.target.parentNode.appendChild(placeholder);
-                    }}
-                />
-            );
-        } else {
-            return (
-                <div style={{ width: '40px', height: '40px', background: '#f1f3f4', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
+                <div style={{ 
+                    width: '40px', 
+                    height: '40px', 
+                    background: '#f1f3f4', 
+                    borderRadius: '4px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    fontSize: '18px' 
+                }}>
                     📦
                 </div>
             );
         }
+
+        return (
+            <img 
+                src={value} 
+                alt="Produto" 
+                style={{ 
+                    width: '40px', 
+                    height: '40px', 
+                    objectFit: 'cover', 
+                    borderRadius: '4px' 
+                }}
+                onError={() => {
+                    setImagensComErro(prev => new Set(prev).add(imageKey));
+                }}
+            />
+        );
     };
 
     const renderResultados = () => {
@@ -587,7 +601,7 @@ function EcomhubPage() {
                                             style={getCorColuna(col, value)}
                                         >
                                             {col === 'Imagem' ? (
-                                                renderImagemProduto(value)
+                                                renderImagemProduto(value, idx)
                                             ) : (
                                                 typeof value === 'number' ? value.toLocaleString() : value
                                             )}
