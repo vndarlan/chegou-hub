@@ -30,6 +30,9 @@ function EcomhubPage() {
     const [analisesSalvas, setAnalisesSalvas] = useState([]);
     const [dadosResultado, setDadosResultado] = useState(null);
     
+    // NOVO: Controle de seções
+    const [secaoAtiva, setSecaoAtiva] = useState('gerar'); // 'gerar' ou 'salvas'
+    
     // NOVO: Tipo de visualização
     const [tipoVisualizacao, setTipoVisualizacao] = useState('otimizada'); // 'otimizada' ou 'total'
     
@@ -139,6 +142,7 @@ function EcomhubPage() {
 
     const carregarAnalise = (analise) => {
         setDadosResultado(analise.dados_efetividade);
+        setSecaoAtiva('gerar'); // Mudar para seção gerar quando carregar análise
         showNotification('success', 'Análise carregada!');
     };
 
@@ -354,7 +358,29 @@ function EcomhubPage() {
         );
     };
 
-    const renderFormulario = () => (
+    // NOVO: Renderizar navegação por seções
+    const renderNavegacao = () => (
+        <Paper shadow="sm" p="md" mb="md">
+            <Group justify="center">
+                <Button
+                    variant={secaoAtiva === 'gerar' ? 'filled' : 'outline'}
+                    onClick={() => setSecaoAtiva('gerar')}
+                    leftSection={<IconSearch size={16} />}
+                    size="md"
+                >
+                    Gerar Métricas
+                </Button>
+                <Button
+                    variant={secaoAtiva === 'salvas' ? 'filled' : 'outline'}
+                    onClick={() => setSecaoAtiva('salvas')}
+                    leftSection={<IconChartBar size={16} />}
+                    size="md"
+                >
+                    Métricas Salvas
+                </Button>
+            </Group>
+        </Paper>
+    );
         <Paper shadow="sm" p="xs" mb="md" style={{ position: 'relative' }}>
             {loadingProcessar && (
                 <div style={{
@@ -551,7 +577,10 @@ function EcomhubPage() {
                                                         style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }}
                                                         onError={(e) => {
                                                             e.target.style.display = 'none';
-                                                            e.target.parentNode.innerHTML = '<div style="width:40px;height:40px;background:#f1f3f4;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;">📦</div>';
+                                                            const placeholder = document.createElement('div');
+                                                            placeholder.style.cssText = 'width:40px;height:40px;background:#f1f3f4;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;';
+                                                            placeholder.innerHTML = '📦';
+                                                            e.target.parentNode.appendChild(placeholder);
                                                         }}
                                                     />
                                                 ) : (
@@ -708,20 +737,28 @@ function EcomhubPage() {
                 </Alert>
             )}
 
-            {/* Formulário de Processamento */}
-            {renderFormulario()}
+            {/* Navegação por Seções */}
+            {renderNavegacao()}
 
-            {/* NOVO: Seletor de Visualização */}
-            {renderSeletorVisualizacao()}
+            {/* Seção Gerar Métricas */}
+            {secaoAtiva === 'gerar' && (
+                <>
+                    {/* Formulário de Processamento */}
+                    {renderFormulario()}
 
-            {/* Estatísticas */}
-            {renderEstatisticas()}
+                    {/* Seletor de Visualização */}
+                    {renderSeletorVisualizacao()}
 
-            {/* Resultados */}
-            {renderResultados()}
+                    {/* Estatísticas */}
+                    {renderEstatisticas()}
 
-            {/* Análises Salvas */}
-            {renderAnalisesSalvas()}
+                    {/* Resultados */}
+                    {renderResultados()}
+                </>
+            )}
+
+            {/* Seção Métricas Salvas */}
+            {secaoAtiva === 'salvas' && renderAnalisesSalvas()}
 
             {/* Modal para salvar análise */}
             <Modal
