@@ -265,6 +265,12 @@ function EcomhubPage() {
 
     const renderEstatisticas = () => {
         const dados = getDadosVisualizacao();
+        
+        // REMOVIDO para visualização total conforme pedido
+        if (tipoVisualizacao === 'total') {
+            return null;
+        }
+        
         if (!dados || !Array.isArray(dados)) return null;
         
         const produtos = dados.filter(item => item.Produto !== 'Total');
@@ -274,23 +280,14 @@ function EcomhubPage() {
         let totalVendas = 0;
         let totalLeads = 0;
 
-        if (tipoVisualizacao === 'otimizada') {
-            efetividadeMedia = produtos.reduce((sum, item) => {
-                const ef = parseFloat(item.Efetividade_Total?.replace('%', '') || 0);
-                return sum + ef;
-            }, 0) / totalProdutos;
-            
-            totalVendas = produtos.reduce((sum, item) => sum + (item.Entregues || 0), 0);
-            totalLeads = produtos.reduce((sum, item) => sum + (item.Pedidos_Totais || 0), 0);
-        } else {
-            efetividadeMedia = produtos.reduce((sum, item) => {
-                const ef = parseFloat(item.Efetividade?.replace('%', '') || 0);
-                return sum + ef;
-            }, 0) / totalProdutos;
-            
-            totalVendas = produtos.reduce((sum, item) => sum + (item.Delivered || 0), 0);
-            totalLeads = produtos.reduce((sum, item) => sum + (item['Confirmed (Leads)'] || 0), 0);
-        }
+        // Para visualização otimizada apenas
+        efetividadeMedia = produtos.reduce((sum, item) => {
+            const ef = parseFloat(item.Efetividade_Total?.replace('%', '') || 0);
+            return sum + ef;
+        }, 0) / totalProdutos;
+        
+        totalVendas = produtos.reduce((sum, item) => sum + (item.Entregues || 0), 0);
+        totalLeads = produtos.reduce((sum, item) => sum + (item.Totais || 0), 0);
         
         return (
             <Grid gutter="md" mb="xl">
@@ -308,12 +305,12 @@ function EcomhubPage() {
                     </Card>
                 </Grid.Col>
                 
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+                                                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
                     <Card withBorder>
                         <Group justify="space-between">
                             <div>
                                 <Text size="sm" c="dimmed">
-                                    {tipoVisualizacao === 'otimizada' ? 'Entregues' : 'Total Vendas'}
+                                    Entregues
                                 </Text>
                                 <Text size="xl" fw={700} c="green">{totalVendas.toLocaleString()}</Text>
                             </div>
@@ -329,7 +326,7 @@ function EcomhubPage() {
                         <Group justify="space-between">
                             <div>
                                 <Text size="sm" c="dimmed">
-                                    {tipoVisualizacao === 'otimizada' ? 'Pedidos Totais' : 'Total Leads'}
+                                    Totais
                                 </Text>
                                 <Text size="xl" fw={700} c="blue">{totalLeads.toLocaleString()}</Text>
                             </div>
@@ -546,14 +543,23 @@ function EcomhubPage() {
                                             key={col}
                                             style={getCorColuna(col, value)}
                                         >
-                                            {col === 'Imagem' && value ? (
-                                                <img 
-                                                    src={value} 
-                                                    alt="Produto" 
-                                                    style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }}
-                                                    onError={(e) => e.target.style.display = 'none'}
-                                                />
-                                            ) : (
+                                            {col === 'Imagem' && (
+                                                value ? (
+                                                    <img 
+                                                        src={value} 
+                                                        alt="Produto" 
+                                                        style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }}
+                                                        onError={(e) => {
+                                                            e.target.style.display = 'none';
+                                                            e.target.parentNode.innerHTML = '<div style="width:40px;height:40px;background:#f1f3f4;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;">📦</div>';
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div style={{ width: '40px', height: '40px', background: '#f1f3f4', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
+                                                        📦
+                                                    </div>
+                                                )
+                                            ) || (
                                                 typeof value === 'number' ? value.toLocaleString() : value
                                             )}
                                         </Table.Td>
