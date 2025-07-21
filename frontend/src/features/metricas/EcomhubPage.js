@@ -30,7 +30,7 @@ function EcomhubPage() {
     const [dadosResultado, setDadosResultado] = useState(null);
     
     // Controle de seções
-    const [secaoAtiva, setSecaoAtiva] = useState('gerar'); // 'gerar' ou 'salvas'
+    const [secaoAtiva, setSecaoAtiva] = useState('gerar'); // 'gerar', 'salvas' ou 'instrucoes'
     
     // Tipo de visualização
     const [tipoVisualizacao, setTipoVisualizacao] = useState('otimizada'); // 'otimizada' ou 'total'
@@ -262,31 +262,130 @@ function EcomhubPage() {
 
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
-    // Renderizar navegação por seções
+    // Renderizar navegação por seções (movido para canto superior direito)
     const renderNavegacao = () => (
-        <Paper shadow="sm" p="md" mb="md">
-            <Group justify="center">
-                <Button
-                    variant={secaoAtiva === 'gerar' ? 'filled' : 'outline'}
-                    onClick={() => setSecaoAtiva('gerar')}
-                    leftSection={<IconSearch size={16} />}
-                    size="md"
-                >
-                    Gerar Métricas
-                </Button>
-                <Button
-                    variant={secaoAtiva === 'salvas' ? 'filled' : 'outline'}
-                    onClick={() => setSecaoAtiva('salvas')}
-                    leftSection={<IconChartBar size={16} />}
-                    size="md"
-                >
-                    Métricas Salvas
-                </Button>
-            </Group>
-        </Paper>
+        <Group justify="flex-end" mb="md">
+            <Button
+                variant={secaoAtiva === 'gerar' ? 'filled' : 'outline'}
+                onClick={() => setSecaoAtiva('gerar')}
+                leftSection={<IconSearch size={16} />}
+                size="sm"
+            >
+                Gerar Métricas
+            </Button>
+            <Button
+                variant={secaoAtiva === 'salvas' ? 'filled' : 'outline'}
+                onClick={() => setSecaoAtiva('salvas')}
+                leftSection={<IconChartBar size={16} />}
+                size="sm"
+            >
+                Métricas Salvas
+            </Button>
+            <Button
+                variant={secaoAtiva === 'instrucoes' ? 'filled' : 'outline'}
+                onClick={() => setSecaoAtiva('instrucoes')}
+                leftSection={<IconAlertTriangle size={16} />}
+                size="sm"
+            >
+                Instruções
+            </Button>
+        </Group>
     );
 
-    const renderEstatisticas = () => {
+    // Renderizar seção de instruções
+    const renderInstrucoes = () => (
+        <Paper shadow="sm" p="md" mb="md">
+            <Title order={3} mb="lg" c="blue">Manual de Instruções - Métricas ECOMHUB</Title>
+            
+            <Stack gap="lg">
+                <div>
+                    <Title order={4} c="green">Visualização Otimizada</Title>
+                    <Text size="sm" c="dimmed" mb="xs">Colunas agrupadas para análise mais eficiente:</Text>
+                    
+                    <Grid gutter="xs">
+                        <Grid.Col span={6}>
+                            <Card withBorder p="xs">
+                                <Text fw={500} size="sm" c="blue">Totais</Text>
+                                <Text size="xs">Soma de todos os pedidos (todos os status)</Text>
+                            </Card>
+                        </Grid.Col>
+                        
+                        <Grid.Col span={6}>
+                            <Card withBorder p="xs">
+                                <Text fw={500} size="sm" c="green">Enviados</Text>
+                                <Text size="xs">"delivered" + "returning"</Text>
+                            </Card>
+                        </Grid.Col>
+                        
+                        <Grid.Col span={6}>
+                            <Card withBorder p="xs">
+                                <Text fw={500} size="sm" c="orange">Em Trânsito</Text>
+                                <Text size="xs">"out_for_delivery" + "preparing_for_shipping" + "ready_to_ship" + "with_courier"</Text>
+                            </Card>
+                        </Grid.Col>
+                        
+                        <Grid.Col span={6}>
+                            <Card withBorder p="xs">
+                                <Text fw={500} size="sm" c="red">Problemas</Text>
+                                <Text size="xs">Apenas "issue"</Text>
+                            </Card>
+                        </Grid.Col>
+                        
+                        <Grid.Col span={6}>
+                            <Card withBorder p="xs">
+                                <Text fw={500} size="sm" c="grape">Devolução</Text>
+                                <Text size="xs">"returning" + "returned" + "issue"</Text>
+                            </Card>
+                        </Grid.Col>
+                        
+                        <Grid.Col span={6}>
+                            <Card withBorder p="xs">
+                                <Text fw={500} size="sm" c="gray">Cancelados</Text>
+                                <Text size="xs">"cancelled" + "canceled" + "cancelado"</Text>
+                            </Card>
+                        </Grid.Col>
+                    </Grid>
+                </div>
+
+                <div>
+                    <Title order={5} c="teal">Percentuais Calculados:</Title>
+                    <Stack gap="xs">
+                        <Text size="sm">• <strong>% Em Trânsito:</strong> (Em Trânsito ÷ Totais) × 100</Text>
+                        <Text size="sm">• <strong>% Devolvidos:</strong> (Devolução ÷ Totais) × 100</Text>
+                        <Text size="sm">• <strong>Efetividade Parcial:</strong> (Entregues ÷ Enviados) × 100</Text>
+                        <Text size="sm">• <strong>Efetividade Total:</strong> (Entregues ÷ Totais) × 100</Text>
+                    </Stack>
+                </div>
+
+                <div>
+                    <Title order={4} c="orange">Visualização Total</Title>
+                    <Text size="sm" c="dimmed">Mostra todos os status individuais conforme retornados da API ECOMHUB, sem agrupamentos.</Text>
+                </div>
+
+                <div>
+                    <Title order={5} c="indigo">Cores das Métricas:</Title>
+                    <Stack gap="xs">
+                        <Group gap="sm">
+                            <div style={{width: '20px', height: '15px', backgroundColor: '#2E7D2E', borderRadius: '3px'}}></div>
+                            <Text size="sm">Efetividade ≥ 60% (Excelente)</Text>
+                        </Group>
+                        <Group gap="sm">
+                            <div style={{width: '20px', height: '15px', backgroundColor: '#4CAF50', borderRadius: '3px'}}></div>
+                            <Text size="sm">Efetividade ≥ 50% (Boa)</Text>
+                        </Group>
+                        <Group gap="sm">
+                            <div style={{width: '20px', height: '15px', backgroundColor: '#FFA726', borderRadius: '3px'}}></div>
+                            <Text size="sm">Efetividade ≥ 40% (Regular)</Text>
+                        </Group>
+                        <Group gap="sm">
+                            <div style={{width: '20px', height: '15px', backgroundColor: '#F44336', borderRadius: '3px'}}></div>
+                            <Text size="sm">Efetividade &lt; 40% (Ruim)</Text>
+                        </Group>
+                    </Stack>
+                </div>
+            </Stack>
+        </Paper>
+    );
         const dados = getDadosVisualizacao();
         
         // Removido para visualização total conforme pedido
@@ -372,6 +471,8 @@ function EcomhubPage() {
             </Grid>
         );
     };
+
+    const renderEstatisticas = () => {
 
     const renderFormulario = () => (
         <Paper shadow="sm" p="xs" mb="md" style={{ position: 'relative' }}>
