@@ -261,45 +261,42 @@ function EcomhubPage() {
 
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
-    // Renderizar seletor de país principal
-    const renderSeletorPais = () => (
-        <Paper shadow="sm" p="md" mb="lg" style={{ backgroundColor: '#f8f9fa' }}>
+    // Renderizar header com seletor de país e instruções
+    const renderHeader = () => (
+        <Paper shadow="sm" p="md" mb="lg">
             <Group justify="space-between" align="center">
-                <Group gap="sm">
-                    <IconWorldWww size={24} color="var(--mantine-color-blue-6)" />
-                    <Title order={3}>Selecione o País</Title>
-                </Group>
+                <Title order={2}>Métricas ECOMHUB</Title>
                 
-                <Select
-                    placeholder="Escolha um país"
-                    data={PAISES.map(pais => ({
-                        value: pais.value,
-                        label: `${pais.emoji} ${pais.label}`
-                    }))}
-                    value={paisSelecionado}
-                    onChange={setPaisSelecionado}
-                    size="lg"
-                    style={{ minWidth: '250px' }}
-                    leftSection={paisSelecionado ? 
-                        PAISES.find(p => p.value === paisSelecionado)?.emoji : 
-                        <IconWorldWww size={20} />
-                    }
-                />
+                <Group gap="md">
+                    <Button
+                        variant="outline"
+                        leftSection={<IconAlertTriangle size={16} />}
+                        onClick={() => setSecaoAtiva('instrucoes')}
+                        size="sm"
+                    >
+                        Instruções
+                    </Button>
+                    
+                    <Select
+                        placeholder="Escolha um país"
+                        data={PAISES.map(pais => ({
+                            value: pais.value,
+                            label: `${pais.emoji} ${pais.label}`
+                        }))}
+                        value={paisSelecionado}
+                        onChange={setPaisSelecionado}
+                        size="md"
+                        style={{ minWidth: '200px' }}
+                        leftSection={paisSelecionado ? 
+                            PAISES.find(p => p.value === paisSelecionado)?.emoji : 
+                            <IconWorldWww size={20} />
+                        }
+                    />
+                </Group>
             </Group>
-            
-            {paisSelecionado && (
-                <Alert color="blue" mt="md" icon={
-                    <span style={{fontSize: '20px'}}>
-                        {PAISES.find(p => p.value === paisSelecionado)?.emoji}
-                    </span>
-                }>
-                    <Text size="sm">
-                        <strong>País selecionado:</strong> {PAISES.find(p => p.value === paisSelecionado)?.label}
-                    </Text>
-                </Alert>
-            )}
         </Paper>
     );
+
     const renderNavegacao = () => (
         <Group justify="flex-end" mb="md">
             <Button
@@ -317,14 +314,6 @@ function EcomhubPage() {
                 size="sm"
             >
                 Métricas Salvas
-            </Button>
-            <Button
-                variant={secaoAtiva === 'instrucoes' ? 'filled' : 'outline'}
-                onClick={() => setSecaoAtiva('instrucoes')}
-                leftSection={<IconAlertTriangle size={16} />}
-                size="sm"
-            >
-                Instruções
             </Button>
         </Group>
     );
@@ -540,55 +529,48 @@ function EcomhubPage() {
                     </div>
                 )}
 
-                <Group gap="sm" mb="lg" justify="space-between" align="flex-end">
-                    <Group gap="sm">
-                        <IconCalendar size={20} />
-                        <Title order={4}>Período de Análise</Title>
-                    </Group>
+                <Group justify="flex-end" align="flex-end">
+                    <div style={{ minWidth: '180px' }}>
+                        <TextInput
+                            type="date"
+                            label="Data de Início"
+                            value={dataInicio ? dataInicio.toISOString().split('T')[0] : ''}
+                            onChange={(e) => setDataInicio(e.target.value ? new Date(e.target.value) : null)}
+                            disabled={loadingProcessar}
+                            max={maxDate}
+                            style={{ cursor: 'pointer' }}
+                            styles={{
+                                input: { cursor: 'pointer' }
+                            }}
+                            size="sm"
+                        />
+                    </div>
                     
-                    <Group gap="md">
-                        <div style={{ minWidth: '180px' }}>
-                            <TextInput
-                                type="date"
-                                label="Data de Início"
-                                value={dataInicio ? dataInicio.toISOString().split('T')[0] : ''}
-                                onChange={(e) => setDataInicio(e.target.value ? new Date(e.target.value) : null)}
-                                disabled={loadingProcessar}
-                                max={maxDate}
-                                style={{ cursor: 'pointer' }}
-                                styles={{
-                                    input: { cursor: 'pointer' }
-                                }}
-                                size="sm"
-                            />
-                        </div>
-                        
-                        <div style={{ minWidth: '180px' }}>
-                            <TextInput
-                                type="date"
-                                label="Data de Fim"
-                                value={dataFim ? dataFim.toISOString().split('T')[0] : ''}
-                                onChange={(e) => setDataFim(e.target.value ? new Date(e.target.value) : null)}
-                                disabled={loadingProcessar}
-                                max={maxDate}
-                                style={{ cursor: 'pointer' }}
-                                styles={{
-                                    input: { cursor: 'pointer' }
-                                }}
-                                size="sm"
-                            />
-                        </div>
-                        
-                        <Button
-                            leftSection={loadingProcessar ? <Loader size="xs" /> : <IconSearch size={16} />}
-                            onClick={processarDados}
-                            disabled={!dataInicio || !dataFim || !paisSelecionado || loadingProcessar}
-                            loading={loadingProcessar}
-                            size="md"
-                        >
-                            {loadingProcessar ? 'Processando...' : 'Processar'}
-                        </Button>
-                    </Group>
+                    <div style={{ minWidth: '180px' }}>
+                        <TextInput
+                            type="date"
+                            label="Data de Fim"
+                            value={dataFim ? dataFim.toISOString().split('T')[0] : ''}
+                            onChange={(e) => setDataFim(e.target.value ? new Date(e.target.value) : null)}
+                            disabled={loadingProcessar}
+                            max={maxDate}
+                            style={{ cursor: 'pointer' }}
+                            styles={{
+                                input: { cursor: 'pointer' }
+                            }}
+                            size="sm"
+                        />
+                    </div>
+                    
+                    <Button
+                        leftSection={loadingProcessar ? <Loader size="xs" /> : <IconSearch size={16} />}
+                        onClick={processarDados}
+                        disabled={!dataInicio || !dataFim || !paisSelecionado || loadingProcessar}
+                        loading={loadingProcessar}
+                        size="md"
+                    >
+                        {loadingProcessar ? 'Processando...' : 'Processar'}
+                    </Button>
                 </Group>
             </Paper>
         );
@@ -891,8 +873,8 @@ function EcomhubPage() {
                 </Alert>
             )}
 
-            {/* Seletor de País (Primeiro - Principal) */}
-            {renderSeletorPais()}
+            {/* Header com seletor de país e instruções */}
+            {renderHeader()}
 
             {/* Navegação por Seções (só aparece com país selecionado) */}
             {paisSelecionado && renderNavegacao()}
