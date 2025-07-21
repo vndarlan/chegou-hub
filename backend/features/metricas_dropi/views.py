@@ -8,6 +8,7 @@ import time
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.core.cache import cache
+from django.utils import timezone as django_timezone
 
 from .models import AnaliseDropi, DropiToken
 from .serializers import AnaliseDropiSerializer, ProcessamentoDropiSerializer
@@ -36,7 +37,7 @@ class AnaliseDropiViewSet(viewsets.ModelViewSet):
         try:
             token_obj = DropiToken.objects.filter(
                 pais=pais,
-                expires_at__gt=datetime.now()
+                expires_at__gt=django_timezone.now()
             ).order_by('-created_at').first()
             
             if token_obj:
@@ -200,54 +201,53 @@ class AnaliseDropiViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=False, methods=['post'], url_path='receive-token')
-        def receive_token(self, request):
-            """Recebe token do Token Service"""
-            try:
-                data = request.data
-                pais = data.get('pais')
-                token = data.get('token')
-                expires_at_str = data.get('expires_at')
-                
-                if not all([pais, token, expires_at_str]):
-                    return Response({
-                        'error': 'Dados incompletos'
-                    }, status=status.HTTP_400_BAD_REQUEST)
-                
-                # Corrigir timezone
-                from django.utils import timezone as django_timezone
-                expires_at = datetime.fromisoformat(expires_at_str)
-                if expires_at.tzinfo is None:
-                    expires_at = django_timezone.make_aware(expires_at)
-                
-                # Salva no banco
-                DropiToken.objects.update_or_create(
-                    pais=pais,
-                    defaults={
-                        'token': token,
-                        'expires_at': expires_at
-                    }
-                )
-                
-                # Atualiza cache
-                cache_key = f'dropi_token_{pais}'
-                cache.set(cache_key, {
+    def receive_token(self, request):
+        """Recebe token do Token Service"""
+        try:
+            data = request.data
+            pais = data.get('pais')
+            token = data.get('token')
+            expires_at_str = data.get('expires_at')
+            
+            if not all([pais, token, expires_at_str]):
+                return Response({
+                    'error': 'Dados incompletos'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Parse datetime com timezone
+            expires_at = datetime.fromisoformat(expires_at_str.replace('Z', '+00:00'))
+            if expires_at.tzinfo is None:
+                expires_at = django_timezone.make_aware(expires_at)
+            
+            # Salva no banco
+            DropiToken.objects.update_or_create(
+                pais=pais,
+                defaults={
                     'token': token,
-                    'expires_at': expires_at_str
-                }, 3 * 60 * 60)
-                
-                logger.info(f"Token {pais} recebido e salvo")
-                
-                return Response({
-                    'status': 'success',
-                    'message': f'Token {pais} recebido'
-                })
-                
-            except Exception as e:
-                logger.error(f"Erro ao receber token: {e}")
-                return Response({
-                    'status': 'error',
-                    'message': str(e)
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    'expires_at': expires_at
+                }
+            )
+            
+            # Atualiza cache
+            cache_key = f'dropi_token_{pais}'
+            cache.set(cache_key, {
+                'token': token,
+                'expires_at': expires_at_str
+            }, 3 * 60 * 60)
+            
+            logger.info(f"Token {pais} recebido e salvo")
+            
+            return Response({
+                'status': 'success',
+                'message': f'Token {pais} recebido'
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro ao receber token: {e}")
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @action(detail=False, methods=['get'])
     def test_connection(self, request):
