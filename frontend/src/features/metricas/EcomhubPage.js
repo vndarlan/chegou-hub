@@ -266,11 +266,11 @@ function EcomhubPage() {
     const renderHeader = () => (
         <Box
             style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: 'linear-gradient(135deg, #fd7e14 0%, #e8590c 100%)',
                 borderRadius: '16px',
                 padding: '2rem',
                 marginBottom: '2rem',
-                boxShadow: '0 10px 30px rgba(102, 126, 234, 0.15)',
+                boxShadow: '0 10px 30px rgba(253, 126, 20, 0.15)',
                 border: '1px solid rgba(255, 255, 255, 0.1)'
             }}
         >
@@ -489,7 +489,7 @@ function EcomhubPage() {
                             variant="light"
                             color="blue"
                             style={{
-                                background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                                background: 'linear-gradient(135deg, #fd7e14, #e8590c)',
                                 color: 'white'
                             }}
                         >
@@ -531,8 +531,8 @@ function EcomhubPage() {
                                     padding: '0.75rem',
                                     transition: 'all 0.3s ease',
                                     '&:focus': {
-                                        borderColor: '#3b82f6',
-                                        boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)'
+                                        borderColor: '#fd7e14',
+                                        boxShadow: '0 0 0 3px rgba(253, 126, 20, 0.1)'
                                     }
                                 }
                             }}
@@ -580,7 +580,7 @@ function EcomhubPage() {
                             borderRadius: '12px',
                             fontWeight: 600,
                             padding: '0.75rem 2rem',
-                            background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                            background: 'linear-gradient(135deg, #fd7e14, #e8590c)',
                             border: 'none',
                             transition: 'all 0.3s ease',
                             minWidth: '140px'
