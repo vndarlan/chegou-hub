@@ -15,13 +15,13 @@ import {
 
 import axios from 'axios';
 
-// Países disponíveis
+// Países disponíveis com bandeiras
 const PAISES = [
-    { value: '164', label: 'Espanha' },
-    { value: '41', label: 'Croácia' },
-    { value: '66', label: 'Grécia' },
-    { value: '82', label: 'Itália' },
-    { value: '142', label: 'Romênia' }
+    { value: '164', label: 'Espanha', emoji: '🇪🇸' },
+    { value: '41', label: 'Croácia', emoji: '🇭🇷' },
+    { value: '66', label: 'Grécia', emoji: '🇬🇷' },
+    { value: '82', label: 'Itália', emoji: '🇮🇹' },
+    { value: '142', label: 'Romênia', emoji: '🇷🇴' }
 ];
 
 function EcomhubPage() {
@@ -70,6 +70,17 @@ function EcomhubPage() {
         } finally {
             setLoadingAnalises(false);
         }
+    };
+
+    // Filtrar análises por país selecionado
+    const getAnalisesFiltradas = () => {
+        if (!paisSelecionado) return analisesSalvas;
+        
+        const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label;
+        return analisesSalvas.filter(analise => 
+            analise.nome.includes(paisNome) || 
+            analise.descricao?.includes(paisNome)
+        );
     };
 
     const processarDados = async () => {
@@ -250,7 +261,45 @@ function EcomhubPage() {
 
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
-    // Renderizar navegação por seções (canto superior direito)
+    // Renderizar seletor de país principal
+    const renderSeletorPais = () => (
+        <Paper shadow="sm" p="md" mb="lg" style={{ backgroundColor: '#f8f9fa' }}>
+            <Group justify="space-between" align="center">
+                <Group gap="sm">
+                    <IconWorldWww size={24} color="var(--mantine-color-blue-6)" />
+                    <Title order={3}>Selecione o País</Title>
+                </Group>
+                
+                <Select
+                    placeholder="Escolha um país"
+                    data={PAISES.map(pais => ({
+                        value: pais.value,
+                        label: `${pais.emoji} ${pais.label}`
+                    }))}
+                    value={paisSelecionado}
+                    onChange={setPaisSelecionado}
+                    size="lg"
+                    style={{ minWidth: '250px' }}
+                    leftSection={paisSelecionado ? 
+                        PAISES.find(p => p.value === paisSelecionado)?.emoji : 
+                        <IconWorldWww size={20} />
+                    }
+                />
+            </Group>
+            
+            {paisSelecionado && (
+                <Alert color="blue" mt="md" icon={
+                    <span style={{fontSize: '20px'}}>
+                        {PAISES.find(p => p.value === paisSelecionado)?.emoji}
+                    </span>
+                }>
+                    <Text size="sm">
+                        <strong>País selecionado:</strong> {PAISES.find(p => p.value === paisSelecionado)?.label}
+                    </Text>
+                </Alert>
+            )}
+        </Paper>
+    );
     const renderNavegacao = () => (
         <Group justify="flex-end" mb="md">
             <Button
@@ -468,7 +517,7 @@ function EcomhubPage() {
         const maxDate = hoje.toISOString().split('T')[0];
         
         return (
-            <Paper shadow="sm" p="xs" mb="md" style={{ position: 'relative' }}>
+            <Paper shadow="sm" p="md" mb="md" style={{ position: 'relative' }}>
                 {loadingProcessar && (
                     <div style={{
                         position: 'absolute',
@@ -491,68 +540,55 @@ function EcomhubPage() {
                     </div>
                 )}
 
-                <Group gap="sm" mb="sm">
-                    <IconSearch size={20} />
-                    <Title order={4}>Gerar Métricas</Title>
-                </Group>
-                
-                <Grid gutter="sm">
-                    <Grid.Col span={{ base: 12, sm: 4 }}>
-                        <TextInput
-                            type="date"
-                            label="Data de Início"
-                            value={dataInicio ? dataInicio.toISOString().split('T')[0] : ''}
-                            onChange={(e) => setDataInicio(e.target.value ? new Date(e.target.value) : null)}
-                            disabled={loadingProcessar}
-                            max={maxDate}
-                            style={{ cursor: 'pointer' }}
-                            styles={{
-                                input: {
-                                    cursor: 'pointer'
-                                }
-                            }}
-                        />
-                    </Grid.Col>
+                <Group gap="sm" mb="lg" justify="space-between" align="flex-end">
+                    <Group gap="sm">
+                        <IconCalendar size={20} />
+                        <Title order={4}>Período de Análise</Title>
+                    </Group>
                     
-                    <Grid.Col span={{ base: 12, sm: 4 }}>
-                        <TextInput
-                            type="date"
-                            label="Data de Fim"
-                            value={dataFim ? dataFim.toISOString().split('T')[0] : ''}
-                            onChange={(e) => setDataFim(e.target.value ? new Date(e.target.value) : null)}
-                            disabled={loadingProcessar}
-                            max={maxDate}
-                            style={{ cursor: 'pointer' }}
-                            styles={{
-                                input: {
-                                    cursor: 'pointer'
-                                }
-                            }}
-                        />
-                    </Grid.Col>
-                    
-                    <Grid.Col span={{ base: 12, sm: 4 }}>
-                        <Select
-                            label="País"
-                            data={PAISES}
-                            value={paisSelecionado}
-                            onChange={setPaisSelecionado}
-                            disabled={loadingProcessar}
-                            leftSection={<IconWorldWww size={16} />}
-                        />
-                    </Grid.Col>
-                </Grid>
-
-                <Group justify="flex-end" mt="sm">
-                    <Button
-                        leftSection={loadingProcessar ? <Loader size="xs" /> : <IconSearch size={16} />}
-                        onClick={processarDados}
-                        disabled={!dataInicio || !dataFim || !paisSelecionado || loadingProcessar}
-                        loading={loadingProcessar}
-                        size="md"
-                    >
-                        {loadingProcessar ? 'Processando...' : 'Processar'}
-                    </Button>
+                    <Group gap="md">
+                        <div style={{ minWidth: '180px' }}>
+                            <TextInput
+                                type="date"
+                                label="Data de Início"
+                                value={dataInicio ? dataInicio.toISOString().split('T')[0] : ''}
+                                onChange={(e) => setDataInicio(e.target.value ? new Date(e.target.value) : null)}
+                                disabled={loadingProcessar}
+                                max={maxDate}
+                                style={{ cursor: 'pointer' }}
+                                styles={{
+                                    input: { cursor: 'pointer' }
+                                }}
+                                size="sm"
+                            />
+                        </div>
+                        
+                        <div style={{ minWidth: '180px' }}>
+                            <TextInput
+                                type="date"
+                                label="Data de Fim"
+                                value={dataFim ? dataFim.toISOString().split('T')[0] : ''}
+                                onChange={(e) => setDataFim(e.target.value ? new Date(e.target.value) : null)}
+                                disabled={loadingProcessar}
+                                max={maxDate}
+                                style={{ cursor: 'pointer' }}
+                                styles={{
+                                    input: { cursor: 'pointer' }
+                                }}
+                                size="sm"
+                            />
+                        </div>
+                        
+                        <Button
+                            leftSection={loadingProcessar ? <Loader size="xs" /> : <IconSearch size={16} />}
+                            onClick={processarDados}
+                            disabled={!dataInicio || !dataFim || !paisSelecionado || loadingProcessar}
+                            loading={loadingProcessar}
+                            size="md"
+                        >
+                            {loadingProcessar ? 'Processando...' : 'Processar'}
+                        </Button>
+                    </Group>
                 </Group>
             </Paper>
         );
@@ -725,104 +761,110 @@ function EcomhubPage() {
         );
     };
 
-    const renderAnalisesSalvas = () => (
-        <Paper shadow="sm" p="md" style={{ position: 'relative' }}>
-            {loadingAnalises && (
-                <div style={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'rgba(255,255,255,0.8)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 10
-                }}>
-                    <Loader size="lg" />
-                </div>
-            )}
+    const renderAnalisesSalvas = () => {
+        const analisesFiltradas = getAnalisesFiltradas();
+        
+        return (
+            <Paper shadow="sm" p="md" style={{ position: 'relative' }}>
+                {loadingAnalises && (
+                    <div style={{
+                        position: 'absolute',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: 'rgba(255,255,255,0.8)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 10
+                    }}>
+                        <Loader size="lg" />
+                    </div>
+                )}
 
-            <Group justify="space-between" mb="md">
-                <Group gap="sm">
-                    <IconChartBar size={20} />
-                    <Title order={4}>Análises Salvas</Title>
+                <Group justify="space-between" mb="md">
+                    <Group gap="sm">
+                        <IconChartBar size={20} />
+                        <Title order={4}>
+                            Análises Salvas - {PAISES.find(p => p.value === paisSelecionado)?.emoji} {PAISES.find(p => p.value === paisSelecionado)?.label}
+                        </Title>
+                    </Group>
+                    <Group>
+                        <Badge variant="light">{analisesFiltradas.length}</Badge>
+                        <Button
+                            leftSection={<IconRefresh size={16} />}
+                            variant="outline"
+                            size="sm"
+                            onClick={fetchAnalises}
+                        >
+                            Atualizar
+                        </Button>
+                    </Group>
                 </Group>
-                <Group>
-                    <Badge variant="light">{analisesSalvas.length}</Badge>
-                    <Button
-                        leftSection={<IconRefresh size={16} />}
-                        variant="outline"
-                        size="sm"
-                        onClick={fetchAnalises}
-                    >
-                        Atualizar
-                    </Button>
-                </Group>
-            </Group>
 
-            {analisesSalvas.length === 0 ? (
-                <Alert color="blue" icon={<IconChartBar size={16} />}>
-                    <Text fw={500} mb="xs">Nenhuma análise salva</Text>
-                    <Text size="sm" c="dimmed">
-                        Processe dados e salve o resultado para vê-lo aqui.
-                    </Text>
-                </Alert>
-            ) : (
-                <Grid>
-                    {analisesSalvas.map(analise => (
-                        <Grid.Col span={{ base: 12, sm: 6, md: 4 }} key={analise.id}>
-                            <Card withBorder style={{ position: 'relative' }}>
-                                {loadingDelete[analise.id] && (
-                                    <div style={{
-                                        position: 'absolute',
-                                        top: 0, left: 0, right: 0, bottom: 0,
-                                        backgroundColor: 'rgba(255,255,255,0.8)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        zIndex: 10
-                                    }}>
-                                        <Loader size="sm" />
-                                    </div>
-                                )}
+                {analisesFiltradas.length === 0 ? (
+                    <Alert color="blue" icon={<IconChartBar size={16} />}>
+                        <Text fw={500} mb="xs">Nenhuma análise salva para este país</Text>
+                        <Text size="sm" c="dimmed">
+                            Processe dados e salve o resultado para vê-lo aqui.
+                        </Text>
+                    </Alert>
+                ) : (
+                    <Grid>
+                        {analisesFiltradas.map(analise => (
+                            <Grid.Col span={{ base: 12, sm: 6, md: 4 }} key={analise.id}>
+                                <Card withBorder style={{ position: 'relative' }}>
+                                    {loadingDelete[analise.id] && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: 0, left: 0, right: 0, bottom: 0,
+                                            backgroundColor: 'rgba(255,255,255,0.8)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            zIndex: 10
+                                        }}>
+                                            <Loader size="sm" />
+                                        </div>
+                                    )}
 
-                                <Group justify="space-between" mb="xs">
-                                    <Text fw={500} truncate style={{ maxWidth: '70%' }}>
-                                        {analise.nome.replace('[ECOMHUB] ', '')}
+                                    <Group justify="space-between" mb="xs">
+                                        <Text fw={500} truncate style={{ maxWidth: '70%' }}>
+                                            {analise.nome.replace('[ECOMHUB] ', '')}
+                                        </Text>
+                                        <Badge color="blue" variant="light">
+                                            ECOMHUB
+                                        </Badge>
+                                    </Group>
+
+                                    <Text size="xs" c="dimmed" mb="md">
+                                        {new Date(analise.criado_em).toLocaleDateString('pt-BR')} por {analise.criado_por_nome}
                                     </Text>
-                                    <Badge color="blue" variant="light">
-                                        ECOMHUB
-                                    </Badge>
-                                </Group>
 
-                                <Text size="xs" c="dimmed" mb="md">
-                                    {new Date(analise.criado_em).toLocaleDateString('pt-BR')} por {analise.criado_por_nome}
-                                </Text>
-
-                                <Group justify="space-between">
-                                    <Button
-                                        size="xs"
-                                        variant="light"
-                                        onClick={() => carregarAnalise(analise)}
-                                        leftSection={<IconEye size={14} />}
-                                    >
-                                        Carregar
-                                    </Button>
-                                    <ActionIcon
-                                        color="red"
-                                        variant="light"
-                                        onClick={() => deletarAnalise(analise.id, analise.nome)}
-                                        loading={loadingDelete[analise.id]}
-                                    >
-                                        <IconTrash size={16} />
-                                    </ActionIcon>
-                                </Group>
-                            </Card>
-                        </Grid.Col>
-                    ))}
-                </Grid>
-            )}
-        </Paper>
-    );
+                                    <Group justify="space-between">
+                                        <Button
+                                            size="xs"
+                                            variant="light"
+                                            onClick={() => carregarAnalise(analise)}
+                                            leftSection={<IconEye size={14} />}
+                                        >
+                                            Carregar
+                                        </Button>
+                                        <ActionIcon
+                                            color="red"
+                                            variant="light"
+                                            onClick={() => deletarAnalise(analise.id, analise.nome)}
+                                            loading={loadingDelete[analise.id]}
+                                        >
+                                            <IconTrash size={16} />
+                                        </ActionIcon>
+                                    </Group>
+                                </Card>
+                            </Grid.Col>
+                        ))}
+                    </Grid>
+                )}
+            </Paper>
+        );
+    };
 
     // ======================== EFEITOS ========================
 
@@ -834,9 +876,6 @@ function EcomhubPage() {
 
     return (
         <Container fluid p="md">
-            {/* Navegação por Seções (canto superior direito) */}
-            {renderNavegacao()}
-
             {/* Notificações */}
             {notification && (
                 <Alert
@@ -852,8 +891,24 @@ function EcomhubPage() {
                 </Alert>
             )}
 
+            {/* Seletor de País (Primeiro - Principal) */}
+            {renderSeletorPais()}
+
+            {/* Navegação por Seções (só aparece com país selecionado) */}
+            {paisSelecionado && renderNavegacao()}
+
+            {/* Mensagem quando nenhum país selecionado */}
+            {!paisSelecionado && (
+                <Alert color="gray" icon={<IconWorldWww size={16} />}>
+                    <Text fw={500} mb="xs">Selecione um país</Text>
+                    <Text size="sm" c="dimmed">
+                        Escolha um país acima para começar a gerar métricas ou visualizar análises salvas.
+                    </Text>
+                </Alert>
+            )}
+
             {/* Seção Gerar Métricas */}
-            {secaoAtiva === 'gerar' && (
+            {secaoAtiva === 'gerar' && paisSelecionado && (
                 <>
                     {renderFormulario()}
                     {renderSeletorVisualizacao()}
@@ -863,7 +918,7 @@ function EcomhubPage() {
             )}
 
             {/* Seção Métricas Salvas */}
-            {secaoAtiva === 'salvas' && renderAnalisesSalvas()}
+            {secaoAtiva === 'salvas' && paisSelecionado && renderAnalisesSalvas()}
 
             {/* Seção Instruções */}
             {secaoAtiva === 'instrucoes' && renderInstrucoes()}
