@@ -361,11 +361,7 @@ function EcomhubPage() {
                                 boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)'
                             }
                         }}
-                        leftSection={paisSelecionado === 'todos' ? 
-                            '🌍' : 
-                            PAISES.find(p => p.value === paisSelecionado)?.emoji || 
-                            <IconWorldWww size={20} color="rgba(255, 255, 255, 0.8)" />
-                        }
+                        leftSection={<IconWorldWww size={20} color="rgba(255, 255, 255, 0.8)" />}
                     />
                 </Group>
             </Group>
@@ -464,7 +460,7 @@ function EcomhubPage() {
                     </div>
                 )}
 
-                <Group justify="space-between" align="center" mb="xl">
+                <Group justify="space-between" align="flex-end" mb="xl">
                     <Group align="center" gap="md">
                         <ThemeIcon
                             size={40}
@@ -487,11 +483,8 @@ function EcomhubPage() {
                             </Text>
                         </div>
                     </Group>
-                </Group>
 
-                <Divider mb="xl" />
-
-                <Group justify="flex-end" align="flex-end" gap="lg">
+                    <Group align="flex-end" gap="lg">
                     <Box style={{ minWidth: '200px' }}>
                         <Text size="sm" fw={500} mb="xs" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <IconCalendarEvent size={16} />
@@ -570,6 +563,7 @@ function EcomhubPage() {
                     >
                         {loadingProcessar ? 'Processando...' : 'Processar'}
                     </Button>
+                </Group>
                 </Group>
             </Paper>
         );
