@@ -23,19 +23,16 @@ class ProcessamentoSeleniumSerializer(serializers.Serializer):
     data_fim = serializers.DateField(required=True)
     pais_id = serializers.CharField(required=True)
     
-    def validate_pais_id(self, value):
-        """Validar se país é válido - incluindo 'todos'"""
-        paises_validos = ['164', '41', '66', '82', '142', 'todos']  # ADICIONADO 'todos'
-        
-        if value not in paises_validos:
-            raise serializers.ValidationError(
-                f"País inválido. Valores aceitos: {', '.join(paises_validos)}"
-            )
-        
-        return value
-    
     def validate(self, data):
         """Validação geral"""
+        # Validar países aceitos
+        paises_validos = ['164', '41', '66', '82', '142', 'todos']
+        if data['pais_id'] not in paises_validos:
+            raise serializers.ValidationError({
+                'pais_id': f"País inválido. Valores aceitos: {', '.join(paises_validos)}"
+            })
+        
+        # Validar datas
         if data['data_inicio'] > data['data_fim']:
             raise serializers.ValidationError("Data de início deve ser anterior à data fim")
         
