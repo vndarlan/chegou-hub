@@ -1,4 +1,4 @@
-# backend/features/metricas_ecomhub/serializers.py - VERSÃO SIMPLIFICADA
+# backend/features/metricas_ecomhub/serializers.py - COM SUPORTE A "TODOS"
 from rest_framework import serializers
 from .models import AnaliseEcomhub
 
@@ -18,12 +18,33 @@ class AnaliseEcomhubSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 class ProcessamentoSeleniumSerializer(serializers.Serializer):
-    """Serializer para processamento via Selenium"""
+    """Serializer para processamento via Selenium - COM SUPORTE A TODOS"""
     data_inicio = serializers.DateField(required=True)
     data_fim = serializers.DateField(required=True)
     pais_id = serializers.CharField(required=True)
     
+    def validate_pais_id(self, value):
+        """Validar se país é válido - incluindo 'todos'"""
+        paises_validos = ['164', '41', '66', '82', '142', 'todos']  # ADICIONADO 'todos'
+        
+        if value not in paises_validos:
+            raise serializers.ValidationError(
+                f"País inválido. Valores aceitos: {', '.join(paises_validos)}"
+            )
+        
+        return value
+    
     def validate(self, data):
+        """Validação geral"""
         if data['data_inicio'] > data['data_fim']:
             raise serializers.ValidationError("Data de início deve ser anterior à data fim")
+        
+        # Validação adicional para período muito longo quando usar "todos"
+        if data['pais_id'] == 'todos':
+            delta = data['data_fim'] - data['data_inicio']
+            if delta.days > 30:  # Máximo 30 dias para "todos"
+                raise serializers.ValidationError(
+                    "Para consulta de todos os países, período máximo é 30 dias"
+                )
+        
         return data

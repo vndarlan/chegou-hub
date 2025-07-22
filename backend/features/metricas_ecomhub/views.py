@@ -1,4 +1,4 @@
-# backend/features/metricas_ecomhub/views.py - VERSÃO SIMPLIFICADA
+# backend/features/metricas_ecomhub/views.py - COM SUPORTE A "TODOS"
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -20,7 +20,7 @@ class AnaliseEcomhubViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'])
     def processar_selenium(self, request):
-        """Envia requisição para servidor externo processar via Selenium"""
+        """Envia requisição para servidor externo processar via Selenium - COM SUPORTE A TODOS"""
         serializer = ProcessamentoSeleniumSerializer(data=request.data)
         if serializer.is_valid():
             try:
@@ -33,7 +33,7 @@ class AnaliseEcomhubViewSet(viewsets.ModelViewSet):
                 payload = {
                     'data_inicio': data['data_inicio'].isoformat(),
                     'data_fim': data['data_fim'].isoformat(),
-                    'pais_id': data['pais_id']
+                    'pais_id': data['pais_id']  # Agora pode ser 'todos' ou ID específico
                 }
                 
                 logger.info(f"Enviando requisição para servidor Selenium: {payload}")
