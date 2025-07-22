@@ -1,4 +1,4 @@
-# backend/features/metricas_ecomhub/serializers.py - CORREÇÃO FINAL
+# backend/features/metricas_ecomhub/serializers.py - COM NOVOS PAÍSES
 from rest_framework import serializers
 from .models import AnaliseEcomhub
 
@@ -23,7 +23,8 @@ class ProcessamentoSeleniumSerializer(serializers.Serializer):
     pais_id = serializers.CharField(required=True)
     
     def validate_pais_id(self, value):
-        paises_validos = ['164', '41', '66', '82', '142', 'todos']
+        # PAÍSES VÁLIDOS ATUALIZADOS + República Checa (44) + Polônia (139)
+        paises_validos = ['164', '41', '66', '82', '142', '44', '139', 'todos']
         if value not in paises_validos:
             raise serializers.ValidationError(f"País inválido. Aceitos: {paises_validos}")
         return value
