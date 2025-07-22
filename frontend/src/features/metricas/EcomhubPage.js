@@ -594,8 +594,8 @@ function EcomhubPage() {
                         
                         <Grid.Col span={6}>
                             <Card withBorder p="md" style={{ borderRadius: '12px' }}>
-                                <Text fw={600} size="sm" c="green">Enviados</Text>
-                                <Text size="xs">"delivered" + "returning"</Text>
+                                <Text fw={600} size="sm" c="green">Finalizados</Text>
+                                <Text size="xs">"delivered" + "issue" + "returning" + "returned" + "cancelled"</Text>
                             </Card>
                         </Grid.Col>
                         
@@ -647,7 +647,7 @@ function EcomhubPage() {
                     <Stack gap="sm">
                         <Text size="sm">• <strong>% A Caminho:</strong> (Em Trânsito ÷ Totais) × 100</Text>
                         <Text size="sm">• <strong>% Devolvidos:</strong> (Devolução ÷ Totais) × 100</Text>
-                        <Text size="sm">• <strong>Efetividade Parcial:</strong> (Entregues ÷ Enviados) × 100</Text>
+                        <Text size="sm">• <strong>Efetividade Parcial:</strong> (Entregues ÷ Finalizados) × 100</Text>
                         <Text size="sm">• <strong>Efetividade Total:</strong> (Entregues ÷ Totais) × 100</Text>
                     </Stack>
                 </div>
