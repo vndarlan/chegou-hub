@@ -361,8 +361,9 @@ function EcomhubPage() {
                                 boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)'
                             }
                         }}
-                        leftSection={paisSelecionado ? 
-                            PAISES.find(p => p.value === paisSelecionado)?.emoji : 
+                        leftSection={paisSelecionado === 'todos' ? 
+                            '🌍' : 
+                            PAISES.find(p => p.value === paisSelecionado)?.emoji || 
                             <IconWorldWww size={20} color="rgba(255, 255, 255, 0.8)" />
                         }
                     />
