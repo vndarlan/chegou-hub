@@ -361,7 +361,11 @@ function EcomhubPage() {
                                 boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)'
                             }
                         }}
-                        leftSection={<IconWorldWww size={20} color="rgba(255, 255, 255, 0.8)" />}
+                        leftSection={paisSelecionado === 'todos' ? 
+                            '🌍' : 
+                            PAISES.find(p => p.value === paisSelecionado)?.emoji || 
+                            <IconWorldWww size={20} color="rgba(255, 255, 255, 0.8)" />
+                        }
                     />
                 </Group>
             </Group>
@@ -443,24 +447,24 @@ function EcomhubPage() {
                         zIndex: 10,
                         borderRadius: '16px'
                     }}>
-                        <Loader size="xl" />
-                        <Text mt="lg" fw={600} size="lg">Processando dados...</Text>
+                        <Loader size="md" />
+                        <Text mt="sm" fw={500} size="sm">Processando dados...</Text>
                         {progressoAtual && (
                             <>
                                 <Progress 
                                     value={progressoAtual.porcentagem} 
-                                    w="60%" 
-                                    mt="lg" 
-                                    size="lg"
+                                    w="40%" 
+                                    mt="sm" 
+                                    size="sm"
                                     radius="xl"
                                 />
-                                <Text size="sm" c="dimmed" mt="sm">{progressoAtual.etapa}</Text>
+                                <Text size="xs" c="dimmed" mt="xs">{progressoAtual.etapa}</Text>
                             </>
                         )}
                     </div>
                 )}
 
-                <Group justify="space-between" align="flex-end" mb="xl">
+                <Group justify="space-between" align="center" mb="xl">
                     <Group align="center" gap="md">
                         <ThemeIcon
                             size={40}
@@ -483,8 +487,11 @@ function EcomhubPage() {
                             </Text>
                         </div>
                     </Group>
+                </Group>
 
-                    <Group align="flex-end" gap="lg">
+                <Divider mb="xl" />
+
+                <Group justify="flex-end" align="flex-end" gap="lg">
                     <Box style={{ minWidth: '200px' }}>
                         <Text size="sm" fw={500} mb="xs" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <IconCalendarEvent size={16} />
@@ -564,7 +571,6 @@ function EcomhubPage() {
                         {loadingProcessar ? 'Processando...' : 'Processar'}
                     </Button>
                 </Group>
-                </Group>
             </Paper>
         );
     };
@@ -618,7 +624,7 @@ function EcomhubPage() {
                         <Grid.Col span={6}>
                             <Card withBorder p="md" style={{ borderRadius: '12px' }}>
                                 <Text fw={600} size="sm" c="gray">Cancelados</Text>
-                                <Text size="xs">"cancelled"</Text>
+                                <Text size="xs">"cancelled" + "canceled" + "cancelado"</Text>
                             </Card>
                         </Grid.Col>
                     </Grid>
