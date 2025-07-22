@@ -1,4 +1,4 @@
-// frontend/src/features/metricas/EcomhubPage.js - INTERFACE MODERNA 2025
+// frontend/src/features/metricas/EcomhubPage.js - COM OPÇÃO "TODOS"
 import React, { useState, useEffect } from 'react';
 import {
     Box, Title, Text, Paper, Group, Button, Table, Badge, Stack, Grid,
@@ -11,13 +11,14 @@ import {
     IconEye, IconActivity, IconSearch, IconWorldWww, IconSortAscending,
     IconSortDescending, IconPackage, IconTarget, IconPercentage,
     IconListDetails, IconChartPie, IconFilter, IconCalendarEvent,
-    IconRocket, IconDashboard
+    IconRocket, IconDashboard, IconGlobe
 } from '@tabler/icons-react';
 
 import axios from 'axios';
 
-// Países disponíveis com bandeiras
+// Países disponíveis com bandeiras + opção TODOS
 const PAISES = [
+    { value: 'todos', label: 'Todos os Países', emoji: '🌍' }, // NOVA OPÇÃO
     { value: '164', label: 'Espanha', emoji: '🇪🇸' },
     { value: '41', label: 'Croácia', emoji: '🇭🇷' },
     { value: '66', label: 'Grécia', emoji: '🇬🇷' },
@@ -31,15 +32,15 @@ function EcomhubPage() {
     const [dadosResultado, setDadosResultado] = useState(null);
     
     // Controle de seções
-    const [secaoAtiva, setSecaoAtiva] = useState('gerar'); // 'gerar', 'salvas' ou 'instrucoes'
+    const [secaoAtiva, setSecaoAtiva] = useState('gerar');
     
     // Tipo de visualização
-    const [tipoVisualizacao, setTipoVisualizacao] = useState('otimizada'); // 'otimizada' ou 'total'
+    const [tipoVisualizacao, setTipoVisualizacao] = useState('otimizada');
     
     // Estados do formulário
     const [dataInicio, setDataInicio] = useState(null);
     const [dataFim, setDataFim] = useState(null);
-    const [paisSelecionado, setPaisSelecionado] = useState('164'); // Espanha default
+    const [paisSelecionado, setPaisSelecionado] = useState('todos'); // DEFAULT TODOS
     
     // Estados de modal e loading
     const [modalSalvar, setModalSalvar] = useState(false);
@@ -73,9 +74,11 @@ function EcomhubPage() {
         }
     };
 
-    // Filtrar análises por país selecionado
+    // FUNÇÃO MODIFICADA: Filtrar análises por país selecionado OU TODOS
     const getAnalisesFiltradas = () => {
-        if (!paisSelecionado) return analisesSalvas;
+        if (paisSelecionado === 'todos') {
+            return analisesSalvas; // Retorna todas as análises
+        }
         
         const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label;
         return analisesSalvas.filter(analise => 
@@ -102,15 +105,17 @@ function EcomhubPage() {
             const response = await axios.post('/metricas/ecomhub/analises/processar_selenium/', {
                 data_inicio: dataInicio.toISOString().split('T')[0],
                 data_fim: dataFim.toISOString().split('T')[0],
-                pais_id: paisSelecionado
+                pais_id: paisSelecionado // Agora pode ser 'todos' ou ID específico
             });
 
             if (response.data.status === 'success') {
                 setDadosResultado(response.data.dados_processados);
                 showNotification('success', 'Dados processados com sucesso!');
                 
-                // Gerar nome automático para análise
-                const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
+                // NOME AUTOMÁTICO MODIFICADO para incluir "Todos"
+                const paisNome = paisSelecionado === 'todos' ? 
+                    'Todos os Países' : 
+                    PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
                 const dataStr = `${dataInicio.toLocaleDateString()} - ${dataFim.toLocaleDateString()}`;
                 setNomeAnalise(`${paisNome} ${dataStr}`);
             }
@@ -131,11 +136,16 @@ function EcomhubPage() {
 
         setLoadingSalvar(true);
         try {
+            // DESCRIÇÃO MODIFICADA para incluir "Todos"
+            const descricaoPais = paisSelecionado === 'todos' ? 
+                'Automação Selenium - Todos os Países' :
+                `Automação Selenium - ${PAISES.find(p => p.value === paisSelecionado)?.label}`;
+
             const response = await axios.post('/metricas/ecomhub/analises/', {
                 nome: nomeAnalise,
                 dados_efetividade: dadosResultado,
                 tipo_metrica: 'produto',
-                descricao: `Automação Selenium - ${PAISES.find(p => p.value === paisSelecionado)?.label}`
+                descricao: descricaoPais
             });
 
             if (response.data.id) {
@@ -153,7 +163,7 @@ function EcomhubPage() {
 
     const carregarAnalise = (analise) => {
         setDadosResultado(analise.dados_efetividade);
-        setSecaoAtiva('gerar'); // Mudar para seção gerar quando carregar análise
+        setSecaoAtiva('gerar');
         showNotification('success', 'Análise carregada!');
     };
 
@@ -212,7 +222,6 @@ function EcomhubPage() {
             return {};
         }
 
-        // Para visualização otimizada, apenas efetividades com cores
         switch (coluna) {
             case 'Efetividade_Total':
             case 'Efetividade_Parcial':
@@ -231,7 +240,6 @@ function EcomhubPage() {
             let aVal = a[sortBy];
             let bVal = b[sortBy];
             
-            // Converter percentuais para números
             if (typeof aVal === 'string' && aVal.includes('%')) {
                 aVal = parseFloat(aVal.replace('%', ''));
             }
@@ -239,7 +247,6 @@ function EcomhubPage() {
                 bVal = parseFloat(bVal.replace('%', ''));
             }
             
-            // Converter números como strings
             if (typeof aVal === 'string' && !isNaN(aVal)) aVal = parseFloat(aVal);
             if (typeof bVal === 'string' && !isNaN(bVal)) bVal = parseFloat(bVal);
             
@@ -262,7 +269,7 @@ function EcomhubPage() {
 
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
-    // Header moderno com melhor design
+    // Header moderno MODIFICADO para mostrar quando "Todos" estiver selecionado
     const renderHeader = () => (
         <Box
             style={{
@@ -319,14 +326,6 @@ function EcomhubPage() {
                             fontWeight: 500,
                             transition: 'all 0.3s ease'
                         }}
-                        styles={{
-                            root: {
-                                '&:hover': {
-                                    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                                    transform: 'translateY(-2px)'
-                                }
-                            }
-                        }}
                     >
                         Instruções
                     </Button>
@@ -372,7 +371,7 @@ function EcomhubPage() {
         </Box>
     );
 
-    // Navegação moderna com cards
+    // Navegação mantida igual
     const renderNavegacao = () => (
         <Paper
             shadow="sm"
@@ -396,14 +395,6 @@ function EcomhubPage() {
                         minWidth: '160px',
                         transition: 'all 0.3s ease'
                     }}
-                    styles={{
-                        root: {
-                            '&:hover': {
-                                transform: 'translateY(-2px)',
-                                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.1)'
-                            }
-                        }
-                    }}
                 >
                     Gerar Métricas
                 </Button>
@@ -418,14 +409,6 @@ function EcomhubPage() {
                         minWidth: '160px',
                         transition: 'all 0.3s ease'
                     }}
-                    styles={{
-                        root: {
-                            '&:hover': {
-                                transform: 'translateY(-2px)',
-                                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.1)'
-                            }
-                        }
-                    }}
                 >
                     Métricas Salvas
                 </Button>
@@ -433,7 +416,7 @@ function EcomhubPage() {
         </Paper>
     );
 
-    // Formulário de filtros mais moderno
+    // Formulário mantido igual
     const renderFormulario = () => {
         const hoje = new Date();
         const maxDate = hoje.toISOString().split('T')[0];
@@ -480,7 +463,6 @@ function EcomhubPage() {
                     </div>
                 )}
 
-                {/* Header da seção de filtros */}
                 <Group justify="space-between" align="center" mb="xl">
                     <Group align="center" gap="md">
                         <ThemeIcon
@@ -508,7 +490,6 @@ function EcomhubPage() {
 
                 <Divider mb="xl" />
 
-                {/* Filtros de data */}
                 <Group justify="flex-end" align="flex-end" gap="lg">
                     <Box style={{ minWidth: '200px' }}>
                         <Text size="sm" fw={500} mb="xs" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -585,14 +566,6 @@ function EcomhubPage() {
                             transition: 'all 0.3s ease',
                             minWidth: '140px'
                         }}
-                        styles={{
-                            root: {
-                                '&:hover': {
-                                    transform: 'translateY(-2px)',
-                                    boxShadow: '0 8px 25px rgba(59, 130, 246, 0.3)'
-                                }
-                            }
-                        }}
                     >
                         {loadingProcessar ? 'Processando...' : 'Processar'}
                     </Button>
@@ -601,7 +574,7 @@ function EcomhubPage() {
         );
     };
 
-    // Renderizar seção de instruções
+    // Instruções mantidas iguais
     const renderInstrucoes = () => (
         <Paper shadow="sm" p="xl" mb="md" style={{ borderRadius: '16px' }}>
             <Title order={3} mb="xl" c="blue">Manual de Instruções - Métricas ECOMHUB</Title>
@@ -656,6 +629,19 @@ function EcomhubPage() {
                     </Grid>
                 </div>
 
+                {/* NOVA SEÇÃO: Opção "Todos" */}
+                <div>
+                    <Title order={4} c="purple">🌍 Opção "Todos os Países"</Title>
+                    <Text size="sm" c="dimmed" mb="md">Funcionalidades especiais quando "Todos" está selecionado:</Text>
+                    
+                    <Stack gap="sm">
+                        <Text size="sm">• <strong>Métricas Salvas:</strong> Exibe análises de todos os países em uma única lista</Text>
+                        <Text size="sm">• <strong>Gerar Métricas:</strong> Combina dados de Espanha, Croácia, Grécia, Itália e Romênia em uma tabela unificada</Text>
+                        <Text size="sm">• <strong>Processamento:</strong> Consulta todos os países simultaneamente para maior eficiência</Text>
+                        <Text size="sm">• <strong>Análise Comparativa:</strong> Permite comparar performance entre produtos de diferentes países</Text>
+                    </Stack>
+                </div>
+
                 <div>
                     <Title order={5} c="teal">Percentuais Calculados:</Title>
                     <Stack gap="sm">
@@ -699,7 +685,6 @@ function EcomhubPage() {
     const renderEstatisticas = () => {
         const dados = getDadosVisualizacao();
         
-        // Removido para visualização total conforme pedido
         if (tipoVisualizacao === 'total') {
             return null;
         }
@@ -713,7 +698,6 @@ function EcomhubPage() {
         let totalVendas = 0;
         let totalLeads = 0;
 
-        // Para visualização otimizada apenas
         efetividadeMedia = produtos.reduce((sum, item) => {
             const ef = parseFloat(item.Efetividade_Total?.replace('%', '') || 0);
             return sum + ef;
@@ -783,7 +767,6 @@ function EcomhubPage() {
         );
     };
 
-    // Componente para seleção de tipo de visualização
     const renderSeletorVisualizacao = () => {
         if (!dadosResultado) return null;
 
@@ -879,6 +862,7 @@ function EcomhubPage() {
         );
     };
 
+    // TÍTULO MODIFICADO para mostrar tipo de análise
     const renderResultados = () => {
         const dados = getDadosVisualizacao();
         if (!dados || !Array.isArray(dados)) return null;
@@ -886,15 +870,23 @@ function EcomhubPage() {
         const colunas = Object.keys(dados[0] || {});
         const dadosOrdenados = sortData(dados, sortBy, sortOrder);
 
+        // Texto do título baseado na seleção
+        const tituloAnalise = paisSelecionado === 'todos' ? 
+            'Métricas Consolidadas - Todos os Países' : 
+            `Métricas de Produtos - ${PAISES.find(p => p.value === paisSelecionado)?.label}`;
+
         return (
             <Paper shadow="sm" p="xl" mb="md" style={{ borderRadius: '16px' }}>
                 <Group justify="space-between" mb="xl">
                     <div>
                         <Title order={4} style={{ marginBottom: '0.5rem' }}>
-                            Métricas de Produtos - {tipoVisualizacao === 'otimizada' ? 'Otimizada' : 'Total'}
+                            {tituloAnalise} - {tipoVisualizacao === 'otimizada' ? 'Otimizada' : 'Total'}
                         </Title>
                         <Text size="sm" c="dimmed">
-                            Análise detalhada dos dados de performance
+                            {paisSelecionado === 'todos' ? 
+                                'Análise consolidada de todos os países disponíveis' :
+                                'Análise detalhada dos dados de performance'
+                            }
                         </Text>
                     </div>
                     <Group>
@@ -965,8 +957,14 @@ function EcomhubPage() {
         );
     };
 
+    // TÍTULO MODIFICADO para análises salvas
     const renderAnalisesSalvas = () => {
         const analisesFiltradas = getAnalisesFiltradas();
+        
+        // Texto do título baseado na seleção
+        const tituloAnalises = paisSelecionado === 'todos' ? 
+            'Análises Salvas - Todos os Países' : 
+            `Análises Salvas - ${PAISES.find(p => p.value === paisSelecionado)?.emoji} ${PAISES.find(p => p.value === paisSelecionado)?.label}`;
         
         return (
             <Paper shadow="sm" p="xl" style={{ position: 'relative', borderRadius: '16px' }}>
@@ -988,14 +986,17 @@ function EcomhubPage() {
                 <Group justify="space-between" mb="xl">
                     <Group gap="md">
                         <ThemeIcon color="blue" variant="light" size={40} radius="xl">
-                            <IconChartBar size={22} />
+                            {paisSelecionado === 'todos' ? <IconGlobe size={22} /> : <IconChartBar size={22} />}
                         </ThemeIcon>
                         <div>
                             <Title order={4}>
-                                Análises Salvas - {PAISES.find(p => p.value === paisSelecionado)?.emoji} {PAISES.find(p => p.value === paisSelecionado)?.label}
+                                {tituloAnalises}
                             </Title>
                             <Text size="sm" c="dimmed">
-                                Histórico de análises processadas
+                                {paisSelecionado === 'todos' ? 
+                                    'Histórico completo de todas as análises processadas' :
+                                    'Histórico de análises processadas'
+                                }
                             </Text>
                         </div>
                     </Group>
@@ -1015,7 +1016,12 @@ function EcomhubPage() {
 
                 {analisesFiltradas.length === 0 ? (
                     <Alert color="blue" icon={<IconChartBar size={16} />} style={{ borderRadius: '12px' }}>
-                        <Text fw={500} mb="xs">Nenhuma análise salva para este país</Text>
+                        <Text fw={500} mb="xs">
+                            {paisSelecionado === 'todos' ? 
+                                'Nenhuma análise salva encontrada' : 
+                                'Nenhuma análise salva para este país'
+                            }
+                        </Text>
                         <Text size="sm" c="dimmed">
                             Processe dados e salve o resultado para vê-lo aqui.
                         </Text>
@@ -1115,18 +1121,7 @@ function EcomhubPage() {
             {/* Navegação por Seções (só aparece com país selecionado) */}
             {paisSelecionado && renderNavegacao()}
 
-            {/* Mensagem quando nenhum país selecionado */}
-            {!paisSelecionado && (
-                <Paper shadow="sm" p="xl" style={{ borderRadius: '16px', textAlign: 'center' }}>
-                    <ThemeIcon size={60} radius="xl" mx="auto" mb="md" color="gray" variant="light">
-                        <IconWorldWww size={30} />
-                    </ThemeIcon>
-                    <Title order={4} mb="sm">Selecione um país</Title>
-                    <Text size="sm" c="dimmed">
-                        Escolha um país acima para começar a gerar métricas ou visualizar análises salvas.
-                    </Text>
-                </Paper>
-            )}
+            {/* Mensagem quando nenhum país selecionado - REMOVIDA porque agora sempre há seleção */}
 
             {/* Seção Gerar Métricas */}
             {secaoAtiva === 'gerar' && paisSelecionado && (
@@ -1151,10 +1146,6 @@ function EcomhubPage() {
                 title="Salvar Análise"
                 centered
                 style={{ borderRadius: '16px' }}
-                styles={{
-                    content: { borderRadius: '16px' },
-                    header: { borderRadius: '16px 16px 0 0' }
-                }}
             >
                 <Stack style={{ position: 'relative' }}>
                     {loadingSalvar && (
@@ -1174,7 +1165,7 @@ function EcomhubPage() {
 
                     <TextInput
                         label="Nome da Análise"
-                        placeholder="Ex: Espanha Junho 2025"
+                        placeholder="Ex: Todos os Países Junho 2025"
                         value={nomeAnalise}
                         onChange={(e) => setNomeAnalise(e.target.value)}
                         required
