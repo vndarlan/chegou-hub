@@ -624,7 +624,7 @@ function EcomhubPage() {
                         <Grid.Col span={6}>
                             <Card withBorder p="md" style={{ borderRadius: '12px' }}>
                                 <Text fw={600} size="sm" c="gray">Cancelados</Text>
-                                <Text size="xs">"cancelled" + "canceled" + "cancelado"</Text>
+                                <Text size="xs">"cancelled"</Text>
                             </Card>
                         </Grid.Col>
                     </Grid>
