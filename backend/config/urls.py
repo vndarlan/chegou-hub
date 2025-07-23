@@ -14,6 +14,8 @@ urlpatterns = [
     path('api/', include('features.engajamento.urls')),
     path('api/ia/', include('features.ia.urls')),
     path('api/novelties/', include('features.novelties.urls')),
+    
+    # CRÍTICO: URLs do Processamento (SEM /api/)
     path('processamento/', include('features.processamento.urls')),
     
     # URLs das Métricas Separadas
@@ -21,3 +23,4 @@ urlpatterns = [
     path('api/metricas/ecomhub/', include('features.metricas_ecomhub.urls')),
     path('api/metricas/dropi/', include('features.metricas_dropi.urls')),
 ]
+

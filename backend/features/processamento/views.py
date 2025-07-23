@@ -10,10 +10,13 @@ import json
 from .models import ShopifyConfig, ProcessamentoLog
 from .services.shopify_detector import ShopifyDuplicateOrderDetector
 
+@csrf_exempt
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def shopify_config(request):
     """Gerencia configurações do Shopify"""
+    print(f"📍 shopify_config chamado: {request.method} - User: {request.user}")
+    
     if request.method == 'GET':
         try:
             config = ShopifyConfig.objects.filter(user=request.user, ativo=True).first()
@@ -28,6 +31,7 @@ def shopify_config(request):
             else:
                 return Response({'has_config': False})
         except Exception as e:
+            print(f"❌ Erro em shopify_config GET: {e}")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     elif request.method == 'POST':
@@ -64,12 +68,16 @@ def shopify_config(request):
             })
             
         except Exception as e:
+            print(f"❌ Erro em shopify_config POST: {e}")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def test_connection(request):
     """Testa conexão com Shopify"""
+    print(f"📍 test_connection chamado - User: {request.user}")
+    
     try:
         shop_url = request.data.get('shop_url', '').strip()
         access_token = request.data.get('access_token', '').strip()
@@ -88,12 +96,16 @@ def test_connection(request):
         })
         
     except Exception as e:
+        print(f"❌ Erro em test_connection: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@csrf_exempt
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def buscar_duplicatas(request):
     """Busca pedidos duplicados"""
+    print(f"📍 buscar_duplicatas chamado - User: {request.user}")
+    
     try:
         config = ShopifyConfig.objects.filter(user=request.user, ativo=True).first()
         if not config:
@@ -118,6 +130,7 @@ def buscar_duplicatas(request):
         })
         
     except Exception as e:
+        print(f"❌ Erro em buscar_duplicatas: {e}")
         # Log do erro
         if 'config' in locals():
             ProcessamentoLog.objects.create(
@@ -130,10 +143,13 @@ def buscar_duplicatas(request):
         
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def cancelar_pedido(request):
     """Cancela um pedido específico"""
+    print(f"📍 cancelar_pedido chamado - User: {request.user}")
+    
     try:
         config = ShopifyConfig.objects.filter(user=request.user, ativo=True).first()
         if not config:
@@ -166,12 +182,16 @@ def cancelar_pedido(request):
         })
         
     except Exception as e:
+        print(f"❌ Erro em cancelar_pedido: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def cancelar_lote(request):
     """Cancela múltiplos pedidos"""
+    print(f"📍 cancelar_lote chamado - User: {request.user}")
+    
     try:
         config = ShopifyConfig.objects.filter(user=request.user, ativo=True).first()
         if not config:
@@ -217,12 +237,16 @@ def cancelar_lote(request):
         })
         
     except Exception as e:
+        print(f"❌ Erro em cancelar_lote: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@csrf_exempt
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def historico_logs(request):
     """Retorna histórico de operações"""
+    print(f"📍 historico_logs chamado - User: {request.user}")
+    
     try:
         logs = ProcessamentoLog.objects.filter(user=request.user).order_by('-data_execucao')[:50]
         
@@ -242,4 +266,5 @@ def historico_logs(request):
         return Response({'logs': logs_data})
         
     except Exception as e:
+        print(f"❌ Erro em historico_logs: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
