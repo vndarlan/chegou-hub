@@ -51,7 +51,7 @@ function ProcessamentoPage() {
     const loadConfig = async () => {
         try {
             console.log('🔧 Carregando config...');
-            const response = await axios.get('/processamento/config/');
+            const response = await axios.get('/api/processamento/config/');
             console.log('✅ Config carregada:', response.data);
             if (response.data.shop_url) {
                 setConfig(response.data);
@@ -91,7 +91,7 @@ function ProcessamentoPage() {
 
         try {
             console.log('🔗 Testando conexão...');
-            const response = await axios.post('/processamento/test-connection/', {
+            const response = await axios.post('/api/processamento/test-connection/', {
                 shop_url: shopUrl,
                 access_token: accessToken
             });
@@ -116,7 +116,7 @@ function ProcessamentoPage() {
 
         try {
             console.log('💾 Salvando configuração...');
-            const response = await axios.post('/processamento/config/', {
+            const response = await axios.post('/api/processamento/config/', {
                 shop_url: shopUrl,
                 access_token: accessToken
             });
@@ -142,7 +142,7 @@ function ProcessamentoPage() {
 
         try {
             console.log('🔍 Buscando duplicatas...');
-            const response = await axios.get('/processamento/buscar-duplicatas/');
+            const response = await axios.get('/api/processamento/buscar-duplicatas/');
             console.log('✅ Duplicatas encontradas:', response.data);
             setDuplicates(response.data.duplicates || []);
             showNotification(`${response.data.count} duplicatas encontradas`);
@@ -160,7 +160,7 @@ function ProcessamentoPage() {
 
         try {
             console.log('❌ Cancelando pedido:', duplicate.duplicate_order.id);
-            const response = await axios.post('/processamento/cancelar-pedido/', {
+            const response = await axios.post('/api/processamento/cancelar-pedido/', {
                 order_id: duplicate.duplicate_order.id,
                 order_number: duplicate.duplicate_order.number
             });
@@ -190,7 +190,7 @@ function ProcessamentoPage() {
         try {
             console.log('🗑️ Cancelando em lote:', duplicates.length, 'pedidos');
             const orderIds = duplicates.map(d => d.duplicate_order.id);
-            const response = await axios.post('/processamento/cancelar-lote/', {
+            const response = await axios.post('/api/processamento/cancelar-lote/', {
                 order_ids: orderIds
             });
 
