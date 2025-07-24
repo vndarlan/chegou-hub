@@ -359,7 +359,7 @@ function ProcessamentoPage() {
                                 <IconShoppingCart size="1.5rem" />
                             </ThemeIcon>
                             <Box>
-                                <Title order={2} fw={700}>Duplicate Manager</Title>
+                                <Title order={2} fw={700}>Shopify Duplicados</Title>
                                 <Text size="sm" c="dimmed">Gerenciamento inteligente de pedidos</Text>
                             </Box>
                         </Group>
