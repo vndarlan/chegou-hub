@@ -13,7 +13,7 @@ import {
 import {
     IconShoppingCart, IconAlertCircle, IconCheck, IconX,
     IconRefresh, IconTrash, IconSettings, IconHistory,
-    IconPlus, IconShop, IconCloudCheck, IconCloudX, 
+    IconPlus, IconBuilding, IconCloudCheck, IconCloudX, 
     IconBook, IconExternalLink, IconSearch, IconBell,
     IconChevronDown, IconTarget, IconTrendingUp,
     IconUsers, IconClock, IconShield, IconZap,
@@ -371,7 +371,7 @@ function ProcessamentoPage() {
                                 data={lojasOptions}
                                 value={lojaSelecionada?.toString()}
                                 onChange={(value) => setLojaSelecionada(parseInt(value))}
-                                leftSection={<IconShop size="1rem" />}
+                                leftSection={<IconBuilding size="1rem" />}
                                 style={{ minWidth: 200 }}
                                 radius="md"
                                 variant="filled"
@@ -414,7 +414,7 @@ function ProcessamentoPage() {
             <Container size="xl" py="xl">
                 {/* Stats Cards */}
                 <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="lg" mb="xl">
-                    {renderStatsCard("Lojas Conectadas", lojas.length, <IconShop size="1.2rem" />, "violet", "Integrações ativas")}
+                    {renderStatsCard("Lojas Conectadas", lojas.length, <IconBuilding size="1.2rem" />, "violet", "Integrações ativas")}
                     {renderStatsCard("Duplicatas Encontradas", duplicates.length, <IconTarget size="1.2rem" />, "red", "Aguardando ação")}
                     {renderStatsCard("Loja Selecionada", lojaSelecionada ? lojas.find(l => l.id === lojaSelecionada)?.nome_loja || 'N/A' : 'Nenhuma', <IconZap size="1.2rem" />, "cyan", "Análise ativa")}
                     {renderStatsCard("Status", lojaSelecionada ? "Conectado" : "Desconectado", <IconShield size="1.2rem" />, "green", "Sistema operacional")}
