@@ -16,7 +16,7 @@ import {
     IconPlus, IconBuilding, IconCloudCheck, IconCloudX, 
     IconBook, IconExternalLink, IconSearch, IconBell,
     IconChevronDown, IconTarget, IconTrendingUp,
-    IconUsers, IconClock, IconShield, IconZap,
+    IconUsers, IconClock, IconShield, IconBolt,
     IconArrowRight, IconDots, IconEdit, IconEye
 } from '@tabler/icons-react';
 
@@ -416,7 +416,7 @@ function ProcessamentoPage() {
                 <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="lg" mb="xl">
                     {renderStatsCard("Lojas Conectadas", lojas.length, <IconBuilding size="1.2rem" />, "violet", "Integrações ativas")}
                     {renderStatsCard("Duplicatas Encontradas", duplicates.length, <IconTarget size="1.2rem" />, "red", "Aguardando ação")}
-                    {renderStatsCard("Loja Selecionada", lojaSelecionada ? lojas.find(l => l.id === lojaSelecionada)?.nome_loja || 'N/A' : 'Nenhuma', <IconZap size="1.2rem" />, "cyan", "Análise ativa")}
+                    {renderStatsCard("Loja Selecionada", lojaSelecionada ? lojas.find(l => l.id === lojaSelecionada)?.nome_loja || 'N/A' : 'Nenhuma', <IconBolt size="1.2rem" />, "cyan", "Análise ativa")}
                     {renderStatsCard("Status", lojaSelecionada ? "Conectado" : "Desconectado", <IconShield size="1.2rem" />, "green", "Sistema operacional")}
                 </SimpleGrid>
 
