@@ -355,7 +355,7 @@ function ProcessamentoPage() {
                 <Container size="xl">
                     <Group justify="space-between">
                         <Group>
-                            <ThemeIcon size="xl" radius="md" variant="gradient" gradient={{ from: 'violet', to: 'cyan' }}>
+                            <ThemeIcon size="xl" radius="md" variant="gradient" gradient={{ from: 'orange', to: 'orange.6' }}>
                                 <IconShoppingCart size="1.5rem" />
                             </ThemeIcon>
                             <Box>
@@ -379,7 +379,7 @@ function ProcessamentoPage() {
                             
                             <ActionIcon
                                 variant="light"
-                                color="violet"
+                                color="orange"
                                 size="lg"
                                 radius="md"
                                 onClick={() => setShowAddStore(true)}
@@ -389,7 +389,7 @@ function ProcessamentoPage() {
                             
                             <ActionIcon
                                 variant="light"
-                                color="blue"
+                                color="gray"
                                 size="lg"
                                 radius="md"
                                 onClick={() => setShowInstructions(!showInstructions)}
@@ -414,10 +414,10 @@ function ProcessamentoPage() {
             <Container size="xl" py="xl">
                 {/* Stats Cards */}
                 <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="lg" mb="xl">
-                    {renderStatsCard("Lojas Conectadas", lojas.length, <IconBuilding size="1.2rem" />, "violet", "Integrações ativas")}
-                    {renderStatsCard("Duplicatas Encontradas", duplicates.length, <IconTarget size="1.2rem" />, "red", "Aguardando ação")}
-                    {renderStatsCard("Loja Selecionada", lojaSelecionada ? lojas.find(l => l.id === lojaSelecionada)?.nome_loja || 'N/A' : 'Nenhuma', <IconBolt size="1.2rem" />, "cyan", "Análise ativa")}
-                    {renderStatsCard("Status", lojaSelecionada ? "Conectado" : "Desconectado", <IconShield size="1.2rem" />, "green", "Sistema operacional")}
+                    {renderStatsCard("Lojas Conectadas", lojas.length, <IconBuilding size="1.2rem" />, "orange", "Integrações ativas")}
+                    {renderStatsCard("Duplicatas Encontradas", duplicates.length, <IconTarget size="1.2rem" />, "orange", "Aguardando ação")}
+                    {renderStatsCard("Loja Selecionada", lojaSelecionada ? lojas.find(l => l.id === lojaSelecionada)?.nome_loja || 'N/A' : 'Nenhuma', <IconBolt size="1.2rem" />, "orange", "Análise ativa")}
+                    {renderStatsCard("Status", lojaSelecionada ? "Conectado" : "Desconectado", <IconShield size="1.2rem" />, "orange", "Sistema operacional")}
                 </SimpleGrid>
 
                 {/* Instruções (Collapse) */}
@@ -435,16 +435,16 @@ function ProcessamentoPage() {
                     >
                         <Title order={3} mb="md">📋 Configuração Shopify</Title>
                         <Stack gap="md">
-                            <Paper p="md" radius="md" bg="rgba(108, 92, 231, 0.1)" withBorder>
-                                <Text fw={600} c="violet.7" mb="xs">1. Criar App Privado</Text>
+                            <Paper p="md" radius="md" bg="rgba(251, 146, 60, 0.1)" withBorder>
+                                <Text fw={600} c="orange.7" mb="xs">1. Criar App Privado</Text>
                                 <Text size="sm" c="dimmed">Acesse sua loja → Settings → Apps → Develop apps → Create an app</Text>
                             </Paper>
-                            <Paper p="md" radius="md" bg="rgba(0, 206, 201, 0.1)" withBorder>
-                                <Text fw={600} c="cyan.7" mb="xs">2. Configurar Permissões</Text>
+                            <Paper p="md" radius="md" bg="rgba(251, 146, 60, 0.1)" withBorder>
+                                <Text fw={600} c="orange.7" mb="xs">2. Configurar Permissões</Text>
                                 <Text size="sm" c="dimmed">Adicione: read_orders, write_orders, read_products, read_customers</Text>
                             </Paper>
-                            <Paper p="md" radius="md" bg="rgba(253, 121, 168, 0.1)" withBorder>
-                                <Text fw={600} c="pink.7" mb="xs">3. Gerar Token</Text>
+                            <Paper p="md" radius="md" bg="rgba(251, 146, 60, 0.1)" withBorder>
+                                <Text fw={600} c="orange.7" mb="xs">3. Gerar Token</Text>
                                 <Text size="sm" c="dimmed">Install app → Copie o Admin API access token</Text>
                             </Paper>
                         </Stack>
@@ -475,8 +475,7 @@ function ProcessamentoPage() {
                                 onClick={searchDuplicates}
                                 loading={searchingDuplicates}
                                 disabled={!lojaSelecionada}
-                                variant="gradient"
-                                gradient={{ from: 'violet', to: 'cyan' }}
+                                color="orange"
                                 radius="md"
                             >
                                 Buscar Duplicatas
@@ -511,12 +510,12 @@ function ProcessamentoPage() {
                     )}
 
                     {searchingDuplicates && (
-                        <Paper p="md" radius="md" bg="rgba(108, 92, 231, 0.1)" mb="xl" withBorder>
-                            <Text size="sm" c="violet.7" mb="xs" fw={500}>Analisando pedidos...</Text>
+                        <Paper p="md" radius="md" bg="rgba(251, 146, 60, 0.1)" mb="xl" withBorder>
+                            <Text size="sm" c="orange.7" mb="xs" fw={500}>Analisando pedidos...</Text>
                             <Progress
                                 animated
                                 value={100}
-                                color="violet"
+                                color="orange"
                                 radius="md"
                                 size="sm"
                             />
@@ -676,8 +675,7 @@ function ProcessamentoPage() {
                             leftSection={<IconCheck size={16} />}
                             onClick={addStore}
                             disabled={!connectionResult?.success}
-                            variant="gradient"
-                            gradient={{ from: 'violet', to: 'cyan' }}
+                            color="orange"
                             radius="md"
                         >
                             Adicionar Loja

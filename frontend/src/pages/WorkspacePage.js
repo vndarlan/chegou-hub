@@ -124,19 +124,8 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     <Route path="engajamento" element={<EngajamentoPage />} />
                     
                     {/* Placeholder para Suporte */}
-                    <Route path="processamento" element={<ProcessamentoPage />} /> {/* NOVA LINHA ADICIONADA */}
-                    <Route path="suporte" element={
-                        <Box p="xl" style={{ 
-                            backgroundColor: 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-7))',
-                            margin: '16px',
-                            borderRadius: '8px',
-                            border: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))'
-                        }}>
-                            <Title order={2}>🎧 Suporte</Title>
-                            <Text mt="md" c="dimmed">Esta seção estará disponível em breve com ferramentas de suporte ao cliente.</Text>
-                        </Box>
-                    }/>
-
+                    <Route path="processamento" element={<ProcessamentoPage />} /> 
+                    
                     {/* Rota Catch-all - Redireciona para Agenda */}
                     <Route path="*" element={<Navigate to="/workspace/agenda" replace />} />
                 </Routes>
