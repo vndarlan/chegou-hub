@@ -3,15 +3,21 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
     Box, Grid, Title, Text, Button, TextInput, PasswordInput,
-    LoadingOverlay, Alert, Card, Group, Stack, Tabs, Table,
+    LoadingOverlay, Alert, Card, Group, Stack, Table,
     Modal, Badge, Progress, Notification, Select, Collapse,
-    Accordion, ThemeIcon, Divider, Code, List, ActionIcon
+    ActionIcon, Tooltip, Avatar, Switch, Spotlight,
+    Transition, Paper, Container, Flex, Space, Divider,
+    NumberFormatter, SimpleGrid, ThemeIcon, ScrollArea,
+    UnstyledButton, rem, Center
 } from '@mantine/core';
 import {
     IconShoppingCart, IconAlertCircle, IconCheck, IconX,
     IconRefresh, IconTrash, IconSettings, IconHistory,
-    IconPlus, IconChevronDown, IconChevronRight, IconStore,
-    IconCloudCheck, IconCloudX, IconBook, IconExternalLink
+    IconPlus, IconStore, IconCloudCheck, IconCloudX, 
+    IconBook, IconExternalLink, IconSearch, IconBell,
+    IconChevronDown, IconTarget, IconTrendingUp,
+    IconUsers, IconClock, IconShield, IconZap,
+    IconArrowRight, IconDots, IconEdit, IconEye
 } from '@tabler/icons-react';
 
 function ProcessamentoPage() {
@@ -43,7 +49,7 @@ function ProcessamentoPage() {
 
     const showNotification = (message, type = 'success') => {
         setNotification({ message, type });
-        setTimeout(() => setNotification(null), 5000);
+        setTimeout(() => setNotification(null), 4000);
     };
 
     const loadLojas = async () => {
@@ -131,7 +137,7 @@ function ProcessamentoPage() {
                 loja_id: lojaSelecionada
             });
             setDuplicates(response.data.duplicates || []);
-            showNotification(`${response.data.count} duplicatas encontradas na ${response.data.loja_nome}`);
+            showNotification(`${response.data.count} duplicatas encontradas`);
         } catch (error) {
             showNotification(error.response?.data?.error || 'Erro na busca', 'error');
         } finally {
@@ -201,361 +207,290 @@ function ProcessamentoPage() {
         label: `${loja.nome_loja} (${loja.shop_url})`
     }));
 
-    const renderInstructions = () => (
-        <Card withBorder p="md">
-            <Title order={4} mb="md">📋 Como Configurar API do Shopify</Title>
-            
-            <Accordion variant="contained">
-                <Accordion.Item value="create-app">
-                    <Accordion.Control icon={<IconPlus size={16} />}>
-                        1. Criar App Privado no Shopify
-                    </Accordion.Control>
-                    <Accordion.Panel>
-                        <List type="ordered">
-                            <List.Item>Acesse: <Code>https://sua-loja.myshopify.com/admin/settings/apps</Code></List.Item>
-                            <List.Item>Clique em <strong>"Develop apps"</strong></List.Item>
-                            <List.Item>Clique em <strong>"Create an app"</strong></List.Item>
-                            <List.Item>Nomeie o app (ex: "Chegou Hub - Duplicate Canceller")</List.Item>
-                        </List>
-                    </Accordion.Panel>
-                </Accordion.Item>
-
-                <Accordion.Item value="permissions">
-                    <Accordion.Control icon={<IconSettings size={16} />}>
-                        2. Configurar Permissões
-                    </Accordion.Control>
-                    <Accordion.Panel>
-                        <Text mb="xs">No app criado, vá em <strong>"Configuration"</strong> e adicione estas permissões:</Text>
-                        <List>
-                            <List.Item><Code>read_orders</Code> - Ler pedidos</List.Item>
-                            <List.Item><Code>write_orders</Code> - Modificar/cancelar pedidos</List.Item>
-                            <List.Item><Code>read_products</Code> - Ler informações de produtos</List.Item>
-                            <List.Item><Code>read_customers</Code> - Ler dados de clientes</List.Item>
-                        </List>
-                    </Accordion.Panel>
-                </Accordion.Item>
-
-                <Accordion.Item value="token">
-                    <Accordion.Control icon={<IconCloudCheck size={16} />}>
-                        3. Gerar Access Token
-                    </Accordion.Control>
-                    <Accordion.Panel>
-                        <List type="ordered">
-                            <List.Item>Clique em <strong>"Install app"</strong></List.Item>
-                            <List.Item>Copie o <strong>Admin API access token</strong></List.Item>
-                            <List.Item>Use este token no formulário abaixo</List.Item>
-                        </List>
-                        <Alert icon={<IconAlertCircle size={16} />} color="blue" mt="md">
-                            O token é sensível e deve ser mantido seguro. Ele permite acesso total aos dados da sua loja.
-                        </Alert>
-                    </Accordion.Panel>
-                </Accordion.Item>
-            </Accordion>
-        </Card>
+    const renderStatsCard = (title, value, icon, color, subtitle) => (
+        <Paper
+            p="xl"
+            radius="lg"
+            withBorder
+            shadow="sm"
+            style={{
+                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.9) 100%)',
+                backdropFilter: 'blur(10px)',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer'
+            }}
+            className="hover-card"
+        >
+            <Group justify="space-between" mb="md">
+                <ThemeIcon size="lg" radius="md" variant="gradient" gradient={{ from: color, to: 'cyan' }}>
+                    {icon}
+                </ThemeIcon>
+                <ActionIcon variant="subtle" color="gray">
+                    <IconDots size="1rem" />
+                </ActionIcon>
+            </Group>
+            <Text size="xl" fw={700}>{value}</Text>
+            <Text size="sm" c="dimmed" mt={4}>{title}</Text>
+            {subtitle && <Text size="xs" c="dimmed" mt={2}>{subtitle}</Text>}
+        </Paper>
     );
 
-    const renderAddStore = () => (
-        <Card withBorder p="md">
+    const renderModernDuplicateCard = (duplicate, index) => (
+        <Paper
+            key={index}
+            p="lg"
+            radius="md"
+            withBorder
+            shadow="sm"
+            style={{
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(10px)',
+                transition: 'all 0.3s ease'
+            }}
+            className="duplicate-card"
+        >
             <Group justify="space-between" mb="md">
-                <Title order={4}>🏪 Adicionar Nova Loja</Title>
-                <Button variant="outline" onClick={() => setShowAddStore(false)}>
-                    Cancelar
-                </Button>
+                <Group>
+                    <Avatar color="blue" radius="sm">
+                        {duplicate.customer_name?.charAt(0) || 'U'}
+                    </Avatar>
+                    <Box>
+                        <Text fw={600} size="sm">{duplicate.customer_name}</Text>
+                        <Text size="xs" c="dimmed">{duplicate.customer_phone}</Text>
+                    </Box>
+                </Group>
+                <Badge 
+                    variant="light" 
+                    color={duplicate.days_between <= 7 ? 'red' : duplicate.days_between <= 15 ? 'orange' : 'yellow'}
+                    radius="sm"
+                >
+                    {duplicate.days_between} dias
+                </Badge>
             </Group>
-            
-            <Grid>
-                <Grid.Col span={12}>
-                    <TextInput
-                        label="Nome da Loja"
-                        placeholder="Ex: Loja Principal, Loja B2B, etc."
-                        value={newStore.nome_loja}
-                        onChange={(e) => setNewStore(prev => ({ ...prev, nome_loja: e.target.value }))}
-                        description="Nome para identificar a loja no sistema"
-                    />
+
+            <Grid mb="md">
+                <Grid.Col span={6}>
+                    <Paper p="sm" radius="sm" bg="rgba(34, 197, 94, 0.1)" withBorder>
+                        <Text size="xs" c="green.7" fw={500} mb={4}>PEDIDO ORIGINAL</Text>
+                        <Text size="sm" fw={600}>#{duplicate.first_order.number}</Text>
+                        <Text size="xs" c="dimmed">{duplicate.first_order.date}</Text>
+                        <Text size="xs" c="green.7">{duplicate.first_order.total}</Text>
+                    </Paper>
                 </Grid.Col>
-                <Grid.Col span={{ base: 12, md: 6 }}>
-                    <TextInput
-                        label="URL da Loja"
-                        placeholder="minha-loja.myshopify.com"
-                        value={newStore.shop_url}
-                        onChange={(e) => setNewStore(prev => ({ ...prev, shop_url: e.target.value }))}
-                        description="Apenas o domínio, sem https://"
-                    />
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, md: 6 }}>
-                    <PasswordInput
-                        label="Access Token"
-                        placeholder="Token de acesso da API"
-                        value={newStore.access_token}
-                        onChange={(e) => setNewStore(prev => ({ ...prev, access_token: e.target.value }))}
-                        description="Token gerado no admin do Shopify"
-                    />
+                <Grid.Col span={6}>
+                    <Paper p="sm" radius="sm" bg="rgba(239, 68, 68, 0.1)" withBorder>
+                        <Text size="xs" c="red.7" fw={500} mb={4}>DUPLICATA</Text>
+                        <Text size="sm" fw={600}>#{duplicate.duplicate_order.number}</Text>
+                        <Text size="xs" c="dimmed">{duplicate.duplicate_order.date}</Text>
+                        <Text size="xs" c="red.7">{duplicate.duplicate_order.total}</Text>
+                    </Paper>
                 </Grid.Col>
             </Grid>
 
-            <Group mt="md">
+            <Text size="xs" c="dimmed" mb="md">
+                <strong>Produtos:</strong> {duplicate.product_names?.join(', ') || 'N/A'}
+            </Text>
+
+            <Group justify="flex-end">
                 <Button
-                    leftSection={<IconCloudCheck size={16} />}
-                    onClick={testConnection}
-                    loading={testingConnection}
-                    variant="outline"
+                    size="sm"
+                    variant="light"
+                    color="red"
+                    leftSection={<IconTrash size={14} />}
+                    loading={cancellingOrder === duplicate.duplicate_order.id}
+                    onClick={() => cancelOrder(duplicate)}
+                    radius="md"
                 >
-                    Testar Conexão
-                </Button>
-                <Button
-                    leftSection={<IconCheck size={16} />}
-                    onClick={addStore}
-                    disabled={!connectionResult?.success}
-                >
-                    Adicionar Loja
+                    Cancelar
                 </Button>
             </Group>
-
-            {connectionResult && (
-                <Alert
-                    icon={connectionResult.success ? <IconCloudCheck size="1rem" /> : <IconCloudX size="1rem" />}
-                    color={connectionResult.success ? 'green' : 'red'}
-                    mt="md"
-                >
-                    {connectionResult.message}
-                </Alert>
-            )}
-        </Card>
-    );
-
-    const renderDuplicatesTable = () => {
-        if (duplicates.length === 0) {
-            return <Text c="dimmed" ta="center" py="xl">Nenhuma duplicata encontrada</Text>;
-        }
-
-        return (
-            <Table striped highlightOnHover>
-                <Table.Thead>
-                    <Table.Tr>
-                        <Table.Th>Cliente</Table.Th>
-                        <Table.Th>Pedido Original</Table.Th>
-                        <Table.Th>Pedido Duplicado</Table.Th>
-                        <Table.Th>Produtos</Table.Th>
-                        <Table.Th>Intervalo</Table.Th>
-                        <Table.Th>Ações</Table.Th>
-                    </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                    {duplicates.map((dup, index) => (
-                        <Table.Tr key={index}>
-                            <Table.Td>
-                                <Text fw={500}>{dup.customer_name}</Text>
-                                <Text size="xs" c="dimmed">{dup.customer_phone}</Text>
-                            </Table.Td>
-                            <Table.Td>
-                                <Text size="sm">#{dup.first_order.number}</Text>
-                                <Text size="xs" c="dimmed">{dup.first_order.date}</Text>
-                                <Text size="xs">{dup.first_order.total}</Text>
-                            </Table.Td>
-                            <Table.Td>
-                                <Text size="sm" fw={500}>#{dup.duplicate_order.number}</Text>
-                                <Text size="xs" c="dimmed">{dup.duplicate_order.date}</Text>
-                                <Text size="xs">{dup.duplicate_order.total}</Text>
-                            </Table.Td>
-                            <Table.Td>
-                                <Text size="sm">{dup.product_names?.join(', ') || 'N/A'}</Text>
-                            </Table.Td>
-                            <Table.Td>
-                                <Badge color="orange" size="sm">{dup.days_between} dias</Badge>
-                            </Table.Td>
-                            <Table.Td>
-                                <Button
-                                    size="xs"
-                                    color="red"
-                                    variant="light"
-                                    leftSection={<IconTrash size={14} />}
-                                    loading={cancellingOrder === dup.duplicate_order.id}
-                                    onClick={() => cancelOrder(dup)}
-                                >
-                                    Cancelar
-                                </Button>
-                            </Table.Td>
-                        </Table.Tr>
-                    ))}
-                </Table.Tbody>
-            </Table>
-        );
-    };
-
-    const renderLogs = () => (
-        <Stack gap="sm">
-            {logs.map((log) => (
-                <Card key={log.id} withBorder p="sm">
-                    <Group justify="space-between" mb="xs">
-                        <Group gap="xs">
-                            <ThemeIcon
-                                size="sm"
-                                color={log.status === 'Sucesso' ? 'green' : log.status === 'Erro' ? 'red' : 'orange'}
-                                variant="light"
-                            >
-                                {log.status === 'Sucesso' ? <IconCheck size={14} /> : 
-                                 log.status === 'Erro' ? <IconX size={14} /> : <IconAlertCircle size={14} />}
-                            </ThemeIcon>
-                            <Text fw={500} size="sm">{log.tipo}</Text>
-                            <Badge size="xs" color={log.status === 'Sucesso' ? 'green' : log.status === 'Erro' ? 'red' : 'orange'}>
-                                {log.status}
-                            </Badge>
-                            <Text size="xs" c="dimmed">• {log.loja_nome}</Text>
-                        </Group>
-                        <Text size="xs" c="dimmed">
-                            {new Date(log.data_execucao).toLocaleString('pt-BR')}
-                        </Text>
-                    </Group>
-                    
-                    <Group gap="md">
-                        {log.pedidos_encontrados > 0 && (
-                            <Text size="xs">📊 Encontrados: {log.pedidos_encontrados}</Text>
-                        )}
-                        {log.pedidos_cancelados > 0 && (
-                            <Text size="xs">❌ Cancelados: {log.pedidos_cancelados}</Text>
-                        )}
-                    </Group>
-                    
-                    {log.erro_mensagem && (
-                        <Text size="xs" c="red" mt="xs">{log.erro_mensagem}</Text>
-                    )}
-                </Card>
-            ))}
-        </Stack>
+        </Paper>
     );
 
     if (loading) {
-        return <LoadingOverlay visible overlayProps={{ radius: "sm", blur: 2 }} />;
+        return (
+            <Center h="100vh">
+                <LoadingOverlay visible overlayProps={{ radius: "sm", blur: 2 }} />
+            </Center>
+        );
     }
 
     return (
-        <Box p="md">
-            {notification && (
-                <Notification
-                    icon={notification.type === 'success' ? <IconCheck size="1.1rem" /> : <IconX size="1.1rem" />}
-                    color={notification.type === 'success' ? 'teal' : 'red'}
-                    title={notification.type === 'success' ? 'Sucesso!' : 'Erro!'}
-                    onClose={() => setNotification(null)}
-                    mb="md"
+        <Box
+            style={{
+                minHeight: '100vh',
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+                position: 'relative'
+            }}
+        >
+            {/* Notification */}
+            <Transition mounted={!!notification} transition="slide-down">
+                {(styles) => (
+                    <Notification
+                        style={{ ...styles, position: 'fixed', top: 20, right: 20, zIndex: 1000 }}
+                        icon={notification?.type === 'success' ? <IconCheck size="1.1rem" /> : <IconX size="1.1rem" />}
+                        color={notification?.type === 'success' ? 'teal' : 'red'}
+                        title={notification?.type === 'success' ? 'Sucesso!' : 'Erro!'}
+                        onClose={() => setNotification(null)}
+                        radius="md"
+                    >
+                        {notification?.message}
+                    </Notification>
+                )}
+            </Transition>
+
+            {/* Header Moderno */}
+            <Paper
+                p="md"
+                withBorder
+                shadow="sm"
+                style={{
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    backdropFilter: 'blur(10px)',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 100
+                }}
+            >
+                <Container size="xl">
+                    <Group justify="space-between">
+                        <Group>
+                            <ThemeIcon size="xl" radius="md" variant="gradient" gradient={{ from: 'violet', to: 'cyan' }}>
+                                <IconShoppingCart size="1.5rem" />
+                            </ThemeIcon>
+                            <Box>
+                                <Title order={2} fw={700}>Duplicate Manager</Title>
+                                <Text size="sm" c="dimmed">Gerenciamento inteligente de pedidos</Text>
+                            </Box>
+                        </Group>
+                        
+                        <Group>
+                            {/* Seletor de Loja Minimalista */}
+                            <Select
+                                placeholder="Selecionar loja"
+                                data={lojasOptions}
+                                value={lojaSelecionada?.toString()}
+                                onChange={(value) => setLojaSelecionada(parseInt(value))}
+                                leftSection={<IconStore size="1rem" />}
+                                style={{ minWidth: 200 }}
+                                radius="md"
+                                variant="filled"
+                            />
+                            
+                            <ActionIcon
+                                variant="light"
+                                color="violet"
+                                size="lg"
+                                radius="md"
+                                onClick={() => setShowAddStore(true)}
+                            >
+                                <IconPlus size="1.1rem" />
+                            </ActionIcon>
+                            
+                            <ActionIcon
+                                variant="light"
+                                color="blue"
+                                size="lg"
+                                radius="md"
+                                onClick={() => setShowInstructions(!showInstructions)}
+                            >
+                                <IconBook size="1.1rem" />
+                            </ActionIcon>
+                            
+                            <ActionIcon
+                                variant="light"
+                                color="gray"
+                                size="lg"
+                                radius="md"
+                                onClick={() => { setShowHistory(!showHistory); if (!showHistory) loadLogs(); }}
+                            >
+                                <IconHistory size="1.1rem" />
+                            </ActionIcon>
+                        </Group>
+                    </Group>
+                </Container>
+            </Paper>
+
+            <Container size="xl" py="xl">
+                {/* Stats Cards */}
+                <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="lg" mb="xl">
+                    {renderStatsCard("Lojas Conectadas", lojas.length, <IconStore size="1.2rem" />, "violet", "Integrações ativas")}
+                    {renderStatsCard("Duplicatas Encontradas", duplicates.length, <IconTarget size="1.2rem" />, "red", "Aguardando ação")}
+                    {renderStatsCard("Loja Selecionada", lojaSelecionada ? lojas.find(l => l.id === lojaSelecionada)?.nome_loja || 'N/A' : 'Nenhuma', <IconZap size="1.2rem" />, "cyan", "Análise ativa")}
+                    {renderStatsCard("Status", lojaSelecionada ? "Conectado" : "Desconectado", <IconShield size="1.2rem" />, "green", "Sistema operacional")}
+                </SimpleGrid>
+
+                {/* Instruções (Collapse) */}
+                <Collapse in={showInstructions}>
+                    <Paper
+                        p="xl"
+                        radius="lg"
+                        mb="xl"
+                        withBorder
+                        shadow="sm"
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.95)',
+                            backdropFilter: 'blur(10px)'
+                        }}
+                    >
+                        <Title order={3} mb="md">📋 Configuração Shopify</Title>
+                        <Stack gap="md">
+                            <Paper p="md" radius="md" bg="rgba(108, 92, 231, 0.1)" withBorder>
+                                <Text fw={600} c="violet.7" mb="xs">1. Criar App Privado</Text>
+                                <Text size="sm" c="dimmed">Acesse sua loja → Settings → Apps → Develop apps → Create an app</Text>
+                            </Paper>
+                            <Paper p="md" radius="md" bg="rgba(0, 206, 201, 0.1)" withBorder>
+                                <Text fw={600} c="cyan.7" mb="xs">2. Configurar Permissões</Text>
+                                <Text size="sm" c="dimmed">Adicione: read_orders, write_orders, read_products, read_customers</Text>
+                            </Paper>
+                            <Paper p="md" radius="md" bg="rgba(253, 121, 168, 0.1)" withBorder>
+                                <Text fw={600} c="pink.7" mb="xs">3. Gerar Token</Text>
+                                <Text size="sm" c="dimmed">Install app → Copie o Admin API access token</Text>
+                            </Paper>
+                        </Stack>
+                    </Paper>
+                </Collapse>
+
+                {/* Área Principal de Duplicatas */}
+                <Paper
+                    p="xl"
+                    radius="lg"
+                    withBorder
+                    shadow="sm"
+                    style={{
+                        background: 'rgba(255, 255, 255, 0.95)',
+                        backdropFilter: 'blur(10px)'
+                    }}
                 >
-                    {notification.message}
-                </Notification>
-            )}
-
-            <Group justify="space-between" mb="md">
-                <Box>
-                    <Title order={2} mb="xs">🛒 Cancelamento de Pedidos Duplicados</Title>
-                    <Text c="dimmed">Detecte e cancele pedidos duplicados do Shopify</Text>
-                </Box>
-                <Group>
-                    <Button 
-                        variant="outline" 
-                        leftSection={<IconBook size={16} />}
-                        onClick={() => setShowInstructions(!showInstructions)}
-                    >
-                        Como Configurar
-                    </Button>
-                    <Button 
-                        variant="outline" 
-                        leftSection={<IconHistory size={16} />}
-                        onClick={() => { setShowHistory(!showHistory); if (!showHistory) loadLogs(); }}
-                    >
-                        Histórico
-                    </Button>
-                </Group>
-            </Group>
-
-            {/* Instruções (Collapse) */}
-            <Collapse in={showInstructions} mb="md">
-                {renderInstructions()}
-            </Collapse>
-
-            {/* Histórico (Collapse) */}
-            <Collapse in={showHistory} mb="md">
-                <Card withBorder>
-                    <Group justify="space-between" mb="md">
-                        <Title order={4}>📊 Histórico de Operações</Title>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            leftSection={<IconRefresh size={16} />}
-                            onClick={loadLogs}
-                        >
-                            Atualizar
-                        </Button>
-                    </Group>
-                    {logs.length === 0 ? (
-                        <Text c="dimmed" ta="center" py="xl">Nenhum histórico encontrado</Text>
-                    ) : (
-                        renderLogs()
-                    )}
-                </Card>
-            </Collapse>
-
-            {/* Área Principal */}
-            <Stack gap="md">
-                {/* Seletor de Loja */}
-                <Card withBorder>
-                    <Group justify="space-between" mb="md">
-                        <Title order={4}>🏪 Gerenciar Lojas</Title>
-                        <Button
-                            leftSection={<IconPlus size={16} />}
-                            onClick={() => setShowAddStore(!showAddStore)}
-                            variant={showAddStore ? "outline" : "filled"}
-                        >
-                            {showAddStore ? 'Cancelar' : 'Adicionar Loja'}
-                        </Button>
-                    </Group>
-
-                    {showAddStore && renderAddStore()}
-
-                    {lojas.length > 0 && (
-                        <Box mt="md">
-                            <Group gap="md">
-                                <Select
-                                    label="Selecionar Loja"
-                                    placeholder="Escolha uma loja"
-                                    data={lojasOptions}
-                                    value={lojaSelecionada?.toString()}
-                                    onChange={(value) => setLojaSelecionada(parseInt(value))}
-                                    style={{ flex: 1 }}
-                                />
-                                {lojaSelecionada && (
-                                    <ActionIcon
-                                        color="red"
-                                        variant="outline"
-                                        onClick={() => removeStore(lojaSelecionada)}
-                                        style={{ marginTop: '24px' }}
-                                    >
-                                        <IconTrash size={16} />
-                                    </ActionIcon>
-                                )}
-                            </Group>
+                    <Group justify="space-between" mb="xl">
+                        <Box>
+                            <Title order={2} fw={700} mb="xs">🎯 Pedidos Duplicados</Title>
+                            <Text c="dimmed">Detecte e gerencie pedidos duplicados automaticamente</Text>
                         </Box>
-                    )}
-                </Card>
-
-                {/* Detecção de Duplicatas - FOCO PRINCIPAL */}
-                <Card withBorder>
-                    <Group justify="space-between" mb="md">
-                        <Title order={3}>🔍 Pedidos Duplicados</Title>
+                        
                         <Group>
                             <Button
-                                leftSection={<IconRefresh size={16} />}
+                                size="md"
+                                leftSection={<IconSearch size="1.1rem" />}
                                 onClick={searchDuplicates}
                                 loading={searchingDuplicates}
                                 disabled={!lojaSelecionada}
-                                size="md"
+                                variant="gradient"
+                                gradient={{ from: 'violet', to: 'cyan' }}
+                                radius="md"
                             >
                                 Buscar Duplicatas
                             </Button>
+                            
                             {duplicates.length > 0 && (
                                 <Button
+                                    size="md"
                                     color="red"
-                                    leftSection={<IconTrash size={16} />}
+                                    leftSection={<IconTrash size="1.1rem" />}
                                     onClick={() => setConfirmBatchModal(true)}
                                     loading={cancellingBatch}
-                                    size="md"
+                                    variant="light"
+                                    radius="md"
                                 >
                                     Cancelar Todos ({duplicates.length})
                                 </Button>
@@ -564,65 +499,249 @@ function ProcessamentoPage() {
                     </Group>
 
                     {!lojaSelecionada && (
-                        <Alert icon={<IconAlertCircle size="1rem" />} color="blue" mb="md">
-                            Selecione uma loja para buscar pedidos duplicados
+                        <Alert
+                            icon={<IconAlertCircle size="1rem" />}
+                            color="blue"
+                            variant="light"
+                            radius="md"
+                            mb="xl"
+                        >
+                            Selecione uma loja no header para buscar pedidos duplicados
                         </Alert>
                     )}
 
                     {searchingDuplicates && (
-                        <Box mb="md">
-                            <Text size="sm" mb="xs">Analisando pedidos...</Text>
-                            <Progress animated />
-                        </Box>
+                        <Paper p="md" radius="md" bg="rgba(108, 92, 231, 0.1)" mb="xl" withBorder>
+                            <Text size="sm" c="violet.7" mb="xs" fw={500}>Analisando pedidos...</Text>
+                            <Progress
+                                animated
+                                value={100}
+                                color="violet"
+                                radius="md"
+                                size="sm"
+                            />
+                        </Paper>
                     )}
 
-                    {renderDuplicatesTable()}
+                    {/* Lista de Duplicatas Moderna */}
+                    {duplicates.length === 0 && !searchingDuplicates ? (
+                        <Center py="xl">
+                            <Stack align="center" gap="md">
+                                <ThemeIcon size="xl" radius="md" variant="light" color="gray">
+                                    <IconTarget size="2rem" />
+                                </ThemeIcon>
+                                <Text c="dimmed" ta="center">Nenhuma duplicata encontrada</Text>
+                                <Text size="xs" c="dimmed" ta="center">Execute uma busca para detectar pedidos duplicados</Text>
+                            </Stack>
+                        </Center>
+                    ) : (
+                        <Stack gap="md">
+                            {duplicates.map((duplicate, index) => renderModernDuplicateCard(duplicate, index))}
+                        </Stack>
+                    )}
 
                     {/* Critérios */}
-                    <Card mt="md" withBorder bg="gray.0">
-                        <Title order={5} mb="sm">📋 Critérios de Duplicação</Title>
-                        <Text size="sm" mb="xs">Um pedido é considerado duplicado quando:</Text>
+                    <Paper
+                        mt="xl"
+                        p="md"
+                        radius="md"
+                        withBorder
+                        style={{
+                            background: 'rgba(34, 197, 94, 0.1)'
+                        }}
+                    >
                         <Group gap="md">
-                            <Text size="sm">✅ Mesmo cliente (telefone)</Text>
-                            <Text size="sm">✅ Mesmo produto</Text>
-                            <Text size="sm">✅ Intervalo ≤ 30 dias</Text>
-                            <Text size="sm">✅ Pedido não processado</Text>
+                            <ThemeIcon size="sm" color="green" variant="light">
+                                <IconCheck size="0.8rem" />
+                            </ThemeIcon>
+                            <Text size="sm" c="green.7" fw={500}>Critérios: Mesmo cliente + produto + ≤30 dias + não processado</Text>
                         </Group>
-                    </Card>
-                </Card>
-            </Stack>
+                    </Paper>
+                </Paper>
+
+                {/* Histórico (Collapse) */}
+                <Collapse in={showHistory}>
+                    <Paper
+                        mt="xl"
+                        p="xl"
+                        radius="lg"
+                        withBorder
+                        shadow="sm"
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.95)',
+                            backdropFilter: 'blur(10px)'
+                        }}
+                    >
+                        <Group justify="space-between" mb="md">
+                            <Title order={4}>📊 Histórico de Operações</Title>
+                            <Button
+                                variant="light"
+                                size="sm"
+                                leftSection={<IconRefresh size={16} />}
+                                onClick={loadLogs}
+                                radius="md"
+                            >
+                                Atualizar
+                            </Button>
+                        </Group>
+                        
+                        {logs.length === 0 ? (
+                            <Text c="dimmed" ta="center" py="xl">Nenhum histórico encontrado</Text>
+                        ) : (
+                            <ScrollArea.Autosize mah={400}>
+                                <Stack gap="sm">
+                                    {logs.map((log) => (
+                                        <Paper key={log.id} p="sm" radius="md" withBorder bg="rgba(248, 250, 252, 0.8)">
+                                            <Group justify="space-between" mb="xs">
+                                                <Group gap="xs">
+                                                    <ThemeIcon
+                                                        size="sm"
+                                                        color={log.status === 'Sucesso' ? 'green' : log.status === 'Erro' ? 'red' : 'orange'}
+                                                        variant="light"
+                                                    >
+                                                        {log.status === 'Sucesso' ? <IconCheck size={14} /> : 
+                                                         log.status === 'Erro' ? <IconX size={14} /> : <IconAlertCircle size={14} />}
+                                                    </ThemeIcon>
+                                                    <Text fw={500} size="sm">{log.tipo}</Text>
+                                                    <Badge size="xs" variant="light" color={log.status === 'Sucesso' ? 'green' : log.status === 'Erro' ? 'red' : 'orange'}>
+                                                        {log.status}
+                                                    </Badge>
+                                                    <Text size="xs" c="dimmed">• {log.loja_nome}</Text>
+                                                </Group>
+                                                <Text size="xs" c="dimmed">
+                                                    {new Date(log.data_execucao).toLocaleString('pt-BR')}
+                                                </Text>
+                                            </Group>
+                                            
+                                            <Group gap="md">
+                                                {log.pedidos_encontrados > 0 && (
+                                                    <Text size="xs" c="dimmed">📊 Encontrados: {log.pedidos_encontrados}</Text>
+                                                )}
+                                                {log.pedidos_cancelados > 0 && (
+                                                    <Text size="xs" c="dimmed">❌ Cancelados: {log.pedidos_cancelados}</Text>
+                                                )}
+                                            </Group>
+                                        </Paper>
+                                    ))}
+                                </Stack>
+                            </ScrollArea.Autosize>
+                        )}
+                    </Paper>
+                </Collapse>
+            </Container>
+
+            {/* Modal Adicionar Loja */}
+            <Modal
+                opened={showAddStore}
+                onClose={() => setShowAddStore(false)}
+                title="🏪 Adicionar Nova Loja"
+                centered
+                radius="md"
+                size="lg"
+            >
+                <Stack gap="md">
+                    <TextInput
+                        label="Nome da Loja"
+                        placeholder="Ex: Loja Principal, Loja B2B"
+                        value={newStore.nome_loja}
+                        onChange={(e) => setNewStore(prev => ({ ...prev, nome_loja: e.target.value }))}
+                        radius="md"
+                    />
+                    <TextInput
+                        label="URL da Loja"
+                        placeholder="minha-loja.myshopify.com"
+                        value={newStore.shop_url}
+                        onChange={(e) => setNewStore(prev => ({ ...prev, shop_url: e.target.value }))}
+                        radius="md"
+                    />
+                    <PasswordInput
+                        label="Access Token"
+                        placeholder="Token de acesso da API"
+                        value={newStore.access_token}
+                        onChange={(e) => setNewStore(prev => ({ ...prev, access_token: e.target.value }))}
+                        radius="md"
+                    />
+
+                    <Group mt="md">
+                        <Button
+                            leftSection={<IconCloudCheck size={16} />}
+                            onClick={testConnection}
+                            loading={testingConnection}
+                            variant="light"
+                            radius="md"
+                        >
+                            Testar Conexão
+                        </Button>
+                        <Button
+                            leftSection={<IconCheck size={16} />}
+                            onClick={addStore}
+                            disabled={!connectionResult?.success}
+                            variant="gradient"
+                            gradient={{ from: 'violet', to: 'cyan' }}
+                            radius="md"
+                        >
+                            Adicionar Loja
+                        </Button>
+                    </Group>
+
+                    {connectionResult && (
+                        <Alert
+                            icon={connectionResult.success ? <IconCloudCheck size="1rem" /> : <IconCloudX size="1rem" />}
+                            color={connectionResult.success ? 'green' : 'red'}
+                            variant="light"
+                            radius="md"
+                        >
+                            {connectionResult.message}
+                        </Alert>
+                    )}
+                </Stack>
+            </Modal>
 
             {/* Modal de confirmação para cancelamento em lote */}
             <Modal
                 opened={confirmBatchModal}
                 onClose={() => setConfirmBatchModal(false)}
-                title="Confirmar Cancelamento em Lote"
+                title="⚠️ Confirmar Cancelamento em Lote"
                 centered
+                radius="md"
             >
                 <Stack gap="md">
-                    <Alert icon={<IconAlertCircle size="1rem" />} color="orange">
+                    <Alert icon={<IconAlertCircle size="1rem" />} color="orange" variant="light" radius="md">
                         Esta ação cancelará {duplicates.length} pedidos duplicados. Esta operação não pode ser desfeita.
                     </Alert>
                     
-                    <Text size="sm">Pedidos que serão cancelados:</Text>
-                    <Box mah={200} style={{ overflowY: 'auto' }}>
+                    <Text size="sm" fw={500}>Pedidos que serão cancelados:</Text>
+                    <ScrollArea.Autosize mah={200}>
                         {duplicates.map((dup, index) => (
-                            <Text key={index} size="xs">
+                            <Text key={index} size="xs" c="dimmed">
                                 • #{dup.duplicate_order.number} - {dup.customer_name} - {dup.duplicate_order.total}
                             </Text>
                         ))}
-                    </Box>
+                    </ScrollArea.Autosize>
 
-                    <Group justify="flex-end">
-                        <Button variant="outline" onClick={() => setConfirmBatchModal(false)}>
+                    <Group justify="flex-end" mt="md">
+                        <Button variant="light" onClick={() => setConfirmBatchModal(false)} radius="md">
                             Cancelar
                         </Button>
-                        <Button color="red" onClick={cancelBatch}>
+                        <Button color="red" onClick={cancelBatch} radius="md">
                             Confirmar Cancelamento
                         </Button>
                     </Group>
                 </Stack>
             </Modal>
+
+            <style jsx>{`
+                .hover-card:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 30px rgba(108, 92, 231, 0.3);
+                }
+                
+                .duplicate-card:hover {
+                    transform: translateY(-1px);
+                    border-color: rgba(108, 92, 231, 0.3);
+                    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+                }
+            `}</style>
         </Box>
     );
 }
