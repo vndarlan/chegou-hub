@@ -542,19 +542,48 @@ function ProcessamentoPage() {
                     {/* Critérios */}
                     <Paper
                         mt="xl"
-                        p="md"
+                        p="lg"
                         radius="md"
                         withBorder
                         style={{
                             background: 'rgba(34, 197, 94, 0.1)'
                         }}
                     >
-                        <Group gap="md">
+                        <Group gap="md" mb="md">
                             <ThemeIcon size="sm" color="green" variant="light">
                                 <IconCheck size="0.8rem" />
                             </ThemeIcon>
-                            <Text size="sm" c="green.7" fw={500}>Critérios: Mesmo cliente + produto + ≤30 dias + não processado</Text>
+                            <Text size="sm" c="green.7" fw={600}>Lógica de Detecção de Duplicatas</Text>
                         </Group>
+
+                        <Stack gap="sm">
+                            <Group gap="xs">
+                                <Text size="xs" c="green.8" fw={500}>✅ DETECTA DUPLICATA quando:</Text>
+                            </Group>
+                            <Box pl="md">
+                                <Text size="xs" c="dimmed">• Mesmo cliente (telefone normalizado)</Text>
+                                <Text size="xs" c="dimmed">• Mesmo produto (Product ID)</Text>
+                                <Text size="xs" c="dimmed">• Intervalo ≤ 30 dias entre pedidos</Text>
+                                <Text size="xs" c="dimmed">• Pedido original: <strong>PROCESSADO</strong> (tem tags "order sent to dropi" ou "dropi sync error")</Text>
+                                <Text size="xs" c="dimmed">• Pedido duplicado: <strong>NÃO PROCESSADO</strong> (sem tags do Dropi)</Text>
+                            </Box>
+
+                            <Group gap="xs" mt="sm">
+                                <Text size="xs" c="red.7" fw={500}>❌ NÃO detecta quando:</Text>
+                            </Group>
+                            <Box pl="md">
+                                <Text size="xs" c="dimmed">• Ambos pedidos não têm tags (ambos não processados)</Text>
+                                <Text size="xs" c="dimmed">• Produtos diferentes</Text>
+                                <Text size="xs" c="dimmed">• Clientes diferentes (telefones diferentes)</Text>
+                                <Text size="xs" c="dimmed">• Intervalo de 30 dias</Text>
+                            </Box>
+
+                            <Alert color="blue" variant="light" mt="md" radius="md">
+                                <Text size="xs">
+                                    <strong>Objetivo:</strong> Cancelar apenas pedidos duplicados não processados de produtos já enviados/processados anteriormente.
+                                </Text>
+                            </Alert>
+                        </Stack>
                     </Paper>
                 </Paper>
 
