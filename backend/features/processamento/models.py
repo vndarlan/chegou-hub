@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 
 class ShopifyConfig(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    nome_loja = models.CharField(max_length=100, help_text="Nome para identificar a loja")
     shop_url = models.CharField(max_length=255, help_text="URL da loja (ex: minha-loja.myshopify.com)")
     access_token = models.CharField(max_length=255, help_text="Token de acesso da API do Shopify")
     api_version = models.CharField(max_length=20, default="2024-07")
@@ -15,9 +16,10 @@ class ShopifyConfig(models.Model):
         verbose_name = "Configuração Shopify"
         verbose_name_plural = "Configurações Shopify"
         ordering = ['-data_criacao']
+        unique_together = ['user', 'shop_url']  # Evita duplicar mesma loja
     
     def __str__(self):
-        return f"{self.shop_url} - {self.user.username}"
+        return f"{self.nome_loja} ({self.shop_url}) - {self.user.username}"
 
 class ProcessamentoLog(models.Model):
     TIPO_CHOICES = [
@@ -49,4 +51,4 @@ class ProcessamentoLog(models.Model):
         ordering = ['-data_execucao']
     
     def __str__(self):
-        return f"{self.get_tipo_display()} - {self.status} - {self.data_execucao.strftime('%d/%m/%Y %H:%M')}"
+        return f"{self.config.nome_loja} - {self.get_tipo_display()} - {self.status} - {self.data_execucao.strftime('%d/%m/%Y %H:%M')}"

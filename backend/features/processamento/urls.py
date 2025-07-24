@@ -5,7 +5,7 @@ from . import views
 app_name = 'processamento'
 
 urlpatterns = [
-    path('config/', views.shopify_config, name='shopify_config'),
+    path('lojas/', views.lojas_config, name='lojas_config'),
     path('test-connection/', views.test_connection, name='test_connection'),
     path('buscar-duplicatas/', views.buscar_duplicatas, name='buscar_duplicatas'),
     path('cancelar-pedido/', views.cancelar_pedido, name='cancelar_pedido'),

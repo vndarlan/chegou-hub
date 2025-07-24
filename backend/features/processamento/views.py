@@ -11,39 +11,41 @@ from .models import ShopifyConfig, ProcessamentoLog
 from .services.shopify_detector import ShopifyDuplicateOrderDetector
 
 @csrf_exempt
-@api_view(['GET', 'POST'])
+@api_view(['GET', 'POST', 'DELETE'])
 @permission_classes([IsAuthenticated])
-def shopify_config(request):
-    """Gerencia configurações do Shopify"""
-    print(f"📍 shopify_config chamado: {request.method} - User: {request.user}")
-    
+def lojas_config(request):
+    """Gerencia múltiplas configurações do Shopify"""
     if request.method == 'GET':
         try:
-            config = ShopifyConfig.objects.filter(user=request.user, ativo=True).first()
-            if config:
-                return Response({
+            configs = ShopifyConfig.objects.filter(user=request.user, ativo=True)
+            lojas_data = []
+            for config in configs:
+                lojas_data.append({
                     'id': config.id,
+                    'nome_loja': config.nome_loja,
                     'shop_url': config.shop_url,
-                    'has_token': bool(config.access_token),
                     'api_version': config.api_version,
                     'data_criacao': config.data_criacao.isoformat()
                 })
-            else:
-                return Response({'has_config': False})
+            return Response({'lojas': lojas_data})
         except Exception as e:
-            print(f"❌ Erro em shopify_config GET: {e}")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     elif request.method == 'POST':
         try:
+            nome_loja = request.data.get('nome_loja', '').strip()
             shop_url = request.data.get('shop_url', '').strip()
             access_token = request.data.get('access_token', '').strip()
             
-            if not shop_url or not access_token:
-                return Response({'error': 'URL da loja e token são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
+            if not nome_loja or not shop_url or not access_token:
+                return Response({'error': 'Nome da loja, URL e token são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
             
             # Remove protocolo da URL se presente
             shop_url = shop_url.replace('https://', '').replace('http://', '')
+            
+            # Verifica se já existe loja com mesma URL
+            if ShopifyConfig.objects.filter(user=request.user, shop_url=shop_url, ativo=True).exists():
+                return Response({'error': 'Já existe uma loja com esta URL'}, status=status.HTTP_400_BAD_REQUEST)
             
             # Testa conexão
             detector = ShopifyDuplicateOrderDetector(shop_url, access_token)
@@ -52,23 +54,42 @@ def shopify_config(request):
             if not connection_ok:
                 return Response({'error': f'Falha na conexão: {message}'}, status=status.HTTP_400_BAD_REQUEST)
             
-            # Desativa configurações anteriores
-            ShopifyConfig.objects.filter(user=request.user).update(ativo=False)
-            
             # Cria nova configuração
             config = ShopifyConfig.objects.create(
                 user=request.user,
+                nome_loja=nome_loja,
                 shop_url=shop_url,
                 access_token=access_token
             )
             
             return Response({
-                'message': message,
-                'config_id': config.id
+                'message': f'Loja {nome_loja} adicionada com sucesso!',
+                'loja': {
+                    'id': config.id,
+                    'nome_loja': config.nome_loja,
+                    'shop_url': config.shop_url
+                }
             })
             
         except Exception as e:
-            print(f"❌ Erro em shopify_config POST: {e}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    elif request.method == 'DELETE':
+        try:
+            loja_id = request.data.get('loja_id')
+            if not loja_id:
+                return Response({'error': 'ID da loja é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            config = ShopifyConfig.objects.filter(id=loja_id, user=request.user).first()
+            if not config:
+                return Response({'error': 'Loja não encontrada'}, status=status.HTTP_404_NOT_FOUND)
+            
+            nome_loja = config.nome_loja
+            config.delete()
+            
+            return Response({'message': f'Loja {nome_loja} removida com sucesso!'})
+            
+        except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
@@ -76,8 +97,6 @@ def shopify_config(request):
 @permission_classes([IsAuthenticated])
 def test_connection(request):
     """Testa conexão com Shopify"""
-    print(f"📍 test_connection chamado - User: {request.user}")
-    
     try:
         shop_url = request.data.get('shop_url', '').strip()
         access_token = request.data.get('access_token', '').strip()
@@ -96,20 +115,21 @@ def test_connection(request):
         })
         
     except Exception as e:
-        print(f"❌ Erro em test_connection: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
-@api_view(['GET'])
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def buscar_duplicatas(request):
-    """Busca pedidos duplicados"""
-    print(f"📍 buscar_duplicatas chamado - User: {request.user}")
-    
+    """Busca pedidos duplicados de uma loja específica"""
     try:
-        config = ShopifyConfig.objects.filter(user=request.user, ativo=True).first()
+        loja_id = request.data.get('loja_id')
+        if not loja_id:
+            return Response({'error': 'ID da loja é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        config = ShopifyConfig.objects.filter(id=loja_id, user=request.user, ativo=True).first()
         if not config:
-            return Response({'error': 'Configuração Shopify não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Loja não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
         
         detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
         duplicates = detector.get_detailed_duplicates()
@@ -126,11 +146,11 @@ def buscar_duplicatas(request):
         
         return Response({
             'duplicates': duplicates,
-            'count': len(duplicates)
+            'count': len(duplicates),
+            'loja_nome': config.nome_loja
         })
         
     except Exception as e:
-        print(f"❌ Erro em buscar_duplicatas: {e}")
         # Log do erro
         if 'config' in locals():
             ProcessamentoLog.objects.create(
@@ -148,18 +168,17 @@ def buscar_duplicatas(request):
 @permission_classes([IsAuthenticated])
 def cancelar_pedido(request):
     """Cancela um pedido específico"""
-    print(f"📍 cancelar_pedido chamado - User: {request.user}")
-    
     try:
-        config = ShopifyConfig.objects.filter(user=request.user, ativo=True).first()
-        if not config:
-            return Response({'error': 'Configuração Shopify não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
-        
+        loja_id = request.data.get('loja_id')
         order_id = request.data.get('order_id')
         order_number = request.data.get('order_number', 'N/A')
         
-        if not order_id:
-            return Response({'error': 'ID do pedido é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
+        if not loja_id or not order_id:
+            return Response({'error': 'ID da loja e do pedido são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        config = ShopifyConfig.objects.filter(id=loja_id, user=request.user, ativo=True).first()
+        if not config:
+            return Response({'error': 'Loja não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
         
         detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
         success, message = detector.cancel_order(order_id)
@@ -182,7 +201,6 @@ def cancelar_pedido(request):
         })
         
     except Exception as e:
-        print(f"❌ Erro em cancelar_pedido: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
@@ -190,17 +208,16 @@ def cancelar_pedido(request):
 @permission_classes([IsAuthenticated])
 def cancelar_lote(request):
     """Cancela múltiplos pedidos"""
-    print(f"📍 cancelar_lote chamado - User: {request.user}")
-    
     try:
-        config = ShopifyConfig.objects.filter(user=request.user, ativo=True).first()
-        if not config:
-            return Response({'error': 'Configuração Shopify não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
-        
+        loja_id = request.data.get('loja_id')
         order_ids = request.data.get('order_ids', [])
         
-        if not order_ids:
-            return Response({'error': 'Lista de IDs de pedidos é obrigatória'}, status=status.HTTP_400_BAD_REQUEST)
+        if not loja_id or not order_ids:
+            return Response({'error': 'ID da loja e lista de pedidos são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        config = ShopifyConfig.objects.filter(id=loja_id, user=request.user, ativo=True).first()
+        if not config:
+            return Response({'error': 'Loja não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
         
         detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
         
@@ -237,23 +254,29 @@ def cancelar_lote(request):
         })
         
     except Exception as e:
-        print(f"❌ Erro em cancelar_lote: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def historico_logs(request):
-    """Retorna histórico de operações"""
-    print(f"📍 historico_logs chamado - User: {request.user}")
-    
+    """Retorna histórico de operações (opcionalmente filtrado por loja)"""
     try:
-        logs = ProcessamentoLog.objects.filter(user=request.user).order_by('-data_execucao')[:50]
+        loja_id = request.GET.get('loja_id')
+        
+        if loja_id:
+            logs = ProcessamentoLog.objects.filter(
+                user=request.user, 
+                config_id=loja_id
+            ).order_by('-data_execucao')[:50]
+        else:
+            logs = ProcessamentoLog.objects.filter(user=request.user).order_by('-data_execucao')[:50]
         
         logs_data = []
         for log in logs:
             logs_data.append({
                 'id': log.id,
+                'loja_nome': log.config.nome_loja,
                 'tipo': log.get_tipo_display(),
                 'status': log.get_status_display(),
                 'pedidos_encontrados': log.pedidos_encontrados,
@@ -266,5 +289,4 @@ def historico_logs(request):
         return Response({'logs': logs_data})
         
     except Exception as e:
-        print(f"❌ Erro em historico_logs: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
