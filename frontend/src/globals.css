@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    --radius: 0.5rem;
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
@@ -23,20 +24,27 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 24.6 95% 53.1%;
-    --radius: 0.5rem;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+    --sidebar: 0 0% 98%;
+    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-primary: 24.6 95% 53.1%;
+    --sidebar-primary-foreground: 60 9.1% 97.8%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 222.2 84% 4.9%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-ring: 24.6 95% 53.1%;
   }
-
+  
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 217.2 32.6% 17.5%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 217.2 32.6% 17.5%;
     --popover-foreground: 210 40% 98%;
     --primary: 24.6 95% 53.1%;
     --primary-foreground: 60 9.1% 97.8%;
@@ -56,6 +64,14 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+    --sidebar: 217.2 32.6% 17.5%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 24.6 95% 53.1%;
+    --sidebar-primary-foreground: 60 9.1% 97.8%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 24.6 95% 53.1%;
   }
 }
 
@@ -65,16 +81,40 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
   }
 }
 
-/* Custom orange theme variables */
-:root[data-theme="orange"] {
-  --primary: 24.6 95% 53.1%; /* Orange */
-  --primary-foreground: 60 9.1% 97.8%;
+/* Sobrescrever estilos do Mantine para não conflitar */
+[data-mantine-color-scheme] {
+  color-scheme: unset !important;
 }
 
-.dark[data-theme="orange"] {
-  --primary: 24.6 95% 53.1%; /* Orange */
-  --primary-foreground: 60 9.1% 97.8%;
+/* Mantine container fix */
+.mantine-Container-root {
+  background: transparent !important;
+}
+
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--sidebar-border)) transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--sidebar-border));
+  border-radius: 3px;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
