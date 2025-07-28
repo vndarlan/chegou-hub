@@ -3,7 +3,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import axios from 'axios';
 import './globals.css'; // Novo CSS com Tailwind e variáveis do tema
-import './index.css';  // CSS original (mantém compatibilidade)
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
