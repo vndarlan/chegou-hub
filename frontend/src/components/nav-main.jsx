@@ -13,9 +13,12 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from "./ui/sidebar"
 
 export function NavMain({ items, navigate, currentPath }) {
+  const { state } = useSidebar()
+
   const handleNavigation = (url, external = false) => {
     if (external) {
       window.open(url, '_blank')
@@ -37,7 +40,10 @@ export function NavMain({ items, navigate, currentPath }) {
           >
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
-                <SidebarMenuButton tooltip={item.title}>
+                <SidebarMenuButton 
+                  tooltip={item.title}
+                  isActive={item.isActive}
+                >
                   {item.icon && <item.icon />}
                   <span>{item.title}</span>
                   <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />

@@ -1,4 +1,4 @@
-// src/pages/WorkspacePage.js - MIGRADO PARA SHADCN/UI
+// src/pages/WorkspacePage.js - LAYOUT CORRIGIDO
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Routes, Route, Navigate } from 'react-router-dom';
@@ -106,66 +106,68 @@ function WorkspacePage({ setIsLoggedIn }) {
     }
 
     return (
-        <SidebarProvider>
-            <AppSidebar
-                userName={userName}
-                userEmail={userEmail}
-                onLogout={handleLogout}
-                isAdmin={isAdmin}
-            />
-            <SidebarInset>
-                <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-                    <div className="flex items-center gap-2 px-4">
-                        <SidebarTrigger className="-ml-1" />
-                        <Separator orientation="vertical" className="mr-2 h-4" />
-                        <Breadcrumb>
-                            <BreadcrumbList>
-                                <BreadcrumbItem className="hidden md:block">
-                                    <BreadcrumbLink href="#">
-                                        Chegou Hub
-                                    </BreadcrumbLink>
-                                </BreadcrumbItem>
-                                <BreadcrumbSeparator className="hidden md:block" />
-                                <BreadcrumbItem>
-                                    <BreadcrumbPage>Workspace</BreadcrumbPage>
-                                </BreadcrumbItem>
-                            </BreadcrumbList>
-                        </Breadcrumb>
-                    </div>
-                </header>
-                <main className="flex-1 overflow-y-auto bg-background p-4">
-                    <Routes>
-                        <Route index element={<Navigate to="/workspace/agenda" replace />} />
+        <div className="min-h-screen flex bg-background">
+            <SidebarProvider>
+                <AppSidebar
+                    userName={userName}
+                    userEmail={userEmail}
+                    onLogout={handleLogout}
+                    isAdmin={isAdmin}
+                />
+                <SidebarInset className="flex-1 flex flex-col min-h-screen">
+                    <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b border-border">
+                        <div className="flex items-center gap-2 px-4">
+                            <SidebarTrigger className="-ml-1" />
+                            <Separator orientation="vertical" className="mr-2 h-4" />
+                            <Breadcrumb>
+                                <BreadcrumbList>
+                                    <BreadcrumbItem className="hidden md:block">
+                                        <BreadcrumbLink href="#">
+                                            Chegou Hub
+                                        </BreadcrumbLink>
+                                    </BreadcrumbItem>
+                                    <BreadcrumbSeparator className="hidden md:block" />
+                                    <BreadcrumbItem>
+                                        <BreadcrumbPage>Workspace</BreadcrumbPage>
+                                    </BreadcrumbItem>
+                                </BreadcrumbList>
+                            </Breadcrumb>
+                        </div>
+                    </header>
+                    <main className="flex-1 overflow-y-auto bg-background">
+                        <Routes>
+                            <Route index element={<Navigate to="/workspace/agenda" replace />} />
 
-                        {/* Páginas HOME */}
-                        <Route path="agenda" element={<AgendaPage />} />
-                        <Route path="mapa" element={<MapaPage />} />
+                            {/* Páginas HOME */}
+                            <Route path="agenda" element={<AgendaPage />} />
+                            <Route path="mapa" element={<MapaPage />} />
 
-                        {/* Páginas IA & AUTOMAÇÕES */}
-                        <Route path="logs" element={<LogsPage />} />
-                        <Route path="nicochat" element={<NicochatPage />} />
-                        <Route path="n8n" element={<N8NPage />} />
-                        <Route path="projetos" element={<ProjetoDashboard />} />        
-                        <Route path="relatorios" element={<RelatoriosProjetos />} />
-                        <Route path="novelties" element={<NoveltiesPage />} />
+                            {/* Páginas IA & AUTOMAÇÕES */}
+                            <Route path="logs" element={<LogsPage />} />
+                            <Route path="nicochat" element={<NicochatPage />} />
+                            <Route path="n8n" element={<N8NPage />} />
+                            <Route path="projetos" element={<ProjetoDashboard />} />        
+                            <Route path="relatorios" element={<RelatoriosProjetos />} />
+                            <Route path="novelties" element={<NoveltiesPage />} />
 
-                        {/* Páginas MÉTRICAS */}
-                        <Route path="metricas/primecod" element={<PrimecodPage />} />
-                        <Route path="metricas/ecomhub" element={<EcomhubPage />} />
-                        <Route path="metricas/dropi" element={<DropiPage />} />
+                            {/* Páginas MÉTRICAS */}
+                            <Route path="metricas/primecod" element={<PrimecodPage />} />
+                            <Route path="metricas/ecomhub" element={<EcomhubPage />} />
+                            <Route path="metricas/dropi" element={<DropiPage />} />
 
-                        {/* Páginas OPERACIONAL */}
-                        <Route path="engajamento" element={<EngajamentoPage />} />
-                        
-                        {/* Páginas SUPORTE */}
-                        <Route path="processamento" element={<ProcessamentoPage />} /> 
-                        
-                        {/* Catch-all */}
-                        <Route path="*" element={<Navigate to="/workspace/agenda" replace />} />
-                    </Routes>
-                </main>
-            </SidebarInset>
-        </SidebarProvider>
+                            {/* Páginas OPERACIONAL */}
+                            <Route path="engajamento" element={<EngajamentoPage />} />
+                            
+                            {/* Páginas SUPORTE */}
+                            <Route path="processamento" element={<ProcessamentoPage />} /> 
+                            
+                            {/* Catch-all */}
+                            <Route path="*" element={<Navigate to="/workspace/agenda" replace />} />
+                        </Routes>
+                    </main>
+                </SidebarInset>
+            </SidebarProvider>
+        </div>
     );
 }
 
