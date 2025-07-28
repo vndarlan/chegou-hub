@@ -17,7 +17,7 @@ def lojas_config(request):
     """Gerencia múltiplas configurações do Shopify"""
     if request.method == 'GET':
         try:
-            configs = ShopifyConfig.objects.filter(user=request.user, ativo=True)
+            configs = ShopifyConfig.objects.filter(ativo=True)
             lojas_data = []
             for config in configs:
                 lojas_data.append({
@@ -25,7 +25,8 @@ def lojas_config(request):
                     'nome_loja': config.nome_loja,
                     'shop_url': config.shop_url,
                     'api_version': config.api_version,
-                    'data_criacao': config.data_criacao.isoformat()
+                    'data_criacao': config.data_criacao.isoformat(),
+                    'criador': config.user.username
                 })
             return Response({'lojas': lojas_data})
         except Exception as e:
@@ -44,7 +45,7 @@ def lojas_config(request):
             shop_url = shop_url.replace('https://', '').replace('http://', '')
             
             # Verifica se já existe loja com mesma URL
-            if ShopifyConfig.objects.filter(user=request.user, shop_url=shop_url, ativo=True).exists():
+            if ShopifyConfig.objects.filter(shop_url=shop_url, ativo=True).exists():
                 return Response({'error': 'Já existe uma loja com esta URL'}, status=status.HTTP_400_BAD_REQUEST)
             
             # Testa conexão
@@ -80,7 +81,7 @@ def lojas_config(request):
             if not loja_id:
                 return Response({'error': 'ID da loja é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
             
-            config = ShopifyConfig.objects.filter(id=loja_id, user=request.user).first()
+            config = ShopifyConfig.objects.filter(id=loja_id).first()
             if not config:
                 return Response({'error': 'Loja não encontrada'}, status=status.HTTP_404_NOT_FOUND)
             
@@ -127,7 +128,7 @@ def buscar_duplicatas(request):
         if not loja_id:
             return Response({'error': 'ID da loja é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
         
-        config = ShopifyConfig.objects.filter(id=loja_id, user=request.user, ativo=True).first()
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
         if not config:
             return Response({'error': 'Loja não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -176,7 +177,7 @@ def cancelar_pedido(request):
         if not loja_id or not order_id:
             return Response({'error': 'ID da loja e do pedido são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
         
-        config = ShopifyConfig.objects.filter(id=loja_id, user=request.user, ativo=True).first()
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
         if not config:
             return Response({'error': 'Loja não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -215,7 +216,7 @@ def cancelar_lote(request):
         if not loja_id or not order_ids:
             return Response({'error': 'ID da loja e lista de pedidos são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
         
-        config = ShopifyConfig.objects.filter(id=loja_id, user=request.user, ativo=True).first()
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
         if not config:
             return Response({'error': 'Loja não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
         

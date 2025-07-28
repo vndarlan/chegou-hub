@@ -121,7 +121,8 @@ class ShopifyDuplicateOrderDetector:
         
         for order in all_orders:
             tags = order.get("tags", "").lower()
-            is_processed = ("order sent to dropi" in tags or "dropi sync error" in tags)
+            is_processed = ("order sent to dropi" in tags or "dropi sync error" in tags or 
+                          "eh" in tags or "p cod" in tags or "prime cod" in tags)
             normalized_phone = order["_normalized_phone"]
             
             all_orders_by_phone[normalized_phone].append(order)
@@ -190,7 +191,8 @@ class ShopifyDuplicateOrderDetector:
                 for order in orders_with_product:
                     if order['id'] != unprocessed_order['id']:
                         tags = order.get("tags", "").lower()
-                        is_processed = ("order sent to dropi" in tags or "dropi sync error" in tags)
+                        is_processed = ("order sent to dropi" in tags or "dropi sync error" in tags or 
+                                      "eh" in tags or "p cod" in tags or "prime cod" in tags)
                         if is_processed:
                             processed_orders.append(order)
                 
