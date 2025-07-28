@@ -9,10 +9,6 @@ import {
   IconPhoneRinging,
   IconHome,
   IconLock,
-  IconLogout,
-  IconSun,
-  IconMoon,
-  IconChevronRight
 } from '@tabler/icons-react'
 import { NavMain } from './nav-main'
 import { NavUser } from './nav-user'
@@ -37,12 +33,24 @@ export function AppSidebar({
   const location = useLocation()
   const { theme, setTheme } = useTheme()
 
+  // Função para gerar iniciais do usuário
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   // Dados do projeto Chegou Hub
   const data = {
     user: {
       name: userName,
       email: userEmail,
-      avatar: "/logo192.png",
+      avatar: "/logo192.png", // Pode manter como fallback
+      initials: getInitials(userName), // Adiciona as iniciais
     },
     teams: [
       {
@@ -51,7 +59,7 @@ export function AppSidebar({
           <img 
             src="/logo192.png" 
             alt="Chegou Hub"
-            className="w-4 h-4"
+            className="size-4"
           />
         ),
         plan: "Enterprise",

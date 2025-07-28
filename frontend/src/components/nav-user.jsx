@@ -45,7 +45,7 @@ export function NavUser({ user, onLogout, theme, setTheme }) {
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.avatar} alt={user.name} />
                 <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
-                  {getInitials(user.name)}
+                  {user.initials || getInitials(user.name)}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -66,7 +66,7 @@ export function NavUser({ user, onLogout, theme, setTheme }) {
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.avatar} alt={user.name} />
                   <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
-                    {getInitials(user.name)}
+                    {user.initials || getInitials(user.name)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
