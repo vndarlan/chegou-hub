@@ -117,3 +117,7 @@ export {
   AlertDescription,
   LoadingSpinner 
 }
+
+// Re-export from separate files
+export { Alert as AlertComponent, AlertTitle, AlertDescription as AlertDesc } from './alert'
+export { Badge as BadgeComponent } from './badge'
