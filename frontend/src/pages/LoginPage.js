@@ -1,33 +1,19 @@
-// src/pages/LoginPage.js
+// src/pages/LoginPage.js - MIGRADO PARA SHADCN/UI
 import React, { useState, useCallback } from 'react';
 import axios from 'axios';
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Alert, AlertDescription, LoadingSpinner } from '../components/ui';
+import { IconCheck, IconX } from '@tabler/icons-react';
 
-// --- Componentes Mantine ---
-import {
-    TextInput,
-    PasswordInput,
-    Button,
-    Paper,
-    Title,
-    Text,
-    Container,
-    Center,
-    Stack,
-    Box,
-    Anchor, // Para o link de alternar modo
-    Select, // Para Área de Atuação
-    Notification, // Para exibir mensagens de sucesso/erro
-    LoadingOverlay, // Para indicar carregamento
-} from '@mantine/core';
-import { IconX, IconCheck } from '@tabler/icons-react'; // Ícones para Notificação
+// Mantine Select (manter temporariamente)
+import { Select } from '@mantine/core';
 
-// --- Partículas ---
+// Partículas
 import Particles from "react-tsparticles";
-import { loadSlim } from "tsparticles-slim"; // Carregar o pacote slim
+import { loadSlim } from "tsparticles-slim";
 
-// --- LISTA DE TIMES ---
-// IMPORTANTE: Estes valores DEVEM corresponder EXATAMENTE aos nomes dos
-// Grupos que você criou no Admin do Django!
 const TIMES = [
     { value: 'Diretoria', label: 'Diretoria' },
     { value: 'IA & Automação', label: 'IA & Automação' },
@@ -35,12 +21,10 @@ const TIMES = [
     { value: 'Operacional', label: 'Operacional' },
     { value: 'Gestão de Tráfego', label: 'Gestão de Tráfego' },
     { value: 'Suporte', label: 'Suporte' },
-    // Adicione outros times se necessário, lembrando de criar o Grupo no Admin
 ];
 
 function LoginPage({ setIsLoggedIn }) {
-    // --- Estados ---
-    const [mode, setMode] = useState('login'); // 'login' ou 'register'
+    const [mode, setMode] = useState('login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
@@ -48,87 +32,50 @@ function LoginPage({ setIsLoggedIn }) {
     const [notification, setNotification] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    // --- Funções das Partículas ---
     const particlesInit = useCallback(async (engine) => {
-        console.log("Iniciando tsParticles engine");
         await loadSlim(engine);
     }, []);
 
     const particlesLoaded = useCallback(async (container) => {
-        console.log("tsParticles container carregado:", container);
+        console.log("Partículas carregadas:", container);
     }, []);
 
-    // Configuração COMPLETA das partículas
     const particleOptions = {
-        background: {
-          color: {
-            value: "#E9E9E9", // Fundo claro
-          },
-        },
+        background: { color: { value: "#E9E9E9" } },
         fpsLimit: 60,
         interactivity: {
-          events: {
-            // Habilita interatividade ao passar o mouse
-            onHover: {
-              enable: true,
-              mode: "repulse", // Repele partículas
+            events: {
+                onHover: { enable: true, mode: "repulse" },
             },
-            // onClick: { // Interatividade ao clicar (opcional)
-            //   enable: true,
-            //   mode: "push", // Adiciona partículas
-            // },
-          },
-          modes: {
-            repulse: {
-              distance: 100, // Distância da repulsão
-              duration: 0.4,
-            },
-            // push: { // Configuração para o modo push (se habilitado)
-            //   quantity: 4,
-            // },
-          },
+            modes: { repulse: { distance: 100, duration: 0.4 } },
         },
         particles: {
-          color: {
-            value: "#FD7E14", // Cor laranja das partículas
-          },
-          links: { // Linhas conectando as partículas
-            color: "#FD7E14", // Cor laranja das linhas
-            distance: 150,
-            enable: true, // Habilita as linhas
-            opacity: 0.1, // Opacidade baixa para sutileza
-            width: 1,
-          },
-          move: {
-            direction: "none",
-            enable: true, // Habilita o movimento
-            outModes: {
-              default: "bounce", // Faz as partículas quicarem nas bordas
+            color: { value: "#FD7E14" },
+            links: {
+                color: "#FD7E14",
+                distance: 150,
+                enable: true,
+                opacity: 0.1,
+                width: 1,
             },
-            random: false,
-            speed: 1, // Velocidade baixa para um efeito sutil
-            straight: false,
-          },
-          number: {
-            density: {
-              enable: true,
-              area: 1500, // Densidade das partículas (ajuste conforme necessário)
+            move: {
+                direction: "none",
+                enable: true,
+                outModes: { default: "bounce" },
+                random: false,
+                speed: 1,
+                straight: false,
             },
-            value: 150, // Número de partículas na tela (ajuste conforme necessário)
-          },
-          opacity: {
-            value: 0.5, // Opacidade das partículas
-          },
-          shape: {
-            type: "circle", // Formato das partículas
-          },
-          size: {
-            value: { min: 1, max: 3 }, // Tamanho aleatório das partículas
-          },
+            number: {
+                density: { enable: true, area: 1500 },
+                value: 150,
+            },
+            opacity: { value: 0.5 },
+            shape: { type: "circle" },
+            size: { value: { min: 1, max: 3 } },
         },
-        detectRetina: true, // Melhora a qualidade em telas retina
-      };
-    // --- Fim Partículas ---
+        detectRetina: true,
+    };
 
     const clearForm = () => {
         setEmail('');
@@ -147,32 +94,20 @@ function LoginPage({ setIsLoggedIn }) {
         event.preventDefault();
         setNotification(null);
         setLoading(true);
-    
+
         if (mode === 'login') {
             try {
-                // Primeiro, obter um token CSRF válido
                 await axios.get('/current-state/');
-                
-                // Depois fazer o login
                 const response = await axios.post('/login/', {
-                    email: email, password: password
-                }, { 
-                    withCredentials: true
-                });
-    
+                    email: email, 
+                    password: password
+                }, { withCredentials: true });
+
                 if (response.status === 200) {
-                    console.log("Login bem-sucedido!", response.data);
+                    console.log("Login bem-sucedido!");
                     setIsLoggedIn(true);
                 }
             } catch (err) {
-                console.error("Erro detalhado:", {
-                    status: err.response?.status,
-                    statusText: err.response?.statusText,
-                    data: err.response?.data,
-                    headers: err.response?.headers,
-                    baseURL: axios.defaults.baseURL
-                });
-                
                 console.error("Erro no login:", err.response || err.message);
                 let errorMessage = 'Erro ao tentar conectar ao servidor.';
                 if (err.response && err.response.status === 401) {
@@ -184,48 +119,27 @@ function LoginPage({ setIsLoggedIn }) {
                 setLoading(false);
             }
         } else {
-            // --- Lógica de REGISTRO ---
             if (!name || !email || !timeSelecionado || !password) {
                 setNotification({ type: 'error', message: 'Todos os campos são obrigatórios para o registro.' });
                 setLoading(false);
                 return;
             }
             try {
-                console.log("Tentando registro com:", {
-                    name, 
-                    email, 
-                    area: timeSelecionado, 
-                    password: "***"
-                });
-                
-                // Envia 'timeSelecionado' como 'area' para o backend
                 const response = await axios.post('/register/', {
                     name: name,
                     email: email,
                     area: timeSelecionado,
                     password: password
                 });
-    
+
                 if (response.status === 201) {
-                    console.log("Registro bem-sucedido!", response.data);
-                    // 1. Define a notificação para ser exibida
                     setNotification({
                         type: 'success',
                         message: 'Conta criada! Em breve vamos confirmar seu acesso na plataforma.'
                     });
-    
-                    // 2. Limpe apenas a senha após o sucesso
                     setPassword('');
                 }
             } catch (err) {
-                console.error("Erro detalhado:", {
-                    status: err.response?.status,
-                    statusText: err.response?.statusText,
-                    data: err.response?.data,
-                    headers: err.response?.headers,
-                    baseURL: axios.defaults.baseURL
-                });
-                
                 console.error("Erro no registro:", err.response || err.message);
                 let errorMessage = 'Erro ao tentar criar a conta.';
                 if (err.response && err.response.data?.error) {
@@ -239,130 +153,147 @@ function LoginPage({ setIsLoggedIn }) {
     };
 
     return (
-        <Box style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden' }}>
-            {/* Componente Particles como fundo */}
+        <div className="relative min-h-screen overflow-hidden bg-gray-100">
             <Particles
                 id="tsparticles"
                 init={particlesInit}
                 loaded={particlesLoaded}
                 options={particleOptions}
-                style={{
-                  position: 'fixed',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  zIndex: -1 // Coloca atrás de todo o conteúdo
-                }}
+                className="fixed inset-0 -z-10"
             />
 
-            {/* Centraliza o conteúdo do formulário ACIMA das partículas */}
-            <Center style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}> {/* zIndex: 1 garante que fique na frente */}
-                <Container size="xs" style={{ width: '100%' }}>
-                    <Paper withBorder shadow="md" p="xl" radius="md" style={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', position: 'relative' }}>
-                         {/* Loading Overlay */}
-                         <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} loaderProps={{ color: 'orange', type: 'bars' }}/>
-                        <Stack gap="lg">
-                            <Title order={2} ta="center">
-                                {mode === 'login' ? 'Login - Chegou Hub' : 'Criar Conta - Chegou Hub'}
-                            </Title>
+            <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
+                <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-lg">
+                    {loading && (
+                        <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-50 rounded-lg">
+                            <LoadingSpinner className="h-6 w-6 text-primary" />
+                        </div>
+                    )}
 
-                            {/* Exibe Notificação */}
-                            {notification && (
-                                <Notification
-                                    icon={notification.type === 'success' ? <IconCheck size="1.1rem" /> : <IconX size="1.1rem" />}
-                                    color={notification.type === 'success' ? 'teal' : 'red'}
-                                    title={notification.type === 'success' ? 'Sucesso!' : 'Erro!'}
-                                    onClose={() => setNotification(null)} // Permite fechar a notificação
-                                    style={{ zIndex: 10 }} // Garante que fique acima do overlay
-                                >
+                    <CardHeader className="text-center">
+                        <CardTitle className="text-2xl">
+                            {mode === 'login' ? 'Login - Chegou Hub' : 'Criar Conta - Chegou Hub'}
+                        </CardTitle>
+                    </CardHeader>
+
+                    <CardContent className="space-y-6">
+                        {notification && (
+                            <Alert variant={notification.type === 'error' ? 'destructive' : 'default'}>
+                                {notification.type === 'success' ? 
+                                    <IconCheck className="h-4 w-4" /> : 
+                                    <IconX className="h-4 w-4" />
+                                }
+                                <AlertDescription>
                                     {notification.message}
-                                </Notification>
-                            )}
+                                </AlertDescription>
+                            </Alert>
+                        )}
 
-                            {/* Formulário */}
-                            <form onSubmit={handleSubmit}>
-                                <Stack gap="md">
-                                    {/* Campo Nome (Só no modo Registro) */}
-                                    {mode === 'register' && (
-                                        <TextInput
-                                            label="Nome Completo"
-                                            placeholder="Seu nome completo"
-                                            value={name}
-                                            onChange={(event) => setName(event.currentTarget.value)}
-                                            required={mode === 'register'}
-                                            disabled={loading}
-                                        />
-                                    )}
-
-                                    {/* Campo Email (Comum aos dois modos) */}
-                                    <TextInput
-                                        label="Email"
-                                        placeholder="seu@email.com"
-                                        value={email}
-                                        onChange={(event) => setEmail(event.currentTarget.value)}
-                                        required
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            {mode === 'register' && (
+                                <div>
+                                    <label className="text-sm font-medium text-foreground block mb-1">
+                                        Nome Completo
+                                    </label>
+                                    <Input
+                                        placeholder="Seu nome completo"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        required={mode === 'register'}
                                         disabled={loading}
                                     />
-
-                                     {/* Campo Time (Só no modo Registro) */}
-                                     {mode === 'register' && (
-                                        <Select
-                                            label="Time" // Label atualizado
-                                            placeholder="Selecione seu time"
-                                            data={TIMES} // Usa a constante renomeada
-                                            value={timeSelecionado} // Usa o estado renomeado
-                                            onChange={setTimeSelecionado} // Atualiza o estado renomeado
-                                            required={mode === 'register'}
-                                            searchable
-                                            nothingFoundMessage="Time não encontrado"
-                                            disabled={loading}
-                                            comboboxProps={{ zIndex: 10 }} // Garante que dropdown fique visível
-                                        />
-                                    )}
-
-                                    {/* Campo Senha (Comum aos dois modos) */}
-                                    <PasswordInput
-                                        label="Senha"
-                                        placeholder="Sua senha"
-                                        value={password}
-                                        onChange={(event) => setPassword(event.currentTarget.value)}
-                                        required
-                                        disabled={loading}
-                                    />
-
-                                    {/* Botão de Submit */}
-                                    <Button type="submit" fullWidth mt="md" color="orange" disabled={loading}>
-                                        {mode === 'login' ? 'Entrar' : 'Criar Conta'}
-                                    </Button>
-                                </Stack>
-                            </form>
-
-                            {/* Link para alternar modo */}
-                            {!loading && ( // Esconde link durante o loading
-                                <Text ta="center" mt="md">
-                                    {mode === 'login' ? (
-                                        <>
-                                            Não tem uma conta?{' '}
-                                            <Anchor component="button" type="button" onClick={() => handleModeChange('register')}>
-                                                Crie uma aqui
-                                            </Anchor>
-                                        </>
-                                    ) : (
-                                        <>
-                                            Já tem uma conta?{' '}
-                                            <Anchor component="button" type="button" onClick={() => handleModeChange('login')}>
-                                                Faça login
-                                            </Anchor>
-                                        </>
-                                    )}
-                                </Text>
+                                </div>
                             )}
-                        </Stack>
-                    </Paper>
-                </Container>
-            </Center>
-        </Box>
+
+                            <div>
+                                <label className="text-sm font-medium text-foreground block mb-1">
+                                    Email
+                                </label>
+                                <Input
+                                    placeholder="seu@email.com"
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                    disabled={loading}
+                                />
+                            </div>
+
+                            {mode === 'register' && (
+                                <div>
+                                    <label className="text-sm font-medium text-foreground block mb-1">
+                                        Time
+                                    </label>
+                                    <Select
+                                        placeholder="Selecione seu time"
+                                        data={TIMES}
+                                        value={timeSelecionado}
+                                        onChange={setTimeSelecionado}
+                                        required={mode === 'register'}
+                                        searchable
+                                        nothingFoundMessage="Time não encontrado"
+                                        disabled={loading}
+                                        styles={{
+                                            input: {
+                                                minHeight: '40px',
+                                                border: '1px solid hsl(var(--border))',
+                                                borderRadius: '6px',
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="text-sm font-medium text-foreground block mb-1">
+                                    Senha
+                                </label>
+                                <Input
+                                    placeholder="Sua senha"
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    disabled={loading}
+                                />
+                            </div>
+
+                            <Button type="submit" className="w-full" disabled={loading}>
+                                {mode === 'login' ? 'Entrar' : 'Criar Conta'}
+                            </Button>
+                        </form>
+
+                        {!loading && (
+                            <div className="text-center text-sm">
+                                {mode === 'login' ? (
+                                    <>
+                                        Não tem uma conta?{' '}
+                                        <button
+                                            type="button"
+                                            onClick={() => handleModeChange('register')}
+                                            className="text-primary hover:underline font-medium"
+                                        >
+                                            Crie uma aqui
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        Já tem uma conta?{' '}
+                                        <button
+                                            type="button"
+                                            onClick={() => handleModeChange('login')}
+                                            className="text-primary hover:underline font-medium"
+                                        >
+                                            Faça login
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
     );
 }
 

@@ -1,25 +1,23 @@
-// frontend/src/index.js
+// src/index.js - ATUALIZADO PARA SHADCN/UI
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import axios from 'axios';
-import './index.css';
+import './globals.css'; // Novo CSS com Tailwind e variáveis do tema
+import './index.css';  // CSS original (mantém compatibilidade)
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
-// Configuração base do Axios
+// Configuração base do Axios (mantém igual)
 const API_URL = 'https://chegou-hubb-production.up.railway.app/api';
 axios.defaults.baseURL = API_URL;
 axios.defaults.withCredentials = true;
 console.log("API Base URL configurada:", axios.defaults.baseURL);
 
-// Configuração CSRF
 axios.defaults.xsrfCookieName = 'csrftoken';
 axios.defaults.xsrfHeaderName = 'X-CSRFToken';
 
-// Debug para desenvolvimento
-const DEBUG_MODE = false; // Altere para true quando precisar debugar
+const DEBUG_MODE = false;
 
-// Adicione interceptor para logging em desenvolvimento
 if (DEBUG_MODE) {
   axios.interceptors.request.use(config => {
     console.log(`[Request] ${config.method.toUpperCase()} ${config.url}`, config);
@@ -38,27 +36,22 @@ if (DEBUG_MODE) {
   );
 }
 
-// Interceptor para lidar com erros comuns
 axios.interceptors.response.use(
   response => response,
   error => {
-    // Tratar erros específicos aqui
     if (error.response && error.response.status === 403 && 
         error.response.data?.detail?.includes('CSRF')) {
       console.error('Erro de CSRF detectado. Tentando recarregar o token...');
-      // Você pode implementar uma lógica de retry aqui
     }
     
     if (error.response && error.response.status === 401) {
       console.warn('Sessão expirada ou usuário não autenticado');
-      // Redirecionar para login se necessário
     }
     
     return Promise.reject(error);
   }
 );
 
-// Inicializar a aplicação
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
@@ -66,12 +59,10 @@ root.render(
   </React.StrictMode>
 );
 
-// Verificação inicial da API - útil para debugging
 axios.get(`${API_URL}/ensure-csrf/`)
   .then(response => {
     console.log("Conexão com backend estabelecida:", response.status);
     
-    // Verificar se o cookie foi definido
     const hasCsrfCookie = document.cookie
       .split(';')
       .some(cookie => cookie.trim().startsWith('csrftoken='));
@@ -82,5 +73,4 @@ axios.get(`${API_URL}/ensure-csrf/`)
     console.error("Erro na conexão com backend:", error);
   });
 
-// Métricas
 reportWebVitals();

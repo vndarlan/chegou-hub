@@ -1,38 +1,37 @@
-// frontend/src/pages/WorkspacePage.js - VERSÃO ATUALIZADA COM ADMIN
+// src/pages/WorkspacePage.js - MIGRADO PARA SHADCN/UI
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { DoubleNavbar } from '../components/DoubleNavbar';
-import { Box, LoadingOverlay, Title, Text } from '@mantine/core';
+import { SidebarNavigation } from '../components/sidebar-navigation';
+import { LoadingSpinner, Alert, AlertDescription } from '../components/ui';
 import ProcessamentoPage from '../features/processamento/ProcessamentoPage';
 
-
-// --- Importar páginas das funcionalidades existentes ---
+// Páginas existentes (ainda usam Mantine)
 import MapaPage from '../features/mapa/MapaPage';
 import AgendaPage from '../features/agenda/AgendaPage';
 import EngajamentoPage from '../features/engajamento/EngajamentoPage';
 
-// --- Importar páginas de IA ---
+// Páginas de IA
 import LogsPage from '../features/ia/LogsPage';
 import NicochatPage from '../features/ia/NicochatPage';
 import N8NPage from '../features/ia/N8NPage';
 import ProjetoDashboard from '../features/ia/ProjetoDashboard';
 import RelatoriosProjetos from '../features/ia/RelatoriosProjetos';
 
-// --- Importar páginas de MÉTRICAS ---
+// Páginas de MÉTRICAS
 import PrimecodPage from '../features/metricas/PrimecodPage';
 import EcomhubPage from '../features/metricas/EcomhubPage';
 import DropiPage from '../features/metricas/DropiPage';
 
-// --- Importar página de NOVELTIES ---
+// Página de NOVELTIES
 import NoveltiesPage from '../features/novelties/NoveltiesPage';
 
-function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
+function WorkspacePage({ setIsLoggedIn }) {
     const [loadingSession, setLoadingSession] = useState(true);
     const [errorSession, setErrorSession] = useState('');
     const [userName, setUserName] = useState('Usuário');
     const [userEmail, setUserEmail] = useState('');
-    const [isAdmin, setIsAdmin] = useState(false); // NOVO ESTADO
+    const [isAdmin, setIsAdmin] = useState(false);
 
     useEffect(() => {
         const fetchSessionData = async () => {
@@ -43,7 +42,7 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                 if (response.status === 200 && response.data?.logged_in) {
                     setUserName(response.data.name || response.data.email || 'Usuário');
                     setUserEmail(response.data.email || '');
-                    setIsAdmin(response.data.is_admin || false); // NOVA LINHA
+                    setIsAdmin(response.data.is_admin || false);
                 } else {
                     console.warn("API /current-state/ indica não logado ou resposta inválida. Forçando logout.");
                     setIsLoggedIn(false);
@@ -73,41 +72,48 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
         }
     };
 
-    if (loadingSession) return <LoadingOverlay visible={true} overlayProps={{ radius: "sm", blur: 2 }} loaderProps={{ color: 'orange', type: 'bars' }} />;
-    if (errorSession) return <Box p="xl" style={{ color: 'red', textAlign: 'center' }}>{errorSession}</Box>;
+    if (loadingSession) {
+        return (
+            <div className="fixed inset-0 flex items-center justify-center bg-background">
+                <div className="flex flex-col items-center space-y-4">
+                    <LoadingSpinner className="h-8 w-8 text-primary" />
+                    <p className="text-sm text-muted-foreground">Carregando sessão...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (errorSession) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background p-4">
+                <Alert className="max-w-md">
+                    <AlertDescription className="text-destructive">
+                        {errorSession}
+                    </AlertDescription>
+                </Alert>
+            </div>
+        );
+    }
 
     return (
-        <Box style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-            {/* DoubleNavbar */}
-            <DoubleNavbar
+        <div className="h-screen flex bg-background">
+            <SidebarNavigation
                 userName={userName}
                 userEmail={userEmail}
                 onLogout={handleLogout}
-                toggleColorScheme={toggleColorScheme}
-                colorScheme={colorScheme}
-                isAdmin={isAdmin} // NOVA PROP
+                isAdmin={isAdmin}
             />
 
             {/* Área de Conteúdo Principal */}
-            <Box 
-                component="main" 
-                style={{ 
-                    flexGrow: 1, 
-                    overflowY: 'auto', 
-                    height: '100vh',
-                    backgroundColor: 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8))',
-                    borderLeft: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))'
-                }}
-            >
+            <main className="flex-1 overflow-y-auto bg-background">
                 <Routes>
-                    {/* Rota Index - Redireciona direto para Agenda */}
                     <Route index element={<Navigate to="/workspace/agenda" replace />} />
 
-                    {/* Páginas da área HOME */}
+                    {/* Páginas HOME */}
                     <Route path="agenda" element={<AgendaPage />} />
                     <Route path="mapa" element={<MapaPage />} />
 
-                    {/* 🤖 Páginas da área IA & AUTOMAÇÕES */}
+                    {/* Páginas IA & AUTOMAÇÕES */}
                     <Route path="logs" element={<LogsPage />} />
                     <Route path="nicochat" element={<NicochatPage />} />
                     <Route path="n8n" element={<N8NPage />} />
@@ -115,22 +121,22 @@ function WorkspacePage({ setIsLoggedIn, colorScheme, toggleColorScheme }) {
                     <Route path="relatorios" element={<RelatoriosProjetos />} />
                     <Route path="novelties" element={<NoveltiesPage />} />
 
-                    {/* 📊 Páginas da área MÉTRICAS */}
+                    {/* Páginas MÉTRICAS */}
                     <Route path="metricas/primecod" element={<PrimecodPage />} />
                     <Route path="metricas/ecomhub" element={<EcomhubPage />} />
                     <Route path="metricas/dropi" element={<DropiPage />} />
 
-                    {/* Páginas da área OPERACIONAL */}
+                    {/* Páginas OPERACIONAL */}
                     <Route path="engajamento" element={<EngajamentoPage />} />
                     
-                    {/* Placeholder para Suporte */}
+                    {/* Páginas SUPORTE */}
                     <Route path="processamento" element={<ProcessamentoPage />} /> 
                     
-                    {/* Rota Catch-all - Redireciona para Agenda */}
+                    {/* Catch-all */}
                     <Route path="*" element={<Navigate to="/workspace/agenda" replace />} />
                 </Routes>
-            </Box>
-        </Box>
+            </main>
+        </div>
     );
 }
 
