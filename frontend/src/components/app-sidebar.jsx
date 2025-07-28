@@ -31,7 +31,6 @@ export function AppSidebar({
   const location = useLocation()
   const { theme, setTheme } = useTheme()
 
-  // Função para gerar iniciais do usuário
   const getInitials = (name) => {
     if (!name) return 'U';
     return name
@@ -42,7 +41,6 @@ export function AppSidebar({
       .slice(0, 2);
   };
 
-  // Dados do projeto Chegou Hub
   const data = {
     user: {
       name: userName,
@@ -169,7 +167,6 @@ export function AppSidebar({
     ],
   }
 
-  // Adicionar admin se aplicável
   if (isAdmin) {
     data.navMain.push({
       title: "ADMIN",
@@ -187,18 +184,18 @@ export function AppSidebar({
   }
 
   return (
-    <Sidebar collapsible="icon" className="bg-sidebar border-sidebar-border" {...props}>
+    <Sidebar collapsible="icon" className="h-screen" {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
-      <SidebarContent className="flex-1 overflow-y-auto sidebar-scroll">
+      <SidebarContent className="flex-1">
         <NavMain 
           items={data.navMain} 
           navigate={navigate}
           currentPath={location.pathname}
         />
       </SidebarContent>
-      <SidebarFooter className="mt-auto">
+      <SidebarFooter>
         <NavUser 
           user={data.user} 
           onLogout={onLogout}
