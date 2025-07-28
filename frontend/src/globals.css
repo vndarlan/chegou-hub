@@ -25,7 +25,7 @@
     --ring: 24 95% 53%; /* Orange color for focus rings */
     --radius: 0.5rem;
     
-    /* Sidebar variables - Light mode */
+    /* Sidebar variables - Cores corretas Light mode */
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 24 95% 53%; /* Orange */
@@ -57,13 +57,13 @@
     --input: 240 3.7% 15.9%;
     --ring: 24 95% 53%; /* Orange color for focus rings */
     
-    /* Sidebar variables - Dark mode correto */
+    /* Sidebar variables - Cores corretas Dark mode */
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 24 95% 53%; /* Orange */
-    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-primary: 24 95% 53%; /* Orange mantém */
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 24 95% 53%; /* Orange */
   }
@@ -93,10 +93,10 @@ code {
     monospace;
 }
 
-/* Melhorias específicas da sidebar */
+/* Scroll customizado para sidebar */
 .sidebar-scroll {
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--muted-foreground)) transparent;
+  scrollbar-color: hsl(var(--sidebar-border)) transparent;
 }
 
 .sidebar-scroll::-webkit-scrollbar {
@@ -108,10 +108,10 @@ code {
 }
 
 .sidebar-scroll::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--muted-foreground));
+  background-color: hsl(var(--sidebar-border));
   border-radius: 3px;
 }
 
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--foreground));
+  background-color: hsl(var(--sidebar-accent));
 }

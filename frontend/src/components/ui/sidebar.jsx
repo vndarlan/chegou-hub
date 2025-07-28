@@ -59,9 +59,10 @@ function SidebarProvider({
         style={{
           "--sidebar-width": SIDEBAR_WIDTH,
           "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
+          ...style,
         }}
         className={cn(
-          "group/sidebar-wrapper flex min-h-svh w-full has-data-[variant=inset]/sidebar-wrapper:bg-sidebar",
+          "group/sidebar-wrapper flex min-h-screen w-full has-data-[variant=inset]/sidebar-wrapper:bg-sidebar",
           className
         )}
         {...props}
@@ -107,7 +108,7 @@ const sidebarVariants = cva(
   }
 )
 
-const Sidebar = React.forwardRef(({ side = "left", variant = "default", collapsible = "none", className, children, ...props }, ref) => {
+const Sidebar = React.forwardRef(({ side = "left", variant = "default", collapsible = "icon", className, children, ...props }, ref) => {
   const { state } = useSidebar()
 
   return (
@@ -324,7 +325,7 @@ const SidebarInset = React.forwardRef(({ className, ...props }, ref) => {
     <main
       ref={ref}
       className={cn(
-        "relative flex min-h-svh flex-1 flex-col bg-background",
+        "relative flex min-h-screen flex-1 flex-col bg-background",
         "peer-data-[variant=inset]/sidebar-wrapper:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]/sidebar-wrapper:m-2 md:peer-data-[state=collapsed]/sidebar-wrapper:ml-2 md:peer-data-[variant=inset]/sidebar-wrapper:ml-0 md:peer-data-[variant=inset]/sidebar-wrapper:rounded-xl md:peer-data-[variant=inset]/sidebar-wrapper:shadow",
         className
       )}
