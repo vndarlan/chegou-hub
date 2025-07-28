@@ -1,8 +1,9 @@
-// Avatar
 import * as React from "react"
 import * as AvatarPrimitive from "@radix-ui/react-avatar"
+import { cva } from "class-variance-authority"
 import { cn } from "../../lib/utils"
 
+// Avatar Components
 const Avatar = React.forwardRef(({ className, ...props }, ref) => (
   <AvatarPrimitive.Root
     ref={ref}
@@ -36,9 +37,7 @@ const AvatarFallback = React.forwardRef(({ className, ...props }, ref) => (
 ))
 AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName
 
-// Badge
-import { cva } from "class-variance-authority"
-
+// Badge Component
 const badgeVariants = cva(
   "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
   {
@@ -65,7 +64,7 @@ function Badge({ className, variant, ...props }) {
   )
 }
 
-// Alert
+// Alert Components
 const Alert = React.forwardRef(({ className, variant, ...props }, ref) => (
   <div
     ref={ref}
@@ -118,4 +117,3 @@ export {
   AlertDescription,
   LoadingSpinner 
 }
-
