@@ -196,11 +196,32 @@ class ShopifyDuplicateOrderDetector:
                         if is_processed:
                             processed_orders.append(order)
                 
-                if not processed_orders:
-                    continue
-                
-                processed_orders.sort(key=lambda x: x["created_at"])
-                original_order = processed_orders[-1]
+                # CENÁRIO 1: Existe pedido processado (lógica atual)
+                if processed_orders:
+                    processed_orders.sort(key=lambda x: x["created_at"])
+                    original_order = processed_orders[-1]
+                # CENÁRIO 2: Nenhum processado - mais antigo prevalece
+                else:
+                    # Filtra apenas pedidos não processados do mesmo produto
+                    unprocessed_orders_with_product = []
+                    for order in orders_with_product:
+                        tags = order.get("tags", "").lower()
+                        is_processed = ("order sent to dropi" in tags or "dropi sync error" in tags or 
+                                      "eh" in tags or "p cod" in tags or "prime cod" in tags)
+                        if not is_processed:
+                            unprocessed_orders_with_product.append(order)
+                    
+                    # Precisa ter pelo menos 2 pedidos não processados
+                    if len(unprocessed_orders_with_product) < 2:
+                        continue
+                    
+                    # Ordena por data - mais antigo será o original
+                    unprocessed_orders_with_product.sort(key=lambda x: x["created_at"])
+                    original_order = unprocessed_orders_with_product[0]  # Mais antigo
+                    
+                    # Se o pedido atual É o mais antigo, pula (não é duplicata)
+                    if unprocessed_order['id'] == original_order['id']:
+                        continue
                 
                 if unprocessed_order['id'] == original_order['id']:
                     continue
