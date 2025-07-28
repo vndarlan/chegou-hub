@@ -133,7 +133,7 @@ function WorkspacePage({ setIsLoggedIn }) {
                         </Breadcrumb>
                     </div>
                 </header>
-                <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+                <main className="flex-1 overflow-y-auto bg-background">
                     <Routes>
                         <Route index element={<Navigate to="/workspace/agenda" replace />} />
 
@@ -163,7 +163,7 @@ function WorkspacePage({ setIsLoggedIn }) {
                         {/* Catch-all */}
                         <Route path="*" element={<Navigate to="/workspace/agenda" replace />} />
                     </Routes>
-                </div>
+                </main>
             </SidebarInset>
         </SidebarProvider>
     );
