@@ -119,7 +119,7 @@ const Sidebar = React.forwardRef(({ side = "left", variant = "default", collapsi
       data-collapsible={collapsible}
       data-variant={variant}
       data-side={side}
-      className={cn(sidebarVariants({ variant, side, collapsible }), "bg-sidebar border-sidebar-border", className)}
+      className={cn(sidebarVariants({ variant, side, collapsible }), className)}
       {...props}
     >
       {children}
