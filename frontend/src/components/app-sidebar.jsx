@@ -187,18 +187,18 @@ export function AppSidebar({
   }
 
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" className="bg-sidebar border-sidebar-border" {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="flex-1 overflow-y-auto sidebar-scroll">
         <NavMain 
           items={data.navMain} 
           navigate={navigate}
           currentPath={location.pathname}
         />
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="mt-auto">
         <NavUser 
           user={data.user} 
           onLogout={onLogout}
