@@ -1,15 +1,13 @@
 import * as React from "react"
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
-  IconCalendar,
-  IconWorld,
-  IconInputAi,
-  IconChartBar,
-  IconPlugConnected,
-  IconPhoneRinging,
-  IconHome,
-  IconLock,
-} from '@tabler/icons-react'
+  Home,
+  Bot,
+  BarChart3,
+  Settings,
+  Phone,
+  Lock
+} from 'lucide-react'
 import { NavMain } from './nav-main'
 import { NavUser } from './nav-user'
 import { TeamSwitcher } from './team-switcher'
@@ -49,8 +47,8 @@ export function AppSidebar({
     user: {
       name: userName,
       email: userEmail,
-      avatar: "/logo192.png", // Pode manter como fallback
-      initials: getInitials(userName), // Adiciona as iniciais
+      avatar: "/logo192.png",
+      initials: getInitials(userName),
     },
     teams: [
       {
@@ -69,7 +67,7 @@ export function AppSidebar({
       {
         title: "HOME",
         url: "#",
-        icon: IconHome,
+        icon: Home,
         isActive: location.pathname.includes('/workspace/agenda') || location.pathname.includes('/workspace/mapa'),
         items: [
           {
@@ -85,7 +83,7 @@ export function AppSidebar({
       {
         title: "IA & Automações",
         url: "#",
-        icon: IconInputAi,
+        icon: Bot,
         isActive: location.pathname.includes('/workspace/projetos') || 
                   location.pathname.includes('/workspace/relatorios') ||
                   location.pathname.includes('/workspace/logs') ||
@@ -117,7 +115,7 @@ export function AppSidebar({
       {
         title: "MÉTRICAS",
         url: "#",
-        icon: IconChartBar,
+        icon: BarChart3,
         isActive: location.pathname.includes('/workspace/metricas/'),
         items: [
           {
@@ -137,7 +135,7 @@ export function AppSidebar({
       {
         title: "OPERACIONAL",
         url: "#",
-        icon: IconPlugConnected,
+        icon: Settings,
         isActive: location.pathname.includes('/workspace/engajamento') ||
                   location.pathname.includes('/workspace/novelties'),
         items: [
@@ -154,7 +152,7 @@ export function AppSidebar({
       {
         title: "SUPORTE",
         url: "#",
-        icon: IconPhoneRinging,
+        icon: Phone,
         isActive: location.pathname.includes('/workspace/processamento') ||
                   location.pathname.includes('/workspace/suporte'),
         items: [
@@ -176,7 +174,7 @@ export function AppSidebar({
     data.navMain.push({
       title: "ADMIN",
       url: "#",
-      icon: IconLock,
+      icon: Lock,
       isActive: false,
       items: [
         { 

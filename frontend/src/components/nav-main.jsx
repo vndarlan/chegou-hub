@@ -18,7 +18,7 @@ import {
 export function NavMain({ items, navigate, currentPath }) {
   const handleNavigation = (url, external = false) => {
     if (external) {
-      window.open(url, '_blank', 'noopener,noreferrer')
+      window.open(url, '_blank')
     } else {
       navigate(url)
     }
@@ -38,7 +38,7 @@ export function NavMain({ items, navigate, currentPath }) {
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
                 <SidebarMenuButton tooltip={item.title}>
-                  {item.icon && <item.icon size={16} />}
+                  {item.icon && <item.icon />}
                   <span>{item.title}</span>
                   <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                 </SidebarMenuButton>

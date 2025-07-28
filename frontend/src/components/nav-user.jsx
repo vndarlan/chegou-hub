@@ -1,9 +1,9 @@
 import {
-  IconLogout,
-  IconSun,
-  IconMoon,
-  IconChevronDown
-} from '@tabler/icons-react'
+  LogOut,
+  Sun,
+  Moon,
+  ChevronsUpDown
+} from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from "./ui"
 import {
   DropdownMenu,
@@ -52,7 +52,7 @@ export function NavUser({ user, onLogout, theme, setTheme }) {
                 <span className="truncate font-medium">{user.name}</span>
                 <span className="truncate text-xs">{user.email}</span>
               </div>
-              <IconChevronDown className="ml-auto size-4" />
+              <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -77,12 +77,12 @@ export function NavUser({ user, onLogout, theme, setTheme }) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-              {theme === 'dark' ? <IconSun className="mr-2 h-4 w-4" /> : <IconMoon className="mr-2 h-4 w-4" />}
+              {theme === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
               {theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onLogout} className="text-destructive focus:text-destructive">
-              <IconLogout className="mr-2 h-4 w-4" />
+              <LogOut className="mr-2 h-4 w-4" />
               Sair
             </DropdownMenuItem>
           </DropdownMenuContent>
