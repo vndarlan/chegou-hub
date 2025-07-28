@@ -1,15 +1,25 @@
 // frontend/src/features/engajamento/EngajamentoPage.js
 import React, { useState, useEffect } from 'react';
 import {
-    Box, Tabs, Title, Text, Button, TextInput, Textarea, Select, NumberInput,
-    Card, Group, Stack, Table, Badge, Alert, Notification, LoadingOverlay,
-    Modal, ActionIcon, Checkbox, Paper, Divider, Progress, Code
-} from '@mantine/core';
-import {
-    IconPlus, IconTrash, IconRefresh, IconSend, IconAlertCircle,
-    IconCheck, IconX, IconExternalLink, IconCopy, IconDownload
-} from '@tabler/icons-react';
+    Plus, Trash2, RefreshCw, Send, AlertCircle,
+    Check, X, ExternalLink, Copy, Download
+} from 'lucide-react';
 import axios from 'axios';
+
+// shadcn/ui imports
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Badge } from '../../components/ui/badge';
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { LoadingSpinner } from '../../components/ui';
 
 function EngajamentoPage() {
     const [activeTab, setActiveTab] = useState('cadastrar');
@@ -184,263 +194,296 @@ function EngajamentoPage() {
 
     // Componentes internos
     const SaldoCard = () => (
-        <Card shadow="sm" padding="lg" radius="md">
-            <Group justify="space-between" align="center" mb="md">
-                <Title order={4}>💰 Saldo Disponível</Title>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    leftSection={<IconRefresh size={16} />}
-                    onClick={carregarSaldo}
-                    loading={loadingSaldo}
-                >
-                    Atualizar
-                </Button>
-            </Group>
-            {saldo ? (
-                <Text size="xl" fw={700} c="green">
-                    {saldo.moeda === 'BRL' ? 'R$' : saldo.moeda} {parseFloat(saldo.saldo).toFixed(2).replace('.', ',')}
-                </Text>
-            ) : (
-                <Text c="dimmed">Carregando saldo...</Text>
-            )}
+        <Card>
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                        💰 Saldo Disponível
+                    </CardTitle>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={carregarSaldo}
+                        disabled={loadingSaldo}
+                    >
+                        {loadingSaldo ? <LoadingSpinner className="h-4 w-4 mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                        Atualizar
+                    </Button>
+                </div>
+            </CardHeader>
+            <CardContent>
+                {saldo ? (
+                    <p className="text-2xl font-bold text-green-600">
+                        {saldo.moeda === 'BRL' ? 'R$' : saldo.moeda} {parseFloat(saldo.saldo).toFixed(2).replace('.', ',')}
+                    </p>
+                ) : (
+                    <p className="text-muted-foreground">Carregando saldo...</p>
+                )}
+            </CardContent>
         </Card>
     );
 
     const EngajamentosTable = () => (
-        <Card shadow="sm" padding="lg" radius="md">
-            <Group justify="space-between" mb="md">
-                <Title order={4}>Engajamentos Cadastrados</Title>
-                <Button
-                    leftSection={<IconPlus size={16} />}
-                    onClick={() => setModalEngajamento(true)}
-                >
-                    Adicionar
-                </Button>
-            </Group>
-            <Table striped highlightOnHover>
-                <Table.Thead>
-                    <Table.Tr>
-                        <Table.Th>Nome</Table.Th>
-                        <Table.Th>ID</Table.Th>
-                        <Table.Th>Tipo</Table.Th>
-                        <Table.Th>Status</Table.Th>
-                        <Table.Th>Ações</Table.Th>
-                    </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                    {engajamentos.map((eng) => (
-                        <Table.Tr key={eng.id}>
-                            <Table.Td>{eng.nome}</Table.Td>
-                            <Table.Td><Code>{eng.engajamento_id}</Code></Table.Td>
-                            <Table.Td>
-                                <Badge color={eng.tipo === 'Like' ? 'blue' : eng.tipo === 'Amei' ? 'red' : 'orange'}>
-                                    {eng.tipo}
-                                </Badge>
-                            </Table.Td>
-                            <Table.Td>
-                                <Badge color={eng.funcionando ? 'green' : 'gray'}>
-                                    {eng.funcionando ? 'Ativo' : 'Inativo'}
-                                </Badge>
-                            </Table.Td>
-                            <Table.Td>
-                                <ActionIcon
-                                    color="red"
-                                    variant="light"
-                                    onClick={() => excluirEngajamento(eng.id)}
-                                >
-                                    <IconTrash size={16} />
-                                </ActionIcon>
-                            </Table.Td>
-                        </Table.Tr>
-                    ))}
-                </Table.Tbody>
-            </Table>
+        <Card>
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <CardTitle>Engajamentos Cadastrados</CardTitle>
+                    <Dialog open={modalEngajamento} onOpenChange={setModalEngajamento}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Adicionar
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Adicionar Engajamento</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                                <div>
+                                    <Label htmlFor="nome">Nome do Engajamento</Label>
+                                    <Input
+                                        id="nome"
+                                        placeholder="Ex: Like Facebook"
+                                        value={novoEngajamento.nome}
+                                        onChange={(e) => setNovoEngajamento(prev => ({ ...prev, nome: e.target.value }))}
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="engajamento_id">ID do Engajamento</Label>
+                                    <Input
+                                        id="engajamento_id"
+                                        placeholder="Ex: 101"
+                                        value={novoEngajamento.engajamento_id}
+                                        onChange={(e) => setNovoEngajamento(prev => ({ ...prev, engajamento_id: e.target.value }))}
+                                    />
+                                </div>
+                                <div>
+                                    <Label>Tipo</Label>
+                                    <Select value={novoEngajamento.tipo} onValueChange={(value) => setNovoEngajamento(prev => ({ ...prev, tipo: value }))}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Like">👍 Like</SelectItem>
+                                            <SelectItem value="Amei">😍 Amei</SelectItem>
+                                            <SelectItem value="Uau">😮 Uau</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="funcionando"
+                                        checked={novoEngajamento.funcionando}
+                                        onCheckedChange={(checked) => setNovoEngajamento(prev => ({ ...prev, funcionando: checked }))}
+                                    />
+                                    <Label htmlFor="funcionando">Engajamento funcionando</Label>
+                                </div>
+                                <div className="flex justify-end space-x-2">
+                                    <Button variant="outline" onClick={() => setModalEngajamento(false)}>
+                                        Cancelar
+                                    </Button>
+                                    <Button onClick={salvarEngajamento} disabled={loading}>
+                                        {loading && <LoadingSpinner className="h-4 w-4 mr-2" />}
+                                        Salvar
+                                    </Button>
+                                </div>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Nome</TableHead>
+                            <TableHead>ID</TableHead>
+                            <TableHead>Tipo</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Ações</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {engajamentos.map((eng) => (
+                            <TableRow key={eng.id}>
+                                <TableCell>{eng.nome}</TableCell>
+                                <TableCell>
+                                    <code className="bg-muted px-2 py-1 rounded text-sm">{eng.engajamento_id}</code>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant={eng.tipo === 'Like' ? 'default' : eng.tipo === 'Amei' ? 'destructive' : 'secondary'}>
+                                        {eng.tipo}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant={eng.funcionando ? 'default' : 'secondary'}>
+                                        {eng.funcionando ? 'Ativo' : 'Inativo'}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell>
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => excluirEngajamento(eng.id)}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
         </Card>
     );
 
     return (
-        <Box p="md">
-            <Group justify="space-between" mb="xl">
-                <Box>
-                    <Title order={2} mb="xs">📈 Engajamento</Title>
-                    <Text c="dimmed">Gerencie engajamentos e crie pedidos para URLs do Facebook</Text>
-                </Box>
-            </Group>
+        <div className="p-6 space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold mb-2">📈 Engajamento</h1>
+                    <p className="text-muted-foreground">Gerencie engajamentos e crie pedidos para URLs do Facebook</p>
+                </div>
+            </div>
 
             {notification && (
-                <Notification
-                    icon={notification.type === 'success' ? <IconCheck size="1.1rem" /> : <IconX size="1.1rem" />}
-                    color={notification.type === 'success' ? 'teal' : 'red'}
-                    title={notification.type === 'success' ? 'Sucesso!' : 'Erro!'}
-                    onClose={() => setNotification(null)}
-                    mb="md"
-                >
-                    {notification.message}
-                </Notification>
+                <Alert className={notification.type === 'error' ? 'border-destructive' : 'border-green-500'}>
+                    {notification.type === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                    <AlertDescription>
+                        <strong>{notification.type === 'success' ? 'Sucesso!' : 'Erro!'}</strong> {notification.message}
+                    </AlertDescription>
+                </Alert>
             )}
 
             <SaldoCard />
 
-            <Tabs value={activeTab} onChange={setActiveTab} mt="xl">
-                <Tabs.List>
-                    <Tabs.Tab value="cadastrar">Cadastrar Engajamentos</Tabs.Tab>
-                    <Tabs.Tab value="comprar">Comprar Engajamento</Tabs.Tab>
-                    <Tabs.Tab value="historico">Histórico</Tabs.Tab>
-                </Tabs.List>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList>
+                    <TabsTrigger value="cadastrar">Cadastrar Engajamentos</TabsTrigger>
+                    <TabsTrigger value="comprar">Comprar Engajamento</TabsTrigger>
+                    <TabsTrigger value="historico">Histórico</TabsTrigger>
+                </TabsList>
 
-                <Tabs.Panel value="cadastrar" pt="md">
+                <TabsContent value="cadastrar" className="mt-6">
                     <EngajamentosTable />
-                </Tabs.Panel>
+                </TabsContent>
 
-                <Tabs.Panel value="comprar" pt="md">
-                    <Card shadow="sm" padding="lg" radius="md">
-                        <Title order={4} mb="md">🛒 Comprar Engajamento</Title>
-                        <Stack gap="md">
-                            <Title order={5}>Selecionar Engajamentos</Title>
-                            <Group>
-                                {engajamentos.filter(eng => eng.funcionando).map((eng) => (
-                                    <Paper key={eng.id} p="md" withBorder>
-                                        <Stack gap="xs">
-                                            <Checkbox
-                                                label={`${eng.nome} (${eng.tipo})`}
-                                                checked={engajamentosSelecionados[eng.id]?.ativo || false}
-                                                onChange={(e) => setEngajamentosSelecionados(prev => ({
-                                                    ...prev,
-                                                    [eng.id]: {
-                                                        ...prev[eng.id],
-                                                        ativo: e.target.checked,
-                                                        quantidade: prev[eng.id]?.quantidade || 100
-                                                    }
-                                                }))}
-                                            />
-                                            {engajamentosSelecionados[eng.id]?.ativo && (
-                                                <NumberInput
-                                                    size="xs"
-                                                    placeholder="Quantidade"
-                                                    value={engajamentosSelecionados[eng.id]?.quantidade || 100}
-                                                    onChange={(value) => setEngajamentosSelecionados(prev => ({
-                                                        ...prev,
-                                                        [eng.id]: {
-                                                            ...prev[eng.id],
-                                                            quantidade: value
-                                                        }
-                                                    }))}
-                                                    min={1}
-                                                />
-                                            )}
-                                        </Stack>
-                                    </Paper>
-                                ))}
-                            </Group>
+                <TabsContent value="comprar" className="mt-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>🛒 Comprar Engajamento</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div>
+                                <h3 className="text-lg font-semibold mb-4">Selecionar Engajamentos</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {engajamentos.filter(eng => eng.funcionando).map((eng) => (
+                                        <Card key={eng.id} className="p-4">
+                                            <div className="space-y-3">
+                                                <div className="flex items-center space-x-2">
+                                                    <Checkbox
+                                                        id={`eng-${eng.id}`}
+                                                        checked={engajamentosSelecionados[eng.id]?.ativo || false}
+                                                        onCheckedChange={(checked) => setEngajamentosSelecionados(prev => ({
+                                                            ...prev,
+                                                            [eng.id]: {
+                                                                ...prev[eng.id],
+                                                                ativo: checked,
+                                                                quantidade: prev[eng.id]?.quantidade || 100
+                                                            }
+                                                        }))}
+                                                    />
+                                                    <Label htmlFor={`eng-${eng.id}`}>{eng.nome} ({eng.tipo})</Label>
+                                                </div>
+                                                {engajamentosSelecionados[eng.id]?.ativo && (
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="Quantidade"
+                                                        value={engajamentosSelecionados[eng.id]?.quantidade || 100}
+                                                        onChange={(e) => setEngajamentosSelecionados(prev => ({
+                                                            ...prev,
+                                                            [eng.id]: {
+                                                                ...prev[eng.id],
+                                                                quantidade: parseInt(e.target.value) || 0
+                                                            }
+                                                        }))}
+                                                        min="1"
+                                                    />
+                                                )}
+                                            </div>
+                                        </Card>
+                                    ))}
+                                </div>
+                            </div>
                             
-                            <Divider />
-                            
-                            <Title order={5}>URLs para Engajamento</Title>
-                            <Textarea
-                                placeholder="Cole as URLs do Facebook aqui, uma por linha..."
-                                value={urlsInput}
-                                onChange={(e) => setUrlsInput(e.target.value)}
-                                minRows={4}
-                                maxRows={8}
-                            />
+                            <div className="border-t pt-6">
+                                <h3 className="text-lg font-semibold mb-4">URLs para Engajamento</h3>
+                                <Textarea
+                                    placeholder="Cole as URLs do Facebook aqui, uma por linha..."
+                                    value={urlsInput}
+                                    onChange={(e) => setUrlsInput(e.target.value)}
+                                    rows={6}
+                                />
+                            </div>
                             
                             <Button
-                                leftSection={<IconSend size={16} />}
                                 onClick={criarPedido}
-                                loading={loading}
+                                disabled={loading}
                                 size="lg"
+                                className="w-full"
                             >
+                                {loading ? <LoadingSpinner className="h-4 w-4 mr-2" /> : <Send className="h-4 w-4 mr-2" />}
                                 Enviar Pedidos
                             </Button>
-                        </Stack>
+                        </CardContent>
                     </Card>
-                </Tabs.Panel>
+                </TabsContent>
 
-                <Tabs.Panel value="historico" pt="md">
-                    <Card shadow="sm" padding="lg" radius="md">
-                        <Title order={4} mb="md">📊 Histórico de Pedidos</Title>
-                        <Table striped highlightOnHover>
-                            <Table.Thead>
-                                <Table.Tr>
-                                    <Table.Th>Data</Table.Th>
-                                    <Table.Th>Status</Table.Th>
-                                    <Table.Th>Links</Table.Th>
-                                    <Table.Th>Engajamentos</Table.Th>
-                                </Table.Tr>
-                            </Table.Thead>
-                            <Table.Tbody>
-                                {pedidos.map((pedido) => (
-                                    <Table.Tr key={pedido.id}>
-                                        <Table.Td>{new Date(pedido.data_criacao).toLocaleString()}</Table.Td>
-                                        <Table.Td>
-                                            <Badge color={
-                                                pedido.status === 'concluido' ? 'green' :
-                                                pedido.status === 'erro' ? 'red' : 'blue'
-                                            }>
-                                                {pedido.status}
-                                            </Badge>
-                                        </Table.Td>
-                                        <Table.Td>{pedido.total_links}</Table.Td>
-                                        <Table.Td>{pedido.itens?.length || 0}</Table.Td>
-                                    </Table.Tr>
-                                ))}
-                            </Table.Tbody>
-                        </Table>
+                <TabsContent value="historico" className="mt-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>📊 Histórico de Pedidos</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Data</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Links</TableHead>
+                                        <TableHead>Engajamentos</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {pedidos.map((pedido) => (
+                                        <TableRow key={pedido.id}>
+                                            <TableCell>{new Date(pedido.data_criacao).toLocaleString()}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={
+                                                    pedido.status === 'concluido' ? 'default' :
+                                                    pedido.status === 'erro' ? 'destructive' : 'secondary'
+                                                }>
+                                                    {pedido.status}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>{pedido.total_links}</TableCell>
+                                            <TableCell>{pedido.itens?.length || 0}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
                     </Card>
-                </Tabs.Panel>
+                </TabsContent>
             </Tabs>
 
-            {/* Modal para adicionar engajamento */}
-            <Modal
-                opened={modalEngajamento}
-                onClose={() => setModalEngajamento(false)}
-                title="Adicionar Engajamento"
-                size="md"
-            >
-                <Stack gap="md">
-                    <TextInput
-                        label="Nome do Engajamento"
-                        placeholder="Ex: Like Facebook"
-                        value={novoEngajamento.nome}
-                        onChange={(e) => setNovoEngajamento(prev => ({ ...prev, nome: e.target.value }))}
-                        required
-                    />
-                    <TextInput
-                        label="ID do Engajamento"
-                        placeholder="Ex: 101"
-                        value={novoEngajamento.engajamento_id}
-                        onChange={(e) => setNovoEngajamento(prev => ({ ...prev, engajamento_id: e.target.value }))}
-                        required
-                    />
-                    <Select
-                        label="Tipo"
-                        data={[
-                            { value: 'Like', label: '👍 Like' },
-                            { value: 'Amei', label: '😍 Amei' },
-                            { value: 'Uau', label: '😮 Uau' }
-                        ]}
-                        value={novoEngajamento.tipo}
-                        onChange={(value) => setNovoEngajamento(prev => ({ ...prev, tipo: value }))}
-                    />
-                    <Checkbox
-                        label="Engajamento funcionando"
-                        checked={novoEngajamento.funcionando}
-                        onChange={(e) => setNovoEngajamento(prev => ({ ...prev, funcionando: e.target.checked }))}
-                    />
-                    <Group justify="flex-end" mt="md">
-                        <Button variant="outline" onClick={() => setModalEngajamento(false)}>
-                            Cancelar
-                        </Button>
-                        <Button onClick={salvarEngajamento} loading={loading}>
-                            Salvar
-                        </Button>
-                    </Group>
-                </Stack>
-            </Modal>
-
-            <LoadingOverlay visible={loading} overlayProps={{ radius: "sm", blur: 2 }} />
-        </Box>
+            {loading && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+                    <LoadingSpinner className="h-8 w-8" />
+                </div>
+            )}
+        </div>
     );
 }
 
