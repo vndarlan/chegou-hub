@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { SidebarNavigation } from '../components/sidebar-navigation';
+import { AppSidebar } from '../components/app-sidebar';
+import { SidebarProvider, SidebarInset } from '../components/ui/sidebar';
 import { LoadingSpinner, Alert, AlertDescription } from '../components/ui';
 import ProcessamentoPage from '../features/processamento/ProcessamentoPage';
 
@@ -96,47 +97,47 @@ function WorkspacePage({ setIsLoggedIn }) {
     }
 
     return (
-        <div className="h-screen flex bg-background">
-            <SidebarNavigation
+        <SidebarProvider>
+            <AppSidebar
                 userName={userName}
                 userEmail={userEmail}
                 onLogout={handleLogout}
                 isAdmin={isAdmin}
             />
+            <SidebarInset>
+                <main className="flex-1 overflow-y-auto bg-background">
+                    <Routes>
+                        <Route index element={<Navigate to="/workspace/agenda" replace />} />
 
-            {/* Área de Conteúdo Principal */}
-            <main className="flex-1 overflow-y-auto bg-background">
-                <Routes>
-                    <Route index element={<Navigate to="/workspace/agenda" replace />} />
+                        {/* Páginas HOME */}
+                        <Route path="agenda" element={<AgendaPage />} />
+                        <Route path="mapa" element={<MapaPage />} />
 
-                    {/* Páginas HOME */}
-                    <Route path="agenda" element={<AgendaPage />} />
-                    <Route path="mapa" element={<MapaPage />} />
+                        {/* Páginas IA & AUTOMAÇÕES */}
+                        <Route path="logs" element={<LogsPage />} />
+                        <Route path="nicochat" element={<NicochatPage />} />
+                        <Route path="n8n" element={<N8NPage />} />
+                        <Route path="projetos" element={<ProjetoDashboard />} />        
+                        <Route path="relatorios" element={<RelatoriosProjetos />} />
+                        <Route path="novelties" element={<NoveltiesPage />} />
 
-                    {/* Páginas IA & AUTOMAÇÕES */}
-                    <Route path="logs" element={<LogsPage />} />
-                    <Route path="nicochat" element={<NicochatPage />} />
-                    <Route path="n8n" element={<N8NPage />} />
-                    <Route path="projetos" element={<ProjetoDashboard />} />        
-                    <Route path="relatorios" element={<RelatoriosProjetos />} />
-                    <Route path="novelties" element={<NoveltiesPage />} />
+                        {/* Páginas MÉTRICAS */}
+                        <Route path="metricas/primecod" element={<PrimecodPage />} />
+                        <Route path="metricas/ecomhub" element={<EcomhubPage />} />
+                        <Route path="metricas/dropi" element={<DropiPage />} />
 
-                    {/* Páginas MÉTRICAS */}
-                    <Route path="metricas/primecod" element={<PrimecodPage />} />
-                    <Route path="metricas/ecomhub" element={<EcomhubPage />} />
-                    <Route path="metricas/dropi" element={<DropiPage />} />
-
-                    {/* Páginas OPERACIONAL */}
-                    <Route path="engajamento" element={<EngajamentoPage />} />
-                    
-                    {/* Páginas SUPORTE */}
-                    <Route path="processamento" element={<ProcessamentoPage />} /> 
-                    
-                    {/* Catch-all */}
-                    <Route path="*" element={<Navigate to="/workspace/agenda" replace />} />
-                </Routes>
-            </main>
-        </div>
+                        {/* Páginas OPERACIONAL */}
+                        <Route path="engajamento" element={<EngajamentoPage />} />
+                        
+                        {/* Páginas SUPORTE */}
+                        <Route path="processamento" element={<ProcessamentoPage />} /> 
+                        
+                        {/* Catch-all */}
+                        <Route path="*" element={<Navigate to="/workspace/agenda" replace />} />
+                    </Routes>
+                </main>
+            </SidebarInset>
+        </SidebarProvider>
     );
 }
 
