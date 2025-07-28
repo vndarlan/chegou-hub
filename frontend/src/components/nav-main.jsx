@@ -13,12 +13,9 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  useSidebar,
 } from "./ui/sidebar"
 
 export function NavMain({ items, navigate, currentPath }) {
-  const { state } = useSidebar()
-
   const handleNavigation = (url, external = false) => {
     if (external) {
       window.open(url, '_blank')
@@ -29,7 +26,9 @@ export function NavMain({ items, navigate, currentPath }) {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Platform</SidebarGroupLabel>
+      <SidebarGroupLabel className="group-data-[collapsible=icon]/sidebar-wrapper:hidden">
+        Platform
+      </SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
           <Collapsible
