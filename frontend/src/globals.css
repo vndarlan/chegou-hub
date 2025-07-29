@@ -120,28 +120,42 @@
   overflow: hidden;
 }
 
-/* Sidebar collapsed behavior */
-.group\/sidebar-wrapper[data-state="collapsed"] [data-sidebar="sidebar"] {
-  width: var(--sidebar-width-icon) !important;
+/* Sidebar collapsed behavior - hide all text elements */
+[data-sidebar="sidebar"][data-state="collapsed"] span:not(.sr-only):not([class*="aspect-square"]) {
+  display: none !important;
 }
 
-/* Hide text when collapsed */
-.group\/sidebar-wrapper[data-state="collapsed"] [data-sidebar="sidebar"] span:not(.sr-only) {
-  opacity: 0;
-  width: 0;
-  overflow: hidden;
+/* Keep logo and avatar visible when collapsed */
+[data-sidebar="sidebar"][data-state="collapsed"] .aspect-square {
+  display: flex !important;
 }
 
-/* Center icons when collapsed */
-.group\/sidebar-wrapper[data-state="collapsed"] [data-sidebar="menu-button"] {
-  justify-content: center;
+/* Center buttons when collapsed */
+[data-sidebar="sidebar"][data-state="collapsed"] [data-sidebar="menu-button"] {
+  justify-content: center !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
 }
 
 /* Hide group labels when collapsed */
-.group\/sidebar-wrapper[data-state="collapsed"] [data-sidebar="group-label"] {
-  opacity: 0;
-  height: 0;
-  overflow: hidden;
+[data-sidebar="sidebar"][data-state="collapsed"] [data-sidebar="group-label"] {
+  display: none !important;
+}
+
+/* Hide chevron icons when collapsed */
+[data-sidebar="sidebar"][data-state="collapsed"] .lucide-chevron-right,
+[data-sidebar="sidebar"][data-state="collapsed"] .lucide-chevrons-up-down {
+  display: none !important;
+}
+
+/* Hide submenus when collapsed */
+[data-sidebar="sidebar"][data-state="collapsed"] [data-sidebar="menu-sub"] {
+  display: none !important;
+}
+
+/* Hide external link indicator */
+[data-sidebar="sidebar"][data-state="collapsed"] .ml-auto {
+  display: none !important;
 }
 
 /* Trigger button size fix */

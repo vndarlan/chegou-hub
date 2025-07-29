@@ -114,7 +114,7 @@ function WorkspacePage({ setIsLoggedIn }) {
           navigate={navigate}
           location={location}
         />
-        <div className="flex-1 flex flex-col overflow-hidden ml-[var(--sidebar-width)] group-data-[state=collapsed]/sidebar-wrapper:ml-[var(--sidebar-width-icon)]">
+        <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
             <SidebarTrigger className="h-6 w-6" />
             <Separator orientation="vertical" className="mr-2 h-4" />
@@ -163,7 +163,7 @@ function WorkspacePage({ setIsLoggedIn }) {
               } />
             </Routes>
           </main>
-        </div>
+        </SidebarInset>
       </div>
     </SidebarProvider>
   );
