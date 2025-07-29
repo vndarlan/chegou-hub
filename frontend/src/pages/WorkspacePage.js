@@ -17,7 +17,7 @@ import {
 } from '../components/ui/sidebar';
 import axios from 'axios';
 
-// Importar as páginas
+// Importar as páginas  
 import AgendaPage from '../features/agenda/AgendaPage';
 import MapaPage from '../features/mapa/MapaPage';
 import ProjetoDashboard from '../features/ia/ProjetoDashboard';
@@ -32,64 +32,22 @@ import EngajamentoPage from '../features/engajamento/EngajamentoPage';
 import NoveltiesPage from '../features/novelties/NoveltiesPage';
 import ProcessamentoPage from '../features/processamento/ProcessamentoPage';
 
-// Mapeamento de breadcrumbs
+// Mapeamento de breadcrumbs simplificado
 const breadcrumbMap = {
-  '/workspace/agenda': [
-    { label: 'HOME', href: '#' },
-    { label: 'Agenda da Empresa' }
-  ],
-  '/workspace/mapa': [
-    { label: 'HOME', href: '#' },
-    { label: 'Mapa de Atuação' }
-  ],
-  '/workspace/projetos': [
-    { label: 'IA & Automações', href: '#' },
-    { label: 'Projetos' }
-  ],
-  '/workspace/relatorios': [
-    { label: 'IA & Automações', href: '#' },
-    { label: 'Relatórios' }
-  ],
-  '/workspace/logs': [
-    { label: 'IA & Automações', href: '#' },
-    { label: 'Logs de Erros' }
-  ],
-  '/workspace/nicochat': [
-    { label: 'IA & Automações', href: '#' },
-    { label: 'Nicochat' }
-  ],
-  '/workspace/n8n': [
-    { label: 'IA & Automações', href: '#' },
-    { label: 'N8N' }
-  ],
-  '/workspace/metricas/primecod': [
-    { label: 'Métricas', href: '#' },
-    { label: 'PRIMECOD' }
-  ],
-  '/workspace/metricas/ecomhub': [
-    { label: 'Métricas', href: '#' },
-    { label: 'ECOMHUB' }
-  ],
-  '/workspace/metricas/dropi': [
-    { label: 'Métricas', href: '#' },
-    { label: 'DROPI MX' }
-  ],
-  '/workspace/engajamento': [
-    { label: 'Operacional', href: '#' },
-    { label: 'Engajamento' }
-  ],
-  '/workspace/novelties': [
-    { label: 'Operacional', href: '#' },
-    { label: 'Novelties' }
-  ],
-  '/workspace/processamento': [
-    { label: 'Suporte', href: '#' },
-    { label: 'Processamento' }
-  ],
-  '/workspace/suporte': [
-    { label: 'Suporte', href: '#' },
-    { label: 'Suporte' }
-  ]
+  '/workspace/agenda': [{ label: 'HOME', href: '#' }, { label: 'Agenda da Empresa' }],
+  '/workspace/mapa': [{ label: 'HOME', href: '#' }, { label: 'Mapa de Atuação' }],
+  '/workspace/projetos': [{ label: 'IA & Automações', href: '#' }, { label: 'Projetos' }],
+  '/workspace/relatorios': [{ label: 'IA & Automações', href: '#' }, { label: 'Relatórios' }],
+  '/workspace/logs': [{ label: 'IA & Automações', href: '#' }, { label: 'Logs de Erros' }],
+  '/workspace/nicochat': [{ label: 'IA & Automações', href: '#' }, { label: 'Nicochat' }],
+  '/workspace/n8n': [{ label: 'IA & Automações', href: '#' }, { label: 'N8N' }],
+  '/workspace/metricas/primecod': [{ label: 'Métricas', href: '#' }, { label: 'PRIMECOD' }],
+  '/workspace/metricas/ecomhub': [{ label: 'Métricas', href: '#' }, { label: 'ECOMHUB' }],
+  '/workspace/metricas/dropi': [{ label: 'Métricas', href: '#' }, { label: 'DROPI MX' }],
+  '/workspace/engajamento': [{ label: 'Operacional', href: '#' }, { label: 'Engajamento' }],
+  '/workspace/novelties': [{ label: 'Operacional', href: '#' }, { label: 'Novelties' }],
+  '/workspace/processamento': [{ label: 'Suporte', href: '#' }, { label: 'Processamento' }],
+  '/workspace/suporte': [{ label: 'Suporte', href: '#' }, { label: 'Suporte' }]
 };
 
 function WorkspacePage({ setIsLoggedIn }) {
@@ -100,9 +58,7 @@ function WorkspacePage({ setIsLoggedIn }) {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await axios.get('/current-state/', { 
-          withCredentials: true 
-        });
+        const response = await axios.get('/current-state/', { withCredentials: true });
         
         if (response.data.logged_in) {
           setUserData({
@@ -126,9 +82,7 @@ function WorkspacePage({ setIsLoggedIn }) {
 
   const handleLogout = async () => {
     try {
-      await axios.post('/logout/', {}, { 
-        withCredentials: true 
-      });
+      await axios.post('/logout/', {}, { withCredentials: true });
       setIsLoggedIn(false);
     } catch (error) {
       console.error('Erro no logout:', error);
@@ -137,9 +91,7 @@ function WorkspacePage({ setIsLoggedIn }) {
   };
 
   // Obter breadcrumbs da página atual
-  const currentBreadcrumbs = breadcrumbMap[location.pathname] || [
-    { label: 'Workspace' }
-  ];
+  const currentBreadcrumbs = breadcrumbMap[location.pathname] || [{ label: 'Workspace' }];
 
   if (loading) {
     return (
@@ -182,6 +134,7 @@ function WorkspacePage({ setIsLoggedIn }) {
             </Breadcrumb>
           </div>
         </header>
+        
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           <Routes>
             <Route path="agenda" element={<AgendaPage />} />

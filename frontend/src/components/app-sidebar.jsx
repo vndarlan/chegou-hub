@@ -1,22 +1,47 @@
 import * as React from "react"
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
-  Home,
+  Calendar,
+  Map,
   Bot,
   BarChart3,
   Settings,
   Phone,
-  Lock
+  Lock,
+  Home,
+  ChevronRight,
+  ChevronsUpDown,
+  LogOut,
+  Moon,
+  Sun
 } from 'lucide-react'
-import { NavMain } from './nav-main'
-import { NavUser } from './nav-user'
-import { TeamSwitcher } from './team-switcher'
+
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from './ui/collapsible'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu'
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
+  useSidebar,
 } from './ui/sidebar'
 import { useTheme } from './theme-provider'
 
@@ -30,6 +55,7 @@ export function AppSidebar({
   const navigate = useNavigate()
   const location = useLocation()
   const { theme, setTheme } = useTheme()
+  const { isMobile } = useSidebar()
 
   const getInitials = (name) => {
     if (!name) return 'U';
@@ -41,6 +67,15 @@ export function AppSidebar({
       .slice(0, 2);
   };
 
+  const handleNavigation = (item) => {
+    if (item.external) {
+      window.open(item.url, '_blank', 'noopener,noreferrer');
+    } else {
+      navigate(item.url);
+    }
+  };
+
+  // Menu data
   const data = {
     user: {
       name: userName,
@@ -48,19 +83,6 @@ export function AppSidebar({
       avatar: "/logo192.png",
       initials: getInitials(userName),
     },
-    teams: [
-      {
-        name: "Chegou Hub",
-        logo: () => (
-          <img 
-            src="/logo192.png" 
-            alt="Chegou Hub"
-            className="size-4"
-          />
-        ),
-        plan: "Enterprise",
-      },
-    ],
     navMain: [
       {
         title: "HOME",
@@ -182,6 +204,7 @@ export function AppSidebar({
     ],
   }
 
+  // Add admin section if user is admin
   if (isAdmin) {
     data.navMain.push({
       title: "ADMIN",
@@ -200,24 +223,129 @@ export function AppSidebar({
   }
 
   return (
-    <Sidebar collapsible="icon" className="h-screen" {...props}>
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              size="lg"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            >
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                <img 
+                  src="/logo192.png" 
+                  alt="Chegou Hub"
+                  className="size-4"
+                />
+              </div>
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-semibold">Chegou Hub</span>
+                <span className="truncate text-xs">Enterprise</span>
+              </div>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent className="flex-1">
-        <NavMain 
-          items={data.navMain} 
-          navigate={navigate}
-          currentPath={location.pathname}
-        />
+      
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarMenu>
+            {data.navMain.map((item) => (
+              <Collapsible
+                key={item.title}
+                asChild
+                defaultOpen={item.isActive}
+              >
+                <SidebarMenuItem>
+                  <SidebarMenuButton tooltip={item.title}>
+                    <item.icon />
+                    <span>{item.title}</span>
+                  </SidebarMenuButton>
+                  {item.items?.length ? (
+                    <>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton tooltip={item.title}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                          <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          {item.items?.map((subItem) => (
+                            <SidebarMenuSubItem key={subItem.title}>
+                              <SidebarMenuSubButton 
+                                asChild
+                                isActive={subItem.isActive}
+                              >
+                                <a
+                                  href={subItem.external ? subItem.url : "#"}
+                                  target={subItem.external ? "_blank" : undefined}
+                                  rel={subItem.external ? "noopener noreferrer" : undefined}
+                                  onClick={(e) => {
+                                    if (!subItem.external) {
+                                      e.preventDefault();
+                                      handleNavigation(subItem);
+                                    }
+                                  }}
+                                >
+                                  <span>{subItem.title}</span>
+                                  {subItem.external && (
+                                    <span className="ml-auto text-xs opacity-60">↗</span>
+                                  )}
+                                </a>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </>
+                  ) : null}
+                </SidebarMenuItem>
+              </Collapsible>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
       </SidebarContent>
+      
       <SidebarFooter>
-        <NavUser 
-          user={data.user} 
-          onLogout={onLogout}
-          theme={theme}
-          setTheme={setTheme}
-        />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-semibold">
+                    {data.user.initials}
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">{data.user.name}</span>
+                    <span className="truncate text-xs">{data.user.email}</span>
+                  </div>
+                  <ChevronsUpDown className="ml-auto size-4" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                side={isMobile ? "bottom" : "right"}
+                align="end"
+                sideOffset={4}
+              >
+                <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+                  {theme === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                  {theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={onLogout} className="text-destructive focus:text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
