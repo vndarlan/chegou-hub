@@ -200,7 +200,7 @@ export function AppSidebar({
   ];
 
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" className="h-screen" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -211,7 +211,7 @@ export function AppSidebar({
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Chegou Hub</span>
-                  <span className="truncate text-xs text-muted-foreground">Enterprise</span>
+                  <span className="truncate text-xs text-sidebar-foreground/70">Enterprise</span>
                 </div>
               </a>
             </SidebarMenuButton>
@@ -219,7 +219,7 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       
-      <SidebarContent>
+      <SidebarContent className="flex-1 overflow-y-auto">
         <SidebarGroup>
           <SidebarGroupLabel>Home</SidebarGroupLabel>
           <SidebarMenu>
@@ -303,7 +303,7 @@ export function AppSidebar({
         </SidebarGroup>
       </SidebarContent>
       
-      <SidebarFooter>
+      <SidebarFooter className="mt-auto">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
@@ -317,7 +317,7 @@ export function AppSidebar({
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">{userName}</span>
-                    <span className="truncate text-xs text-muted-foreground">{userEmail}</span>
+                    <span className="truncate text-xs text-sidebar-foreground/70">{userEmail}</span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4" />
                 </SidebarMenuButton>
