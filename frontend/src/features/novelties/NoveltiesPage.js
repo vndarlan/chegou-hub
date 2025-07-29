@@ -1,9 +1,9 @@
-// frontend/src/features/novelties/NoveltiesPage.js - MODERN DASHBOARD DESIGN
+// frontend/src/features/novelties/NoveltiesPage.js - NOVELTIES DASHBOARD
 import React, { useState, useEffect } from 'react';
 import {
   RefreshCw, Calendar, TrendingUp, TrendingDown, Clock, 
   Check, X, AlertTriangle, Activity, BarChart3, Eye, Globe, Filter,
-  ChevronDown, Users, Target, Zap, Award
+  ChevronDown, Users, Target, Zap
 } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, XAxis, Bar, BarChart, YAxis } from 'recharts';
 import axios from 'axios';
@@ -117,46 +117,57 @@ function NoveltiesPage() {
         return <Badge variant={config.variant}>{config.label}</Badge>;
     };
 
-    // Cards de métricas estilo dashboard moderno
+    // Cards de métricas Novelties
     const MetricsCards = () => {
         if (!dashboardStats) return null;
 
+        const timeSaved = dashboardStats.total_processed * dashboardStats.avg_execution_time;
+        
+        const formatTime = (minutes) => {
+            if (minutes < 60) return `${Math.round(minutes)}min`;
+            const hours = Math.floor(minutes / 60);
+            const mins = Math.round(minutes % 60);
+            return hours >= 24 ? 
+                `${Math.floor(hours/24)}d ${hours%24}h` : 
+                `${hours}h ${mins > 0 ? mins + 'min' : ''}`;
+        };
+
         const metrics = [
             {
-                title: 'Total Revenue',
-                value: `$${(dashboardStats.total_executions * 1250).toLocaleString()}.00`,
+                title: 'Total de Execuções',
+                value: dashboardStats.total_executions?.toLocaleString() || '0',
                 change: '+12.5%',
                 changeType: 'positive',
-                description: 'Trending up this month',
-                subtext: 'Visitors for the last 6 months',
-                icon: <div className="p-2 bg-green-500/10 rounded-lg"><TrendingUp className="h-4 w-4 text-green-600" /></div>
+                description: 'Crescimento este mês',
+                subtext: 'Execuções automatizadas',
+                icon: <div className="p-2 bg-blue-500/10 rounded-lg"><Activity className="h-4 w-4 text-blue-600" /></div>
             },
             {
-                title: 'New Customers',
+                title: 'Novelties Processadas',
                 value: dashboardStats.total_processed?.toLocaleString() || '0',
-                change: '-20%',
-                changeType: 'negative',
-                description: 'Down 20% this period',
-                subtext: 'Acquisition needs attention',
-                icon: <div className="p-2 bg-blue-500/10 rounded-lg"><Users className="h-4 w-4 text-blue-600" /></div>
+                change: '+8.2%',
+                changeType: 'positive',
+                description: 'Itens processados',
+                subtext: 'Performance melhorada',
+                icon: <div className="p-2 bg-green-500/10 rounded-lg"><Target className="h-4 w-4 text-green-600" /></div>
             },
             {
-                title: 'Active Accounts',
+                title: 'Taxa de Sucesso',
                 value: `${dashboardStats.success_rate || 0}%`,
-                change: '+12.5%',
-                changeType: 'positive',
-                description: 'Strong user retention',
-                subtext: 'Engagement exceed targets',
-                icon: <div className="p-2 bg-purple-500/10 rounded-lg"><Target className="h-4 w-4 text-purple-600" /></div>
+                change: dashboardStats.success_rate >= 90 ? '+2.1%' : '-1.3%',
+                changeType: dashboardStats.success_rate >= 90 ? 'positive' : 'negative',
+                description: 'Performance geral',
+                subtext: 'Qualidade das execuções',
+                icon: <div className="p-2 bg-purple-500/10 rounded-lg"><BarChart3 className="h-4 w-4 text-purple-600" /></div>
             },
             {
-                title: 'Growth Rate',
-                value: `${dashboardStats.avg_execution_time || 0}%`,
-                change: '+4.5%',
+                title: 'Tempo Economizado',
+                value: formatTime(timeSaved),
+                change: '+15.7%',
                 changeType: 'positive',
-                description: 'Steady performance increase',
-                subtext: 'Meets growth projections',
-                icon: <div className="p-2 bg-orange-500/10 rounded-lg"><Award className="h-4 w-4 text-orange-600" /></div>
+                description: 'Automação vs manual',
+                subtext: 'Eficiência operacional',
+                icon: <div className="p-2 bg-orange-500/10 rounded-lg"><Zap className="h-4 w-4 text-orange-600" /></div>
             }
         ];
 
@@ -201,28 +212,28 @@ function NoveltiesPage() {
         failed: { label: "Falhas", color: "hsl(var(--chart-3))" },
     };
 
-    // Gráfico principal estilo dashboard
-    const MainChart = () => {
+    // Gráfico de tendências (seu formato específico)
+    const TrendsChart = () => {
         if (!trendsData.length) return null;
 
         return (
             <Card className="col-span-4">
                 <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle>Total Visitors</CardTitle>
-                            <CardDescription>Total for the last 3 months</CardDescription>
-                        </div>
-                        <div className="flex gap-2">
-                            <Button variant="outline" size="sm" className="text-xs">Last 3 months</Button>
-                            <Button variant="outline" size="sm" className="text-xs">Last 30 days</Button>
-                            <Button variant="outline" size="sm" className="text-xs">Last 7 days</Button>
-                        </div>
-                    </div>
+                    <CardTitle>Tendência de Execuções</CardTitle>
+                    <CardDescription>
+                        Acompanhe as novelties processadas nos últimos {filterPeriod} dias
+                    </CardDescription>
                 </CardHeader>
-                <CardContent className="pl-2">
-                    <ChartContainer config={chartConfig} className="h-[300px]">
-                        <AreaChart data={trendsData} margin={{ left: 12, right: 12 }}>
+                <CardContent>
+                    <ChartContainer config={chartConfig}>
+                        <AreaChart
+                            accessibilityLayer
+                            data={trendsData}
+                            margin={{
+                                left: 12,
+                                right: 12,
+                            }}
+                        >
                             <CartesianGrid vertical={false} />
                             <XAxis
                                 dataKey="date"
@@ -236,52 +247,138 @@ function NoveltiesPage() {
                                 content={<ChartTooltipContent indicator="line" />}
                             />
                             <Area
-                                dataKey="processed"
+                                dataKey="failed"
                                 type="natural"
-                                fill="var(--color-processed)"
+                                fill="var(--color-failed)"
                                 fillOpacity={0.4}
-                                stroke="var(--color-processed)"
-                                strokeWidth={2}
+                                stroke="var(--color-failed)"
+                                stackId="a"
                             />
                             <Area
                                 dataKey="successful"
                                 type="natural"
                                 fill="var(--color-successful)"
-                                fillOpacity={0.3}
+                                fillOpacity={0.4}
                                 stroke="var(--color-successful)"
-                                strokeWidth={2}
+                                stackId="a"
                             />
+                            <ChartLegend content={<ChartLegendContent />} />
                         </AreaChart>
                     </ChartContainer>
                 </CardContent>
+                <CardFooter>
+                    <div className="flex w-full items-start gap-2 text-sm">
+                        <div className="grid gap-2">
+                            <div className="flex items-center gap-2 leading-none font-medium">
+                                Performance melhorou 5.2% este mês <TrendingUp className="h-4 w-4" />
+                            </div>
+                            <div className="text-muted-foreground flex items-center gap-2 leading-none">
+                                Dados dos últimos {filterPeriod} dias
+                            </div>
+                        </div>
+                    </div>
+                </CardFooter>
             </Card>
         );
     };
 
-    // Tabela de performance estilo dashboard
-    const PerformanceTable = () => {
-        const tableData = [
-            { section: 'Cover page', type: 'Cover page', status: 'In Progress', target: 18, limit: 5, reviewer: 'Eddie Lake' },
-            { section: 'Table of contents', type: 'Table of contents', status: 'Done', target: 20, limit: 24, reviewer: 'Eddie Lake' },
-            { section: 'Executive summary', type: 'Executive summary', status: 'In Progress', target: 15, limit: 8, reviewer: 'John Smith' },
-            { section: 'Financial overview', type: 'Financial overview', status: 'Review', target: 25, limit: 12, reviewer: 'Sarah Johnson' },
-        ];
+    // Status Distribution Chart (seu formato específico)
+    const StatusDistribution = () => {
+        if (!dashboardStats?.status_distribution) return null;
+
+        const data = Object.entries(dashboardStats.status_distribution).map(([status, count]) => ({
+            browser: status,
+            visitors: count,
+            fill: status === 'success' ? 'var(--color-success)' : 
+                  status === 'partial' ? 'var(--color-partial)' : 
+                  status === 'failed' ? 'var(--color-failed)' : 'var(--color-error)'
+        }));
+
+        const statusConfig = {
+            visitors: { label: "Execuções" },
+            success: { label: "Sucesso", color: "hsl(var(--chart-1))" },
+            partial: { label: "Parcial", color: "hsl(var(--chart-4))" },
+            failed: { label: "Falha", color: "hsl(var(--destructive))" },
+            error: { label: "Erro", color: "hsl(var(--chart-5))" }
+        };
+
+        return (
+            <Card className="col-span-3">
+                <CardHeader>
+                    <CardTitle>Distribuição por Status</CardTitle>
+                    <CardDescription>Performance das execuções por resultado</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ChartContainer config={statusConfig}>
+                        <BarChart
+                            accessibilityLayer
+                            data={data}
+                            layout="vertical"
+                            margin={{
+                                left: 0,
+                            }}
+                        >
+                            <YAxis
+                                dataKey="browser"
+                                type="category"
+                                tickLine={false}
+                                tickMargin={10}
+                                axisLine={false}
+                                tickFormatter={(value) =>
+                                    statusConfig[value]?.label || value
+                                }
+                            />
+                            <XAxis dataKey="visitors" type="number" hide />
+                            <ChartTooltip
+                                cursor={false}
+                                content={<ChartTooltipContent hideLabel />}
+                            />
+                            <Bar dataKey="visitors" layout="vertical" radius={5} />
+                        </BarChart>
+                    </ChartContainer>
+                </CardContent>
+                <CardFooter className="flex-col items-start gap-2 text-sm">
+                    <div className="flex gap-2 font-medium leading-none">
+                        Taxa melhorou 5.2% este mês <TrendingUp className="h-4 w-4" />
+                    </div>
+                    <div className="text-muted-foreground leading-none">
+                        Baseado nas execuções dos últimos {filterPeriod} dias
+                    </div>
+                </CardFooter>
+            </Card>
+        );
+    };
+
+    // Tabela de execuções
+    const ExecutionsTable = () => {
+        if (!recentExecutions.length) {
+            return (
+                <div className="flex h-32 items-center justify-center">
+                    <div className="text-center">
+                        <Activity className="mx-auto h-8 w-8 text-muted-foreground/50" />
+                        <p className="mt-2 text-sm text-muted-foreground">Nenhuma execução encontrada</p>
+                    </div>
+                </div>
+            );
+        }
 
         return (
             <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <div className="flex gap-4">
-                            <Button variant="outline" size="sm">Outline</Button>
-                            <Button variant="outline" size="sm" className="bg-muted">Past Performance <Badge className="ml-1">3</Badge></Button>
-                            <Button variant="outline" size="sm">Key Personnel <Badge className="ml-1">2</Badge></Button>
-                            <Button variant="outline" size="sm">Focus Documents</Button>
+                            <Button variant="outline" size="sm">Execuções</Button>
+                            <Button variant="outline" size="sm" className="bg-muted">
+                                Histórico <Badge className="ml-1">{recentExecutions.length}</Badge>
+                            </Button>
+                            <Button variant="outline" size="sm">Status</Button>
+                            <Button variant="outline" size="sm">Performance</Button>
                         </div>
                         <div className="flex gap-2">
                             <Button variant="outline" size="sm">
-                                Customize Columns <ChevronDown className="ml-1 h-3 w-3" />
+                                Filtros <ChevronDown className="ml-1 h-3 w-3" />
                             </Button>
-                            <Button variant="outline" size="sm">Add Section</Button>
+                            <Button variant="outline" size="sm">Exportar</Button>
                         </div>
                     </div>
                 </CardHeader>
@@ -290,36 +387,37 @@ function NoveltiesPage() {
                         <TableHeader>
                             <TableRow className="border-b">
                                 <TableHead className="w-4"></TableHead>
-                                <TableHead>Header</TableHead>
-                                <TableHead>Section Type</TableHead>
+                                <TableHead>Data de Execução</TableHead>
+                                <TableHead>País</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead>Target</TableHead>
-                                <TableHead>Limit</TableHead>
-                                <TableHead>Reviewer</TableHead>
+                                <TableHead>Processadas</TableHead>
+                                <TableHead>Taxa de Sucesso</TableHead>
+                                <TableHead>Tempo</TableHead>
                                 <TableHead className="w-4"></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {tableData.map((row, index) => (
-                                <TableRow key={index} className="hover:bg-muted/50">
+                            {recentExecutions.map((execution, index) => (
+                                <TableRow key={execution.id} className="hover:bg-muted/50">
                                     <TableCell>
                                         <div className="w-2 h-2 bg-muted rounded"></div>
                                     </TableCell>
-                                    <TableCell className="font-medium">{row.section}</TableCell>
-                                    <TableCell>
-                                        <Badge variant="secondary">{row.type}</Badge>
+                                    <TableCell className="font-mono text-sm">
+                                        {formatDateTime(execution.execution_date)}
                                     </TableCell>
-                                    <TableCell>
-                                        <Badge variant={row.status === 'Done' ? 'default' : row.status === 'In Progress' ? 'secondary' : 'outline'} 
-                                               className={row.status === 'Done' ? 'bg-green-500/10 text-green-700' : 
-                                                          row.status === 'In Progress' ? 'bg-yellow-500/10 text-yellow-700' : ''}>
-                                            {row.status === 'Done' && <Check className="w-3 h-3 mr-1" />}
-                                            {row.status}
-                                        </Badge>
+                                    <TableCell>{getCountryBadge(execution.country)}</TableCell>
+                                    <TableCell>{getStatusBadge(execution.status)}</TableCell>
+                                    <TableCell className="font-medium">
+                                        {execution.total_processed?.toLocaleString()}
                                     </TableCell>
-                                    <TableCell>{row.target}</TableCell>
-                                    <TableCell>{row.limit}</TableCell>
-                                    <TableCell>{row.reviewer}</TableCell>
+                                    <TableCell className={`font-medium ${
+                                        execution.success_rate >= 90 ? 'text-green-600' : 'text-orange-600'
+                                    }`}>
+                                        {execution.success_rate}%
+                                    </TableCell>
+                                    <TableCell className="text-sm text-muted-foreground">
+                                        {execution.execution_time_minutes}min
+                                    </TableCell>
                                     <TableCell>
                                         <Button variant="ghost" size="sm">⋮</Button>
                                     </TableCell>
@@ -397,10 +495,9 @@ function NoveltiesPage() {
             {!error && dashboardStats && (
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
                     <TabsList>
-                        <TabsTrigger value="dashboard">Overview</TabsTrigger>
-                        <TabsTrigger value="analytics">Analytics</TabsTrigger>
-                        <TabsTrigger value="reports">Reports</TabsTrigger>
-                        <TabsTrigger value="notifications">Notifications</TabsTrigger>
+                        <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+                        <TabsTrigger value="executions">Execuções</TabsTrigger>
+                        <TabsTrigger value="analytics">Análises</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="dashboard" className="space-y-4">
@@ -409,87 +506,23 @@ function NoveltiesPage() {
                         
                         {/* Grid principal */}
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                            <MainChart />
-                            <Card className="col-span-3">
-                                <CardHeader>
-                                    <CardTitle>Recent Sales</CardTitle>
-                                    <CardDescription>You made 265 sales this month.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-4">
-                                        {recentExecutions.slice(0, 5).map((execution, index) => (
-                                            <div key={index} className="flex items-center">
-                                                <div className="ml-4 space-y-1">
-                                                    <p className="text-sm font-medium leading-none">
-                                                        Execução {execution.country}
-                                                    </p>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {formatDateTime(execution.execution_date)}
-                                                    </p>
-                                                </div>
-                                                <div className="ml-auto font-medium">
-                                                    +${(execution.total_processed * 1.25).toFixed(2)}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            <TrendsChart />
+                            <StatusDistribution />
                         </div>
+                    </TabsContent>
 
-                        {/* Tabela de performance */}
-                        <PerformanceTable />
+                    <TabsContent value="executions" className="space-y-4">
+                        <ExecutionsTable />
                     </TabsContent>
 
                     <TabsContent value="analytics" className="space-y-4">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Análise Detalhada</CardTitle>
-                                <CardDescription>Métricas avançadas de performance</CardDescription>
+                                <CardDescription>Métricas avançadas de performance das novelties</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-muted-foreground">Conteúdo de análise em desenvolvimento...</p>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="reports" className="space-y-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Relatórios</CardTitle>
-                                <CardDescription>Relatórios detalhados das execuções</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="relative overflow-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Data</TableHead>
-                                                <TableHead>País</TableHead>
-                                                <TableHead>Status</TableHead>
-                                                <TableHead className="text-right">Processadas</TableHead>
-                                                <TableHead className="text-right">Taxa</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {recentExecutions.map((execution) => (
-                                                <TableRow key={execution.id}>
-                                                    <TableCell className="font-mono text-sm">
-                                                        {formatDateTime(execution.execution_date)}
-                                                    </TableCell>
-                                                    <TableCell>{getCountryBadge(execution.country)}</TableCell>
-                                                    <TableCell>{getStatusBadge(execution.status)}</TableCell>
-                                                    <TableCell className="text-right font-medium">
-                                                        {execution.total_processed?.toLocaleString()}
-                                                    </TableCell>
-                                                    <TableCell className="text-right font-medium">
-                                                        {execution.success_rate}%
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
+                                <p className="text-muted-foreground">Análises avançadas em desenvolvimento...</p>
                             </CardContent>
                         </Card>
                     </TabsContent>
