@@ -110,10 +110,47 @@
 [data-sidebar="sidebar"] {
   @apply h-screen flex flex-col;
   transition: width 200ms ease;
+  position: fixed !important;
+  left: 0;
+  top: 0;
+  z-index: 50;
 }
 
 [data-sidebar="sidebar"][data-state="collapsed"] {
   overflow: hidden;
+}
+
+/* Sidebar collapsed behavior */
+.group\/sidebar-wrapper[data-state="collapsed"] [data-sidebar="sidebar"] {
+  width: var(--sidebar-width-icon) !important;
+}
+
+/* Hide text when collapsed */
+.group\/sidebar-wrapper[data-state="collapsed"] [data-sidebar="sidebar"] span:not(.sr-only) {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+/* Center icons when collapsed */
+.group\/sidebar-wrapper[data-state="collapsed"] [data-sidebar="menu-button"] {
+  justify-content: center;
+}
+
+/* Hide group labels when collapsed */
+.group\/sidebar-wrapper[data-state="collapsed"] [data-sidebar="group-label"] {
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Trigger button size fix */
+[data-sidebar="trigger"] {
+  @apply h-6 w-6;
+}
+
+[data-sidebar="trigger"] svg {
+  @apply h-4 w-4;
 }
 
 /* Garante que o content da sidebar seja flexível */

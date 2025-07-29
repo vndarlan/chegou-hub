@@ -105,64 +105,66 @@ function WorkspacePage({ setIsLoggedIn }) {
 
   return (
     <SidebarProvider>
-      <AppSidebar 
-        userName={userData?.name}
-        userEmail={userData?.email}
-        onLogout={handleLogout}
-        isAdmin={userData?.isAdmin}
-        navigate={navigate}
-        location={location}
-      />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              {currentBreadcrumbs.map((crumb, index) => (
-                <React.Fragment key={index}>
-                  {index > 0 && <BreadcrumbSeparator className="hidden md:block" />}
-                  <BreadcrumbItem className={index === 0 ? "hidden md:block" : ""}>
-                    {crumb.href ? (
-                      <BreadcrumbLink href={crumb.href}>
-                        {crumb.label}
-                      </BreadcrumbLink>
-                    ) : (
-                      <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                    )}
-                  </BreadcrumbItem>
-                </React.Fragment>
-              ))}
-            </BreadcrumbList>
-          </Breadcrumb>
-        </header>
-        
-        <main className="flex-1 overflow-auto p-4">
-          <Routes>
-            <Route path="agenda" element={<AgendaPage />} />
-            <Route path="mapa" element={<MapaPage />} />
-            <Route path="projetos" element={<ProjetoDashboard />} />
-            <Route path="relatorios" element={<RelatoriosProjetos />} />
-            <Route path="logs" element={<LogsPage />} />
-            <Route path="nicochat" element={<NicochatPage />} />
-            <Route path="n8n" element={<N8NPage />} />
-            <Route path="metricas/primecod" element={<PrimecodPage />} />
-            <Route path="metricas/ecomhub" element={<EcomhubPage />} />
-            <Route path="metricas/dropi" element={<DropiPage />} />
-            <Route path="engajamento" element={<EngajamentoPage />} />
-            <Route path="novelties" element={<NoveltiesPage />} />
-            <Route path="processamento" element={<ProcessamentoPage />} />
-            <Route path="*" element={
-              <div className="flex h-full items-center justify-center">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold">Bem-vindo ao Chegou Hub</h2>
-                  <p className="text-muted-foreground">Selecione uma opção na barra lateral</p>
+      <div className="flex h-screen w-full">
+        <AppSidebar 
+          userName={userData?.name}
+          userEmail={userData?.email}
+          onLogout={handleLogout}
+          isAdmin={userData?.isAdmin}
+          navigate={navigate}
+          location={location}
+        />
+        <div className="flex-1 flex flex-col overflow-hidden ml-[var(--sidebar-width)] group-data-[state=collapsed]/sidebar-wrapper:ml-[var(--sidebar-width-icon)]">
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
+            <SidebarTrigger className="h-6 w-6" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Breadcrumb>
+              <BreadcrumbList>
+                {currentBreadcrumbs.map((crumb, index) => (
+                  <React.Fragment key={index}>
+                    {index > 0 && <BreadcrumbSeparator className="hidden md:block" />}
+                    <BreadcrumbItem className={index === 0 ? "hidden md:block" : ""}>
+                      {crumb.href ? (
+                        <BreadcrumbLink href={crumb.href}>
+                          {crumb.label}
+                        </BreadcrumbLink>
+                      ) : (
+                        <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                      )}
+                    </BreadcrumbItem>
+                  </React.Fragment>
+                ))}
+              </BreadcrumbList>
+            </Breadcrumb>
+          </header>
+          
+          <main className="flex-1 overflow-auto p-4">
+            <Routes>
+              <Route path="agenda" element={<AgendaPage />} />
+              <Route path="mapa" element={<MapaPage />} />
+              <Route path="projetos" element={<ProjetoDashboard />} />
+              <Route path="relatorios" element={<RelatoriosProjetos />} />
+              <Route path="logs" element={<LogsPage />} />
+              <Route path="nicochat" element={<NicochatPage />} />
+              <Route path="n8n" element={<N8NPage />} />
+              <Route path="metricas/primecod" element={<PrimecodPage />} />
+              <Route path="metricas/ecomhub" element={<EcomhubPage />} />
+              <Route path="metricas/dropi" element={<DropiPage />} />
+              <Route path="engajamento" element={<EngajamentoPage />} />
+              <Route path="novelties" element={<NoveltiesPage />} />
+              <Route path="processamento" element={<ProcessamentoPage />} />
+              <Route path="*" element={
+                <div className="flex h-full items-center justify-center">
+                  <div className="text-center">
+                    <h2 className="text-2xl font-bold">Bem-vindo ao Chegou Hub</h2>
+                    <p className="text-muted-foreground">Selecione uma opção na barra lateral</p>
+                  </div>
                 </div>
-              </div>
-            } />
-          </Routes>
-        </main>
-      </SidebarInset>
+              } />
+            </Routes>
+          </main>
+        </div>
+      </div>
     </SidebarProvider>
   );
 }
