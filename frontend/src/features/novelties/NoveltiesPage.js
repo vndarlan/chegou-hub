@@ -40,6 +40,8 @@ function NoveltiesPage() {
     const [trendsData, setTrendsData] = useState([]);
     const [canView, setCanView] = useState(false);
     const [activeTab, setActiveTab] = useState('dashboard');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
     const [filterPeriod, setFilterPeriod] = useState('7');
     const [selectedCountry, setSelectedCountry] = useState('all');
 
@@ -205,11 +207,13 @@ function NoveltiesPage() {
         );
     };
 
-    // Configuração do gráfico
+    // Configuração do gráfico com cores específicas
     const chartConfig = {
-        processed: { label: "Processadas", color: "hsl(var(--chart-1))" },
-        successful: { label: "Sucessos", color: "hsl(var(--chart-2))" },
-        failed: { label: "Falhas", color: "hsl(var(--chart-3))" },
+        processed: { label: "Processadas", color: "hsl(217, 91%, 60%)" }, // azul
+        successful: { label: "Sucessos", color: "hsl(142, 76%, 36%)" }, // verde
+        failed: { label: "Falhas", color: "hsl(0, 84%, 60%)" }, // vermelho
+        partial: { label: "Parciais", color: "hsl(38, 92%, 50%)" }, // laranja
+        error: { label: "Erro Crítico", color: "hsl(0, 100%, 50%)" }, // vermelho vibrante
     };
 
     // Gráfico de tendências (seu formato específico)
@@ -289,17 +293,17 @@ function NoveltiesPage() {
         const data = Object.entries(dashboardStats.status_distribution).map(([status, count]) => ({
             browser: status,
             visitors: count,
-            fill: status === 'success' ? 'var(--color-success)' : 
-                  status === 'partial' ? 'var(--color-partial)' : 
-                  status === 'failed' ? 'var(--color-failed)' : 'var(--color-error)'
+            fill: status === 'success' ? 'hsl(142, 76%, 36%)' : 
+                  status === 'partial' ? 'hsl(38, 92%, 50%)' : 
+                  status === 'failed' ? 'hsl(0, 84%, 60%)' : 'hsl(0, 100%, 50%)'
         }));
 
         const statusConfig = {
             visitors: { label: "Execuções" },
-            success: { label: "Sucesso", color: "hsl(var(--chart-1))" },
-            partial: { label: "Parcial", color: "hsl(var(--chart-4))" },
-            failed: { label: "Falha", color: "hsl(var(--destructive))" },
-            error: { label: "Erro", color: "hsl(var(--chart-5))" }
+            success: { label: "Sucesso", color: "hsl(142, 76%, 36%)" },
+            partial: { label: "Parcial", color: "hsl(38, 92%, 50%)" },
+            failed: { label: "Falha", color: "hsl(0, 84%, 60%)" },
+            error: { label: "Erro Crítico", color: "hsl(0, 100%, 50%)" }
         };
 
         return (
@@ -349,7 +353,7 @@ function NoveltiesPage() {
         );
     };
 
-    // Tabela de execuções
+    // Tabela de execuções com paginação
     const ExecutionsTable = () => {
         if (!recentExecutions.length) {
             return (
@@ -362,23 +366,21 @@ function NoveltiesPage() {
             );
         }
 
+        // Cálculo da paginação
+        const totalPages = Math.ceil(recentExecutions.length / itemsPerPage);
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const currentExecutions = recentExecutions.slice(startIndex, endIndex);
+
         return (
             <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between">
-                        <div className="flex gap-4">
-                            <Button variant="outline" size="sm">Execuções</Button>
-                            <Button variant="outline" size="sm" className="bg-muted">
-                                Histórico <Badge className="ml-1">{recentExecutions.length}</Badge>
-                            </Button>
-                            <Button variant="outline" size="sm">Status</Button>
-                            <Button variant="outline" size="sm">Performance</Button>
-                        </div>
-                        <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
-                                Filtros <ChevronDown className="ml-1 h-3 w-3" />
-                            </Button>
-                            <Button variant="outline" size="sm">Exportar</Button>
+                        <div>
+                            <CardTitle>Histórico de Execuções</CardTitle>
+                            <CardDescription>
+                                {recentExecutions.length} execuções encontradas
+                            </CardDescription>
                         </div>
                     </div>
                 </CardHeader>
@@ -386,22 +388,17 @@ function NoveltiesPage() {
                     <Table>
                         <TableHeader>
                             <TableRow className="border-b">
-                                <TableHead className="w-4"></TableHead>
                                 <TableHead>Data de Execução</TableHead>
                                 <TableHead>País</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead>Processadas</TableHead>
                                 <TableHead>Taxa de Sucesso</TableHead>
                                 <TableHead>Tempo</TableHead>
-                                <TableHead className="w-4"></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {recentExecutions.map((execution, index) => (
+                            {currentExecutions.map((execution) => (
                                 <TableRow key={execution.id} className="hover:bg-muted/50">
-                                    <TableCell>
-                                        <div className="w-2 h-2 bg-muted rounded"></div>
-                                    </TableCell>
                                     <TableCell className="font-mono text-sm">
                                         {formatDateTime(execution.execution_date)}
                                     </TableCell>
@@ -418,14 +415,51 @@ function NoveltiesPage() {
                                     <TableCell className="text-sm text-muted-foreground">
                                         {execution.execution_time_minutes}min
                                     </TableCell>
-                                    <TableCell>
-                                        <Button variant="ghost" size="sm">⋮</Button>
-                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
                 </CardContent>
+                
+                {/* Paginação */}
+                {totalPages > 1 && (
+                    <CardFooter className="flex items-center justify-between">
+                        <div className="text-sm text-muted-foreground">
+                            Mostrando {startIndex + 1} a {Math.min(endIndex, recentExecutions.length)} de {recentExecutions.length} execuções
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(currentPage - 1)}
+                                disabled={currentPage === 1}
+                            >
+                                Anterior
+                            </Button>
+                            <div className="flex items-center space-x-1">
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                    <Button
+                                        key={page}
+                                        variant={currentPage === page ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setCurrentPage(page)}
+                                        className="w-8 h-8"
+                                    >
+                                        {page}
+                                    </Button>
+                                ))}
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                            >
+                                Próximo
+                            </Button>
+                        </div>
+                    </CardFooter>
+                )}
             </Card>
         );
     };
@@ -458,12 +492,6 @@ function NoveltiesPage() {
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             {/* Header */}
             <div className="flex items-center justify-between space-y-2">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Novelties Dashboard</h2>
-                    <p className="text-muted-foreground">
-                        Monitoramento das automações de novelties Chile & México
-                    </p>
-                </div>
                 <div className="flex items-center space-x-2">
                     <Select value={selectedCountry} onValueChange={setSelectedCountry}>
                         <SelectTrigger className="w-[180px]">
@@ -497,7 +525,6 @@ function NoveltiesPage() {
                     <TabsList>
                         <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                         <TabsTrigger value="executions">Execuções</TabsTrigger>
-                        <TabsTrigger value="analytics">Análises</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="dashboard" className="space-y-4">
@@ -513,18 +540,6 @@ function NoveltiesPage() {
 
                     <TabsContent value="executions" className="space-y-4">
                         <ExecutionsTable />
-                    </TabsContent>
-
-                    <TabsContent value="analytics" className="space-y-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Análise Detalhada</CardTitle>
-                                <CardDescription>Métricas avançadas de performance das novelties</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-muted-foreground">Análises avançadas em desenvolvimento...</p>
-                            </CardContent>
-                        </Card>
                     </TabsContent>
                 </Tabs>
             )}
