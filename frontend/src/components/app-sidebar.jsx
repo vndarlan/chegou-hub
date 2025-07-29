@@ -11,7 +11,9 @@ import {
   ChevronsUpDown,
   LogOut,
   Moon,
-  Sun
+  Sun,
+  Calendar,
+  Map
 } from 'lucide-react'
 
 import {
@@ -31,6 +33,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -73,28 +76,37 @@ export function AppSidebar({
     }
   };
 
-  // Menu data
-  const navItems = [
+  // Home items
+  const homeItems = [
     {
-      title: "HOME",
-      icon: Home,
-      isActive: location.pathname.includes('/workspace/agenda') || 
-                location.pathname.includes('/workspace/mapa'),
-      items: [
-        {
-          title: "Agenda da Empresa",
-          url: "/workspace/agenda",
-          isActive: location.pathname === "/workspace/agenda",
-        },
-        {
-          title: "Mapa de Atuação", 
-          url: "/workspace/mapa",
-          isActive: location.pathname === "/workspace/mapa",
-        },
-      ],
+      title: "Agenda da Empresa",
+      url: "/workspace/agenda",
+      icon: Calendar,
+      isActive: location.pathname === "/workspace/agenda",
     },
     {
-      title: "IA & AUTOMAÇÕES",
+      title: "Mapa de Atuação", 
+      url: "/workspace/mapa",
+      icon: Map,
+      isActive: location.pathname === "/workspace/mapa",
+    },
+  ];
+
+  // Add admin if user is admin
+  if (isAdmin) {
+    homeItems.push({
+      title: "Adm",
+      url: "https://chegou-hubb-production.up.railway.app/admin/",
+      icon: Lock,
+      external: true,
+      isActive: false,
+    });
+  }
+
+  // Setores items
+  const setoresItems = [
+    {
+      title: "IA & Automações",
       icon: Bot,
       isActive: location.pathname.includes('/workspace/projetos') ||
                 location.pathname.includes('/workspace/relatorios') ||
@@ -130,7 +142,7 @@ export function AppSidebar({
       ],
     },
     {
-      title: "MÉTRICAS",
+      title: "Métricas",
       icon: BarChart3,
       isActive: location.pathname.includes('/workspace/metricas/'),
       items: [
@@ -152,7 +164,7 @@ export function AppSidebar({
       ],
     },
     {
-      title: "OPERACIONAL",
+      title: "Operacional",
       icon: Settings,
       isActive: location.pathname.includes('/workspace/engajamento') ||
                 location.pathname.includes('/workspace/novelties'),
@@ -170,7 +182,7 @@ export function AppSidebar({
       ],
     },
     {
-      title: "SUPORTE",
+      title: "Suporte",
       icon: Phone,
       isActive: location.pathname.includes('/workspace/processamento') ||
                 location.pathname.includes('/workspace/suporte'),
@@ -188,23 +200,6 @@ export function AppSidebar({
       ],
     }
   ];
-
-  // Add admin if user is admin
-  if (isAdmin) {
-    navItems.push({
-      title: "ADMIN",
-      icon: Lock,
-      isActive: false,
-      items: [
-        { 
-          title: "Acessar", 
-          url: "https://chegou-hubb-production.up.railway.app/admin/",
-          external: true,
-          isActive: false,
-        },
-      ]
-    });
-  }
 
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border bg-sidebar" {...props}>
@@ -232,9 +227,41 @@ export function AppSidebar({
       </SidebarHeader>
       
       <SidebarContent>
+        {/* Home Section */}
         <SidebarGroup>
+          <SidebarGroupLabel>Home</SidebarGroupLabel>
           <SidebarMenu>
-            {navItems.map((item) => (
+            {homeItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton asChild isActive={item.isActive}>
+                  <a
+                    href={item.external ? item.url : "#"}
+                    target={item.external ? "_blank" : undefined}
+                    rel={item.external ? "noopener noreferrer" : undefined}
+                    onClick={(e) => {
+                      if (!item.external) {
+                        e.preventDefault();
+                        handleNavigation(item);
+                      }
+                    }}
+                  >
+                    <item.icon />
+                    <span>{item.title}</span>
+                    {item.external && (
+                      <span className="ml-auto text-xs opacity-60">↗</span>
+                    )}
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+
+        {/* Setores Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Setores</SidebarGroupLabel>
+          <SidebarMenu>
+            {setoresItems.map((item) => (
               <Collapsible
                 key={item.title}
                 asChild
@@ -257,20 +284,13 @@ export function AppSidebar({
                             isActive={subItem.isActive}
                           >
                             <a
-                              href={subItem.external ? subItem.url : "#"}
-                              target={subItem.external ? "_blank" : undefined}
-                              rel={subItem.external ? "noopener noreferrer" : undefined}
+                              href="#"
                               onClick={(e) => {
-                                if (!subItem.external) {
-                                  e.preventDefault();
-                                  handleNavigation(subItem);
-                                }
+                                e.preventDefault();
+                                handleNavigation(subItem);
                               }}
                             >
                               <span>{subItem.title}</span>
-                              {subItem.external && (
-                                <span className="ml-auto text-xs opacity-60">↗</span>
-                              )}
                             </a>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
