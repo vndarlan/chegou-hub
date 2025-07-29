@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { AppSidebar } from '../components/app-sidebar';
 import {
   Breadcrumb,
@@ -54,6 +54,7 @@ function WorkspacePage({ setIsLoggedIn }) {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -61,7 +62,7 @@ function WorkspacePage({ setIsLoggedIn }) {
         const response = await axios.get('/current-state/', { withCredentials: true });
         
         if (response.data.logged_in) {
-          console.log('Dados do usuário:', response.data); // Debug
+          console.log('Dados do usuário:', response.data);
           setUserData({
             name: response.data.user_name || response.data.name || 'Usuário',
             email: response.data.user_email || response.data.email || '',
@@ -109,9 +110,11 @@ function WorkspacePage({ setIsLoggedIn }) {
         userEmail={userData?.email}
         onLogout={handleLogout}
         isAdmin={userData?.isAdmin}
+        navigate={navigate}
+        location={location}
       />
-      <div className="ml-[var(--sidebar-width)] flex flex-col min-h-screen w-full">
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4 w-full">
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <Breadcrumb>
@@ -134,7 +137,7 @@ function WorkspacePage({ setIsLoggedIn }) {
           </Breadcrumb>
         </header>
         
-        <main className="flex-1 overflow-auto p-4 w-full">
+        <main className="flex-1 overflow-auto p-4">
           <Routes>
             <Route path="agenda" element={<AgendaPage />} />
             <Route path="mapa" element={<MapaPage />} />
@@ -159,7 +162,7 @@ function WorkspacePage({ setIsLoggedIn }) {
             } />
           </Routes>
         </main>
-      </div>
+      </SidebarInset>
     </SidebarProvider>
   );
 }

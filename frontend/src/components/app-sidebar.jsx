@@ -1,5 +1,4 @@
 import * as React from "react"
-import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Home,
   Bot,
@@ -52,8 +51,9 @@ export function AppSidebar({
   isAdmin = false,
   ...props 
 }) {
-  const navigate = useNavigate()
-  const location = useLocation()
+  // Importações do react-router-dom devem ser passadas via props
+  const navigate = props.navigate || (() => {})
+  const location = props.location || { pathname: '/' }
   const { theme, setTheme } = useTheme()
   const { isMobile } = useSidebar()
 
@@ -200,37 +200,36 @@ export function AppSidebar({
   ];
 
   return (
-    <Sidebar collapsible="icon" className="sidebar-fixed bg-sidebar border-r border-sidebar-border" {...props}>
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <img 
-                  src="/logo192.png" 
-                  alt="Chegou Hub"
-                  className="size-4"
-                />
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">Chegou Hub</span>
-                <span className="truncate text-xs">Enterprise</span>
-              </div>
+            <SidebarMenuButton size="lg" asChild>
+              <a href="#">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-orange-500 text-white">
+                  <span className="text-sm font-bold">CH</span>
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">Chegou Hub</span>
+                  <span className="truncate text-xs text-muted-foreground">Enterprise</span>
+                </div>
+              </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       
-      <SidebarContent className="sidebar-content-scroll">
+      <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Home</SidebarGroupLabel>
           <SidebarMenu>
             {homeItems.map((item) => (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild isActive={item.isActive} tooltip={item.title}>
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={item.isActive} 
+                  tooltip={item.title}
+                >
                   <a
                     href={item.external ? item.url : "#"}
                     target={item.external ? "_blank" : undefined}
@@ -242,7 +241,7 @@ export function AppSidebar({
                       }
                     }}
                   >
-                    <item.icon />
+                    <item.icon className="size-4" />
                     <span>{item.title}</span>
                     {item.external && (
                       <span className="ml-auto text-xs opacity-60">↗</span>
@@ -262,13 +261,17 @@ export function AppSidebar({
                 key={item.title}
                 asChild
                 defaultOpen={item.isActive}
+                className="group/collapsible"
               >
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
-                    <SidebarMenuButton tooltip={item.title} className="group/collapsible">
-                      <item.icon />
+                    <SidebarMenuButton 
+                      tooltip={item.title} 
+                      isActive={item.isActive}
+                    >
+                      <item.icon className="size-4" />
                       <span>{item.title}</span>
-                      <ChevronRight className="ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
@@ -309,12 +312,12 @@ export function AppSidebar({
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-semibold">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-500 text-white text-sm font-semibold">
                     {getInitials(userName)}
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">{userName}</span>
-                    <span className="truncate text-xs">{userEmail}</span>
+                    <span className="truncate text-xs text-muted-foreground">{userEmail}</span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4" />
                 </SidebarMenuButton>
