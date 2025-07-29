@@ -200,7 +200,7 @@ export function AppSidebar({
   ];
 
   return (
-    <Sidebar collapsible="icon" className="fixed left-0 top-0 h-screen z-50" {...props}>
+    <Sidebar collapsible="icon" className="h-screen" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
