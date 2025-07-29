@@ -20,18 +20,17 @@ import axios from 'axios';
 // Importar as páginas
 import AgendaPage from '../features/agenda/AgendaPage';
 import MapaPage from '../features/mapa/MapaPage';
-import ProjetosIAPage from '../features/ia/ProjetosIAPage';
-import RelatoriosPage from '../features/ia/RelatoriosPage';
+import ProjetoDashboard from '../features/ia/ProjetoDashboard';
+import RelatoriosProjetos from '../features/ia/RelatoriosProjetos';
 import LogsPage from '../features/ia/LogsPage';
 import NicochatPage from '../features/ia/NicochatPage';
 import N8NPage from '../features/ia/N8NPage';
-import MetricasPrimecodPage from '../features/metricas_primecod/MetricasPrimecodPage';
-import MetricasEcomhubPage from '../features/metricas_ecomhub/MetricasEcomhubPage';
-import MetricasDropiPage from '../features/metricas_dropi/MetricasDropiPage';
+import PrimecodPage from '../features/metricas/PrimecodPage';
+import EcomhubPage from '../features/metricas/EcomhubPage';
+import DropiPage from '../features/metricas/DropiPage';
 import EngajamentoPage from '../features/engajamento/EngajamentoPage';
 import NoveltiesPage from '../features/novelties/NoveltiesPage';
 import ProcessamentoPage from '../features/processamento/ProcessamentoPage';
-import SuportePage from '../features/suporte/SuportePage';
 
 // Mapeamento de breadcrumbs
 const breadcrumbMap = {
@@ -49,7 +48,7 @@ const breadcrumbMap = {
   ],
   '/workspace/relatorios': [
     { label: 'IA & Automações', href: '#' },
-    { label: 'Relatórios & Análise' }
+    { label: 'Relatórios' }
   ],
   '/workspace/logs': [
     { label: 'IA & Automações', href: '#' },
@@ -187,18 +186,17 @@ function WorkspacePage({ setIsLoggedIn }) {
           <Routes>
             <Route path="agenda" element={<AgendaPage />} />
             <Route path="mapa" element={<MapaPage />} />
-            <Route path="projetos" element={<ProjetosIAPage />} />
-            <Route path="relatorios" element={<RelatoriosPage />} />
+            <Route path="projetos" element={<ProjetoDashboard />} />
+            <Route path="relatorios" element={<RelatoriosProjetos />} />
             <Route path="logs" element={<LogsPage />} />
             <Route path="nicochat" element={<NicochatPage />} />
             <Route path="n8n" element={<N8NPage />} />
-            <Route path="metricas/primecod" element={<MetricasPrimecodPage />} />
-            <Route path="metricas/ecomhub" element={<MetricasEcomhubPage />} />
-            <Route path="metricas/dropi" element={<MetricasDropiPage />} />
+            <Route path="metricas/primecod" element={<PrimecodPage />} />
+            <Route path="metricas/ecomhub" element={<EcomhubPage />} />
+            <Route path="metricas/dropi" element={<DropiPage />} />
             <Route path="engajamento" element={<EngajamentoPage />} />
             <Route path="novelties" element={<NoveltiesPage />} />
             <Route path="processamento" element={<ProcessamentoPage />} />
-            <Route path="suporte" element={<SuportePage />} />
             <Route path="*" element={
               <div className="flex h-full items-center justify-center">
                 <div className="text-center">
