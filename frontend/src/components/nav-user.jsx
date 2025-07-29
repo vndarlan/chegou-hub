@@ -1,6 +1,5 @@
 import * as React from "react"
 import { ChevronsUpDown, LogOut, Moon, Sun } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,12 +26,9 @@ export function NavUser({ user, onLogout, theme, setTheme }) {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
-                  {user.initials}
-                </AvatarFallback>
-              </Avatar>
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-semibold">
+                {user.initials}
+              </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{user.name}</span>
                 <span className="truncate text-xs">{user.email}</span>
