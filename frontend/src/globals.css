@@ -5,110 +5,72 @@
 
 @layer base {
   :root {
-    /* TEMA ORANGE - MODO CLARO */
-    --background: 0 0% 100%;                    /* Branco puro */
-    --foreground: 20 14.3% 4.1%;               /* Texto escuro laranja */
-    --card: 0 0% 100%;                         /* Card branco */
-    --card-foreground: 20 14.3% 4.1%;         /* Texto do card */
-    --popover: 0 0% 100%;                      /* Popover branco */
-    --popover-foreground: 20 14.3% 4.1%;      /* Texto do popover */
-    
-    /* COR PRIMÁRIA - LARANJA */
-    --primary: 24.6 95% 53.1%;                /* Laranja vibrante #fd7e14 */
-    --primary-foreground: 60 9.1% 97.8%;      /* Texto branco no laranja */
-    
-    /* COR SECUNDÁRIA */
-    --secondary: 60 4.8% 95.9%;               /* Cinza muito claro */
-    --secondary-foreground: 24 9.8% 10%;      /* Texto escuro */
-    
-    /* MUTED (cores sutis) */
-    --muted: 60 4.8% 95.9%;                   /* Fundo sutil */
-    --muted-foreground: 25 5.3% 44.7%;       /* Texto sutil */
-    
-    /* ACCENT (destaque) */
-    --accent: 60 4.8% 95.9%;                  /* Fundo de destaque */
-    --accent-foreground: 24 9.8% 10%;        /* Texto de destaque */
-    
-    /* BORDAS E INPUTS */
-    --border: 20 5.9% 90%;                    /* Borda sutil */
-    --input: 20 5.9% 90%;                     /* Input border */
-    --ring: 24.6 95% 53.1%;                   /* Focus ring laranja */
-    
-    /* DESTRUCTIVE (vermelho para erros) */
-    --destructive: 0 84.2% 60.2%;             /* Vermelho */
-    --destructive-foreground: 210 40% 98%;    /* Texto branco no vermelho */
-    
-    /* CHARTS */
-    --chart-1: 24.6 95% 53.1%;               /* Laranja principal */
-    --chart-2: 173 58% 39%;                   /* Verde azulado */
-    --chart-3: 197 37% 24%;                   /* Azul escuro */
-    --chart-4: 43 74% 66%;                    /* Amarelo */
-    --chart-5: 27 87% 67%;                    /* Laranja avermelhado */
-    
-    /* SIDEBAR */
-    --sidebar: 0 0% 98%;                      /* Sidebar clara */
-    --sidebar-foreground: 20 14.3% 4.1%;     /* Texto da sidebar */
-    --sidebar-primary: 24.6 95% 53.1%;       /* Primário da sidebar */
-    --sidebar-primary-foreground: 60 9.1% 97.8%; /* Texto primário sidebar */
-    --sidebar-accent: 60 4.8% 95.9%;         /* Accent da sidebar */
-    --sidebar-accent-foreground: 24 9.8% 10%; /* Texto accent sidebar */
-    --sidebar-border: 20 5.9% 90%;           /* Borda da sidebar */
-    --sidebar-ring: 24.6 95% 53.1%;          /* Ring da sidebar */
-    
-    /* RADIUS */
-    --radius: 0.5rem;
+    --radius: 0.65rem;
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.141 0.005 285.823);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.141 0.005 285.823);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.141 0.005 285.823);
+    --primary: oklch(0.705 0.213 47.604);
+    --primary-foreground: oklch(0.98 0.016 73.684);
+    --secondary: oklch(0.967 0.001 286.375);
+    --secondary-foreground: oklch(0.21 0.006 285.885);
+    --muted: oklch(0.967 0.001 286.375);
+    --muted-foreground: oklch(0.552 0.016 285.938);
+    --accent: oklch(0.967 0.001 286.375);
+    --accent-foreground: oklch(0.21 0.006 285.885);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.92 0.004 286.32);
+    --input: oklch(0.92 0.004 286.32);
+    --ring: oklch(0.705 0.213 47.604);
+    --chart-1: oklch(0.646 0.222 41.116);
+    --chart-2: oklch(0.6 0.118 184.704);
+    --chart-3: oklch(0.398 0.07 227.392);
+    --chart-4: oklch(0.828 0.189 84.429);
+    --chart-5: oklch(0.769 0.188 70.08);
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.141 0.005 285.823);
+    --sidebar-primary: oklch(0.705 0.213 47.604);
+    --sidebar-primary-foreground: oklch(0.98 0.016 73.684);
+    --sidebar-accent: oklch(0.967 0.001 286.375);
+    --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+    --sidebar-border: oklch(0.92 0.004 286.32);
+    --sidebar-ring: oklch(0.705 0.213 47.604);
   }
 
   .dark {
-    /* TEMA ORANGE - MODO ESCURO */
-    --background: 20 14.3% 4.1%;              /* Fundo escuro laranja */
-    --foreground: 60 9.1% 97.8%;              /* Texto claro */
-    --card: 20 14.3% 4.1%;                    /* Card escuro */
-    --card-foreground: 60 9.1% 97.8%;        /* Texto do card claro */
-    --popover: 20 14.3% 4.1%;                /* Popover escuro */
-    --popover-foreground: 60 9.1% 97.8%;     /* Texto do popover claro */
-    
-    /* COR PRIMÁRIA - LARANJA CLARO NO ESCURO */
-    --primary: 20.5 90.2% 48.2%;             /* Laranja ajustado para escuro */  
-    --primary-foreground: 60 9.1% 97.8%;     /* Texto branco no laranja */
-    
-    /* COR SECUNDÁRIA ESCURA */
-    --secondary: 12 6.5% 15.1%;              /* Cinza escuro */
-    --secondary-foreground: 60 9.1% 97.8%;   /* Texto claro */
-    
-    /* MUTED ESCURO */
-    --muted: 12 6.5% 15.1%;                  /* Fundo sutil escuro */
-    --muted-foreground: 24 5.4% 63.9%;      /* Texto sutil claro */
-    
-    /* ACCENT ESCURO */
-    --accent: 12 6.5% 15.1%;                 /* Fundo de destaque escuro */
-    --accent-foreground: 60 9.1% 97.8%;     /* Texto de destaque claro */
-    
-    /* BORDAS E INPUTS ESCURO */
-    --border: 12 6.5% 15.1%;                 /* Borda escura */
-    --input: 12 6.5% 15.1%;                  /* Input border escuro */
-    --ring: 20.5 90.2% 48.2%;               /* Focus ring laranja */
-    
-    /* DESTRUCTIVE ESCURO */
-    --destructive: 0 62.8% 30.6%;            /* Vermelho escuro */
-    --destructive-foreground: 60 9.1% 97.8%; /* Texto claro no vermelho */
-    
-    /* CHARTS ESCURO */
-    --chart-1: 20.5 90.2% 48.2%;            /* Laranja principal */
-    --chart-2: 160 60% 45%;                  /* Verde azulado */
-    --chart-3: 30 80% 55%;                   /* Laranja avermelhado */
-    --chart-4: 280 65% 60%;                  /* Roxo */
-    --chart-5: 340 75% 55%;                  /* Rosa */
-    
-    /* SIDEBAR ESCURA */
-    --sidebar: 20 14.3% 4.1%;               /* Sidebar escura */
-    --sidebar-foreground: 60 9.1% 97.8%;    /* Texto da sidebar claro */
-    --sidebar-primary: 20.5 90.2% 48.2%;    /* Primário da sidebar */
-    --sidebar-primary-foreground: 60 9.1% 97.8%; /* Texto primário sidebar */
-    --sidebar-accent: 12 6.5% 15.1%;        /* Accent da sidebar */
-    --sidebar-accent-foreground: 60 9.1% 97.8%; /* Texto accent sidebar */
-    --sidebar-border: 12 6.5% 15.1%;        /* Borda da sidebar escura */
-    --sidebar-ring: 20.5 90.2% 48.2%;       /* Ring da sidebar */
+    --background: oklch(0.141 0.005 285.823);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.21 0.006 285.885);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.21 0.006 285.885);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.646 0.222 41.116);
+    --primary-foreground: oklch(0.98 0.016 73.684);
+    --secondary: oklch(0.274 0.006 286.033);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.274 0.006 286.033);
+    --muted-foreground: oklch(0.705 0.015 286.067);
+    --accent: oklch(0.274 0.006 286.033);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.646 0.222 41.116);
+    --chart-1: oklch(0.488 0.243 264.376);
+    --chart-2: oklch(0.696 0.17 162.48);
+    --chart-3: oklch(0.769 0.188 70.08);
+    --chart-4: oklch(0.627 0.265 303.9);
+    --chart-5: oklch(0.645 0.246 16.439);
+    --sidebar: oklch(0.21 0.006 285.885);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.646 0.222 41.116);
+    --sidebar-primary-foreground: oklch(0.98 0.016 73.684);
+    --sidebar-accent: oklch(0.274 0.006 286.033);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.646 0.222 41.116);
   }
 }
 
@@ -160,32 +122,9 @@
   background-color: hsl(var(--primary));
 }
 
-/* Hover effects para melhor UX */
-.hover\:bg-accent:hover {
-  background-color: hsl(var(--accent));
-}
-
-.hover\:text-accent-foreground:hover {
-  color: hsl(var(--accent-foreground));
-}
-
-/* Focus styles */
-.focus\:ring-2:focus {
-  box-shadow: 0 0 0 2px hsl(var(--ring));
-}
-
 /* Font code */
 code {
   font-family: 'SF Mono', Monaco, Inconsolata, 'Roboto Mono', Consolas, 'Courier New', monospace;
-}
-
-/* Classes utilitárias para o tema orange */
-.theme-orange {
-  color-scheme: light;
-}
-
-.theme-orange.dark {
-  color-scheme: dark;
 }
 
 /* Animation classes */

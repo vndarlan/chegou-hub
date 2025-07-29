@@ -233,7 +233,7 @@ export function AppSidebar({
           <SidebarMenu>
             {homeItems.map((item) => (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild isActive={item.isActive}>
+                <SidebarMenuButton asChild isActive={item.isActive} tooltip={item.title}>
                   <a
                     href={item.external ? item.url : "#"}
                     target={item.external ? "_blank" : undefined}
@@ -269,10 +269,10 @@ export function AppSidebar({
               >
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
-                    <SidebarMenuButton tooltip={item.title}>
+                    <SidebarMenuButton tooltip={item.title} className="group/collapsible">
                       <item.icon />
                       <span>{item.title}</span>
-                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      <ChevronRight className="ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
