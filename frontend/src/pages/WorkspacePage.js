@@ -1,10 +1,6 @@
-// src/pages/WorkspacePage.js - LAYOUT CORRETO FINAL
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { AppSidebar } from '../components/app-sidebar';
-import { SidebarProvider, SidebarInset, SidebarTrigger } from '../components/ui/sidebar';
-import { Separator } from '../components/ui/separator';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -13,160 +9,209 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '../components/ui/breadcrumb';
-import { LoadingSpinner, Alert, AlertDescription } from '../components/ui';
-import ProcessamentoPage from '../features/processamento/ProcessamentoPage';
+import { Separator } from '../components/ui/separator';
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from '../components/ui/sidebar';
+import axios from 'axios';
 
-// Páginas existentes
-import MapaPage from '../features/mapa/MapaPage';
+// Importar as páginas
 import AgendaPage from '../features/agenda/AgendaPage';
-import EngajamentoPage from '../features/engajamento/EngajamentoPage';
-
-// Páginas de IA
+import MapaPage from '../features/mapa/MapaPage';
+import ProjetosIAPage from '../features/ia/ProjetosIAPage';
+import RelatoriosPage from '../features/ia/RelatoriosPage';
 import LogsPage from '../features/ia/LogsPage';
 import NicochatPage from '../features/ia/NicochatPage';
 import N8NPage from '../features/ia/N8NPage';
-import ProjetoDashboard from '../features/ia/ProjetoDashboard';
-import RelatoriosProjetos from '../features/ia/RelatoriosProjetos';
-
-// Páginas de MÉTRICAS
-import PrimecodPage from '../features/metricas/PrimecodPage';
-import EcomhubPage from '../features/metricas/EcomhubPage';
-import DropiPage from '../features/metricas/DropiPage';
-
-// Página de NOVELTIES
+import MetricasPrimecodPage from '../features/metricas_primecod/MetricasPrimecodPage';
+import MetricasEcomhubPage from '../features/metricas_ecomhub/MetricasEcomhubPage';
+import MetricasDropiPage from '../features/metricas_dropi/MetricasDropiPage';
+import EngajamentoPage from '../features/engajamento/EngajamentoPage';
 import NoveltiesPage from '../features/novelties/NoveltiesPage';
+import ProcessamentoPage from '../features/processamento/ProcessamentoPage';
+import SuportePage from '../features/suporte/SuportePage';
+
+// Mapeamento de breadcrumbs
+const breadcrumbMap = {
+  '/workspace/agenda': [
+    { label: 'HOME', href: '#' },
+    { label: 'Agenda da Empresa' }
+  ],
+  '/workspace/mapa': [
+    { label: 'HOME', href: '#' },
+    { label: 'Mapa de Atuação' }
+  ],
+  '/workspace/projetos': [
+    { label: 'IA & Automações', href: '#' },
+    { label: 'Projetos' }
+  ],
+  '/workspace/relatorios': [
+    { label: 'IA & Automações', href: '#' },
+    { label: 'Relatórios & Análise' }
+  ],
+  '/workspace/logs': [
+    { label: 'IA & Automações', href: '#' },
+    { label: 'Logs de Erros' }
+  ],
+  '/workspace/nicochat': [
+    { label: 'IA & Automações', href: '#' },
+    { label: 'Nicochat' }
+  ],
+  '/workspace/n8n': [
+    { label: 'IA & Automações', href: '#' },
+    { label: 'N8N' }
+  ],
+  '/workspace/metricas/primecod': [
+    { label: 'Métricas', href: '#' },
+    { label: 'PRIMECOD' }
+  ],
+  '/workspace/metricas/ecomhub': [
+    { label: 'Métricas', href: '#' },
+    { label: 'ECOMHUB' }
+  ],
+  '/workspace/metricas/dropi': [
+    { label: 'Métricas', href: '#' },
+    { label: 'DROPI MX' }
+  ],
+  '/workspace/engajamento': [
+    { label: 'Operacional', href: '#' },
+    { label: 'Engajamento' }
+  ],
+  '/workspace/novelties': [
+    { label: 'Operacional', href: '#' },
+    { label: 'Novelties' }
+  ],
+  '/workspace/processamento': [
+    { label: 'Suporte', href: '#' },
+    { label: 'Processamento' }
+  ],
+  '/workspace/suporte': [
+    { label: 'Suporte', href: '#' },
+    { label: 'Suporte' }
+  ]
+};
 
 function WorkspacePage({ setIsLoggedIn }) {
-    const [loadingSession, setLoadingSession] = useState(true);
-    const [errorSession, setErrorSession] = useState('');
-    const [userName, setUserName] = useState('Usuário');
-    const [userEmail, setUserEmail] = useState('');
-    const [isAdmin, setIsAdmin] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
-    useEffect(() => {
-        const fetchSessionData = async () => {
-            setLoadingSession(true);
-            setErrorSession('');
-            try {
-                const response = await axios.get('/current-state/');
-                if (response.status === 200 && response.data?.logged_in) {
-                    setUserName(response.data.name || response.data.email || 'Usuário');
-                    setUserEmail(response.data.email || '');
-                    setIsAdmin(response.data.is_admin || false);
-                } else {
-                    console.warn("API /current-state/ indica não logado ou resposta inválida. Forçando logout.");
-                    setIsLoggedIn(false);
-                    return;
-                }
-            } catch (err) {
-                console.error("Erro ao buscar estado atual:", err.response || err.message);
-                setErrorSession('Não foi possível carregar os dados da sessão. Tente fazer login novamente.');
-                setIsLoggedIn(false);
-            } finally {
-                setLoadingSession(false);
-            }
-        };
-        fetchSessionData();
-    }, [setIsLoggedIn]);
-
-    const handleLogout = async () => {
-        console.log("Tentando logout...");
-        setLoadingSession(true);
-        try {
-            await axios.post('/logout/', {});
-            console.log("API de logout chamada com sucesso.");
-        } catch (err) {
-            console.error("Erro ao chamar API de logout:", err.response || err.message);
-        } finally {
-            setIsLoggedIn(false);
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await axios.get('/current-state/', { 
+          withCredentials: true 
+        });
+        
+        if (response.data.logged_in) {
+          setUserData({
+            name: response.data.user_name || 'Usuário',
+            email: response.data.user_email || '',
+            isAdmin: response.data.is_admin || false
+          });
+        } else {
+          setIsLoggedIn(false);
         }
+      } catch (error) {
+        console.error('Erro ao buscar dados do usuário:', error);
+        setIsLoggedIn(false);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    if (loadingSession) {
-        return (
-            <div className="fixed inset-0 flex items-center justify-center bg-background">
-                <div className="flex flex-col items-center space-y-4">
-                    <LoadingSpinner className="h-8 w-8 text-primary" />
-                    <p className="text-sm text-muted-foreground">Carregando sessão...</p>
-                </div>
-            </div>
-        );
-    }
+    fetchUserData();
+  }, [setIsLoggedIn]);
 
-    if (errorSession) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-background p-4">
-                <Alert className="max-w-md">
-                    <AlertDescription className="text-destructive">
-                        {errorSession}
-                    </AlertDescription>
-                </Alert>
-            </div>
-        );
+  const handleLogout = async () => {
+    try {
+      await axios.post('/logout/', {}, { 
+        withCredentials: true 
+      });
+      setIsLoggedIn(false);
+    } catch (error) {
+      console.error('Erro no logout:', error);
+      setIsLoggedIn(false);
     }
+  };
 
+  // Obter breadcrumbs da página atual
+  const currentBreadcrumbs = breadcrumbMap[location.pathname] || [
+    { label: 'Workspace' }
+  ];
+
+  if (loading) {
     return (
-        <SidebarProvider>
-            <AppSidebar
-                userName={userName}
-                userEmail={userEmail}
-                onLogout={handleLogout}
-                isAdmin={isAdmin}
-            />
-            <SidebarInset>
-                <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b border-border">
-                    <div className="flex items-center gap-2 px-4">
-                        <SidebarTrigger className="-ml-1" />
-                        <Separator orientation="vertical" className="mr-2 h-4" />
-                        <Breadcrumb>
-                            <BreadcrumbList>
-                                <BreadcrumbItem className="hidden md:block">
-                                    <BreadcrumbLink href="#">
-                                        Chegou Hub
-                                    </BreadcrumbLink>
-                                </BreadcrumbItem>
-                                <BreadcrumbSeparator className="hidden md:block" />
-                                <BreadcrumbItem>
-                                    <BreadcrumbPage>Workspace</BreadcrumbPage>
-                                </BreadcrumbItem>
-                            </BreadcrumbList>
-                        </Breadcrumb>
-                    </div>
-                </header>
-                <main className="flex-1 overflow-y-auto">
-                    <Routes>
-                        <Route index element={<Navigate to="/workspace/agenda" replace />} />
-
-                        {/* Páginas HOME */}
-                        <Route path="agenda" element={<AgendaPage />} />
-                        <Route path="mapa" element={<MapaPage />} />
-
-                        {/* Páginas IA & AUTOMAÇÕES */}
-                        <Route path="logs" element={<LogsPage />} />
-                        <Route path="nicochat" element={<NicochatPage />} />
-                        <Route path="n8n" element={<N8NPage />} />
-                        <Route path="projetos" element={<ProjetoDashboard />} />        
-                        <Route path="relatorios" element={<RelatoriosProjetos />} />
-                        <Route path="novelties" element={<NoveltiesPage />} />
-
-                        {/* Páginas MÉTRICAS */}
-                        <Route path="metricas/primecod" element={<PrimecodPage />} />
-                        <Route path="metricas/ecomhub" element={<EcomhubPage />} />
-                        <Route path="metricas/dropi" element={<DropiPage />} />
-
-                        {/* Páginas OPERACIONAL */}
-                        <Route path="engajamento" element={<EngajamentoPage />} />
-                        
-                        {/* Páginas SUPORTE */}
-                        <Route path="processamento" element={<ProcessamentoPage />} /> 
-                        
-                        {/* Catch-all */}
-                        <Route path="*" element={<Navigate to="/workspace/agenda" replace />} />
-                    </Routes>
-                </main>
-            </SidebarInset>
-        </SidebarProvider>
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
     );
+  }
+
+  return (
+    <SidebarProvider>
+      <AppSidebar 
+        userName={userData?.name}
+        userEmail={userData?.email}
+        onLogout={handleLogout}
+        isAdmin={userData?.isAdmin}
+      />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+          <div className="flex items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Breadcrumb>
+              <BreadcrumbList>
+                {currentBreadcrumbs.map((crumb, index) => (
+                  <React.Fragment key={index}>
+                    {index > 0 && <BreadcrumbSeparator className="hidden md:block" />}
+                    <BreadcrumbItem className={index === 0 ? "hidden md:block" : ""}>
+                      {crumb.href ? (
+                        <BreadcrumbLink href={crumb.href}>
+                          {crumb.label}
+                        </BreadcrumbLink>
+                      ) : (
+                        <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                      )}
+                    </BreadcrumbItem>
+                  </React.Fragment>
+                ))}
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+        </header>
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+          <Routes>
+            <Route path="agenda" element={<AgendaPage />} />
+            <Route path="mapa" element={<MapaPage />} />
+            <Route path="projetos" element={<ProjetosIAPage />} />
+            <Route path="relatorios" element={<RelatoriosPage />} />
+            <Route path="logs" element={<LogsPage />} />
+            <Route path="nicochat" element={<NicochatPage />} />
+            <Route path="n8n" element={<N8NPage />} />
+            <Route path="metricas/primecod" element={<MetricasPrimecodPage />} />
+            <Route path="metricas/ecomhub" element={<MetricasEcomhubPage />} />
+            <Route path="metricas/dropi" element={<MetricasDropiPage />} />
+            <Route path="engajamento" element={<EngajamentoPage />} />
+            <Route path="novelties" element={<NoveltiesPage />} />
+            <Route path="processamento" element={<ProcessamentoPage />} />
+            <Route path="suporte" element={<SuportePage />} />
+            <Route path="*" element={
+              <div className="flex h-full items-center justify-center">
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold">Bem-vindo ao Chegou Hub</h2>
+                  <p className="text-muted-foreground">Selecione uma opção na barra lateral</p>
+                </div>
+              </div>
+            } />
+          </Routes>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
+  );
 }
 
 export default WorkspacePage;

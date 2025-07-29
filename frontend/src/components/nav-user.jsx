@@ -1,15 +1,10 @@
-import {
-  LogOut,
-  Sun,
-  Moon,
-  ChevronsUpDown
-} from 'lucide-react'
-import { Avatar, AvatarFallback } from "./ui"
+import * as React from "react"
+import { ChevronsUpDown, LogOut, Moon, Sun } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu"
@@ -19,16 +14,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "./ui/sidebar"
-
-const getInitials = (name) => {
-  if (!name) return 'U';
-  return name
-    .split(' ')
-    .map(word => word[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-};
 
 export function NavUser({ user, onLogout, theme, setTheme }) {
   const { isMobile } = useSidebar()
@@ -43,8 +28,9 @@ export function NavUser({ user, onLogout, theme, setTheme }) {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarFallback className="rounded-lg bg-sidebar-primary text-sidebar-primary-foreground font-semibold">
-                  {getInitials(user.name)}
+                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
+                  {user.initials}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -60,20 +46,6 @@ export function NavUser({ user, onLogout, theme, setTheme }) {
             align="end"
             sideOffset={4}
           >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarFallback className="rounded-lg bg-sidebar-primary text-sidebar-primary-foreground font-semibold">
-                    {getInitials(user.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
-                </div>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
               {theme === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
               {theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}

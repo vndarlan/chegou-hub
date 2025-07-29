@@ -1,3 +1,4 @@
+import * as React from "react"
 import { ChevronRight } from "lucide-react"
 import {
   Collapsible,
@@ -6,7 +7,6 @@ import {
 } from "./ui/collapsible"
 import {
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -16,58 +16,66 @@ import {
 } from "./ui/sidebar"
 
 export function NavMain({ items, navigate, currentPath }) {
-  const handleNavigation = (url, external = false) => {
-    if (external) {
-      window.open(url, '_blank')
+  const handleItemClick = (item) => {
+    if (item.external) {
+      window.open(item.url, '_blank');
     } else {
-      navigate(url)
+      navigate(item.url);
     }
-  }
+  };
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel className="group-data-[collapsible=icon]/sidebar-wrapper:hidden">
-        Platform
-      </SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
-          <Collapsible
-            key={item.title}
-            asChild
-            defaultOpen={item.isActive}
-            className="group/collapsible"
-          >
+          <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
             <SidebarMenuItem>
-              <CollapsibleTrigger asChild>
-                <SidebarMenuButton 
-                  tooltip={item.title}
-                  isActive={item.isActive}
-                >
-                  {item.icon && <item.icon />}
+              <SidebarMenuButton asChild tooltip={item.title}>
+                <a href="#" onClick={(e) => e.preventDefault()}>
+                  <item.icon />
                   <span>{item.title}</span>
-                  <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                </SidebarMenuButton>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenuSub>
-                  {item.items?.map((subItem) => (
-                    <SidebarMenuSubItem key={subItem.title}>
-                      <SidebarMenuSubButton 
-                        asChild
-                        isActive={currentPath === subItem.url}
-                      >
-                        <button
-                          onClick={() => handleNavigation(subItem.url, subItem.external)}
-                          className="w-full text-left"
-                        >
-                          <span>{subItem.title}</span>
-                          {subItem.external && <span className="ml-auto text-xs opacity-60">↗</span>}
-                        </button>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  ))}
-                </SidebarMenuSub>
-              </CollapsibleContent>
+                </a>
+              </SidebarMenuButton>
+              {item.items?.length ? (
+                <>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton>
+                      <item.icon />
+                      <span>{item.title}</span>
+                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {item.items?.map((subItem) => (
+                        <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubButton 
+                            asChild
+                            isActive={currentPath === subItem.url}
+                          >
+                            <a
+                              href={subItem.external ? subItem.url : "#"}
+                              target={subItem.external ? "_blank" : undefined}
+                              rel={subItem.external ? "noopener noreferrer" : undefined}
+                              onClick={(e) => {
+                                if (!subItem.external) {
+                                  e.preventDefault();
+                                  handleItemClick(subItem);
+                                }
+                              }}
+                            >
+                              <span>{subItem.title}</span>
+                              {subItem.external && (
+                                <span className="ml-auto text-xs opacity-60">↗</span>
+                              )}
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </>
+              ) : null}
             </SidebarMenuItem>
           </Collapsible>
         ))}
