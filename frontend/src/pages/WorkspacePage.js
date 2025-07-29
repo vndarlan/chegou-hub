@@ -110,8 +110,8 @@ function WorkspacePage({ setIsLoggedIn }) {
         onLogout={handleLogout}
         isAdmin={userData?.isAdmin}
       />
-      <div className="ml-64 flex flex-col min-h-screen">
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
+      <div className="ml-[var(--sidebar-width)] flex flex-col min-h-screen w-full">
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4 w-full">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <Breadcrumb>
@@ -134,7 +134,7 @@ function WorkspacePage({ setIsLoggedIn }) {
           </Breadcrumb>
         </header>
         
-        <main className="flex-1 overflow-auto p-4">
+        <main className="flex-1 overflow-auto p-4 w-full">
           <Routes>
             <Route path="agenda" element={<AgendaPage />} />
             <Route path="mapa" element={<MapaPage />} />
