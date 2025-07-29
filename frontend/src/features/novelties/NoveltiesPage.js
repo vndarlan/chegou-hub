@@ -263,33 +263,33 @@ function NoveltiesPage() {
                             <Area
                                 dataKey="error"
                                 type="natural"
-                                fill="var(--color-error)"
+                                fill="hsl(0, 100%, 50%)"
                                 fillOpacity={0.4}
-                                stroke="var(--color-error)"
+                                stroke="hsl(0, 100%, 50%)"
                                 stackId="a"
                             />
                             <Area
                                 dataKey="failed"
                                 type="natural"
-                                fill="var(--color-failed)"
+                                fill="hsl(0, 84%, 60%)"
                                 fillOpacity={0.4}
-                                stroke="var(--color-failed)"
+                                stroke="hsl(0, 84%, 60%)"
                                 stackId="a"
                             />
                             <Area
                                 dataKey="partial"
                                 type="natural"
-                                fill="var(--color-partial)"
+                                fill="hsl(38, 92%, 50%)"
                                 fillOpacity={0.4}
-                                stroke="var(--color-partial)"
+                                stroke="hsl(38, 92%, 50%)"
                                 stackId="a"
                             />
                             <Area
                                 dataKey="success"
                                 type="natural"
-                                fill="var(--color-success)"
+                                fill="hsl(142, 76%, 36%)"
                                 fillOpacity={0.4}
-                                stroke="var(--color-success)"
+                                stroke="hsl(142, 76%, 36%)"
                                 stackId="a"
                             />
                             <ChartLegend content={<ChartLegendContent />} />
@@ -319,7 +319,9 @@ function NoveltiesPage() {
         const data = Object.entries(dashboardStats.status_distribution).map(([status, count]) => ({
             browser: status,
             visitors: count,
-            fill: `var(--color-${status})`
+            fill: status === 'success' ? 'hsl(142, 76%, 36%)' : 
+                  status === 'partial' ? 'hsl(38, 92%, 50%)' : 
+                  status === 'failed' ? 'hsl(0, 84%, 60%)' : 'hsl(0, 100%, 50%)'
         }));
 
         const statusConfig = {
