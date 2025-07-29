@@ -41,7 +41,6 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  SidebarRail,
   useSidebar,
 } from './ui/sidebar'
 import { useTheme } from './theme-provider'
@@ -92,7 +91,6 @@ export function AppSidebar({
     },
   ];
 
-  // Add admin if user is admin
   if (isAdmin) {
     homeItems.push({
       title: "Adm",
@@ -202,7 +200,7 @@ export function AppSidebar({
   ];
 
   return (
-    <Sidebar collapsible="icon" className="h-screen border-sidebar-border bg-sidebar" {...props}>
+    <Sidebar collapsible="icon" className="sidebar-fixed bg-sidebar border-r border-sidebar-border" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -226,8 +224,7 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       
-      <SidebarContent>
-        {/* Home Section */}
+      <SidebarContent className="sidebar-content-scroll">
         <SidebarGroup>
           <SidebarGroupLabel>Home</SidebarGroupLabel>
           <SidebarMenu>
@@ -257,7 +254,6 @@ export function AppSidebar({
           </SidebarMenu>
         </SidebarGroup>
 
-        {/* Setores Section */}
         <SidebarGroup>
           <SidebarGroupLabel>Setores</SidebarGroupLabel>
           <SidebarMenu>
@@ -343,7 +339,6 @@ export function AppSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
   )
 }
