@@ -1,14 +1,12 @@
 import * as React from "react"
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
-  Calendar,
-  Map,
+  Home,
   Bot,
   BarChart3,
   Settings,
   Phone,
   Lock,
-  Home,
   ChevronRight,
   ChevronsUpDown,
   LogOut,
@@ -76,139 +74,125 @@ export function AppSidebar({
   };
 
   // Menu data
-  const data = {
-    user: {
-      name: userName,
-      email: userEmail,
-      avatar: "/logo192.png",
-      initials: getInitials(userName),
+  const navItems = [
+    {
+      title: "HOME",
+      icon: Home,
+      isActive: location.pathname.includes('/workspace/agenda') || 
+                location.pathname.includes('/workspace/mapa'),
+      items: [
+        {
+          title: "Agenda da Empresa",
+          url: "/workspace/agenda",
+          isActive: location.pathname === "/workspace/agenda",
+        },
+        {
+          title: "Mapa de Atuação", 
+          url: "/workspace/mapa",
+          isActive: location.pathname === "/workspace/mapa",
+        },
+      ],
     },
-    navMain: [
-      {
-        title: "HOME",
-        url: "#",
-        icon: Home,
-        isActive: location.pathname.includes('/workspace/agenda') || 
-                  location.pathname.includes('/workspace/mapa'),
-        items: [
-          {
-            title: "Agenda da Empresa",
-            url: "/workspace/agenda",
-            isActive: location.pathname === "/workspace/agenda",
-          },
-          {
-            title: "Mapa de Atuação", 
-            url: "/workspace/mapa",
-            isActive: location.pathname === "/workspace/mapa",
-          },
-        ],
-      },
-      {
-        title: "IA & AUTOMAÇÕES",
-        url: "#",
-        icon: Bot,
-        isActive: location.pathname.includes('/workspace/projetos') ||
-                  location.pathname.includes('/workspace/relatorios') ||
-                  location.pathname.includes('/workspace/logs') ||
-                  location.pathname.includes('/workspace/nicochat') ||
-                  location.pathname.includes('/workspace/n8n'),
-        items: [
-          {
-            title: "Projetos",
-            url: "/workspace/projetos",
-            isActive: location.pathname === "/workspace/projetos",
-          },
-          {
-            title: "Relatórios & Análise",
-            url: "/workspace/relatorios",
-            isActive: location.pathname === "/workspace/relatorios",
-          },
-          {
-            title: "Logs de Erros",
-            url: "/workspace/logs",
-            isActive: location.pathname === "/workspace/logs",
-          },
-          {
-            title: "Nicochat",
-            url: "/workspace/nicochat",
-            isActive: location.pathname === "/workspace/nicochat",
-          },
-          {
-            title: "N8N",
-            url: "/workspace/n8n",
-            isActive: location.pathname === "/workspace/n8n",
-          },
-        ],
-      },
-      {
-        title: "MÉTRICAS",
-        url: "#",
-        icon: BarChart3,
-        isActive: location.pathname.includes('/workspace/metricas/'),
-        items: [
-          {
-            title: "PRIMECOD",
-            url: "/workspace/metricas/primecod",
-            isActive: location.pathname === "/workspace/metricas/primecod",
-          },
-          {
-            title: "ECOMHUB",
-            url: "/workspace/metricas/ecomhub",
-            isActive: location.pathname === "/workspace/metricas/ecomhub",
-          },
-          {
-            title: "DROPI MX",
-            url: "/workspace/metricas/dropi",
-            isActive: location.pathname === "/workspace/metricas/dropi",
-          },
-        ],
-      },
-      {
-        title: "OPERACIONAL",
-        url: "#",
-        icon: Settings,
-        isActive: location.pathname.includes('/workspace/engajamento') ||
-                  location.pathname.includes('/workspace/novelties'),
-        items: [
-          {
-            title: "Engajamento",
-            url: "/workspace/engajamento",
-            isActive: location.pathname === "/workspace/engajamento",
-          },
-          {
-            title: "Novelties",
-            url: "/workspace/novelties",
-            isActive: location.pathname === "/workspace/novelties",
-          },
-        ],
-      },
-      {
-        title: "SUPORTE",
-        url: "#",
-        icon: Phone,
-        isActive: location.pathname.includes('/workspace/processamento') ||
-                  location.pathname.includes('/workspace/suporte'),
-        items: [
-          {
-            title: "Processamento",
-            url: "/workspace/processamento",
-            isActive: location.pathname === "/workspace/processamento",
-          },
-          {
-            title: "Suporte",
-            url: "/workspace/suporte",
-            isActive: location.pathname === "/workspace/suporte",
-          },
-        ],
-      }
-    ],
-  }
+    {
+      title: "IA & AUTOMAÇÕES",
+      icon: Bot,
+      isActive: location.pathname.includes('/workspace/projetos') ||
+                location.pathname.includes('/workspace/relatorios') ||
+                location.pathname.includes('/workspace/logs') ||
+                location.pathname.includes('/workspace/nicochat') ||
+                location.pathname.includes('/workspace/n8n'),
+      items: [
+        {
+          title: "Projetos",
+          url: "/workspace/projetos",
+          isActive: location.pathname === "/workspace/projetos",
+        },
+        {
+          title: "Relatórios & Análise",
+          url: "/workspace/relatorios",
+          isActive: location.pathname === "/workspace/relatorios",
+        },
+        {
+          title: "Logs de Erros",
+          url: "/workspace/logs",
+          isActive: location.pathname === "/workspace/logs",
+        },
+        {
+          title: "Nicochat",
+          url: "/workspace/nicochat",
+          isActive: location.pathname === "/workspace/nicochat",
+        },
+        {
+          title: "N8N",
+          url: "/workspace/n8n",
+          isActive: location.pathname === "/workspace/n8n",
+        },
+      ],
+    },
+    {
+      title: "MÉTRICAS",
+      icon: BarChart3,
+      isActive: location.pathname.includes('/workspace/metricas/'),
+      items: [
+        {
+          title: "PRIMECOD",
+          url: "/workspace/metricas/primecod",
+          isActive: location.pathname === "/workspace/metricas/primecod",
+        },
+        {
+          title: "ECOMHUB",
+          url: "/workspace/metricas/ecomhub",
+          isActive: location.pathname === "/workspace/metricas/ecomhub",
+        },
+        {
+          title: "DROPI MX",
+          url: "/workspace/metricas/dropi",
+          isActive: location.pathname === "/workspace/metricas/dropi",
+        },
+      ],
+    },
+    {
+      title: "OPERACIONAL",
+      icon: Settings,
+      isActive: location.pathname.includes('/workspace/engajamento') ||
+                location.pathname.includes('/workspace/novelties'),
+      items: [
+        {
+          title: "Engajamento",
+          url: "/workspace/engajamento",
+          isActive: location.pathname === "/workspace/engajamento",
+        },
+        {
+          title: "Novelties",
+          url: "/workspace/novelties",
+          isActive: location.pathname === "/workspace/novelties",
+        },
+      ],
+    },
+    {
+      title: "SUPORTE",
+      icon: Phone,
+      isActive: location.pathname.includes('/workspace/processamento') ||
+                location.pathname.includes('/workspace/suporte'),
+      items: [
+        {
+          title: "Processamento",
+          url: "/workspace/processamento",
+          isActive: location.pathname === "/workspace/processamento",
+        },
+        {
+          title: "Suporte",
+          url: "/workspace/suporte",
+          isActive: location.pathname === "/workspace/suporte",
+        },
+      ],
+    }
+  ];
 
-  // Add admin section if user is admin
+  // Add admin if user is admin
   if (isAdmin) {
-    data.navMain.push({
+    navItems.push({
       title: "ADMIN",
-      url: "#",
       icon: Lock,
       isActive: false,
       items: [
@@ -219,11 +203,11 @@ export function AppSidebar({
           isActive: false,
         },
       ]
-    })
+    });
   }
 
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" className="border-sidebar-border bg-sidebar" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -250,57 +234,49 @@ export function AppSidebar({
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
-            {data.navMain.map((item) => (
+            {navItems.map((item) => (
               <Collapsible
                 key={item.title}
                 asChild
                 defaultOpen={item.isActive}
               >
                 <SidebarMenuItem>
-                  <SidebarMenuButton tooltip={item.title}>
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                  {item.items?.length ? (
-                    <>
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton tooltip={item.title}>
-                          <item.icon />
-                          <span>{item.title}</span>
-                          <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <SidebarMenuSub>
-                          {item.items?.map((subItem) => (
-                            <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton 
-                                asChild
-                                isActive={subItem.isActive}
-                              >
-                                <a
-                                  href={subItem.external ? subItem.url : "#"}
-                                  target={subItem.external ? "_blank" : undefined}
-                                  rel={subItem.external ? "noopener noreferrer" : undefined}
-                                  onClick={(e) => {
-                                    if (!subItem.external) {
-                                      e.preventDefault();
-                                      handleNavigation(subItem);
-                                    }
-                                  }}
-                                >
-                                  <span>{subItem.title}</span>
-                                  {subItem.external && (
-                                    <span className="ml-auto text-xs opacity-60">↗</span>
-                                  )}
-                                </a>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          ))}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    </>
-                  ) : null}
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip={item.title}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {item.items?.map((subItem) => (
+                        <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubButton 
+                            asChild
+                            isActive={subItem.isActive}
+                          >
+                            <a
+                              href={subItem.external ? subItem.url : "#"}
+                              target={subItem.external ? "_blank" : undefined}
+                              rel={subItem.external ? "noopener noreferrer" : undefined}
+                              onClick={(e) => {
+                                if (!subItem.external) {
+                                  e.preventDefault();
+                                  handleNavigation(subItem);
+                                }
+                              }}
+                            >
+                              <span>{subItem.title}</span>
+                              {subItem.external && (
+                                <span className="ml-auto text-xs opacity-60">↗</span>
+                              )}
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
                 </SidebarMenuItem>
               </Collapsible>
             ))}
@@ -318,11 +294,11 @@ export function AppSidebar({
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-semibold">
-                    {data.user.initials}
+                    {getInitials(userName)}
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">{data.user.name}</span>
-                    <span className="truncate text-xs">{data.user.email}</span>
+                    <span className="truncate font-semibold">{userName}</span>
+                    <span className="truncate text-xs">{userEmail}</span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4" />
                 </SidebarMenuButton>

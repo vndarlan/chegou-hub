@@ -61,9 +61,10 @@ function WorkspacePage({ setIsLoggedIn }) {
         const response = await axios.get('/current-state/', { withCredentials: true });
         
         if (response.data.logged_in) {
+          console.log('Dados do usuário:', response.data); // Debug
           setUserData({
-            name: response.data.user_name || 'Usuário',
-            email: response.data.user_email || '',
+            name: response.data.user_name || response.data.name || 'Usuário',
+            email: response.data.user_email || response.data.email || '',
             isAdmin: response.data.is_admin || false
           });
         } else {
