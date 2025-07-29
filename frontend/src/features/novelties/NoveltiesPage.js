@@ -223,9 +223,10 @@ function NoveltiesPage() {
         failed: { label: "Falhas", color: "hsl(0, 84%, 60%)" }, // vermelho
         partial: { label: "Parciais", color: "hsl(38, 92%, 50%)" }, // laranja
         error: { label: "Erro Crítico", color: "hsl(0, 100%, 50%)" }, // vermelho vibrante
+        success: { label: "Sucesso", color: "hsl(142, 76%, 36%)" }, // verde (alias)
     };
 
-    // Gráfico de tendências (seu formato específico)
+    // Gráfico de tendências (mesmos status da distribuição)
     const TrendsChart = () => {
         if (!trendsData.length) return null;
 
@@ -234,7 +235,7 @@ function NoveltiesPage() {
                 <CardHeader>
                     <CardTitle>Tendência de Execuções</CardTitle>
                     <CardDescription>
-                        Acompanhe as novelties processadas nos últimos {filterPeriod} dias
+                        Acompanhe os status das execuções nos últimos {filterPeriod} dias
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -260,6 +261,14 @@ function NoveltiesPage() {
                                 content={<ChartTooltipContent indicator="line" />}
                             />
                             <Area
+                                dataKey="error"
+                                type="natural"
+                                fill="var(--color-error)"
+                                fillOpacity={0.4}
+                                stroke="var(--color-error)"
+                                stackId="a"
+                            />
+                            <Area
                                 dataKey="failed"
                                 type="natural"
                                 fill="var(--color-failed)"
@@ -268,11 +277,19 @@ function NoveltiesPage() {
                                 stackId="a"
                             />
                             <Area
-                                dataKey="successful"
+                                dataKey="partial"
                                 type="natural"
-                                fill="var(--color-successful)"
+                                fill="var(--color-partial)"
                                 fillOpacity={0.4}
-                                stroke="var(--color-successful)"
+                                stroke="var(--color-partial)"
+                                stackId="a"
+                            />
+                            <Area
+                                dataKey="success"
+                                type="natural"
+                                fill="var(--color-success)"
+                                fillOpacity={0.4}
+                                stroke="var(--color-success)"
                                 stackId="a"
                             />
                             <ChartLegend content={<ChartLegendContent />} />
@@ -302,9 +319,7 @@ function NoveltiesPage() {
         const data = Object.entries(dashboardStats.status_distribution).map(([status, count]) => ({
             browser: status,
             visitors: count,
-            fill: status === 'success' ? 'hsl(142, 76%, 36%)' : 
-                  status === 'partial' ? 'hsl(38, 92%, 50%)' : 
-                  status === 'failed' ? 'hsl(0, 84%, 60%)' : 'hsl(0, 100%, 50%)'
+            fill: `var(--color-${status})`
         }));
 
         const statusConfig = {
