@@ -18,6 +18,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Separator } from '../../components/ui/separator';
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '../../components/ui/pagination';
+import {
   ChartConfig,
   ChartContainer,
   ChartLegend,
@@ -421,43 +430,71 @@ function NoveltiesPage() {
                     </Table>
                 </CardContent>
                 
-                {/* Paginação */}
+                {/* Paginação shadcn/ui */}
                 {totalPages > 1 && (
                     <CardFooter className="flex items-center justify-between">
                         <div className="text-sm text-muted-foreground">
                             Mostrando {startIndex + 1} a {Math.min(endIndex, recentExecutions.length)} de {recentExecutions.length} execuções
                         </div>
-                        <div className="flex items-center space-x-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPage(currentPage - 1)}
-                                disabled={currentPage === 1}
-                            >
-                                Anterior
-                            </Button>
-                            <div className="flex items-center space-x-1">
-                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                                    <Button
-                                        key={page}
-                                        variant={currentPage === page ? "default" : "outline"}
-                                        size="sm"
-                                        onClick={() => setCurrentPage(page)}
-                                        className="w-8 h-8"
-                                    >
-                                        {page}
-                                    </Button>
-                                ))}
-                            </div>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPage(currentPage + 1)}
-                                disabled={currentPage === totalPages}
-                            >
-                                Próximo
-                            </Button>
-                        </div>
+                        <Pagination>
+                            <PaginationContent>
+                                <PaginationItem>
+                                    <PaginationPrevious 
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            if (currentPage > 1) setCurrentPage(currentPage - 1);
+                                        }}
+                                        className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                                    />
+                                </PaginationItem>
+                                
+                                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                                    let pageNumber;
+                                    if (totalPages <= 5) {
+                                        pageNumber = i + 1;
+                                    } else if (currentPage <= 3) {
+                                        pageNumber = i + 1;
+                                    } else if (currentPage >= totalPages - 2) {
+                                        pageNumber = totalPages - 4 + i;
+                                    } else {
+                                        pageNumber = currentPage - 2 + i;
+                                    }
+                                    
+                                    return (
+                                        <PaginationItem key={pageNumber}>
+                                            <PaginationLink
+                                                href="#"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    setCurrentPage(pageNumber);
+                                                }}
+                                                isActive={currentPage === pageNumber}
+                                            >
+                                                {pageNumber}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                    );
+                                })}
+                                
+                                {totalPages > 5 && currentPage < totalPages - 2 && (
+                                    <PaginationItem>
+                                        <PaginationEllipsis />
+                                    </PaginationItem>
+                                )}
+                                
+                                <PaginationItem>
+                                    <PaginationNext
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                                        }}
+                                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                                    />
+                                </PaginationItem>
+                            </PaginationContent>
+                        </Pagination>
                     </CardFooter>
                 )}
             </Card>
@@ -494,20 +531,20 @@ function NoveltiesPage() {
             <div className="flex items-center justify-between space-y-2">
                 <div className="flex items-center space-x-2">
                     <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-                        <SelectTrigger className="w-[180px]">
-                            <Globe className="mr-2 h-4 w-4" />
-                            <SelectValue />
+                        <SelectTrigger className="w-[180px] bg-background text-foreground border-border">
+                            <Globe className="mr-2 h-4 w-4 text-foreground" />
+                            <SelectValue className="text-foreground" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-background text-foreground border-border">
                             {Object.entries(COUNTRY_CONFIG).map(([key, config]) => (
-                                <SelectItem key={key} value={key}>
+                                <SelectItem key={key} value={key} className="text-foreground hover:bg-accent hover:text-accent-foreground">
                                     {config.label}
                                 </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
-                    <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
-                        <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                    <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground">
+                        <RefreshCw className={`h-4 w-4 mr-2 text-foreground ${loading ? 'animate-spin' : ''}`} />
                         Atualizar
                     </Button>
                 </div>
