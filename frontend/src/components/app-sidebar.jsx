@@ -200,14 +200,18 @@ export function AppSidebar({
   ];
 
   return (
-    <Sidebar collapsible="icon" className="h-screen" {...props}>
+    <Sidebar className="h-screen" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <a href="#">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-orange-500 text-white">
-                  <span className="text-sm font-bold">CH</span>
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
+                  <img 
+                    src="/logo192.png" 
+                    alt="Chegou Hub Logo"
+                    className="size-8 rounded-lg object-contain"
+                  />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Chegou Hub</span>
@@ -324,7 +328,7 @@ export function AppSidebar({
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-                side={isMobile ? "top" : "right"}
+                side="top"
                 align="end"
                 sideOffset={4}
               >
