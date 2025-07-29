@@ -41,6 +41,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  SidebarRail,
   useSidebar,
 } from './ui/sidebar'
 import { useTheme } from './theme-provider'
@@ -200,7 +201,7 @@ export function AppSidebar({
   ];
 
   return (
-    <Sidebar collapsible="icon" className="sidebar-fixed bg-sidebar border-r border-sidebar-border" {...props}>
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -224,13 +225,13 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       
-      <SidebarContent className="sidebar-content-scroll">
+      <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Home</SidebarGroupLabel>
           <SidebarMenu>
             {homeItems.map((item) => (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild isActive={item.isActive} tooltip={item.title}>
+                <SidebarMenuButton asChild isActive={item.isActive}>
                   <a
                     href={item.external ? item.url : "#"}
                     target={item.external ? "_blank" : undefined}
@@ -265,10 +266,10 @@ export function AppSidebar({
               >
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
-                    <SidebarMenuButton tooltip={item.title} className="group/collapsible">
+                    <SidebarMenuButton tooltip={item.title}>
                       <item.icon />
                       <span>{item.title}</span>
-                      <ChevronRight className="ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
@@ -339,6 +340,7 @@ export function AppSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   )
 }

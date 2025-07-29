@@ -110,31 +110,33 @@ function WorkspacePage({ setIsLoggedIn }) {
         onLogout={handleLogout}
         isAdmin={userData?.isAdmin}
       />
-      <div className="ml-[var(--sidebar-width)] flex flex-col min-h-screen w-full">
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4 w-full">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              {currentBreadcrumbs.map((crumb, index) => (
-                <React.Fragment key={index}>
-                  {index > 0 && <BreadcrumbSeparator className="hidden md:block" />}
-                  <BreadcrumbItem className={index === 0 ? "hidden md:block" : ""}>
-                    {crumb.href ? (
-                      <BreadcrumbLink href={crumb.href}>
-                        {crumb.label}
-                      </BreadcrumbLink>
-                    ) : (
-                      <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                    )}
-                  </BreadcrumbItem>
-                </React.Fragment>
-              ))}
-            </BreadcrumbList>
-          </Breadcrumb>
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+          <div className="flex items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Breadcrumb>
+              <BreadcrumbList>
+                {currentBreadcrumbs.map((crumb, index) => (
+                  <React.Fragment key={index}>
+                    {index > 0 && <BreadcrumbSeparator className="hidden md:block" />}
+                    <BreadcrumbItem className={index === 0 ? "hidden md:block" : ""}>
+                      {crumb.href ? (
+                        <BreadcrumbLink href={crumb.href}>
+                          {crumb.label}
+                        </BreadcrumbLink>
+                      ) : (
+                        <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                      )}
+                    </BreadcrumbItem>
+                  </React.Fragment>
+                ))}
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
         </header>
         
-        <main className="flex-1 overflow-auto p-4 w-full">
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           <Routes>
             <Route path="agenda" element={<AgendaPage />} />
             <Route path="mapa" element={<MapaPage />} />
@@ -158,8 +160,8 @@ function WorkspacePage({ setIsLoggedIn }) {
               </div>
             } />
           </Routes>
-        </main>
-      </div>
+        </div>
+      </SidebarInset>
     </SidebarProvider>
   );
 }
