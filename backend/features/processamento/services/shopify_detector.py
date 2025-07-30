@@ -276,25 +276,33 @@ class ShopifyDuplicateOrderDetector:
                         product_orders[f"name:{product_name}"].append({"order": order, "item": item, "sku": sku, "name": product_name})
             
             # Verifica duplicatas para produtos do pedido não processado
-            unprocessed_keys = set()
             for item in unprocessed_order["line_items"]:
                 sku = item.get("sku", "").strip()
                 product_name = self.normalize_product_name(item.get("title", ""))
                 
-                if sku:
-                    unprocessed_keys.add(f"sku:{sku}")
-                if product_name:
-                    unprocessed_keys.add(f"name:{product_name}")
-            
-            for key in unprocessed_keys:
-                orders_with_product = product_orders[key]
+                # Verifica se existe duplicata por SKU E/OU nome
+                sku_matches = []
+                name_matches = []
                 
-                if len(orders_with_product) < 2:
+                if sku and f"sku:{sku}" in product_orders:
+                    sku_matches = product_orders[f"sku:{sku}"]
+                
+                if product_name and f"name:{product_name}" in product_orders:
+                    name_matches = product_orders[f"name:{product_name}"]
+                
+                # Combina todas as correspondências
+                all_matches = []
+                if sku_matches:
+                    all_matches.extend(sku_matches)
+                if name_matches:
+                    all_matches.extend(name_matches)
+                
+                if len(all_matches) < 2:
                     continue
                 
                 # Extrai apenas os pedidos únicos
                 unique_orders = {}
-                for order_info in orders_with_product:
+                for order_info in all_matches:
                     order = order_info["order"]
                     unique_orders[order['id']] = order
                 orders_with_product_unique = list(unique_orders.values())
@@ -359,18 +367,21 @@ class ShopifyDuplicateOrderDetector:
                     original_address = self.get_order_details(original_order["id"])
                     
                     # Buscar detalhes do produto baseado no primeiro item encontrado
-                    product_info = orders_with_product[0]
+                    product_info = all_matches[0]
                     item_info = product_info["item"]
-                    sku = product_info["sku"]
-                    product_name = product_info["name"]
                     product_title = item_info.get("title", f"SKU: {sku}" if sku else product_name)
                     
-                    # Determinar critério de match
+                    # Determinar critério de match baseado nos tipos de correspondência encontrados
                     match_criteria = []
-                    if sku:
-                        match_criteria.append(f"SKU: {sku}")
-                    if product_name:
-                        match_criteria.append(f"Nome: {item_info.get('title', product_name)}")
+                    has_sku_match = bool(sku_matches)
+                    has_name_match = bool(name_matches)
+                    
+                    if has_sku_match and has_name_match:
+                        match_criteria.append("Mesmo SKU + Produto")
+                    elif has_sku_match:
+                        match_criteria.append("Mesmo SKU")
+                    elif has_name_match:
+                        match_criteria.append("Mesmo Produto")
                     
                     duplicate_candidates.append({
                         "customer_phone": unprocessed_order["customer"]["phone"],

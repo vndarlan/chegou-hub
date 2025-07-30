@@ -530,13 +530,71 @@ function ProcessamentoPage() {
                                     </TabsContent>
                                     <TabsContent value="logic" className="space-y-4">
                                         <div>
-                                            <h4 className="font-semibold text-green-600 dark:text-green-400 mb-2">✅ DETECTA DUPLICATA quando:</h4>
+                                            <h4 className="font-semibold text-green-600 dark:text-green-400 mb-2">✅ DETECTA DUPLICATA quando TODAS as condições são atendidas:</h4>
+                                            <div className="space-y-3 text-sm text-muted-foreground ml-4">
+                                                <div>
+                                                    <strong className="text-foreground">1. Mesmo Cliente:</strong>
+                                                    <ul className="ml-4 space-y-1">
+                                                        <li>• Telefone normalizado (apenas dígitos) idêntico</li>
+                                                    </ul>
+                                                </div>
+                                                
+                                                <div>
+                                                    <strong className="text-foreground">2. Mesmo Produto:</strong>
+                                                    <ul className="ml-4 space-y-1">
+                                                        <li>• <span className="text-blue-600 dark:text-blue-400">Mesmo SKU</span> (campo sku nos line_items)</li>
+                                                        <li>• <span className="text-blue-600 dark:text-blue-400">OU Mesmo nome</span> do produto (title normalizado)</li>
+                                                        <li>• <span className="text-blue-600 dark:text-blue-400">OU Ambos</span> (SKU + nome)</li>
+                                                    </ul>
+                                                </div>
+
+                                                <div>
+                                                    <strong className="text-foreground">3. Status de Processamento:</strong>
+                                                    <ul className="ml-4 space-y-1">
+                                                        <li>• <span className="text-green-600 dark:text-green-400">Pedido Original:</span> TEM tags: "order sent to dropi", "dropi sync error", "eh", "p cod", "prime cod"</li>
+                                                        <li>• <span className="text-red-600 dark:text-red-400">Pedido Duplicata:</span> NÃO TEM essas tags</li>
+                                                    </ul>
+                                                </div>
+
+                                                <div>
+                                                    <strong className="text-foreground">4. Hierarquia Temporal:</strong>
+                                                    <ul className="ml-4 space-y-1">
+                                                        <li>• <span className="text-purple-600 dark:text-purple-400">CENÁRIO A</span> - Existe pedido processado:</li>
+                                                        <li className="ml-4">- Original = último pedido processado do produto</li>
+                                                        <li className="ml-4">- Duplicata = qualquer pedido não processado</li>
+                                                        <li>• <span className="text-purple-600 dark:text-purple-400">CENÁRIO B</span> - Nenhum processado:</li>
+                                                        <li className="ml-4">- Original = pedido mais antigo do produto</li>
+                                                        <li className="ml-4">- Duplicata = pedidos mais novos</li>
+                                                        <li className="ml-4">- (Se pedido atual é o mais antigo, não é duplicata)</li>
+                                                    </ul>
+                                                </div>
+
+                                                <div>
+                                                    <strong className="text-foreground">5. Intervalo de Tempo:</strong>
+                                                    <ul className="ml-4 space-y-1">
+                                                        <li>• Máximo 30 dias entre pedidos</li>
+                                                    </ul>
+                                                </div>
+
+                                                <div>
+                                                    <strong className="text-foreground">6. Filtros Básicos:</strong>
+                                                    <ul className="ml-4 space-y-1">
+                                                        <li>• Pedidos não cancelados (cancelled_at = null)</li>
+                                                        <li>• Cliente com telefone válido</li>
+                                                        <li>• Pelo menos 2 pedidos do mesmo cliente/produto</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <Separator />
+                                        
+                                        <div>
+                                            <h4 className="font-semibold text-blue-600 dark:text-blue-400 mb-2">📊 Como aparece na tabela:</h4>
                                             <ul className="text-sm text-muted-foreground space-y-1 ml-4">
-                                                <li>• Mesmo cliente (telefone normalizado)</li>
-                                                <li>• Mesmo produto (Product ID)</li>
-                                                <li>• Intervalo ≤ 30 dias entre pedidos</li>
-                                                <li>• Pedido original: <strong className="text-foreground">PROCESSADO</strong> (tem tags "order sent to dropi" ou "dropi sync error")</li>
-                                                <li>• Pedido duplicado: <strong className="text-foreground">NÃO PROCESSADO</strong> (sem tags do Dropi)</li>
+                                                <li>• <span className="font-medium text-foreground">"Mesmo SKU"</span> - detectado apenas por SKU idêntico</li>
+                                                <li>• <span className="font-medium text-foreground">"Mesmo Produto"</span> - detectado apenas por nome idêntico</li>
+                                                <li>• <span className="font-medium text-foreground">"Mesmo SKU + Produto"</span> - detectado por ambos os critérios</li>
                                             </ul>
                                         </div>
                                         
@@ -545,16 +603,18 @@ function ProcessamentoPage() {
                                         <div>
                                             <h4 className="font-semibold text-red-600 dark:text-red-400 mb-2">❌ NÃO detecta quando:</h4>
                                             <ul className="text-sm text-muted-foreground space-y-1 ml-4">
-                                                <li>• Ambos pedidos não têm tags (ambos não processados)</li>
-                                                <li>• Produtos diferentes</li>
+                                                <li>• Produtos diferentes (SKU e nome diferentes)</li>
                                                 <li>• Clientes diferentes (telefones diferentes)</li>
                                                 <li>• Intervalo maior que 30 dias</li>
+                                                <li>• Ambos pedidos sem tags (ambos não processados) E pedido atual é o mais antigo</li>
+                                                <li>• Pedidos cancelados</li>
+                                                <li>• Cliente sem telefone</li>
                                             </ul>
                                         </div>
                                         
                                         <Alert>
                                             <AlertDescription className="text-foreground">
-                                                <strong>Objetivo:</strong> Cancelar apenas pedidos duplicados não processados de produtos já enviados/processados anteriormente.
+                                                <strong>Objetivo:</strong> Cancelar apenas pedidos duplicados não processados de produtos já enviados/processados anteriormente, ou duplicatas mais recentes quando nenhum foi processado.
                                             </AlertDescription>
                                         </Alert>
                                     </TabsContent>
