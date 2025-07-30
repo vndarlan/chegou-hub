@@ -38,7 +38,6 @@ function ProcessamentoPage() {
     const [showHistory, setShowHistory] = useState(false);
     const [showClientDetails, setShowClientDetails] = useState(false);
     const [selectedClient, setSelectedClient] = useState(null);
-    const [clientAddress, setClientAddress] = useState(null);
     const [newStore, setNewStore] = useState({ nome_loja: '', shop_url: '', access_token: '' });
     const [testingConnection, setTestingConnection] = useState(false);
     const [connectionResult, setConnectionResult] = useState(null);
@@ -196,26 +195,6 @@ function ProcessamentoPage() {
         }
     };
 
-    // Função para buscar detalhes do endereço do cliente
-    const loadClientAddress = async (orderId) => {
-        try {
-            // Aqui você faria uma chamada para obter detalhes completos do pedido incluindo endereço
-            // Como não temos essa API ainda, vou simular com dados mockados
-            const mockAddress = {
-                address1: "Rua das Flores, 123",
-                address2: "Apto 45",
-                city: "São Paulo",
-                province: "SP",
-                zip: "01234-567",
-                country: "Brasil"
-            };
-            setClientAddress(mockAddress);
-        } catch (error) {
-            console.error('Erro ao carregar endereço:', error);
-            setClientAddress(null);
-        }
-    };
-
     const toggleDuplicateSelection = (duplicateId) => {
         setSelectedDuplicates(prev => 
             prev.includes(duplicateId) 
@@ -232,11 +211,9 @@ function ProcessamentoPage() {
         }
     };
 
-    const openClientDetails = async (duplicate) => {
+    const openClientDetails = (duplicate) => {
         setSelectedClient(duplicate);
         setShowClientDetails(true);
-        // Carregar endereço do cliente
-        await loadClientAddress(duplicate.duplicate_order.id);
     };
 
     if (loading) {
@@ -258,15 +235,15 @@ function ProcessamentoPage() {
             )}
 
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-foreground">Shopify Duplicados</h1>
                     <p className="text-muted-foreground">Gerenciamento de pedidos duplicados</p>
                 </div>
                 
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <Select value={lojaSelecionada?.toString()} onValueChange={(value) => setLojaSelecionada(parseInt(value))}>
-                        <SelectTrigger className="w-48 bg-background border-input text-foreground">
+                        <SelectTrigger className="w-full sm:w-48 bg-background border-input text-foreground">
                             <Building className="h-4 w-4 mr-2" />
                             <SelectValue placeholder="Selecionar loja" />
                         </SelectTrigger>
@@ -285,7 +262,7 @@ function ProcessamentoPage() {
                                 <Plus className="h-4 w-4" />
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="bg-background border-border">
+                        <DialogContent className="bg-background border-border max-w-[95vw] sm:max-w-lg">
                             <DialogHeader>
                                 <DialogTitle className="text-foreground">Adicionar Nova Loja</DialogTitle>
                                 <DialogDescription className="text-muted-foreground">Configure uma nova integração Shopify</DialogDescription>
@@ -323,11 +300,12 @@ function ProcessamentoPage() {
                                     />
                                 </div>
 
-                                <div className="flex space-x-2">
+                                <div className="flex flex-col sm:flex-row gap-2">
                                     <Button
                                         variant="outline"
                                         onClick={testConnection}
                                         disabled={testingConnection}
+                                        className="flex-1"
                                     >
                                         {testingConnection ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Cloud className="h-4 w-4 mr-2" />}
                                         Testar Conexão
@@ -335,6 +313,7 @@ function ProcessamentoPage() {
                                     <Button
                                         onClick={addStore}
                                         disabled={!connectionResult?.success}
+                                        className="flex-1"
                                     >
                                         <Check className="h-4 w-4 mr-2" />
                                         Adicionar Loja
@@ -357,63 +336,65 @@ function ProcessamentoPage() {
                                 <Settings className="h-4 w-4" />
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-2xl bg-background border-border">
+                        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[95vh] bg-background border-border">
                             <DialogHeader>
                                 <DialogTitle className="text-foreground">Configurações & Lógica</DialogTitle>
                                 <DialogDescription className="text-muted-foreground">Instruções de configuração e lógica de detecção</DialogDescription>
                             </DialogHeader>
-                            <Tabs defaultValue="config">
-                                <TabsList className="grid w-full grid-cols-2 bg-muted">
-                                    <TabsTrigger value="config" className="text-foreground">Configuração Shopify</TabsTrigger>
-                                    <TabsTrigger value="logic" className="text-foreground">Lógica de Detecção</TabsTrigger>
-                                </TabsList>
-                                <TabsContent value="config" className="space-y-4">
-                                    <div className="space-y-3">
-                                        <div className="p-3 bg-muted rounded-lg">
-                                            <h4 className="font-semibold text-sm text-foreground">1. Criar App Privado</h4>
-                                            <p className="text-sm text-muted-foreground">Acesse sua loja → Settings → Apps → Develop apps → Create an app</p>
+                            <ScrollArea className="max-h-[70vh] pr-4">
+                                <Tabs defaultValue="config">
+                                    <TabsList className="grid w-full grid-cols-2 bg-muted">
+                                        <TabsTrigger value="config" className="text-foreground">Configuração Shopify</TabsTrigger>
+                                        <TabsTrigger value="logic" className="text-foreground">Lógica de Detecção</TabsTrigger>
+                                    </TabsList>
+                                    <TabsContent value="config" className="space-y-4">
+                                        <div className="space-y-3">
+                                            <div className="p-3 bg-muted rounded-lg">
+                                                <h4 className="font-semibold text-sm text-foreground">1. Criar App Privado</h4>
+                                                <p className="text-sm text-muted-foreground">Acesse sua loja → Settings → Apps → Develop apps → Create an app</p>
+                                            </div>
+                                            <div className="p-3 bg-muted rounded-lg">
+                                                <h4 className="font-semibold text-sm text-foreground">2. Configurar Permissões</h4>
+                                                <p className="text-sm text-muted-foreground">Adicione: read_orders, write_orders, read_products, read_customers</p>
+                                            </div>
+                                            <div className="p-3 bg-muted rounded-lg">
+                                                <h4 className="font-semibold text-sm text-foreground">3. Gerar Token</h4>
+                                                <p className="text-sm text-muted-foreground">Install app → Copie o Admin API access token</p>
+                                            </div>
                                         </div>
-                                        <div className="p-3 bg-muted rounded-lg">
-                                            <h4 className="font-semibold text-sm text-foreground">2. Configurar Permissões</h4>
-                                            <p className="text-sm text-muted-foreground">Adicione: read_orders, write_orders, read_products, read_customers</p>
+                                    </TabsContent>
+                                    <TabsContent value="logic" className="space-y-4">
+                                        <div>
+                                            <h4 className="font-semibold text-green-600 dark:text-green-400 mb-2">✅ DETECTA DUPLICATA quando:</h4>
+                                            <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                                                <li>• Mesmo cliente (telefone normalizado)</li>
+                                                <li>• Mesmo produto (Product ID)</li>
+                                                <li>• Intervalo ≤ 30 dias entre pedidos</li>
+                                                <li>• Pedido original: <strong className="text-foreground">PROCESSADO</strong> (tem tags "order sent to dropi" ou "dropi sync error")</li>
+                                                <li>• Pedido duplicado: <strong className="text-foreground">NÃO PROCESSADO</strong> (sem tags do Dropi)</li>
+                                            </ul>
                                         </div>
-                                        <div className="p-3 bg-muted rounded-lg">
-                                            <h4 className="font-semibold text-sm text-foreground">3. Gerar Token</h4>
-                                            <p className="text-sm text-muted-foreground">Install app → Copie o Admin API access token</p>
+                                        
+                                        <Separator />
+                                        
+                                        <div>
+                                            <h4 className="font-semibold text-red-600 dark:text-red-400 mb-2">❌ NÃO detecta quando:</h4>
+                                            <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                                                <li>• Ambos pedidos não têm tags (ambos não processados)</li>
+                                                <li>• Produtos diferentes</li>
+                                                <li>• Clientes diferentes (telefones diferentes)</li>
+                                                <li>• Intervalo a 30 dias</li>
+                                            </ul>
                                         </div>
-                                    </div>
-                                </TabsContent>
-                                <TabsContent value="logic" className="space-y-4">
-                                    <div>
-                                        <h4 className="font-semibold text-green-600 dark:text-green-400 mb-2">✅ DETECTA DUPLICATA quando:</h4>
-                                        <ul className="text-sm text-muted-foreground space-y-1 ml-4">
-                                            <li>• Mesmo cliente (telefone normalizado)</li>
-                                            <li>• Mesmo produto (Product ID)</li>
-                                            <li>• Intervalo ≤ 30 dias entre pedidos</li>
-                                            <li>• Pedido original: <strong className="text-foreground">PROCESSADO</strong> (tem tags "order sent to dropi" ou "dropi sync error")</li>
-                                            <li>• Pedido duplicado: <strong className="text-foreground">NÃO PROCESSADO</strong> (sem tags do Dropi)</li>
-                                        </ul>
-                                    </div>
-                                    
-                                    <Separator />
-                                    
-                                    <div>
-                                        <h4 className="font-semibold text-red-600 dark:text-red-400 mb-2">❌ NÃO detecta quando:</h4>
-                                        <ul className="text-sm text-muted-foreground space-y-1 ml-4">
-                                            <li>• Ambos pedidos não têm tags (ambos não processados)</li>
-                                            <li>• Produtos diferentes</li>
-                                            <li>• Clientes diferentes (telefones diferentes)</li>
-                                            <li>• Intervalo maior que 30 dias</li>
-                                        </ul>
-                                    </div>
-                                    
-                                    <Alert>
-                                        <AlertDescription className="text-foreground">
-                                            <strong>Objetivo:</strong> Cancelar apenas pedidos duplicados não processados de produtos já enviados/processados anteriormente.
-                                        </AlertDescription>
-                                    </Alert>
-                                </TabsContent>
-                            </Tabs>
+                                        
+                                        <Alert>
+                                            <AlertDescription className="text-foreground">
+                                                <strong>Objetivo:</strong> Cancelar apenas pedidos duplicados não processados de produtos já enviados/processados anteriormente.
+                                            </AlertDescription>
+                                        </Alert>
+                                    </TabsContent>
+                                </Tabs>
+                            </ScrollArea>
                         </DialogContent>
                     </Dialog>
                     
@@ -426,12 +407,12 @@ function ProcessamentoPage() {
             {/* Área Principal */}
             <Card className="bg-card border-border">
                 <CardHeader>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div>
                             <CardDescription className="text-muted-foreground">Detecte e gerencie pedidos duplicados automaticamente</CardDescription>
                         </div>
                         
-                        <div className="flex space-x-2">
+                        <div className="flex flex-wrap gap-2">
                             <Button
                                 onClick={searchDuplicates}
                                 disabled={searchingDuplicates || !lojaSelecionada}
@@ -445,10 +426,10 @@ function ProcessamentoPage() {
                                     <DialogTrigger asChild>
                                         <Button variant="destructive" disabled={cancellingBatch}>
                                             {cancellingBatch ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-                                            Cancelar Selecionados ({selectedDuplicates.length})
+                                            <span className="hidden sm:inline">Cancelar Selecionados </span>({selectedDuplicates.length})
                                         </Button>
                                     </DialogTrigger>
-                                    <DialogContent className="bg-background border-border">
+                                    <DialogContent className="bg-background border-border max-w-[95vw] sm:max-w-lg">
                                         <DialogHeader>
                                             <DialogTitle className="text-foreground">Confirmar Cancelamento</DialogTitle>
                                             <DialogDescription className="text-muted-foreground">
@@ -492,94 +473,96 @@ function ProcessamentoPage() {
                             <p className="text-sm text-muted-foreground">Execute uma busca para detectar pedidos duplicados</p>
                         </div>
                     ) : duplicates.length > 0 ? (
-                        <div className="rounded-md border border-border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="border-border">
-                                        <TableHead className="w-12">
-                                            <Checkbox 
-                                                checked={selectedDuplicates.length === duplicates.length}
-                                                onCheckedChange={toggleSelectAll}
-                                            />
-                                        </TableHead>
-                                        <TableHead className="text-foreground">Cliente</TableHead>
-                                        <TableHead className="text-foreground">Pedido Original</TableHead>
-                                        <TableHead className="text-foreground">Duplicata</TableHead>
-                                        <TableHead className="text-foreground">Produtos</TableHead>
-                                        <TableHead className="text-foreground">Intervalo</TableHead>
-                                        <TableHead className="text-right text-foreground">Ações</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {duplicates.map((duplicate, index) => (
-                                        <TableRow key={index} className="border-border hover:bg-muted/50">
-                                            <TableCell>
+                        <div className="overflow-x-auto">
+                            <div className="rounded-md border border-border min-w-[800px]">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="border-border">
+                                            <TableHead className="w-12">
                                                 <Checkbox 
-                                                    checked={selectedDuplicates.includes(duplicate.duplicate_order.id)}
-                                                    onCheckedChange={() => toggleDuplicateSelection(duplicate.duplicate_order.id)}
+                                                    checked={selectedDuplicates.length === duplicates.length}
+                                                    onCheckedChange={toggleSelectAll}
                                                 />
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center space-x-3">
-                                                    <Avatar className="h-8 w-8">
-                                                        <AvatarFallback className="text-xs bg-muted text-foreground">{duplicate.customer_name?.charAt(0) || 'U'}</AvatarFallback>
-                                                    </Avatar>
-                                                    <div>
-                                                        <p className="font-medium text-sm text-foreground">{duplicate.customer_name}</p>
-                                                        <p className="text-xs text-muted-foreground">{duplicate.customer_phone}</p>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div>
-                                                    <p className="font-medium text-sm text-foreground">#{duplicate.first_order.number}</p>
-                                                    <p className="text-xs text-muted-foreground">{duplicate.first_order.date}</p>
-                                                    <p className="text-xs text-green-600 dark:text-green-400">{duplicate.first_order.total}</p>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div>
-                                                    <p className="font-medium text-sm text-foreground">#{duplicate.duplicate_order.number}</p>
-                                                    <p className="text-xs text-muted-foreground">{duplicate.duplicate_order.date}</p>
-                                                    <p className="text-xs text-red-600 dark:text-red-400">{duplicate.duplicate_order.total}</p>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {duplicate.product_names?.join(', ') || 'N/A'}
-                                                </p>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant={duplicate.days_between <= 7 ? 'destructive' : duplicate.days_between <= 15 ? 'secondary' : 'outline'}>
-                                                    {duplicate.days_between} dias
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex items-center justify-end space-x-1">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => openClientDetails(duplicate)}
-                                                    >
-                                                        <Eye className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="destructive"
-                                                        size="sm"
-                                                        onClick={() => cancelOrder(duplicate)}
-                                                        disabled={cancellingOrder === duplicate.duplicate_order.id}
-                                                    >
-                                                        {cancellingOrder === duplicate.duplicate_order.id ? 
-                                                            <Loader2 className="h-4 w-4 animate-spin" /> : 
-                                                            <Trash2 className="h-4 w-4" />
-                                                        }
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
+                                            </TableHead>
+                                            <TableHead className="text-foreground">Cliente</TableHead>
+                                            <TableHead className="text-foreground">Pedido Original</TableHead>
+                                            <TableHead className="text-foreground">Duplicata</TableHead>
+                                            <TableHead className="text-foreground">Produtos</TableHead>
+                                            <TableHead className="text-foreground">Intervalo</TableHead>
+                                            <TableHead className="text-right text-foreground">Ações</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {duplicates.map((duplicate, index) => (
+                                            <TableRow key={index} className="border-border hover:bg-muted/50">
+                                                <TableCell>
+                                                    <Checkbox 
+                                                        checked={selectedDuplicates.includes(duplicate.duplicate_order.id)}
+                                                        onCheckedChange={() => toggleDuplicateSelection(duplicate.duplicate_order.id)}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center space-x-3">
+                                                        <Avatar className="h-8 w-8">
+                                                            <AvatarFallback className="text-xs bg-muted text-foreground">{duplicate.customer_name?.charAt(0) || 'U'}</AvatarFallback>
+                                                        </Avatar>
+                                                        <div>
+                                                            <p className="font-medium text-sm text-foreground">{duplicate.customer_name}</p>
+                                                            <p className="text-xs text-muted-foreground">{duplicate.customer_phone}</p>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div>
+                                                        <p className="font-medium text-sm text-foreground">#{duplicate.first_order.number}</p>
+                                                        <p className="text-xs text-muted-foreground">{duplicate.first_order.date}</p>
+                                                        <p className="text-xs text-green-600 dark:text-green-400">{duplicate.first_order.total}</p>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div>
+                                                        <p className="font-medium text-sm text-foreground">#{duplicate.duplicate_order.number}</p>
+                                                        <p className="text-xs text-muted-foreground">{duplicate.duplicate_order.date}</p>
+                                                        <p className="text-xs text-red-600 dark:text-red-400">{duplicate.duplicate_order.total}</p>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {duplicate.product_names?.join(', ') || 'N/A'}
+                                                    </p>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={duplicate.days_between <= 7 ? 'destructive' : duplicate.days_between <= 15 ? 'secondary' : 'outline'}>
+                                                        {duplicate.days_between} dias
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex items-center justify-end space-x-1">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => openClientDetails(duplicate)}
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="destructive"
+                                                            size="sm"
+                                                            onClick={() => cancelOrder(duplicate)}
+                                                            disabled={cancellingOrder === duplicate.duplicate_order.id}
+                                                        >
+                                                            {cancellingOrder === duplicate.duplicate_order.id ? 
+                                                                <Loader2 className="h-4 w-4 animate-spin" /> : 
+                                                                <Trash2 className="h-4 w-4" />
+                                                            }
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </div>
                     ) : null}
                 </CardContent>
@@ -587,7 +570,7 @@ function ProcessamentoPage() {
 
             {/* Histórico */}
             <Dialog open={showHistory} onOpenChange={setShowHistory}>
-                <DialogContent className="max-w-4xl bg-background border-border">
+                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[95vh] bg-background border-border">
                     <DialogHeader>
                         <div className="flex items-center justify-between">
                             <DialogTitle className="flex items-center space-x-2 text-foreground">
@@ -641,136 +624,160 @@ function ProcessamentoPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Detalhes do Cliente - ATUALIZADO COM ENDEREÇO */}
+            {/* Detalhes do Cliente - RESPONSIVO COM ENDEREÇO REAL DA API */}
             <Dialog open={showClientDetails} onOpenChange={setShowClientDetails}>
-                <DialogContent className="max-w-3xl bg-background border-border">
+                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[95vh] bg-background border-border">
                     <DialogHeader>
                         <DialogTitle className="text-foreground">Detalhes do Cliente</DialogTitle>
                         <DialogDescription className="text-muted-foreground">Informações completas sobre o cliente e pedidos</DialogDescription>
                     </DialogHeader>
                     {selectedClient && (
-                        <div className="space-y-6">
-                            {/* Informações do Cliente */}
-                            <div className="space-y-4">
-                                <h3 className="font-semibold text-foreground">Informações do Cliente</h3>
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div>
-                                        <Label className="text-sm font-medium text-foreground">Nome</Label>
-                                        <p className="text-sm text-muted-foreground">{selectedClient.customer_name}</p>
-                                    </div>
-                                    <div>
-                                        <Label className="text-sm font-medium text-foreground">Telefone</Label>
-                                        <p className="text-sm text-muted-foreground">{selectedClient.customer_phone}</p>
-                                    </div>
-                                    <div>
-                                        <Label className="text-sm font-medium text-foreground">Status</Label>
-                                        <Badge variant="outline" className="text-xs">
-                                            {selectedClient.status || 'N/A'}
-                                        </Badge>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Endereço do Cliente */}
-                            {clientAddress && (
-                                <>
-                                    <Separator />
-                                    <div className="space-y-4">
-                                        <h3 className="font-semibold text-foreground flex items-center space-x-2">
-                                            <MapPin className="h-4 w-4" />
-                                            <span>Endereço de Entrega</span>
-                                        </h3>
-                                        <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg border border-border">
-                                            <div className="col-span-2">
-                                                <Label className="text-sm font-medium text-foreground">Endereço</Label>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {clientAddress.address1}
-                                                    {clientAddress.address2 && `, ${clientAddress.address2}`}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <Label className="text-sm font-medium text-foreground">Cidade</Label>
-                                                <p className="text-sm text-muted-foreground">{clientAddress.city}</p>
-                                            </div>
-                                            <div>
-                                                <Label className="text-sm font-medium text-foreground">Estado</Label>
-                                                <p className="text-sm text-muted-foreground">{clientAddress.province}</p>
-                                            </div>
-                                            <div>
-                                                <Label className="text-sm font-medium text-foreground">CEP</Label>
-                                                <p className="text-sm text-muted-foreground">{clientAddress.zip}</p>
-                                            </div>
-                                            <div>
-                                                <Label className="text-sm font-medium text-foreground">País</Label>
-                                                <p className="text-sm text-muted-foreground">{clientAddress.country}</p>
-                                            </div>
+                        <ScrollArea className="max-h-[75vh] pr-4">
+                            <div className="space-y-6">
+                                {/* Informações do Cliente */}
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold text-foreground">Informações do Cliente</h3>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        <div>
+                                            <Label className="text-sm font-medium text-foreground">Nome</Label>
+                                            <p className="text-sm text-muted-foreground">{selectedClient.customer_name}</p>
                                         </div>
-                                    </div>
-                                </>
-                            )}
-
-                            <Separator />
-
-                            {/* Comparação de Pedidos */}
-                            <div className="space-y-4">
-                                <h3 className="font-semibold text-foreground">Comparação de Pedidos</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-                                        <h4 className="font-medium text-green-700 dark:text-green-400 mb-3">Pedido Original</h4>
-                                        <div className="space-y-2">
-                                            <div>
-                                                <Label className="text-xs font-medium text-foreground">Número</Label>
-                                                <p className="text-sm text-foreground">#{selectedClient.first_order.number}</p>
-                                            </div>
-                                            <div>
-                                                <Label className="text-xs font-medium text-foreground">Data</Label>
-                                                <p className="text-sm text-foreground">{selectedClient.first_order.date}</p>
-                                            </div>
-                                            <div>
-                                                <Label className="text-xs font-medium text-foreground">Total</Label>
-                                                <p className="text-sm font-semibold text-green-700 dark:text-green-400">{selectedClient.first_order.total}</p>
-                                            </div>
+                                        <div>
+                                            <Label className="text-sm font-medium text-foreground">Telefone</Label>
+                                            <p className="text-sm text-muted-foreground">{selectedClient.customer_phone}</p>
                                         </div>
-                                    </div>
-
-                                    <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
-                                        <h4 className="font-medium text-red-700 dark:text-red-400 mb-3">Pedido Duplicado</h4>
-                                        <div className="space-y-2">
-                                            <div>
-                                                <Label className="text-xs font-medium text-foreground">Número</Label>
-                                                <p className="text-sm text-foreground">#{selectedClient.duplicate_order.number}</p>
-                                            </div>
-                                            <div>
-                                                <Label className="text-xs font-medium text-foreground">Data</Label>
-                                                <p className="text-sm text-foreground">{selectedClient.duplicate_order.date}</p>
-                                            </div>
-                                            <div>
-                                                <Label className="text-xs font-medium text-foreground">Total</Label>
-                                                <p className="text-sm font-semibold text-red-700 dark:text-red-400">{selectedClient.duplicate_order.total}</p>
-                                            </div>
+                                        <div>
+                                            <Label className="text-sm font-medium text-foreground">Status</Label>
+                                            <Badge variant="outline" className="text-xs">
+                                                {selectedClient.status || 'N/A'}
+                                            </Badge>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <Separator />
+                                {/* Endereço do Cliente - DADOS REAIS DA API */}
+                                {selectedClient.customer_address && (
+                                    <>
+                                        <Separator />
+                                        <div className="space-y-4">
+                                            <h3 className="font-semibold text-foreground flex items-center space-x-2">
+                                                <MapPin className="h-4 w-4" />
+                                                <span>Endereço de Entrega</span>
+                                            </h3>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg border border-border">
+                                                {selectedClient.customer_address.address1 && (
+                                                    <div className="col-span-1 sm:col-span-2">
+                                                        <Label className="text-sm font-medium text-foreground">Endereço</Label>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {selectedClient.customer_address.address1}
+                                                            {selectedClient.customer_address.address2 && `, ${selectedClient.customer_address.address2}`}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                                {selectedClient.customer_address.company && (
+                                                    <div>
+                                                        <Label className="text-sm font-medium text-foreground">Empresa</Label>
+                                                        <p className="text-sm text-muted-foreground">{selectedClient.customer_address.company}</p>
+                                                    </div>
+                                                )}
+                                                {selectedClient.customer_address.city && (
+                                                    <div>
+                                                        <Label className="text-sm font-medium text-foreground">Cidade</Label>
+                                                        <p className="text-sm text-muted-foreground">{selectedClient.customer_address.city}</p>
+                                                    </div>
+                                                )}
+                                                {selectedClient.customer_address.province && (
+                                                    <div>
+                                                        <Label className="text-sm font-medium text-foreground">Estado</Label>
+                                                        <p className="text-sm text-muted-foreground">{selectedClient.customer_address.province}</p>
+                                                    </div>
+                                                )}
+                                                {selectedClient.customer_address.zip && (
+                                                    <div>
+                                                        <Label className="text-sm font-medium text-foreground">CEP</Label>
+                                                        <p className="text-sm text-muted-foreground">{selectedClient.customer_address.zip}</p>
+                                                    </div>
+                                                )}
+                                                {selectedClient.customer_address.country && (
+                                                    <div>
+                                                        <Label className="text-sm font-medium text-foreground">País</Label>
+                                                        <p className="text-sm text-muted-foreground">{selectedClient.customer_address.country}</p>
+                                                    </div>
+                                                )}
+                                                {selectedClient.customer_address.phone && (
+                                                    <div>
+                                                        <Label className="text-sm font-medium text-foreground">Telefone do Endereço</Label>
+                                                        <p className="text-sm text-muted-foreground">{selectedClient.customer_address.phone}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
 
-                            {/* Produtos e Intervalo */}
-                            <div className="space-y-4">
-                                <div>
-                                    <Label className="text-sm font-medium text-foreground">Produtos</Label>
-                                    <p className="text-sm text-muted-foreground">{selectedClient.product_names?.join(', ') || 'N/A'}</p>
+                                <Separator />
+
+                                {/* Comparação de Pedidos */}
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold text-foreground">Comparação de Pedidos</h3>
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                        <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                                            <h4 className="font-medium text-green-700 dark:text-green-400 mb-3">Pedido Original</h4>
+                                            <div className="space-y-2">
+                                                <div>
+                                                    <Label className="text-xs font-medium text-foreground">Número</Label>
+                                                    <p className="text-sm text-foreground">#{selectedClient.first_order.number}</p>
+                                                </div>
+                                                <div>
+                                                    <Label className="text-xs font-medium text-foreground">Data</Label>
+                                                    <p className="text-sm text-foreground">{selectedClient.first_order.date}</p>
+                                                </div>
+                                                <div>
+                                                    <Label className="text-xs font-medium text-foreground">Total</Label>
+                                                    <p className="text-sm font-semibold text-green-700 dark:text-green-400">{selectedClient.first_order.total}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
+                                            <h4 className="font-medium text-red-700 dark:text-red-400 mb-3">Pedido Duplicado</h4>
+                                            <div className="space-y-2">
+                                                <div>
+                                                    <Label className="text-xs font-medium text-foreground">Número</Label>
+                                                    <p className="text-sm text-foreground">#{selectedClient.duplicate_order.number}</p>
+                                                </div>
+                                                <div>
+                                                    <Label className="text-xs font-medium text-foreground">Data</Label>
+                                                    <p className="text-sm text-foreground">{selectedClient.duplicate_order.date}</p>
+                                                </div>
+                                                <div>
+                                                    <Label className="text-xs font-medium text-foreground">Total</Label>
+                                                    <p className="text-sm font-semibold text-red-700 dark:text-red-400">{selectedClient.duplicate_order.total}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <Label className="text-sm font-medium text-foreground">Intervalo entre pedidos</Label>
-                                    <div className="flex items-center space-x-2">
-                                        <Badge variant={selectedClient.days_between <= 7 ? 'destructive' : selectedClient.days_between <= 15 ? 'secondary' : 'outline'}>
-                                            {selectedClient.days_between} dias
-                                        </Badge>
+
+                                <Separator />
+
+                                {/* Produtos e Intervalo */}
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label className="text-sm font-medium text-foreground">Produtos</Label>
+                                        <p className="text-sm text-muted-foreground">{selectedClient.product_names?.join(', ') || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <Label className="text-sm font-medium text-foreground">Intervalo entre pedidos</Label>
+                                        <div className="flex items-center space-x-2">
+                                            <Badge variant={selectedClient.days_between <= 7 ? 'destructive' : selectedClient.days_between <= 15 ? 'secondary' : 'outline'}>
+                                                {selectedClient.days_between} dias
+                                            </Badge>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </ScrollArea>
                     )}
                 </DialogContent>
             </Dialog>

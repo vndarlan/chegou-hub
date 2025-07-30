@@ -53,6 +53,39 @@ class ShopifyDuplicateOrderDetector:
         except Exception as e:
             return False, f"Erro: {str(e)}"
     
+    def get_order_details(self, order_id):
+        """Busca detalhes completos de um pedido incluindo endereço"""
+        try:
+            url = f"{self.base_url}/orders/{order_id}.json"
+            response = requests.get(url, headers=self.headers, timeout=10)
+            
+            if response.status_code == 200:
+                order_data = response.json()["order"]
+                
+                # Extrair endereço de entrega
+                shipping_address = order_data.get("shipping_address", {})
+                billing_address = order_data.get("billing_address", {})
+                
+                # Priorizar endereço de entrega, fallback para cobrança
+                address = shipping_address if shipping_address else billing_address
+                
+                return {
+                    "address1": address.get("address1", ""),
+                    "address2": address.get("address2", ""),
+                    "city": address.get("city", ""),
+                    "province": address.get("province", ""),
+                    "zip": address.get("zip", ""),
+                    "country": address.get("country", ""),
+                    "company": address.get("company", ""),
+                    "phone": address.get("phone", "")
+                }
+            else:
+                return None
+                
+        except Exception as e:
+            print(f"Erro ao buscar detalhes do pedido {order_id}: {str(e)}")
+            return None
+    
     def get_all_orders(self, days_back=60):
         """Busca pedidos dos últimos X dias usando cursor-based pagination"""
         all_orders = []
@@ -236,9 +269,13 @@ class ShopifyDuplicateOrderDetector:
                     last_name = unprocessed_order["customer"].get("last_name") or ""
                     customer_name = f"{first_name} {last_name}".strip()
                     
+                    # Buscar endereço do pedido duplicado
+                    duplicate_address = self.get_order_details(unprocessed_order["id"])
+                    
                     duplicate_candidates.append({
                         "customer_phone": unprocessed_order["customer"]["phone"],
                         "customer_name": customer_name,
+                        "customer_address": duplicate_address,  # NOVO: endereço real da API
                         "first_order": {
                             "id": original_order["id"],
                             "number": original_order["order_number"],
