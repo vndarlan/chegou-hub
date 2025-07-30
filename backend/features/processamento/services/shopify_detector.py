@@ -401,15 +401,15 @@ class ShopifyDuplicateOrderDetector:
                     # Buscar detalhes do produto
                     item_info = product_info["item"]
                     sku = product_info["sku"]
-                    name = product_info["name"]
-                    product_title = item_info.get("title", f"SKU: {sku}" if sku else name)
+                    product_name = product_info["name"]
+                    product_title = item_info.get("title", f"SKU: {sku}" if sku else product_name)
                     
                     # Determinar critério de match
                     match_criteria = []
                     if sku:
                         match_criteria.append(f"SKU: {sku}")
-                    if name:
-                        match_criteria.append(f"Nome: {item_info.get('title', name)}")
+                    if product_name:
+                        match_criteria.append(f"Nome: {item_info.get('title', product_name)}")
                     
                     duplicate_candidates.append({
                         "customer_phone": unprocessed_order["customer"]["phone"],
@@ -430,7 +430,7 @@ class ShopifyDuplicateOrderDetector:
                             "total": unprocessed_order['total_price'],
                             "currency": unprocessed_order.get('currency', 'USD')
                         },
-                        "common_products": [sku] if sku else [name],
+                        "common_products": [sku] if sku else [product_name],
                         "common_product_names": [product_title],
                         "match_criteria": match_criteria,  # Como foi detectada a duplicata
                         "days_between": days_diff,
