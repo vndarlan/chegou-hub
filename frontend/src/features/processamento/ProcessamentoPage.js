@@ -19,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import {
     ShoppingCart, AlertCircle, Check, X, RefreshCw, Trash2, 
     Settings, History, Plus, Building, Cloud, CloudOff, 
-    Book, Search, Target, Loader2
+    Book, Search, Target, Loader2, Eye
 } from 'lucide-react';
 
 function ProcessamentoPage() {
@@ -36,6 +36,8 @@ function ProcessamentoPage() {
     const [showAddStore, setShowAddStore] = useState(false);
     const [showInstructions, setShowInstructions] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
+    const [showClientDetails, setShowClientDetails] = useState(false);
+    const [selectedClient, setSelectedClient] = useState(null);
     const [newStore, setNewStore] = useState({ nome_loja: '', shop_url: '', access_token: '' });
     const [testingConnection, setTestingConnection] = useState(false);
     const [connectionResult, setConnectionResult] = useState(null);
@@ -209,6 +211,11 @@ function ProcessamentoPage() {
         }
     };
 
+    const openClientDetails = (duplicate) => {
+        setSelectedClient(duplicate);
+        setShowClientDetails(true);
+    };
+
     if (loading) {
         return (
             <div className="flex h-screen items-center justify-center">
@@ -229,14 +236,9 @@ function ProcessamentoPage() {
 
             {/* Header */}
             <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                        <ShoppingCart className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                        <h1 className="text-2xl font-bold">Shopify Duplicados</h1>
-                        <p className="text-muted-foreground">Gerenciamento de pedidos duplicados</p>
-                    </div>
+                <div>
+                    <h1 className="text-2xl font-bold">Shopify Duplicados</h1>
+                    <p className="text-muted-foreground">Gerenciamento de pedidos duplicados</p>
                 </div>
                 
                 <div className="flex items-center space-x-2">
@@ -389,7 +391,7 @@ function ProcessamentoPage() {
                         </DialogContent>
                     </Dialog>
                     
-                    <Button variant="outline" size="icon" onClick={() => { setShowHistory(!showHistory); if (!showHistory) loadLogs(); }}>
+                    <Button variant="outline" size="icon" onClick={() => { setShowHistory(true); loadLogs(); }}>
                         <History className="h-4 w-4" />
                     </Button>
                 </div>
@@ -400,10 +402,6 @@ function ProcessamentoPage() {
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle className="flex items-center space-x-2">
-                                <Target className="h-5 w-5" />
-                                <span>Pedidos Duplicados</span>
-                            </CardTitle>
                             <CardDescription>Detecte e gerencie pedidos duplicados automaticamente</CardDescription>
                         </div>
                         
@@ -521,7 +519,7 @@ function ProcessamentoPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <p className="text-xs text-muted-foreground truncate max-w-32">
+                                                <p className="text-xs text-muted-foreground">
                                                     {duplicate.product_names?.join(', ') || 'N/A'}
                                                 </p>
                                             </TableCell>
@@ -531,17 +529,26 @@ function ProcessamentoPage() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <Button
-                                                    variant="destructive"
-                                                    size="sm"
-                                                    onClick={() => cancelOrder(duplicate)}
-                                                    disabled={cancellingOrder === duplicate.duplicate_order.id}
-                                                >
-                                                    {cancellingOrder === duplicate.duplicate_order.id ? 
-                                                        <Loader2 className="h-4 w-4 animate-spin" /> : 
-                                                        <Trash2 className="h-4 w-4" />
-                                                    }
-                                                </Button>
+                                                <div className="flex items-center justify-end space-x-1">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => openClientDetails(duplicate)}
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="destructive"
+                                                        size="sm"
+                                                        onClick={() => cancelOrder(duplicate)}
+                                                        disabled={cancellingOrder === duplicate.duplicate_order.id}
+                                                    >
+                                                        {cancellingOrder === duplicate.duplicate_order.id ? 
+                                                            <Loader2 className="h-4 w-4 animate-spin" /> : 
+                                                            <Trash2 className="h-4 w-4" />
+                                                        }
+                                                    </Button>
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -553,21 +560,21 @@ function ProcessamentoPage() {
             </Card>
 
             {/* Histórico */}
-            {showHistory && (
-                <Card>
-                    <CardHeader>
+            <Dialog open={showHistory} onOpenChange={setShowHistory}>
+                <DialogContent className="max-w-4xl">
+                    <DialogHeader>
                         <div className="flex items-center justify-between">
-                            <CardTitle className="flex items-center space-x-2">
+                            <DialogTitle className="flex items-center space-x-2">
                                 <History className="h-5 w-5" />
                                 <span>Histórico de Operações</span>
-                            </CardTitle>
+                            </DialogTitle>
                             <Button variant="outline" size="sm" onClick={loadLogs}>
                                 <RefreshCw className="h-4 w-4 mr-2" />
                                 Atualizar
                             </Button>
                         </div>
-                    </CardHeader>
-                    <CardContent>
+                    </DialogHeader>
+                    <div>
                         {logs.length === 0 ? (
                             <p className="text-center text-muted-foreground py-8">Nenhum histórico encontrado</p>
                         ) : (
@@ -604,9 +611,99 @@ function ProcessamentoPage() {
                                 </div>
                             </ScrollArea>
                         )}
-                    </CardContent>
-                </Card>
-            )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Detalhes do Cliente */}
+            <Dialog open={showClientDetails} onOpenChange={setShowClientDetails}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Detalhes do Cliente</DialogTitle>
+                        <DialogDescription>Informações completas sobre o cliente e pedidos</DialogDescription>
+                    </DialogHeader>
+                    {selectedClient && (
+                        <div className="space-y-6">
+                            {/* Informações do Cliente */}
+                            <div className="space-y-4">
+                                <h3 className="font-semibold">Informações do Cliente</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <Label className="text-sm font-medium">Nome</Label>
+                                        <p className="text-sm text-muted-foreground">{selectedClient.customer_name}</p>
+                                    </div>
+                                    <div>
+                                        <Label className="text-sm font-medium">Telefone</Label>
+                                        <p className="text-sm text-muted-foreground">{selectedClient.customer_phone}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <Separator />
+
+                            {/* Comparação de Pedidos */}
+                            <div className="space-y-4">
+                                <h3 className="font-semibold">Comparação de Pedidos</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                                        <h4 className="font-medium text-green-700 mb-3">Pedido Original</h4>
+                                        <div className="space-y-2">
+                                            <div>
+                                                <Label className="text-xs font-medium">Número</Label>
+                                                <p className="text-sm">#{selectedClient.first_order.number}</p>
+                                            </div>
+                                            <div>
+                                                <Label className="text-xs font-medium">Data</Label>
+                                                <p className="text-sm">{selectedClient.first_order.date}</p>
+                                            </div>
+                                            <div>
+                                                <Label className="text-xs font-medium">Total</Label>
+                                                <p className="text-sm font-semibold text-green-700">{selectedClient.first_order.total}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                                        <h4 className="font-medium text-red-700 mb-3">Pedido Duplicado</h4>
+                                        <div className="space-y-2">
+                                            <div>
+                                                <Label className="text-xs font-medium">Número</Label>
+                                                <p className="text-sm">#{selectedClient.duplicate_order.number}</p>
+                                            </div>
+                                            <div>
+                                                <Label className="text-xs font-medium">Data</Label>
+                                                <p className="text-sm">{selectedClient.duplicate_order.date}</p>
+                                            </div>
+                                            <div>
+                                                <Label className="text-xs font-medium">Total</Label>
+                                                <p className="text-sm font-semibold text-red-700">{selectedClient.duplicate_order.total}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <Separator />
+
+                            {/* Produtos e Intervalo */}
+                            <div className="space-y-4">
+                                <div>
+                                    <Label className="text-sm font-medium">Produtos</Label>
+                                    <p className="text-sm text-muted-foreground">{selectedClient.product_names?.join(', ') || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <Label className="text-sm font-medium">Intervalo entre pedidos</Label>
+                                    <div className="flex items-center space-x-2">
+                                        <Badge variant={selectedClient.days_between <= 7 ? 'destructive' : selectedClient.days_between <= 15 ? 'secondary' : 'outline'}>
+                                            {selectedClient.days_between} dias
+                                        </Badge>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
