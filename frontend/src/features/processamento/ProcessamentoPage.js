@@ -374,14 +374,6 @@ function ProcessamentoPage() {
                                     <p className="text-sm text-muted-foreground">{orderData.shipping_address.phone}</p>
                                 </div>
                             )}
-                            {(orderData.shipping_address.latitude && orderData.shipping_address.longitude) && (
-                                <div>
-                                    <Label className="text-xs font-medium text-foreground">Coordenadas</Label>
-                                    <p className="text-sm text-muted-foreground">
-                                        {orderData.shipping_address.latitude}, {orderData.shipping_address.longitude}
-                                    </p>
-                                </div>
-                            )}
                         </div>
                     </div>
                 )}
@@ -660,7 +652,7 @@ function ProcessamentoPage() {
                                             <TableHead className="text-foreground">Cliente</TableHead>
                                             <TableHead className="text-foreground">Pedido Original</TableHead>
                                             <TableHead className="text-foreground">Duplicata</TableHead>
-                                            <TableHead className="text-foreground">Produtos</TableHead>
+                                            <TableHead className="text-foreground">Produtos (SKU)</TableHead>
                                             <TableHead className="text-foreground">Intervalo</TableHead>
                                             <TableHead className="text-right text-foreground">Ações</TableHead>
                                         </TableRow>
@@ -700,9 +692,14 @@ function ProcessamentoPage() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {duplicate.product_names?.join(', ') || 'N/A'}
-                                                    </p>
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {duplicate.product_names?.join(', ') || 'N/A'}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground font-mono">
+                                                            SKU: {duplicate.common_products?.join(', ') || 'N/A'}
+                                                        </p>
+                                                    </div>
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge variant={duplicate.days_between <= 7 ? 'destructive' : duplicate.days_between <= 15 ? 'secondary' : 'outline'}>
@@ -837,8 +834,11 @@ function ProcessamentoPage() {
                                 {/* Produtos e Intervalo */}
                                 <div className="space-y-4">
                                     <div>
-                                        <Label className="text-sm font-medium text-foreground">Produtos em Comum</Label>
-                                        <p className="text-sm text-muted-foreground">{selectedClient.product_names?.join(', ') || 'N/A'}</p>
+                                        <Label className="text-sm font-medium text-foreground">Produtos em Comum (SKU)</Label>
+                                        <div className="space-y-1">
+                                            <p className="text-sm text-muted-foreground">{selectedClient.product_names?.join(', ') || 'N/A'}</p>
+                                            <p className="text-xs text-muted-foreground font-mono">SKU: {selectedClient.common_products?.join(', ') || 'N/A'}</p>
+                                        </div>
                                     </div>
                                     <div>
                                         <Label className="text-sm font-medium text-foreground">Intervalo entre pedidos</Label>
