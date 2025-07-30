@@ -652,7 +652,7 @@ function ProcessamentoPage() {
                                             <TableHead className="text-foreground">Cliente</TableHead>
                                             <TableHead className="text-foreground">Pedido Original</TableHead>
                                             <TableHead className="text-foreground">Duplicata</TableHead>
-                                            <TableHead className="text-foreground">Produtos (SKU)</TableHead>
+                                            <TableHead className="text-foreground">Produtos (Match)</TableHead>
                                             <TableHead className="text-foreground">Intervalo</TableHead>
                                             <TableHead className="text-right text-foreground">Ações</TableHead>
                                         </TableRow>
@@ -696,8 +696,8 @@ function ProcessamentoPage() {
                                                         <p className="text-xs text-muted-foreground">
                                                             {duplicate.product_names?.join(', ') || 'N/A'}
                                                         </p>
-                                                        <p className="text-xs text-muted-foreground font-mono">
-                                                            SKU: {duplicate.common_products?.join(', ') || 'N/A'}
+                                                        <p className="text-xs text-blue-600 dark:text-blue-400 font-mono">
+                                                            {duplicate.match_criteria?.join(' | ') || 'N/A'}
                                                         </p>
                                                     </div>
                                                 </TableCell>
@@ -834,10 +834,12 @@ function ProcessamentoPage() {
                                 {/* Produtos e Intervalo */}
                                 <div className="space-y-4">
                                     <div>
-                                        <Label className="text-sm font-medium text-foreground">Produtos em Comum (SKU)</Label>
+                                        <Label className="text-sm font-medium text-foreground">Produtos em Comum</Label>
                                         <div className="space-y-1">
                                             <p className="text-sm text-muted-foreground">{selectedClient.product_names?.join(', ') || 'N/A'}</p>
-                                            <p className="text-xs text-muted-foreground font-mono">SKU: {selectedClient.common_products?.join(', ') || 'N/A'}</p>
+                                            <p className="text-xs text-blue-600 dark:text-blue-400 font-mono">
+                                                Detectado por: {selectedClient.match_criteria?.join(' | ') || 'N/A'}
+                                            </p>
                                         </div>
                                     </div>
                                     <div>

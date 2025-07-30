@@ -16,7 +16,51 @@ class ShopifyDuplicateOrderDetector:
             "X-Shopify-Access-Token": access_token
         }
     
+    def normalize_product_name(self, name):
+        """Normaliza nome do produto para comparação"""
+        if not name:
+            return ""
+        return name.lower().strip()
+    
+    def get_product_identifier(self, item):
+        """Retorna identificador único do produto (SKU ou nome normalizado)"""
+        sku = item.get("sku", "").strip()
+        name = self.normalize_product_name(item.get("title", ""))
+        return {"sku": sku, "name": name}
+    
+    def products_match(self, item1, item2):
+        """Verifica se dois produtos são iguais (SKU igual OU nome igual)"""
+        id1 = self.get_product_identifier(item1)
+        id2 = self.get_product_identifier(item2)
+        
+        # Considera igual se SKU igual (e não vazio) OU nome igual (e não vazio)
+        sku_match = id1["sku"] and id2["sku"] and id1["sku"] == id2["sku"]
+        name_match = id1["name"] and id2["name"] and id1["name"] == id2["name"]
+        
+        return sku_match or name_match
+    
     def normalize_phone(self, phone):
+        """Normaliza nome do produto para comparação"""
+        if not name:
+            return ""
+        return name.lower().strip()
+    
+    def get_product_identifier(self, item):
+        """Retorna identificador único do produto (SKU ou nome normalizado)"""
+        sku = item.get("sku", "").strip()
+        name = self.normalize_product_name(item.get("title", ""))
+        return {"sku": sku, "name": name}
+    
+    def products_match(self, item1, item2):
+        """Verifica se dois produtos são iguais (SKU igual OU nome igual)"""
+        id1 = self.get_product_identifier(item1)
+        id2 = self.get_product_identifier(item2)
+        
+        # Considera igual se SKU igual (e não vazio) OU nome igual (e não vazio)
+        sku_match = id1["sku"] and id2["sku"] and id1["sku"] == id2["sku"]
+        name_match = id1["name"] and id2["name"] and id1["name"] == id2["name"]
+        
+        return sku_match or name_match
         """Normaliza número de telefone para comparação"""
         if not phone:
             return ""
@@ -238,41 +282,71 @@ class ShopifyDuplicateOrderDetector:
             
             customer_orders.sort(key=lambda x: x["created_at"])
             
-            # Agrupa por produto (SKU)
+            # Agrupa pedidos por produtos similares (SKU igual OU nome igual)
             product_orders = defaultdict(list)
             for order in customer_orders:
                 for item in order["line_items"]:
+                    # Cria chave única baseada em SKU e nome
                     sku = item.get("sku", "").strip()
-                    if sku:  # Só considera itens com SKU
-                        product_orders[sku].append(order)
+                    name = self.normalize_product_name(item.get("title", ""))
+                    
+                    # Usa SKU como chave primária se existir, senão usa nome
+                    if sku:
+                        key = f"sku:{sku}"
+                    elif name:
+                        key = f"name:{name}"
+                    else:
+                        continue  # Pula itens sem SKU nem nome
+                    
+                    product_orders[key].append({
+                        "order": order,
+                        "item": item,
+                        "sku": sku,
+                        "name": name
+                    })
             
-            # Verifica duplicatas para SKUs do pedido não processado
-            unprocessed_skus = set()
+            # Verifica duplicatas para produtos do pedido não processado
+            unprocessed_products = []
             for item in unprocessed_order["line_items"]:
                 sku = item.get("sku", "").strip()
+                name = self.normalize_product_name(item.get("title", ""))
+                
                 if sku:
-                    unprocessed_skus.add(sku)
+                    key = f"sku:{sku}"
+                elif name:
+                    key = f"name:{name}"
+                else:
+                    continue
+                
+                unprocessed_products.append({
+                    "key": key,
+                    "item": item,
+                    "sku": sku,
+                    "name": name
+                })
             
-            for sku in unprocessed_skus:
-                orders_with_sku = product_orders[sku]
+            for product_info in unprocessed_products:
+                key = product_info["key"]
+                orders_with_product = product_orders[key]
                 
-                if len(orders_with_sku) < 2:
+                if len(orders_with_product) < 2:
                     continue
                 
-                # Remove duplicatas por ID
-                unique_product_orders = {}
-                for order in orders_with_sku:
-                    unique_product_orders[order['id']] = order
-                orders_with_sku = list(unique_product_orders.values())
+                # Extrai apenas os pedidos únicos
+                unique_orders = {}
+                for order_info in orders_with_product:
+                    order = order_info["order"]
+                    unique_orders[order['id']] = order
+                orders_with_product_unique = list(unique_orders.values())
                 
-                if len(orders_with_sku) < 2:
+                if len(orders_with_product_unique) < 2:
                     continue
                 
-                orders_with_sku.sort(key=lambda x: x["created_at"])
+                orders_with_product_unique.sort(key=lambda x: x["created_at"])
                 
-                # Busca pedidos processados do mesmo SKU
+                # Busca pedidos processados do mesmo produto
                 processed_orders = []
-                for order in orders_with_sku:
+                for order in orders_with_product_unique:
                     if order['id'] != unprocessed_order['id']:
                         tags = order.get("tags", "").lower()
                         is_processed = ("order sent to dropi" in tags or "dropi sync error" in tags or 
@@ -286,22 +360,22 @@ class ShopifyDuplicateOrderDetector:
                     original_order = processed_orders[-1]
                 # CENÁRIO 2: Nenhum processado - mais antigo prevalece
                 else:
-                    # Filtra apenas pedidos não processados do mesmo SKU
-                    unprocessed_orders_with_sku = []
-                    for order in orders_with_sku:
+                    # Filtra apenas pedidos não processados do mesmo produto
+                    unprocessed_orders_with_product = []
+                    for order in orders_with_product_unique:
                         tags = order.get("tags", "").lower()
                         is_processed = ("order sent to dropi" in tags or "dropi sync error" in tags or 
                                       "eh" in tags or "p cod" in tags or "prime cod" in tags)
                         if not is_processed:
-                            unprocessed_orders_with_sku.append(order)
+                            unprocessed_orders_with_product.append(order)
                     
                     # Precisa ter pelo menos 2 pedidos não processados
-                    if len(unprocessed_orders_with_sku) < 2:
+                    if len(unprocessed_orders_with_product) < 2:
                         continue
                     
                     # Ordena por data - mais antigo será o original
-                    unprocessed_orders_with_sku.sort(key=lambda x: x["created_at"])
-                    original_order = unprocessed_orders_with_sku[0]  # Mais antigo
+                    unprocessed_orders_with_product.sort(key=lambda x: x["created_at"])
+                    original_order = unprocessed_orders_with_product[0]  # Mais antigo
                     
                     # Se o pedido atual É o mais antigo, pula (não é duplicata)
                     if unprocessed_order['id'] == original_order['id']:
@@ -324,18 +398,24 @@ class ShopifyDuplicateOrderDetector:
                     duplicate_address = self.get_order_details(unprocessed_order["id"])
                     original_address = self.get_order_details(original_order["id"])
                     
-                    # Buscar nome do produto pelo SKU
-                    product_name = "Produto não encontrado"
-                    for item in unprocessed_order["line_items"]:
-                        if item.get("sku", "").strip() == sku:
-                            product_name = item.get("title", f"SKU: {sku}")
-                            break
+                    # Buscar detalhes do produto
+                    item_info = product_info["item"]
+                    sku = product_info["sku"]
+                    name = product_info["name"]
+                    product_title = item_info.get("title", f"SKU: {sku}" if sku else name)
+                    
+                    # Determinar critério de match
+                    match_criteria = []
+                    if sku:
+                        match_criteria.append(f"SKU: {sku}")
+                    if name:
+                        match_criteria.append(f"Nome: {item_info.get('title', name)}")
                     
                     duplicate_candidates.append({
                         "customer_phone": unprocessed_order["customer"]["phone"],
                         "customer_name": customer_name,
-                        "customer_address": duplicate_address,  # Endereço do pedido duplicado
-                        "original_order_address": original_address,  # NOVO: Endereço do pedido original
+                        "customer_address": duplicate_address,
+                        "original_order_address": original_address,
                         "first_order": {
                             "id": original_order["id"],
                             "number": original_order["order_number"],
@@ -350,8 +430,9 @@ class ShopifyDuplicateOrderDetector:
                             "total": unprocessed_order['total_price'],
                             "currency": unprocessed_order.get('currency', 'USD')
                         },
-                        "common_products": [sku],
-                        "common_product_names": [product_name],  # Nome do produto
+                        "common_products": [sku] if sku else [name],
+                        "common_product_names": [product_title],
+                        "match_criteria": match_criteria,  # Como foi detectada a duplicata
                         "days_between": days_diff,
                         "status": unprocessed_order["financial_status"]
                     })
