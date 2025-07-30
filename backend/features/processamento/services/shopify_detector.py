@@ -69,6 +69,10 @@ class ShopifyDuplicateOrderDetector:
                 
                 # Compilar TODOS os dados de endereço disponíveis
                 address_data = {
+                    "order_id": order_id,
+                    "order_number": order_data.get("order_number", ""),
+                    "order_date": order_data.get("created_at", ""),
+                    "order_total": order_data.get("total_price", ""),
                     "has_shipping": bool(shipping_address),
                     "has_billing": bool(billing_address),
                     "shipping_address": {
@@ -313,13 +317,15 @@ class ShopifyDuplicateOrderDetector:
                     last_name = unprocessed_order["customer"].get("last_name") or ""
                     customer_name = f"{first_name} {last_name}".strip()
                     
-                    # Buscar endereço do pedido duplicado
+                    # Buscar endereços dos dois pedidos
                     duplicate_address = self.get_order_details(unprocessed_order["id"])
+                    original_address = self.get_order_details(original_order["id"])
                     
                     duplicate_candidates.append({
                         "customer_phone": unprocessed_order["customer"]["phone"],
                         "customer_name": customer_name,
-                        "customer_address": duplicate_address,  # NOVO: endereço real da API
+                        "customer_address": duplicate_address,  # Endereço do pedido duplicado
+                        "original_order_address": original_address,  # NOVO: Endereço do pedido original
                         "first_order": {
                             "id": original_order["id"],
                             "number": original_order["order_number"],
