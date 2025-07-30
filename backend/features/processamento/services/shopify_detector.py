@@ -40,27 +40,6 @@ class ShopifyDuplicateOrderDetector:
         return sku_match or name_match
     
     def normalize_phone(self, phone):
-        """Normaliza nome do produto para comparação"""
-        if not name:
-            return ""
-        return name.lower().strip()
-    
-    def get_product_identifier(self, item):
-        """Retorna identificador único do produto (SKU ou nome normalizado)"""
-        sku = item.get("sku", "").strip()
-        name = self.normalize_product_name(item.get("title", ""))
-        return {"sku": sku, "name": name}
-    
-    def products_match(self, item1, item2):
-        """Verifica se dois produtos são iguais (SKU igual OU nome igual)"""
-        id1 = self.get_product_identifier(item1)
-        id2 = self.get_product_identifier(item2)
-        
-        # Considera igual se SKU igual (e não vazio) OU nome igual (e não vazio)
-        sku_match = id1["sku"] and id2["sku"] and id1["sku"] == id2["sku"]
-        name_match = id1["name"] and id2["name"] and id1["name"] == id2["name"]
-        
-        return sku_match or name_match
         """Normaliza número de telefone para comparação"""
         if not phone:
             return ""
@@ -291,10 +270,10 @@ class ShopifyDuplicateOrderDetector:
                     
                     # Adiciona ao grupo por SKU se existir
                     if sku:
-                        product_orders[f"sku:{sku}"].append(order)
+                        product_orders[f"sku:{sku}"].append({"order": order, "item": item, "sku": sku, "name": product_name})
                     # Adiciona ao grupo por nome se existir
                     if product_name:
-                        product_orders[f"name:{product_name}"].append(order)
+                        product_orders[f"name:{product_name}"].append({"order": order, "item": item, "sku": sku, "name": product_name})
             
             # Verifica duplicatas para produtos do pedido não processado
             unprocessed_keys = set()
@@ -379,7 +358,8 @@ class ShopifyDuplicateOrderDetector:
                     duplicate_address = self.get_order_details(unprocessed_order["id"])
                     original_address = self.get_order_details(original_order["id"])
                     
-                    # Buscar detalhes do produto
+                    # Buscar detalhes do produto baseado no primeiro item encontrado
+                    product_info = orders_with_product[0]
                     item_info = product_info["item"]
                     sku = product_info["sku"]
                     product_name = product_info["name"]
