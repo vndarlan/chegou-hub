@@ -288,13 +288,13 @@ class ShopifyDuplicateOrderDetector:
                 for item in order["line_items"]:
                     # Cria chave única baseada em SKU e nome
                     sku = item.get("sku", "").strip()
-                    name = self.normalize_product_name(item.get("title", ""))
+                    product_name = self.normalize_product_name(item.get("title", ""))
                     
                     # Usa SKU como chave primária se existir, senão usa nome
                     if sku:
                         key = f"sku:{sku}"
-                    elif name:
-                        key = f"name:{name}"
+                    elif product_name:
+                        key = f"name:{product_name}"
                     else:
                         continue  # Pula itens sem SKU nem nome
                     
@@ -302,19 +302,19 @@ class ShopifyDuplicateOrderDetector:
                         "order": order,
                         "item": item,
                         "sku": sku,
-                        "name": name
+                        "product_name": product_name
                     })
             
             # Verifica duplicatas para produtos do pedido não processado
             unprocessed_products = []
             for item in unprocessed_order["line_items"]:
                 sku = item.get("sku", "").strip()
-                name = self.normalize_product_name(item.get("title", ""))
+                product_name = self.normalize_product_name(item.get("title", ""))
                 
                 if sku:
                     key = f"sku:{sku}"
-                elif name:
-                    key = f"name:{name}"
+                elif product_name:
+                    key = f"name:{product_name}"
                 else:
                     continue
                 
@@ -322,7 +322,7 @@ class ShopifyDuplicateOrderDetector:
                     "key": key,
                     "item": item,
                     "sku": sku,
-                    "name": name
+                    "product_name": product_name
                 })
             
             for product_info in unprocessed_products:
