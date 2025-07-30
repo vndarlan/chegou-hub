@@ -1,24 +1,26 @@
 // frontend/src/features/processamento/ProcessamentoPage.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Badge } from '../../components/ui/badge';
+import { Progress } from '../../components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../components/ui/collapsible';
+import { Avatar, AvatarFallback } from '../../components/ui';
+import { ScrollArea } from '../../components/ui/scroll-area';
+import { Separator } from '../../components/ui/separator';
 import {
-    Box, Grid, Title, Text, Button, TextInput, PasswordInput,
-    LoadingOverlay, Alert, Card, Group, Stack, Table,
-    Modal, Badge, Progress, Notification, Select, Collapse,
-    ActionIcon, Tooltip, Avatar, Switch, Spotlight,
-    Transition, Paper, Container, Flex, Space, Divider,
-    NumberFormatter, SimpleGrid, ThemeIcon, ScrollArea,
-    UnstyledButton, rem, Center
-} from '@mantine/core';
-import {
-    IconShoppingCart, IconAlertCircle, IconCheck, IconX,
-    IconRefresh, IconTrash, IconSettings, IconHistory,
-    IconPlus, IconBuilding, IconCloudCheck, IconCloudX, 
-    IconBook, IconExternalLink, IconSearch, IconBell,
-    IconChevronDown, IconTarget, IconTrendingUp,
-    IconUsers, IconClock, IconShield, IconBolt,
-    IconArrowRight, IconDots, IconEdit, IconEye
-} from '@tabler/icons-react';
+    ShoppingCart, AlertCircle, Check, X, RefreshCw, Trash2, 
+    Settings, History, Plus, Building, CloudCheck, CloudX, 
+    Book, ExternalLink, Search, Bell, ChevronDown, Target, 
+    TrendingUp, Users, Clock, Shield, Zap, ArrowRight, 
+    MoreHorizontal, Edit, Eye, Loader2
+} from 'lucide-react';
 
 function ProcessamentoPage() {
     // Estados principais
@@ -202,574 +204,447 @@ function ProcessamentoPage() {
         }
     };
 
-    const lojasOptions = lojas.map(loja => ({
-        value: loja.id.toString(),
-        label: `${loja.nome_loja} (${loja.shop_url})`
-    }));
-
-    const renderStatsCard = (title, value, icon, color, subtitle) => (
-        <Paper
-            p="xl"
-            radius="lg"
-            withBorder
-            shadow="sm"
-            style={{
-                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.9) 100%)',
-                backdropFilter: 'blur(10px)',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer'
-            }}
-            className="hover-card"
-        >
-            <Group justify="space-between" mb="md">
-                <ThemeIcon size="lg" radius="md" variant="gradient" gradient={{ from: color, to: 'cyan' }}>
-                    {icon}
-                </ThemeIcon>
-                <ActionIcon variant="subtle" color="gray">
-                    <IconDots size="1rem" />
-                </ActionIcon>
-            </Group>
-            <Text size="xl" fw={700}>{value}</Text>
-            <Text size="sm" c="dimmed" mt={4}>{title}</Text>
-            {subtitle && <Text size="xs" c="dimmed" mt={2}>{subtitle}</Text>}
-        </Paper>
-    );
-
-    const renderModernDuplicateCard = (duplicate, index) => (
-        <Paper
-            key={index}
-            p="lg"
-            radius="md"
-            withBorder
-            shadow="sm"
-            style={{
-                background: 'rgba(255, 255, 255, 0.95)',
-                backdropFilter: 'blur(10px)',
-                transition: 'all 0.3s ease'
-            }}
-            className="duplicate-card"
-        >
-            <Group justify="space-between" mb="md">
-                <Group>
-                    <Avatar color="blue" radius="sm">
-                        {duplicate.customer_name?.charAt(0) || 'U'}
-                    </Avatar>
-                    <Box>
-                        <Text fw={600} size="sm">{duplicate.customer_name}</Text>
-                        <Text size="xs" c="dimmed">{duplicate.customer_phone}</Text>
-                    </Box>
-                </Group>
-                <Badge 
-                    variant="light" 
-                    color={duplicate.days_between <= 7 ? 'red' : duplicate.days_between <= 15 ? 'orange' : 'yellow'}
-                    radius="sm"
-                >
-                    {duplicate.days_between} dias
-                </Badge>
-            </Group>
-
-            <Grid mb="md">
-                <Grid.Col span={6}>
-                    <Paper p="sm" radius="sm" bg="rgba(34, 197, 94, 0.1)" withBorder>
-                        <Text size="xs" c="green.7" fw={500} mb={4}>PEDIDO ORIGINAL</Text>
-                        <Text size="sm" fw={600}>#{duplicate.first_order.number}</Text>
-                        <Text size="xs" c="dimmed">{duplicate.first_order.date}</Text>
-                        <Text size="xs" c="green.7">{duplicate.first_order.total}</Text>
-                    </Paper>
-                </Grid.Col>
-                <Grid.Col span={6}>
-                    <Paper p="sm" radius="sm" bg="rgba(239, 68, 68, 0.1)" withBorder>
-                        <Text size="xs" c="red.7" fw={500} mb={4}>DUPLICATA</Text>
-                        <Text size="sm" fw={600}>#{duplicate.duplicate_order.number}</Text>
-                        <Text size="xs" c="dimmed">{duplicate.duplicate_order.date}</Text>
-                        <Text size="xs" c="red.7">{duplicate.duplicate_order.total}</Text>
-                    </Paper>
-                </Grid.Col>
-            </Grid>
-
-            <Text size="xs" c="dimmed" mb="md">
-                <strong>Produtos:</strong> {duplicate.product_names?.join(', ') || 'N/A'}
-            </Text>
-
-            <Group justify="flex-end">
-                <Button
-                    size="sm"
-                    variant="light"
-                    color="red"
-                    leftSection={<IconTrash size={14} />}
-                    loading={cancellingOrder === duplicate.duplicate_order.id}
-                    onClick={() => cancelOrder(duplicate)}
-                    radius="md"
-                >
-                    Cancelar
-                </Button>
-            </Group>
-        </Paper>
-    );
-
     if (loading) {
         return (
-            <Center h="100vh">
-                <LoadingOverlay visible overlayProps={{ radius: "sm", blur: 2 }} />
-            </Center>
+            <div className="flex h-screen items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
         );
     }
 
     return (
-        <Box
-            style={{
-                minHeight: '100vh',
-                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-                position: 'relative'
-            }}
-        >
+        <div className="container mx-auto p-6 space-y-6">
             {/* Notification */}
-            <Transition mounted={!!notification} transition="slide-down">
-                {(styles) => (
-                    <Notification
-                        style={{ ...styles, position: 'fixed', top: 20, right: 20, zIndex: 1000 }}
-                        icon={notification?.type === 'success' ? <IconCheck size="1.1rem" /> : <IconX size="1.1rem" />}
-                        color={notification?.type === 'success' ? 'teal' : 'red'}
-                        title={notification?.type === 'success' ? 'Sucesso!' : 'Erro!'}
-                        onClose={() => setNotification(null)}
-                        radius="md"
-                    >
-                        {notification?.message}
-                    </Notification>
-                )}
-            </Transition>
+            {notification && (
+                <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4">
+                    {notification.type === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                    <AlertDescription>{notification.message}</AlertDescription>
+                </Alert>
+            )}
 
-            {/* Header Moderno */}
-            <Paper
-                p="md"
-                withBorder
-                shadow="sm"
-                style={{
-                    background: 'rgba(255, 255, 255, 0.9)',
-                    backdropFilter: 'blur(10px)',
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 100
-                }}
-            >
-                <Container size="xl">
-                    <Group justify="space-between">
-                        <Group>
-                            <ThemeIcon size="xl" radius="md" variant="gradient" gradient={{ from: 'orange', to: 'orange.6' }}>
-                                <IconShoppingCart size="1.5rem" />
-                            </ThemeIcon>
-                            <Box>
-                                <Title order={2} fw={700}>Shopify Duplicados</Title>
-                                <Text size="sm" c="dimmed">Gerenciamento inteligente de pedidos</Text>
-                            </Box>
-                        </Group>
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                        <ShoppingCart className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold">Shopify Duplicados</h1>
+                        <p className="text-muted-foreground">Gerenciamento de pedidos duplicados</p>
+                    </div>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                    <Select value={lojaSelecionada?.toString()} onValueChange={(value) => setLojaSelecionada(parseInt(value))}>
+                        <SelectTrigger className="w-64">
+                            <Building className="h-4 w-4 mr-2" />
+                            <SelectValue placeholder="Selecionar loja" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {lojas.map(loja => (
+                                <SelectItem key={loja.id} value={loja.id.toString()}>
+                                    {loja.nome_loja} ({loja.shop_url})
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    
+                    <Dialog open={showAddStore} onOpenChange={setShowAddStore}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" size="icon">
+                                <Plus className="h-4 w-4" />
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Adicionar Nova Loja</DialogTitle>
+                                <DialogDescription>Configure uma nova integração Shopify</DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                                <div>
+                                    <Label htmlFor="nome">Nome da Loja</Label>
+                                    <Input
+                                        id="nome"
+                                        placeholder="Ex: Loja Principal"
+                                        value={newStore.nome_loja}
+                                        onChange={(e) => setNewStore(prev => ({ ...prev, nome_loja: e.target.value }))}
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="url">URL da Loja</Label>
+                                    <Input
+                                        id="url"
+                                        placeholder="minha-loja.myshopify.com"
+                                        value={newStore.shop_url}
+                                        onChange={(e) => setNewStore(prev => ({ ...prev, shop_url: e.target.value }))}
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="token">Access Token</Label>
+                                    <Input
+                                        id="token"
+                                        type="password"
+                                        placeholder="Token de acesso da API"
+                                        value={newStore.access_token}
+                                        onChange={(e) => setNewStore(prev => ({ ...prev, access_token: e.target.value }))}
+                                    />
+                                </div>
+
+                                <div className="flex space-x-2">
+                                    <Button
+                                        variant="outline"
+                                        onClick={testConnection}
+                                        disabled={testingConnection}
+                                    >
+                                        {testingConnection ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CloudCheck className="h-4 w-4 mr-2" />}
+                                        Testar Conexão
+                                    </Button>
+                                    <Button
+                                        onClick={addStore}
+                                        disabled={!connectionResult?.success}
+                                    >
+                                        <Check className="h-4 w-4 mr-2" />
+                                        Adicionar Loja
+                                    </Button>
+                                </div>
+
+                                {connectionResult && (
+                                    <Alert variant={connectionResult.success ? 'default' : 'destructive'}>
+                                        {connectionResult.success ? <CloudCheck className="h-4 w-4" /> : <CloudX className="h-4 w-4" />}
+                                        <AlertDescription>{connectionResult.message}</AlertDescription>
+                                    </Alert>
+                                )}
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                    
+                    <Button variant="outline" size="icon" onClick={() => setShowInstructions(!showInstructions)}>
+                        <Book className="h-4 w-4" />
+                    </Button>
+                    
+                    <Button variant="outline" size="icon" onClick={() => { setShowHistory(!showHistory); if (!showHistory) loadLogs(); }}>
+                        <History className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm text-muted-foreground">Lojas Conectadas</p>
+                                <p className="text-2xl font-bold">{lojas.length}</p>
+                            </div>
+                            <Building className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm text-muted-foreground">Duplicatas</p>
+                                <p className="text-2xl font-bold">{duplicates.length}</p>
+                            </div>
+                            <Target className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm text-muted-foreground">Loja Ativa</p>
+                                <p className="text-sm font-medium">{lojaSelecionada ? lojas.find(l => l.id === lojaSelecionada)?.nome_loja : 'Nenhuma'}</p>
+                            </div>
+                            <Zap className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm text-muted-foreground">Status</p>
+                                <p className="text-sm font-medium">{lojaSelecionada ? "Conectado" : "Desconectado"}</p>
+                            </div>
+                            <Shield className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Instruções */}
+            <Collapsible open={showInstructions} onOpenChange={setShowInstructions}>
+                <CollapsibleContent>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center space-x-2">
+                                <Book className="h-5 w-5" />
+                                <span>Configuração Shopify</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-3">
+                                <div className="p-3 bg-muted rounded-lg">
+                                    <h4 className="font-semibold text-sm">1. Criar App Privado</h4>
+                                    <p className="text-sm text-muted-foreground">Acesse sua loja → Settings → Apps → Develop apps → Create an app</p>
+                                </div>
+                                <div className="p-3 bg-muted rounded-lg">
+                                    <h4 className="font-semibold text-sm">2. Configurar Permissões</h4>
+                                    <p className="text-sm text-muted-foreground">Adicione: read_orders, write_orders, read_products, read_customers</p>
+                                </div>
+                                <div className="p-3 bg-muted rounded-lg">
+                                    <h4 className="font-semibold text-sm">3. Gerar Token</h4>
+                                    <p className="text-sm text-muted-foreground">Install app → Copie o Admin API access token</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </CollapsibleContent>
+            </Collapsible>
+
+            {/* Área Principal */}
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle className="flex items-center space-x-2">
+                                <Target className="h-5 w-5" />
+                                <span>Pedidos Duplicados</span>
+                            </CardTitle>
+                            <CardDescription>Detecte e gerencie pedidos duplicados automaticamente</CardDescription>
+                        </div>
                         
-                        <Group>
-                            {/* Seletor de Loja Minimalista */}
-                            <Select
-                                placeholder="Selecionar loja"
-                                data={lojasOptions}
-                                value={lojaSelecionada?.toString()}
-                                onChange={(value) => setLojaSelecionada(parseInt(value))}
-                                leftSection={<IconBuilding size="1rem" />}
-                                style={{ minWidth: 200 }}
-                                radius="md"
-                                variant="filled"
-                            />
-                            
-                            <ActionIcon
-                                variant="light"
-                                color="orange"
-                                size="lg"
-                                radius="md"
-                                onClick={() => setShowAddStore(true)}
-                            >
-                                <IconPlus size="1.1rem" />
-                            </ActionIcon>
-                            
-                            <ActionIcon
-                                variant="light"
-                                color="gray"
-                                size="lg"
-                                radius="md"
-                                onClick={() => setShowInstructions(!showInstructions)}
-                            >
-                                <IconBook size="1.1rem" />
-                            </ActionIcon>
-                            
-                            <ActionIcon
-                                variant="light"
-                                color="gray"
-                                size="lg"
-                                radius="md"
-                                onClick={() => { setShowHistory(!showHistory); if (!showHistory) loadLogs(); }}
-                            >
-                                <IconHistory size="1.1rem" />
-                            </ActionIcon>
-                        </Group>
-                    </Group>
-                </Container>
-            </Paper>
-
-            <Container size="xl" py="xl">
-                {/* Stats Cards */}
-                <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="lg" mb="xl">
-                    {renderStatsCard("Lojas Conectadas", lojas.length, <IconBuilding size="1.2rem" />, "orange", "Integrações ativas")}
-                    {renderStatsCard("Duplicatas Encontradas", duplicates.length, <IconTarget size="1.2rem" />, "orange", "Aguardando ação")}
-                    {renderStatsCard("Loja Selecionada", lojaSelecionada ? lojas.find(l => l.id === lojaSelecionada)?.nome_loja || 'N/A' : 'Nenhuma', <IconBolt size="1.2rem" />, "orange", "Análise ativa")}
-                    {renderStatsCard("Status", lojaSelecionada ? "Conectado" : "Desconectado", <IconShield size="1.2rem" />, "orange", "Sistema operacional")}
-                </SimpleGrid>
-
-                {/* Instruções (Collapse) */}
-                <Collapse in={showInstructions}>
-                    <Paper
-                        p="xl"
-                        radius="lg"
-                        mb="xl"
-                        withBorder
-                        shadow="sm"
-                        style={{
-                            background: 'rgba(255, 255, 255, 0.95)',
-                            backdropFilter: 'blur(10px)'
-                        }}
-                    >
-                        <Title order={3} mb="md">📋 Configuração Shopify</Title>
-                        <Stack gap="md">
-                            <Paper p="md" radius="md" bg="rgba(251, 146, 60, 0.1)" withBorder>
-                                <Text fw={600} c="orange.7" mb="xs">1. Criar App Privado</Text>
-                                <Text size="sm" c="dimmed">Acesse sua loja → Settings → Apps → Develop apps → Create an app</Text>
-                            </Paper>
-                            <Paper p="md" radius="md" bg="rgba(251, 146, 60, 0.1)" withBorder>
-                                <Text fw={600} c="orange.7" mb="xs">2. Configurar Permissões</Text>
-                                <Text size="sm" c="dimmed">Adicione: read_orders, write_orders, read_products, read_customers</Text>
-                            </Paper>
-                            <Paper p="md" radius="md" bg="rgba(251, 146, 60, 0.1)" withBorder>
-                                <Text fw={600} c="orange.7" mb="xs">3. Gerar Token</Text>
-                                <Text size="sm" c="dimmed">Install app → Copie o Admin API access token</Text>
-                            </Paper>
-                        </Stack>
-                    </Paper>
-                </Collapse>
-
-                {/* Área Principal de Duplicatas */}
-                <Paper
-                    p="xl"
-                    radius="lg"
-                    withBorder
-                    shadow="sm"
-                    style={{
-                        background: 'rgba(255, 255, 255, 0.95)',
-                        backdropFilter: 'blur(10px)'
-                    }}
-                >
-                    <Group justify="space-between" mb="xl">
-                        <Box>
-                            <Title order={2} fw={700} mb="xs">🎯 Pedidos Duplicados</Title>
-                            <Text c="dimmed">Detecte e gerencie pedidos duplicados automaticamente</Text>
-                        </Box>
-                        
-                        <Group>
+                        <div className="flex space-x-2">
                             <Button
-                                size="md"
-                                leftSection={<IconSearch size="1.1rem" />}
                                 onClick={searchDuplicates}
-                                loading={searchingDuplicates}
-                                disabled={!lojaSelecionada}
-                                color="orange"
-                                radius="md"
+                                disabled={searchingDuplicates || !lojaSelecionada}
                             >
+                                {searchingDuplicates ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
                                 Buscar Duplicatas
                             </Button>
                             
                             {duplicates.length > 0 && (
-                                <Button
-                                    size="md"
-                                    color="red"
-                                    leftSection={<IconTrash size="1.1rem" />}
-                                    onClick={() => setConfirmBatchModal(true)}
-                                    loading={cancellingBatch}
-                                    variant="light"
-                                    radius="md"
-                                >
-                                    Cancelar Todos ({duplicates.length})
-                                </Button>
+                                <Dialog open={confirmBatchModal} onOpenChange={setConfirmBatchModal}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="destructive" disabled={cancellingBatch}>
+                                            {cancellingBatch ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                                            Cancelar Todos ({duplicates.length})
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Confirmar Cancelamento em Lote</DialogTitle>
+                                            <DialogDescription>
+                                                Esta ação cancelará {duplicates.length} pedidos duplicados. Esta operação não pode ser desfeita.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="space-y-4">
+                                            <Alert>
+                                                <AlertCircle className="h-4 w-4" />
+                                                <AlertDescription>
+                                                    Pedidos que serão cancelados: {duplicates.map(d => `#${d.duplicate_order.number}`).join(', ')}
+                                                </AlertDescription>
+                                            </Alert>
+                                            <div className="flex justify-end space-x-2">
+                                                <Button variant="outline" onClick={() => setConfirmBatchModal(false)}>
+                                                    Cancelar
+                                                </Button>
+                                                <Button variant="destructive" onClick={cancelBatch}>
+                                                    Confirmar Cancelamento
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
                             )}
-                        </Group>
-                    </Group>
-
+                        </div>
+                    </div>
+                </CardHeader>
+                
+                <CardContent>
                     {!lojaSelecionada && (
-                        <Alert
-                            icon={<IconAlertCircle size="1rem" />}
-                            color="blue"
-                            variant="light"
-                            radius="md"
-                            mb="xl"
-                        >
-                            Selecione uma loja no header para buscar pedidos duplicados
+                        <Alert>
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>Selecione uma loja no header para buscar pedidos duplicados</AlertDescription>
                         </Alert>
                     )}
 
                     {searchingDuplicates && (
-                        <Paper p="md" radius="md" bg="rgba(251, 146, 60, 0.1)" mb="xl" withBorder>
-                            <Text size="sm" c="orange.7" mb="xs" fw={500}>Analisando pedidos...</Text>
-                            <Progress
-                                animated
-                                value={100}
-                                color="orange"
-                                radius="md"
-                                size="sm"
-                            />
-                        </Paper>
+                        <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground">Analisando pedidos...</p>
+                            <Progress value={100} className="w-full animate-pulse" />
+                        </div>
                     )}
 
-                    {/* Lista de Duplicatas Moderna */}
                     {duplicates.length === 0 && !searchingDuplicates ? (
-                        <Center py="xl">
-                            <Stack align="center" gap="md">
-                                <ThemeIcon size="xl" radius="md" variant="light" color="gray">
-                                    <IconTarget size="2rem" />
-                                </ThemeIcon>
-                                <Text c="dimmed" ta="center">Nenhuma duplicata encontrada</Text>
-                                <Text size="xs" c="dimmed" ta="center">Execute uma busca para detectar pedidos duplicados</Text>
-                            </Stack>
-                        </Center>
+                        <div className="text-center py-12">
+                            <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <p className="text-muted-foreground">Nenhuma duplicata encontrada</p>
+                            <p className="text-sm text-muted-foreground">Execute uma busca para detectar pedidos duplicados</p>
+                        </div>
                     ) : (
-                        <Stack gap="md">
-                            {duplicates.map((duplicate, index) => renderModernDuplicateCard(duplicate, index))}
-                        </Stack>
+                        <div className="space-y-4">
+                            {duplicates.map((duplicate, index) => (
+                                <Card key={index} className="border-l-4 border-l-orange-500">
+                                    <CardContent className="p-4">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="flex items-center space-x-3">
+                                                <Avatar>
+                                                    <AvatarFallback>{duplicate.customer_name?.charAt(0) || 'U'}</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <p className="font-medium">{duplicate.customer_name}</p>
+                                                    <p className="text-sm text-muted-foreground">{duplicate.customer_phone}</p>
+                                                </div>
+                                            </div>
+                                            <Badge variant={duplicate.days_between <= 7 ? 'destructive' : duplicate.days_between <= 15 ? 'secondary' : 'outline'}>
+                                                {duplicate.days_between} dias
+                                            </Badge>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                            <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                                                <p className="text-xs text-green-700 font-medium mb-1">PEDIDO ORIGINAL</p>
+                                                <p className="font-semibold">#{duplicate.first_order.number}</p>
+                                                <p className="text-xs text-muted-foreground">{duplicate.first_order.date}</p>
+                                                <p className="text-xs text-green-700">{duplicate.first_order.total}</p>
+                                            </div>
+                                            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                                                <p className="text-xs text-red-700 font-medium mb-1">DUPLICATA</p>
+                                                <p className="font-semibold">#{duplicate.duplicate_order.number}</p>
+                                                <p className="text-xs text-muted-foreground">{duplicate.duplicate_order.date}</p>
+                                                <p className="text-xs text-red-700">{duplicate.duplicate_order.total}</p>
+                                            </div>
+                                        </div>
+
+                                        <p className="text-xs text-muted-foreground mb-4">
+                                            <strong>Produtos:</strong> {duplicate.product_names?.join(', ') || 'N/A'}
+                                        </p>
+
+                                        <div className="flex justify-end">
+                                            <Button
+                                                variant="destructive"
+                                                size="sm"
+                                                onClick={() => cancelOrder(duplicate)}
+                                                disabled={cancellingOrder === duplicate.duplicate_order.id}
+                                            >
+                                                {cancellingOrder === duplicate.duplicate_order.id ? 
+                                                    <Loader2 className="h-4 w-4 animate-spin mr-2" /> : 
+                                                    <Trash2 className="h-4 w-4 mr-2" />
+                                                }
+                                                Cancelar
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
                     )}
+                </CardContent>
+            </Card>
 
-                    {/* Critérios */}
-                    <Paper
-                        mt="xl"
-                        p="lg"
-                        radius="md"
-                        withBorder
-                        style={{
-                            background: 'rgba(34, 197, 94, 0.1)'
-                        }}
-                    >
-                        <Group gap="md" mb="md">
-                            <ThemeIcon size="sm" color="green" variant="light">
-                                <IconCheck size="0.8rem" />
-                            </ThemeIcon>
-                            <Text size="sm" c="green.7" fw={600}>Lógica de Detecção de Duplicatas</Text>
-                        </Group>
-
-                        <Stack gap="sm">
-                            <Group gap="xs">
-                                <Text size="xs" c="green.8" fw={500}>✅ DETECTA DUPLICATA quando:</Text>
-                            </Group>
-                            <Box pl="md">
-                                <Text size="xs" c="dimmed">• Mesmo cliente (telefone normalizado)</Text>
-                                <Text size="xs" c="dimmed">• Mesmo produto (Product ID)</Text>
-                                <Text size="xs" c="dimmed">• Intervalo ≤ 30 dias entre pedidos</Text>
-                                <Text size="xs" c="dimmed">• Pedido original: <strong>PROCESSADO</strong> (tem tags "order sent to dropi" ou "dropi sync error")</Text>
-                                <Text size="xs" c="dimmed">• Pedido duplicado: <strong>NÃO PROCESSADO</strong> (sem tags do Dropi)</Text>
-                            </Box>
-
-                            <Group gap="xs" mt="sm">
-                                <Text size="xs" c="red.7" fw={500}>❌ NÃO detecta quando:</Text>
-                            </Group>
-                            <Box pl="md">
-                                <Text size="xs" c="dimmed">• Ambos pedidos não têm tags (ambos não processados)</Text>
-                                <Text size="xs" c="dimmed">• Produtos diferentes</Text>
-                                <Text size="xs" c="dimmed">• Clientes diferentes (telefones diferentes)</Text>
-                                <Text size="xs" c="dimmed">• Intervalo de 30 dias</Text>
-                            </Box>
-
-                            <Alert color="blue" variant="light" mt="md" radius="md">
-                                <Text size="xs">
-                                    <strong>Objetivo:</strong> Cancelar apenas pedidos duplicados não processados de produtos já enviados/processados anteriormente.
-                                </Text>
-                            </Alert>
-                        </Stack>
-                    </Paper>
-                </Paper>
-
-                {/* Histórico (Collapse) */}
-                <Collapse in={showHistory}>
-                    <Paper
-                        mt="xl"
-                        p="xl"
-                        radius="lg"
-                        withBorder
-                        shadow="sm"
-                        style={{
-                            background: 'rgba(255, 255, 255, 0.95)',
-                            backdropFilter: 'blur(10px)'
-                        }}
-                    >
-                        <Group justify="space-between" mb="md">
-                            <Title order={4}>📊 Histórico de Operações</Title>
-                            <Button
-                                variant="light"
-                                size="sm"
-                                leftSection={<IconRefresh size={16} />}
-                                onClick={loadLogs}
-                                radius="md"
-                            >
-                                Atualizar
-                            </Button>
-                        </Group>
-                        
-                        {logs.length === 0 ? (
-                            <Text c="dimmed" ta="center" py="xl">Nenhum histórico encontrado</Text>
-                        ) : (
-                            <ScrollArea.Autosize mah={400}>
-                                <Stack gap="sm">
-                                    {logs.map((log) => (
-                                        <Paper key={log.id} p="sm" radius="md" withBorder bg="rgba(248, 250, 252, 0.8)">
-                                            <Group justify="space-between" mb="xs">
-                                                <Group gap="xs">
-                                                    <ThemeIcon
-                                                        size="sm"
-                                                        color={log.status === 'Sucesso' ? 'green' : log.status === 'Erro' ? 'red' : 'orange'}
-                                                        variant="light"
-                                                    >
-                                                        {log.status === 'Sucesso' ? <IconCheck size={14} /> : 
-                                                         log.status === 'Erro' ? <IconX size={14} /> : <IconAlertCircle size={14} />}
-                                                    </ThemeIcon>
-                                                    <Text fw={500} size="sm">{log.tipo}</Text>
-                                                    <Badge size="xs" variant="light" color={log.status === 'Sucesso' ? 'green' : log.status === 'Erro' ? 'red' : 'orange'}>
-                                                        {log.status}
-                                                    </Badge>
-                                                    <Text size="xs" c="dimmed">• {log.loja_nome}</Text>
-                                                </Group>
-                                                <Text size="xs" c="dimmed">
-                                                    {new Date(log.data_execucao).toLocaleString('pt-BR')}
-                                                </Text>
-                                            </Group>
-                                            
-                                            <Group gap="md">
-                                                {log.pedidos_encontrados > 0 && (
-                                                    <Text size="xs" c="dimmed">📊 Encontrados: {log.pedidos_encontrados}</Text>
-                                                )}
-                                                {log.pedidos_cancelados > 0 && (
-                                                    <Text size="xs" c="dimmed">❌ Cancelados: {log.pedidos_cancelados}</Text>
-                                                )}
-                                            </Group>
-                                        </Paper>
-                                    ))}
-                                </Stack>
-                            </ScrollArea.Autosize>
-                        )}
-                    </Paper>
-                </Collapse>
-            </Container>
-
-            {/* Modal Adicionar Loja */}
-            <Modal
-                opened={showAddStore}
-                onClose={() => setShowAddStore(false)}
-                title="🏪 Adicionar Nova Loja"
-                centered
-                radius="md"
-                size="lg"
-            >
-                <Stack gap="md">
-                    <TextInput
-                        label="Nome da Loja"
-                        placeholder="Ex: Loja Principal, Loja B2B"
-                        value={newStore.nome_loja}
-                        onChange={(e) => setNewStore(prev => ({ ...prev, nome_loja: e.target.value }))}
-                        radius="md"
-                    />
-                    <TextInput
-                        label="URL da Loja"
-                        placeholder="minha-loja.myshopify.com"
-                        value={newStore.shop_url}
-                        onChange={(e) => setNewStore(prev => ({ ...prev, shop_url: e.target.value }))}
-                        radius="md"
-                    />
-                    <PasswordInput
-                        label="Access Token"
-                        placeholder="Token de acesso da API"
-                        value={newStore.access_token}
-                        onChange={(e) => setNewStore(prev => ({ ...prev, access_token: e.target.value }))}
-                        radius="md"
-                    />
-
-                    <Group mt="md">
-                        <Button
-                            leftSection={<IconCloudCheck size={16} />}
-                            onClick={testConnection}
-                            loading={testingConnection}
-                            variant="light"
-                            radius="md"
-                        >
-                            Testar Conexão
-                        </Button>
-                        <Button
-                            leftSection={<IconCheck size={16} />}
-                            onClick={addStore}
-                            disabled={!connectionResult?.success}
-                            color="orange"
-                            radius="md"
-                        >
-                            Adicionar Loja
-                        </Button>
-                    </Group>
-
-                    {connectionResult && (
-                        <Alert
-                            icon={connectionResult.success ? <IconCloudCheck size="1rem" /> : <IconCloudX size="1rem" />}
-                            color={connectionResult.success ? 'green' : 'red'}
-                            variant="light"
-                            radius="md"
-                        >
-                            {connectionResult.message}
-                        </Alert>
-                    )}
-                </Stack>
-            </Modal>
-
-            {/* Modal de confirmação para cancelamento em lote */}
-            <Modal
-                opened={confirmBatchModal}
-                onClose={() => setConfirmBatchModal(false)}
-                title="⚠️ Confirmar Cancelamento em Lote"
-                centered
-                radius="md"
-            >
-                <Stack gap="md">
-                    <Alert icon={<IconAlertCircle size="1rem" />} color="orange" variant="light" radius="md">
-                        Esta ação cancelará {duplicates.length} pedidos duplicados. Esta operação não pode ser desfeita.
-                    </Alert>
+            {/* Critérios de Detecção */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                        <Check className="h-5 w-5 text-green-600" />
+                        <span>Lógica de Detecção</span>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div>
+                        <h4 className="font-semibold text-green-700 mb-2">✅ DETECTA DUPLICATA quando:</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                            <li>• Mesmo cliente (telefone normalizado)</li>
+                            <li>• Mesmo produto (Product ID)</li>
+                            <li>• Intervalo ≤ 30 dias entre pedidos</li>
+                            <li>• Pedido original: <strong>PROCESSADO</strong> (tem tags "order sent to dropi" ou "dropi sync error")</li>
+                            <li>• Pedido duplicado: <strong>NÃO PROCESSADO</strong> (sem tags do Dropi)</li>
+                        </ul>
+                    </div>
                     
-                    <Text size="sm" fw={500}>Pedidos que serão cancelados:</Text>
-                    <ScrollArea.Autosize mah={200}>
-                        {duplicates.map((dup, index) => (
-                            <Text key={index} size="xs" c="dimmed">
-                                • #{dup.duplicate_order.number} - {dup.customer_name} - {dup.duplicate_order.total}
-                            </Text>
-                        ))}
-                    </ScrollArea.Autosize>
+                    <Separator />
+                    
+                    <div>
+                        <h4 className="font-semibold text-red-700 mb-2">❌ NÃO detecta quando:</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                            <li>• Ambos pedidos não têm tags (ambos não processados)</li>
+                            <li>• Produtos diferentes</li>
+                            <li>• Clientes diferentes (telefones diferentes)</li>
+                            <li>• Intervalo > 30 dias</li>
+                        </ul>
+                    </div>
+                    
+                    <Alert>
+                        <AlertDescription>
+                            <strong>Objetivo:</strong> Cancelar apenas pedidos duplicados não processados de produtos já enviados/processados anteriormente.
+                        </AlertDescription>
+                    </Alert>
+                </CardContent>
+            </Card>
 
-                    <Group justify="flex-end" mt="md">
-                        <Button variant="light" onClick={() => setConfirmBatchModal(false)} radius="md">
-                            Cancelar
-                        </Button>
-                        <Button color="red" onClick={cancelBatch} radius="md">
-                            Confirmar Cancelamento
-                        </Button>
-                    </Group>
-                </Stack>
-            </Modal>
-
-            <style jsx>{`
-                .hover-card:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 10px 30px rgba(108, 92, 231, 0.3);
-                }
-                
-                .duplicate-card:hover {
-                    transform: translateY(-1px);
-                    border-color: rgba(108, 92, 231, 0.3);
-                    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-                }
-            `}</style>
-        </Box>
+            {/* Histórico */}
+            <Collapsible open={showHistory} onOpenChange={setShowHistory}>
+                <CollapsibleContent>
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="flex items-center space-x-2">
+                                    <History className="h-5 w-5" />
+                                    <span>Histórico de Operações</span>
+                                </CardTitle>
+                                <Button variant="outline" size="sm" onClick={loadLogs}>
+                                    <RefreshCw className="h-4 w-4 mr-2" />
+                                    Atualizar
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            {logs.length === 0 ? (
+                                <p className="text-center text-muted-foreground py-8">Nenhum histórico encontrado</p>
+                            ) : (
+                                <ScrollArea className="h-96">
+                                    <div className="space-y-3">
+                                        {logs.map((log) => (
+                                            <div key={log.id} className="p-3 border rounded-lg">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center space-x-2">
+                                                        {log.status === 'Sucesso' ? <Check className="h-4 w-4 text-green-600" /> : 
+                                                         log.status === 'Erro' ? <X className="h-4 w-4 text-red-600" /> : 
+                                                         <AlertCircle className="h-4 w-4 text-orange-600" />}
+                                                        <span className="font-medium">{log.tipo}</span>
+                                                        <Badge variant={log.status === 'Sucesso' ? 'default' : log.status === 'Erro' ? 'destructive' : 'secondary'}>
+                                                            {log.status}
+                                                        </Badge>
+                                                        <span className="text-sm text-muted-foreground">• {log.loja_nome}</span>
+                                                    </div>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {new Date(log.data_execucao).toLocaleString('pt-BR')}
+                                                    </span>
+                                                </div>
+                                                
+                                                <div className="flex space-x-4 text-xs text-muted-foreground">
+                                                    {log.pedidos_encontrados > 0 && (
+                                                        <span>📊 Encontrados: {log.pedidos_encontrados}</span>
+                                                    )}
+                                                    {log.pedidos_cancelados > 0 && (
+                                                        <span>❌ Cancelados: {log.pedidos_cancelados}</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            )}
+                        </CardContent>
+                    </Card>
+                </CollapsibleContent>
+            </Collapsible>
+        </div>
     );
 }
 
