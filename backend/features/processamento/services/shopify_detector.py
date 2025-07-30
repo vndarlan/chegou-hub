@@ -54,7 +54,7 @@ class ShopifyDuplicateOrderDetector:
             return False, f"Erro: {str(e)}"
     
     def get_order_details(self, order_id):
-        """Busca detalhes completos de um pedido incluindo endereço"""
+        """Busca detalhes completos de um pedido incluindo TODOS os dados de endereço"""
         try:
             url = f"{self.base_url}/orders/{order_id}.json"
             response = requests.get(url, headers=self.headers, timeout=10)
@@ -62,23 +62,67 @@ class ShopifyDuplicateOrderDetector:
             if response.status_code == 200:
                 order_data = response.json()["order"]
                 
-                # Extrair endereço de entrega
+                # Extrair TODOS os endereços disponíveis
                 shipping_address = order_data.get("shipping_address", {})
                 billing_address = order_data.get("billing_address", {})
+                customer_data = order_data.get("customer", {})
                 
-                # Priorizar endereço de entrega, fallback para cobrança
-                address = shipping_address if shipping_address else billing_address
-                
-                return {
-                    "address1": address.get("address1", ""),
-                    "address2": address.get("address2", ""),
-                    "city": address.get("city", ""),
-                    "province": address.get("province", ""),
-                    "zip": address.get("zip", ""),
-                    "country": address.get("country", ""),
-                    "company": address.get("company", ""),
-                    "phone": address.get("phone", "")
+                # Compilar TODOS os dados de endereço disponíveis
+                address_data = {
+                    "has_shipping": bool(shipping_address),
+                    "has_billing": bool(billing_address),
+                    "shipping_address": {
+                        "first_name": shipping_address.get("first_name", ""),
+                        "last_name": shipping_address.get("last_name", ""),
+                        "name": shipping_address.get("name", ""),
+                        "company": shipping_address.get("company", ""),
+                        "address1": shipping_address.get("address1", ""),
+                        "address2": shipping_address.get("address2", ""),
+                        "city": shipping_address.get("city", ""),
+                        "province": shipping_address.get("province", ""),
+                        "province_code": shipping_address.get("province_code", ""),
+                        "country": shipping_address.get("country", ""),
+                        "country_code": shipping_address.get("country_code", ""),
+                        "zip": shipping_address.get("zip", ""),
+                        "phone": shipping_address.get("phone", ""),
+                        "latitude": shipping_address.get("latitude", ""),
+                        "longitude": shipping_address.get("longitude", "")
+                    },
+                    "billing_address": {
+                        "first_name": billing_address.get("first_name", ""),
+                        "last_name": billing_address.get("last_name", ""),
+                        "name": billing_address.get("name", ""),
+                        "company": billing_address.get("company", ""),
+                        "address1": billing_address.get("address1", ""),
+                        "address2": billing_address.get("address2", ""),
+                        "city": billing_address.get("city", ""),
+                        "province": billing_address.get("province", ""),
+                        "province_code": billing_address.get("province_code", ""),
+                        "country": billing_address.get("country", ""),
+                        "country_code": billing_address.get("country_code", ""),
+                        "zip": billing_address.get("zip", ""),
+                        "phone": billing_address.get("phone", ""),
+                        "latitude": billing_address.get("latitude", ""),
+                        "longitude": billing_address.get("longitude", "")
+                    },
+                    "customer_info": {
+                        "email": customer_data.get("email", ""),
+                        "accepts_marketing": customer_data.get("accepts_marketing", False),
+                        "created_at": customer_data.get("created_at", ""),
+                        "updated_at": customer_data.get("updated_at", ""),
+                        "orders_count": customer_data.get("orders_count", 0),
+                        "state": customer_data.get("state", ""),
+                        "total_spent": customer_data.get("total_spent", ""),
+                        "last_order_id": customer_data.get("last_order_id", ""),
+                        "note": customer_data.get("note", ""),
+                        "verified_email": customer_data.get("verified_email", False),
+                        "multipass_identifier": customer_data.get("multipass_identifier", ""),
+                        "tax_exempt": customer_data.get("tax_exempt", False),
+                        "tags": customer_data.get("tags", "")
+                    }
                 }
+                
+                return address_data
             else:
                 return None
                 

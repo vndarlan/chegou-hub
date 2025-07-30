@@ -383,7 +383,7 @@ function ProcessamentoPage() {
                                                 <li>• Ambos pedidos não têm tags (ambos não processados)</li>
                                                 <li>• Produtos diferentes</li>
                                                 <li>• Clientes diferentes (telefones diferentes)</li>
-                                                <li>• Intervalo a 30 dias</li>
+                                                <li>• Intervalo maior que 30 dias</li>
                                             </ul>
                                         </div>
                                         
@@ -655,63 +655,240 @@ function ProcessamentoPage() {
                                     </div>
                                 </div>
 
-                                {/* Endereço do Cliente - DADOS REAIS DA API */}
+                                {/* TODOS OS DADOS DE ENDEREÇO E CLIENTE */}
                                 {selectedClient.customer_address && (
                                     <>
                                         <Separator />
-                                        <div className="space-y-4">
-                                            <h3 className="font-semibold text-foreground flex items-center space-x-2">
-                                                <MapPin className="h-4 w-4" />
-                                                <span>Endereço de Entrega</span>
-                                            </h3>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg border border-border">
-                                                {selectedClient.customer_address.address1 && (
-                                                    <div className="col-span-1 sm:col-span-2">
-                                                        <Label className="text-sm font-medium text-foreground">Endereço</Label>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            {selectedClient.customer_address.address1}
-                                                            {selectedClient.customer_address.address2 && `, ${selectedClient.customer_address.address2}`}
-                                                        </p>
-                                                    </div>
-                                                )}
-                                                {selectedClient.customer_address.company && (
+                                        
+                                        {/* Informações do Cliente */}
+                                        {selectedClient.customer_address.customer_info && (
+                                            <div className="space-y-4">
+                                                <h3 className="font-semibold text-foreground flex items-center space-x-2">
+                                                    <Eye className="h-4 w-4" />
+                                                    <span>Dados do Cliente na Shopify</span>
+                                                </h3>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                                    {selectedClient.customer_address.customer_info.email && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">Email</Label>
+                                                            <p className="text-sm text-muted-foreground">{selectedClient.customer_address.customer_info.email}</p>
+                                                        </div>
+                                                    )}
+                                                    {selectedClient.customer_address.customer_info.orders_count > 0 && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">Total de Pedidos</Label>
+                                                            <p className="text-sm text-muted-foreground">{selectedClient.customer_address.customer_info.orders_count}</p>
+                                                        </div>
+                                                    )}
+                                                    {selectedClient.customer_address.customer_info.total_spent && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">Total Gasto</Label>
+                                                            <p className="text-sm text-muted-foreground">R$ {selectedClient.customer_address.customer_info.total_spent}</p>
+                                                        </div>
+                                                    )}
+                                                    {selectedClient.customer_address.customer_info.state && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">Status Cliente</Label>
+                                                            <Badge variant="outline" className="text-xs">{selectedClient.customer_address.customer_info.state}</Badge>
+                                                        </div>
+                                                    )}
                                                     <div>
-                                                        <Label className="text-sm font-medium text-foreground">Empresa</Label>
-                                                        <p className="text-sm text-muted-foreground">{selectedClient.customer_address.company}</p>
+                                                        <Label className="text-sm font-medium text-foreground">Email Verificado</Label>
+                                                        <Badge variant={selectedClient.customer_address.customer_info.verified_email ? "default" : "secondary"} className="text-xs">
+                                                            {selectedClient.customer_address.customer_info.verified_email ? "Sim" : "Não"}
+                                                        </Badge>
                                                     </div>
-                                                )}
-                                                {selectedClient.customer_address.city && (
                                                     <div>
-                                                        <Label className="text-sm font-medium text-foreground">Cidade</Label>
-                                                        <p className="text-sm text-muted-foreground">{selectedClient.customer_address.city}</p>
+                                                        <Label className="text-sm font-medium text-foreground">Aceita Marketing</Label>
+                                                        <Badge variant={selectedClient.customer_address.customer_info.accepts_marketing ? "default" : "secondary"} className="text-xs">
+                                                            {selectedClient.customer_address.customer_info.accepts_marketing ? "Sim" : "Não"}
+                                                        </Badge>
                                                     </div>
-                                                )}
-                                                {selectedClient.customer_address.province && (
-                                                    <div>
-                                                        <Label className="text-sm font-medium text-foreground">Estado</Label>
-                                                        <p className="text-sm text-muted-foreground">{selectedClient.customer_address.province}</p>
-                                                    </div>
-                                                )}
-                                                {selectedClient.customer_address.zip && (
-                                                    <div>
-                                                        <Label className="text-sm font-medium text-foreground">CEP</Label>
-                                                        <p className="text-sm text-muted-foreground">{selectedClient.customer_address.zip}</p>
-                                                    </div>
-                                                )}
-                                                {selectedClient.customer_address.country && (
-                                                    <div>
-                                                        <Label className="text-sm font-medium text-foreground">País</Label>
-                                                        <p className="text-sm text-muted-foreground">{selectedClient.customer_address.country}</p>
-                                                    </div>
-                                                )}
-                                                {selectedClient.customer_address.phone && (
-                                                    <div>
-                                                        <Label className="text-sm font-medium text-foreground">Telefone do Endereço</Label>
-                                                        <p className="text-sm text-muted-foreground">{selectedClient.customer_address.phone}</p>
-                                                    </div>
-                                                )}
+                                                    {selectedClient.customer_address.customer_info.tags && (
+                                                        <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+                                                            <Label className="text-sm font-medium text-foreground">Tags do Cliente</Label>
+                                                            <p className="text-sm text-muted-foreground">{selectedClient.customer_address.customer_info.tags}</p>
+                                                        </div>
+                                                    )}
+                                                    {selectedClient.customer_address.customer_info.note && (
+                                                        <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+                                                            <Label className="text-sm font-medium text-foreground">Observações</Label>
+                                                            <p className="text-sm text-muted-foreground">{selectedClient.customer_address.customer_info.note}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
+
+                                        {/* Endereço de Entrega */}
+                                        {selectedClient.customer_address.has_shipping && (
+                                            <div className="space-y-4">
+                                                <h3 className="font-semibold text-foreground flex items-center space-x-2">
+                                                    <MapPin className="h-4 w-4" />
+                                                    <span>Endereço de Entrega</span>
+                                                </h3>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                                                    {selectedClient.customer_address.shipping_address.name && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">Nome Completo</Label>
+                                                            <p className="text-sm text-muted-foreground">{selectedClient.customer_address.shipping_address.name}</p>
+                                                        </div>
+                                                    )}
+                                                    {(selectedClient.customer_address.shipping_address.first_name || selectedClient.customer_address.shipping_address.last_name) && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">Nome</Label>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {selectedClient.customer_address.shipping_address.first_name} {selectedClient.customer_address.shipping_address.last_name}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    {selectedClient.customer_address.shipping_address.company && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">Empresa</Label>
+                                                            <p className="text-sm text-muted-foreground">{selectedClient.customer_address.shipping_address.company}</p>
+                                                        </div>
+                                                    )}
+                                                    {selectedClient.customer_address.shipping_address.address1 && (
+                                                        <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+                                                            <Label className="text-sm font-medium text-foreground">Endereço</Label>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {selectedClient.customer_address.shipping_address.address1}
+                                                                {selectedClient.customer_address.shipping_address.address2 && `, ${selectedClient.customer_address.shipping_address.address2}`}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    {selectedClient.customer_address.shipping_address.city && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">Cidade</Label>
+                                                            <p className="text-sm text-muted-foreground">{selectedClient.customer_address.shipping_address.city}</p>
+                                                        </div>
+                                                    )}
+                                                    {selectedClient.customer_address.shipping_address.province && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">Estado</Label>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {selectedClient.customer_address.shipping_address.province}
+                                                                {selectedClient.customer_address.shipping_address.province_code && ` (${selectedClient.customer_address.shipping_address.province_code})`}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    {selectedClient.customer_address.shipping_address.zip && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">CEP</Label>
+                                                            <p className="text-sm text-muted-foreground">{selectedClient.customer_address.shipping_address.zip}</p>
+                                                        </div>
+                                                    )}
+                                                    {selectedClient.customer_address.shipping_address.country && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">País</Label>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {selectedClient.customer_address.shipping_address.country}
+                                                                {selectedClient.customer_address.shipping_address.country_code && ` (${selectedClient.customer_address.shipping_address.country_code})`}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    {selectedClient.customer_address.shipping_address.phone && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">Telefone</Label>
+                                                            <p className="text-sm text-muted-foreground">{selectedClient.customer_address.shipping_address.phone}</p>
+                                                        </div>
+                                                    )}
+                                                    {(selectedClient.customer_address.shipping_address.latitude && selectedClient.customer_address.shipping_address.longitude) && (
+                                                        <div className="col-span-1 sm:col-span-2">
+                                                            <Label className="text-sm font-medium text-foreground">Coordenadas</Label>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {selectedClient.customer_address.shipping_address.latitude}, {selectedClient.customer_address.shipping_address.longitude}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Endereço de Cobrança */}
+                                        {selectedClient.customer_address.has_billing && (
+                                            <div className="space-y-4">
+                                                <h3 className="font-semibold text-foreground flex items-center space-x-2">
+                                                    <Building className="h-4 w-4" />
+                                                    <span>Endereço de Cobrança</span>
+                                                </h3>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                                                    {selectedClient.customer_address.billing_address.name && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">Nome Completo</Label>
+                                                            <p className="text-sm text-muted-foreground">{selectedClient.customer_address.billing_address.name}</p>
+                                                        </div>
+                                                    )}
+                                                    {(selectedClient.customer_address.billing_address.first_name || selectedClient.customer_address.billing_address.last_name) && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">Nome</Label>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {selectedClient.customer_address.billing_address.first_name} {selectedClient.customer_address.billing_address.last_name}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    {selectedClient.customer_address.billing_address.company && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">Empresa</Label>
+                                                            <p className="text-sm text-muted-foreground">{selectedClient.customer_address.billing_address.company}</p>
+                                                        </div>
+                                                    )}
+                                                    {selectedClient.customer_address.billing_address.address1 && (
+                                                        <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+                                                            <Label className="text-sm font-medium text-foreground">Endereço</Label>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {selectedClient.customer_address.billing_address.address1}
+                                                                {selectedClient.customer_address.billing_address.address2 && `, ${selectedClient.customer_address.billing_address.address2}`}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    {selectedClient.customer_address.billing_address.city && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">Cidade</Label>
+                                                            <p className="text-sm text-muted-foreground">{selectedClient.customer_address.billing_address.city}</p>
+                                                        </div>
+                                                    )}
+                                                    {selectedClient.customer_address.billing_address.province && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">Estado</Label>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {selectedClient.customer_address.billing_address.province}
+                                                                {selectedClient.customer_address.billing_address.province_code && ` (${selectedClient.customer_address.billing_address.province_code})`}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    {selectedClient.customer_address.billing_address.zip && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">CEP</Label>
+                                                            <p className="text-sm text-muted-foreground">{selectedClient.customer_address.billing_address.zip}</p>
+                                                        </div>
+                                                    )}
+                                                    {selectedClient.customer_address.billing_address.country && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">País</Label>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {selectedClient.customer_address.billing_address.country}
+                                                                {selectedClient.customer_address.billing_address.country_code && ` (${selectedClient.customer_address.billing_address.country_code})`}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    {selectedClient.customer_address.billing_address.phone && (
+                                                        <div>
+                                                            <Label className="text-sm font-medium text-foreground">Telefone</Label>
+                                                            <p className="text-sm text-muted-foreground">{selectedClient.customer_address.billing_address.phone}</p>
+                                                        </div>
+                                                    )}
+                                                    {(selectedClient.customer_address.billing_address.latitude && selectedClient.customer_address.billing_address.longitude) && (
+                                                        <div className="col-span-1 sm:col-span-2">
+                                                            <Label className="text-sm font-medium text-foreground">Coordenadas</Label>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {selectedClient.customer_address.billing_address.latitude}, {selectedClient.customer_address.billing_address.longitude}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                     </>
                                 )}
 
