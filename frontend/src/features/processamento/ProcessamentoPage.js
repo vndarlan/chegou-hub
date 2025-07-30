@@ -16,7 +16,7 @@ import { ScrollArea } from '../../components/ui/scroll-area';
 import { Separator } from '../../components/ui/separator';
 import {
     ShoppingCart, AlertCircle, Check, X, RefreshCw, Trash2, 
-    Settings, History, Plus, Building, CloudCheck, CloudX, 
+    Settings, History, Plus, Building, Cloud, CloudOff, 
     Book, ExternalLink, Search, Bell, ChevronDown, Target, 
     TrendingUp, Users, Clock, Shield, Zap, ArrowRight, 
     MoreHorizontal, Edit, Eye, Loader2
@@ -296,7 +296,7 @@ function ProcessamentoPage() {
                                         onClick={testConnection}
                                         disabled={testingConnection}
                                     >
-                                        {testingConnection ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CloudCheck className="h-4 w-4 mr-2" />}
+                                        {testingConnection ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Cloud className="h-4 w-4 mr-2" />}
                                         Testar Conexão
                                     </Button>
                                     <Button
@@ -310,7 +310,7 @@ function ProcessamentoPage() {
 
                                 {connectionResult && (
                                     <Alert variant={connectionResult.success ? 'default' : 'destructive'}>
-                                        {connectionResult.success ? <CloudCheck className="h-4 w-4" /> : <CloudX className="h-4 w-4" />}
+                                        {connectionResult.success ? <Cloud className="h-4 w-4" /> : <CloudOff className="h-4 w-4" />}
                                         <AlertDescription>{connectionResult.message}</AlertDescription>
                                     </Alert>
                                 )}
@@ -575,7 +575,7 @@ function ProcessamentoPage() {
                             <li>• Ambos pedidos não têm tags (ambos não processados)</li>
                             <li>• Produtos diferentes</li>
                             <li>• Clientes diferentes (telefones diferentes)</li>
-                            <li>• Intervalo menor que 30 dias</li>
+                            <li>• Intervalo . 30 dias</li>
                         </ul>
                     </div>
                     
