@@ -237,7 +237,7 @@ function ProcessamentoPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold">Shopify Duplicados</h1>
+                    <h1 className="text-2xl font-bold text-foreground">Shopify Duplicados</h1>
                     <p className="text-muted-foreground">Gerenciamento de pedidos duplicados</p>
                 </div>
                 
@@ -626,14 +626,14 @@ function ProcessamentoPage() {
                         <div className="space-y-6">
                             {/* Informações do Cliente */}
                             <div className="space-y-4">
-                                <h3 className="font-semibold">Informações do Cliente</h3>
+                                <h3 className="font-semibold text-foreground">Informações do Cliente</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <Label className="text-sm font-medium">Nome</Label>
+                                        <Label className="text-sm font-medium text-foreground">Nome</Label>
                                         <p className="text-sm text-muted-foreground">{selectedClient.customer_name}</p>
                                     </div>
                                     <div>
-                                        <Label className="text-sm font-medium">Telefone</Label>
+                                        <Label className="text-sm font-medium text-foreground">Telefone</Label>
                                         <p className="text-sm text-muted-foreground">{selectedClient.customer_phone}</p>
                                     </div>
                                 </div>
@@ -643,40 +643,40 @@ function ProcessamentoPage() {
 
                             {/* Comparação de Pedidos */}
                             <div className="space-y-4">
-                                <h3 className="font-semibold">Comparação de Pedidos</h3>
+                                <h3 className="font-semibold text-foreground">Comparação de Pedidos</h3>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                                        <h4 className="font-medium text-green-700 mb-3">Pedido Original</h4>
+                                    <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                                        <h4 className="font-medium text-green-700 dark:text-green-400 mb-3">Pedido Original</h4>
                                         <div className="space-y-2">
                                             <div>
-                                                <Label className="text-xs font-medium">Número</Label>
-                                                <p className="text-sm">#{selectedClient.first_order.number}</p>
+                                                <Label className="text-xs font-medium text-foreground">Número</Label>
+                                                <p className="text-sm text-foreground">#{selectedClient.first_order.number}</p>
                                             </div>
                                             <div>
-                                                <Label className="text-xs font-medium">Data</Label>
-                                                <p className="text-sm">{selectedClient.first_order.date}</p>
+                                                <Label className="text-xs font-medium text-foreground">Data</Label>
+                                                <p className="text-sm text-foreground">{selectedClient.first_order.date}</p>
                                             </div>
                                             <div>
-                                                <Label className="text-xs font-medium">Total</Label>
-                                                <p className="text-sm font-semibold text-green-700">{selectedClient.first_order.total}</p>
+                                                <Label className="text-xs font-medium text-foreground">Total</Label>
+                                                <p className="text-sm font-semibold text-green-700 dark:text-green-400">{selectedClient.first_order.total}</p>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                                        <h4 className="font-medium text-red-700 mb-3">Pedido Duplicado</h4>
+                                    <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
+                                        <h4 className="font-medium text-red-700 dark:text-red-400 mb-3">Pedido Duplicado</h4>
                                         <div className="space-y-2">
                                             <div>
-                                                <Label className="text-xs font-medium">Número</Label>
-                                                <p className="text-sm">#{selectedClient.duplicate_order.number}</p>
+                                                <Label className="text-xs font-medium text-foreground">Número</Label>
+                                                <p className="text-sm text-foreground">#{selectedClient.duplicate_order.number}</p>
                                             </div>
                                             <div>
-                                                <Label className="text-xs font-medium">Data</Label>
-                                                <p className="text-sm">{selectedClient.duplicate_order.date}</p>
+                                                <Label className="text-xs font-medium text-foreground">Data</Label>
+                                                <p className="text-sm text-foreground">{selectedClient.duplicate_order.date}</p>
                                             </div>
                                             <div>
-                                                <Label className="text-xs font-medium">Total</Label>
-                                                <p className="text-sm font-semibold text-red-700">{selectedClient.duplicate_order.total}</p>
+                                                <Label className="text-xs font-medium text-foreground">Total</Label>
+                                                <p className="text-sm font-semibold text-red-700 dark:text-red-400">{selectedClient.duplicate_order.total}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -688,11 +688,11 @@ function ProcessamentoPage() {
                             {/* Produtos e Intervalo */}
                             <div className="space-y-4">
                                 <div>
-                                    <Label className="text-sm font-medium">Produtos</Label>
+                                    <Label className="text-sm font-medium text-foreground">Produtos</Label>
                                     <p className="text-sm text-muted-foreground">{selectedClient.product_names?.join(', ') || 'N/A'}</p>
                                 </div>
                                 <div>
-                                    <Label className="text-sm font-medium">Intervalo entre pedidos</Label>
+                                    <Label className="text-sm font-medium text-foreground">Intervalo entre pedidos</Label>
                                     <div className="flex items-center space-x-2">
                                         <Badge variant={selectedClient.days_between <= 7 ? 'destructive' : selectedClient.days_between <= 15 ? 'secondary' : 'outline'}>
                                             {selectedClient.days_between} dias
