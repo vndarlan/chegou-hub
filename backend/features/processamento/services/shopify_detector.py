@@ -282,51 +282,32 @@ class ShopifyDuplicateOrderDetector:
             
             customer_orders.sort(key=lambda x: x["created_at"])
             
-            # Agrupa pedidos por produtos similares (SKU igual OU nome igual)
+            # Agrupa por produto (SKU ou nome)
             product_orders = defaultdict(list)
             for order in customer_orders:
                 for item in order["line_items"]:
-                    # Cria chave única baseada em SKU e nome
                     sku = item.get("sku", "").strip()
                     product_name = self.normalize_product_name(item.get("title", ""))
                     
-                    # Usa SKU como chave primária se existir, senão usa nome
+                    # Adiciona ao grupo por SKU se existir
                     if sku:
-                        key = f"sku:{sku}"
-                    elif product_name:
-                        key = f"name:{product_name}"
-                    else:
-                        continue  # Pula itens sem SKU nem nome
-                    
-                    product_orders[key].append({
-                        "order": order,
-                        "item": item,
-                        "sku": sku,
-                        "product_name": product_name
-                    })
+                        product_orders[f"sku:{sku}"].append(order)
+                    # Adiciona ao grupo por nome se existir
+                    if product_name:
+                        product_orders[f"name:{product_name}"].append(order)
             
             # Verifica duplicatas para produtos do pedido não processado
-            unprocessed_products = []
+            unprocessed_keys = set()
             for item in unprocessed_order["line_items"]:
                 sku = item.get("sku", "").strip()
                 product_name = self.normalize_product_name(item.get("title", ""))
                 
                 if sku:
-                    key = f"sku:{sku}"
-                elif product_name:
-                    key = f"name:{product_name}"
-                else:
-                    continue
-                
-                unprocessed_products.append({
-                    "key": key,
-                    "item": item,
-                    "sku": sku,
-                    "product_name": product_name
-                })
+                    unprocessed_keys.add(f"sku:{sku}")
+                if product_name:
+                    unprocessed_keys.add(f"name:{product_name}")
             
-            for product_info in unprocessed_products:
-                key = product_info["key"]
+            for key in unprocessed_keys:
                 orders_with_product = product_orders[key]
                 
                 if len(orders_with_product) < 2:
