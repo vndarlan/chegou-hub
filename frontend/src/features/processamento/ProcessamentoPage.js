@@ -216,232 +216,169 @@ function ProcessamentoPage() {
         setShowClientDetails(true);
     };
 
-    // Função para renderizar um endereço completo
-    const renderAddressSection = (addressData, title, bgColor = "bg-gray-50 dark:bg-gray-950/20", borderColor = "border-gray-200 dark:border-gray-800") => {
-        if (!addressData) return null;
+    // Função para renderizar um pedido completo
+    const renderOrderDetails = (orderData, orderInfo, title, bgColor, borderColor) => {
+        if (!orderData) return null;
 
         return (
-            <div className="space-y-4">
-                <h3 className="font-semibold text-foreground flex items-center space-x-2">
-                    <MapPin className="h-4 w-4" />
-                    <span>{title}</span>
-                </h3>
+            <div className={`p-4 ${bgColor} rounded-lg border ${borderColor} space-y-4`}>
+                <h3 className="font-semibold text-foreground">{title}</h3>
                 
-                {/* Informações do Cliente */}
-                {addressData.customer_info && (
-                    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 ${bgColor} rounded-lg border ${borderColor}`}>
-                        <div className="col-span-1 sm:col-span-2 lg:col-span-3">
-                            <h4 className="font-medium text-foreground mb-3">Dados do Cliente</h4>
+                {/* Info do Pedido */}
+                <div className="space-y-2">
+                    <div>
+                        <Label className="text-xs font-medium text-foreground">Número</Label>
+                        <p className="text-sm text-foreground">#{orderInfo.number}</p>
+                    </div>
+                    <div>
+                        <Label className="text-xs font-medium text-foreground">Data</Label>
+                        <p className="text-sm text-foreground">{orderInfo.date}</p>
+                    </div>
+                    <div>
+                        <Label className="text-xs font-medium text-foreground">Total</Label>
+                        <p className="text-sm font-semibold text-foreground">{orderInfo.total} {orderInfo.currency}</p>
+                    </div>
+                </div>
+
+                <Separator />
+                
+                {/* Dados do Cliente */}
+                {orderData.customer_info && (
+                    <div className="space-y-3">
+                        <h4 className="font-medium text-foreground text-sm">Dados do Cliente</h4>
+                        <div className="grid grid-cols-1 gap-3">
+                            {orderData.customer_info.email && (
+                                <div>
+                                    <Label className="text-xs font-medium text-foreground">Email</Label>
+                                    <p className="text-sm text-muted-foreground">{orderData.customer_info.email}</p>
+                                </div>
+                            )}
+                            {orderData.customer_info.orders_count > 0 && (
+                                <div>
+                                    <Label className="text-xs font-medium text-foreground">Total de Pedidos</Label>
+                                    <p className="text-sm text-muted-foreground">{orderData.customer_info.orders_count}</p>
+                                </div>
+                            )}
+                            {orderData.customer_info.total_spent && (
+                                <div>
+                                    <Label className="text-xs font-medium text-foreground">Total Gasto</Label>
+                                    <p className="text-sm text-muted-foreground">{orderData.customer_info.total_spent}</p>
+                                </div>
+                            )}
+                            <div className="flex items-center space-x-4">
+                                <div>
+                                    <Label className="text-xs font-medium text-foreground">Email Verificado</Label>
+                                    <Badge variant={orderData.customer_info.verified_email ? "default" : "secondary"} className="text-xs ml-2">
+                                        {orderData.customer_info.verified_email ? "Sim" : "Não"}
+                                    </Badge>
+                                </div>
+                                <div>
+                                    <Label className="text-xs font-medium text-foreground">Aceita Marketing</Label>
+                                    <Badge variant={orderData.customer_info.accepts_marketing ? "default" : "secondary"} className="text-xs ml-2">
+                                        {orderData.customer_info.accepts_marketing ? "Sim" : "Não"}
+                                    </Badge>
+                                </div>
+                            </div>
+                            {orderData.customer_info.tags && (
+                                <div>
+                                    <Label className="text-xs font-medium text-foreground">Tags do Cliente</Label>
+                                    <p className="text-sm text-muted-foreground">{orderData.customer_info.tags}</p>
+                                </div>
+                            )}
+                            {orderData.customer_info.note && (
+                                <div>
+                                    <Label className="text-xs font-medium text-foreground">Observações</Label>
+                                    <p className="text-sm text-muted-foreground">{orderData.customer_info.note}</p>
+                                </div>
+                            )}
                         </div>
-                        
-                        {addressData.customer_info.email && (
-                            <div>
-                                <Label className="text-sm font-medium text-foreground">Email</Label>
-                                <p className="text-sm text-muted-foreground">{addressData.customer_info.email}</p>
-                            </div>
-                        )}
-                        {addressData.customer_info.orders_count > 0 && (
-                            <div>
-                                <Label className="text-sm font-medium text-foreground">Total de Pedidos</Label>
-                                <p className="text-sm text-muted-foreground">{addressData.customer_info.orders_count}</p>
-                            </div>
-                        )}
-                        {addressData.customer_info.total_spent && (
-                            <div>
-                                <Label className="text-sm font-medium text-foreground">Total Gasto</Label>
-                                <p className="text-sm text-muted-foreground">R$ {addressData.customer_info.total_spent}</p>
-                            </div>
-                        )}
-                        {addressData.customer_info.state && (
-                            <div>
-                                <Label className="text-sm font-medium text-foreground">Status Cliente</Label>
-                                <Badge variant="outline" className="text-xs">{addressData.customer_info.state}</Badge>
-                            </div>
-                        )}
-                        <div>
-                            <Label className="text-sm font-medium text-foreground">Email Verificado</Label>
-                            <Badge variant={addressData.customer_info.verified_email ? "default" : "secondary"} className="text-xs">
-                                {addressData.customer_info.verified_email ? "Sim" : "Não"}
-                            </Badge>
-                        </div>
-                        <div>
-                            <Label className="text-sm font-medium text-foreground">Aceita Marketing</Label>
-                            <Badge variant={addressData.customer_info.accepts_marketing ? "default" : "secondary"} className="text-xs">
-                                {addressData.customer_info.accepts_marketing ? "Sim" : "Não"}
-                            </Badge>
-                        </div>
-                        {addressData.customer_info.tags && (
-                            <div className="col-span-1 sm:col-span-2 lg:col-span-3">
-                                <Label className="text-sm font-medium text-foreground">Tags do Cliente</Label>
-                                <p className="text-sm text-muted-foreground">{addressData.customer_info.tags}</p>
-                            </div>
-                        )}
-                        {addressData.customer_info.note && (
-                            <div className="col-span-1 sm:col-span-2 lg:col-span-3">
-                                <Label className="text-sm font-medium text-foreground">Observações</Label>
-                                <p className="text-sm text-muted-foreground">{addressData.customer_info.note}</p>
-                            </div>
-                        )}
                     </div>
                 )}
+
+                <Separator />
 
                 {/* Endereço de Entrega */}
-                {addressData.has_shipping && (
-                    <div className={`p-4 ${bgColor} rounded-lg border ${borderColor}`}>
-                        <h4 className="font-medium text-foreground mb-3">Endereço de Entrega</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {addressData.shipping_address.name && (
+                {orderData.has_shipping && (
+                    <div className="space-y-3">
+                        <h4 className="font-medium text-foreground text-sm flex items-center space-x-2">
+                            <MapPin className="h-4 w-4" />
+                            <span>Endereço de Entrega</span>
+                        </h4>
+                        <div className="grid grid-cols-1 gap-3">
+                            {orderData.shipping_address.name && (
                                 <div>
-                                    <Label className="text-sm font-medium text-foreground">Nome Completo</Label>
-                                    <p className="text-sm text-muted-foreground">{addressData.shipping_address.name}</p>
+                                    <Label className="text-xs font-medium text-foreground">Nome Completo</Label>
+                                    <p className="text-sm text-muted-foreground">{orderData.shipping_address.name}</p>
                                 </div>
                             )}
-                            {(addressData.shipping_address.first_name || addressData.shipping_address.last_name) && (
+                            {(orderData.shipping_address.first_name || orderData.shipping_address.last_name) && (
                                 <div>
-                                    <Label className="text-sm font-medium text-foreground">Nome</Label>
+                                    <Label className="text-xs font-medium text-foreground">Nome</Label>
                                     <p className="text-sm text-muted-foreground">
-                                        {addressData.shipping_address.first_name} {addressData.shipping_address.last_name}
+                                        {orderData.shipping_address.first_name} {orderData.shipping_address.last_name}
                                     </p>
                                 </div>
                             )}
-                            {addressData.shipping_address.company && (
+                            {orderData.shipping_address.company && (
                                 <div>
-                                    <Label className="text-sm font-medium text-foreground">Empresa</Label>
-                                    <p className="text-sm text-muted-foreground">{addressData.shipping_address.company}</p>
+                                    <Label className="text-xs font-medium text-foreground">Empresa</Label>
+                                    <p className="text-sm text-muted-foreground">{orderData.shipping_address.company}</p>
                                 </div>
                             )}
-                            {addressData.shipping_address.address1 && (
-                                <div className="col-span-1 sm:col-span-2 lg:col-span-3">
-                                    <Label className="text-sm font-medium text-foreground">Endereço</Label>
+                            {orderData.shipping_address.address1 && (
+                                <div>
+                                    <Label className="text-xs font-medium text-foreground">Endereço</Label>
                                     <p className="text-sm text-muted-foreground">
-                                        {addressData.shipping_address.address1}
-                                        {addressData.shipping_address.address2 && `, ${addressData.shipping_address.address2}`}
+                                        {orderData.shipping_address.address1}
+                                        {orderData.shipping_address.address2 && `, ${orderData.shipping_address.address2}`}
                                     </p>
                                 </div>
                             )}
-                            {addressData.shipping_address.city && (
+                            <div className="grid grid-cols-2 gap-3">
+                                {orderData.shipping_address.city && (
+                                    <div>
+                                        <Label className="text-xs font-medium text-foreground">Cidade</Label>
+                                        <p className="text-sm text-muted-foreground">{orderData.shipping_address.city}</p>
+                                    </div>
+                                )}
+                                {orderData.shipping_address.zip && (
+                                    <div>
+                                        <Label className="text-xs font-medium text-foreground">CEP</Label>
+                                        <p className="text-sm text-muted-foreground">{orderData.shipping_address.zip}</p>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                {orderData.shipping_address.province && (
+                                    <div>
+                                        <Label className="text-xs font-medium text-foreground">Estado</Label>
+                                        <p className="text-sm text-muted-foreground">
+                                            {orderData.shipping_address.province}
+                                            {orderData.shipping_address.province_code && ` (${orderData.shipping_address.province_code})`}
+                                        </p>
+                                    </div>
+                                )}
+                                {orderData.shipping_address.country && (
+                                    <div>
+                                        <Label className="text-xs font-medium text-foreground">País</Label>
+                                        <p className="text-sm text-muted-foreground">
+                                            {orderData.shipping_address.country}
+                                            {orderData.shipping_address.country_code && ` (${orderData.shipping_address.country_code})`}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                            {orderData.shipping_address.phone && (
                                 <div>
-                                    <Label className="text-sm font-medium text-foreground">Cidade</Label>
-                                    <p className="text-sm text-muted-foreground">{addressData.shipping_address.city}</p>
+                                    <Label className="text-xs font-medium text-foreground">Telefone</Label>
+                                    <p className="text-sm text-muted-foreground">{orderData.shipping_address.phone}</p>
                                 </div>
                             )}
-                            {addressData.shipping_address.province && (
+                            {(orderData.shipping_address.latitude && orderData.shipping_address.longitude) && (
                                 <div>
-                                    <Label className="text-sm font-medium text-foreground">Estado</Label>
+                                    <Label className="text-xs font-medium text-foreground">Coordenadas</Label>
                                     <p className="text-sm text-muted-foreground">
-                                        {addressData.shipping_address.province}
-                                        {addressData.shipping_address.province_code && ` (${addressData.shipping_address.province_code})`}
-                                    </p>
-                                </div>
-                            )}
-                            {addressData.shipping_address.zip && (
-                                <div>
-                                    <Label className="text-sm font-medium text-foreground">CEP</Label>
-                                    <p className="text-sm text-muted-foreground">{addressData.shipping_address.zip}</p>
-                                </div>
-                            )}
-                            {addressData.shipping_address.country && (
-                                <div>
-                                    <Label className="text-sm font-medium text-foreground">País</Label>
-                                    <p className="text-sm text-muted-foreground">
-                                        {addressData.shipping_address.country}
-                                        {addressData.shipping_address.country_code && ` (${addressData.shipping_address.country_code})`}
-                                    </p>
-                                </div>
-                            )}
-                            {addressData.shipping_address.phone && (
-                                <div>
-                                    <Label className="text-sm font-medium text-foreground">Telefone</Label>
-                                    <p className="text-sm text-muted-foreground">{addressData.shipping_address.phone}</p>
-                                </div>
-                            )}
-                            {(addressData.shipping_address.latitude && addressData.shipping_address.longitude) && (
-                                <div className="col-span-1 sm:col-span-2">
-                                    <Label className="text-sm font-medium text-foreground">Coordenadas</Label>
-                                    <p className="text-sm text-muted-foreground">
-                                        {addressData.shipping_address.latitude}, {addressData.shipping_address.longitude}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* Endereço de Cobrança */}
-                {addressData.has_billing && (
-                    <div className={`p-4 ${bgColor} rounded-lg border ${borderColor}`}>
-                        <h4 className="font-medium text-foreground mb-3">Endereço de Cobrança</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {addressData.billing_address.name && (
-                                <div>
-                                    <Label className="text-sm font-medium text-foreground">Nome Completo</Label>
-                                    <p className="text-sm text-muted-foreground">{addressData.billing_address.name}</p>
-                                </div>
-                            )}
-                            {(addressData.billing_address.first_name || addressData.billing_address.last_name) && (
-                                <div>
-                                    <Label className="text-sm font-medium text-foreground">Nome</Label>
-                                    <p className="text-sm text-muted-foreground">
-                                        {addressData.billing_address.first_name} {addressData.billing_address.last_name}
-                                    </p>
-                                </div>
-                            )}
-                            {addressData.billing_address.company && (
-                                <div>
-                                    <Label className="text-sm font-medium text-foreground">Empresa</Label>
-                                    <p className="text-sm text-muted-foreground">{addressData.billing_address.company}</p>
-                                </div>
-                            )}
-                            {addressData.billing_address.address1 && (
-                                <div className="col-span-1 sm:col-span-2 lg:col-span-3">
-                                    <Label className="text-sm font-medium text-foreground">Endereço</Label>
-                                    <p className="text-sm text-muted-foreground">
-                                        {addressData.billing_address.address1}
-                                        {addressData.billing_address.address2 && `, ${addressData.billing_address.address2}`}
-                                    </p>
-                                </div>
-                            )}
-                            {addressData.billing_address.city && (
-                                <div>
-                                    <Label className="text-sm font-medium text-foreground">Cidade</Label>
-                                    <p className="text-sm text-muted-foreground">{addressData.billing_address.city}</p>
-                                </div>
-                            )}
-                            {addressData.billing_address.province && (
-                                <div>
-                                    <Label className="text-sm font-medium text-foreground">Estado</Label>
-                                    <p className="text-sm text-muted-foreground">
-                                        {addressData.billing_address.province}
-                                        {addressData.billing_address.province_code && ` (${addressData.billing_address.province_code})`}
-                                    </p>
-                                </div>
-                            )}
-                            {addressData.billing_address.zip && (
-                                <div>
-                                    <Label className="text-sm font-medium text-foreground">CEP</Label>
-                                    <p className="text-sm text-muted-foreground">{addressData.billing_address.zip}</p>
-                                </div>
-                            )}
-                            {addressData.billing_address.country && (
-                                <div>
-                                    <Label className="text-sm font-medium text-foreground">País</Label>
-                                    <p className="text-sm text-muted-foreground">
-                                        {addressData.billing_address.country}
-                                        {addressData.billing_address.country_code && ` (${addressData.billing_address.country_code})`}
-                                    </p>
-                                </div>
-                            )}
-                            {addressData.billing_address.phone && (
-                                <div>
-                                    <Label className="text-sm font-medium text-foreground">Telefone</Label>
-                                    <p className="text-sm text-muted-foreground">{addressData.billing_address.phone}</p>
-                                </div>
-                            )}
-                            {(addressData.billing_address.latitude && addressData.billing_address.longitude) && (
-                                <div className="col-span-1 sm:col-span-2">
-                                    <Label className="text-sm font-medium text-foreground">Coordenadas</Label>
-                                    <p className="text-sm text-muted-foreground">
-                                        {addressData.billing_address.latitude}, {addressData.billing_address.longitude}
+                                        {orderData.shipping_address.latitude}, {orderData.shipping_address.longitude}
                                     </p>
                                 </div>
                             )}
@@ -752,14 +689,14 @@ function ProcessamentoPage() {
                                                     <div>
                                                         <p className="font-medium text-sm text-foreground">#{duplicate.first_order.number}</p>
                                                         <p className="text-xs text-muted-foreground">{duplicate.first_order.date}</p>
-                                                        <p className="text-xs text-green-600 dark:text-green-400">{duplicate.first_order.total}</p>
+                                                        <p className="text-xs text-green-600 dark:text-green-400">{duplicate.first_order.total} {duplicate.first_order.currency}</p>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
                                                     <div>
                                                         <p className="font-medium text-sm text-foreground">#{duplicate.duplicate_order.number}</p>
                                                         <p className="text-xs text-muted-foreground">{duplicate.duplicate_order.date}</p>
-                                                        <p className="text-xs text-red-600 dark:text-red-400">{duplicate.duplicate_order.total}</p>
+                                                        <p className="text-xs text-red-600 dark:text-red-400">{duplicate.duplicate_order.total} {duplicate.duplicate_order.currency}</p>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
@@ -870,71 +807,30 @@ function ProcessamentoPage() {
                     {selectedClient && (
                         <ScrollArea className="max-h-[75vh] pr-4">
                             <div className="space-y-6">
-                                {/* Informações do Cliente */}
-                                <div className="space-y-4">
-                                    <h3 className="font-semibold text-foreground">Resumo dos Pedidos</h3>
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                        <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-                                            <h4 className="font-medium text-green-700 dark:text-green-400 mb-3">Pedido Original</h4>
-                                            <div className="space-y-2">
-                                                <div>
-                                                    <Label className="text-xs font-medium text-foreground">Número</Label>
-                                                    <p className="text-sm text-foreground">#{selectedClient.first_order.number}</p>
-                                                </div>
-                                                <div>
-                                                    <Label className="text-xs font-medium text-foreground">Data</Label>
-                                                    <p className="text-sm text-foreground">{selectedClient.first_order.date}</p>
-                                                </div>
-                                                <div>
-                                                    <Label className="text-xs font-medium text-foreground">Total</Label>
-                                                    <p className="text-sm font-semibold text-green-700 dark:text-green-400">{selectedClient.first_order.total}</p>
-                                                </div>
-                                            </div>
-                                        </div>
+                                {/* Layout em Duas Colunas */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    {/* COLUNA 1: Pedido Original */}
+                                    {selectedClient.original_order_address && 
+                                        renderOrderDetails(
+                                            selectedClient.original_order_address, 
+                                            selectedClient.first_order,
+                                            "Pedido Original",
+                                            "bg-green-50 dark:bg-green-950/20",
+                                            "border-green-200 dark:border-green-800"
+                                        )
+                                    }
 
-                                        <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
-                                            <h4 className="font-medium text-red-700 dark:text-red-400 mb-3">Pedido Duplicado</h4>
-                                            <div className="space-y-2">
-                                                <div>
-                                                    <Label className="text-xs font-medium text-foreground">Número</Label>
-                                                    <p className="text-sm text-foreground">#{selectedClient.duplicate_order.number}</p>
-                                                </div>
-                                                <div>
-                                                    <Label className="text-xs font-medium text-foreground">Data</Label>
-                                                    <p className="text-sm text-foreground">{selectedClient.duplicate_order.date}</p>
-                                                </div>
-                                                <div>
-                                                    <Label className="text-xs font-medium text-foreground">Total</Label>
-                                                    <p className="text-sm font-semibold text-red-700 dark:text-red-400">{selectedClient.duplicate_order.total}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    {/* COLUNA 2: Pedido Duplicado */}
+                                    {selectedClient.customer_address && 
+                                        renderOrderDetails(
+                                            selectedClient.customer_address, 
+                                            selectedClient.duplicate_order,
+                                            "Pedido Duplicado",
+                                            "bg-red-50 dark:bg-red-950/20",
+                                            "border-red-200 dark:border-red-800"
+                                        )
+                                    }
                                 </div>
-
-                                <Separator />
-
-                                {/* ENDEREÇOS DO PEDIDO ORIGINAL */}
-                                {selectedClient.original_order_address && 
-                                    renderAddressSection(
-                                        selectedClient.original_order_address, 
-                                        `Endereços do Pedido Original (#${selectedClient.first_order.number})`,
-                                        "bg-green-50 dark:bg-green-950/20",
-                                        "border-green-200 dark:border-green-800"
-                                    )
-                                }
-
-                                <Separator />
-
-                                {/* ENDEREÇOS DO PEDIDO DUPLICADO */}
-                                {selectedClient.customer_address && 
-                                    renderAddressSection(
-                                        selectedClient.customer_address, 
-                                        `Endereços do Pedido Duplicado (#${selectedClient.duplicate_order.number})`,
-                                        "bg-red-50 dark:bg-red-950/20",
-                                        "border-red-200 dark:border-red-800"
-                                    )
-                                }
 
                                 <Separator />
 
