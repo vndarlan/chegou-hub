@@ -575,7 +575,7 @@ function ProcessamentoPage() {
                             <li>• Ambos pedidos não têm tags (ambos não processados)</li>
                             <li>• Produtos diferentes</li>
                             <li>• Clientes diferentes (telefones diferentes)</li>
-                            <li>• Intervalo > 30 dias</li>
+                            <li>• Intervalo menor que 30 dias</li>
                         </ul>
                     </div>
                     
