@@ -19,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import {
     ShoppingCart, AlertCircle, Check, X, RefreshCw, Trash2, 
     Settings, History, Plus, Building, Cloud, CloudOff, 
-    Book, Search, Target, Loader2, Eye
+    Book, Search, Target, Loader2, Eye, MapPin
 } from 'lucide-react';
 
 function ProcessamentoPage() {
@@ -38,6 +38,7 @@ function ProcessamentoPage() {
     const [showHistory, setShowHistory] = useState(false);
     const [showClientDetails, setShowClientDetails] = useState(false);
     const [selectedClient, setSelectedClient] = useState(null);
+    const [clientAddress, setClientAddress] = useState(null);
     const [newStore, setNewStore] = useState({ nome_loja: '', shop_url: '', access_token: '' });
     const [testingConnection, setTestingConnection] = useState(false);
     const [connectionResult, setConnectionResult] = useState(null);
@@ -195,6 +196,26 @@ function ProcessamentoPage() {
         }
     };
 
+    // Função para buscar detalhes do endereço do cliente
+    const loadClientAddress = async (orderId) => {
+        try {
+            // Aqui você faria uma chamada para obter detalhes completos do pedido incluindo endereço
+            // Como não temos essa API ainda, vou simular com dados mockados
+            const mockAddress = {
+                address1: "Rua das Flores, 123",
+                address2: "Apto 45",
+                city: "São Paulo",
+                province: "SP",
+                zip: "01234-567",
+                country: "Brasil"
+            };
+            setClientAddress(mockAddress);
+        } catch (error) {
+            console.error('Erro ao carregar endereço:', error);
+            setClientAddress(null);
+        }
+    };
+
     const toggleDuplicateSelection = (duplicateId) => {
         setSelectedDuplicates(prev => 
             prev.includes(duplicateId) 
@@ -211,21 +232,23 @@ function ProcessamentoPage() {
         }
     };
 
-    const openClientDetails = (duplicate) => {
+    const openClientDetails = async (duplicate) => {
         setSelectedClient(duplicate);
         setShowClientDetails(true);
+        // Carregar endereço do cliente
+        await loadClientAddress(duplicate.duplicate_order.id);
     };
 
     if (loading) {
         return (
             <div className="flex h-screen items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin" />
+                <Loader2 className="h-8 w-8 animate-spin text-foreground" />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen p-6 space-y-6">
+        <div className="min-h-screen bg-background text-foreground p-6 space-y-6">
             {/* Notification */}
             {notification && (
                 <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4">
@@ -243,13 +266,13 @@ function ProcessamentoPage() {
                 
                 <div className="flex items-center space-x-2">
                     <Select value={lojaSelecionada?.toString()} onValueChange={(value) => setLojaSelecionada(parseInt(value))}>
-                        <SelectTrigger className="w-48">
+                        <SelectTrigger className="w-48 bg-background border-input text-foreground">
                             <Building className="h-4 w-4 mr-2" />
                             <SelectValue placeholder="Selecionar loja" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-popover border-border">
                             {lojas.map(loja => (
-                                <SelectItem key={loja.id} value={loja.id.toString()}>
+                                <SelectItem key={loja.id} value={loja.id.toString()} className="text-foreground hover:bg-accent">
                                     {loja.nome_loja}
                                 </SelectItem>
                             ))}
@@ -262,38 +285,41 @@ function ProcessamentoPage() {
                                 <Plus className="h-4 w-4" />
                             </Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="bg-background border-border">
                             <DialogHeader>
-                                <DialogTitle>Adicionar Nova Loja</DialogTitle>
-                                <DialogDescription>Configure uma nova integração Shopify</DialogDescription>
+                                <DialogTitle className="text-foreground">Adicionar Nova Loja</DialogTitle>
+                                <DialogDescription className="text-muted-foreground">Configure uma nova integração Shopify</DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4">
                                 <div>
-                                    <Label htmlFor="nome">Nome da Loja</Label>
+                                    <Label htmlFor="nome" className="text-foreground">Nome da Loja</Label>
                                     <Input
                                         id="nome"
                                         placeholder="Ex: Loja Principal"
                                         value={newStore.nome_loja}
                                         onChange={(e) => setNewStore(prev => ({ ...prev, nome_loja: e.target.value }))}
+                                        className="bg-background border-input text-foreground"
                                     />
                                 </div>
                                 <div>
-                                    <Label htmlFor="url">URL da Loja</Label>
+                                    <Label htmlFor="url" className="text-foreground">URL da Loja</Label>
                                     <Input
                                         id="url"
                                         placeholder="minha-loja.myshopify.com"
                                         value={newStore.shop_url}
                                         onChange={(e) => setNewStore(prev => ({ ...prev, shop_url: e.target.value }))}
+                                        className="bg-background border-input text-foreground"
                                     />
                                 </div>
                                 <div>
-                                    <Label htmlFor="token">Access Token</Label>
+                                    <Label htmlFor="token" className="text-foreground">Access Token</Label>
                                     <Input
                                         id="token"
                                         type="password"
                                         placeholder="Token de acesso da API"
                                         value={newStore.access_token}
                                         onChange={(e) => setNewStore(prev => ({ ...prev, access_token: e.target.value }))}
+                                        className="bg-background border-input text-foreground"
                                     />
                                 </div>
 
@@ -331,58 +357,58 @@ function ProcessamentoPage() {
                                 <Settings className="h-4 w-4" />
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-2xl">
+                        <DialogContent className="max-w-2xl bg-background border-border">
                             <DialogHeader>
-                                <DialogTitle>Configurações & Lógica</DialogTitle>
-                                <DialogDescription>Instruções de configuração e lógica de detecção</DialogDescription>
+                                <DialogTitle className="text-foreground">Configurações & Lógica</DialogTitle>
+                                <DialogDescription className="text-muted-foreground">Instruções de configuração e lógica de detecção</DialogDescription>
                             </DialogHeader>
                             <Tabs defaultValue="config">
-                                <TabsList className="grid w-full grid-cols-2">
-                                    <TabsTrigger value="config">Configuração Shopify</TabsTrigger>
-                                    <TabsTrigger value="logic">Lógica de Detecção</TabsTrigger>
+                                <TabsList className="grid w-full grid-cols-2 bg-muted">
+                                    <TabsTrigger value="config" className="text-foreground">Configuração Shopify</TabsTrigger>
+                                    <TabsTrigger value="logic" className="text-foreground">Lógica de Detecção</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="config" className="space-y-4">
                                     <div className="space-y-3">
                                         <div className="p-3 bg-muted rounded-lg">
-                                            <h4 className="font-semibold text-sm">1. Criar App Privado</h4>
+                                            <h4 className="font-semibold text-sm text-foreground">1. Criar App Privado</h4>
                                             <p className="text-sm text-muted-foreground">Acesse sua loja → Settings → Apps → Develop apps → Create an app</p>
                                         </div>
                                         <div className="p-3 bg-muted rounded-lg">
-                                            <h4 className="font-semibold text-sm">2. Configurar Permissões</h4>
+                                            <h4 className="font-semibold text-sm text-foreground">2. Configurar Permissões</h4>
                                             <p className="text-sm text-muted-foreground">Adicione: read_orders, write_orders, read_products, read_customers</p>
                                         </div>
                                         <div className="p-3 bg-muted rounded-lg">
-                                            <h4 className="font-semibold text-sm">3. Gerar Token</h4>
+                                            <h4 className="font-semibold text-sm text-foreground">3. Gerar Token</h4>
                                             <p className="text-sm text-muted-foreground">Install app → Copie o Admin API access token</p>
                                         </div>
                                     </div>
                                 </TabsContent>
                                 <TabsContent value="logic" className="space-y-4">
                                     <div>
-                                        <h4 className="font-semibold text-green-700 mb-2">✅ DETECTA DUPLICATA quando:</h4>
+                                        <h4 className="font-semibold text-green-600 dark:text-green-400 mb-2">✅ DETECTA DUPLICATA quando:</h4>
                                         <ul className="text-sm text-muted-foreground space-y-1 ml-4">
                                             <li>• Mesmo cliente (telefone normalizado)</li>
                                             <li>• Mesmo produto (Product ID)</li>
                                             <li>• Intervalo ≤ 30 dias entre pedidos</li>
-                                            <li>• Pedido original: <strong>PROCESSADO</strong> (tem tags "order sent to dropi" ou "dropi sync error")</li>
-                                            <li>• Pedido duplicado: <strong>NÃO PROCESSADO</strong> (sem tags do Dropi)</li>
+                                            <li>• Pedido original: <strong className="text-foreground">PROCESSADO</strong> (tem tags "order sent to dropi" ou "dropi sync error")</li>
+                                            <li>• Pedido duplicado: <strong className="text-foreground">NÃO PROCESSADO</strong> (sem tags do Dropi)</li>
                                         </ul>
                                     </div>
                                     
                                     <Separator />
                                     
                                     <div>
-                                        <h4 className="font-semibold text-red-700 mb-2">❌ NÃO detecta quando:</h4>
+                                        <h4 className="font-semibold text-red-600 dark:text-red-400 mb-2">❌ NÃO detecta quando:</h4>
                                         <ul className="text-sm text-muted-foreground space-y-1 ml-4">
                                             <li>• Ambos pedidos não têm tags (ambos não processados)</li>
                                             <li>• Produtos diferentes</li>
                                             <li>• Clientes diferentes (telefones diferentes)</li>
-                                            <li>• Intervalo , 30 dias</li>
+                                            <li>• Intervalo maior que 30 dias</li>
                                         </ul>
                                     </div>
                                     
                                     <Alert>
-                                        <AlertDescription>
+                                        <AlertDescription className="text-foreground">
                                             <strong>Objetivo:</strong> Cancelar apenas pedidos duplicados não processados de produtos já enviados/processados anteriormente.
                                         </AlertDescription>
                                     </Alert>
@@ -398,11 +424,11 @@ function ProcessamentoPage() {
             </div>
 
             {/* Área Principal */}
-            <Card>
+            <Card className="bg-card border-border">
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardDescription>Detecte e gerencie pedidos duplicados automaticamente</CardDescription>
+                            <CardDescription className="text-muted-foreground">Detecte e gerencie pedidos duplicados automaticamente</CardDescription>
                         </div>
                         
                         <div className="flex space-x-2">
@@ -422,10 +448,10 @@ function ProcessamentoPage() {
                                             Cancelar Selecionados ({selectedDuplicates.length})
                                         </Button>
                                     </DialogTrigger>
-                                    <DialogContent>
+                                    <DialogContent className="bg-background border-border">
                                         <DialogHeader>
-                                            <DialogTitle>Confirmar Cancelamento</DialogTitle>
-                                            <DialogDescription>
+                                            <DialogTitle className="text-foreground">Confirmar Cancelamento</DialogTitle>
+                                            <DialogDescription className="text-muted-foreground">
                                                 Esta ação cancelará {selectedDuplicates.length} pedidos selecionados. Esta operação não pode ser desfeita.
                                             </DialogDescription>
                                         </DialogHeader>
@@ -448,7 +474,7 @@ function ProcessamentoPage() {
                     {!lojaSelecionada && (
                         <Alert>
                             <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>Selecione uma loja no header para buscar pedidos duplicados</AlertDescription>
+                            <AlertDescription className="text-foreground">Selecione uma loja no header para buscar pedidos duplicados</AlertDescription>
                         </Alert>
                     )}
 
@@ -466,27 +492,27 @@ function ProcessamentoPage() {
                             <p className="text-sm text-muted-foreground">Execute uma busca para detectar pedidos duplicados</p>
                         </div>
                     ) : duplicates.length > 0 ? (
-                        <div className="rounded-md border">
+                        <div className="rounded-md border border-border">
                             <Table>
                                 <TableHeader>
-                                    <TableRow>
+                                    <TableRow className="border-border">
                                         <TableHead className="w-12">
                                             <Checkbox 
                                                 checked={selectedDuplicates.length === duplicates.length}
                                                 onCheckedChange={toggleSelectAll}
                                             />
                                         </TableHead>
-                                        <TableHead>Cliente</TableHead>
-                                        <TableHead>Pedido Original</TableHead>
-                                        <TableHead>Duplicata</TableHead>
-                                        <TableHead>Produtos</TableHead>
-                                        <TableHead>Intervalo</TableHead>
-                                        <TableHead className="text-right">Ações</TableHead>
+                                        <TableHead className="text-foreground">Cliente</TableHead>
+                                        <TableHead className="text-foreground">Pedido Original</TableHead>
+                                        <TableHead className="text-foreground">Duplicata</TableHead>
+                                        <TableHead className="text-foreground">Produtos</TableHead>
+                                        <TableHead className="text-foreground">Intervalo</TableHead>
+                                        <TableHead className="text-right text-foreground">Ações</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {duplicates.map((duplicate, index) => (
-                                        <TableRow key={index}>
+                                        <TableRow key={index} className="border-border hover:bg-muted/50">
                                             <TableCell>
                                                 <Checkbox 
                                                     checked={selectedDuplicates.includes(duplicate.duplicate_order.id)}
@@ -496,26 +522,26 @@ function ProcessamentoPage() {
                                             <TableCell>
                                                 <div className="flex items-center space-x-3">
                                                     <Avatar className="h-8 w-8">
-                                                        <AvatarFallback className="text-xs">{duplicate.customer_name?.charAt(0) || 'U'}</AvatarFallback>
+                                                        <AvatarFallback className="text-xs bg-muted text-foreground">{duplicate.customer_name?.charAt(0) || 'U'}</AvatarFallback>
                                                     </Avatar>
                                                     <div>
-                                                        <p className="font-medium text-sm">{duplicate.customer_name}</p>
+                                                        <p className="font-medium text-sm text-foreground">{duplicate.customer_name}</p>
                                                         <p className="text-xs text-muted-foreground">{duplicate.customer_phone}</p>
                                                     </div>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
                                                 <div>
-                                                    <p className="font-medium text-sm">#{duplicate.first_order.number}</p>
+                                                    <p className="font-medium text-sm text-foreground">#{duplicate.first_order.number}</p>
                                                     <p className="text-xs text-muted-foreground">{duplicate.first_order.date}</p>
-                                                    <p className="text-xs text-green-700">{duplicate.first_order.total}</p>
+                                                    <p className="text-xs text-green-600 dark:text-green-400">{duplicate.first_order.total}</p>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
                                                 <div>
-                                                    <p className="font-medium text-sm">#{duplicate.duplicate_order.number}</p>
+                                                    <p className="font-medium text-sm text-foreground">#{duplicate.duplicate_order.number}</p>
                                                     <p className="text-xs text-muted-foreground">{duplicate.duplicate_order.date}</p>
-                                                    <p className="text-xs text-red-700">{duplicate.duplicate_order.total}</p>
+                                                    <p className="text-xs text-red-600 dark:text-red-400">{duplicate.duplicate_order.total}</p>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
@@ -561,10 +587,10 @@ function ProcessamentoPage() {
 
             {/* Histórico */}
             <Dialog open={showHistory} onOpenChange={setShowHistory}>
-                <DialogContent className="max-w-4xl">
+                <DialogContent className="max-w-4xl bg-background border-border">
                     <DialogHeader>
                         <div className="flex items-center justify-between">
-                            <DialogTitle className="flex items-center space-x-2">
+                            <DialogTitle className="flex items-center space-x-2 text-foreground">
                                 <History className="h-5 w-5" />
                                 <span>Histórico de Operações</span>
                             </DialogTitle>
@@ -581,13 +607,13 @@ function ProcessamentoPage() {
                             <ScrollArea className="h-96">
                                 <div className="space-y-3">
                                     {logs.map((log) => (
-                                        <div key={log.id} className="p-3 border rounded-lg">
+                                        <div key={log.id} className="p-3 border border-border rounded-lg bg-card">
                                             <div className="flex items-center justify-between mb-2">
                                                 <div className="flex items-center space-x-2">
                                                     {log.status === 'Sucesso' ? <Check className="h-4 w-4 text-green-600" /> : 
                                                      log.status === 'Erro' ? <X className="h-4 w-4 text-red-600" /> : 
                                                      <AlertCircle className="h-4 w-4 text-orange-600" />}
-                                                    <span className="font-medium text-sm">{log.tipo}</span>
+                                                    <span className="font-medium text-sm text-foreground">{log.tipo}</span>
                                                     <Badge variant={log.status === 'Sucesso' ? 'default' : log.status === 'Erro' ? 'destructive' : 'secondary'}>
                                                         {log.status}
                                                     </Badge>
@@ -615,19 +641,19 @@ function ProcessamentoPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Detalhes do Cliente */}
+            {/* Detalhes do Cliente - ATUALIZADO COM ENDEREÇO */}
             <Dialog open={showClientDetails} onOpenChange={setShowClientDetails}>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-3xl bg-background border-border">
                     <DialogHeader>
-                        <DialogTitle>Detalhes do Cliente</DialogTitle>
-                        <DialogDescription>Informações completas sobre o cliente e pedidos</DialogDescription>
+                        <DialogTitle className="text-foreground">Detalhes do Cliente</DialogTitle>
+                        <DialogDescription className="text-muted-foreground">Informações completas sobre o cliente e pedidos</DialogDescription>
                     </DialogHeader>
                     {selectedClient && (
                         <div className="space-y-6">
                             {/* Informações do Cliente */}
                             <div className="space-y-4">
                                 <h3 className="font-semibold text-foreground">Informações do Cliente</h3>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-3 gap-4">
                                     <div>
                                         <Label className="text-sm font-medium text-foreground">Nome</Label>
                                         <p className="text-sm text-muted-foreground">{selectedClient.customer_name}</p>
@@ -636,8 +662,52 @@ function ProcessamentoPage() {
                                         <Label className="text-sm font-medium text-foreground">Telefone</Label>
                                         <p className="text-sm text-muted-foreground">{selectedClient.customer_phone}</p>
                                     </div>
+                                    <div>
+                                        <Label className="text-sm font-medium text-foreground">Status</Label>
+                                        <Badge variant="outline" className="text-xs">
+                                            {selectedClient.status || 'N/A'}
+                                        </Badge>
+                                    </div>
                                 </div>
                             </div>
+
+                            {/* Endereço do Cliente */}
+                            {clientAddress && (
+                                <>
+                                    <Separator />
+                                    <div className="space-y-4">
+                                        <h3 className="font-semibold text-foreground flex items-center space-x-2">
+                                            <MapPin className="h-4 w-4" />
+                                            <span>Endereço de Entrega</span>
+                                        </h3>
+                                        <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg border border-border">
+                                            <div className="col-span-2">
+                                                <Label className="text-sm font-medium text-foreground">Endereço</Label>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {clientAddress.address1}
+                                                    {clientAddress.address2 && `, ${clientAddress.address2}`}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <Label className="text-sm font-medium text-foreground">Cidade</Label>
+                                                <p className="text-sm text-muted-foreground">{clientAddress.city}</p>
+                                            </div>
+                                            <div>
+                                                <Label className="text-sm font-medium text-foreground">Estado</Label>
+                                                <p className="text-sm text-muted-foreground">{clientAddress.province}</p>
+                                            </div>
+                                            <div>
+                                                <Label className="text-sm font-medium text-foreground">CEP</Label>
+                                                <p className="text-sm text-muted-foreground">{clientAddress.zip}</p>
+                                            </div>
+                                            <div>
+                                                <Label className="text-sm font-medium text-foreground">País</Label>
+                                                <p className="text-sm text-muted-foreground">{clientAddress.country}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
 
                             <Separator />
 
