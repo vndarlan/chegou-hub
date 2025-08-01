@@ -184,9 +184,9 @@ function EngajamentoPage() {
         }
     };
 
-    // Componente de Saldo Minimizado
+    // Componente de Saldo Minimizado - GRADIENTE CORRIGIDO
     const SaldoCompact = () => (
-        <Card className="w-64 bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
+        <Card className="w-64 bg-gradient-to-b from-muted/50 to-muted border-border">
             <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -238,28 +238,22 @@ function EngajamentoPage() {
                                     <Label htmlFor="modal-nome" className="text-sm">Nome</Label>
                                     <Input
                                         id="modal-nome"
-                                        key="nome-input"
                                         type="text"
                                         placeholder="Ex: Like Facebook"
                                         value={novoEngajamento.nome}
                                         onChange={(e) => setNovoEngajamento(prev => ({ ...prev, nome: e.target.value }))}
                                         className="mt-1"
-                                        autoComplete="off"
-                                        autoFocus={false}
                                     />
                                 </div>
                                 <div>
                                     <Label htmlFor="modal-id" className="text-sm">ID</Label>
                                     <Input
                                         id="modal-id"
-                                        key="id-input"
                                         type="text"
                                         placeholder="Ex: 101"
                                         value={novoEngajamento.engajamento_id}
                                         onChange={(e) => setNovoEngajamento(prev => ({ ...prev, engajamento_id: e.target.value }))}
                                         className="mt-1"
-                                        autoComplete="off"
-                                        autoFocus={false}
                                     />
                                 </div>
                                 <div>
