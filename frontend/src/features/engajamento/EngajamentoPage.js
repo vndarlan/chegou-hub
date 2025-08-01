@@ -186,7 +186,7 @@ function EngajamentoPage() {
 
     // Componente de Saldo Minimizado
     const SaldoCompact = () => (
-        <Card className="w-64 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+        <Card className="w-64 bg-gradient-to-b from-gray-100 to-gray-200 dark:from-slate-800 dark:to-slate-900">
             <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -232,30 +232,39 @@ function EngajamentoPage() {
                             </DialogHeader>
                             <div className="space-y-3">
                                 <div>
-                                    <Label htmlFor="nome" className="text-sm">Nome</Label>
+                                    <Label htmlFor="modal-nome" className="text-sm">Nome</Label>
                                     <Input
-                                        id="nome"
+                                        id="modal-nome"
+                                        key="nome-input"
+                                        type="text"
                                         placeholder="Ex: Like Facebook"
                                         value={novoEngajamento.nome}
                                         onChange={(e) => setNovoEngajamento(prev => ({ ...prev, nome: e.target.value }))}
                                         className="mt-1"
                                         autoComplete="off"
+                                        autoFocus={false}
                                     />
                                 </div>
                                 <div>
-                                    <Label htmlFor="engajamento_id" className="text-sm">ID</Label>
+                                    <Label htmlFor="modal-id" className="text-sm">ID</Label>
                                     <Input
-                                        id="engajamento_id"
+                                        id="modal-id"
+                                        key="id-input"
+                                        type="text"
                                         placeholder="Ex: 101"
                                         value={novoEngajamento.engajamento_id}
                                         onChange={(e) => setNovoEngajamento(prev => ({ ...prev, engajamento_id: e.target.value }))}
                                         className="mt-1"
                                         autoComplete="off"
+                                        autoFocus={false}
                                     />
                                 </div>
                                 <div>
                                     <Label className="text-sm">Tipo</Label>
-                                    <Select value={novoEngajamento.tipo} onValueChange={(value) => setNovoEngajamento(prev => ({ ...prev, tipo: value }))}>
+                                    <Select 
+                                        value={novoEngajamento.tipo} 
+                                        onValueChange={(value) => setNovoEngajamento(prev => ({ ...prev, tipo: value }))}
+                                    >
                                         <SelectTrigger className="mt-1">
                                             <SelectValue />
                                         </SelectTrigger>
@@ -268,11 +277,11 @@ function EngajamentoPage() {
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <Checkbox
-                                        id="funcionando"
+                                        id="modal-funcionando"
                                         checked={novoEngajamento.funcionando}
                                         onCheckedChange={(checked) => setNovoEngajamento(prev => ({ ...prev, funcionando: checked }))}
                                     />
-                                    <Label htmlFor="funcionando" className="text-sm">Ativo</Label>
+                                    <Label htmlFor="modal-funcionando" className="text-sm">Ativo</Label>
                                 </div>
                                 <div className="flex justify-end space-x-2 pt-2">
                                     <Button variant="outline" size="sm" onClick={() => setModalEngajamento(false)}>
@@ -309,8 +318,11 @@ function EngajamentoPage() {
                                     </TableCell>
                                     <TableCell>
                                         <Badge 
-                                            variant={eng.tipo === 'Like' ? 'default' : eng.tipo === 'Amei' ? 'destructive' : 'secondary'}
-                                            className={`text-xs ${eng.tipo === 'Uau' ? 'bg-yellow-500 text-white hover:bg-yellow-600' : ''}`}
+                                            variant={eng.tipo === 'Amei' ? 'destructive' : 'secondary'}
+                                            className={`text-xs ${
+                                                eng.tipo === 'Like' ? 'bg-blue-500 text-white hover:bg-blue-600' : 
+                                                eng.tipo === 'Uau' ? 'bg-yellow-500 text-white hover:bg-yellow-600' : ''
+                                            }`}
                                         >
                                             {eng.tipo === 'Like' && '👍 '}
                                             {eng.tipo === 'Amei' && '❤️ '}
