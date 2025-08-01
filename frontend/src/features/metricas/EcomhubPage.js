@@ -7,8 +7,6 @@ import {
     PieChart, Filter, Rocket, LayoutDashboard, Loader2
 } from 'lucide-react';
 import axios from 'axios';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 // shadcn/ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -28,14 +26,14 @@ import { Calendar } from '../../components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
 
 const PAISES = [
-    { value: 'todos', label: 'Todos os Países', emoji: '🌍' },
-    { value: '164', label: 'Espanha', emoji: '🇪🇸' },
-    { value: '41', label: 'Croácia', emoji: '🇭🇷' },
-    { value: '66', label: 'Grécia', emoji: '🇬🇷' },
-    { value: '82', label: 'Itália', emoji: '🇮🇹' },
-    { value: '142', label: 'Romênia', emoji: '🇷🇴' },
-    { value: '44', label: 'República Checa', emoji: '🇨🇿' },
-    { value: '139', label: 'Polônia', emoji: '🇵🇱' }
+    { value: 'todos', label: 'Todos os Países' },
+    { value: '164', label: 'Espanha' },
+    { value: '41', label: 'Croácia' },
+    { value: '66', label: 'Grécia' },
+    { value: '82', label: 'Itália' },
+    { value: '142', label: 'Romênia' },
+    { value: '44', label: 'República Checa' },
+    { value: '139', label: 'Polônia' }
 ];
 
 function EcomhubPage() {
@@ -277,7 +275,7 @@ function EcomhubPage() {
                     <SelectContent>
                         {PAISES.map(pais => (
                             <SelectItem key={pais.value} value={pais.value}>
-                                {pais.emoji} {pais.label}
+                                {pais.label}
                             </SelectItem>
                         ))}
                     </SelectContent>
@@ -324,7 +322,7 @@ function EcomhubPage() {
                                         disabled={loadingProcessar}
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {dataInicio ? format(dataInicio, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar data"}
+                                        {dataInicio ? dataInicio.toLocaleDateString('pt-BR') : "Selecionar data"}
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
@@ -334,6 +332,7 @@ function EcomhubPage() {
                                         onSelect={setDataInicio}
                                         disabled={(date) => date > new Date() || date < new Date('2020-01-01')}
                                         initialFocus
+                                        className="rounded-md border"
                                     />
                                 </PopoverContent>
                             </Popover>
@@ -350,7 +349,7 @@ function EcomhubPage() {
                                         disabled={loadingProcessar}
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {dataFim ? format(dataFim, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar data"}
+                                        {dataFim ? dataFim.toLocaleDateString('pt-BR') : "Selecionar data"}
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
@@ -360,6 +359,7 @@ function EcomhubPage() {
                                         onSelect={setDataFim}
                                         disabled={(date) => date > new Date() || (dataInicio && date < dataInicio)}
                                         initialFocus
+                                        className="rounded-md border"
                                     />
                                 </PopoverContent>
                             </Popover>
