@@ -325,9 +325,9 @@ function MapaPage() {
         </Card>
     );
 
-    // Listas de países
+    // Listas de países - MODIFICADO PARA GRID
     const CountryLists = () => (
-        <div className="space-y-4">
+        <>
             {Object.entries(paisesPorStatus).map(([status, paises]) => {
                 const statusInfo = statusColors[status];
                 return (
@@ -361,7 +361,7 @@ function MapaPage() {
                     </Card>
                 );
             })}
-        </div>
+        </>
     );
 
     return (
@@ -430,8 +430,8 @@ function MapaPage() {
                         </div>
                     </div>
 
-                    {/* Listas de países */}
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {/* Listas de países - GRID HORIZONTAL */}
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
                         <CountryLists />
                     </div>
                 </div>
