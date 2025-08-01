@@ -1,4 +1,4 @@
-// frontend/src/features/metricas/EcomhubPage.js - VERSÃO MINIMALISTA SHADCN/UI
+// frontend/src/features/metricas/EcomhubPage.js - VERSÃO CORRIGIDA
 import React, { useState, useEffect } from 'react';
 import {
     Calendar as CalendarIcon, Download, Trash2, RefreshCw, Check, X, 
@@ -7,6 +7,8 @@ import {
     PieChart, Filter, Rocket, LayoutDashboard, Loader2
 } from 'lucide-react';
 import axios from 'axios';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 // shadcn/ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -249,52 +251,46 @@ function EcomhubPage() {
 
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
-    // Header minimalista
+    // Header minimalista sem caixa laranja
     const renderHeader = () => (
-        <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-6 mb-6 text-white">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <LayoutDashboard className="h-8 w-8" />
-                    <div>
-                        <h1 className="text-2xl font-bold">Métricas ECOMHUB</h1>
-                        <p className="text-orange-100">Análise de Efetividade por Produto</p>
-                    </div>
-                </div>
+        <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+                <BarChart3 className="h-6 w-6 text-primary" />
+                <h1 className="text-2xl font-bold">Análise de Efetividade por Produto</h1>
+            </div>
+            
+            <div className="flex items-center gap-3">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setModalInstrucoes(true)}
+                >
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Instruções
+                </Button>
                 
-                <div className="flex items-center gap-3">
-                    <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setModalInstrucoes(true)}
-                        className="bg-white/20 border-0 text-white hover:bg-white/30"
-                    >
-                        <AlertTriangle className="h-4 w-4 mr-2" />
-                        Instruções
-                    </Button>
-                    
-                    <Select value={paisSelecionado} onValueChange={setPaisSelecionado}>
-                        <SelectTrigger className="w-52 bg-white/20 border-white/30 text-white [&>span]:text-white">
-                            <Globe className="h-4 w-4 mr-2" />
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {PAISES.map(pais => (
-                                <SelectItem key={pais.value} value={pais.value}>
-                                    {pais.emoji} {pais.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+                <Select value={paisSelecionado} onValueChange={setPaisSelecionado}>
+                    <SelectTrigger className="w-52">
+                        <Globe className="h-4 w-4 mr-2" />
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {PAISES.map(pais => (
+                            <SelectItem key={pais.value} value={pais.value}>
+                                {pais.emoji} {pais.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
         </div>
     );
 
-    // Formulário com Calendar
+    // Formulário com Calendar corrigido
     const renderFormulario = () => (
         <Card className="mb-6 relative">
             {loadingProcessar && (
-                <div className="absolute inset-0 bg-white/95 backdrop-blur flex flex-col items-center justify-center z-10 rounded-lg">
+                <div className="absolute inset-0 bg-background/95 backdrop-blur flex flex-col items-center justify-center z-10 rounded-lg">
                     <Loader2 className="h-8 w-8 animate-spin mb-4" />
                     <p className="font-medium mb-2">Processando dados...</p>
                     {progressoAtual && (
@@ -317,7 +313,7 @@ function EcomhubPage() {
                     </div>
 
                     <div className="flex items-end gap-4">
-                        {/* Data Início com Calendar */}
+                        {/* Data Início com Calendar corrigido */}
                         <div>
                             <Label className="mb-2 block">Data de Início</Label>
                             <Popover>
@@ -328,7 +324,7 @@ function EcomhubPage() {
                                         disabled={loadingProcessar}
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {dataInicio ? new Date(dataInicio).toLocaleDateString('pt-BR') : "Selecionar data"}
+                                        {dataInicio ? format(dataInicio, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar data"}
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
@@ -343,7 +339,7 @@ function EcomhubPage() {
                             </Popover>
                         </div>
                         
-                        {/* Data Fim com Calendar */}
+                        {/* Data Fim com Calendar corrigido */}
                         <div>
                             <Label className="mb-2 block">Data de Fim</Label>
                             <Popover>
@@ -354,7 +350,7 @@ function EcomhubPage() {
                                         disabled={loadingProcessar}
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {dataFim ? new Date(dataFim).toLocaleDateString('pt-BR') : "Selecionar data"}
+                                        {dataFim ? format(dataFim, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar data"}
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
@@ -460,26 +456,34 @@ function EcomhubPage() {
         const hasError = imagensComErro.has(imageKey);
         
         if (!value || hasError) {
-            return <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-lg">📦</div>;
+            return <div className="w-8 h-8 bg-muted rounded flex items-center justify-center text-sm">📦</div>;
         }
 
         return (
             <img 
                 src={value} 
                 alt="Produto" 
-                className="w-10 h-10 object-cover rounded border"
+                className="w-8 h-8 object-cover rounded border"
                 onError={() => setImagensComErro(prev => new Set(prev).add(imageKey))}
             />
         );
     };
 
-    // Tabela responsiva e menor
+    // Tabela responsiva corrigida - sem scroll lateral
     const renderResultados = () => {
         const dados = getDadosVisualizacao();
         if (!dados || !Array.isArray(dados)) return null;
 
-        const colunas = Object.keys(dados[0] || {});
+        let colunas = Object.keys(dados[0] || {});
         const dadosOrdenados = sortData(dados, sortBy, sortOrder);
+
+        // Filtrar colunas principais para tela menor
+        const colunasEssenciais = ['Produto', 'Totais', 'Entregues', 'Efetividade_Total'];
+        const isMobile = window.innerWidth < 768;
+        
+        if (isMobile && tipoVisualizacao === 'otimizada') {
+            colunas = colunas.filter(col => colunasEssenciais.includes(col));
+        }
 
         return (
             <Card className="mb-6">
@@ -505,58 +509,60 @@ function EcomhubPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div className="relative">
-                        <ScrollArea className="h-96 w-full">
-                            <div className="min-w-full">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow className="bg-muted/50">
+                    <div className="overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/50">
+                                        {colunas.map(col => (
+                                            <TableHead key={col} className="whitespace-nowrap px-2 py-2 text-xs">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-auto p-0 font-medium text-xs"
+                                                    onClick={() => handleSort(col)}
+                                                >
+                                                    {col.replace('_', ' ')}
+                                                    {sortBy === col ? (
+                                                        sortOrder === 'asc' ? 
+                                                            <ArrowUp className="ml-1 h-3 w-3" /> : 
+                                                            <ArrowDown className="ml-1 h-3 w-3" />
+                                                    ) : (
+                                                        <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
+                                                    )}
+                                                </Button>
+                                            </TableHead>
+                                        ))}
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {dadosOrdenados.map((row, idx) => (
+                                        <TableRow key={idx} className={row.Produto === 'Total' ? 'bg-muted/20 font-medium' : ''}>
                                             {colunas.map(col => (
-                                                <TableHead key={col} className="whitespace-nowrap">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-auto p-0 font-medium"
-                                                        onClick={() => handleSort(col)}
-                                                    >
-                                                        {col.replace('_', ' ')}
-                                                        {sortBy === col ? (
-                                                            sortOrder === 'asc' ? 
-                                                                <ArrowUp className="ml-1 h-3 w-3" /> : 
-                                                                <ArrowDown className="ml-1 h-3 w-3" />
-                                                        ) : (
-                                                            <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
-                                                        )}
-                                                    </Button>
-                                                </TableHead>
+                                                <TableCell
+                                                    key={col}
+                                                    className={`px-2 py-2 text-xs ${
+                                                        tipoVisualizacao === 'otimizada' &&
+                                                        (col === 'Efetividade_Total' || col === 'Efetividade_Parcial') ?
+                                                        `font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center` : ''
+                                                    }`}
+                                                >
+                                                    {col === 'Imagem' ? (
+                                                        renderImagemProduto(row[col], idx)
+                                                    ) : col === 'Produto' ? (
+                                                        <div className="max-w-[120px] truncate" title={row[col]}>
+                                                            {row[col]}
+                                                        </div>
+                                                    ) : (
+                                                        typeof row[col] === 'number' ? row[col].toLocaleString() : row[col]
+                                                    )}
+                                                </TableCell>
                                             ))}
                                         </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {dadosOrdenados.map((row, idx) => (
-                                            <TableRow key={idx} className={row.Produto === 'Total' ? 'bg-muted/20 font-medium' : ''}>
-                                                {Object.entries(row).map(([col, value]) => (
-                                                    <TableCell
-                                                        key={col}
-                                                        className={`whitespace-nowrap ${
-                                                            tipoVisualizacao === 'otimizada' &&
-                                                            (col === 'Efetividade_Total' || col === 'Efetividade_Parcial') ?
-                                                            `font-bold ${getEfetividadeCor(value)} px-2 py-1 rounded text-center` : ''
-                                                        }`}
-                                                    >
-                                                        {col === 'Imagem' ? (
-                                                            renderImagemProduto(value, idx)
-                                                        ) : (
-                                                            typeof value === 'number' ? value.toLocaleString() : value
-                                                        )}
-                                                    </TableCell>
-                                                ))}
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </ScrollArea>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -570,7 +576,7 @@ function EcomhubPage() {
         return (
             <Card className="relative">
                 {loadingAnalises && (
-                    <div className="absolute inset-0 bg-white/80 backdrop-blur flex items-center justify-center z-10 rounded-lg">
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur flex items-center justify-center z-10 rounded-lg">
                         <Loader2 className="h-6 w-6 animate-spin" />
                     </div>
                 )}
@@ -601,7 +607,7 @@ function EcomhubPage() {
                             {analisesFiltradas.map(analise => (
                                 <Card key={analise.id} className="relative">
                                     {loadingDelete[analise.id] && (
-                                        <div className="absolute inset-0 bg-white/80 backdrop-blur flex items-center justify-center z-10 rounded-lg">
+                                        <div className="absolute inset-0 bg-background/80 backdrop-blur flex items-center justify-center z-10 rounded-lg">
                                             <Loader2 className="h-4 w-4 animate-spin" />
                                         </div>
                                     )}
@@ -726,7 +732,7 @@ function EcomhubPage() {
     // ======================== RENDER PRINCIPAL ========================
 
     return (
-        <div className="flex-1 space-y-4 p-6 bg-gray-50/30 min-h-screen">
+        <div className="flex-1 space-y-4 p-6 min-h-screen">
             {/* Notificações */}
             {notification && (
                 <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4">
@@ -735,7 +741,7 @@ function EcomhubPage() {
                 </Alert>
             )}
 
-            {/* Header */}
+            {/* Header minimalista */}
             {renderHeader()}
 
             {/* Navegação */}
@@ -763,8 +769,6 @@ function EcomhubPage() {
                     </TabsContent>
                 </Tabs>
             )}
-
-            {/* Instruções - removido pois agora é modal */}
 
             {/* Modal instruções */}
             <Dialog open={modalInstrucoes} onOpenChange={setModalInstrucoes}>
@@ -897,7 +901,7 @@ function EcomhubPage() {
                     
                     <div className="relative py-4">
                         {loadingSalvar && (
-                            <div className="absolute inset-0 bg-white/90 backdrop-blur flex items-center justify-center z-10 rounded">
+                            <div className="absolute inset-0 bg-background/90 backdrop-blur flex items-center justify-center z-10 rounded">
                                 <Loader2 className="h-5 w-5 animate-spin" />
                             </div>
                         )}
