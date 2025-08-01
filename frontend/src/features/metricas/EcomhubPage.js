@@ -725,7 +725,55 @@ function EcomhubPage() {
                                         <p className="text-xs text-muted-foreground">Apenas "issue"</p>
                                     </CardContent>
                                 </Card>
+                                
+                                <Card className="border-purple-200 bg-card">
+                                    <CardContent className="p-4">
+                                        <h5 className="font-semibold text-purple-600 text-sm">Devolução</h5>
+                                        <p className="text-xs text-muted-foreground">"returning" + "returned" + "issue"</p>
+                                    </CardContent>
+                                </Card>
+                                
+                                <Card className="border-gray-200 bg-card">
+                                    <CardContent className="p-4">
+                                        <h5 className="font-semibold text-gray-600 text-sm">Cancelados</h5>
+                                        <p className="text-xs text-muted-foreground">"cancelled"</p>
+                                    </CardContent>
+                                </Card>
                             </div>
+                        </div>
+
+                        <Separator className="bg-border" />
+
+                        <div>
+                            <h4 className="text-lg font-semibold text-purple-600 mb-3">🌍 Opção "Todos os Países"</h4>
+                            <p className="text-sm text-muted-foreground mb-4">Funcionalidades especiais quando "Todos" está selecionado:</p>
+                            
+                            <div className="space-y-2">
+                                <p className="text-sm text-foreground">• <strong>Países Incluídos:</strong> Espanha, Croácia, Grécia, Itália, Romênia, República Checa e Polônia</p>
+                                <p className="text-sm text-foreground">• <strong>Métricas Salvas:</strong> Exibe análises de todos os países em uma única lista</p>
+                                <p className="text-sm text-foreground">• <strong>Gerar Métricas:</strong> Combina dados de todos os 7 países em uma tabela unificada</p>
+                                <p className="text-sm text-foreground">• <strong>Processamento:</strong> Consulta todos os países simultaneamente para maior eficiência</p>
+                                <p className="text-sm text-foreground">• <strong>Análise Comparativa:</strong> Permite comparar performance entre produtos de diferentes países</p>
+                            </div>
+                        </div>
+
+                        <Separator className="bg-border" />
+
+                        <div>
+                            <h5 className="font-semibold text-teal-600 mb-2">Percentuais Calculados:</h5>
+                            <div className="space-y-1">
+                                <p className="text-sm text-foreground">• <strong>% A Caminho:</strong> (Em Trânsito ÷ Totais) × 100</p>
+                                <p className="text-sm text-foreground">• <strong>% Devolvidos:</strong> (Devolução ÷ Totais) × 100</p>
+                                <p className="text-sm text-foreground">• <strong>Efetividade Parcial:</strong> (Entregues ÷ Finalizados) × 100</p>
+                                <p className="text-sm text-foreground">• <strong>Efetividade Total:</strong> (Entregues ÷ Totais) × 100</p>
+                            </div>
+                        </div>
+
+                        <Separator className="bg-border" />
+
+                        <div>
+                            <h4 className="text-lg font-semibold text-orange-600 mb-3">Visualização Total</h4>
+                            <p className="text-sm text-muted-foreground">Mostra todos os status individuais conforme retornados da API ECOMHUB, sem agrupamentos.</p>
                         </div>
 
                         <Separator className="bg-border" />
