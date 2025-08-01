@@ -1,5 +1,5 @@
 // frontend/src/features/engajamento/EngajamentoPage.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Plus, Trash2, RefreshCw, Send, AlertCircle,
     Check, X, ExternalLink, Copy, Download, DollarSign
@@ -46,6 +46,30 @@ function EngajamentoPage() {
     // Estados para pedidos
     const [engajamentosSelecionados, setEngajamentosSelecionados] = useState({});
     const [pedidos, setPedidos] = useState([]);
+
+    // Callbacks para evitar re-renderização
+    const handleNomeChange = useCallback((e) => {
+        setNovoEngajamento(prev => ({ ...prev, nome: e.target.value }));
+    }, []);
+
+    const handleIdChange = useCallback((e) => {
+        setNovoEngajamento(prev => ({ ...prev, engajamento_id: e.target.value }));
+    }, []);
+
+    const handleTipoChange = useCallback((value) => {
+        setNovoEngajamento(prev => ({ ...prev, tipo: value }));
+    }, []);
+
+    const handleFuncionandoChange = useCallback((checked) => {
+        setNovoEngajamento(prev => ({ ...prev, funcionando: checked }));
+    }, []);
+
+    // Reset do estado quando o modal fecha
+    useEffect(() => {
+        if (!modalEngajamento) {
+            setNovoEngajamento({ nome: '', engajamento_id: '', tipo: 'Like', funcionando: true });
+        }
+    }, [modalEngajamento]);
 
     // Carregar dados iniciais
     useEffect(() => {
@@ -219,7 +243,7 @@ function EngajamentoPage() {
             <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">Engajamentos</CardTitle>
-                    <Dialog open={modalEngajamento} onOpenChange={setModalEngajamento}>
+                    <Dialog open={modalEngajamento} onOpenChange={setModalEngajamento} key={modalEngajamento ? 'open' : 'closed'}>
                         <DialogTrigger asChild>
                             <Button size="sm">
                                 <Plus className="h-4 w-4 mr-2" />
@@ -241,7 +265,7 @@ function EngajamentoPage() {
                                         type="text"
                                         placeholder="Ex: Like Facebook"
                                         value={novoEngajamento.nome}
-                                        onChange={(e) => setNovoEngajamento(prev => ({ ...prev, nome: e.target.value }))}
+                                        onChange={handleNomeChange}
                                         className="mt-1"
                                     />
                                 </div>
@@ -252,7 +276,7 @@ function EngajamentoPage() {
                                         type="text"
                                         placeholder="Ex: 101"
                                         value={novoEngajamento.engajamento_id}
-                                        onChange={(e) => setNovoEngajamento(prev => ({ ...prev, engajamento_id: e.target.value }))}
+                                        onChange={handleIdChange}
                                         className="mt-1"
                                     />
                                 </div>
@@ -260,7 +284,7 @@ function EngajamentoPage() {
                                     <Label className="text-sm">Tipo</Label>
                                     <Select 
                                         value={novoEngajamento.tipo} 
-                                        onValueChange={(value) => setNovoEngajamento(prev => ({ ...prev, tipo: value }))}
+                                        onValueChange={handleTipoChange}
                                     >
                                         <SelectTrigger className="mt-1">
                                             <SelectValue />
@@ -276,7 +300,7 @@ function EngajamentoPage() {
                                     <Checkbox
                                         id="modal-funcionando"
                                         checked={novoEngajamento.funcionando}
-                                        onCheckedChange={(checked) => setNovoEngajamento(prev => ({ ...prev, funcionando: checked }))}
+                                        onCheckedChange={handleFuncionandoChange}
                                     />
                                     <Label htmlFor="modal-funcionando" className="text-sm">Ativo</Label>
                                 </div>
