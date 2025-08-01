@@ -1,4 +1,4 @@
-// frontend/src/features/mapa/MapaPage.js - MIGRATED TO SHADCN/UI
+// frontend/src/features/mapa/MapaPage.js - LAYOUT OTIMIZADO
 import React, { useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, GeoJSON, Marker, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -15,7 +15,7 @@ import { Badge } from '../../components/ui/badge';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Label } from '../../components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogOverlay } from '../../components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 
 // URL do GeoJSON - atualizada
 const FULL_GEOJSON_URL = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
@@ -288,37 +288,38 @@ function MapaPage() {
         ));
     }, [paisesData, statusColors]);
 
-    // Componente da Legenda
-    const Legend = () => (
-        <Card>
-            <CardHeader>
+    // Componente da Legenda Compacta
+    const CompactLegend = () => (
+        <Card className="w-64 h-fit">
+            <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">Legenda</CardTitle>
+                    <CardTitle className="text-base">Legenda</CardTitle>
                     {canManage && (
                         <Button 
                             size="sm" 
                             variant="outline"
                             onClick={() => setAddModalOpen(true)}
+                            className="h-7 px-2 text-xs relative z-50"
                         >
-                            <Plus className="h-4 w-4 mr-1" />
+                            <Plus className="h-3 w-3 mr-1" />
                             Adicionar
                         </Button>
                     )}
                 </div>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2 pt-0">
                 {Object.entries(statusColors).map(([status, info]) => (
-                    <div key={status} className="flex items-center gap-3">
+                    <div key={status} className="flex items-center gap-2">
                         <div 
-                            className="w-4 h-4 border border-gray-300 flex-shrink-0"
+                            className="w-3 h-3 border border-gray-300 flex-shrink-0 rounded-sm"
                             style={{ backgroundColor: info.color }}
                         />
-                        <span className="text-sm">{info.description}</span>
+                        <span className="text-xs">{info.description}</span>
                     </div>
                 ))}
-                <div className="flex items-center gap-3">
-                    <div className="w-4 h-4 bg-muted border border-border flex-shrink-0" />
-                    <span className="text-sm text-foreground">Outros Países</span>
+                <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-muted border border-border flex-shrink-0 rounded-sm" />
+                    <span className="text-xs text-foreground">Outros Países</span>
                 </div>
             </CardContent>
         </Card>
@@ -326,18 +327,18 @@ function MapaPage() {
 
     // Listas de países
     const CountryLists = () => (
-        <div className="space-y-6">
+        <div className="space-y-4">
             {Object.entries(paisesPorStatus).map(([status, paises]) => {
                 const statusInfo = statusColors[status];
                 return (
                     <Card key={status}>
-                        <CardHeader className="pb-3">
+                        <CardHeader className="pb-2">
                             <CardTitle 
-                                className="text-base flex items-center gap-2 text-foreground"
+                                className="text-sm flex items-center gap-2 text-foreground"
                                 style={{ color: statusInfo?.color || 'hsl(var(--foreground))' }}
                             >
                                 <div 
-                                    className="w-3 h-3 rounded-full"
+                                    className="w-2 h-2 rounded-full"
                                     style={{ backgroundColor: statusInfo?.color || 'hsl(var(--muted-foreground))' }}
                                 />
                                 {statusInfo?.description || status} ({paises.length})
@@ -345,7 +346,7 @@ function MapaPage() {
                         </CardHeader>
                         <CardContent className="pt-0">
                             {paises.length > 0 ? (
-                                <ul className="space-y-1 text-sm text-foreground">
+                                <ul className="space-y-1 text-xs text-foreground">
                                     {paises.map((pais, index) => (
                                         <li key={`${status}-${pais}-${index}`} className="flex items-center gap-2">
                                             <div className="w-1 h-1 bg-muted-foreground rounded-full" />
@@ -354,7 +355,7 @@ function MapaPage() {
                                     ))}
                                 </ul>
                             ) : (
-                                <p className="text-sm text-muted-foreground">Nenhum país</p>
+                                <p className="text-xs text-muted-foreground">Nenhum país</p>
                             )}
                         </CardContent>
                     </Card>
@@ -395,32 +396,42 @@ function MapaPage() {
 
             {!loading && !error && geoJsonData && (
                 <div className="space-y-6">
-                    <Card className="overflow-hidden">
-                        <div className="h-[650px] w-full">
-                            <MapContainer
-                                center={[20, -30]}
-                                zoom={2.5}
-                                style={{ height: "100%", width: "100%" }}
-                                scrollWheelZoom={true}
-                                worldCopyJump={true}
-                            >
-                                <TileLayer
-                                    attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                                />
-                                <GeoJSON
-                                    key={JSON.stringify(geoJsonData)}
-                                    data={geoJsonData}
-                                    style={styleGeoJson}
-                                    onEachFeature={onEachFeature}
-                                />
-                                {markers}
-                            </MapContainer>
+                    {/* Mapa + Legenda lado a lado */}
+                    <div className="flex gap-4">
+                        {/* Mapa */}
+                        <Card className="flex-1 overflow-hidden">
+                            <div className="h-[600px] w-full relative z-10">
+                                <MapContainer
+                                    center={[20, -30]}
+                                    zoom={2.5}
+                                    style={{ height: "100%", width: "100%" }}
+                                    scrollWheelZoom={true}
+                                    worldCopyJump={true}
+                                    zoomControl={true}
+                                >
+                                    <TileLayer
+                                        attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                                    />
+                                    <GeoJSON
+                                        key={JSON.stringify(geoJsonData)}
+                                        data={geoJsonData}
+                                        style={styleGeoJson}
+                                        onEachFeature={onEachFeature}
+                                    />
+                                    {markers}
+                                </MapContainer>
+                            </div>
+                        </Card>
+                        
+                        {/* Legenda Compacta */}
+                        <div className="flex-shrink-0">
+                            <CompactLegend />
                         </div>
-                    </Card>
+                    </div>
 
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        <Legend />
+                    {/* Listas de países */}
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         <CountryLists />
                     </div>
                 </div>
@@ -450,66 +461,92 @@ function MapaPage() {
                 </Card>
             )}
 
-            {/* Modal para adicionar país */}
-            <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
-                <DialogContent className="sm:max-w-[425px] bg-background border-border" style={{ zIndex: 10000 }}>
-                    <DialogHeader>
-                        <DialogTitle className="text-foreground">Adicionar País</DialogTitle>
-                        <DialogDescription className="text-muted-foreground">
-                            Selecione um país e seu status para adicionar ao mapa
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="country-select" className="text-foreground">País</Label>
-                            <Select 
-                                value={selectedCountry ? JSON.stringify(selectedCountry) : ""} 
-                                onValueChange={(value) => setSelectedCountry(value ? JSON.parse(value) : null)}
-                            >
-                                <SelectTrigger id="country-select" className="bg-background border-border text-foreground">
-                                    <SelectValue placeholder="Selecione um país" className="text-muted-foreground" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-background border-border">
-                                    {availableCountries.map(c => (
-                                        <SelectItem key={c.nome_geojson} value={JSON.stringify(c)} className="text-foreground hover:bg-accent hover:text-accent-foreground">
-                                            {c.nome_display}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+            {/* Modal para adicionar país - Z-index fixo */}
+            {addModalOpen && (
+                <>
+                    {/* Overlay manual */}
+                    <div 
+                        className="fixed inset-0 bg-black/80 z-[9999]"
+                        onClick={() => setAddModalOpen(false)}
+                    />
+                    
+                    {/* Modal */}
+                    <div className="fixed left-[50%] top-[50%] z-[10000] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 rounded-lg">
+                        <div className="flex flex-col space-y-1.5 text-center sm:text-left">
+                            <h3 className="text-lg font-semibold leading-none tracking-tight text-foreground">
+                                Adicionar País
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                                Selecione um país e seu status para adicionar ao mapa
+                            </p>
                         </div>
                         
-                        <div className="space-y-2">
-                            <Label htmlFor="status-select" className="text-foreground">Status</Label>
-                            <Select value={selectedStatus || ""} onValueChange={setSelectedStatus}>
-                                <SelectTrigger id="status-select" className="bg-background border-border text-foreground">
-                                    <SelectValue placeholder="Selecione o status" className="text-muted-foreground" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-background border-border">
-                                    {statusList.map(s => (
-                                        <SelectItem key={s.id} value={s.id.toString()} className="text-foreground hover:bg-accent hover:text-accent-foreground">
-                                            {s.descricao}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="country-select" className="text-foreground">País</Label>
+                                <Select 
+                                    value={selectedCountry ? JSON.stringify(selectedCountry) : ""} 
+                                    onValueChange={(value) => setSelectedCountry(value ? JSON.parse(value) : null)}
+                                >
+                                    <SelectTrigger id="country-select" className="bg-background border-border text-foreground">
+                                        <SelectValue placeholder="Selecione um país" className="text-muted-foreground" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-background border-border z-[10001]">
+                                        {availableCountries.map(c => (
+                                            <SelectItem key={c.nome_geojson} value={JSON.stringify(c)} className="text-foreground hover:bg-accent hover:text-accent-foreground">
+                                                {c.nome_display}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <Label htmlFor="status-select" className="text-foreground">Status</Label>
+                                <Select value={selectedStatus || ""} onValueChange={setSelectedStatus}>
+                                    <SelectTrigger id="status-select" className="bg-background border-border text-foreground">
+                                        <SelectValue placeholder="Selecione o status" className="text-muted-foreground" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-background border-border z-[10001]">
+                                        {statusList.map(s => (
+                                            <SelectItem key={s.id} value={s.id.toString()} className="text-foreground hover:bg-accent hover:text-accent-foreground">
+                                                {s.descricao}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setAddModalOpen(false)} className="border-border text-foreground hover:bg-accent hover:text-accent-foreground">
-                            Cancelar
-                        </Button>
-                        <Button 
-                            onClick={handleAddCountry} 
-                            disabled={!selectedCountry || !selectedStatus || addLoading}
-                            className="bg-primary text-primary-foreground hover:bg-primary/90"
+                        
+                        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => setAddModalOpen(false)} 
+                                className="border-border text-foreground hover:bg-accent hover:text-accent-foreground"
+                            >
+                                Cancelar
+                            </Button>
+                            <Button 
+                                onClick={handleAddCountry} 
+                                disabled={!selectedCountry || !selectedStatus || addLoading}
+                                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                            >
+                                {addLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                                Adicionar País
+                            </Button>
+                        </div>
+                        
+                        {/* Botão X para fechar */}
+                        <button
+                            onClick={() => setAddModalOpen(false)}
+                            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                         >
-                            {addLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                            Adicionar País
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                            <X className="h-4 w-4" />
+                            <span className="sr-only">Close</span>
+                        </button>
+                    </div>
+                </>
+            )}
         </div>
     );
 }
