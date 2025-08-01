@@ -109,8 +109,7 @@ export function AppSidebar({
       isActive: location.pathname.includes('/workspace/projetos') ||
                 location.pathname.includes('/workspace/relatorios') ||
                 location.pathname.includes('/workspace/logs') ||
-                location.pathname.includes('/workspace/nicochat') ||
-                location.pathname.includes('/workspace/n8n'),
+                location.pathname.includes('/workspace/nicochat'),
       items: [
         {
           title: "Projetos",
@@ -131,11 +130,6 @@ export function AppSidebar({
           title: "Nicochat",
           url: "/workspace/nicochat",
           isActive: location.pathname === "/workspace/nicochat",
-        },
-        {
-          title: "N8N",
-          url: "/workspace/n8n",
-          isActive: location.pathname === "/workspace/n8n",
         },
       ],
     },
@@ -182,18 +176,12 @@ export function AppSidebar({
     {
       title: "Suporte",
       icon: Phone,
-      isActive: location.pathname.includes('/workspace/processamento') ||
-                location.pathname.includes('/workspace/suporte'),
+      isActive: location.pathname.includes('/workspace/processamento'),
       items: [
         {
           title: "Processamento",
           url: "/workspace/processamento",
           isActive: location.pathname === "/workspace/processamento",
-        },
-        {
-          title: "Suporte",
-          url: "/workspace/suporte",
-          isActive: location.pathname === "/workspace/suporte",
         },
       ],
     }

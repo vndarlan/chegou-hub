@@ -24,7 +24,6 @@ import ProjetoDashboard from '../features/ia/ProjetoDashboard';
 import RelatoriosProjetos from '../features/ia/RelatoriosProjetos';
 import LogsPage from '../features/ia/LogsPage';
 import NicochatPage from '../features/ia/NicochatPage';
-import N8NPage from '../features/ia/N8NPage';
 import PrimecodPage from '../features/metricas/PrimecodPage';
 import EcomhubPage from '../features/metricas/EcomhubPage';
 import DropiPage from '../features/metricas/DropiPage';
@@ -40,14 +39,12 @@ const breadcrumbMap = {
   '/workspace/relatorios': [{ label: 'IA & Automações', href: '#' }, { label: 'Relatórios' }],
   '/workspace/logs': [{ label: 'IA & Automações', href: '#' }, { label: 'Logs de Erros' }],
   '/workspace/nicochat': [{ label: 'IA & Automações', href: '#' }, { label: 'Nicochat' }],
-  '/workspace/n8n': [{ label: 'IA & Automações', href: '#' }, { label: 'N8N' }],
   '/workspace/metricas/primecod': [{ label: 'Métricas', href: '#' }, { label: 'PRIMECOD' }],
   '/workspace/metricas/ecomhub': [{ label: 'Métricas', href: '#' }, { label: 'ECOMHUB' }],
   '/workspace/metricas/dropi': [{ label: 'Métricas', href: '#' }, { label: 'DROPI MX' }],
   '/workspace/engajamento': [{ label: 'Operacional', href: '#' }, { label: 'Engajamento' }],
   '/workspace/novelties': [{ label: 'Operacional', href: '#' }, { label: 'Novelties' }],
   '/workspace/processamento': [{ label: 'Suporte', href: '#' }, { label: 'Processamento' }],
-  '/workspace/suporte': [{ label: 'Suporte', href: '#' }, { label: 'Suporte' }]
 };
 
 function WorkspacePage({ setIsLoggedIn }) {
@@ -144,7 +141,6 @@ function WorkspacePage({ setIsLoggedIn }) {
               <Route path="relatorios" element={<RelatoriosProjetos />} />
               <Route path="logs" element={<LogsPage />} />
               <Route path="nicochat" element={<NicochatPage />} />
-              <Route path="n8n" element={<N8NPage />} />
               <Route path="metricas/primecod" element={<PrimecodPage />} />
               <Route path="metricas/ecomhub" element={<EcomhubPage />} />
               <Route path="metricas/dropi" element={<DropiPage />} />
