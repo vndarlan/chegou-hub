@@ -1,20 +1,28 @@
-// frontend/src/features/metricas/EcomhubPage.js - COM NOVOS PAÍSES
+// frontend/src/features/metricas/EcomhubPage.js - MIGRAÇÃO COMPLETA PARA SHADCN/UI
 import React, { useState, useEffect } from 'react';
 import {
-    Box, Title, Text, Paper, Group, Button, Table, Badge, Stack, Grid,
-    Alert, ActionIcon, Modal, Card, Select, Container, Progress,
-    ScrollArea, Loader, TextInput, ThemeIcon, SegmentedControl, Divider
-} from '@mantine/core';
-import {
-    IconCalendar, IconDownload, IconTrash, IconRefresh, IconCheck, IconX, 
-    IconAlertTriangle, IconTrendingUp, IconBuilding, IconChartBar, IconPlus,
-    IconEye, IconActivity, IconSearch, IconWorldWww, IconSortAscending,
-    IconSortDescending, IconPackage, IconTarget, IconPercentage,
-    IconListDetails, IconChartPie, IconFilter, IconCalendarEvent,
-    IconRocket, IconDashboard, IconGlobe
-} from '@tabler/icons-react';
-
+    Calendar, Download, Trash2, RefreshCw, Check, X, 
+    AlertTriangle, TrendingUp, Building, BarChart3, Plus,
+    Eye, Activity, Search, Globe, ArrowUpDown, ArrowUp, ArrowDown,
+    Package, Target, Percent, ListChecks, PieChart, Filter,
+    CalendarDays, Rocket, LayoutDashboard, Loader2, Settings
+} from 'lucide-react';
 import axios from 'axios';
+
+// shadcn/ui components
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Separator } from '../../components/ui/separator';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Progress } from '../../components/ui/progress';
+import { ScrollArea } from '../../components/ui/scroll-area';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 
 // PAÍSES DISPONÍVEIS COM BANDEIRAS + NOVOS PAÍSES
 const PAISES = [
@@ -24,8 +32,8 @@ const PAISES = [
     { value: '66', label: 'Grécia', emoji: '🇬🇷' },
     { value: '82', label: 'Itália', emoji: '🇮🇹' },
     { value: '142', label: 'Romênia', emoji: '🇷🇴' },
-    { value: '44', label: 'República Checa', emoji: '🇨🇿' },  // NOVO
-    { value: '139', label: 'Polônia', emoji: '🇵🇱' }          // NOVO
+    { value: '44', label: 'República Checa', emoji: '🇨🇿' },
+    { value: '139', label: 'Polônia', emoji: '🇵🇱' }
 ];
 
 function EcomhubPage() {
@@ -40,8 +48,8 @@ function EcomhubPage() {
     const [tipoVisualizacao, setTipoVisualizacao] = useState('otimizada');
     
     // Estados do formulário
-    const [dataInicio, setDataInicio] = useState(null);
-    const [dataFim, setDataFim] = useState(null);
+    const [dataInicio, setDataInicio] = useState('');
+    const [dataFim, setDataFim] = useState('');
     const [paisSelecionado, setPaisSelecionado] = useState('todos');
     
     // Estados de modal e loading
@@ -76,10 +84,9 @@ function EcomhubPage() {
         }
     };
 
-    // Filtrar análises por país selecionado OU TODOS
     const getAnalisesFiltradas = () => {
         if (paisSelecionado === 'todos') {
-            return analisesSalvas; // Retorna todas as análises
+            return analisesSalvas;
         }
         
         const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label;
@@ -95,7 +102,7 @@ function EcomhubPage() {
             return;
         }
 
-        if (dataInicio > dataFim) {
+        if (new Date(dataInicio) > new Date(dataFim)) {
             showNotification('error', 'Data de início deve ser anterior à data fim');
             return;
         }
@@ -105,20 +112,19 @@ function EcomhubPage() {
 
         try {
             const response = await axios.post('/metricas/ecomhub/analises/processar_selenium/', {
-                data_inicio: dataInicio.toISOString().split('T')[0],
-                data_fim: dataFim.toISOString().split('T')[0],
-                pais_id: paisSelecionado // Pode ser 'todos' ou ID específico (incluindo novos países)
+                data_inicio: dataInicio,
+                data_fim: dataFim,
+                pais_id: paisSelecionado
             });
 
             if (response.data.status === 'success') {
                 setDadosResultado(response.data.dados_processados);
                 showNotification('success', 'Dados processados com sucesso!');
                 
-                // Nome automático incluindo novos países
                 const paisNome = paisSelecionado === 'todos' ? 
                     'Todos os Países' : 
                     PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
-                const dataStr = `${dataInicio.toLocaleDateString()} - ${dataFim.toLocaleDateString()}`;
+                const dataStr = `${new Date(dataInicio).toLocaleDateString()} - ${new Date(dataFim).toLocaleDateString()}`;
                 setNomeAnalise(`${paisNome} ${dataStr}`);
             }
         } catch (error) {
@@ -138,7 +144,6 @@ function EcomhubPage() {
 
         setLoadingSalvar(true);
         try {
-            // Descrição incluindo novos países
             const descricaoPais = paisSelecionado === 'todos' ? 
                 'Automação Selenium - Todos os Países' :
                 `Automação Selenium - ${PAISES.find(p => p.value === paisSelecionado)?.label}`;
@@ -197,14 +202,14 @@ function EcomhubPage() {
     };
 
     const getEfetividadeCor = (valor) => {
-        if (!valor || typeof valor !== 'string') return {};
+        if (!valor || typeof valor !== 'string') return '';
         
         const numero = parseFloat(valor.replace('%', '').replace('(Média)', ''));
         
-        if (numero >= 60) return { backgroundColor: '#2E7D2E', color: 'white', fontWeight: 'bold' };
-        if (numero >= 50) return { backgroundColor: '#4CAF50', color: 'white', fontWeight: 'bold' };
-        if (numero >= 40) return { backgroundColor: '#FFA726', color: 'black', fontWeight: 'bold' };
-        return { backgroundColor: '#F44336', color: 'white', fontWeight: 'bold' };
+        if (numero >= 60) return 'bg-green-500/10 text-green-700 border-green-200';
+        if (numero >= 50) return 'bg-green-400/10 text-green-600 border-green-200';
+        if (numero >= 40) return 'bg-yellow-500/10 text-yellow-700 border-yellow-200';
+        return 'bg-red-500/10 text-red-700 border-red-200';
     };
 
     const getDadosVisualizacao = () => {
@@ -214,21 +219,6 @@ function EcomhubPage() {
             return dadosResultado.visualizacao_otimizada || dadosResultado;
         } else {
             return dadosResultado.visualizacao_total || dadosResultado;
-        }
-    };
-
-    const getCorColuna = (coluna, valor) => {
-        if (tipoVisualizacao !== 'otimizada') {
-            return {};
-        }
-
-        switch (coluna) {
-            case 'Efetividade_Total':
-            case 'Efetividade_Parcial':
-                return getEfetividadeCor(valor);
-            
-            default:
-                return {};
         }
     };
 
@@ -270,421 +260,252 @@ function EcomhubPage() {
 
     // Header moderno
     const renderHeader = () => (
-        <Box
-            style={{
-                background: 'linear-gradient(135deg, #fd7e14 0%, #e8590c 100%)',
-                borderRadius: '16px',
-                padding: '2rem',
-                marginBottom: '2rem',
-                boxShadow: '0 10px 30px rgba(253, 126, 20, 0.15)',
-                border: '1px solid rgba(255, 255, 255, 0.1)'
-            }}
-        >
-            <Group justify="space-between" align="center" wrap="nowrap">
-                <Group align="center" gap="md">
-                    <ThemeIcon
-                        size={50}
-                        radius="xl"
-                        variant="light"
-                        style={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                            backdropFilter: 'blur(10px)',
-                            border: '1px solid rgba(255, 255, 255, 0.3)'
-                        }}
-                    >
-                        <IconDashboard size={28} color="white" />
-                    </ThemeIcon>
-                    <div>
-                        <Title 
-                            order={1} 
-                            style={{ 
-                                color: 'white', 
-                                fontSize: '2rem',
-                                fontWeight: 700,
-                                marginBottom: '0.25rem'
-                            }}
-                        >
-                            Métricas ECOMHUB
-                        </Title>
-                        <Text style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.95rem' }}>
-                            Analytics Dashboard - Análise de Performance
-                        </Text>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 p-8 mb-6 shadow-lg">
+            <div className="absolute inset-0 bg-black/10"></div>
+            <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-center w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
+                        <LayoutDashboard className="h-7 w-7 text-white" />
                     </div>
-                </Group>
+                    <div>
+                        <h1 className="text-3xl font-bold text-white mb-1">
+                            Métricas ECOMHUB
+                        </h1>
+                        <p className="text-white/80 text-base">
+                            Analytics Dashboard - Análise de Performance
+                        </p>
+                    </div>
+                </div>
                 
-                <Group gap="md">
+                <div className="flex items-center gap-3">
                     <Button
-                        variant="light"
-                        leftSection={<IconAlertTriangle size={18} />}
+                        variant="secondary"
                         onClick={() => setSecaoAtiva('instrucoes')}
-                        style={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                            backdropFilter: 'blur(10px)',
-                            border: '1px solid rgba(255, 255, 255, 0.2)',
-                            color: 'white',
-                            fontWeight: 500,
-                            transition: 'all 0.3s ease'
-                        }}
+                        className="bg-white/15 border-white/20 text-white hover:bg-white/25 font-medium backdrop-blur-sm"
                     >
+                        <AlertTriangle className="h-4 w-4 mr-2" />
                         Instruções
                     </Button>
                     
-                    <Select
-                        placeholder="País"
-                        data={PAISES.map(pais => ({
-                            value: pais.value,
-                            label: `${pais.emoji} ${pais.label}`
-                        }))}
-                        value={paisSelecionado}
-                        onChange={setPaisSelecionado}
-                        style={{ 
-                            minWidth: '240px', // Aumentado para acomodar novos países
-                        }}
-                        styles={{
-                            input: {
-                                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                                backdropFilter: 'blur(10px)',
-                                border: '1px solid rgba(255, 255, 255, 0.2)',
-                                color: 'white',
-                                fontWeight: 500,
-                                '&::placeholder': { color: 'rgba(255, 255, 255, 0.7)' },
-                                '&:focus': {
-                                    borderColor: 'rgba(255, 255, 255, 0.4)',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.2)'
-                                }
-                            },
-                            dropdown: {
-                                backgroundColor: 'white',
-                                border: '1px solid #e9ecef',
-                                borderRadius: '12px',
-                                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)'
-                            }
-                        }}
-                        leftSection={<IconWorldWww size={20} color="rgba(255, 255, 255, 0.8)" />}
-                    />
-                </Group>
-            </Group>
-        </Box>
+                    <Select value={paisSelecionado} onValueChange={setPaisSelecionado}>
+                        <SelectTrigger className="w-60 bg-white/15 border-white/20 text-white backdrop-blur-sm [&>span]:text-white">
+                            <Globe className="h-4 w-4 mr-2 text-white" />
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {PAISES.map(pais => (
+                                <SelectItem key={pais.value} value={pais.value}>
+                                    {pais.emoji} {pais.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+        </div>
     );
 
     // Navegação por seções
     const renderNavegacao = () => (
-        <Paper
-            shadow="sm"
-            p="md"
-            mb="xl"
-            style={{
-                borderRadius: '16px',
-                border: '1px solid #e9ecef',
-                backgroundColor: '#ffffff'
-            }}
-        >
-            <Group justify="center" gap="sm">
-                <Button
-                    variant={secaoAtiva === 'gerar' ? 'filled' : 'light'}
-                    onClick={() => setSecaoAtiva('gerar')}
-                    leftSection={<IconRocket size={18} />}
-                    size="md"
-                    style={{
-                        borderRadius: '12px',
-                        fontWeight: 600,
-                        minWidth: '160px',
-                        transition: 'all 0.3s ease'
-                    }}
-                >
-                    Gerar Métricas
-                </Button>
-                <Button
-                    variant={secaoAtiva === 'salvas' ? 'filled' : 'light'}
-                    onClick={() => setSecaoAtiva('salvas')}
-                    leftSection={<IconChartBar size={18} />}
-                    size="md"
-                    style={{
-                        borderRadius: '12px',
-                        fontWeight: 600,
-                        minWidth: '160px',
-                        transition: 'all 0.3s ease'
-                    }}
-                >
-                    Métricas Salvas
-                </Button>
-            </Group>
-        </Paper>
+        <Card className="mb-6">
+            <CardContent className="p-4">
+                <div className="flex justify-center gap-2">
+                    <Button
+                        variant={secaoAtiva === 'gerar' ? 'default' : 'outline'}
+                        onClick={() => setSecaoAtiva('gerar')}
+                        className="min-w-40 font-semibold"
+                    >
+                        <Rocket className="h-4 w-4 mr-2" />
+                        Gerar Métricas
+                    </Button>
+                    <Button
+                        variant={secaoAtiva === 'salvas' ? 'default' : 'outline'}
+                        onClick={() => setSecaoAtiva('salvas')}
+                        className="min-w-40 font-semibold"
+                    >
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Métricas Salvas
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
     );
 
     // Formulário
     const renderFormulario = () => {
-        const hoje = new Date();
-        const maxDate = hoje.toISOString().split('T')[0];
+        const hoje = new Date().toISOString().split('T')[0];
         
         return (
-            <Paper
-                shadow="sm"
-                p="xl"
-                mb="xl"
-                style={{
-                    borderRadius: '16px',
-                    border: '1px solid #e9ecef',
-                    backgroundColor: '#ffffff',
-                    position: 'relative',
-                    overflow: 'hidden'
-                }}
-            >
+            <Card className="mb-6 relative">
                 {loadingProcessar && (
-                    <div style={{
-                        position: 'absolute',
-                        top: 0, left: 0, right: 0, bottom: 0,
-                        backgroundColor: 'rgba(255,255,255,0.95)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 10,
-                        borderRadius: '16px'
-                    }}>
-                        <Loader size="xl" />
-                        <Text mt="lg" fw={600} size="lg">Processando dados...</Text>
+                    <div className="absolute inset-0 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                        <p className="text-lg font-semibold mb-2">Processando dados...</p>
                         {progressoAtual && (
                             <>
-                                <Progress 
-                                    value={progressoAtual.porcentagem} 
-                                    w="60%" 
-                                    mt="lg" 
-                                    size="lg"
-                                    radius="xl"
-                                />
-                                <Text size="sm" c="dimmed" mt="sm">{progressoAtual.etapa}</Text>
+                                <Progress value={progressoAtual.porcentagem} className="w-60 mb-2" />
+                                <p className="text-sm text-muted-foreground">{progressoAtual.etapa}</p>
                             </>
                         )}
                     </div>
                 )}
 
-                <Group justify="space-between" align="flex-end" mb="xl">
-                    <Group align="center" gap="md">
-                        <ThemeIcon
-                            size={40}
-                            radius="xl"
-                            variant="light"
-                            color="blue"
-                            style={{
-                                background: 'linear-gradient(135deg, #fd7e14, #e8590c)',
-                                color: 'white'
-                            }}
-                        >
-                            <IconFilter size={22} />
-                        </ThemeIcon>
-                        <div>
-                            <Title order={3} style={{ marginBottom: '0.25rem' }}>
-                                Configuração de Análise
-                            </Title>
-                            <Text size="sm" c="dimmed">
-                                Configure o período e execute a análise
-                            </Text>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg">
+                                <Filter className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                                <CardTitle>Configuração de Análise</CardTitle>
+                                <CardDescription>Configure o período e execute a análise</CardDescription>
+                            </div>
                         </div>
-                    </Group>
 
-                    <Group align="flex-end" gap="lg">
-                    <Box style={{ minWidth: '200px' }}>
-                        <Text size="sm" fw={500} mb="xs" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <IconCalendarEvent size={16} />
-                            Data de Início
-                        </Text>
-                        <TextInput
-                            type="date"
-                            value={dataInicio ? dataInicio.toISOString().split('T')[0] : ''}
-                            onChange={(e) => setDataInicio(e.target.value ? new Date(e.target.value) : null)}
-                            disabled={loadingProcessar}
-                            max={maxDate}
-                            style={{ cursor: 'pointer' }}
-                            styles={{
-                                input: { 
-                                    cursor: 'pointer',
-                                    borderRadius: '12px',
-                                    border: '2px solid #e9ecef',
-                                    fontSize: '0.95rem',
-                                    padding: '0.75rem',
-                                    transition: 'all 0.3s ease',
-                                    '&:focus': {
-                                        borderColor: '#fd7e14',
-                                        boxShadow: '0 0 0 3px rgba(253, 126, 20, 0.1)'
-                                    }
-                                }
-                            }}
-                            size="md"
-                        />
-                    </Box>
-                    
-                    <Box style={{ minWidth: '200px' }}>
-                        <Text size="sm" fw={500} mb="xs" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <IconCalendarEvent size={16} />
-                            Data de Fim
-                        </Text>
-                        <TextInput
-                            type="date"
-                            value={dataFim ? dataFim.toISOString().split('T')[0] : ''}
-                            onChange={(e) => setDataFim(e.target.value ? new Date(e.target.value) : null)}
-                            disabled={loadingProcessar}
-                            max={maxDate}
-                            style={{ cursor: 'pointer' }}
-                            styles={{
-                                input: { 
-                                    cursor: 'pointer',
-                                    borderRadius: '12px',
-                                    border: '2px solid #e9ecef',
-                                    fontSize: '0.95rem',
-                                    padding: '0.75rem',
-                                    transition: 'all 0.3s ease',
-                                    '&:focus': {
-                                        borderColor: '#3b82f6',
-                                        boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)'
-                                    }
-                                }
-                            }}
-                            size="md"
-                        />
-                    </Box>
-                    
-                    <Button
-                        leftSection={loadingProcessar ? <Loader size={18} /> : <IconSearch size={18} />}
-                        onClick={processarDados}
-                        disabled={!dataInicio || !dataFim || !paisSelecionado || loadingProcessar}
-                        loading={loadingProcessar}
-                        size="lg"
-                        style={{
-                            borderRadius: '12px',
-                            fontWeight: 600,
-                            padding: '0.75rem 2rem',
-                            background: 'linear-gradient(135deg, #fd7e14, #e8590c)',
-                            border: 'none',
-                            transition: 'all 0.3s ease',
-                            minWidth: '140px'
-                        }}
-                    >
-                        {loadingProcessar ? 'Processando...' : 'Processar'}
-                    </Button>
-                </Group>
-                </Group>
-            </Paper>
+                        <div className="flex items-end gap-4">
+                            <div className="min-w-48">
+                                <Label className="flex items-center gap-2 mb-2">
+                                    <CalendarDays className="h-4 w-4" />
+                                    Data de Início
+                                </Label>
+                                <Input
+                                    type="date"
+                                    value={dataInicio}
+                                    onChange={(e) => setDataInicio(e.target.value)}
+                                    disabled={loadingProcessar}
+                                    max={hoje}
+                                    className="cursor-pointer"
+                                />
+                            </div>
+                            
+                            <div className="min-w-48">
+                                <Label className="flex items-center gap-2 mb-2">
+                                    <CalendarDays className="h-4 w-4" />
+                                    Data de Fim
+                                </Label>
+                                <Input
+                                    type="date"
+                                    value={dataFim}
+                                    onChange={(e) => setDataFim(e.target.value)}
+                                    disabled={loadingProcessar}
+                                    max={hoje}
+                                    className="cursor-pointer"
+                                />
+                            </div>
+                            
+                            <Button
+                                onClick={processarDados}
+                                disabled={!dataInicio || !dataFim || !paisSelecionado || loadingProcessar}
+                                size="lg"
+                                className="min-w-36 font-semibold"
+                            >
+                                {loadingProcessar ? (
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                    <Search className="h-4 w-4 mr-2" />
+                                )}
+                                {loadingProcessar ? 'Processando...' : 'Processar'}
+                            </Button>
+                        </div>
+                    </div>
+                </CardHeader>
+            </Card>
         );
     };
 
-    // INSTRUÇÕES ATUALIZADAS COM NOVOS PAÍSES
+    // Instruções
     const renderInstrucoes = () => (
-        <Paper shadow="sm" p="xl" mb="md" style={{ borderRadius: '16px' }}>
-            <Title order={3} mb="xl" c="blue">Manual de Instruções - Métricas ECOMHUB</Title>
-            
-            <Stack gap="xl">
+        <Card className="mb-6">
+            <CardHeader>
+                <CardTitle className="text-blue-600">Manual de Instruções - Métricas ECOMHUB</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
                 <div>
-                    <Title order={4} c="green">Visualização Otimizada</Title>
-                    <Text size="sm" c="dimmed" mb="md">Colunas agrupadas para análise mais eficiente:</Text>
+                    <h4 className="text-lg font-semibold text-green-600 mb-3">Visualização Otimizada</h4>
+                    <p className="text-sm text-muted-foreground mb-4">Colunas agrupadas para análise mais eficiente:</p>
                     
-                    <Grid gutter="md">
-                        <Grid.Col span={6}>
-                            <Card withBorder p="md" style={{ borderRadius: '12px' }}>
-                                <Text fw={600} size="sm" c="blue">Totais</Text>
-                                <Text size="xs">Soma de todos os pedidos (todos os status)</Text>
-                            </Card>
-                        </Grid.Col>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Card className="border-blue-200">
+                            <CardContent className="p-4">
+                                <h5 className="font-semibold text-blue-600 text-sm">Totais</h5>
+                                <p className="text-xs text-muted-foreground">Soma de todos os pedidos (todos os status)</p>
+                            </CardContent>
+                        </Card>
                         
-                        <Grid.Col span={6}>
-                            <Card withBorder p="md" style={{ borderRadius: '12px' }}>
-                                <Text fw={600} size="sm" c="green">Finalizados</Text>
-                                <Text size="xs">"delivered" + "issue" + "returning" + "returned" + "cancelled"</Text>
-                            </Card>
-                        </Grid.Col>
+                        <Card className="border-green-200">
+                            <CardContent className="p-4">
+                                <h5 className="font-semibold text-green-600 text-sm">Finalizados</h5>
+                                <p className="text-xs text-muted-foreground">"delivered" + "issue" + "returning" + "returned" + "cancelled"</p>
+                            </CardContent>
+                        </Card>
                         
-                        <Grid.Col span={6}>
-                            <Card withBorder p="md" style={{ borderRadius: '12px' }}>
-                                <Text fw={600} size="sm" c="orange">Em Trânsito</Text>
-                                <Text size="xs">"out_for_delivery" + "preparing_for_shipping" + "ready_to_ship" + "with_courier"</Text>
-                            </Card>
-                        </Grid.Col>
+                        <Card className="border-orange-200">
+                            <CardContent className="p-4">
+                                <h5 className="font-semibold text-orange-600 text-sm">Em Trânsito</h5>
+                                <p className="text-xs text-muted-foreground">"out_for_delivery" + "preparing_for_shipping" + "ready_to_ship" + "with_courier"</p>
+                            </CardContent>
+                        </Card>
                         
-                        <Grid.Col span={6}>
-                            <Card withBorder p="md" style={{ borderRadius: '12px' }}>
-                                <Text fw={600} size="sm" c="red">Problemas</Text>
-                                <Text size="xs">Apenas "issue"</Text>
-                            </Card>
-                        </Grid.Col>
-                        
-                        <Grid.Col span={6}>
-                            <Card withBorder p="md" style={{ borderRadius: '12px' }}>
-                                <Text fw={600} size="sm" c="grape">Devolução</Text>
-                                <Text size="xs">"returning" + "returned" + "issue"</Text>
-                            </Card>
-                        </Grid.Col>
-                        
-                        <Grid.Col span={6}>
-                            <Card withBorder p="md" style={{ borderRadius: '12px' }}>
-                                <Text fw={600} size="sm" c="gray">Cancelados</Text>
-                                <Text size="xs">"cancelled"</Text>
-                            </Card>
-                        </Grid.Col>
-                    </Grid>
+                        <Card className="border-red-200">
+                            <CardContent className="p-4">
+                                <h5 className="font-semibold text-red-600 text-sm">Problemas</h5>
+                                <p className="text-xs text-muted-foreground">Apenas "issue"</p>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
 
-                {/* SEÇÃO ATUALIZADA: Opção "Todos" com novos países */}
                 <div>
-                    <Title order={4} c="purple">🌍 Opção "Todos os Países"</Title>
-                    <Text size="sm" c="dimmed" mb="md">Funcionalidades especiais quando "Todos" está selecionado:</Text>
+                    <h4 className="text-lg font-semibold text-purple-600 mb-3">🌍 Opção "Todos os Países"</h4>
+                    <p className="text-sm text-muted-foreground mb-4">Funcionalidades especiais quando "Todos" está selecionado:</p>
                     
-                    <Stack gap="sm">
-                        <Text size="sm">• <strong>Países Incluídos:</strong> Espanha, Croácia, Grécia, Itália, Romênia, República Checa e Polônia</Text>
-                        <Text size="sm">• <strong>Métricas Salvas:</strong> Exibe análises de todos os países em uma única lista</Text>
-                        <Text size="sm">• <strong>Gerar Métricas:</strong> Combina dados de todos os 7 países em uma tabela unificada</Text>
-                        <Text size="sm">• <strong>Processamento:</strong> Consulta todos os países simultaneamente para maior eficiência</Text>
-                        <Text size="sm">• <strong>Análise Comparativa:</strong> Permite comparar performance entre produtos de diferentes países</Text>
-                    </Stack>
+                    <div className="space-y-2">
+                        <p className="text-sm">• <strong>Países Incluídos:</strong> Espanha, Croácia, Grécia, Itália, Romênia, República Checa e Polônia</p>
+                        <p className="text-sm">• <strong>Métricas Salvas:</strong> Exibe análises de todos os países em uma única lista</p>
+                        <p className="text-sm">• <strong>Gerar Métricas:</strong> Combina dados de todos os 7 países em uma tabela unificada</p>
+                        <p className="text-sm">• <strong>Processamento:</strong> Consulta todos os países simultaneamente para maior eficiência</p>
+                    </div>
                 </div>
 
                 <div>
-                    <Title order={5} c="teal">Percentuais Calculados:</Title>
-                    <Stack gap="sm">
-                        <Text size="sm">• <strong>% A Caminho:</strong> (Em Trânsito ÷ Totais) × 100</Text>
-                        <Text size="sm">• <strong>% Devolvidos:</strong> (Devolução ÷ Totais) × 100</Text>
-                        <Text size="sm">• <strong>Efetividade Parcial:</strong> (Entregues ÷ Finalizados) × 100</Text>
-                        <Text size="sm">• <strong>Efetividade Total:</strong> (Entregues ÷ Totais) × 100</Text>
-                    </Stack>
+                    <h5 className="font-semibold text-teal-600 mb-2">Percentuais Calculados:</h5>
+                    <div className="space-y-1">
+                        <p className="text-sm">• <strong>% A Caminho:</strong> (Em Trânsito ÷ Totais) × 100</p>
+                        <p className="text-sm">• <strong>% Devolvidos:</strong> (Devolução ÷ Totais) × 100</p>
+                        <p className="text-sm">• <strong>Efetividade Parcial:</strong> (Entregues ÷ Finalizados) × 100</p>
+                        <p className="text-sm">• <strong>Efetividade Total:</strong> (Entregues ÷ Totais) × 100</p>
+                    </div>
                 </div>
 
                 <div>
-                    <Title order={4} c="orange">Visualização Total</Title>
-                    <Text size="sm" c="dimmed">Mostra todos os status individuais conforme retornados da API ECOMHUB, sem agrupamentos.</Text>
+                    <h5 className="font-semibold text-indigo-600 mb-2">Cores das Métricas:</h5>
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <div className="w-6 h-4 bg-green-500 rounded"></div>
+                            <span className="text-sm">Efetividade ≥ 60% (Excelente)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-6 h-4 bg-green-400 rounded"></div>
+                            <span className="text-sm">Efetividade ≥ 50% (Boa)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-6 h-4 bg-yellow-500 rounded"></div>
+                            <span className="text-sm">Efetividade ≥ 40% (Regular)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-6 h-4 bg-red-500 rounded"></div>
+                            <span className="text-sm">Efetividade &lt; 40% (Ruim)</span>
+                        </div>
+                    </div>
                 </div>
-
-                <div>
-                    <Title order={5} c="indigo">Cores das Métricas:</Title>
-                    <Stack gap="sm">
-                        <Group gap="sm">
-                            <div style={{width: '24px', height: '16px', backgroundColor: '#2E7D2E', borderRadius: '4px'}}></div>
-                            <Text size="sm">Efetividade ≥ 60% (Excelente)</Text>
-                        </Group>
-                        <Group gap="sm">
-                            <div style={{width: '24px', height: '16px', backgroundColor: '#4CAF50', borderRadius: '4px'}}></div>
-                            <Text size="sm">Efetividade ≥ 50% (Boa)</Text>
-                        </Group>
-                        <Group gap="sm">
-                            <div style={{width: '24px', height: '16px', backgroundColor: '#FFA726', borderRadius: '4px'}}></div>
-                            <Text size="sm">Efetividade ≥ 40% (Regular)</Text>
-                        </Group>
-                        <Group gap="sm">
-                            <div style={{width: '24px', height: '16px', backgroundColor: '#F44336', borderRadius: '4px'}}></div>
-                            <Text size="sm">Efetividade &lt; 40% (Ruim)</Text>
-                        </Group>
-                    </Stack>
-                </div>
-            </Stack>
-        </Paper>
+            </CardContent>
+        </Card>
     );
 
     const renderEstatisticas = () => {
         const dados = getDadosVisualizacao();
         
-        if (tipoVisualizacao === 'total') {
-            return null;
-        }
-        
-        if (!dados || !Array.isArray(dados)) return null;
+        if (tipoVisualizacao === 'total' || !dados || !Array.isArray(dados)) return null;
         
         const produtos = dados.filter(item => item.Produto !== 'Total');
         const totalProdutos = produtos.length;
@@ -702,63 +523,63 @@ function EcomhubPage() {
         totalLeads = produtos.reduce((sum, item) => sum + (item.Totais || 0), 0);
         
         return (
-            <Grid gutter="lg" mb="xl">
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card withBorder style={{ borderRadius: '16px', height: '120px' }}>
-                        <Group justify="space-between" h="100%">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
                             <div>
-                                <Text size="sm" c="dimmed" fw={500}>Produtos</Text>
-                                <Text size="2xl" fw={700}>{totalProdutos}</Text>
+                                <p className="text-sm font-medium text-muted-foreground">Produtos</p>
+                                <p className="text-2xl font-bold">{totalProdutos}</p>
                             </div>
-                            <ThemeIcon color="blue" variant="light" size={50} radius="xl">
-                                <IconPackage size={28} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
+                            <div className="flex items-center justify-center w-12 h-12 bg-blue-500/10 rounded-xl">
+                                <Package className="h-6 w-6 text-blue-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
                 
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card withBorder style={{ borderRadius: '16px', height: '120px' }}>
-                        <Group justify="space-between" h="100%">
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
                             <div>
-                                <Text size="sm" c="dimmed" fw={500}>Entregues</Text>
-                                <Text size="2xl" fw={700} c="green">{totalVendas.toLocaleString()}</Text>
+                                <p className="text-sm font-medium text-muted-foreground">Entregues</p>
+                                <p className="text-2xl font-bold text-green-600">{totalVendas.toLocaleString()}</p>
                             </div>
-                            <ThemeIcon color="green" variant="light" size={50} radius="xl">
-                                <IconTrendingUp size={28} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
+                            <div className="flex items-center justify-center w-12 h-12 bg-green-500/10 rounded-xl">
+                                <TrendingUp className="h-6 w-6 text-green-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
                 
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card withBorder style={{ borderRadius: '16px', height: '120px' }}>
-                        <Group justify="space-between" h="100%">
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
                             <div>
-                                <Text size="sm" c="dimmed" fw={500}>Totais</Text>
-                                <Text size="2xl" fw={700} c="blue">{totalLeads.toLocaleString()}</Text>
+                                <p className="text-sm font-medium text-muted-foreground">Totais</p>
+                                <p className="text-2xl font-bold text-blue-600">{totalLeads.toLocaleString()}</p>
                             </div>
-                            <ThemeIcon color="blue" variant="light" size={50} radius="xl">
-                                <IconTarget size={28} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
+                            <div className="flex items-center justify-center w-12 h-12 bg-blue-500/10 rounded-xl">
+                                <Target className="h-6 w-6 text-blue-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
                 
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card withBorder style={{ borderRadius: '16px', height: '120px' }}>
-                        <Group justify="space-between" h="100%">
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
                             <div>
-                                <Text size="sm" c="dimmed" fw={500}>Efetividade Média</Text>
-                                <Text size="2xl" fw={700} c="orange">{efetividadeMedia.toFixed(1)}%</Text>
+                                <p className="text-sm font-medium text-muted-foreground">Efetividade Média</p>
+                                <p className="text-2xl font-bold text-orange-600">{efetividadeMedia.toFixed(1)}%</p>
                             </div>
-                            <ThemeIcon color="orange" variant="light" size={50} radius="xl">
-                                <IconPercentage size={28} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
-            </Grid>
+                            <div className="flex items-center justify-center w-12 h-12 bg-orange-500/10 rounded-xl">
+                                <Percent className="h-6 w-6 text-orange-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
         );
     };
 
@@ -766,55 +587,48 @@ function EcomhubPage() {
         if (!dadosResultado) return null;
 
         return (
-            <Paper shadow="sm" p="lg" mb="lg" style={{ borderRadius: '16px' }}>
-                <Group justify="space-between" align="center">
-                    <Group gap="md">
-                        <ThemeIcon color="indigo" variant="light" size={40} radius="xl">
-                            <IconChartPie size={22} />
-                        </ThemeIcon>
-                        <div>
-                            <Title order={5} style={{ marginBottom: '0.25rem' }}>Tipo de Visualização</Title>
-                            <Text size="sm" c="dimmed">Escolha como visualizar os dados</Text>
+            <Card className="mb-6">
+                <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-10 h-10 bg-indigo-500/10 rounded-lg">
+                                <PieChart className="h-5 w-5 text-indigo-600" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold">Tipo de Visualização</h3>
+                                <p className="text-sm text-muted-foreground">Escolha como visualizar os dados</p>
+                            </div>
                         </div>
-                    </Group>
-                    
-                    <SegmentedControl
-                        value={tipoVisualizacao}
-                        onChange={setTipoVisualizacao}
-                        data={[
-                            {
-                                label: 'Otimizada',
-                                value: 'otimizada'
-                            },
-                            {
-                                label: 'Total',
-                                value: 'total'
-                            }
-                        ]}
-                        style={{
-                            borderRadius: '12px'
-                        }}
-                    />
-                </Group>
+                        
+                        <Tabs value={tipoVisualizacao} onValueChange={setTipoVisualizacao}>
+                            <TabsList>
+                                <TabsTrigger value="otimizada">Otimizada</TabsTrigger>
+                                <TabsTrigger value="total">Total</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                    </div>
 
-                {tipoVisualizacao === 'otimizada' && (
-                    <Alert color="blue" mt="md" icon={<IconChartPie size={16} />} style={{ borderRadius: '12px' }}>
-                        <Text size="sm">
-                            <strong>Visualização Otimizada:</strong> Status agrupados em colunas mais analíticas 
-                            (Totais, Enviados, Em Trânsito, Problemas, etc.) com percentuais e efetividades calculadas.
-                        </Text>
-                    </Alert>
-                )}
+                    {tipoVisualizacao === 'otimizada' && (
+                        <Alert className="mt-4 border-blue-200">
+                            <PieChart className="h-4 w-4" />
+                            <AlertDescription>
+                                <strong>Visualização Otimizada:</strong> Status agrupados em colunas mais analíticas 
+                                (Totais, Enviados, Em Trânsito, Problemas, etc.) com percentuais e efetividades calculadas.
+                            </AlertDescription>
+                        </Alert>
+                    )}
 
-                {tipoVisualizacao === 'total' && (
-                    <Alert color="orange" mt="md" icon={<IconListDetails size={16} />} style={{ borderRadius: '12px' }}>
-                        <Text size="sm">
-                            <strong>Visualização Total:</strong> Todos os status individuais conforme retornados 
-                            da ECOMHUB, sem agrupamentos ou cálculos adicionais.
-                        </Text>
-                    </Alert>
-                )}
-            </Paper>
+                    {tipoVisualizacao === 'total' && (
+                        <Alert className="mt-4 border-orange-200">
+                            <ListChecks className="h-4 w-4" />
+                            <AlertDescription>
+                                <strong>Visualização Total:</strong> Todos os status individuais conforme retornados 
+                                da ECOMHUB, sem agrupamentos ou cálculos adicionais.
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                </CardContent>
+            </Card>
         );
     };
 
@@ -824,16 +638,7 @@ function EcomhubPage() {
         
         if (!value || hasError) {
             return (
-                <div style={{ 
-                    width: '44px', 
-                    height: '44px', 
-                    background: 'linear-gradient(135deg, #f1f3f4, #e9ecef)', 
-                    borderRadius: '8px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    fontSize: '20px' 
-                }}>
+                <div className="w-11 h-11 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center text-xl">
                     📦
                 </div>
             );
@@ -843,13 +648,7 @@ function EcomhubPage() {
             <img 
                 src={value} 
                 alt="Produto" 
-                style={{ 
-                    width: '44px', 
-                    height: '44px', 
-                    objectFit: 'cover', 
-                    borderRadius: '8px',
-                    border: '2px solid #e9ecef'
-                }}
+                className="w-11 h-11 object-cover rounded-lg border-2 border-gray-200"
                 onError={() => {
                     setImagensComErro(prev => new Set(prev).add(imageKey));
                 }}
@@ -864,221 +663,209 @@ function EcomhubPage() {
         const colunas = Object.keys(dados[0] || {});
         const dadosOrdenados = sortData(dados, sortBy, sortOrder);
 
-        // Texto do título baseado na seleção (incluindo novos países)
         const tituloAnalise = paisSelecionado === 'todos' ? 
             'Métricas Consolidadas - Todos os Países' : 
             `Métricas de Produtos - ${PAISES.find(p => p.value === paisSelecionado)?.label}`;
 
         return (
-            <Paper shadow="sm" p="xl" mb="md" style={{ borderRadius: '16px' }}>
-                <Group justify="space-between" mb="xl">
-                    <div>
-                        <Title order={4} style={{ marginBottom: '0.5rem' }}>
-                            {tituloAnalise} - {tipoVisualizacao === 'otimizada' ? 'Otimizada' : 'Total'}
-                        </Title>
-                        <Text size="sm" c="dimmed">
-                            {paisSelecionado === 'todos' ? 
-                                'Análise consolidada de todos os países disponíveis (incluindo novos países)' :
-                                'Análise detalhada dos dados de performance'
-                            }
-                        </Text>
+            <Card className="mb-6">
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle>
+                                {tituloAnalise} - {tipoVisualizacao === 'otimizada' ? 'Otimizada' : 'Total'}
+                            </CardTitle>
+                            <CardDescription>
+                                {paisSelecionado === 'todos' ? 
+                                    'Análise consolidada de todos os países disponíveis (incluindo novos países)' :
+                                    'Análise detalhada dos dados de performance'
+                                }
+                            </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Badge variant="secondary" className="rounded-lg">
+                                {dados.length} registros
+                            </Badge>
+                            <Button
+                                onClick={() => setModalSalvar(true)}
+                                variant="outline"
+                                className="font-semibold"
+                            >
+                                <Download className="h-4 w-4 mr-2" />
+                                Salvar Análise
+                            </Button>
+                        </div>
                     </div>
-                    <Group>
-                        <Badge variant="light" color="blue" size="lg" style={{ borderRadius: '8px' }}>
-                            {dados.length} registros
-                        </Badge>
-                        <Button
-                            leftSection={<IconDownload size={18} />}
-                            onClick={() => setModalSalvar(true)}
-                            variant="light"
-                            style={{ borderRadius: '12px', fontWeight: 600 }}
-                        >
-                            Salvar Análise
-                        </Button>
-                    </Group>
-                </Group>
+                </CardHeader>
 
-                <ScrollArea>
-                    <Table striped highlightOnHover>
-                        <Table.Thead>
-                            <Table.Tr>
-                                {colunas.map(col => (
-                                    <Table.Th key={col} style={{ backgroundColor: '#f8f9fa' }}>
-                                        <Group gap="xs" style={{ cursor: 'pointer' }} onClick={() => handleSort(col)}>
-                                            <Text size="sm" fw={600}>
+                <CardContent className="p-0">
+                    <ScrollArea className="h-[600px]">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-muted/50">
+                                    {colunas.map(col => (
+                                        <TableHead key={col} className="font-semibold">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-auto p-0 font-semibold hover:bg-transparent"
+                                                onClick={() => handleSort(col)}
+                                            >
                                                 {col.replace('_', ' ').replace(/([A-Z])/g, ' $1').trim()}
-                                            </Text>
-                                            {sortBy === col && (
-                                                <ActionIcon size="xs" variant="transparent">
-                                                    {sortOrder === 'asc' ? 
-                                                        <IconSortAscending size={14} /> : 
-                                                        <IconSortDescending size={14} />
-                                                    }
-                                                </ActionIcon>
-                                            )}
-                                        </Group>
-                                    </Table.Th>
-                                ))}
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                            {dadosOrdenados.map((row, idx) => (
-                                <Table.Tr
-                                    key={idx}
-                                    style={{
-                                        backgroundColor: row.Produto === 'Total' ? '#f8f9fa' : undefined,
-                                        fontWeight: row.Produto === 'Total' ? 'bold' : undefined
-                                    }}
-                                >
-                                    {Object.entries(row).map(([col, value]) => (
-                                        <Table.Td
-                                            key={col}
-                                            style={getCorColuna(col, value)}
-                                        >
-                                            {col === 'Imagem' ? (
-                                                renderImagemProduto(value, idx)
-                                            ) : (
-                                                typeof value === 'number' ? value.toLocaleString() : value
-                                            )}
-                                        </Table.Td>
+                                                {sortBy === col && (
+                                                    sortOrder === 'asc' ? 
+                                                        <ArrowUp className="ml-2 h-3 w-3" /> : 
+                                                        <ArrowDown className="ml-2 h-3 w-3" />
+                                                )}
+                                                {sortBy !== col && <ArrowUpDown className="ml-2 h-3 w-3 opacity-50" />}
+                                            </Button>
+                                        </TableHead>
                                     ))}
-                                </Table.Tr>
-                            ))}
-                        </Table.Tbody>
-                    </Table>
-                </ScrollArea>
-            </Paper>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {dadosOrdenados.map((row, idx) => (
+                                    <TableRow
+                                        key={idx}
+                                        className={row.Produto === 'Total' ? 'bg-muted/30 font-medium' : 'hover:bg-muted/50'}
+                                    >
+                                        {Object.entries(row).map(([col, value]) => (
+                                            <TableCell
+                                                key={col}
+                                                className={
+                                                    tipoVisualizacao === 'otimizada' &&
+                                                    (col === 'Efetividade_Total' || col === 'Efetividade_Parcial') ?
+                                                    `font-medium border ${getEfetividadeCor(value)}` : ''
+                                                }
+                                            >
+                                                {col === 'Imagem' ? (
+                                                    renderImagemProduto(value, idx)
+                                                ) : (
+                                                    typeof value === 'number' ? value.toLocaleString() : value
+                                                )}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </ScrollArea>
+                </CardContent>
+            </Card>
         );
     };
 
     const renderAnalisesSalvas = () => {
         const analisesFiltradas = getAnalisesFiltradas();
         
-        // Texto do título baseado na seleção (incluindo novos países)
         const tituloAnalises = paisSelecionado === 'todos' ? 
             'Análises Salvas - Todos os Países' : 
             `Análises Salvas - ${PAISES.find(p => p.value === paisSelecionado)?.emoji} ${PAISES.find(p => p.value === paisSelecionado)?.label}`;
         
         return (
-            <Paper shadow="sm" p="xl" style={{ position: 'relative', borderRadius: '16px' }}>
+            <Card className="relative">
                 {loadingAnalises && (
-                    <div style={{
-                        position: 'absolute',
-                        top: 0, left: 0, right: 0, bottom: 0,
-                        backgroundColor: 'rgba(255,255,255,0.8)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 10,
-                        borderRadius: '16px'
-                    }}>
-                        <Loader size="xl" />
+                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
+                        <Loader2 className="h-8 w-8 animate-spin" />
                     </div>
                 )}
 
-                <Group justify="space-between" mb="xl">
-                    <Group gap="md">
-                        <ThemeIcon color="blue" variant="light" size={40} radius="xl">
-                            {paisSelecionado === 'todos' ? <IconGlobe size={22} /> : <IconChartBar size={22} />}
-                        </ThemeIcon>
-                        <div>
-                            <Title order={4}>
-                                {tituloAnalises}
-                            </Title>
-                            <Text size="sm" c="dimmed">
-                                {paisSelecionado === 'todos' ? 
-                                    'Histórico completo de todas as análises processadas' :
-                                    'Histórico de análises processadas'
-                                }
-                            </Text>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-10 h-10 bg-blue-500/10 rounded-lg">
+                                {paisSelecionado === 'todos' ? <Globe className="h-5 w-5 text-blue-600" /> : <BarChart3 className="h-5 w-5 text-blue-600" />}
+                            </div>
+                            <div>
+                                <CardTitle>{tituloAnalises}</CardTitle>
+                                <CardDescription>
+                                    {paisSelecionado === 'todos' ? 
+                                        'Histórico completo de todas as análises processadas' :
+                                        'Histórico de análises processadas'
+                                    }
+                                </CardDescription>
+                            </div>
                         </div>
-                    </Group>
-                    <Group>
-                        <Badge variant="light" size="lg" style={{ borderRadius: '8px' }}>{analisesFiltradas.length}</Badge>
-                        <Button
-                            leftSection={<IconRefresh size={16} />}
-                            variant="outline"
-                            size="sm"
-                            onClick={fetchAnalises}
-                            style={{ borderRadius: '12px' }}
-                        >
-                            Atualizar
-                        </Button>
-                    </Group>
-                </Group>
+                        <div className="flex items-center gap-3">
+                            <Badge variant="secondary">{analisesFiltradas.length}</Badge>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={fetchAnalises}
+                            >
+                                <RefreshCw className="h-4 w-4 mr-2" />
+                                Atualizar
+                            </Button>
+                        </div>
+                    </div>
+                </CardHeader>
 
-                {analisesFiltradas.length === 0 ? (
-                    <Alert color="blue" icon={<IconChartBar size={16} />} style={{ borderRadius: '12px' }}>
-                        <Text fw={500} mb="xs">
-                            {paisSelecionado === 'todos' ? 
-                                'Nenhuma análise salva encontrada' : 
-                                'Nenhuma análise salva para este país'
-                            }
-                        </Text>
-                        <Text size="sm" c="dimmed">
-                            Processe dados e salve o resultado para vê-lo aqui.
-                        </Text>
-                    </Alert>
-                ) : (
-                    <Grid>
-                        {analisesFiltradas.map(analise => (
-                            <Grid.Col span={{ base: 12, sm: 6, md: 4 }} key={analise.id}>
-                                <Card withBorder style={{ position: 'relative', borderRadius: '16px', height: '100%' }}>
+                <CardContent>
+                    {analisesFiltradas.length === 0 ? (
+                        <Alert>
+                            <BarChart3 className="h-4 w-4" />
+                            <AlertDescription>
+                                <p className="font-medium mb-1">
+                                    {paisSelecionado === 'todos' ? 
+                                        'Nenhuma análise salva encontrada' : 
+                                        'Nenhuma análise salva para este país'
+                                    }
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Processe dados e salve o resultado para vê-lo aqui.
+                                </p>
+                            </AlertDescription>
+                        </Alert>
+                    ) : (
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            {analisesFiltradas.map(analise => (
+                                <Card key={analise.id} className="relative">
                                     {loadingDelete[analise.id] && (
-                                        <div style={{
-                                            position: 'absolute',
-                                            top: 0, left: 0, right: 0, bottom: 0,
-                                            backgroundColor: 'rgba(255,255,255,0.8)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            zIndex: 10,
-                                            borderRadius: '16px'
-                                        }}>
-                                            <Loader size="sm" />
+                                        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
+                                            <Loader2 className="h-5 w-5 animate-spin" />
                                         </div>
                                     )}
 
-                                    <Group justify="space-between" mb="sm">
-                                        <Text fw={600} truncate style={{ maxWidth: '70%' }}>
-                                            {analise.nome.replace('[ECOMHUB] ', '')}
-                                        </Text>
-                                        <Badge color="blue" variant="light" style={{ borderRadius: '6px' }}>
-                                            ECOMHUB
-                                        </Badge>
-                                    </Group>
+                                    <CardContent className="p-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h3 className="font-semibold truncate max-w-[70%]">
+                                                {analise.nome.replace('[ECOMHUB] ', '')}
+                                            </h3>
+                                            <Badge variant="outline" className="rounded">
+                                                ECOMHUB
+                                            </Badge>
+                                        </div>
 
-                                    <Text size="xs" c="dimmed" mb="lg">
-                                        {new Date(analise.criado_em).toLocaleDateString('pt-BR')} por {analise.criado_por_nome}
-                                    </Text>
+                                        <p className="text-xs text-muted-foreground mb-4">
+                                            {new Date(analise.criado_em).toLocaleDateString('pt-BR')} por {analise.criado_por_nome}
+                                        </p>
 
-                                    <Group justify="space-between">
-                                        <Button
-                                            size="sm"
-                                            variant="light"
-                                            onClick={() => carregarAnalise(analise)}
-                                            leftSection={<IconEye size={16} />}
-                                            style={{ borderRadius: '8px' }}
-                                        >
-                                            Carregar
-                                        </Button>
-                                        <ActionIcon
-                                            color="red"
-                                            variant="light"
-                                            onClick={() => deletarAnalise(analise.id, analise.nome)}
-                                            loading={loadingDelete[analise.id]}
-                                            size="lg"
-                                            style={{ borderRadius: '8px' }}
-                                        >
-                                            <IconTrash size={18} />
-                                        </ActionIcon>
-                                    </Group>
+                                        <div className="flex items-center justify-between">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => carregarAnalise(analise)}
+                                            >
+                                                <Eye className="h-4 w-4 mr-2" />
+                                                Carregar
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => deletarAnalise(analise.id, analise.nome)}
+                                                disabled={loadingDelete[analise.id]}
+                                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </CardContent>
                                 </Card>
-                            </Grid.Col>
-                        ))}
-                    </Grid>
-                )}
-            </Paper>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         );
     };
 
@@ -1091,20 +878,16 @@ function EcomhubPage() {
     // ======================== RENDER PRINCIPAL ========================
 
     return (
-        <Container fluid p="lg" style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
+        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 bg-gray-50/50 min-h-screen">
             {/* Notificações */}
             {notification && (
                 <Alert
-                    color={notification.type === 'success' ? 'green' : notification.type === 'warning' ? 'yellow' : 'red'}
-                    title={notification.type === 'success' ? 'Sucesso' : notification.type === 'warning' ? 'Atenção' : 'Erro'}
-                    mb="lg"
-                    withCloseButton
-                    onClose={() => setNotification(null)}
-                    icon={notification.type === 'success' ? <IconCheck size={16} /> :
-                        notification.type === 'warning' ? <IconAlertTriangle size={16} /> : <IconX size={16} />}
-                    style={{ borderRadius: '12px' }}
+                    variant={notification.type === 'error' ? 'destructive' : 'default'}
+                    className="mb-4"
                 >
-                    {notification.message}
+                    {notification.type === 'success' ? <Check className="h-4 w-4" /> :
+                        notification.type === 'warning' ? <AlertTriangle className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                    <AlertDescription>{notification.message}</AlertDescription>
                 </Alert>
             )}
 
@@ -1131,63 +914,57 @@ function EcomhubPage() {
             {secaoAtiva === 'instrucoes' && renderInstrucoes()}
 
             {/* Modal para salvar análise */}
-            <Modal
-                opened={modalSalvar}
-                onClose={() => setModalSalvar(false)}
-                title="Salvar Análise"
-                centered
-                style={{ borderRadius: '16px' }}
-            >
-                <Stack style={{ position: 'relative' }}>
-                    {loadingSalvar && (
-                        <div style={{
-                            position: 'absolute',
-                            top: 0, left: 0, right: 0, bottom: 0,
-                            backgroundColor: 'rgba(255,255,255,0.9)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            zIndex: 10,
-                            borderRadius: '16px'
-                        }}>
-                            <Loader size="lg" />
+            <Dialog open={modalSalvar} onOpenChange={setModalSalvar}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Salvar Análise</DialogTitle>
+                        <DialogDescription>
+                            Digite um nome para identificar esta análise
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="relative py-4">
+                        {loadingSalvar && (
+                            <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center z-10 rounded">
+                                <Loader2 className="h-6 w-6 animate-spin" />
+                            </div>
+                        )}
+
+                        <div className="space-y-2">
+                            <Label htmlFor="nome-analise">Nome da Análise</Label>
+                            <Input
+                                id="nome-analise"
+                                placeholder="Ex: República Checa Janeiro 2025"
+                                value={nomeAnalise}
+                                onChange={(e) => setNomeAnalise(e.target.value)}
+                                disabled={loadingSalvar}
+                            />
                         </div>
-                    )}
+                    </div>
 
-                    <TextInput
-                        label="Nome da Análise"
-                        placeholder="Ex: República Checa Janeiro 2025"
-                        value={nomeAnalise}
-                        onChange={(e) => setNomeAnalise(e.target.value)}
-                        required
-                        disabled={loadingSalvar}
-                        styles={{
-                            input: { borderRadius: '12px' }
-                        }}
-                    />
-
-                    <Group justify="flex-end" mt="md">
+                    <DialogFooter>
                         <Button 
                             variant="outline" 
                             onClick={() => setModalSalvar(false)} 
                             disabled={loadingSalvar}
-                            style={{ borderRadius: '12px' }}
                         >
                             Cancelar
                         </Button>
                         <Button
                             onClick={salvarAnalise}
-                            disabled={!nomeAnalise}
-                            loading={loadingSalvar}
-                            leftSection={loadingSalvar ? <Loader size="xs" /> : <IconDownload size={16} />}
-                            style={{ borderRadius: '12px' }}
+                            disabled={!nomeAnalise || loadingSalvar}
                         >
+                            {loadingSalvar ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                                <Download className="h-4 w-4 mr-2" />
+                            )}
                             {loadingSalvar ? 'Salvando...' : 'Salvar'}
                         </Button>
-                    </Group>
-                </Stack>
-            </Modal>
-        </Container>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
     );
 }
 
