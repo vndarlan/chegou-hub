@@ -50,6 +50,7 @@ function EcomhubPage() {
     
     // Estados de modal e loading
     const [modalSalvar, setModalSalvar] = useState(false);
+    const [modalInstrucoes, setModalInstrucoes] = useState(false);
     const [nomeAnalise, setNomeAnalise] = useState('');
     const [loadingProcessar, setLoadingProcessar] = useState(false);
     const [loadingSalvar, setLoadingSalvar] = useState(false);
@@ -116,7 +117,7 @@ function EcomhubPage() {
                 const paisNome = paisSelecionado === 'todos' ? 
                     'Todos os Países' : 
                     PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
-                const dataStr = `${dataInicio.toLocaleDateString()} - ${dataFim.toLocaleDateString()}`;
+                const dataStr = `${dataInicio.toLocaleDateString('pt-BR')} - ${dataFim.toLocaleDateString('pt-BR')}`;
                 setNomeAnalise(`${paisNome} ${dataStr}`);
             }
         } catch (error) {
@@ -256,7 +257,7 @@ function EcomhubPage() {
                     <LayoutDashboard className="h-8 w-8" />
                     <div>
                         <h1 className="text-2xl font-bold">Métricas ECOMHUB</h1>
-                        <p className="text-orange-100">Analytics Dashboard</p>
+                        <p className="text-orange-100">Análise de Efetividade por Produto</p>
                     </div>
                 </div>
                 
@@ -264,7 +265,7 @@ function EcomhubPage() {
                     <Button
                         variant="secondary"
                         size="sm"
-                        onClick={() => setSecaoAtiva('instrucoes')}
+                        onClick={() => setModalInstrucoes(true)}
                         className="bg-white/20 border-0 text-white hover:bg-white/30"
                     >
                         <AlertTriangle className="h-4 w-4 mr-2" />
@@ -327,7 +328,7 @@ function EcomhubPage() {
                                         disabled={loadingProcessar}
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {dataInicio ? dataInicio.toLocaleDateString('pt-BR') : "Selecionar data"}
+                                        {dataInicio ? new Date(dataInicio).toLocaleDateString('pt-BR') : "Selecionar data"}
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
@@ -335,7 +336,7 @@ function EcomhubPage() {
                                         mode="single"
                                         selected={dataInicio}
                                         onSelect={setDataInicio}
-                                        disabled={(date) => date > new Date()}
+                                        disabled={(date) => date > new Date() || date < new Date('2020-01-01')}
                                         initialFocus
                                     />
                                 </PopoverContent>
@@ -353,7 +354,7 @@ function EcomhubPage() {
                                         disabled={loadingProcessar}
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {dataFim ? dataFim.toLocaleDateString('pt-BR') : "Selecionar data"}
+                                        {dataFim ? new Date(dataFim).toLocaleDateString('pt-BR') : "Selecionar data"}
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
@@ -763,8 +764,128 @@ function EcomhubPage() {
                 </Tabs>
             )}
 
-            {/* Instruções */}
-            {secaoAtiva === 'instrucoes' && renderInstrucoes()}
+            {/* Instruções - removido pois agora é modal */}
+
+            {/* Modal instruções */}
+            <Dialog open={modalInstrucoes} onOpenChange={setModalInstrucoes}>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="text-blue-600">Manual de Instruções - Métricas ECOMHUB</DialogTitle>
+                        <DialogDescription>
+                            Guia completo para uso da ferramenta
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-6">
+                        <div>
+                            <h4 className="text-lg font-semibold text-green-600 mb-3">Visualização Otimizada</h4>
+                            <p className="text-sm text-muted-foreground mb-4">Colunas agrupadas para análise mais eficiente:</p>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Card className="border-blue-200">
+                                    <CardContent className="p-4">
+                                        <h5 className="font-semibold text-blue-600 text-sm">Totais</h5>
+                                        <p className="text-xs text-muted-foreground">Soma de todos os pedidos (todos os status)</p>
+                                    </CardContent>
+                                </Card>
+                                
+                                <Card className="border-green-200">
+                                    <CardContent className="p-4">
+                                        <h5 className="font-semibold text-green-600 text-sm">Finalizados</h5>
+                                        <p className="text-xs text-muted-foreground">"delivered" + "issue" + "returning" + "returned" + "cancelled"</p>
+                                    </CardContent>
+                                </Card>
+                                
+                                <Card className="border-orange-200">
+                                    <CardContent className="p-4">
+                                        <h5 className="font-semibold text-orange-600 text-sm">Em Trânsito</h5>
+                                        <p className="text-xs text-muted-foreground">"out_for_delivery" + "preparing_for_shipping" + "ready_to_ship" + "with_courier"</p>
+                                    </CardContent>
+                                </Card>
+                                
+                                <Card className="border-red-200">
+                                    <CardContent className="p-4">
+                                        <h5 className="font-semibold text-red-600 text-sm">Problemas</h5>
+                                        <p className="text-xs text-muted-foreground">Apenas "issue"</p>
+                                    </CardContent>
+                                </Card>
+                                
+                                <Card className="border-purple-200">
+                                    <CardContent className="p-4">
+                                        <h5 className="font-semibold text-purple-600 text-sm">Devolução</h5>
+                                        <p className="text-xs text-muted-foreground">"returning" + "returned" + "issue"</p>
+                                    </CardContent>
+                                </Card>
+                                
+                                <Card className="border-gray-200">
+                                    <CardContent className="p-4">
+                                        <h5 className="font-semibold text-gray-600 text-sm">Cancelados</h5>
+                                        <p className="text-xs text-muted-foreground">"cancelled"</p>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+
+                        <Separator />
+
+                        <div>
+                            <h4 className="text-lg font-semibold text-purple-600 mb-3">🌍 Opção "Todos os Países"</h4>
+                            <p className="text-sm text-muted-foreground mb-4">Funcionalidades especiais quando "Todos" está selecionado:</p>
+                            
+                            <div className="space-y-2">
+                                <p className="text-sm">• <strong>Países Incluídos:</strong> Espanha, Croácia, Grécia, Itália, Romênia, República Checa e Polônia</p>
+                                <p className="text-sm">• <strong>Métricas Salvas:</strong> Exibe análises de todos os países em uma única lista</p>
+                                <p className="text-sm">• <strong>Gerar Métricas:</strong> Combina dados de todos os 7 países em uma tabela unificada</p>
+                                <p className="text-sm">• <strong>Processamento:</strong> Consulta todos os países simultaneamente para maior eficiência</p>
+                                <p className="text-sm">• <strong>Análise Comparativa:</strong> Permite comparar performance entre produtos de diferentes países</p>
+                            </div>
+                        </div>
+
+                        <Separator />
+
+                        <div>
+                            <h5 className="font-semibold text-teal-600 mb-2">Percentuais Calculados:</h5>
+                            <div className="space-y-1">
+                                <p className="text-sm">• <strong>% A Caminho:</strong> (Em Trânsito ÷ Totais) × 100</p>
+                                <p className="text-sm">• <strong>% Devolvidos:</strong> (Devolução ÷ Totais) × 100</p>
+                                <p className="text-sm">• <strong>Efetividade Parcial:</strong> (Entregues ÷ Finalizados) × 100</p>
+                                <p className="text-sm">• <strong>Efetividade Total:</strong> (Entregues ÷ Totais) × 100</p>
+                            </div>
+                        </div>
+
+                        <Separator />
+
+                        <div>
+                            <h4 className="text-lg font-semibold text-orange-600 mb-3">Visualização Total</h4>
+                            <p className="text-sm text-muted-foreground">Mostra todos os status individuais conforme retornados da API ECOMHUB, sem agrupamentos.</p>
+                        </div>
+
+                        <Separator />
+
+                        <div>
+                            <h5 className="font-semibold text-indigo-600 mb-2">Cores das Métricas:</h5>
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-4 bg-green-600 rounded"></div>
+                                    <span className="text-sm">Efetividade ≥ 60% (Excelente)</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-4 bg-green-500 rounded"></div>
+                                    <span className="text-sm">Efetividade ≥ 50% (Boa)</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-4 bg-yellow-500 rounded"></div>
+                                    <span className="text-sm">Efetividade ≥ 40% (Regular)</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-4 bg-red-500 rounded"></div>
+                                    <span className="text-sm">Efetividade &lt; 40% (Ruim)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Modal salvar */}
             <Dialog open={modalSalvar} onOpenChange={setModalSalvar}>
