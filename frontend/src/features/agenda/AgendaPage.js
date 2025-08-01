@@ -452,19 +452,6 @@ function AgendaPage() {
                                         </Select>
                                     </div>
 
-                                    {selectedDbId && (
-                                        <Card className="bg-muted/50 border-border">
-                                            <CardContent className="p-3">
-                                                <div className="flex items-center gap-2 text-sm">
-                                                    <span className="text-muted-foreground">Visualizando:</span>
-                                                    <span className="font-medium text-foreground">
-                                                        {calendarios.find(c => c.id === selectedDbId)?.name}
-                                                    </span>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    )}
-
                                     {/* Container do iframe */}
                                     <Card className="relative overflow-hidden">
                                         {iframeSrc ? (
