@@ -430,44 +430,34 @@ function AgendaPage() {
                         <>
                             {calendarios.length > 0 ? (
                                 <div className="space-y-4">
-                                    <div className="flex gap-4 items-end">
-                                        <div className="flex-1 max-w-md space-y-2">
-                                            <Label htmlFor="calendar-select">Selecione um calendário para visualizar:</Label>
-                                            <Select 
-                                                value={selectedDbId ? selectedDbId.toString() : ""} 
-                                                onValueChange={(value) => {
-                                                    setSelectedDbId(value ? parseInt(value, 10) : null);
-                                                    setIframeLoaded(false);
-                                                }}
-                                            >
-                                                <SelectTrigger id="calendar-select">
-                                                    <SelectValue placeholder="Escolha um calendário" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {selectOptions.map((option) => (
-                                                        <SelectItem key={option.value} value={option.value}>
-                                                            {option.label}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <Button 
-                                            variant="outline"
-                                            onClick={() => fetchCalendars(false)}
-                                            className="shrink-0"
+                                    <div className="max-w-md space-y-2">
+                                        <Label htmlFor="calendar-select">Selecione um calendário para visualizar:</Label>
+                                        <Select 
+                                            value={selectedDbId ? selectedDbId.toString() : ""} 
+                                            onValueChange={(value) => {
+                                                setSelectedDbId(value ? parseInt(value, 10) : null);
+                                                setIframeLoaded(false);
+                                            }}
                                         >
-                                            <RefreshCw className="h-4 w-4 mr-2" />
-                                            Atualizar
-                                        </Button>
+                                            <SelectTrigger id="calendar-select">
+                                                <SelectValue placeholder="Escolha um calendário" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {selectOptions.map((option) => (
+                                                    <SelectItem key={option.value} value={option.value}>
+                                                        {option.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
 
                                     {selectedDbId && (
-                                        <Card className="bg-muted/50">
+                                        <Card className="bg-muted/50 border-border">
                                             <CardContent className="p-3">
                                                 <div className="flex items-center gap-2 text-sm">
                                                     <span className="text-muted-foreground">Visualizando:</span>
-                                                    <span className="font-medium">
+                                                    <span className="font-medium text-foreground">
                                                         {calendarios.find(c => c.id === selectedDbId)?.name}
                                                     </span>
                                                 </div>
