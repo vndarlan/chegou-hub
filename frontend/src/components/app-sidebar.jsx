@@ -203,7 +203,7 @@ export function AppSidebar({
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Chegou Hub</span>
-                  <span className="truncate text-xs text-sidebar-foreground/70">Enterprise</span>
+                  <span className="truncate text-xs text-sidebar-foreground/70">v1.0.0</span>
                 </div>
               </a>
             </SidebarMenuButton>
