@@ -17,7 +17,7 @@ import { Badge } from '../../components/ui/badge';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { LoadingSpinner } from '../../components/ui';
 
@@ -186,7 +186,7 @@ function EngajamentoPage() {
 
     // Componente de Saldo Minimizado
     const SaldoCompact = () => (
-        <Card className="w-64 bg-gradient-to-b from-gray-100 to-gray-200 dark:from-slate-800 dark:to-slate-900">
+        <Card className="w-64 bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
             <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -229,6 +229,9 @@ function EngajamentoPage() {
                         <DialogContent className="max-w-md">
                             <DialogHeader>
                                 <DialogTitle>Novo Engajamento</DialogTitle>
+                                <DialogDescription>
+                                    Adicione um novo tipo de engajamento para usar em suas campanhas.
+                                </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-3">
                                 <div>
