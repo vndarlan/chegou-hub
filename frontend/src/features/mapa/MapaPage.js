@@ -294,26 +294,16 @@ function MapaPage() {
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">Legenda</CardTitle>
-                    <div className="flex items-center gap-2">
-                        {canManage && (
-                            <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => setAddModalOpen(true)}
-                            >
-                                <Plus className="h-4 w-4 mr-1" />
-                                Adicionar
-                            </Button>
-                        )}
+                    {canManage && (
                         <Button 
                             size="sm" 
                             variant="outline"
-                            onClick={() => setShowAdmin(!showAdmin)}
+                            onClick={() => setAddModalOpen(true)}
                         >
-                            <Settings className="h-4 w-4 mr-1" />
-                            Config
+                            <Plus className="h-4 w-4 mr-1" />
+                            Adicionar
                         </Button>
-                    </div>
+                    )}
                 </div>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -327,8 +317,8 @@ function MapaPage() {
                     </div>
                 ))}
                 <div className="flex items-center gap-3">
-                    <div className="w-4 h-4 bg-gray-300 border border-gray-300 flex-shrink-0" />
-                    <span className="text-sm">Outros Países</span>
+                    <div className="w-4 h-4 bg-muted border border-border flex-shrink-0" />
+                    <span className="text-sm text-foreground">Outros Países</span>
                 </div>
             </CardContent>
         </Card>
@@ -343,19 +333,19 @@ function MapaPage() {
                     <Card key={status}>
                         <CardHeader className="pb-3">
                             <CardTitle 
-                                className="text-base flex items-center gap-2"
-                                style={{ color: statusInfo?.color || '#000' }}
+                                className="text-base flex items-center gap-2 text-foreground"
+                                style={{ color: statusInfo?.color || 'hsl(var(--foreground))' }}
                             >
                                 <div 
                                     className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: statusInfo?.color || '#666' }}
+                                    style={{ backgroundColor: statusInfo?.color || 'hsl(var(--muted-foreground))' }}
                                 />
                                 {statusInfo?.description || status} ({paises.length})
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="pt-0">
                             {paises.length > 0 ? (
-                                <ul className="space-y-1 text-sm">
+                                <ul className="space-y-1 text-sm text-foreground">
                                     {paises.map((pais, index) => (
                                         <li key={`${status}-${pais}-${index}`} className="flex items-center gap-2">
                                             <div className="w-1 h-1 bg-muted-foreground rounded-full" />
@@ -375,19 +365,6 @@ function MapaPage() {
 
     return (
         <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">🗺️ Mapa de Atuação</h1>
-                    <p className="text-muted-foreground">
-                        Visualize os países onde o Grupo Chegou atua ou já atuou.
-                    </p>
-                </div>
-                {canManage && (
-                    <Badge variant="secondary">
-                        Pode gerenciar
-                    </Badge>
-                )}
-            </div>
 
             {notification && (
                 <Alert variant={notification.type === 'error' ? 'destructive' : 'default'}>
@@ -417,34 +394,32 @@ function MapaPage() {
             )}
 
             {!loading && !error && geoJsonData && (
-                <div className="grid gap-6 lg:grid-cols-4">
-                    <div className="lg:col-span-3">
-                        <Card className="overflow-hidden">
-                            <div className="h-[650px] w-full">
-                                <MapContainer
-                                    center={[20, -30]}
-                                    zoom={2.5}
-                                    style={{ height: "100%", width: "100%" }}
-                                    scrollWheelZoom={true}
-                                    worldCopyJump={true}
-                                >
-                                    <TileLayer
-                                        attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                                        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                                    />
-                                    <GeoJSON
-                                        key={JSON.stringify(geoJsonData)}
-                                        data={geoJsonData}
-                                        style={styleGeoJson}
-                                        onEachFeature={onEachFeature}
-                                    />
-                                    {markers}
-                                </MapContainer>
-                            </div>
-                        </Card>
-                    </div>
+                <div className="space-y-6">
+                    <Card className="overflow-hidden">
+                        <div className="h-[650px] w-full">
+                            <MapContainer
+                                center={[20, -30]}
+                                zoom={2.5}
+                                style={{ height: "100%", width: "100%" }}
+                                scrollWheelZoom={true}
+                                worldCopyJump={true}
+                            >
+                                <TileLayer
+                                    attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                                />
+                                <GeoJSON
+                                    key={JSON.stringify(geoJsonData)}
+                                    data={geoJsonData}
+                                    style={styleGeoJson}
+                                    onEachFeature={onEachFeature}
+                                />
+                                {markers}
+                            </MapContainer>
+                        </div>
+                    </Card>
 
-                    <div className="space-y-6">
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                         <Legend />
                         <CountryLists />
                     </div>

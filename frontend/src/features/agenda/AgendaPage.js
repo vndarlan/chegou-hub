@@ -391,12 +391,6 @@ function AgendaPage() {
 
     return (
         <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">📅 Agenda da Empresa</h1>
-                    <p className="text-muted-foreground">Visualize os calendários da equipe</p>
-                </div>
-            </div>
 
             {isLoadingCalendars && (
                 <div className="flex h-32 items-center justify-center">
@@ -436,40 +430,36 @@ function AgendaPage() {
                         <>
                             {calendarios.length > 0 ? (
                                 <div className="space-y-4">
-                                    <div className="grid gap-4 md:grid-cols-4">
-                                        <div className="md:col-span-3">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="calendar-select">Selecione um calendário para visualizar:</Label>
-                                                <Select 
-                                                    value={selectedDbId ? selectedDbId.toString() : ""} 
-                                                    onValueChange={(value) => {
-                                                        setSelectedDbId(value ? parseInt(value, 10) : null);
-                                                        setIframeLoaded(false);
-                                                    }}
-                                                >
-                                                    <SelectTrigger id="calendar-select">
-                                                        <SelectValue placeholder="Escolha um calendário" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {selectOptions.map((option) => (
-                                                            <SelectItem key={option.value} value={option.value}>
-                                                                {option.label}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-end">
-                                            <Button 
-                                                variant="outline"
-                                                onClick={() => fetchCalendars(false)}
-                                                className="w-full"
+                                    <div className="flex gap-4 items-end">
+                                        <div className="flex-1 max-w-md space-y-2">
+                                            <Label htmlFor="calendar-select">Selecione um calendário para visualizar:</Label>
+                                            <Select 
+                                                value={selectedDbId ? selectedDbId.toString() : ""} 
+                                                onValueChange={(value) => {
+                                                    setSelectedDbId(value ? parseInt(value, 10) : null);
+                                                    setIframeLoaded(false);
+                                                }}
                                             >
-                                                <RefreshCw className="h-4 w-4 mr-2" />
-                                                Atualizar
-                                            </Button>
+                                                <SelectTrigger id="calendar-select">
+                                                    <SelectValue placeholder="Escolha um calendário" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {selectOptions.map((option) => (
+                                                        <SelectItem key={option.value} value={option.value}>
+                                                            {option.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </div>
+                                        <Button 
+                                            variant="outline"
+                                            onClick={() => fetchCalendars(false)}
+                                            className="shrink-0"
+                                        >
+                                            <RefreshCw className="h-4 w-4 mr-2" />
+                                            Atualizar
+                                        </Button>
                                     </div>
 
                                     {selectedDbId && (
