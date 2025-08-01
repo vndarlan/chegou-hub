@@ -186,7 +186,7 @@ function EngajamentoPage() {
 
     // Componente de Saldo Minimizado
     const SaldoCompact = () => (
-        <Card className="w-64">
+        <Card className="w-64 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
             <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -239,6 +239,7 @@ function EngajamentoPage() {
                                         value={novoEngajamento.nome}
                                         onChange={(e) => setNovoEngajamento(prev => ({ ...prev, nome: e.target.value }))}
                                         className="mt-1"
+                                        autoComplete="off"
                                     />
                                 </div>
                                 <div>
@@ -249,6 +250,7 @@ function EngajamentoPage() {
                                         value={novoEngajamento.engajamento_id}
                                         onChange={(e) => setNovoEngajamento(prev => ({ ...prev, engajamento_id: e.target.value }))}
                                         className="mt-1"
+                                        autoComplete="off"
                                     />
                                 </div>
                                 <div>
@@ -258,9 +260,9 @@ function EngajamentoPage() {
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Like">Like</SelectItem>
-                                            <SelectItem value="Amei">Amei</SelectItem>
-                                            <SelectItem value="Uau">Uau</SelectItem>
+                                            <SelectItem value="Like">👍 Like</SelectItem>
+                                            <SelectItem value="Amei">❤️ Amei</SelectItem>
+                                            <SelectItem value="Uau">😮 Uau</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -306,7 +308,13 @@ function EngajamentoPage() {
                                         <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{eng.engajamento_id}</code>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant={eng.tipo === 'Like' ? 'default' : 'secondary'} className="text-xs">
+                                        <Badge 
+                                            variant={eng.tipo === 'Like' ? 'default' : eng.tipo === 'Amei' ? 'destructive' : 'secondary'}
+                                            className={`text-xs ${eng.tipo === 'Uau' ? 'bg-yellow-500 text-white hover:bg-yellow-600' : ''}`}
+                                        >
+                                            {eng.tipo === 'Like' && '👍 '}
+                                            {eng.tipo === 'Amei' && '❤️ '}
+                                            {eng.tipo === 'Uau' && '😮 '}
                                             {eng.tipo}
                                         </Badge>
                                     </TableCell>
@@ -339,7 +347,7 @@ function EngajamentoPage() {
             {/* Header com Saldo */}
             <div className="flex items-start justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold">Engajamento</h1>
+                    <h1 className="text-2xl font-bold text-foreground">Engajamento</h1>
                 </div>
                 <SaldoCompact />
             </div>
