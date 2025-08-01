@@ -431,7 +431,7 @@ function AgendaPage() {
                             {calendarios.length > 0 ? (
                                 <div className="space-y-4">
                                     <div className="max-w-md space-y-2">
-                                        <Label htmlFor="calendar-select">Selecione um calendário para visualizar:</Label>
+                                        <Label htmlFor="calendar-select" className="text-foreground">Selecione um calendário para visualizar:</Label>
                                         <Select 
                                             value={selectedDbId ? selectedDbId.toString() : ""} 
                                             onValueChange={(value) => {
@@ -439,12 +439,12 @@ function AgendaPage() {
                                                 setIframeLoaded(false);
                                             }}
                                         >
-                                            <SelectTrigger id="calendar-select">
-                                                <SelectValue placeholder="Escolha um calendário" />
+                                            <SelectTrigger id="calendar-select" className="bg-background border-border text-foreground">
+                                                <SelectValue placeholder="Escolha um calendário" className="text-muted-foreground" />
                                             </SelectTrigger>
-                                            <SelectContent>
+                                            <SelectContent className="bg-background border-border">
                                                 {selectOptions.map((option) => (
-                                                    <SelectItem key={option.value} value={option.value}>
+                                                    <SelectItem key={option.value} value={option.value} className="text-foreground hover:bg-accent hover:text-accent-foreground">
                                                         {option.label}
                                                     </SelectItem>
                                                 ))}

@@ -452,7 +452,7 @@ function MapaPage() {
 
             {/* Modal para adicionar país */}
             <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
-                <DialogContent className="sm:max-w-[425px]" style={{ zIndex: 10000 }}>
+                <DialogContent className="sm:max-w-[425px] bg-background border-border" style={{ zIndex: 10000 }}>
                     <DialogHeader>
                         <DialogTitle className="text-foreground">Adicionar País</DialogTitle>
                         <DialogDescription className="text-muted-foreground">
@@ -461,17 +461,17 @@ function MapaPage() {
                     </DialogHeader>
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="country-select">País</Label>
+                            <Label htmlFor="country-select" className="text-foreground">País</Label>
                             <Select 
                                 value={selectedCountry ? JSON.stringify(selectedCountry) : ""} 
                                 onValueChange={(value) => setSelectedCountry(value ? JSON.parse(value) : null)}
                             >
-                                <SelectTrigger id="country-select">
-                                    <SelectValue placeholder="Selecione um país" />
+                                <SelectTrigger id="country-select" className="bg-background border-border text-foreground">
+                                    <SelectValue placeholder="Selecione um país" className="text-muted-foreground" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="bg-background border-border">
                                     {availableCountries.map(c => (
-                                        <SelectItem key={c.nome_geojson} value={JSON.stringify(c)}>
+                                        <SelectItem key={c.nome_geojson} value={JSON.stringify(c)} className="text-foreground hover:bg-accent hover:text-accent-foreground">
                                             {c.nome_display}
                                         </SelectItem>
                                     ))}
@@ -480,14 +480,14 @@ function MapaPage() {
                         </div>
                         
                         <div className="space-y-2">
-                            <Label htmlFor="status-select">Status</Label>
+                            <Label htmlFor="status-select" className="text-foreground">Status</Label>
                             <Select value={selectedStatus || ""} onValueChange={setSelectedStatus}>
-                                <SelectTrigger id="status-select">
-                                    <SelectValue placeholder="Selecione o status" />
+                                <SelectTrigger id="status-select" className="bg-background border-border text-foreground">
+                                    <SelectValue placeholder="Selecione o status" className="text-muted-foreground" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="bg-background border-border">
                                     {statusList.map(s => (
-                                        <SelectItem key={s.id} value={s.id.toString()}>
+                                        <SelectItem key={s.id} value={s.id.toString()} className="text-foreground hover:bg-accent hover:text-accent-foreground">
                                             {s.descricao}
                                         </SelectItem>
                                     ))}
@@ -496,12 +496,13 @@ function MapaPage() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setAddModalOpen(false)}>
+                        <Button variant="outline" onClick={() => setAddModalOpen(false)} className="border-border text-foreground hover:bg-accent hover:text-accent-foreground">
                             Cancelar
                         </Button>
                         <Button 
                             onClick={handleAddCountry} 
                             disabled={!selectedCountry || !selectedStatus || addLoading}
+                            className="bg-primary text-primary-foreground hover:bg-primary/90"
                         >
                             {addLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                             Adicionar País
