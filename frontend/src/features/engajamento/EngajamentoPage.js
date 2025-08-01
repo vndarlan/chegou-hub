@@ -1,5 +1,5 @@
 // frontend/src/features/engajamento/EngajamentoPage.js
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Plus, Trash2, RefreshCw, Send, AlertCircle,
     Check, X, ExternalLink, Copy, Download, DollarSign
@@ -33,7 +33,9 @@ function EngajamentoPage() {
     // Estados para engajamentos
     const [engajamentos, setEngajamentos] = useState([]);
     const [modalEngajamento, setModalEngajamento] = useState(false);
-    const [novoEngajamento, setNovoEngajamento] = useState({
+    
+    // Estado separado e isolado para o formulário
+    const [formData, setFormData] = useState({
         nome: '',
         engajamento_id: '',
         tipo: 'Like',
@@ -46,35 +48,6 @@ function EngajamentoPage() {
     // Estados para pedidos
     const [engajamentosSelecionados, setEngajamentosSelecionados] = useState({});
     const [pedidos, setPedidos] = useState([]);
-
-    // Handlers otimizados
-    const handleNomeChange = useCallback((e) => {
-        const value = e.target.value;
-        setNovoEngajamento(prev => ({ ...prev, nome: value }));
-    }, []);
-
-    const handleIdChange = useCallback((e) => {
-        const value = e.target.value;
-        setNovoEngajamento(prev => ({ ...prev, engajamento_id: value }));
-    }, []);
-
-    const handleTipoChange = useCallback((value) => {
-        setNovoEngajamento(prev => ({ ...prev, tipo: value }));
-    }, []);
-
-    const handleFuncionandoChange = useCallback((checked) => {
-        setNovoEngajamento(prev => ({ ...prev, funcionando: checked }));
-    }, []);
-
-    // Reset do estado quando o modal abre (não quando fecha)
-    const handleOpenModal = useCallback(() => {
-        setNovoEngajamento({ nome: '', engajamento_id: '', tipo: 'Like', funcionando: true });
-        setModalEngajamento(true);
-    }, []);
-
-    const handleCloseModal = useCallback(() => {
-        setModalEngajamento(false);
-    }, []);
 
     // Carregar dados iniciais
     useEffect(() => {
@@ -123,8 +96,22 @@ function EngajamentoPage() {
         }
     };
 
+    const abrirModal = () => {
+        setFormData({
+            nome: '',
+            engajamento_id: '',
+            tipo: 'Like',
+            funcionando: true
+        });
+        setModalEngajamento(true);
+    };
+
+    const fecharModal = () => {
+        setModalEngajamento(false);
+    };
+
     const salvarEngajamento = async () => {
-        if (!novoEngajamento.nome || !novoEngajamento.engajamento_id) {
+        if (!formData.nome || !formData.engajamento_id) {
             setNotification({ type: 'error', message: 'Preencha todos os campos obrigatórios' });
             return;
         }
@@ -134,15 +121,14 @@ function EngajamentoPage() {
             const csrfResponse = await axios.get('/current-state/');
             const csrfToken = csrfResponse.data.csrf_token;
             
-            await axios.post('/engajamentos/', novoEngajamento, {
+            await axios.post('/engajamentos/', formData, {
                 headers: {
                     'X-CSRFToken': csrfToken,
                     'Content-Type': 'application/json',
                 }
             });
             setNotification({ type: 'success', message: 'Engajamento salvo com sucesso!' });
-            setModalEngajamento(false);
-            setNovoEngajamento({ nome: '', engajamento_id: '', tipo: 'Like', funcionando: true });
+            fecharModal();
             carregarEngajamentos();
         } catch (error) {
             console.error('Erro completo:', error);
@@ -243,143 +229,6 @@ function EngajamentoPage() {
         </Card>
     );
 
-    const EngajamentosTable = () => (
-        <Card>
-            <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">Engajamentos</CardTitle>
-                    <Dialog open={modalEngajamento} onOpenChange={setModalEngajamento}>
-                        <DialogTrigger asChild>
-                            <Button size="sm" onClick={handleOpenModal}>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Adicionar
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-md">
-                            <DialogHeader>
-                                <DialogTitle>Novo Engajamento</DialogTitle>
-                                <DialogDescription>
-                                    Adicione um novo tipo de engajamento para usar em suas campanhas.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-3">
-                                <div>
-                                    <Label htmlFor="nome-input" className="text-sm">Nome</Label>
-                                    <Input
-                                        id="nome-input"
-                                        type="text"
-                                        placeholder="Ex: Like Facebook"
-                                        value={novoEngajamento.nome}
-                                        onChange={handleNomeChange}
-                                        className="mt-1"
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor="id-input" className="text-sm">ID</Label>
-                                    <Input
-                                        id="id-input"
-                                        type="text"
-                                        placeholder="Ex: 101"
-                                        value={novoEngajamento.engajamento_id}
-                                        onChange={handleIdChange}
-                                        className="mt-1"
-                                    />
-                                </div>
-                                <div>
-                                    <Label className="text-sm">Tipo</Label>
-                                    <Select 
-                                        value={novoEngajamento.tipo} 
-                                        onValueChange={handleTipoChange}
-                                    >
-                                        <SelectTrigger className="mt-1">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Like">👍 Like</SelectItem>
-                                            <SelectItem value="Amei">❤️ Amei</SelectItem>
-                                            <SelectItem value="Uau">😮 Uau</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id="funcionando-checkbox"
-                                        checked={novoEngajamento.funcionando}
-                                        onCheckedChange={handleFuncionandoChange}
-                                    />
-                                    <Label htmlFor="funcionando-checkbox" className="text-sm">Ativo</Label>
-                                </div>
-                                <div className="flex justify-end space-x-2 pt-2">
-                                    <Button variant="outline" size="sm" onClick={handleCloseModal}>
-                                        Cancelar
-                                    </Button>
-                                    <Button size="sm" onClick={salvarEngajamento} disabled={loading}>
-                                        {loading && <LoadingSpinner className="h-4 w-4 mr-2" />}
-                                        Salvar
-                                    </Button>
-                                </div>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <div className="overflow-hidden rounded-md border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[200px]">Nome</TableHead>
-                                <TableHead className="w-[100px]">ID</TableHead>
-                                <TableHead className="w-[100px]">Tipo</TableHead>
-                                <TableHead className="w-[100px]">Status</TableHead>
-                                <TableHead className="w-[80px]">Ações</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {engajamentos.map((eng) => (
-                                <TableRow key={eng.id}>
-                                    <TableCell className="font-medium">{eng.nome}</TableCell>
-                                    <TableCell>
-                                        <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{eng.engajamento_id}</code>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge 
-                                            variant={eng.tipo === 'Amei' ? 'destructive' : 'secondary'}
-                                            className={`text-xs ${
-                                                eng.tipo === 'Like' ? 'bg-blue-500 text-white hover:bg-blue-600' : 
-                                                eng.tipo === 'Uau' ? 'bg-yellow-500 text-white hover:bg-yellow-600' : ''
-                                            }`}
-                                        >
-                                            {eng.tipo === 'Like' && '👍 '}
-                                            {eng.tipo === 'Amei' && '❤️ '}
-                                            {eng.tipo === 'Uau' && '😮 '}
-                                            {eng.tipo}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant={eng.funcionando ? 'default' : 'secondary'} className="text-xs">
-                                            {eng.funcionando ? 'Ativo' : 'Inativo'}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Button
-                                            variant="destructive"
-                                            size="sm"
-                                            onClick={() => excluirEngajamento(eng.id)}
-                                            className="h-7 w-7 p-0"
-                                        >
-                                            <Trash2 className="h-3 w-3" />
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-            </CardContent>
-        </Card>
-    );
-
     return (
         <div className="flex-1 space-y-4 p-6">
             {/* Header com Saldo */}
@@ -407,7 +256,71 @@ function EngajamentoPage() {
                 </TabsList>
 
                 <TabsContent value="cadastrar" className="mt-4">
-                    <EngajamentosTable />
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-lg">Engajamentos</CardTitle>
+                                <Button size="sm" onClick={abrirModal}>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Adicionar
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-hidden rounded-md border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="w-[200px]">Nome</TableHead>
+                                            <TableHead className="w-[100px]">ID</TableHead>
+                                            <TableHead className="w-[100px]">Tipo</TableHead>
+                                            <TableHead className="w-[100px]">Status</TableHead>
+                                            <TableHead className="w-[80px]">Ações</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {engajamentos.map((eng) => (
+                                            <TableRow key={eng.id}>
+                                                <TableCell className="font-medium">{eng.nome}</TableCell>
+                                                <TableCell>
+                                                    <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{eng.engajamento_id}</code>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge 
+                                                        variant={eng.tipo === 'Amei' ? 'destructive' : 'secondary'}
+                                                        className={`text-xs ${
+                                                            eng.tipo === 'Like' ? 'bg-blue-500 text-white hover:bg-blue-600' : 
+                                                            eng.tipo === 'Uau' ? 'bg-yellow-500 text-white hover:bg-yellow-600' : ''
+                                                        }`}
+                                                    >
+                                                        {eng.tipo === 'Like' && '👍 '}
+                                                        {eng.tipo === 'Amei' && '❤️ '}
+                                                        {eng.tipo === 'Uau' && '😮 '}
+                                                        {eng.tipo}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={eng.funcionando ? 'default' : 'secondary'} className="text-xs">
+                                                        {eng.funcionando ? 'Ativo' : 'Inativo'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Button
+                                                        variant="destructive"
+                                                        size="sm"
+                                                        onClick={() => excluirEngajamento(eng.id)}
+                                                        className="h-7 w-7 p-0"
+                                                    >
+                                                        <Trash2 className="h-3 w-3" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </TabsContent>
 
                 <TabsContent value="comprar" className="mt-4">
@@ -520,6 +433,72 @@ function EngajamentoPage() {
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            {/* Modal separado para evitar conflitos */}
+            <Dialog open={modalEngajamento} onOpenChange={setModalEngajamento}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Novo Engajamento</DialogTitle>
+                        <DialogDescription>
+                            Adicione um novo tipo de engajamento para usar em suas campanhas.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                        <div>
+                            <Label className="text-sm">Nome</Label>
+                            <Input
+                                type="text"
+                                placeholder="Ex: Like Facebook"
+                                value={formData.nome}
+                                onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
+                                className="mt-1"
+                            />
+                        </div>
+                        <div>
+                            <Label className="text-sm">ID</Label>
+                            <Input
+                                type="text"
+                                placeholder="Ex: 101"
+                                value={formData.engajamento_id}
+                                onChange={(e) => setFormData(prev => ({ ...prev, engajamento_id: e.target.value }))}
+                                className="mt-1"
+                            />
+                        </div>
+                        <div>
+                            <Label className="text-sm">Tipo</Label>
+                            <Select 
+                                value={formData.tipo} 
+                                onValueChange={(value) => setFormData(prev => ({ ...prev, tipo: value }))}
+                            >
+                                <SelectTrigger className="mt-1">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Like">👍 Like</SelectItem>
+                                    <SelectItem value="Amei">❤️ Amei</SelectItem>
+                                    <SelectItem value="Uau">😮 Uau</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                checked={formData.funcionando}
+                                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, funcionando: checked }))}
+                            />
+                            <Label className="text-sm">Ativo</Label>
+                        </div>
+                        <div className="flex justify-end space-x-2 pt-2">
+                            <Button variant="outline" size="sm" onClick={fecharModal}>
+                                Cancelar
+                            </Button>
+                            <Button size="sm" onClick={salvarEngajamento} disabled={loading}>
+                                {loading && <LoadingSpinner className="h-4 w-4 mr-2" />}
+                                Salvar
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {loading && (
                 <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
