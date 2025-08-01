@@ -47,13 +47,15 @@ function EngajamentoPage() {
     const [engajamentosSelecionados, setEngajamentosSelecionados] = useState({});
     const [pedidos, setPedidos] = useState([]);
 
-    // Callbacks para evitar re-renderização
+    // Handlers otimizados
     const handleNomeChange = useCallback((e) => {
-        setNovoEngajamento(prev => ({ ...prev, nome: e.target.value }));
+        const value = e.target.value;
+        setNovoEngajamento(prev => ({ ...prev, nome: value }));
     }, []);
 
     const handleIdChange = useCallback((e) => {
-        setNovoEngajamento(prev => ({ ...prev, engajamento_id: e.target.value }));
+        const value = e.target.value;
+        setNovoEngajamento(prev => ({ ...prev, engajamento_id: value }));
     }, []);
 
     const handleTipoChange = useCallback((value) => {
@@ -64,12 +66,15 @@ function EngajamentoPage() {
         setNovoEngajamento(prev => ({ ...prev, funcionando: checked }));
     }, []);
 
-    // Reset do estado quando o modal fecha
-    useEffect(() => {
-        if (!modalEngajamento) {
-            setNovoEngajamento({ nome: '', engajamento_id: '', tipo: 'Like', funcionando: true });
-        }
-    }, [modalEngajamento]);
+    // Reset do estado quando o modal abre (não quando fecha)
+    const handleOpenModal = useCallback(() => {
+        setNovoEngajamento({ nome: '', engajamento_id: '', tipo: 'Like', funcionando: true });
+        setModalEngajamento(true);
+    }, []);
+
+    const handleCloseModal = useCallback(() => {
+        setModalEngajamento(false);
+    }, []);
 
     // Carregar dados iniciais
     useEffect(() => {
@@ -208,7 +213,7 @@ function EngajamentoPage() {
         }
     };
 
-    // Componente de Saldo Minimizado - GRADIENTE CORRIGIDO
+    // Componente de Saldo Minimizado
     const SaldoCompact = () => (
         <Card className="w-64 bg-gradient-to-b from-muted/50 to-muted border-border">
             <CardContent className="p-3">
@@ -243,9 +248,9 @@ function EngajamentoPage() {
             <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">Engajamentos</CardTitle>
-                    <Dialog open={modalEngajamento} onOpenChange={setModalEngajamento} key={modalEngajamento ? 'open' : 'closed'}>
+                    <Dialog open={modalEngajamento} onOpenChange={setModalEngajamento}>
                         <DialogTrigger asChild>
-                            <Button size="sm">
+                            <Button size="sm" onClick={handleOpenModal}>
                                 <Plus className="h-4 w-4 mr-2" />
                                 Adicionar
                             </Button>
@@ -259,9 +264,9 @@ function EngajamentoPage() {
                             </DialogHeader>
                             <div className="space-y-3">
                                 <div>
-                                    <Label htmlFor="modal-nome" className="text-sm">Nome</Label>
+                                    <Label htmlFor="nome-input" className="text-sm">Nome</Label>
                                     <Input
-                                        id="modal-nome"
+                                        id="nome-input"
                                         type="text"
                                         placeholder="Ex: Like Facebook"
                                         value={novoEngajamento.nome}
@@ -270,9 +275,9 @@ function EngajamentoPage() {
                                     />
                                 </div>
                                 <div>
-                                    <Label htmlFor="modal-id" className="text-sm">ID</Label>
+                                    <Label htmlFor="id-input" className="text-sm">ID</Label>
                                     <Input
-                                        id="modal-id"
+                                        id="id-input"
                                         type="text"
                                         placeholder="Ex: 101"
                                         value={novoEngajamento.engajamento_id}
@@ -298,14 +303,14 @@ function EngajamentoPage() {
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <Checkbox
-                                        id="modal-funcionando"
+                                        id="funcionando-checkbox"
                                         checked={novoEngajamento.funcionando}
                                         onCheckedChange={handleFuncionandoChange}
                                     />
-                                    <Label htmlFor="modal-funcionando" className="text-sm">Ativo</Label>
+                                    <Label htmlFor="funcionando-checkbox" className="text-sm">Ativo</Label>
                                 </div>
                                 <div className="flex justify-end space-x-2 pt-2">
-                                    <Button variant="outline" size="sm" onClick={() => setModalEngajamento(false)}>
+                                    <Button variant="outline" size="sm" onClick={handleCloseModal}>
                                         Cancelar
                                     </Button>
                                     <Button size="sm" onClick={salvarEngajamento} disabled={loading}>
