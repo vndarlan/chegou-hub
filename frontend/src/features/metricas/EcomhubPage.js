@@ -22,8 +22,6 @@ import { Label } from '../../components/ui/label';
 import { Progress } from '../../components/ui/progress';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
-import { Calendar } from '../../components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
 
 const PAISES = [
     { value: 'todos', label: 'Todos os Países' },
@@ -43,9 +41,9 @@ function EcomhubPage() {
     const [secaoAtiva, setSecaoAtiva] = useState('gerar');
     const [tipoVisualizacao, setTipoVisualizacao] = useState('otimizada');
     
-    // Estados do formulário com Calendar
-    const [dataInicio, setDataInicio] = useState(null);
-    const [dataFim, setDataFim] = useState(null);
+    // Estados do formulário - usando strings para input type="date"
+    const [dataInicio, setDataInicio] = useState('');
+    const [dataFim, setDataFim] = useState('');
     const [paisSelecionado, setPaisSelecionado] = useState('todos');
     
     // Estados de modal e loading
@@ -95,7 +93,7 @@ function EcomhubPage() {
             return;
         }
 
-        if (dataInicio > dataFim) {
+        if (new Date(dataInicio) > new Date(dataFim)) {
             showNotification('error', 'Data de início deve ser anterior à data fim');
             return;
         }
@@ -105,8 +103,8 @@ function EcomhubPage() {
 
         try {
             const response = await axios.post('/metricas/ecomhub/analises/processar_selenium/', {
-                data_inicio: dataInicio.toISOString().split('T')[0],
-                data_fim: dataFim.toISOString().split('T')[0],
+                data_inicio: dataInicio,
+                data_fim: dataFim,
                 pais_id: paisSelecionado
             });
 
@@ -117,7 +115,7 @@ function EcomhubPage() {
                 const paisNome = paisSelecionado === 'todos' ? 
                     'Todos os Países' : 
                     PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
-                const dataStr = `${dataInicio.toLocaleDateString('pt-BR')} - ${dataFim.toLocaleDateString('pt-BR')}`;
+                const dataStr = `${new Date(dataInicio).toLocaleDateString('pt-BR')} - ${new Date(dataFim).toLocaleDateString('pt-BR')}`;
                 setNomeAnalise(`${paisNome} ${dataStr}`);
             }
         } catch (error) {
@@ -194,16 +192,15 @@ function EcomhubPage() {
         setTimeout(() => setNotification(null), 5000);
     };
 
-    // Cores das efetividades originais (4 níveis)
     const getEfetividadeCor = (valor) => {
         if (!valor || typeof valor !== 'string') return '';
         
         const numero = parseFloat(valor.replace('%', '').replace('(Média)', ''));
         
-        if (numero >= 60) return 'bg-green-600 text-white'; // Verde escuro
-        if (numero >= 50) return 'bg-green-500 text-white'; // Verde claro
-        if (numero >= 40) return 'bg-yellow-500 text-black'; // Amarelo
-        return 'bg-red-500 text-white'; // Vermelho
+        if (numero >= 60) return 'bg-green-600 text-white';
+        if (numero >= 50) return 'bg-green-500 text-white';
+        if (numero >= 40) return 'bg-yellow-500 text-black';
+        return 'bg-red-500 text-white';
     };
 
     const getDadosVisualizacao = () => {
@@ -249,12 +246,12 @@ function EcomhubPage() {
 
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
-    // Header minimalista sem caixa laranja
+    // Header minimalista
     const renderHeader = () => (
         <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
                 <BarChart3 className="h-6 w-6 text-primary" />
-                <h1 className="text-2xl font-bold">Análise de Efetividade por Produto</h1>
+                <h1 className="text-2xl font-bold text-foreground">Análise de Efetividade por Produto</h1>
             </div>
             
             <div className="flex items-center gap-3">
@@ -262,19 +259,20 @@ function EcomhubPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setModalInstrucoes(true)}
+                    className="border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
                 >
                     <AlertTriangle className="h-4 w-4 mr-2" />
                     Instruções
                 </Button>
                 
                 <Select value={paisSelecionado} onValueChange={setPaisSelecionado}>
-                    <SelectTrigger className="w-52">
+                    <SelectTrigger className="w-52 border-border bg-background text-foreground">
                         <Globe className="h-4 w-4 mr-2" />
                         <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="border-border bg-popover">
                         {PAISES.map(pais => (
-                            <SelectItem key={pais.value} value={pais.value}>
+                            <SelectItem key={pais.value} value={pais.value} className="text-popover-foreground hover:bg-accent">
                                 {pais.label}
                             </SelectItem>
                         ))}
@@ -284,13 +282,13 @@ function EcomhubPage() {
         </div>
     );
 
-    // Formulário com Calendar corrigido
+    // Formulário com input type="date" (mais confiável)
     const renderFormulario = () => (
-        <Card className="mb-6 relative">
+        <Card className="mb-6 relative border-border bg-card">
             {loadingProcessar && (
                 <div className="absolute inset-0 bg-background/95 backdrop-blur flex flex-col items-center justify-center z-10 rounded-lg">
-                    <Loader2 className="h-8 w-8 animate-spin mb-4" />
-                    <p className="font-medium mb-2">Processando dados...</p>
+                    <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+                    <p className="font-medium mb-2 text-foreground">Processando dados...</p>
                     {progressoAtual && (
                         <>
                             <Progress value={progressoAtual.porcentagem} className="w-60 mb-2" />
@@ -305,71 +303,45 @@ function EcomhubPage() {
                     <div className="flex items-center gap-3">
                         <Filter className="h-5 w-5 text-primary" />
                         <div>
-                            <CardTitle>Configuração</CardTitle>
-                            <CardDescription>Configure o período e execute</CardDescription>
+                            <CardTitle className="text-card-foreground">Configuração</CardTitle>
+                            <CardDescription className="text-muted-foreground">Configure o período e execute</CardDescription>
                         </div>
                     </div>
 
                     <div className="flex items-end gap-4">
-                        {/* Data Início com Calendar corrigido */}
+                        {/* Data Início - input nativo */}
                         <div>
-                            <Label className="mb-2 block">Data de Início</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        className="w-48 justify-start text-left font-normal"
-                                        disabled={loadingProcessar}
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {dataInicio ? dataInicio.toLocaleDateString('pt-BR') : "Selecionar data"}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                        mode="single"
-                                        selected={dataInicio}
-                                        onSelect={setDataInicio}
-                                        disabled={(date) => date > new Date() || date < new Date('2020-01-01')}
-                                        initialFocus
-                                        className="rounded-md border"
-                                    />
-                                </PopoverContent>
-                            </Popover>
+                            <Label className="mb-2 block text-foreground">Data de Início</Label>
+                            <Input
+                                type="date"
+                                value={dataInicio}
+                                onChange={(e) => setDataInicio(e.target.value)}
+                                disabled={loadingProcessar}
+                                className="w-48 border-border bg-background text-foreground"
+                                max={new Date().toISOString().split('T')[0]}
+                                min="2020-01-01"
+                            />
                         </div>
                         
-                        {/* Data Fim com Calendar corrigido */}
+                        {/* Data Fim - input nativo */}
                         <div>
-                            <Label className="mb-2 block">Data de Fim</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        className="w-48 justify-start text-left font-normal"
-                                        disabled={loadingProcessar}
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {dataFim ? dataFim.toLocaleDateString('pt-BR') : "Selecionar data"}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                        mode="single"
-                                        selected={dataFim}
-                                        onSelect={setDataFim}
-                                        disabled={(date) => date > new Date() || (dataInicio && date < dataInicio)}
-                                        initialFocus
-                                        className="rounded-md border"
-                                    />
-                                </PopoverContent>
-                            </Popover>
+                            <Label className="mb-2 block text-foreground">Data de Fim</Label>
+                            <Input
+                                type="date"
+                                value={dataFim}
+                                onChange={(e) => setDataFim(e.target.value)}
+                                disabled={loadingProcessar}
+                                className="w-48 border-border bg-background text-foreground"
+                                max={new Date().toISOString().split('T')[0]}
+                                min={dataInicio || "2020-01-01"}
+                            />
                         </div>
                         
                         <Button
                             onClick={processarDados}
                             disabled={!dataInicio || !dataFim || !paisSelecionado || loadingProcessar}
                             size="lg"
-                            className="min-w-36"
+                            className="min-w-36 bg-primary text-primary-foreground hover:bg-primary/90"
                         >
                             {loadingProcessar ? (
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -384,7 +356,7 @@ function EcomhubPage() {
         </Card>
     );
 
-    // Estatísticas minimalistas
+    // Estatísticas
     const renderEstatisticas = () => {
         const dados = getDadosVisualizacao();
         if (tipoVisualizacao === 'total' || !dados || !Array.isArray(dados)) return null;
@@ -400,19 +372,19 @@ function EcomhubPage() {
         
         return (
             <div className="grid grid-cols-4 gap-4 mb-6">
-                <Card>
+                <Card className="border-border bg-card">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-muted-foreground">Produtos</p>
-                                <p className="text-xl font-bold">{totalProdutos}</p>
+                                <p className="text-xl font-bold text-card-foreground">{totalProdutos}</p>
                             </div>
                             <Package className="h-5 w-5 text-blue-500" />
                         </div>
                     </CardContent>
                 </Card>
                 
-                <Card>
+                <Card className="border-border bg-card">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
@@ -424,7 +396,7 @@ function EcomhubPage() {
                     </CardContent>
                 </Card>
                 
-                <Card>
+                <Card className="border-border bg-card">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
@@ -436,7 +408,7 @@ function EcomhubPage() {
                     </CardContent>
                 </Card>
                 
-                <Card>
+                <Card className="border-border bg-card">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
@@ -469,7 +441,7 @@ function EcomhubPage() {
         );
     };
 
-    // Tabela responsiva corrigida - sem scroll lateral
+    // Tabela responsiva
     const renderResultados = () => {
         const dados = getDadosVisualizacao();
         if (!dados || !Array.isArray(dados)) return null;
@@ -477,7 +449,6 @@ function EcomhubPage() {
         let colunas = Object.keys(dados[0] || {});
         const dadosOrdenados = sortData(dados, sortBy, sortOrder);
 
-        // Filtrar colunas principais para tela menor
         const colunasEssenciais = ['Produto', 'Totais', 'Entregues', 'Efetividade_Total'];
         const isMobile = window.innerWidth < 768;
         
@@ -486,21 +457,26 @@ function EcomhubPage() {
         }
 
         return (
-            <Card className="mb-6">
+            <Card className="mb-6 border-border bg-card">
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle className="text-lg">Resultados</CardTitle>
-                            <CardDescription>{dados.length} registros</CardDescription>
+                            <CardTitle className="text-lg text-card-foreground">Resultados</CardTitle>
+                            <CardDescription className="text-muted-foreground">{dados.length} registros</CardDescription>
                         </div>
                         <div className="flex items-center gap-2">
                             <Tabs value={tipoVisualizacao} onValueChange={setTipoVisualizacao}>
-                                <TabsList className="grid w-fit grid-cols-2">
-                                    <TabsTrigger value="otimizada">Otimizada</TabsTrigger>
-                                    <TabsTrigger value="total">Total</TabsTrigger>
+                                <TabsList className="grid w-fit grid-cols-2 bg-muted">
+                                    <TabsTrigger value="otimizada" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Otimizada</TabsTrigger>
+                                    <TabsTrigger value="total" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Total</TabsTrigger>
                                 </TabsList>
                             </Tabs>
-                            <Button variant="outline" size="sm" onClick={() => setModalSalvar(true)}>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => setModalSalvar(true)}
+                                className="border-border bg-background text-foreground hover:bg-accent"
+                            >
                                 <Download className="h-4 w-4 mr-2" />
                                 Salvar
                             </Button>
@@ -513,13 +489,13 @@ function EcomhubPage() {
                         <div className="overflow-x-auto">
                             <Table>
                                 <TableHeader>
-                                    <TableRow className="bg-muted/50">
+                                    <TableRow className="bg-muted/50 border-border">
                                         {colunas.map(col => (
-                                            <TableHead key={col} className="whitespace-nowrap px-2 py-2 text-xs">
+                                            <TableHead key={col} className="whitespace-nowrap px-2 py-2 text-xs text-muted-foreground">
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="h-auto p-0 font-medium text-xs"
+                                                    className="h-auto p-0 font-medium text-xs text-muted-foreground hover:text-foreground"
                                                     onClick={() => handleSort(col)}
                                                 >
                                                     {col.replace('_', ' ')}
@@ -537,11 +513,11 @@ function EcomhubPage() {
                                 </TableHeader>
                                 <TableBody>
                                     {dadosOrdenados.map((row, idx) => (
-                                        <TableRow key={idx} className={row.Produto === 'Total' ? 'bg-muted/20 font-medium' : ''}>
+                                        <TableRow key={idx} className={`border-border ${row.Produto === 'Total' ? 'bg-muted/20 font-medium' : ''}`}>
                                             {colunas.map(col => (
                                                 <TableCell
                                                     key={col}
-                                                    className={`px-2 py-2 text-xs ${
+                                                    className={`px-2 py-2 text-xs text-card-foreground ${
                                                         tipoVisualizacao === 'otimizada' &&
                                                         (col === 'Efetividade_Total' || col === 'Efetividade_Parcial') ?
                                                         `font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center` : ''
@@ -569,25 +545,30 @@ function EcomhubPage() {
         );
     };
 
-    // Análises salvas minimalista
+    // Análises salvas
     const renderAnalisesSalvas = () => {
         const analisesFiltradas = getAnalisesFiltradas();
         
         return (
-            <Card className="relative">
+            <Card className="relative border-border bg-card">
                 {loadingAnalises && (
                     <div className="absolute inset-0 bg-background/80 backdrop-blur flex items-center justify-center z-10 rounded-lg">
-                        <Loader2 className="h-6 w-6 animate-spin" />
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     </div>
                 )}
 
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle>Análises Salvas</CardTitle>
-                            <CardDescription>{analisesFiltradas.length} análises encontradas</CardDescription>
+                            <CardTitle className="text-card-foreground">Análises Salvas</CardTitle>
+                            <CardDescription className="text-muted-foreground">{analisesFiltradas.length} análises encontradas</CardDescription>
                         </div>
-                        <Button variant="outline" size="sm" onClick={fetchAnalises}>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={fetchAnalises}
+                            className="border-border bg-background text-foreground hover:bg-accent"
+                        >
                             <RefreshCw className="h-4 w-4 mr-2" />
                             Atualizar
                         </Button>
@@ -596,28 +577,28 @@ function EcomhubPage() {
 
                 <CardContent>
                     {analisesFiltradas.length === 0 ? (
-                        <Alert>
-                            <BarChart3 className="h-4 w-4" />
-                            <AlertDescription>
+                        <Alert className="border-border bg-background">
+                            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                            <AlertDescription className="text-muted-foreground">
                                 Nenhuma análise salva encontrada. Processe dados e salve o resultado.
                             </AlertDescription>
                         </Alert>
                     ) : (
                         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                             {analisesFiltradas.map(analise => (
-                                <Card key={analise.id} className="relative">
+                                <Card key={analise.id} className="relative border-border bg-card">
                                     {loadingDelete[analise.id] && (
                                         <div className="absolute inset-0 bg-background/80 backdrop-blur flex items-center justify-center z-10 rounded-lg">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
                                         </div>
                                     )}
 
                                     <CardContent className="p-4">
                                         <div className="flex items-start justify-between mb-3">
-                                            <h3 className="font-medium text-sm truncate max-w-[80%]">
+                                            <h3 className="font-medium text-sm truncate max-w-[80%] text-card-foreground">
                                                 {analise.nome.replace('[ECOMHUB] ', '')}
                                             </h3>
-                                            <Badge variant="secondary" className="text-xs">ECOMHUB</Badge>
+                                            <Badge variant="secondary" className="text-xs bg-secondary text-secondary-foreground">ECOMHUB</Badge>
                                         </div>
 
                                         <p className="text-xs text-muted-foreground mb-3">
@@ -629,7 +610,7 @@ function EcomhubPage() {
                                                 size="sm"
                                                 variant="outline"
                                                 onClick={() => carregarAnalise(analise)}
-                                                className="flex-1"
+                                                className="flex-1 border-border bg-background text-foreground hover:bg-accent"
                                             >
                                                 <Eye className="h-3 w-3 mr-1" />
                                                 Carregar
@@ -639,7 +620,7 @@ function EcomhubPage() {
                                                 variant="outline"
                                                 onClick={() => deletarAnalise(analise.id, analise.nome)}
                                                 disabled={loadingDelete[analise.id]}
-                                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                                className="text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20"
                                             >
                                                 <Trash2 className="h-3 w-3" />
                                             </Button>
@@ -654,75 +635,6 @@ function EcomhubPage() {
         );
     };
 
-    // Instruções minimalistas
-    const renderInstrucoes = () => (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-blue-600">Instruções - ECOMHUB</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div>
-                    <h4 className="font-semibold text-green-600 mb-2">Visualização Otimizada</h4>
-                    <p className="text-sm text-muted-foreground mb-3">Colunas agrupadas para análise eficiente</p>
-                    
-                    <div className="grid grid-cols-2 gap-2">
-                        <div className="border border-blue-200 rounded p-2">
-                            <p className="font-medium text-blue-600 text-xs">Totais</p>
-                            <p className="text-xs text-muted-foreground">Soma de todos os pedidos</p>
-                        </div>
-                        <div className="border border-green-200 rounded p-2">
-                            <p className="font-medium text-green-600 text-xs">Finalizados</p>
-                            <p className="text-xs text-muted-foreground">Delivered + issue + returning + returned + cancelled</p>
-                        </div>
-                        <div className="border border-orange-200 rounded p-2">
-                            <p className="font-medium text-orange-600 text-xs">Em Trânsito</p>
-                            <p className="text-xs text-muted-foreground">Out_for_delivery + preparing + ready + courier</p>
-                        </div>
-                        <div className="border border-red-200 rounded p-2">
-                            <p className="font-medium text-red-600 text-xs">Problemas</p>
-                            <p className="text-xs text-muted-foreground">Apenas "issue"</p>
-                        </div>
-                    </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                    <h4 className="font-semibold text-purple-600 mb-2">Todos os Países</h4>
-                    <div className="space-y-1 text-sm">
-                        <p>• <strong>Inclui:</strong> Espanha, Croácia, Grécia, Itália, Romênia, República Checa, Polônia</p>
-                        <p>• <strong>Análise:</strong> Dados consolidados em tabela unificada</p>
-                        <p>• <strong>Performance:</strong> Consulta simultânea para eficiência</p>
-                    </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                    <h5 className="font-medium text-indigo-600 mb-2">Cores das Efetividades:</h5>
-                    <div className="grid grid-cols-2 gap-2">
-                        <div className="flex items-center gap-2">
-                            <div className="w-4 h-3 bg-green-600 rounded"></div>
-                            <span className="text-xs">≥ 60% (Excelente)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-4 h-3 bg-green-500 rounded"></div>
-                            <span className="text-xs">≥ 50% (Boa)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-4 h-3 bg-yellow-500 rounded"></div>
-                            <span className="text-xs">≥ 40% (Regular)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-4 h-3 bg-red-500 rounded"></div>
-                            <span className="text-xs">&lt; 40% (Ruim)</span>
-                        </div>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-    );
-
     // ======================== EFEITOS ========================
 
     useEffect(() => {
@@ -732,10 +644,10 @@ function EcomhubPage() {
     // ======================== RENDER PRINCIPAL ========================
 
     return (
-        <div className="flex-1 space-y-4 p-6 min-h-screen">
+        <div className="flex-1 space-y-4 p-6 min-h-screen bg-background">
             {/* Notificações */}
             {notification && (
-                <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4">
+                <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4 border-border">
                     {notification.type === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
                     <AlertDescription>{notification.message}</AlertDescription>
                 </Alert>
@@ -747,12 +659,12 @@ function EcomhubPage() {
             {/* Navegação */}
             {paisSelecionado && (
                 <Tabs value={secaoAtiva} onValueChange={setSecaoAtiva} className="w-full">
-                    <TabsList className="grid w-fit grid-cols-2">
-                        <TabsTrigger value="gerar">
+                    <TabsList className="grid w-fit grid-cols-2 bg-muted">
+                        <TabsTrigger value="gerar" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
                             <Rocket className="h-4 w-4 mr-2" />
                             Gerar
                         </TabsTrigger>
-                        <TabsTrigger value="salvas">
+                        <TabsTrigger value="salvas" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
                             <BarChart3 className="h-4 w-4 mr-2" />
                             Salvas
                         </TabsTrigger>
@@ -772,10 +684,10 @@ function EcomhubPage() {
 
             {/* Modal instruções */}
             <Dialog open={modalInstrucoes} onOpenChange={setModalInstrucoes}>
-                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto border-border bg-popover">
                     <DialogHeader>
                         <DialogTitle className="text-blue-600">Manual de Instruções - Métricas ECOMHUB</DialogTitle>
-                        <DialogDescription>
+                        <DialogDescription className="text-muted-foreground">
                             Guia completo para uso da ferramenta
                         </DialogDescription>
                     </DialogHeader>
@@ -786,104 +698,56 @@ function EcomhubPage() {
                             <p className="text-sm text-muted-foreground mb-4">Colunas agrupadas para análise mais eficiente:</p>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Card className="border-blue-200">
+                                <Card className="border-blue-200 bg-card">
                                     <CardContent className="p-4">
                                         <h5 className="font-semibold text-blue-600 text-sm">Totais</h5>
                                         <p className="text-xs text-muted-foreground">Soma de todos os pedidos (todos os status)</p>
                                     </CardContent>
                                 </Card>
                                 
-                                <Card className="border-green-200">
+                                <Card className="border-green-200 bg-card">
                                     <CardContent className="p-4">
                                         <h5 className="font-semibold text-green-600 text-sm">Finalizados</h5>
                                         <p className="text-xs text-muted-foreground">"delivered" + "issue" + "returning" + "returned" + "cancelled"</p>
                                     </CardContent>
                                 </Card>
                                 
-                                <Card className="border-orange-200">
+                                <Card className="border-orange-200 bg-card">
                                     <CardContent className="p-4">
                                         <h5 className="font-semibold text-orange-600 text-sm">Em Trânsito</h5>
                                         <p className="text-xs text-muted-foreground">"out_for_delivery" + "preparing_for_shipping" + "ready_to_ship" + "with_courier"</p>
                                     </CardContent>
                                 </Card>
                                 
-                                <Card className="border-red-200">
+                                <Card className="border-red-200 bg-card">
                                     <CardContent className="p-4">
                                         <h5 className="font-semibold text-red-600 text-sm">Problemas</h5>
                                         <p className="text-xs text-muted-foreground">Apenas "issue"</p>
                                     </CardContent>
                                 </Card>
-                                
-                                <Card className="border-purple-200">
-                                    <CardContent className="p-4">
-                                        <h5 className="font-semibold text-purple-600 text-sm">Devolução</h5>
-                                        <p className="text-xs text-muted-foreground">"returning" + "returned" + "issue"</p>
-                                    </CardContent>
-                                </Card>
-                                
-                                <Card className="border-gray-200">
-                                    <CardContent className="p-4">
-                                        <h5 className="font-semibold text-gray-600 text-sm">Cancelados</h5>
-                                        <p className="text-xs text-muted-foreground">"cancelled"</p>
-                                    </CardContent>
-                                </Card>
                             </div>
                         </div>
 
-                        <Separator />
-
-                        <div>
-                            <h4 className="text-lg font-semibold text-purple-600 mb-3">🌍 Opção "Todos os Países"</h4>
-                            <p className="text-sm text-muted-foreground mb-4">Funcionalidades especiais quando "Todos" está selecionado:</p>
-                            
-                            <div className="space-y-2">
-                                <p className="text-sm">• <strong>Países Incluídos:</strong> Espanha, Croácia, Grécia, Itália, Romênia, República Checa e Polônia</p>
-                                <p className="text-sm">• <strong>Métricas Salvas:</strong> Exibe análises de todos os países em uma única lista</p>
-                                <p className="text-sm">• <strong>Gerar Métricas:</strong> Combina dados de todos os 7 países em uma tabela unificada</p>
-                                <p className="text-sm">• <strong>Processamento:</strong> Consulta todos os países simultaneamente para maior eficiência</p>
-                                <p className="text-sm">• <strong>Análise Comparativa:</strong> Permite comparar performance entre produtos de diferentes países</p>
-                            </div>
-                        </div>
-
-                        <Separator />
-
-                        <div>
-                            <h5 className="font-semibold text-teal-600 mb-2">Percentuais Calculados:</h5>
-                            <div className="space-y-1">
-                                <p className="text-sm">• <strong>% A Caminho:</strong> (Em Trânsito ÷ Totais) × 100</p>
-                                <p className="text-sm">• <strong>% Devolvidos:</strong> (Devolução ÷ Totais) × 100</p>
-                                <p className="text-sm">• <strong>Efetividade Parcial:</strong> (Entregues ÷ Finalizados) × 100</p>
-                                <p className="text-sm">• <strong>Efetividade Total:</strong> (Entregues ÷ Totais) × 100</p>
-                            </div>
-                        </div>
-
-                        <Separator />
-
-                        <div>
-                            <h4 className="text-lg font-semibold text-orange-600 mb-3">Visualização Total</h4>
-                            <p className="text-sm text-muted-foreground">Mostra todos os status individuais conforme retornados da API ECOMHUB, sem agrupamentos.</p>
-                        </div>
-
-                        <Separator />
+                        <Separator className="bg-border" />
 
                         <div>
                             <h5 className="font-semibold text-indigo-600 mb-2">Cores das Métricas:</h5>
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2">
                                     <div className="w-6 h-4 bg-green-600 rounded"></div>
-                                    <span className="text-sm">Efetividade ≥ 60% (Excelente)</span>
+                                    <span className="text-sm text-foreground">Efetividade ≥ 60% (Excelente)</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="w-6 h-4 bg-green-500 rounded"></div>
-                                    <span className="text-sm">Efetividade ≥ 50% (Boa)</span>
+                                    <span className="text-sm text-foreground">Efetividade ≥ 50% (Boa)</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="w-6 h-4 bg-yellow-500 rounded"></div>
-                                    <span className="text-sm">Efetividade ≥ 40% (Regular)</span>
+                                    <span className="text-sm text-foreground">Efetividade ≥ 40% (Regular)</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="w-6 h-4 bg-red-500 rounded"></div>
-                                    <span className="text-sm">Efetividade &lt; 40% (Ruim)</span>
+                                    <span className="text-sm text-foreground">Efetividade &lt; 40% (Ruim)</span>
                                 </div>
                             </div>
                         </div>
@@ -893,36 +757,46 @@ function EcomhubPage() {
 
             {/* Modal salvar */}
             <Dialog open={modalSalvar} onOpenChange={setModalSalvar}>
-                <DialogContent>
+                <DialogContent className="border-border bg-popover">
                     <DialogHeader>
-                        <DialogTitle>Salvar Análise</DialogTitle>
-                        <DialogDescription>Digite um nome para identificar esta análise</DialogDescription>
+                        <DialogTitle className="text-popover-foreground">Salvar Análise</DialogTitle>
+                        <DialogDescription className="text-muted-foreground">Digite um nome para identificar esta análise</DialogDescription>
                     </DialogHeader>
                     
                     <div className="relative py-4">
                         {loadingSalvar && (
                             <div className="absolute inset-0 bg-background/90 backdrop-blur flex items-center justify-center z-10 rounded">
-                                <Loader2 className="h-5 w-5 animate-spin" />
+                                <Loader2 className="h-5 w-5 animate-spin text-primary" />
                             </div>
                         )}
 
                         <div className="space-y-2">
-                            <Label htmlFor="nome-analise">Nome da Análise</Label>
+                            <Label htmlFor="nome-analise" className="text-foreground">Nome da Análise</Label>
                             <Input
                                 id="nome-analise"
                                 placeholder="Ex: República Checa Janeiro 2025"
                                 value={nomeAnalise}
                                 onChange={(e) => setNomeAnalise(e.target.value)}
                                 disabled={loadingSalvar}
+                                className="border-border bg-background text-foreground"
                             />
                         </div>
                     </div>
 
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setModalSalvar(false)} disabled={loadingSalvar}>
+                        <Button 
+                            variant="outline" 
+                            onClick={() => setModalSalvar(false)} 
+                            disabled={loadingSalvar}
+                            className="border-border bg-background text-foreground hover:bg-accent"
+                        >
                             Cancelar
                         </Button>
-                        <Button onClick={salvarAnalise} disabled={!nomeAnalise || loadingSalvar}>
+                        <Button 
+                            onClick={salvarAnalise} 
+                            disabled={!nomeAnalise || loadingSalvar}
+                            className="bg-primary text-primary-foreground hover:bg-primary/90"
+                        >
                             {loadingSalvar ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
                             {loadingSalvar ? 'Salvando...' : 'Salvar'}
                         </Button>
