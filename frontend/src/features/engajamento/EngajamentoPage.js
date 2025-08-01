@@ -234,7 +234,7 @@ function EngajamentoPage() {
             {/* Header com Saldo */}
             <div className="flex items-start justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Engajamento</h1>
+                    <h1 className="text-2xl font-bold text-foreground">Compra de Engajamento para Anúncios do Facebook</h1>
                 </div>
                 <SaldoCompact />
             </div>
