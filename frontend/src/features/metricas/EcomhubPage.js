@@ -1,11 +1,10 @@
-// frontend/src/features/metricas/EcomhubPage.js - MIGRAÇÃO COMPLETA PARA SHADCN/UI
+// frontend/src/features/metricas/EcomhubPage.js - VERSÃO MINIMALISTA SHADCN/UI
 import React, { useState, useEffect } from 'react';
 import {
-    Calendar, Download, Trash2, RefreshCw, Check, X, 
-    AlertTriangle, TrendingUp, Building, BarChart3, Plus,
-    Eye, Activity, Search, Globe, ArrowUpDown, ArrowUp, ArrowDown,
-    Package, Target, Percent, ListChecks, PieChart, Filter,
-    CalendarDays, Rocket, LayoutDashboard, Loader2, Settings
+    Calendar as CalendarIcon, Download, Trash2, RefreshCw, Check, X, 
+    AlertTriangle, TrendingUp, BarChart3, Eye, Search, Globe, 
+    ArrowUpDown, ArrowUp, ArrowDown, Package, Target, Percent, 
+    PieChart, Filter, Rocket, LayoutDashboard, Loader2
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -23,8 +22,9 @@ import { Label } from '../../components/ui/label';
 import { Progress } from '../../components/ui/progress';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { Calendar } from '../../components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
 
-// PAÍSES DISPONÍVEIS COM BANDEIRAS + NOVOS PAÍSES
 const PAISES = [
     { value: 'todos', label: 'Todos os Países', emoji: '🌍' },
     { value: '164', label: 'Espanha', emoji: '🇪🇸' },
@@ -40,16 +40,12 @@ function EcomhubPage() {
     // Estados principais
     const [analisesSalvas, setAnalisesSalvas] = useState([]);
     const [dadosResultado, setDadosResultado] = useState(null);
-    
-    // Controle de seções
     const [secaoAtiva, setSecaoAtiva] = useState('gerar');
-    
-    // Tipo de visualização
     const [tipoVisualizacao, setTipoVisualizacao] = useState('otimizada');
     
-    // Estados do formulário
-    const [dataInicio, setDataInicio] = useState('');
-    const [dataFim, setDataFim] = useState('');
+    // Estados do formulário com Calendar
+    const [dataInicio, setDataInicio] = useState(null);
+    const [dataFim, setDataFim] = useState(null);
     const [paisSelecionado, setPaisSelecionado] = useState('todos');
     
     // Estados de modal e loading
@@ -85,14 +81,10 @@ function EcomhubPage() {
     };
 
     const getAnalisesFiltradas = () => {
-        if (paisSelecionado === 'todos') {
-            return analisesSalvas;
-        }
-        
+        if (paisSelecionado === 'todos') return analisesSalvas;
         const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label;
         return analisesSalvas.filter(analise => 
-            analise.nome.includes(paisNome) || 
-            analise.descricao?.includes(paisNome)
+            analise.nome.includes(paisNome) || analise.descricao?.includes(paisNome)
         );
     };
 
@@ -102,7 +94,7 @@ function EcomhubPage() {
             return;
         }
 
-        if (new Date(dataInicio) > new Date(dataFim)) {
+        if (dataInicio > dataFim) {
             showNotification('error', 'Data de início deve ser anterior à data fim');
             return;
         }
@@ -112,8 +104,8 @@ function EcomhubPage() {
 
         try {
             const response = await axios.post('/metricas/ecomhub/analises/processar_selenium/', {
-                data_inicio: dataInicio,
-                data_fim: dataFim,
+                data_inicio: dataInicio.toISOString().split('T')[0],
+                data_fim: dataFim.toISOString().split('T')[0],
                 pais_id: paisSelecionado
             });
 
@@ -124,7 +116,7 @@ function EcomhubPage() {
                 const paisNome = paisSelecionado === 'todos' ? 
                     'Todos os Países' : 
                     PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
-                const dataStr = `${new Date(dataInicio).toLocaleDateString()} - ${new Date(dataFim).toLocaleDateString()}`;
+                const dataStr = `${dataInicio.toLocaleDateString()} - ${dataFim.toLocaleDateString()}`;
                 setNomeAnalise(`${paisNome} ${dataStr}`);
             }
         } catch (error) {
@@ -201,25 +193,23 @@ function EcomhubPage() {
         setTimeout(() => setNotification(null), 5000);
     };
 
+    // Cores das efetividades originais (4 níveis)
     const getEfetividadeCor = (valor) => {
         if (!valor || typeof valor !== 'string') return '';
         
         const numero = parseFloat(valor.replace('%', '').replace('(Média)', ''));
         
-        if (numero >= 60) return 'bg-green-500/10 text-green-700 border-green-200';
-        if (numero >= 50) return 'bg-green-400/10 text-green-600 border-green-200';
-        if (numero >= 40) return 'bg-yellow-500/10 text-yellow-700 border-yellow-200';
-        return 'bg-red-500/10 text-red-700 border-red-200';
+        if (numero >= 60) return 'bg-green-600 text-white'; // Verde escuro
+        if (numero >= 50) return 'bg-green-500 text-white'; // Verde claro
+        if (numero >= 40) return 'bg-yellow-500 text-black'; // Amarelo
+        return 'bg-red-500 text-white'; // Vermelho
     };
 
     const getDadosVisualizacao = () => {
         if (!dadosResultado) return null;
-        
-        if (tipoVisualizacao === 'otimizada') {
-            return dadosResultado.visualizacao_otimizada || dadosResultado;
-        } else {
-            return dadosResultado.visualizacao_total || dadosResultado;
-        }
+        return tipoVisualizacao === 'otimizada' ? 
+            (dadosResultado.visualizacao_otimizada || dadosResultado) :
+            (dadosResultado.visualizacao_total || dadosResultado);
     };
 
     const sortData = (data, sortBy, sortOrder) => {
@@ -258,38 +248,32 @@ function EcomhubPage() {
 
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
-    // Header moderno
+    // Header minimalista
     const renderHeader = () => (
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 p-8 mb-6 shadow-lg">
-            <div className="absolute inset-0 bg-black/10"></div>
-            <div className="relative flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
-                        <LayoutDashboard className="h-7 w-7 text-white" />
-                    </div>
+        <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-6 mb-6 text-white">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <LayoutDashboard className="h-8 w-8" />
                     <div>
-                        <h1 className="text-3xl font-bold text-white mb-1">
-                            Métricas ECOMHUB
-                        </h1>
-                        <p className="text-white/80 text-base">
-                            Analytics Dashboard - Análise de Performance
-                        </p>
+                        <h1 className="text-2xl font-bold">Métricas ECOMHUB</h1>
+                        <p className="text-orange-100">Analytics Dashboard</p>
                     </div>
                 </div>
                 
                 <div className="flex items-center gap-3">
                     <Button
                         variant="secondary"
+                        size="sm"
                         onClick={() => setSecaoAtiva('instrucoes')}
-                        className="bg-white/15 border-white/20 text-white hover:bg-white/25 font-medium backdrop-blur-sm"
+                        className="bg-white/20 border-0 text-white hover:bg-white/30"
                     >
                         <AlertTriangle className="h-4 w-4 mr-2" />
                         Instruções
                     </Button>
                     
                     <Select value={paisSelecionado} onValueChange={setPaisSelecionado}>
-                        <SelectTrigger className="w-60 bg-white/15 border-white/20 text-white backdrop-blur-sm [&>span]:text-white">
-                            <Globe className="h-4 w-4 mr-2 text-white" />
+                        <SelectTrigger className="w-52 bg-white/20 border-white/30 text-white [&>span]:text-white">
+                            <Globe className="h-4 w-4 mr-2" />
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -305,330 +289,168 @@ function EcomhubPage() {
         </div>
     );
 
-    // Navegação por seções
-    const renderNavegacao = () => (
-        <Card className="mb-6">
-            <CardContent className="p-4">
-                <div className="flex justify-center gap-2">
-                    <Button
-                        variant={secaoAtiva === 'gerar' ? 'default' : 'outline'}
-                        onClick={() => setSecaoAtiva('gerar')}
-                        className="min-w-40 font-semibold"
-                    >
-                        <Rocket className="h-4 w-4 mr-2" />
-                        Gerar Métricas
-                    </Button>
-                    <Button
-                        variant={secaoAtiva === 'salvas' ? 'default' : 'outline'}
-                        onClick={() => setSecaoAtiva('salvas')}
-                        className="min-w-40 font-semibold"
-                    >
-                        <BarChart3 className="h-4 w-4 mr-2" />
-                        Métricas Salvas
-                    </Button>
+    // Formulário com Calendar
+    const renderFormulario = () => (
+        <Card className="mb-6 relative">
+            {loadingProcessar && (
+                <div className="absolute inset-0 bg-white/95 backdrop-blur flex flex-col items-center justify-center z-10 rounded-lg">
+                    <Loader2 className="h-8 w-8 animate-spin mb-4" />
+                    <p className="font-medium mb-2">Processando dados...</p>
+                    {progressoAtual && (
+                        <>
+                            <Progress value={progressoAtual.porcentagem} className="w-60 mb-2" />
+                            <p className="text-sm text-muted-foreground">{progressoAtual.etapa}</p>
+                        </>
+                    )}
                 </div>
-            </CardContent>
-        </Card>
-    );
+            )}
 
-    // Formulário
-    const renderFormulario = () => {
-        const hoje = new Date().toISOString().split('T')[0];
-        
-        return (
-            <Card className="mb-6 relative">
-                {loadingProcessar && (
-                    <div className="absolute inset-0 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-                        <p className="text-lg font-semibold mb-2">Processando dados...</p>
-                        {progressoAtual && (
-                            <>
-                                <Progress value={progressoAtual.porcentagem} className="w-60 mb-2" />
-                                <p className="text-sm text-muted-foreground">{progressoAtual.etapa}</p>
-                            </>
-                        )}
-                    </div>
-                )}
-
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg">
-                                <Filter className="h-5 w-5 text-primary" />
-                            </div>
-                            <div>
-                                <CardTitle>Configuração de Análise</CardTitle>
-                                <CardDescription>Configure o período e execute a análise</CardDescription>
-                            </div>
-                        </div>
-
-                        <div className="flex items-end gap-4">
-                            <div className="min-w-48">
-                                <Label className="flex items-center gap-2 mb-2">
-                                    <CalendarDays className="h-4 w-4" />
-                                    Data de Início
-                                </Label>
-                                <Input
-                                    type="date"
-                                    value={dataInicio}
-                                    onChange={(e) => setDataInicio(e.target.value)}
-                                    disabled={loadingProcessar}
-                                    max={hoje}
-                                    className="cursor-pointer"
-                                />
-                            </div>
-                            
-                            <div className="min-w-48">
-                                <Label className="flex items-center gap-2 mb-2">
-                                    <CalendarDays className="h-4 w-4" />
-                                    Data de Fim
-                                </Label>
-                                <Input
-                                    type="date"
-                                    value={dataFim}
-                                    onChange={(e) => setDataFim(e.target.value)}
-                                    disabled={loadingProcessar}
-                                    max={hoje}
-                                    className="cursor-pointer"
-                                />
-                            </div>
-                            
-                            <Button
-                                onClick={processarDados}
-                                disabled={!dataInicio || !dataFim || !paisSelecionado || loadingProcessar}
-                                size="lg"
-                                className="min-w-36 font-semibold"
-                            >
-                                {loadingProcessar ? (
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                ) : (
-                                    <Search className="h-4 w-4 mr-2" />
-                                )}
-                                {loadingProcessar ? 'Processando...' : 'Processar'}
-                            </Button>
-                        </div>
-                    </div>
-                </CardHeader>
-            </Card>
-        );
-    };
-
-    // Instruções
-    const renderInstrucoes = () => (
-        <Card className="mb-6">
             <CardHeader>
-                <CardTitle className="text-blue-600">Manual de Instruções - Métricas ECOMHUB</CardTitle>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <Filter className="h-5 w-5 text-primary" />
+                        <div>
+                            <CardTitle>Configuração</CardTitle>
+                            <CardDescription>Configure o período e execute</CardDescription>
+                        </div>
+                    </div>
+
+                    <div className="flex items-end gap-4">
+                        {/* Data Início com Calendar */}
+                        <div>
+                            <Label className="mb-2 block">Data de Início</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className="w-48 justify-start text-left font-normal"
+                                        disabled={loadingProcessar}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dataInicio ? dataInicio.toLocaleDateString('pt-BR') : "Selecionar data"}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={dataInicio}
+                                        onSelect={setDataInicio}
+                                        disabled={(date) => date > new Date()}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        
+                        {/* Data Fim com Calendar */}
+                        <div>
+                            <Label className="mb-2 block">Data de Fim</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className="w-48 justify-start text-left font-normal"
+                                        disabled={loadingProcessar}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dataFim ? dataFim.toLocaleDateString('pt-BR') : "Selecionar data"}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={dataFim}
+                                        onSelect={setDataFim}
+                                        disabled={(date) => date > new Date() || (dataInicio && date < dataInicio)}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        
+                        <Button
+                            onClick={processarDados}
+                            disabled={!dataInicio || !dataFim || !paisSelecionado || loadingProcessar}
+                            size="lg"
+                            className="min-w-36"
+                        >
+                            {loadingProcessar ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                                <Search className="h-4 w-4 mr-2" />
+                            )}
+                            {loadingProcessar ? 'Processando...' : 'Processar'}
+                        </Button>
+                    </div>
+                </div>
             </CardHeader>
-            <CardContent className="space-y-6">
-                <div>
-                    <h4 className="text-lg font-semibold text-green-600 mb-3">Visualização Otimizada</h4>
-                    <p className="text-sm text-muted-foreground mb-4">Colunas agrupadas para análise mais eficiente:</p>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Card className="border-blue-200">
-                            <CardContent className="p-4">
-                                <h5 className="font-semibold text-blue-600 text-sm">Totais</h5>
-                                <p className="text-xs text-muted-foreground">Soma de todos os pedidos (todos os status)</p>
-                            </CardContent>
-                        </Card>
-                        
-                        <Card className="border-green-200">
-                            <CardContent className="p-4">
-                                <h5 className="font-semibold text-green-600 text-sm">Finalizados</h5>
-                                <p className="text-xs text-muted-foreground">"delivered" + "issue" + "returning" + "returned" + "cancelled"</p>
-                            </CardContent>
-                        </Card>
-                        
-                        <Card className="border-orange-200">
-                            <CardContent className="p-4">
-                                <h5 className="font-semibold text-orange-600 text-sm">Em Trânsito</h5>
-                                <p className="text-xs text-muted-foreground">"out_for_delivery" + "preparing_for_shipping" + "ready_to_ship" + "with_courier"</p>
-                            </CardContent>
-                        </Card>
-                        
-                        <Card className="border-red-200">
-                            <CardContent className="p-4">
-                                <h5 className="font-semibold text-red-600 text-sm">Problemas</h5>
-                                <p className="text-xs text-muted-foreground">Apenas "issue"</p>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-
-                <div>
-                    <h4 className="text-lg font-semibold text-purple-600 mb-3">🌍 Opção "Todos os Países"</h4>
-                    <p className="text-sm text-muted-foreground mb-4">Funcionalidades especiais quando "Todos" está selecionado:</p>
-                    
-                    <div className="space-y-2">
-                        <p className="text-sm">• <strong>Países Incluídos:</strong> Espanha, Croácia, Grécia, Itália, Romênia, República Checa e Polônia</p>
-                        <p className="text-sm">• <strong>Métricas Salvas:</strong> Exibe análises de todos os países em uma única lista</p>
-                        <p className="text-sm">• <strong>Gerar Métricas:</strong> Combina dados de todos os 7 países em uma tabela unificada</p>
-                        <p className="text-sm">• <strong>Processamento:</strong> Consulta todos os países simultaneamente para maior eficiência</p>
-                    </div>
-                </div>
-
-                <div>
-                    <h5 className="font-semibold text-teal-600 mb-2">Percentuais Calculados:</h5>
-                    <div className="space-y-1">
-                        <p className="text-sm">• <strong>% A Caminho:</strong> (Em Trânsito ÷ Totais) × 100</p>
-                        <p className="text-sm">• <strong>% Devolvidos:</strong> (Devolução ÷ Totais) × 100</p>
-                        <p className="text-sm">• <strong>Efetividade Parcial:</strong> (Entregues ÷ Finalizados) × 100</p>
-                        <p className="text-sm">• <strong>Efetividade Total:</strong> (Entregues ÷ Totais) × 100</p>
-                    </div>
-                </div>
-
-                <div>
-                    <h5 className="font-semibold text-indigo-600 mb-2">Cores das Métricas:</h5>
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                            <div className="w-6 h-4 bg-green-500 rounded"></div>
-                            <span className="text-sm">Efetividade ≥ 60% (Excelente)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-6 h-4 bg-green-400 rounded"></div>
-                            <span className="text-sm">Efetividade ≥ 50% (Boa)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-6 h-4 bg-yellow-500 rounded"></div>
-                            <span className="text-sm">Efetividade ≥ 40% (Regular)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-6 h-4 bg-red-500 rounded"></div>
-                            <span className="text-sm">Efetividade &lt; 40% (Ruim)</span>
-                        </div>
-                    </div>
-                </div>
-            </CardContent>
         </Card>
     );
 
+    // Estatísticas minimalistas
     const renderEstatisticas = () => {
         const dados = getDadosVisualizacao();
-        
         if (tipoVisualizacao === 'total' || !dados || !Array.isArray(dados)) return null;
         
         const produtos = dados.filter(item => item.Produto !== 'Total');
         const totalProdutos = produtos.length;
-
-        let efetividadeMedia = 0;
-        let totalVendas = 0;
-        let totalLeads = 0;
-
-        efetividadeMedia = produtos.reduce((sum, item) => {
+        const efetividadeMedia = produtos.reduce((sum, item) => {
             const ef = parseFloat(item.Efetividade_Total?.replace('%', '') || 0);
             return sum + ef;
         }, 0) / totalProdutos;
-        
-        totalVendas = produtos.reduce((sum, item) => sum + (item.Entregues || 0), 0);
-        totalLeads = produtos.reduce((sum, item) => sum + (item.Totais || 0), 0);
+        const totalVendas = produtos.reduce((sum, item) => sum + (item.Entregues || 0), 0);
+        const totalLeads = produtos.reduce((sum, item) => sum + (item.Totais || 0), 0);
         
         return (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+            <div className="grid grid-cols-4 gap-4 mb-6">
                 <Card>
-                    <CardContent className="p-6">
+                    <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-muted-foreground">Produtos</p>
-                                <p className="text-2xl font-bold">{totalProdutos}</p>
+                                <p className="text-sm text-muted-foreground">Produtos</p>
+                                <p className="text-xl font-bold">{totalProdutos}</p>
                             </div>
-                            <div className="flex items-center justify-center w-12 h-12 bg-blue-500/10 rounded-xl">
-                                <Package className="h-6 w-6 text-blue-600" />
-                            </div>
+                            <Package className="h-5 w-5 text-blue-500" />
                         </div>
                     </CardContent>
                 </Card>
                 
                 <Card>
-                    <CardContent className="p-6">
+                    <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-muted-foreground">Entregues</p>
-                                <p className="text-2xl font-bold text-green-600">{totalVendas.toLocaleString()}</p>
+                                <p className="text-sm text-muted-foreground">Entregues</p>
+                                <p className="text-xl font-bold text-green-600">{totalVendas.toLocaleString()}</p>
                             </div>
-                            <div className="flex items-center justify-center w-12 h-12 bg-green-500/10 rounded-xl">
-                                <TrendingUp className="h-6 w-6 text-green-600" />
-                            </div>
+                            <TrendingUp className="h-5 w-5 text-green-500" />
                         </div>
                     </CardContent>
                 </Card>
                 
                 <Card>
-                    <CardContent className="p-6">
+                    <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-muted-foreground">Totais</p>
-                                <p className="text-2xl font-bold text-blue-600">{totalLeads.toLocaleString()}</p>
+                                <p className="text-sm text-muted-foreground">Totais</p>
+                                <p className="text-xl font-bold text-blue-600">{totalLeads.toLocaleString()}</p>
                             </div>
-                            <div className="flex items-center justify-center w-12 h-12 bg-blue-500/10 rounded-xl">
-                                <Target className="h-6 w-6 text-blue-600" />
-                            </div>
+                            <Target className="h-5 w-5 text-blue-500" />
                         </div>
                     </CardContent>
                 </Card>
                 
                 <Card>
-                    <CardContent className="p-6">
+                    <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-muted-foreground">Efetividade Média</p>
-                                <p className="text-2xl font-bold text-orange-600">{efetividadeMedia.toFixed(1)}%</p>
+                                <p className="text-sm text-muted-foreground">Efetividade</p>
+                                <p className="text-xl font-bold text-orange-600">{efetividadeMedia.toFixed(1)}%</p>
                             </div>
-                            <div className="flex items-center justify-center w-12 h-12 bg-orange-500/10 rounded-xl">
-                                <Percent className="h-6 w-6 text-orange-600" />
-                            </div>
+                            <Percent className="h-5 w-5 text-orange-500" />
                         </div>
                     </CardContent>
                 </Card>
             </div>
-        );
-    };
-
-    const renderSeletorVisualizacao = () => {
-        if (!dadosResultado) return null;
-
-        return (
-            <Card className="mb-6">
-                <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="flex items-center justify-center w-10 h-10 bg-indigo-500/10 rounded-lg">
-                                <PieChart className="h-5 w-5 text-indigo-600" />
-                            </div>
-                            <div>
-                                <h3 className="font-semibold">Tipo de Visualização</h3>
-                                <p className="text-sm text-muted-foreground">Escolha como visualizar os dados</p>
-                            </div>
-                        </div>
-                        
-                        <Tabs value={tipoVisualizacao} onValueChange={setTipoVisualizacao}>
-                            <TabsList>
-                                <TabsTrigger value="otimizada">Otimizada</TabsTrigger>
-                                <TabsTrigger value="total">Total</TabsTrigger>
-                            </TabsList>
-                        </Tabs>
-                    </div>
-
-                    {tipoVisualizacao === 'otimizada' && (
-                        <Alert className="mt-4 border-blue-200">
-                            <PieChart className="h-4 w-4" />
-                            <AlertDescription>
-                                <strong>Visualização Otimizada:</strong> Status agrupados em colunas mais analíticas 
-                                (Totais, Enviados, Em Trânsito, Problemas, etc.) com percentuais e efetividades calculadas.
-                            </AlertDescription>
-                        </Alert>
-                    )}
-
-                    {tipoVisualizacao === 'total' && (
-                        <Alert className="mt-4 border-orange-200">
-                            <ListChecks className="h-4 w-4" />
-                            <AlertDescription>
-                                <strong>Visualização Total:</strong> Todos os status individuais conforme retornados 
-                                da ECOMHUB, sem agrupamentos ou cálculos adicionais.
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                </CardContent>
-            </Card>
         );
     };
 
@@ -637,25 +459,20 @@ function EcomhubPage() {
         const hasError = imagensComErro.has(imageKey);
         
         if (!value || hasError) {
-            return (
-                <div className="w-11 h-11 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center text-xl">
-                    📦
-                </div>
-            );
+            return <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-lg">📦</div>;
         }
 
         return (
             <img 
                 src={value} 
                 alt="Produto" 
-                className="w-11 h-11 object-cover rounded-lg border-2 border-gray-200"
-                onError={() => {
-                    setImagensComErro(prev => new Set(prev).add(imageKey));
-                }}
+                className="w-10 h-10 object-cover rounded border"
+                onError={() => setImagensComErro(prev => new Set(prev).add(imageKey))}
             />
         );
     };
 
+    // Tabela responsiva e menor
     const renderResultados = () => {
         const dados = getDadosVisualizacao();
         if (!dados || !Array.isArray(dados)) return null;
@@ -663,140 +480,110 @@ function EcomhubPage() {
         const colunas = Object.keys(dados[0] || {});
         const dadosOrdenados = sortData(dados, sortBy, sortOrder);
 
-        const tituloAnalise = paisSelecionado === 'todos' ? 
-            'Métricas Consolidadas - Todos os Países' : 
-            `Métricas de Produtos - ${PAISES.find(p => p.value === paisSelecionado)?.label}`;
-
         return (
             <Card className="mb-6">
-                <CardHeader>
+                <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle>
-                                {tituloAnalise} - {tipoVisualizacao === 'otimizada' ? 'Otimizada' : 'Total'}
-                            </CardTitle>
-                            <CardDescription>
-                                {paisSelecionado === 'todos' ? 
-                                    'Análise consolidada de todos os países disponíveis (incluindo novos países)' :
-                                    'Análise detalhada dos dados de performance'
-                                }
-                            </CardDescription>
+                            <CardTitle className="text-lg">Resultados</CardTitle>
+                            <CardDescription>{dados.length} registros</CardDescription>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <Badge variant="secondary" className="rounded-lg">
-                                {dados.length} registros
-                            </Badge>
-                            <Button
-                                onClick={() => setModalSalvar(true)}
-                                variant="outline"
-                                className="font-semibold"
-                            >
+                        <div className="flex items-center gap-2">
+                            <Tabs value={tipoVisualizacao} onValueChange={setTipoVisualizacao}>
+                                <TabsList className="grid w-fit grid-cols-2">
+                                    <TabsTrigger value="otimizada">Otimizada</TabsTrigger>
+                                    <TabsTrigger value="total">Total</TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                            <Button variant="outline" size="sm" onClick={() => setModalSalvar(true)}>
                                 <Download className="h-4 w-4 mr-2" />
-                                Salvar Análise
+                                Salvar
                             </Button>
                         </div>
                     </div>
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <ScrollArea className="h-[600px]">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-muted/50">
-                                    {colunas.map(col => (
-                                        <TableHead key={col} className="font-semibold">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-auto p-0 font-semibold hover:bg-transparent"
-                                                onClick={() => handleSort(col)}
-                                            >
-                                                {col.replace('_', ' ').replace(/([A-Z])/g, ' $1').trim()}
-                                                {sortBy === col && (
-                                                    sortOrder === 'asc' ? 
-                                                        <ArrowUp className="ml-2 h-3 w-3" /> : 
-                                                        <ArrowDown className="ml-2 h-3 w-3" />
-                                                )}
-                                                {sortBy !== col && <ArrowUpDown className="ml-2 h-3 w-3 opacity-50" />}
-                                            </Button>
-                                        </TableHead>
-                                    ))}
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {dadosOrdenados.map((row, idx) => (
-                                    <TableRow
-                                        key={idx}
-                                        className={row.Produto === 'Total' ? 'bg-muted/30 font-medium' : 'hover:bg-muted/50'}
-                                    >
-                                        {Object.entries(row).map(([col, value]) => (
-                                            <TableCell
-                                                key={col}
-                                                className={
-                                                    tipoVisualizacao === 'otimizada' &&
-                                                    (col === 'Efetividade_Total' || col === 'Efetividade_Parcial') ?
-                                                    `font-medium border ${getEfetividadeCor(value)}` : ''
-                                                }
-                                            >
-                                                {col === 'Imagem' ? (
-                                                    renderImagemProduto(value, idx)
-                                                ) : (
-                                                    typeof value === 'number' ? value.toLocaleString() : value
-                                                )}
-                                            </TableCell>
+                    <div className="relative">
+                        <ScrollArea className="h-96 w-full">
+                            <div className="min-w-full">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-muted/50">
+                                            {colunas.map(col => (
+                                                <TableHead key={col} className="whitespace-nowrap">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-auto p-0 font-medium"
+                                                        onClick={() => handleSort(col)}
+                                                    >
+                                                        {col.replace('_', ' ')}
+                                                        {sortBy === col ? (
+                                                            sortOrder === 'asc' ? 
+                                                                <ArrowUp className="ml-1 h-3 w-3" /> : 
+                                                                <ArrowDown className="ml-1 h-3 w-3" />
+                                                        ) : (
+                                                            <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
+                                                        )}
+                                                    </Button>
+                                                </TableHead>
+                                            ))}
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {dadosOrdenados.map((row, idx) => (
+                                            <TableRow key={idx} className={row.Produto === 'Total' ? 'bg-muted/20 font-medium' : ''}>
+                                                {Object.entries(row).map(([col, value]) => (
+                                                    <TableCell
+                                                        key={col}
+                                                        className={`whitespace-nowrap ${
+                                                            tipoVisualizacao === 'otimizada' &&
+                                                            (col === 'Efetividade_Total' || col === 'Efetividade_Parcial') ?
+                                                            `font-bold ${getEfetividadeCor(value)} px-2 py-1 rounded text-center` : ''
+                                                        }`}
+                                                    >
+                                                        {col === 'Imagem' ? (
+                                                            renderImagemProduto(value, idx)
+                                                        ) : (
+                                                            typeof value === 'number' ? value.toLocaleString() : value
+                                                        )}
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
                                         ))}
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </ScrollArea>
+                    </div>
                 </CardContent>
             </Card>
         );
     };
 
+    // Análises salvas minimalista
     const renderAnalisesSalvas = () => {
         const analisesFiltradas = getAnalisesFiltradas();
-        
-        const tituloAnalises = paisSelecionado === 'todos' ? 
-            'Análises Salvas - Todos os Países' : 
-            `Análises Salvas - ${PAISES.find(p => p.value === paisSelecionado)?.emoji} ${PAISES.find(p => p.value === paisSelecionado)?.label}`;
         
         return (
             <Card className="relative">
                 {loadingAnalises && (
-                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
-                        <Loader2 className="h-8 w-8 animate-spin" />
+                    <div className="absolute inset-0 bg-white/80 backdrop-blur flex items-center justify-center z-10 rounded-lg">
+                        <Loader2 className="h-6 w-6 animate-spin" />
                     </div>
                 )}
 
                 <CardHeader>
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="flex items-center justify-center w-10 h-10 bg-blue-500/10 rounded-lg">
-                                {paisSelecionado === 'todos' ? <Globe className="h-5 w-5 text-blue-600" /> : <BarChart3 className="h-5 w-5 text-blue-600" />}
-                            </div>
-                            <div>
-                                <CardTitle>{tituloAnalises}</CardTitle>
-                                <CardDescription>
-                                    {paisSelecionado === 'todos' ? 
-                                        'Histórico completo de todas as análises processadas' :
-                                        'Histórico de análises processadas'
-                                    }
-                                </CardDescription>
-                            </div>
+                        <div>
+                            <CardTitle>Análises Salvas</CardTitle>
+                            <CardDescription>{analisesFiltradas.length} análises encontradas</CardDescription>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <Badge variant="secondary">{analisesFiltradas.length}</Badge>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={fetchAnalises}
-                            >
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                                Atualizar
-                            </Button>
-                        </div>
+                        <Button variant="outline" size="sm" onClick={fetchAnalises}>
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Atualizar
+                        </Button>
                     </div>
                 </CardHeader>
 
@@ -805,48 +592,39 @@ function EcomhubPage() {
                         <Alert>
                             <BarChart3 className="h-4 w-4" />
                             <AlertDescription>
-                                <p className="font-medium mb-1">
-                                    {paisSelecionado === 'todos' ? 
-                                        'Nenhuma análise salva encontrada' : 
-                                        'Nenhuma análise salva para este país'
-                                    }
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                    Processe dados e salve o resultado para vê-lo aqui.
-                                </p>
+                                Nenhuma análise salva encontrada. Processe dados e salve o resultado.
                             </AlertDescription>
                         </Alert>
                     ) : (
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                             {analisesFiltradas.map(analise => (
                                 <Card key={analise.id} className="relative">
                                     {loadingDelete[analise.id] && (
-                                        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
-                                            <Loader2 className="h-5 w-5 animate-spin" />
+                                        <div className="absolute inset-0 bg-white/80 backdrop-blur flex items-center justify-center z-10 rounded-lg">
+                                            <Loader2 className="h-4 w-4 animate-spin" />
                                         </div>
                                     )}
 
                                     <CardContent className="p-4">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <h3 className="font-semibold truncate max-w-[70%]">
+                                        <div className="flex items-start justify-between mb-3">
+                                            <h3 className="font-medium text-sm truncate max-w-[80%]">
                                                 {analise.nome.replace('[ECOMHUB] ', '')}
                                             </h3>
-                                            <Badge variant="outline" className="rounded">
-                                                ECOMHUB
-                                            </Badge>
+                                            <Badge variant="secondary" className="text-xs">ECOMHUB</Badge>
                                         </div>
 
-                                        <p className="text-xs text-muted-foreground mb-4">
-                                            {new Date(analise.criado_em).toLocaleDateString('pt-BR')} por {analise.criado_por_nome}
+                                        <p className="text-xs text-muted-foreground mb-3">
+                                            {new Date(analise.criado_em).toLocaleDateString('pt-BR')}
                                         </p>
 
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
                                             <Button
                                                 size="sm"
                                                 variant="outline"
                                                 onClick={() => carregarAnalise(analise)}
+                                                className="flex-1"
                                             >
-                                                <Eye className="h-4 w-4 mr-2" />
+                                                <Eye className="h-3 w-3 mr-1" />
                                                 Carregar
                                             </Button>
                                             <Button
@@ -856,7 +634,7 @@ function EcomhubPage() {
                                                 disabled={loadingDelete[analise.id]}
                                                 className="text-red-600 border-red-200 hover:bg-red-50"
                                             >
-                                                <Trash2 className="h-4 w-4" />
+                                                <Trash2 className="h-3 w-3" />
                                             </Button>
                                         </div>
                                     </CardContent>
@@ -869,6 +647,75 @@ function EcomhubPage() {
         );
     };
 
+    // Instruções minimalistas
+    const renderInstrucoes = () => (
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-blue-600">Instruções - ECOMHUB</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div>
+                    <h4 className="font-semibold text-green-600 mb-2">Visualização Otimizada</h4>
+                    <p className="text-sm text-muted-foreground mb-3">Colunas agrupadas para análise eficiente</p>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="border border-blue-200 rounded p-2">
+                            <p className="font-medium text-blue-600 text-xs">Totais</p>
+                            <p className="text-xs text-muted-foreground">Soma de todos os pedidos</p>
+                        </div>
+                        <div className="border border-green-200 rounded p-2">
+                            <p className="font-medium text-green-600 text-xs">Finalizados</p>
+                            <p className="text-xs text-muted-foreground">Delivered + issue + returning + returned + cancelled</p>
+                        </div>
+                        <div className="border border-orange-200 rounded p-2">
+                            <p className="font-medium text-orange-600 text-xs">Em Trânsito</p>
+                            <p className="text-xs text-muted-foreground">Out_for_delivery + preparing + ready + courier</p>
+                        </div>
+                        <div className="border border-red-200 rounded p-2">
+                            <p className="font-medium text-red-600 text-xs">Problemas</p>
+                            <p className="text-xs text-muted-foreground">Apenas "issue"</p>
+                        </div>
+                    </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                    <h4 className="font-semibold text-purple-600 mb-2">Todos os Países</h4>
+                    <div className="space-y-1 text-sm">
+                        <p>• <strong>Inclui:</strong> Espanha, Croácia, Grécia, Itália, Romênia, República Checa, Polônia</p>
+                        <p>• <strong>Análise:</strong> Dados consolidados em tabela unificada</p>
+                        <p>• <strong>Performance:</strong> Consulta simultânea para eficiência</p>
+                    </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                    <h5 className="font-medium text-indigo-600 mb-2">Cores das Efetividades:</h5>
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-3 bg-green-600 rounded"></div>
+                            <span className="text-xs">≥ 60% (Excelente)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-3 bg-green-500 rounded"></div>
+                            <span className="text-xs">≥ 50% (Boa)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-3 bg-yellow-500 rounded"></div>
+                            <span className="text-xs">≥ 40% (Regular)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-3 bg-red-500 rounded"></div>
+                            <span className="text-xs">&lt; 40% (Ruim)</span>
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+
     // ======================== EFEITOS ========================
 
     useEffect(() => {
@@ -878,55 +725,59 @@ function EcomhubPage() {
     // ======================== RENDER PRINCIPAL ========================
 
     return (
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 bg-gray-50/50 min-h-screen">
+        <div className="flex-1 space-y-4 p-6 bg-gray-50/30 min-h-screen">
             {/* Notificações */}
             {notification && (
-                <Alert
-                    variant={notification.type === 'error' ? 'destructive' : 'default'}
-                    className="mb-4"
-                >
-                    {notification.type === 'success' ? <Check className="h-4 w-4" /> :
-                        notification.type === 'warning' ? <AlertTriangle className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4">
+                    {notification.type === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
                     <AlertDescription>{notification.message}</AlertDescription>
                 </Alert>
             )}
 
-            {/* Header moderno */}
+            {/* Header */}
             {renderHeader()}
 
-            {/* Navegação por Seções */}
-            {paisSelecionado && renderNavegacao()}
+            {/* Navegação */}
+            {paisSelecionado && (
+                <Tabs value={secaoAtiva} onValueChange={setSecaoAtiva} className="w-full">
+                    <TabsList className="grid w-fit grid-cols-2">
+                        <TabsTrigger value="gerar">
+                            <Rocket className="h-4 w-4 mr-2" />
+                            Gerar
+                        </TabsTrigger>
+                        <TabsTrigger value="salvas">
+                            <BarChart3 className="h-4 w-4 mr-2" />
+                            Salvas
+                        </TabsTrigger>
+                    </TabsList>
 
-            {/* Seção Gerar Métricas */}
-            {secaoAtiva === 'gerar' && paisSelecionado && (
-                <>
-                    {renderFormulario()}
-                    {renderSeletorVisualizacao()}
-                    {renderEstatisticas()}
-                    {renderResultados()}
-                </>
+                    <TabsContent value="gerar" className="space-y-4">
+                        {renderFormulario()}
+                        {renderEstatisticas()}
+                        {renderResultados()}
+                    </TabsContent>
+
+                    <TabsContent value="salvas">
+                        {renderAnalisesSalvas()}
+                    </TabsContent>
+                </Tabs>
             )}
 
-            {/* Seção Métricas Salvas */}
-            {secaoAtiva === 'salvas' && paisSelecionado && renderAnalisesSalvas()}
-
-            {/* Seção Instruções */}
+            {/* Instruções */}
             {secaoAtiva === 'instrucoes' && renderInstrucoes()}
 
-            {/* Modal para salvar análise */}
+            {/* Modal salvar */}
             <Dialog open={modalSalvar} onOpenChange={setModalSalvar}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Salvar Análise</DialogTitle>
-                        <DialogDescription>
-                            Digite um nome para identificar esta análise
-                        </DialogDescription>
+                        <DialogDescription>Digite um nome para identificar esta análise</DialogDescription>
                     </DialogHeader>
                     
                     <div className="relative py-4">
                         {loadingSalvar && (
-                            <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center z-10 rounded">
-                                <Loader2 className="h-6 w-6 animate-spin" />
+                            <div className="absolute inset-0 bg-white/90 backdrop-blur flex items-center justify-center z-10 rounded">
+                                <Loader2 className="h-5 w-5 animate-spin" />
                             </div>
                         )}
 
@@ -943,22 +794,11 @@ function EcomhubPage() {
                     </div>
 
                     <DialogFooter>
-                        <Button 
-                            variant="outline" 
-                            onClick={() => setModalSalvar(false)} 
-                            disabled={loadingSalvar}
-                        >
+                        <Button variant="outline" onClick={() => setModalSalvar(false)} disabled={loadingSalvar}>
                             Cancelar
                         </Button>
-                        <Button
-                            onClick={salvarAnalise}
-                            disabled={!nomeAnalise || loadingSalvar}
-                        >
-                            {loadingSalvar ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                                <Download className="h-4 w-4 mr-2" />
-                            )}
+                        <Button onClick={salvarAnalise} disabled={!nomeAnalise || loadingSalvar}>
+                            {loadingSalvar ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
                             {loadingSalvar ? 'Salvando...' : 'Salvar'}
                         </Button>
                     </DialogFooter>
