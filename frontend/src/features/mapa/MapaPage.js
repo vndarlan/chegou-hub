@@ -15,7 +15,7 @@ import { Badge } from '../../components/ui/badge';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Label } from '../../components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogOverlay } from '../../components/ui/dialog';
 
 // URL do GeoJSON - atualizada
 const FULL_GEOJSON_URL = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
@@ -452,10 +452,10 @@ function MapaPage() {
 
             {/* Modal para adicionar país */}
             <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-[425px]" style={{ zIndex: 10000 }}>
                     <DialogHeader>
-                        <DialogTitle>Adicionar País</DialogTitle>
-                        <DialogDescription>
+                        <DialogTitle className="text-foreground">Adicionar País</DialogTitle>
+                        <DialogDescription className="text-muted-foreground">
                             Selecione um país e seu status para adicionar ao mapa
                         </DialogDescription>
                     </DialogHeader>
