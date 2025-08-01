@@ -1,47 +1,33 @@
-// src/pages/AgendaPage.js
+// src/features/agenda/AgendaPage.js - MIGRATED TO SHADCN/UI
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-    Box,
-    Title,
-    Text,
-    Tabs,
-    Select,
-    TextInput,
-    Textarea,
-    Button,
-    Grid,
-    Stack,
-    Paper,
-    Notification,
-    Group,
-    ActionIcon,
-    ScrollArea,
-    List,
-    Code,
-    Alert,
-    LoadingOverlay,
-    Modal,
-    ColorSwatch,
-    Badge,
-    AspectRatio,
-    Skeleton,
-    Tooltip
-} from '@mantine/core';
-import { useMediaQuery } from '@mantine/hooks';
-import {
-    IconX,
-    IconCheck,
-    IconTrash,
-    IconCalendar,
-    IconTools,
-    IconInfoCircle,
-    IconAlertCircle,
-    IconPencil,
-    IconRefresh,
-    IconLink,
-    IconExternalLink
-} from '@tabler/icons-react';
+    Calendar,
+    Settings,
+    Info,
+    X,
+    Check,
+    Trash2,
+    RefreshCw,
+    ExternalLink,
+    Pencil,
+    Plus,
+    AlertCircle,
+    Loader2
+} from 'lucide-react';
 import axios from 'axios';
+
+// shadcn/ui components
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
+import { Label } from '../../components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { Separator } from '../../components/ui/separator';
 
 // Função para extrair SRC do Iframe
 const extractSrcFromIframe = (iframeString) => {
@@ -64,12 +50,10 @@ const addColorToPrivateCalendar = (originalUrl, calendarName) => {
     try {
         const url = new URL(originalUrl);
         
-        // Se já tem cor, retorna como está
         if (url.searchParams.has('color')) {
             return originalUrl;
         }
         
-        // Adiciona cor baseada no nome
         const color = getColorForCalendar(calendarName);
         url.searchParams.set('color', encodeURIComponent(color));
         
@@ -98,21 +82,6 @@ const getColorForCalendar = (calendarName) => {
     return colors[Math.abs(hash) % colors.length];
 };
 
-// Função para gerar cores Mantine (para UI)
-const generateCalendarColor = (calendarName) => {
-    if (!calendarName) return 'blue';
-    
-    const colors = ['blue', 'indigo', 'purple', 'pink', 'red', 'orange', 'yellow', 'teal', 'green', 'cyan'];
-    
-    let hash = 0;
-    for (let i = 0; i < calendarName.length; i++) {
-        hash = calendarName.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    
-    const colorIndex = Math.abs(hash) % colors.length;
-    return colors[colorIndex];
-};
-
 function AgendaPage() {
     // Estados principais
     const [activeTab, setActiveTab] = useState('visualizar');
@@ -136,12 +105,6 @@ function AgendaPage() {
     const [editIframeCode, setEditIframeCode] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [editNotification, setEditNotification] = useState(null);
-    
-    // Estados para dimensões responsivas
-    const isMobile = useMediaQuery('(max-width: 768px)');
-    const iframeHeight = useMemo(() => isMobile ? 400 : 600, [isMobile]);
-
-    // --- Funções da API ---
 
     // Buscar calendários
     const fetchCalendars = useCallback(async (selectFirst = true) => {
@@ -155,7 +118,6 @@ function AgendaPage() {
             const calendarData = response.data;
             setCalendarios(calendarData);
 
-            // Define seleção inicial baseado no ID do banco se selectFirst for true
             if (selectFirst) {
                 if (calendarData.length > 0) {
                     setSelectedDbId(calendarData[0].id);
@@ -172,7 +134,7 @@ function AgendaPage() {
         } finally {
             setIsLoadingCalendars(false);
         }
-    }, []); // Removido selectedDbId das dependências
+    }, []);
 
     // Busca inicial
     useEffect(() => {
@@ -204,7 +166,7 @@ function AgendaPage() {
         };
         
         initialFetch();
-    }, []); // Sem dependências
+    }, []);
 
     // Atualiza as opções do select quando os calendários mudam
     useEffect(() => {
@@ -224,12 +186,11 @@ function AgendaPage() {
         }
     }, [calendarios]);
 
-    // --- Lógica de Geração da URL do Iframe (com tentativa de cor) ---
+    // Lógica de Geração da URL do Iframe
     const iframeSrc = useMemo(() => {
         if (selectedDbId) {
             const selectedCal = calendarios.find(cal => cal.id === selectedDbId);
             if (selectedCal) {
-                // Tenta adicionar cor mesmo para calendários privados
                 const originalSrc = extractSrcFromIframe(selectedCal.iframe_code);
                 const coloredSrc = addColorToPrivateCalendar(originalSrc, selectedCal.name);
                 console.log(`📅 URL para "${selectedCal.name}":`, coloredSrc);
@@ -238,8 +199,6 @@ function AgendaPage() {
         }
         return null;
     }, [selectedDbId, calendarios]);
-
-    // --- Funções de Manipulação (Adicionar/Remover/Editar) ---
 
     // Abrir modal de edição
     const handleOpenEditModal = (calendar) => {
@@ -270,7 +229,6 @@ function AgendaPage() {
             return;
         }
         
-        // Validação aprimorada
         if (!novoIframeCode.includes('<iframe') || !novoIframeCode.includes('src=')) {
             setAddNotification({ 
                 type: 'error', 
@@ -293,13 +251,11 @@ function AgendaPage() {
                 message: `Calendário "${response.data.name}" adicionado com sucesso!` 
             });
             
-            // Atualiza a lista de calendários
             await fetchCalendars(false);
 
         } catch (error) {
             console.error("Erro ao adicionar calendário:", error.response?.data || error.message);
             
-            // Tratamento de erro aprimorado
             const backendError = error.response?.data;
             let errorMessage = "Erro desconhecido ao adicionar o calendário.";
             
@@ -335,7 +291,6 @@ function AgendaPage() {
             return;
         }
         
-        // Validação aprimorada
         if (!editIframeCode.includes('<iframe') || !editIframeCode.includes('src=')) {
             setEditNotification({ 
                 type: 'error', 
@@ -356,10 +311,8 @@ function AgendaPage() {
                 message: `Calendário "${editName}" atualizado com sucesso!` 
             });
             
-            // Atualiza a lista de calendários
             await fetchCalendars(false);
             
-            // Fecha o modal após um breve delay para que o usuário veja a mensagem de sucesso
             setTimeout(() => {
                 handleCloseEditModal();
             }, 1500);
@@ -367,7 +320,6 @@ function AgendaPage() {
         } catch (error) {
             console.error("Erro ao editar calendário:", error.response?.data || error.message);
             
-            // Tratamento de erro aprimorado
             const backendError = error.response?.data;
             let errorMessage = "Erro desconhecido ao atualizar o calendário.";
             
@@ -412,7 +364,6 @@ function AgendaPage() {
                 message: `Calendário "${calNameToRemove}" removido com sucesso.` 
             });
             
-            // Atualiza a lista de calendários
             await fetchCalendars(false);
 
         } catch (error) {
@@ -438,411 +389,397 @@ function AgendaPage() {
         }
     };
 
-    // --- Renderização ---
     return (
-        <Box p="md">
-            <Title order={2} mb="xl">📅 Agenda da Empresa</Title>
+        <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">📅 Agenda da Empresa</h1>
+                    <p className="text-muted-foreground">Visualize os calendários da equipe</p>
+                </div>
+            </div>
 
-            <LoadingOverlay 
-                visible={isLoadingCalendars} 
-                overlayProps={{ radius: "sm", blur: 2 }} 
-            />
+            {isLoadingCalendars && (
+                <div className="flex h-32 items-center justify-center">
+                    <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm text-muted-foreground">Carregando...</span>
+                    </div>
+                </div>
+            )}
             
             {fetchError && !isLoadingCalendars && (
-                <Alert 
-                    color="red" 
-                    title="Erro de Carregamento" 
-                    icon={<IconAlertCircle size="1.1rem" />} 
-                    mb="md" 
-                    withCloseButton 
-                    onClose={() => setFetchError(null)}
-                >
-                    {fetchError}
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{fetchError}</AlertDescription>
                 </Alert>
             )}
 
-            <Tabs value={activeTab} onChange={setActiveTab}>
-                <Tabs.List>
-                    <Tabs.Tab 
-                        value="visualizar" 
-                        leftSection={<IconCalendar size={16} />}
-                    >
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+                <TabsList>
+                    <TabsTrigger value="visualizar" className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
                         Visualizar
-                    </Tabs.Tab>
-                    <Tabs.Tab 
-                        value="gerenciar" 
-                        leftSection={<IconTools size={16} />}
-                    >
+                    </TabsTrigger>
+                    <TabsTrigger value="gerenciar" className="flex items-center gap-2">
+                        <Settings className="h-4 w-4" />
                         Gerenciar
-                    </Tabs.Tab>
-                    <Tabs.Tab 
-                        value="instrucoes" 
-                        leftSection={<IconInfoCircle size={16} />}
-                    >
+                    </TabsTrigger>
+                    <TabsTrigger value="instrucoes" className="flex items-center gap-2">
+                        <Info className="h-4 w-4" />
                         Instruções
-                    </Tabs.Tab>
-                </Tabs.List>
+                    </TabsTrigger>
+                </TabsList>
 
-                {/* --- Painel Aba Visualizar --- */}
-                <Tabs.Panel value="visualizar" pt="lg">
+                {/* Painel Visualizar */}
+                <TabsContent value="visualizar" className="space-y-4">
                     {!isLoadingCalendars && !fetchError && (
-                        <Stack gap="md">
+                        <>
                             {calendarios.length > 0 ? (
-                                <>
-                                    <Grid gutter="md">
-                                        <Grid.Col span={{ base: 12, md: 10 }}>
-                                            <Select
-                                                label="Selecione um calendário para visualizar:"
-                                                placeholder="Escolha um calendário"
-                                                data={selectOptions}
-                                                value={selectedDbId ? selectedDbId.toString() : null}
-                                                onChange={(value) => {
-                                                    setSelectedDbId(value ? parseInt(value, 10) : null);
-                                                    setIframeLoaded(false); // Reset loading state
-                                                }}
-                                                searchable
-                                                clearable
-                                                style={{ flexGrow: 1 }}
-                                                nothingFoundMessage="Nenhum calendário encontrado"
-                                            />
-                                        </Grid.Col>
-                                        <Grid.Col span={{ base: 12, md: 2 }}>
-                                            <Box mt={isMobile ? 0 : 25}>
-                                                <Button 
-                                                    leftIcon={<IconRefresh size={16} />}
-                                                    variant="outline"
-                                                    onClick={() => fetchCalendars(false)}
-                                                    fullWidth
+                                <div className="space-y-4">
+                                    <div className="grid gap-4 md:grid-cols-4">
+                                        <div className="md:col-span-3">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="calendar-select">Selecione um calendário para visualizar:</Label>
+                                                <Select 
+                                                    value={selectedDbId ? selectedDbId.toString() : ""} 
+                                                    onValueChange={(value) => {
+                                                        setSelectedDbId(value ? parseInt(value, 10) : null);
+                                                        setIframeLoaded(false);
+                                                    }}
                                                 >
-                                                    Atualizar
-                                                </Button>
-                                            </Box>
-                                        </Grid.Col>
-                                    </Grid>
+                                                    <SelectTrigger id="calendar-select">
+                                                        <SelectValue placeholder="Escolha um calendário" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {selectOptions.map((option) => (
+                                                            <SelectItem key={option.value} value={option.value}>
+                                                                {option.label}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-end">
+                                            <Button 
+                                                variant="outline"
+                                                onClick={() => fetchCalendars(false)}
+                                                className="w-full"
+                                            >
+                                                <RefreshCw className="h-4 w-4 mr-2" />
+                                                Atualizar
+                                            </Button>
+                                        </div>
+                                    </div>
 
-                                    {/* Indicador do calendário selecionado */}
                                     {selectedDbId && (
-                                        <Paper p="xs" withBorder radius="md" style={{ backgroundColor: '#f8f9fa' }}>
-                                            <Group spacing="xs">
-                                                <Text size="sm" color="dimmed">Visualizando:</Text>
-                                                <Text size="sm" weight={500}>
-                                                    {calendarios.find(c => c.id === selectedDbId)?.name}
-                                                </Text>
-                                            </Group>
-                                        </Paper>
+                                        <Card className="bg-muted/50">
+                                            <CardContent className="p-3">
+                                                <div className="flex items-center gap-2 text-sm">
+                                                    <span className="text-muted-foreground">Visualizando:</span>
+                                                    <span className="font-medium">
+                                                        {calendarios.find(c => c.id === selectedDbId)?.name}
+                                                    </span>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
                                     )}
 
-                                    {/* Container do iframe com skeleton loader */}
-                                    <Paper 
-                                        shadow="sm" 
-                                        radius="md" 
-                                        withBorder 
-                                        style={{ overflow: 'hidden', position: 'relative' }}
-                                    >
+                                    {/* Container do iframe */}
+                                    <Card className="relative overflow-hidden">
                                         {iframeSrc ? (
                                             <>
                                                 {!iframeLoaded && (
-                                                    <Box
-                                                        style={{
-                                                            position: 'absolute',
-                                                            top: 0,
-                                                            left: 0,
-                                                            width: '100%',
-                                                            height: '100%',
-                                                            zIndex: 1
-                                                        }}
-                                                    >
-                                                        <Skeleton height={iframeHeight} width="100%" />
-                                                    </Box>
+                                                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
+                                                        <div className="flex items-center gap-2">
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                            <span className="text-sm text-muted-foreground">Carregando calendário...</span>
+                                                        </div>
+                                                    </div>
                                                 )}
-                                                <AspectRatio ratio={isMobile ? 4/3 : 16/9} style={{ minHeight: iframeHeight }}>
+                                                <div className="aspect-video min-h-[600px]">
                                                     <iframe
-                                                        key={iframeSrc} // Força recarga se URL mudar
+                                                        key={iframeSrc}
                                                         src={iframeSrc}
-                                                        style={{ 
-                                                            border: 0, 
-                                                            display: 'block', 
-                                                            width: '100%', 
-                                                            height: '100%'
-                                                        }}
-                                                        frameBorder="0"
-                                                        scrolling="no"
-                                                        title={`Google Calendar View`}
+                                                        className="w-full h-full border-0"
+                                                        title="Google Calendar View"
                                                         onLoad={() => setIframeLoaded(true)}
-                                                    ></iframe>
-                                                </AspectRatio>
-                                                {/* Botão para abrir em nova guia */}
-                                                <Box 
-                                                    style={{ 
-                                                        position: 'absolute', 
-                                                        top: 10, 
-                                                        right: 10, 
-                                                        zIndex: 10 
-                                                    }}
+                                                    />
+                                                </div>
+                                                <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    className="absolute top-4 right-4 z-20"
+                                                    asChild
                                                 >
-                                                    <Tooltip label="Abrir em nova janela">
-                                                        <ActionIcon 
-                                                            component="a" 
-                                                            href={iframeSrc} 
-                                                            target="_blank" 
-                                                            rel="noopener noreferrer"
-                                                            variant="filled"
-                                                            color="gray"
-                                                            size="md"
-                                                        >
-                                                            <IconExternalLink size={16} />
-                                                        </ActionIcon>
-                                                    </Tooltip>
-                                                </Box>
+                                                    <a href={iframeSrc} target="_blank" rel="noopener noreferrer">
+                                                        <ExternalLink className="h-4 w-4" />
+                                                    </a>
+                                                </Button>
                                             </>
                                         ) : (
-                                            <Box p="xl" style={{ height: iframeHeight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                <Text c="dimmed" ta="center">
-                                                    Selecione um calendário para visualizar.
-                                                </Text>
-                                            </Box>
+                                            <div className="flex h-96 items-center justify-center">
+                                                <p className="text-muted-foreground">Selecione um calendário para visualizar.</p>
+                                            </div>
                                         )}
-                                    </Paper>
-                                </>
+                                    </Card>
+                                </div>
                             ) : (
-                                <Notification 
-                                    title="Nenhum Calendário" 
-                                    color="blue" 
-                                    mt="md" 
-                                    icon={<IconInfoCircle size="1.1rem"/>}
-                                >
-                                    Nenhum calendário foi adicionado ainda. Use a aba "Gerenciar".
-                                </Notification>
+                                <Alert>
+                                    <Info className="h-4 w-4" />
+                                    <AlertDescription>
+                                        Nenhum calendário foi adicionado ainda. Use a aba "Gerenciar".
+                                    </AlertDescription>
+                                </Alert>
                             )}
-                        </Stack>
+                        </>
                     )}
-                </Tabs.Panel>
+                </TabsContent>
 
-                {/* --- Painel Aba Gerenciar --- */}
-                <Tabs.Panel value="gerenciar" pt="lg">
+                {/* Painel Gerenciar */}
+                <TabsContent value="gerenciar" className="space-y-4">
                     {!isLoadingCalendars && !fetchError && (
-                        <Grid>
+                        <div className="grid gap-6 md:grid-cols-5">
                             {/* Coluna Esquerda: Adicionar */}
-                            <Grid.Col span={{ base: 12, md: 7 }}>
-                                <Paper shadow="xs" p="lg" withBorder>
-                                    <Title order={4} mb="lg">Adicionar Sua Agenda ao Chegou Hub</Title>
-                                    <Stack gap="md">
-                                        <TextInput
-                                            label="Nome (Identificação)"
-                                            placeholder="Ex: João Silva"
-                                            value={novoNome}
-                                            onChange={(event) => setNovoNome(event.currentTarget.value)}
-                                            required
-                                        />
-                                        <Textarea
-                                            label="Código Iframe do Google Calendar"
-                                            placeholder="Cole aqui o código"
-                                            value={novoIframeCode}
-                                            onChange={(event) => setNovoIframeCode(event.currentTarget.value)}
-                                            required
-                                            minRows={3}
-                                            autosize
-                                        />
-                                        {/* Área de Notificação */}
+                            <div className="md:col-span-3">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Adicionar Sua Agenda ao Chegou Hub</CardTitle>
+                                        <CardDescription>
+                                            Configure sua agenda para visualização pela equipe
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="novo-nome">Nome (Identificação)</Label>
+                                            <Input
+                                                id="novo-nome"
+                                                placeholder="Ex: João Silva"
+                                                value={novoNome}
+                                                onChange={(e) => setNovoNome(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="novo-iframe">Código Iframe do Google Calendar</Label>
+                                            <Textarea
+                                                id="novo-iframe"
+                                                placeholder="Cole aqui o código"
+                                                value={novoIframeCode}
+                                                onChange={(e) => setNovoIframeCode(e.target.value)}
+                                                rows={3}
+                                            />
+                                        </div>
+                                        
                                         {addNotification && (
-                                            <Notification
-                                                icon={addNotification.type === 'success' 
-                                                    ? <IconCheck size="1.1rem" /> 
-                                                    : addNotification.type === 'info' 
-                                                        ? <IconInfoCircle size="1.1rem"/> 
-                                                        : <IconX size="1.1rem" />
-                                                }
-                                                color={addNotification.type === 'success' 
-                                                    ? 'teal' 
-                                                    : addNotification.type === 'info' 
-                                                        ? 'blue' 
-                                                        : 'red'
-                                                }
-                                                title={addNotification.type === 'success' 
-                                                    ? 'Sucesso' 
-                                                    : addNotification.type === 'info' 
-                                                        ? 'Info' 
-                                                        : 'Erro'
-                                                }
-                                                onClose={() => setAddNotification(null)}
-                                                mt="xs"
-                                                withCloseButton
-                                            >
-                                                {addNotification.message}
-                                            </Notification>
+                                            <Alert variant={addNotification.type === 'error' ? 'destructive' : 'default'}>
+                                                {addNotification.type === 'success' ? (
+                                                    <Check className="h-4 w-4" />
+                                                ) : addNotification.type === 'info' ? (
+                                                    <Info className="h-4 w-4" />
+                                                ) : (
+                                                    <X className="h-4 w-4" />
+                                                )}
+                                                <AlertDescription>{addNotification.message}</AlertDescription>
+                                            </Alert>
                                         )}
+                                        
                                         <Button
                                             onClick={handleAddCalendario}
-                                            loading={isAdding}
-                                            fullWidth
-                                            mt="md"
-                                            leftIcon={<IconCalendar size={16} />}
-                                            disabled={!novoNome || !novoIframeCode}
+                                            disabled={!novoNome || !novoIframeCode || isAdding}
+                                            className="w-full"
                                         >
+                                            {isAdding ? (
+                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            ) : (
+                                                <Calendar className="h-4 w-4 mr-2" />
+                                            )}
                                             Conectar Minha Agenda
                                         </Button>
-                                    </Stack>
-                                </Paper>
-                            </Grid.Col>
+                                    </CardContent>
+                                </Card>
+                            </div>
 
                             {/* Coluna Direita: Lista */}
-                            <Grid.Col span={{ base: 12, md: 5 }}>
-                                <Paper shadow="xs" p="lg" withBorder>
-                                    <Group position="apart" mb="lg">
-                                        <Title order={4}>Calendários Cadastrados</Title>
-                                        <Badge color="blue" size="lg">{calendarios.length}</Badge>
-                                    </Group>
-                                    <ScrollArea style={{ height: 350 }}>
-                                        {calendarios.length === 0 ? (
-                                            <Text c="dimmed" ta="center">Nenhum calendário cadastrado.</Text>
-                                        ) : (
-                                            <Stack gap="sm">
-                                                {calendarios.map((cal) => {
-                                                    const calColor = generateCalendarColor(cal.name);
+                            <div className="md:col-span-2">
+                                <Card>
+                                    <CardHeader>
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <CardTitle>Calendários Cadastrados</CardTitle>
+                                                <CardDescription>
+                                                    {calendarios.length} {calendarios.length === 1 ? 'calendário' : 'calendários'}
+                                                </CardDescription>
+                                            </div>
+                                            <Badge variant="secondary" className="text-xs">
+                                                {calendarios.length}
+                                            </Badge>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-2 max-h-80 overflow-y-auto">
+                                            {calendarios.length === 0 ? (
+                                                <p className="text-center text-muted-foreground text-sm">
+                                                    Nenhum calendário cadastrado.
+                                                </p>
+                                            ) : (
+                                                calendarios.map((cal) => {
                                                     const isUrlValid = checkIframeUrl(cal.iframe_code);
+                                                    const urlPreview = extractSrcFromIframe(cal.iframe_code)?.substring(0, 35) || '[URL inválida]';
                                                     
                                                     return (
-                                                        <Paper key={cal.id} p="xs" withBorder radius="sm">
-                                                            <Group position="apart" noWrap>
-                                                                <Box style={{ overflow: 'hidden', flexGrow: 1 }}>
-                                                                    <Group spacing="xs">
-                                                                        <ColorSwatch color={`var(--mantine-color-${calColor}-6)`} size={16} />
-                                                                        <Text fw={500} size="sm" truncate>
+                                                        <Card key={cal.id} className="p-3">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div 
+                                                                            className="w-3 h-3 rounded-full flex-shrink-0"
+                                                                            style={{ backgroundColor: getColorForCalendar(cal.name) }}
+                                                                        />
+                                                                        <span className="font-medium text-sm truncate">
                                                                             {cal.name}
-                                                                        </Text>
-                                                                    </Group>
-                                                                    <Group spacing="xs" mt={4}>
-                                                                        <IconLink size={12} color={isUrlValid ? "green" : "red"} />
-                                                                        <Text c="dimmed" size="xs" truncate style={{ maxWidth: '180px' }}>
-                                                                            {extractSrcFromIframe(cal.iframe_code)?.substring(0,35) || '[URL inválida]'}...
-                                                                        </Text>
-                                                                    </Group>
-                                                                </Box>
-                                                                <Group spacing={8} noWrap>
-                                                                    <Tooltip label="Editar calendário">
-                                                                        <ActionIcon
-                                                                            variant="light"
-                                                                            color="blue"
-                                                                            onClick={() => handleOpenEditModal(cal)}
-                                                                            size="sm"
-                                                                        >
-                                                                            <IconPencil size={16} />
-                                                                        </ActionIcon>
-                                                                    </Tooltip>
-                                                                    <Tooltip label="Remover calendário">
-                                                                        <ActionIcon
-                                                                            variant="light"
-                                                                            color="red"
-                                                                            onClick={() => handleRemoveCalendario(cal.id)}
-                                                                            size="sm"
-                                                                        >
-                                                                            <IconTrash size={16} />
-                                                                        </ActionIcon>
-                                                                    </Tooltip>
-                                                                </Group>
-                                                            </Group>
-                                                        </Paper>
+                                                                        </span>
+                                                                    </div>
+                                                                    <p className="text-xs text-muted-foreground mt-1 truncate">
+                                                                        {urlPreview}...
+                                                                    </p>
+                                                                </div>
+                                                                <div className="flex items-center gap-1">
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => handleOpenEditModal(cal)}
+                                                                    >
+                                                                        <Pencil className="h-3 w-3" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => handleRemoveCalendario(cal.id)}
+                                                                    >
+                                                                        <Trash2 className="h-3 w-3" />
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                        </Card>
                                                     );
-                                                })}
-                                            </Stack>
-                                        )}
-                                    </ScrollArea>
-                                </Paper>
-                            </Grid.Col>
-                        </Grid>
+                                                })
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
                     )}
-                </Tabs.Panel>
+                </TabsContent>
 
-                {/* --- Painel Aba Instruções --- */}
-                <Tabs.Panel value="instrucoes" pt="lg">
-                    <Paper shadow="xs" p="lg" withBorder>
-                        <Title order={4} mb="lg">Como Compartilhar sua Agenda no Chegou Hub</Title>
-                        <Stack gap="md">
-                            <Text>Para que sua agenda apareça no Chegou Hub, você precisa compartilhá-la diretamente pelo Google Calendar.</Text>
+                {/* Painel Instruções */}
+                <TabsContent value="instrucoes" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Como Compartilhar sua Agenda no Chegou Hub</CardTitle>
+                            <CardDescription>
+                                Siga os passos abaixo para adicionar sua agenda ao sistema
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <p>Para que sua agenda apareça no Chegou Hub, você precisa compartilhá-la diretamente pelo Google Calendar.</p>
+                            </div>
                             
-                            <Title order={5} mt="lg" mb="sm">Siga estes passos:</Title>
-                            <List type="ordered" spacing="sm">
-                                <List.Item>Acesse o <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer">Google Calendar</a> no seu navegador.</List.Item>
-                                <List.Item>Na barra lateral esquerda, localize a agenda que deseja compartilhar com a equipe.</List.Item>
-                                <List.Item>Passe o mouse sobre o nome da agenda e clique nos três pontinhos (⋮) que aparecem ao lado.</List.Item>
-                                <List.Item>Selecione a opção <Code>Configurações e compartilhamento</Code>.</List.Item>
-                                <List.Item>Role a página até a seção <Code>Compartilhado com pessoas e grupos</Code> e clique em <Code>Adicionar pessoas e grupos</Code>.</List.Item>
-                                <List.Item>Adicione os e-mails: <Code>viniciuschegouoperacional@gmail.com</Code>, <Code>felipechegouoperacional@gmail.com</Code>, <Code>joaobento@loja-chegou.com</Code>, <Code>marcoschegouoperacional@gmail.com</Code>, <Code>matheuschegouoperacional@gmail.com</Code>, <Code>murillochegouoperacional@gmail.com</Code>, <Code>nathaliarochachegou@gmail.com</Code> e <Code>ricardomachadochegou@gmail.com</Code>.</List.Item>
-                                <List.Item>Em permissões, selecione <Code>Mais detalhes de todos os eventos</Code>.</List.Item>
-                                <List.Item>Clique em <Code>Enviar</Code> para concluir o compartilhamento.</List.Item>
-                                <List.Item>Role um pouco mais a página até encontrar a seção <Code>Incorporar código</Code> e copie o código exibido.</List.Item>
-                            </List>
+                            <div>
+                                <h4 className="font-semibold mb-2">Siga estes passos:</h4>
+                                <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+                                    <li>Acesse o <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google Calendar</a> no seu navegador.</li>
+                                    <li>Na barra lateral esquerda, localize a agenda que deseja compartilhar com a equipe.</li>
+                                    <li>Passe o mouse sobre o nome da agenda e clique nos três pontinhos (⋮) que aparecem ao lado.</li>
+                                    <li>Selecione a opção <code className="bg-muted px-1 py-0.5 rounded text-xs">Configurações e compartilhamento</code>.</li>
+                                    <li>Role a página até a seção <code className="bg-muted px-1 py-0.5 rounded text-xs">Compartilhado com pessoas e grupos</code> e clique em <code className="bg-muted px-1 py-0.5 rounded text-xs">Adicionar pessoas e grupos</code>.</li>
+                                    <li>Adicione os e-mails: <code className="bg-muted px-1 py-0.5 rounded text-xs">viniciuschegouoperacional@gmail.com</code>, <code className="bg-muted px-1 py-0.5 rounded text-xs">felipechegouoperacional@gmail.com</code>, <code className="bg-muted px-1 py-0.5 rounded text-xs">joaobento@loja-chegou.com</code>, <code className="bg-muted px-1 py-0.5 rounded text-xs">marcoschegouoperacional@gmail.com</code>, <code className="bg-muted px-1 py-0.5 rounded text-xs">matheuschegouoperacional@gmail.com</code>, <code className="bg-muted px-1 py-0.5 rounded text-xs">murillochegouoperacional@gmail.com</code>, <code className="bg-muted px-1 py-0.5 rounded text-xs">nathaliarochachegou@gmail.com</code> e <code className="bg-muted px-1 py-0.5 rounded text-xs">ricardomachadochegou@gmail.com</code>.</li>
+                                    <li>Em permissões, selecione <code className="bg-muted px-1 py-0.5 rounded text-xs">Mais detalhes de todos os eventos</code>.</li>
+                                    <li>Clique em <code className="bg-muted px-1 py-0.5 rounded text-xs">Enviar</code> para concluir o compartilhamento.</li>
+                                    <li>Role um pouco mais a página até encontrar a seção <code className="bg-muted px-1 py-0.5 rounded text-xs">Incorporar código</code> e copie o código exibido.</li>
+                                </ol>
+                            </div>
                             
-                            <Title order={5} mt="lg" mb="sm">Adicionando no Chegou Hub:</Title>
-                            <List type="ordered" spacing="sm">
-                                <List.Item>Vá para a aba <Code>Gerenciar</Code> aqui nesta página.</List.Item>
-                                <List.Item>No formulário, digite seu nome no campo <Code>Nome (Identificação)</Code> para que os outros membros possam identificar de quem é a agenda.</List.Item>
-                                <List.Item>Cole o código Iframe do Google Calendar.</List.Item>
-                                <List.Item>Clique em <Code>Adicionar Calendário</Code>.</List.Item>
-                            </List>
+                            <Separator />
                             
-                            <Text mt="md">Uma vez adicionada, sua agenda estará disponível na aba <Code>Visualizar</Code> e poderá ser vista pelos outros membros da equipe.</Text>
-                        </Stack>
-                    </Paper>
-                </Tabs.Panel>
+                            <div>
+                                <h4 className="font-semibold mb-2">Adicionando no Chegou Hub:</h4>
+                                <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+                                    <li>Vá para a aba <code className="bg-muted px-1 py-0.5 rounded text-xs">Gerenciar</code> aqui nesta página.</li>
+                                    <li>No formulário, digite seu nome no campo <code className="bg-muted px-1 py-0.5 rounded text-xs">Nome (Identificação)</code> para que os outros membros possam identificar de quem é a agenda.</li>
+                                    <li>Cole o código Iframe do Google Calendar.</li>
+                                    <li>Clique em <code className="bg-muted px-1 py-0.5 rounded text-xs">Adicionar Calendário</code>.</li>
+                                </ol>
+                            </div>
+                            
+                            <div className="bg-muted/50 p-4 rounded-lg">
+                                <p className="text-sm">Uma vez adicionada, sua agenda estará disponível na aba <code className="bg-background px-1 py-0.5 rounded text-xs">Visualizar</code> e poderá ser vista pelos outros membros da equipe.</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
             </Tabs>
 
             {/* Modal de Edição */}
-            <Modal 
-                opened={editModalOpen} 
-                onClose={handleCloseEditModal}
-                title={<Text size="lg" weight={700}>Editar Calendário</Text>}
-                size="lg"
-            >
-                <Stack gap="md">
-                    <TextInput
-                        label="Nome (Identificação)"
-                        placeholder="Ex: Marketing, Feriados Nacionais"
-                        value={editName}
-                        onChange={(event) => setEditName(event.currentTarget.value)}
-                        required
-                    />
-                    <Textarea
-                        label="Código Iframe do Google Calendar"
-                        placeholder='Cole o código <iframe src="..."></iframe> aqui'
-                        value={editIframeCode}
-                        onChange={(event) => setEditIframeCode(event.currentTarget.value)}
-                        required
-                        minRows={4}
-                        autosize
-                        error={editIframeCode && !checkIframeUrl(editIframeCode) ? "O código não parece conter um URL válido" : null}
-                    />
-                    {/* Área de Notificação */}
-                    {editNotification && (
-                        <Notification
-                            icon={editNotification.type === 'success' 
-                                ? <IconCheck size="1.1rem" /> 
-                                : <IconX size="1.1rem" />
-                            }
-                            color={editNotification.type === 'success' ? 'teal' : 'red'}
-                            title={editNotification.type === 'success' ? 'Sucesso' : 'Erro'}
-                            onClose={() => setEditNotification(null)}
-                            mt="xs"
-                            withCloseButton
-                        >
-                            {editNotification.message}
-                        </Notification>
-                    )}
-                    <Group position="right" mt="md">
+            <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                        <DialogTitle>Editar Calendário</DialogTitle>
+                        <DialogDescription>
+                            Faça alterações nos dados do calendário
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-name">Nome (Identificação)</Label>
+                            <Input
+                                id="edit-name"
+                                placeholder="Ex: Marketing, Feriados Nacionais"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-iframe">Código Iframe do Google Calendar</Label>
+                            <Textarea
+                                id="edit-iframe"
+                                placeholder='Cole o código <iframe src="..."></iframe> aqui'
+                                value={editIframeCode}
+                                onChange={(e) => setEditIframeCode(e.target.value)}
+                                rows={4}
+                            />
+                            {editIframeCode && !checkIframeUrl(editIframeCode) && (
+                                <p className="text-sm text-destructive">O código não parece conter um URL válido</p>
+                            )}
+                        </div>
+                        
+                        {editNotification && (
+                            <Alert variant={editNotification.type === 'error' ? 'destructive' : 'default'}>
+                                {editNotification.type === 'success' ? (
+                                    <Check className="h-4 w-4" />
+                                ) : (
+                                    <X className="h-4 w-4" />
+                                )}
+                                <AlertDescription>{editNotification.message}</AlertDescription>
+                            </Alert>
+                        )}
+                    </div>
+                    <DialogFooter>
                         <Button variant="outline" onClick={handleCloseEditModal}>
                             Cancelar
                         </Button>
                         <Button 
                             onClick={handleEditCalendario} 
-                            loading={isEditing}
-                            disabled={!editName || !editIframeCode}
+                            disabled={!editName || !editIframeCode || isEditing}
                         >
+                            {isEditing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                             Salvar Alterações
                         </Button>
-                    </Group>
-                </Stack>
-            </Modal>
-        </Box>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
     );
 }
 

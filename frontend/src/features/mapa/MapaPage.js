@@ -1,14 +1,21 @@
-// frontend/src/features/mapa/MapaPage.js
+// frontend/src/features/mapa/MapaPage.js - MIGRATED TO SHADCN/UI
 import React, { useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, GeoJSON, Marker, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { 
-    Box, Grid, Title, Text, List, LoadingOverlay, Alert, Stack, Group, Button,
-    Modal, Select, Notification, ActionIcon, Badge, Paper, Tabs
-} from '@mantine/core';
-import { IconAlertCircle, IconSettings, IconPlus, IconCheck, IconX } from '@tabler/icons-react';
+    AlertCircle, Settings, Plus, Check, X, Loader2
+} from 'lucide-react';
 import axios from 'axios';
+
+// shadcn/ui components
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Label } from '../../components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 
 // URL do GeoJSON - atualizada
 const FULL_GEOJSON_URL = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
@@ -283,235 +290,251 @@ function MapaPage() {
 
     // Componente da Legenda
     const Legend = () => (
-        <Stack gap="xs">
-            <Group justify="space-between">
-                <Title order={5}>Legenda</Title>
-                <Group gap="xs">
-                    {canManage && (
+        <Card>
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">Legenda</CardTitle>
+                    <div className="flex items-center gap-2">
+                        {canManage && (
+                            <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => setAddModalOpen(true)}
+                            >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Adicionar
+                            </Button>
+                        )}
                         <Button 
-                            size="xs" 
-                            variant="light"
-                            leftSection={<IconPlus size={14} />}
-                            onClick={() => setAddModalOpen(true)}
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => setShowAdmin(!showAdmin)}
                         >
-                            Adicionar
+                            <Settings className="h-4 w-4 mr-1" />
+                            Config
                         </Button>
-                    )}
-                    <Button 
-                        size="xs" 
-                        variant="light"
-                        leftSection={<IconSettings size={14} />}
-                        onClick={() => setShowAdmin(!showAdmin)}
-                    >
-                        Config
-                    </Button>
-                </Group>
-            </Group>
-            {Object.entries(statusColors).map(([status, info]) => (
-                <Group key={status} gap="xs" wrap="nowrap">
-                    <Box 
-                        w={16} 
-                        h={16} 
-                        bg={info.color} 
-                        style={{ border: '1px solid #333' }}
-                    />
-                    <Text size="sm">{info.description}</Text>
-                </Group>
-            ))}
-            <Group gap="xs" wrap="nowrap">
-                <Box 
-                    w={16} 
-                    h={16} 
-                    bg="#D3D3D3" 
-                    style={{ border: '1px solid #333' }}
-                />
-                <Text size="sm">Outros Países</Text>
-            </Group>
-        </Stack>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                {Object.entries(statusColors).map(([status, info]) => (
+                    <div key={status} className="flex items-center gap-3">
+                        <div 
+                            className="w-4 h-4 border border-gray-300 flex-shrink-0"
+                            style={{ backgroundColor: info.color }}
+                        />
+                        <span className="text-sm">{info.description}</span>
+                    </div>
+                ))}
+                <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 bg-gray-300 border border-gray-300 flex-shrink-0" />
+                    <span className="text-sm">Outros Países</span>
+                </div>
+            </CardContent>
+        </Card>
     );
 
     // Listas de países
     const CountryLists = () => (
-        <Stack gap="md" mt="xl">
+        <div className="space-y-6">
             {Object.entries(paisesPorStatus).map(([status, paises]) => {
                 const statusInfo = statusColors[status];
                 return (
-                    <Box key={status}>
-                        <Title 
-                            order={5} 
-                            style={{ color: statusInfo?.color || '#000' }}
-                        >
-                            {statusInfo?.description || status} ({paises.length})
-                        </Title>
-                        <List size="sm" mt="xs" pl={5}>
+                    <Card key={status}>
+                        <CardHeader className="pb-3">
+                            <CardTitle 
+                                className="text-base flex items-center gap-2"
+                                style={{ color: statusInfo?.color || '#000' }}
+                            >
+                                <div 
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: statusInfo?.color || '#666' }}
+                                />
+                                {statusInfo?.description || status} ({paises.length})
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
                             {paises.length > 0 ? (
-                                paises.map((pais, index) => (
-                                    <List.Item key={`${status}-${pais}-${index}`}>
-                                        {pais}
-                                    </List.Item>
-                                ))
+                                <ul className="space-y-1 text-sm">
+                                    {paises.map((pais, index) => (
+                                        <li key={`${status}-${pais}-${index}`} className="flex items-center gap-2">
+                                            <div className="w-1 h-1 bg-muted-foreground rounded-full" />
+                                            {pais}
+                                        </li>
+                                    ))}
+                                </ul>
                             ) : (
-                                <Text size="sm" c="dimmed">Nenhum</Text>
+                                <p className="text-sm text-muted-foreground">Nenhum país</p>
                             )}
-                        </List>
-                    </Box>
+                        </CardContent>
+                    </Card>
                 );
             })}
-        </Stack>
+        </div>
     );
 
     return (
-        <Box p="md">
-            <Group justify="space-between" mb="md">
-                <Box>
-                    <Title order={2} mb="xs">🗺️ Mapa de Atuação</Title>
-                    <Text>
+        <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">🗺️ Mapa de Atuação</h1>
+                    <p className="text-muted-foreground">
                         Visualize os países onde o Grupo Chegou atua ou já atuou.
-                    </Text>
-                </Box>
+                    </p>
+                </div>
                 {canManage && (
-                    <Badge color="blue" variant="light">
+                    <Badge variant="secondary">
                         Pode gerenciar
                     </Badge>
                 )}
-            </Group>
+            </div>
 
             {notification && (
-                <Notification
-                    icon={notification.type === 'success' ? <IconCheck size="1.1rem" /> : <IconX size="1.1rem" />}
-                    color={notification.type === 'success' ? 'teal' : 'red'}
-                    title={notification.type === 'success' ? 'Sucesso!' : 'Erro!'}
-                    onClose={() => setNotification(null)}
-                    mb="md"
-                >
-                    {notification.message}
-                </Notification>
+                <Alert variant={notification.type === 'error' ? 'destructive' : 'default'}>
+                    {notification.type === 'success' ? (
+                        <Check className="h-4 w-4" />
+                    ) : (
+                        <X className="h-4 w-4" />
+                    )}
+                    <AlertDescription>{notification.message}</AlertDescription>
+                </Alert>
             )}
 
-            <LoadingOverlay visible={loading} overlayProps={{ radius: "sm", blur: 2 }} />
+            {loading && (
+                <div className="flex h-32 items-center justify-center">
+                    <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm text-muted-foreground">Carregando mapa...</span>
+                    </div>
+                </div>
+            )}
 
             {error && !loading && (
-                <Alert 
-                    icon={<IconAlertCircle size="1rem" />} 
-                    title="Erro ao Carregar Mapa" 
-                    color="red" 
-                    radius="md" 
-                    mb="md"
-                >
-                    {error}
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
                 </Alert>
             )}
 
             {!loading && !error && geoJsonData && (
-                <Grid>
-                    <Grid.Col span={{ base: 12, md: 9 }}>
-                        <Box style={{ 
-                            height: '650px', 
-                            width: '100%', 
-                            border: '1px solid #ccc', 
-                            borderRadius: 'var(--mantine-radius-md)', 
-                            overflow: 'hidden' 
-                        }}>
-                            <MapContainer
-                                center={[20, -30]}
-                                zoom={2.5}
-                                style={{ height: "100%", width: "100%" }}
-                                scrollWheelZoom={true}
-                                worldCopyJump={true}
-                            >
-                                <TileLayer
-                                    attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                                />
-                                <GeoJSON
-                                    key={JSON.stringify(geoJsonData)}
-                                    data={geoJsonData}
-                                    style={styleGeoJson}
-                                    onEachFeature={onEachFeature}
-                                />
-                                {markers}
-                            </MapContainer>
-                        </Box>
-                    </Grid.Col>
+                <div className="grid gap-6 lg:grid-cols-4">
+                    <div className="lg:col-span-3">
+                        <Card className="overflow-hidden">
+                            <div className="h-[650px] w-full">
+                                <MapContainer
+                                    center={[20, -30]}
+                                    zoom={2.5}
+                                    style={{ height: "100%", width: "100%" }}
+                                    scrollWheelZoom={true}
+                                    worldCopyJump={true}
+                                >
+                                    <TileLayer
+                                        attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                                    />
+                                    <GeoJSON
+                                        key={JSON.stringify(geoJsonData)}
+                                        data={geoJsonData}
+                                        style={styleGeoJson}
+                                        onEachFeature={onEachFeature}
+                                    />
+                                    {markers}
+                                </MapContainer>
+                            </div>
+                        </Card>
+                    </div>
 
-                    <Grid.Col span={{ base: 12, md: 3 }}>
-                        <Stack gap="lg">
-                            <Legend />
-                            <CountryLists />
-                        </Stack>
-                    </Grid.Col>
-                </Grid>
+                    <div className="space-y-6">
+                        <Legend />
+                        <CountryLists />
+                    </div>
+                </div>
             )}
 
             {showAdmin && (
-                <Box mt="xl" p="md" style={{ border: '1px solid #ddd', borderRadius: '8px' }}>
-                    <Title order={4} mb="md">⚙️ Administração</Title>
-                    <Text size="sm" c="dimmed">
-                        Para configurações avançadas, acesse: 
-                        <Text 
-                            component="a" 
-                            href="/admin/mapa/" 
-                            target="_blank" 
-                            c="blue" 
-                            style={{ textDecoration: 'underline', marginLeft: '4px' }}
-                        >
-                            Painel Admin
-                        </Text>
-                    </Text>
-                </Box>
+                <Card className="border-dashed">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Settings className="h-5 w-5" />
+                            ⚙️ Administração
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground">
+                            Para configurações avançadas, acesse: 
+                            <a 
+                                href="/admin/mapa/" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-primary underline ml-1"
+                            >
+                                Painel Admin
+                            </a>
+                        </p>
+                    </CardContent>
+                </Card>
             )}
 
             {/* Modal para adicionar país */}
-            <Modal 
-                opened={addModalOpen} 
-                onClose={() => setAddModalOpen(false)}
-                title="Adicionar País"
-                size="md"
-                zIndex={2000}
-            >
-                <Stack gap="md">
-                    <Select
-                        label="País"
-                        placeholder="Selecione um país"
-                        data={availableCountries.map(c => ({ 
-                            value: JSON.stringify(c), 
-                            label: c.nome_display 
-                        }))}
-                        value={selectedCountry ? JSON.stringify(selectedCountry) : null}
-                        onChange={(value) => setSelectedCountry(value ? JSON.parse(value) : null)}
-                        searchable
-                        required
-                        comboboxProps={{ zIndex: 2001 }}
-                    />
-                    
-                    <Select
-                        label="Status"
-                        placeholder="Selecione o status"
-                        data={statusList.map(s => ({ 
-                            value: s.id.toString(), 
-                            label: s.descricao 
-                        }))}
-                        value={selectedStatus}
-                        onChange={setSelectedStatus}
-                        required
-                        comboboxProps={{ zIndex: 2001 }}
-                    />
-                    
-                    <Group justify="flex-end" mt="md">
+            <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Adicionar País</DialogTitle>
+                        <DialogDescription>
+                            Selecione um país e seu status para adicionar ao mapa
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="country-select">País</Label>
+                            <Select 
+                                value={selectedCountry ? JSON.stringify(selectedCountry) : ""} 
+                                onValueChange={(value) => setSelectedCountry(value ? JSON.parse(value) : null)}
+                            >
+                                <SelectTrigger id="country-select">
+                                    <SelectValue placeholder="Selecione um país" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableCountries.map(c => (
+                                        <SelectItem key={c.nome_geojson} value={JSON.stringify(c)}>
+                                            {c.nome_display}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label htmlFor="status-select">Status</Label>
+                            <Select value={selectedStatus || ""} onValueChange={setSelectedStatus}>
+                                <SelectTrigger id="status-select">
+                                    <SelectValue placeholder="Selecione o status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {statusList.map(s => (
+                                        <SelectItem key={s.id} value={s.id.toString()}>
+                                            {s.descricao}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <DialogFooter>
                         <Button variant="outline" onClick={() => setAddModalOpen(false)}>
                             Cancelar
                         </Button>
                         <Button 
                             onClick={handleAddCountry} 
-                            loading={addLoading}
-                            disabled={!selectedCountry || !selectedStatus}
+                            disabled={!selectedCountry || !selectedStatus || addLoading}
                         >
+                            {addLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                             Adicionar País
                         </Button>
-                    </Group>
-                </Stack>
-            </Modal>
-        </Box>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
     );
 }
 
