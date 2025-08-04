@@ -1,36 +1,54 @@
-// frontend/src/features/ia/ProjetoDashboard.js - VERSÃO CORRIGIDA COMPLETA
+// frontend/src/features/ia/ProjetoDashboard.js - MIGRADO PARA SHADCN/UI
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useDebouncedValue } from '@mantine/hooks';
+
+// shadcn/ui imports
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Progress } from '../../components/ui/progress';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
+import { Separator } from '../../components/ui/separator';
+
+// lucide-react icons (replacement for @tabler/icons-react)
 import {
-    Box, Grid, Title, Text, Button, Group, Stack, Card, Badge, 
-    Modal, TextInput, Textarea, Select, MultiSelect, NumberInput,
-    LoadingOverlay, Alert, Notification, ActionIcon, Tabs, 
-    Progress, Timeline, Tooltip, Switch, Paper,
-    Menu, Divider, ScrollArea, Table, RingProgress, BarChart,
-    LineChart, PieChart, Flex, Container, SimpleGrid
-} from '@mantine/core';
-import {
-    IconPlus, IconFilter, IconDownload, IconEdit, IconArchive,
-    IconCopy, IconVersions, IconEye, IconChartBar, IconCoin,
-    IconClock, IconUsers, IconTool, IconCheck, IconX, IconSearch,
-    IconSortAscending, IconSortDescending, IconRefresh, IconSettings,
-    IconChevronDown, IconActivity, IconTrendingUp, IconTarget,
-    IconBuilding, IconPriority, IconComplexity, IconCalendar,
-    IconFileText, IconLink, IconTag, IconBrain, IconRobot
-} from '@tabler/icons-react';
+    Plus, Filter, Download, Edit, Archive,
+    Copy, GitBranch, Eye, BarChart, Coins,
+    Clock, Users, Wrench, Check, X, Search,
+    ArrowUp, ArrowDown, RefreshCw, Settings,
+    ChevronDown, Activity, TrendingUp, Target,
+    Building, AlertCircle, Calendar,
+    FileText, Link, Tag, Brain, Bot
+} from 'lucide-react';
+
+// Keep some Mantine imports temporarily
 import { DatePickerInput } from '@mantine/dates';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
+import { RingProgress, BarChart as MantineBarChart, LineChart, PieChart } from '@mantine/core';
 import axios from 'axios';
 
 // === COMPONENTES AUXILIARES ===
 
-// Badge de Status com cores
+// Badge de Status com cores - migrado para shadcn/ui
 const StatusBadge = ({ status }) => {
+    const variants = {
+        'ativo': 'default',
+        'arquivado': 'secondary',
+        'manutencao': 'outline'
+    };
+    
     const colors = {
-        'ativo': 'green',
-        'arquivado': 'gray',
-        'manutencao': 'yellow'
+        'ativo': 'bg-green-500 text-white',
+        'arquivado': 'bg-gray-500 text-white',
+        'manutencao': 'bg-yellow-500 text-white'
     };
     
     const labels = {
@@ -39,15 +57,19 @@ const StatusBadge = ({ status }) => {
         'manutencao': 'Manutenção'
     };
     
-    return <Badge color={colors[status]} variant="filled">{labels[status]}</Badge>;
+    return (
+        <Badge variant={variants[status]} className={colors[status]}>
+            {labels[status]}
+        </Badge>
+    );
 };
 
-// Badge de Prioridade
+// Badge de Prioridade - migrado para shadcn/ui
 const PrioridadeBadge = ({ prioridade }) => {
     const colors = {
-        'alta': 'red',
-        'media': 'yellow',
-        'baixa': 'blue'
+        'alta': 'bg-red-100 text-red-800 border-red-200',
+        'media': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+        'baixa': 'bg-blue-100 text-blue-800 border-blue-200'
     };
     
     const labels = {
@@ -56,156 +78,166 @@ const PrioridadeBadge = ({ prioridade }) => {
         'baixa': 'Baixa'
     };
     
-    return <Badge color={colors[prioridade]} variant="light">{labels[prioridade]}</Badge>;
+    return (
+        <Badge variant="outline" className={colors[prioridade]}>
+            {labels[prioridade]}
+        </Badge>
+    );
 };
 
-// Card de Projeto
+// Card de Projeto - migrado para shadcn/ui
 const ProjetoCard = React.memo(({ projeto, onEdit, onView, onArchive, onDuplicate, onNewVersion, onChangeStatus, userPermissions }) => {
     const metricas = projeto.metricas_financeiras;
     const podeVerFinanceiro = userPermissions?.pode_ver_financeiro && !metricas?.acesso_restrito;
     
     return (
-        <Card shadow="sm" padding="lg" radius="md" withBorder>
-            <Card.Section withBorder inheritPadding py="xs">
-                <Group justify="space-between">
-                    <Text weight={500} size="lg">{projeto.nome}</Text>
-                    <Group gap="xs">
+        <Card className="border shadow-sm">
+            <CardHeader className="border-b pb-3">
+                <div className="flex justify-between items-start">
+                    <CardTitle className="text-lg font-medium">{projeto.nome}</CardTitle>
+                    <div className="flex gap-2">
                         <StatusBadge status={projeto.status} />
                         <PrioridadeBadge prioridade={projeto.prioridade} />
-                    </Group>
-                </Group>
-            </Card.Section>
+                    </div>
+                </div>
+            </CardHeader>
 
-            {/* CORREÇÃO: Descrição com formatação preservada */}
-            <Text 
-                size="sm" 
-                c="dimmed" 
-                mt="sm" 
-                lineClamp={2}
-                style={{ whiteSpace: 'pre-wrap' }}
-            >
-                {projeto.descricao}
-            </Text>
+            <CardContent className="pt-4">
+                {/* Descrição com formatação preservada */}
+                <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap line-clamp-2">
+                    {projeto.descricao}
+                </p>
 
-            <SimpleGrid cols={2} mt="md" spacing="xs">
-                <Box>
-                    <Text size="xs" c="dimmed">Tipo</Text>
-                    <Text size="sm" weight={500}>{projeto.tipo_projeto}</Text>
-                </Box>
-                <Box>
-                    <Text size="xs" c="dimmed">Departamentos</Text>
-                    <Group gap="xs">
-                        {projeto.departamentos_display?.length > 0 ? (
-                            projeto.departamentos_display.slice(0, 2).map((dept, i) => (
-                                <Badge key={i} size="xs">{dept}</Badge>
-                            ))
-                        ) : (
-                            <Text size="sm" weight={500}>{projeto.departamento_atendido || 'N/A'}</Text>
-                        )}
-                        {projeto.departamentos_display?.length > 2 && (
-                            <Badge size="xs">+{projeto.departamentos_display.length - 2}</Badge>
-                        )}
-                    </Group>
-                </Box>
-                <Box>
-                    <Text size="xs" c="dimmed">Horas Investidas</Text>
-                    <Text size="sm" weight={500}>{projeto.horas_totais}h</Text>
-                </Box>
-                <Box>
-                    <Text size="xs" c="dimmed">Usuários Impactados</Text>
-                    <Text size="sm" weight={500}>{projeto.usuarios_impactados}</Text>
-                </Box>
-            </SimpleGrid>
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                    <div>
+                        <p className="text-xs text-muted-foreground">Tipo</p>
+                        <p className="text-sm font-medium">{projeto.tipo_projeto}</p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-muted-foreground">Departamentos</p>
+                        <div className="flex gap-1 flex-wrap">
+                            {projeto.departamentos_display?.length > 0 ? (
+                                projeto.departamentos_display.slice(0, 2).map((dept, i) => (
+                                    <Badge key={i} variant="secondary" className="text-xs">
+                                        {dept}
+                                    </Badge>
+                                ))
+                            ) : (
+                                <p className="text-sm font-medium">{projeto.departamento_atendido || 'N/A'}</p>
+                            )}
+                            {projeto.departamentos_display?.length > 2 && (
+                                <Badge variant="secondary" className="text-xs">
+                                    +{projeto.departamentos_display.length - 2}
+                                </Badge>
+                            )}
+                        </div>
+                    </div>
+                    <div>
+                        <p className="text-xs text-muted-foreground">Horas Investidas</p>
+                        <p className="text-sm font-medium">{projeto.horas_totais}h</p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-muted-foreground">Usuários Impactados</p>
+                        <p className="text-sm font-medium">{projeto.usuarios_impactados}</p>
+                    </div>
+                </div>
 
-            {podeVerFinanceiro && (
-                <Paper withBorder p="xs" mt="sm" bg="blue.0">
-                    <Group justify="space-between">
-                        <Box>
-                            <Text size="xs" c="dimmed">ROI</Text>
-                            <Text size="sm" weight={700} c={metricas.roi > 0 ? 'green' : 'red'}>
-                                {metricas.roi}%
-                            </Text>
-                        </Box>
-                        <Box>
-                            <Text size="xs" c="dimmed">Economia/Mês</Text>
-                            <Text size="sm" weight={500}>
-                                R$ {metricas.economia_mensal?.toLocaleString('pt-BR')}
-                            </Text>
-                        </Box>
-                    </Group>
-                </Paper>
-            )}
-
-            <Group mt="md" gap="xs">
-                <Text size="xs" c="dimmed">Criadores:</Text>
-                {projeto.criadores_nomes.slice(0, 2).map((nome, i) => (
-                    <Badge key={i} size="xs" variant="outline">{nome}</Badge>
-                ))}
-                {projeto.criadores_nomes.length > 2 && (
-                    <Badge size="xs" variant="outline">+{projeto.criadores_nomes.length - 2}</Badge>
+                {podeVerFinanceiro && (
+                    <div className="border rounded-lg p-3 mt-4 bg-blue-50">
+                        <div className="flex justify-between">
+                            <div>
+                                <p className="text-xs text-muted-foreground">ROI</p>
+                                <p className={`text-sm font-bold ${metricas.roi > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {metricas.roi}%
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-muted-foreground">Economia/Mês</p>
+                                <p className="text-sm font-medium">
+                                    R$ {metricas.economia_mensal?.toLocaleString('pt-BR')}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 )}
-            </Group>
 
-            <Group justify="space-between" mt="md">
-                <Group gap="xs">
-                    <Text size="xs" c="dimmed">v{projeto.versao_atual}</Text>
-                    <Text size="xs" c="dimmed">•</Text>
-                    <Text size="xs" c="dimmed">
-                        {projeto.dias_sem_atualizacao} dias
-                    </Text>
-                </Group>
-                
-                <Menu shadow="md" width={220}>
-                    <Menu.Target>
-                        <ActionIcon variant="subtle">
-                            <IconChevronDown size={16} />
-                        </ActionIcon>
-                    </Menu.Target>
-                    <Menu.Dropdown>
-                        <Menu.Item leftSection={<IconEye size={14} />} onClick={() => onView(projeto)}>
-                            Visualizar
-                        </Menu.Item>
-                        <Menu.Item leftSection={<IconEdit size={14} />} onClick={() => onEdit(projeto)}>
-                            Editar
-                        </Menu.Item>
-                        <Menu.Item leftSection={<IconVersions size={14} />} onClick={() => onNewVersion(projeto)}>
-                            Nova Versão
-                        </Menu.Item>
-                        <Menu.Item leftSection={<IconCopy size={14} />} onClick={() => onDuplicate(projeto)}>
-                            Duplicar
-                        </Menu.Item>
-                        <Menu.Divider />
-                        <Menu.Label>Alterar Status</Menu.Label>
-                        {projeto.status !== 'ativo' && (
-                            <Menu.Item 
-                                leftSection={<IconActivity size={14} />} 
-                                onClick={() => onChangeStatus(projeto, 'ativo')}
-                                color="green"
-                            >
-                                Ativar
-                            </Menu.Item>
-                        )}
-                        {projeto.status !== 'manutencao' && (
-                            <Menu.Item 
-                                leftSection={<IconTool size={14} />} 
-                                onClick={() => onChangeStatus(projeto, 'manutencao')}
-                                color="yellow"
-                            >
-                                Em Manutenção
-                            </Menu.Item>
-                        )}
-                        {projeto.status !== 'arquivado' && (
-                            <Menu.Item 
-                                leftSection={<IconArchive size={14} />} 
-                                onClick={() => onChangeStatus(projeto, 'arquivado')}
-                                color="orange"
-                            >
-                                Arquivar
-                            </Menu.Item>
-                        )}
-                    </Menu.Dropdown>
-                </Menu>
-            </Group>
+                <div className="flex items-center gap-2 mt-4 flex-wrap">
+                    <span className="text-xs text-muted-foreground">Criadores:</span>
+                    {projeto.criadores_nomes.slice(0, 2).map((nome, i) => (
+                        <Badge key={i} variant="outline" className="text-xs">
+                            {nome}
+                        </Badge>
+                    ))}
+                    {projeto.criadores_nomes.length > 2 && (
+                        <Badge variant="outline" className="text-xs">
+                            +{projeto.criadores_nomes.length - 2}
+                        </Badge>
+                    )}
+                </div>
+
+                <div className="flex justify-between items-center mt-4">
+                    <div className="flex gap-2 text-xs text-muted-foreground">
+                        <span>v{projeto.versao_atual}</span>
+                        <span>•</span>
+                        <span>{projeto.dias_sem_atualizacao} dias</span>
+                    </div>
+                    
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                                <ChevronDown className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56">
+                            <DropdownMenuItem onClick={() => onView(projeto)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Visualizar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onEdit(projeto)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onNewVersion(projeto)}>
+                                <GitBranch className="mr-2 h-4 w-4" />
+                                Nova Versão
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onDuplicate(projeto)}>
+                                <Copy className="mr-2 h-4 w-4" />
+                                Duplicar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuLabel>Alterar Status</DropdownMenuLabel>
+                            {projeto.status !== 'ativo' && (
+                                <DropdownMenuItem 
+                                    onClick={() => onChangeStatus(projeto, 'ativo')}
+                                    className="text-green-600"
+                                >
+                                    <Activity className="mr-2 h-4 w-4" />
+                                    Ativar
+                                </DropdownMenuItem>
+                            )}
+                            {projeto.status !== 'manutencao' && (
+                                <DropdownMenuItem 
+                                    onClick={() => onChangeStatus(projeto, 'manutencao')}
+                                    className="text-yellow-600"
+                                >
+                                    <Wrench className="mr-2 h-4 w-4" />
+                                    Em Manutenção
+                                </DropdownMenuItem>
+                            )}
+                            {projeto.status !== 'arquivado' && (
+                                <DropdownMenuItem 
+                                    onClick={() => onChangeStatus(projeto, 'arquivado')}
+                                    className="text-orange-600"
+                                >
+                                    <Archive className="mr-2 h-4 w-4" />
+                                    Arquivar
+                                </DropdownMenuItem>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </CardContent>
         </Card>
     );
 });
@@ -312,376 +344,487 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
     };
 
     return (
-        <Modal 
-            opened={opened} 
-            onClose={onClose}
-            title={projeto ? "Editar Projeto" : "Novo Projeto"}
-            size="xl"
-            zIndex={1000}
-        >
-            <form onSubmit={handleSubmit}>
-                <Tabs defaultValue="basico">
-                    <Tabs.List>
-                        <Tabs.Tab value="basico" leftSection={<IconBrain size={16} />}>
-                            Básico
-                        </Tabs.Tab>
-                        <Tabs.Tab value="detalhes" leftSection={<IconSettings size={16} />}>
-                            Detalhes
-                        </Tabs.Tab>
-                        <Tabs.Tab value="financeiro" leftSection={<IconCoin size={16} />}>
-                            Financeiro
-                        </Tabs.Tab>
-                    </Tabs.List>
+        <Dialog open={opened} onOpenChange={onClose}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle>{projeto ? "Editar Projeto" : "Novo Projeto"}</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit}>
+                    <Tabs defaultValue="basico" className="mt-4">
+                        <TabsList className="grid w-full grid-cols-3">
+                            <TabsTrigger value="basico" className="flex items-center gap-2">
+                                <Brain className="h-4 w-4" />
+                                Básico
+                            </TabsTrigger>
+                            <TabsTrigger value="detalhes" className="flex items-center gap-2">
+                                <Settings className="h-4 w-4" />
+                                Detalhes
+                            </TabsTrigger>
+                            <TabsTrigger value="financeiro" className="flex items-center gap-2">
+                                <Coins className="h-4 w-4" />
+                                Financeiro
+                            </TabsTrigger>
+                        </TabsList>
 
-                    <Tabs.Panel value="basico" pt="md">
-                        <Stack gap="md">
-                            <TextInput
-                                label="Nome do Projeto"
-                                placeholder="Ex: Chatbot de Atendimento"
-                                required
-                                value={formData.nome}
-                                onChange={(e) => {
-                                    setFormData(prev => ({...prev, nome: e.target.value}));
-                                }}
-                            />
+                        <TabsContent value="basico" className="space-y-4 mt-4">
+                            <div>
+                                <label className="text-sm font-medium">Nome do Projeto</label>
+                                <Input
+                                    placeholder="Ex: Chatbot de Atendimento"
+                                    required
+                                    value={formData.nome}
+                                    onChange={(e) => {
+                                        setFormData(prev => ({...prev, nome: e.target.value}));
+                                    }}
+                                />
+                            </div>
                             
-                            <Textarea
-                                label="Descrição"
-                                placeholder="Descreva o que o projeto faz..."
-                                rows={3}
-                                required
-                                autosize
-                                minRows={3}
-                                maxRows={10}
-                                value={formData.descricao}
-                                onChange={(e) => setFormData(prev => ({...prev, descricao: e.target.value}))}
-                            />
+                            <div>
+                                <label className="text-sm font-medium">Descrição</label>
+                                <Textarea
+                                    placeholder="Descreva o que o projeto faz..."
+                                    rows={3}
+                                    required
+                                    value={formData.descricao}
+                                    onChange={(e) => setFormData(prev => ({...prev, descricao: e.target.value}))}
+                                />
+                            </div>
                             
-                            <Grid>
-                                <Grid.Col span={6}>
-                                    <Select
-                                        label="Tipo de Projeto"
-                                        placeholder="Selecione o tipo"
-                                        data={tipoOptions}
-                                        required
-                                        searchable
-                                        value={formData.tipo_projeto}
-                                        onChange={(value) => setFormData(prev => ({...prev, tipo_projeto: value}))}
-                                        comboboxProps={{ withinPortal: true, zIndex: 1001 }}
-                                    />
-                                </Grid.Col>
-                                <Grid.Col span={6}>
-                                    <MultiSelect
-                                        label="Departamentos"
-                                        placeholder="Selecione os departamentos"
-                                        data={[
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-medium">Tipo de Projeto</label>
+                                    <Select 
+                                        value={formData.tipo_projeto} 
+                                        onValueChange={(value) => setFormData(prev => ({...prev, tipo_projeto: value}))}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione o tipo" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {tipoOptions?.map((option) => (
+                                                <SelectItem key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium">Departamentos</label>
+                                    <div className="text-sm text-gray-500 mb-2">
+                                        {(formData.departamentos_atendidos || []).length > 0 
+                                            ? `${formData.departamentos_atendidos.length} selecionados`
+                                            : 'Nenhum selecionado'
+                                        }
+                                    </div>
+                                    <div className="space-y-2 max-h-32 overflow-y-auto border rounded p-2">
+                                        {[
                                             { value: 'diretoria', label: 'Diretoria' },
                                             { value: 'gestao', label: 'Gestão' },
                                             { value: 'operacional', label: 'Operacional' },
                                             { value: 'ia_automacoes', label: 'IA & Automações' },
                                             { value: 'suporte', label: 'Suporte' },
                                             { value: 'trafego_pago', label: 'Tráfego Pago' }
-                                        ]}
-                                        required
-                                        searchable
-                                        value={formData.departamentos_atendidos || []}
-                                        onChange={(value) => setFormData(prev => ({...prev, departamentos_atendidos: value}))}
-                                        comboboxProps={{ withinPortal: true, zIndex: 1001 }}
-                                    />
-                                </Grid.Col>
-                            </Grid>
+                                        ].map((dept) => (
+                                            <div key={dept.value} className="flex items-center space-x-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id={`dept-${dept.value}`}
+                                                    checked={(formData.departamentos_atendidos || []).includes(dept.value)}
+                                                    onChange={(e) => {
+                                                        const current = formData.departamentos_atendidos || [];
+                                                        if (e.target.checked) {
+                                                            setFormData(prev => ({
+                                                                ...prev, 
+                                                                departamentos_atendidos: [...current, dept.value]
+                                                            }));
+                                                        } else {
+                                                            setFormData(prev => ({
+                                                                ...prev, 
+                                                                departamentos_atendidos: current.filter(d => d !== dept.value)
+                                                            }));
+                                                        }
+                                                    }}
+                                                />
+                                                <label htmlFor={`dept-${dept.value}`} className="text-sm">{dept.label}</label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
                             
-                            <MultiSelect
-                                label="Criadores/Responsáveis"
-                                placeholder="Selecione os responsáveis"
-                                data={userOptions}
-                                searchable
-                                value={formData.criadores_ids || []}
-                                onChange={(value) => {
-                                    setFormData(prev => ({...prev, criadores_ids: value}));
-                                }}
-                                comboboxProps={{ withinPortal: true, zIndex: 1001 }}
-                            />
-                        </Stack>
-                    </Tabs.Panel>
+                            <div>
+                                <label className="text-sm font-medium">Criadores/Responsáveis</label>
+                                <div className="text-sm text-gray-500 mb-2">
+                                    {(formData.criadores_ids || []).length > 0 
+                                        ? `${formData.criadores_ids.length} selecionados`
+                                        : 'Nenhum selecionado'
+                                    }
+                                </div>
+                                <div className="space-y-2 max-h-32 overflow-y-auto border rounded p-2">
+                                    {userOptions?.map((user) => (
+                                        <div key={user.value} className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                id={`user-${user.value}`}
+                                                checked={(formData.criadores_ids || []).includes(user.value.toString())}
+                                                onChange={(e) => {
+                                                    const current = formData.criadores_ids || [];
+                                                    if (e.target.checked) {
+                                                        setFormData(prev => ({
+                                                            ...prev, 
+                                                            criadores_ids: [...current, user.value.toString()]
+                                                        }));
+                                                    } else {
+                                                        setFormData(prev => ({
+                                                            ...prev, 
+                                                            criadores_ids: current.filter(d => d !== user.value.toString())
+                                                        }));
+                                                    }
+                                                }}
+                                            />
+                                            <label htmlFor={`user-${user.value}`} className="text-sm">{user.label}</label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </TabsContent>
 
-                    <Tabs.Panel value="detalhes" pt="md">
-                        <Stack gap="md">
-                            <Grid>
-                                <Grid.Col span={4}>
-                                    <NumberInput
-                                        label="Horas Totais"
+                        <TabsContent value="detalhes" className="space-y-4 mt-4">
+                            <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label className="text-sm font-medium">Horas Totais</label>
+                                    <Input
+                                        type="number"
                                         placeholder="0"
                                         min={0}
                                         step={0.5}
                                         required
                                         value={formData.horas_totais}
-                                        onChange={(value) => setFormData(prev => ({...prev, horas_totais: value}))}
+                                        onChange={(e) => setFormData(prev => ({...prev, horas_totais: parseFloat(e.target.value) || 0}))}
                                     />
-                                </Grid.Col>
-                                <Grid.Col span={4}>
-                                    <Select
-                                        label="Prioridade"
-                                        data={prioridadeOptions}
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium">Prioridade</label>
+                                    <Select 
                                         value={formData.prioridade}
-                                        onChange={(value) => setFormData(prev => ({...prev, prioridade: value}))}
-                                    />
-                                </Grid.Col>
-                                <Grid.Col span={4}>
-                                    <Select
-                                        label="Complexidade"
-                                        data={complexidadeOptions}
+                                        onValueChange={(value) => setFormData(prev => ({...prev, prioridade: value}))}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {prioridadeOptions?.map((option) => (
+                                                <SelectItem key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium">Complexidade</label>
+                                    <Select 
                                         value={formData.complexidade}
-                                        onChange={(value) => setFormData(prev => ({...prev, complexidade: value}))}
-                                    />
-                                </Grid.Col>
-                            </Grid>
+                                        onValueChange={(value) => setFormData(prev => ({...prev, complexidade: value}))}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {complexidadeOptions?.map((option) => (
+                                                <SelectItem key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
                             
-                            <TextInput
-                                label="Link do Projeto"
-                                placeholder="https://..."
-                                value={formData.link_projeto}
-                                onChange={(e) => setFormData(prev => ({...prev, link_projeto: e.target.value}))}
-                            />
+                            <div>
+                                <label className="text-sm font-medium">Link do Projeto</label>
+                                <Input
+                                    placeholder="https://..."
+                                    value={formData.link_projeto}
+                                    onChange={(e) => setFormData(prev => ({...prev, link_projeto: e.target.value}))}
+                                />
+                            </div>
                             
-                            <Grid>
-                                <Grid.Col span={6}>
-                                    <NumberInput
-                                        label="Usuários Impactados"
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-medium">Usuários Impactados</label>
+                                    <Input
+                                        type="number"
                                         placeholder="0"
                                         min={0}
                                         value={formData.usuarios_impactados}
-                                        onChange={(value) => setFormData(prev => ({...prev, usuarios_impactados: value}))}
+                                        onChange={(e) => setFormData(prev => ({...prev, usuarios_impactados: parseInt(e.target.value) || 0}))}
                                     />
-                                </Grid.Col>
-                                <Grid.Col span={6}>
-                                    <Select
-                                        label="Frequência de Uso"
-                                        data={frequenciaOptions}
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium">Frequência de Uso</label>
+                                    <Select 
                                         value={formData.frequencia_uso}
-                                        onChange={(value) => setFormData(prev => ({...prev, frequencia_uso: value}))}
-                                    />
-                                </Grid.Col>
-                            </Grid>
+                                        onValueChange={(value) => setFormData(prev => ({...prev, frequencia_uso: value}))}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {frequenciaOptions?.map((option) => (
+                                                <SelectItem key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
                             
-                            <TextInput
-                                label="Ferramentas/Tecnologias"
-                                placeholder="Ex: Python, OpenAI API, PostgreSQL"
-                                description="Separadas por vírgula"
-                                value={(formData.ferramentas_tecnologias || []).join(', ')}
-                                onChange={(e) => {
-                                    const techs = e.target.value.split(',').map(t => t.trim()).filter(t => t);
-                                    setFormData(prev => ({...prev, ferramentas_tecnologias: techs}));
-                                }}
-                            />
+                            <div>
+                                <label className="text-sm font-medium">Ferramentas/Tecnologias</label>
+                                <p className="text-xs text-muted-foreground mb-1">Separadas por vírgula</p>
+                                <Input
+                                    placeholder="Ex: Python, OpenAI API, PostgreSQL"
+                                    value={(formData.ferramentas_tecnologias || []).join(', ')}
+                                    onChange={(e) => {
+                                        const techs = e.target.value.split(',').map(t => t.trim()).filter(t => t);
+                                        setFormData(prev => ({...prev, ferramentas_tecnologias: techs}));
+                                    }}
+                                />
+                            </div>
                             
-                            <Title order={5}>📚 Documentação</Title>
-                            <TextInput
-                                label="Link da Documentação Técnica"
-                                placeholder="https://..."
-                                value={formData.documentacao_tecnica}
-                                onChange={(e) => setFormData(prev => ({...prev, documentacao_tecnica: e.target.value}))}
-                            />
-                            
-                            <Textarea
-                                label="Lições Aprendidas"
-                                placeholder="O que funcionou bem e quais foram os desafios..."
-                                rows={3}
-                                autosize
-                                minRows={3}
-                                maxRows={8}
-                                value={formData.licoes_aprendidas}
-                                onChange={(e) => setFormData(prev => ({...prev, licoes_aprendidas: e.target.value}))}
-                            />
-                            
-                            <Textarea
-                                label="Próximos Passos"
-                                placeholder="Melhorias e funcionalidades planejadas..."
-                                rows={3}
-                                autosize
-                                minRows={3}
-                                maxRows={8}
-                                value={formData.proximos_passos}
-                                onChange={(e) => setFormData(prev => ({...prev, proximos_passos: e.target.value}))}
-                            />
-                            
-                            <TextInput
-                                label="Data de Próxima Revisão (Opcional)"
-                                placeholder="YYYY-MM-DD"
-                                description="Ex: 2024-03-15"
-                                value={formData.data_revisao || ''}
-                                onChange={(e) => setFormData(prev => ({...prev, data_revisao: e.target.value || null}))}
-                            />
-                        </Stack>
-                    </Tabs.Panel>
-
-                    <Tabs.Panel value="financeiro" pt="md">
-                        <Stack gap="md">
-                            <Title order={5}>💰 Custos</Title>
-                            
-                            <Grid>
-                                <Grid.Col span={6}>
-                                    <NumberInput
-                                        label="Custo/Hora da Empresa (R$)"
-                                        placeholder="80"
-                                        min={0}
-                                        step={0.01}
-                                        description="Quanto custa cada hora de trabalho"
-                                        value={formData.custo_hora_empresa}
-                                        onChange={(value) => setFormData(prev => ({...prev, custo_hora_empresa: value}))}
-                                    />
-                                </Grid.Col>
-                                <Grid.Col span={6}>
-                                    <NumberInput
-                                        label="Custo APIs/Mês (R$)"
-                                        placeholder="0"
-                                        min={0}
-                                        step={0.01}
-                                        description="ChatGPT, Claude, etc."
-                                        value={formData.custo_apis_mensal}
-                                        onChange={(value) => setFormData(prev => ({...prev, custo_apis_mensal: value}))}
-                                    />
-                                </Grid.Col>
-                            </Grid>
-
-                            <Box>
-                                <Text size="sm" weight={500} mb="xs">Ferramentas/Infraestrutura</Text>
-                                <Text size="xs" c="dimmed" mb="md">Adicione ferramentas e seus custos mensais</Text>
+                            <div className="mt-6">
+                                <h3 className="text-base font-medium mb-4">📚 Documentação</h3>
                                 
-                                {(formData.lista_ferramentas || []).map((ferramenta, index) => (
-                                    <Group key={index} gap="xs" mb="xs">
-                                        <TextInput
-                                            placeholder="Nome da ferramenta"
-                                            value={ferramenta?.nome || ''}
-                                            onChange={(e) => {
-                                                const novaLista = [...(formData.lista_ferramentas || [])];
-                                                novaLista[index] = { ...ferramenta, nome: e.target.value };
-                                                setFormData(prev => ({...prev, lista_ferramentas: novaLista}));
-                                            }}
-                                            style={{ flex: 1 }}
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-sm font-medium">Link da Documentação Técnica</label>
+                                        <Input
+                                            placeholder="https://..."
+                                            value={formData.documentacao_tecnica}
+                                            onChange={(e) => setFormData(prev => ({...prev, documentacao_tecnica: e.target.value}))}
                                         />
-                                        <NumberInput
-                                            placeholder="R$ 0"
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="text-sm font-medium">Lições Aprendidas</label>
+                                        <Textarea
+                                            placeholder="O que funcionou bem e quais foram os desafios..."
+                                            rows={3}
+                                            value={formData.licoes_aprendidas}
+                                            onChange={(e) => setFormData(prev => ({...prev, licoes_aprendidas: e.target.value}))}
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="text-sm font-medium">Próximos Passos</label>
+                                        <Textarea
+                                            placeholder="Melhorias e funcionalidades planejadas..."
+                                            rows={3}
+                                            value={formData.proximos_passos}
+                                            onChange={(e) => setFormData(prev => ({...prev, proximos_passos: e.target.value}))}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label className="text-sm font-medium">Data de Próxima Revisão (Opcional)</label>
+                                <p className="text-xs text-muted-foreground mb-1">Ex: 2024-03-15</p>
+                                <Input
+                                    type="date"
+                                    value={formData.data_revisao || ''}
+                                    onChange={(e) => setFormData(prev => ({...prev, data_revisao: e.target.value || null}))}
+                                />
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="financeiro" className="space-y-4 mt-4">
+                            <div>
+                                <h3 className="text-base font-medium mb-4">💰 Custos</h3>
+                                
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm font-medium">Custo/Hora da Empresa (R$)</label>
+                                        <p className="text-xs text-muted-foreground mb-1">Quanto custa cada hora de trabalho</p>
+                                        <Input
+                                            type="number"
+                                            placeholder="80"
                                             min={0}
                                             step={0.01}
-                                            value={ferramenta?.valor || 0}
-                                            onChange={(value) => {
-                                                const novaLista = [...(formData.lista_ferramentas || [])];
-                                                novaLista[index] = { ...ferramenta, valor: value };
-                                                setFormData(prev => ({...prev, lista_ferramentas: novaLista}));
-                                            }}
-                                            style={{ width: 120 }}
+                                            value={formData.custo_hora_empresa}
+                                            onChange={(e) => setFormData(prev => ({...prev, custo_hora_empresa: parseFloat(e.target.value) || 0}))}
                                         />
-                                        <ActionIcon 
-                                            color="red" 
-                                            onClick={() => {
-                                                const novaLista = (formData.lista_ferramentas || []).filter((_, i) => i !== index);
-                                                setFormData(prev => ({...prev, lista_ferramentas: novaLista}));
-                                            }}
-                                        >
-                                            <IconX size={16} />
-                                        </ActionIcon>
-                                    </Group>
-                                ))}
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium">Custo APIs/Mês (R$)</label>
+                                        <p className="text-xs text-muted-foreground mb-1">ChatGPT, Claude, etc.</p>
+                                        <Input
+                                            type="number"
+                                            placeholder="0"
+                                            min={0}
+                                            step={0.01}
+                                            value={formData.custo_apis_mensal}
+                                            onChange={(e) => setFormData(prev => ({...prev, custo_apis_mensal: parseFloat(e.target.value) || 0}))}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 className="text-sm font-medium mb-2">Ferramentas/Infraestrutura</h4>
+                                <p className="text-xs text-muted-foreground mb-3">Adicione ferramentas e seus custos mensais</p>
+                                
+                                <div className="space-y-2">
+                                    {(formData.lista_ferramentas || []).map((ferramenta, index) => (
+                                        <div key={index} className="flex items-center gap-2">
+                                            <Input
+                                                placeholder="Nome da ferramenta"
+                                                value={ferramenta?.nome || ''}
+                                                onChange={(e) => {
+                                                    const novaLista = [...(formData.lista_ferramentas || [])];
+                                                    novaLista[index] = { ...ferramenta, nome: e.target.value };
+                                                    setFormData(prev => ({...prev, lista_ferramentas: novaLista}));
+                                                }}
+                                                className="flex-1"
+                                            />
+                                            <Input
+                                                type="number"
+                                                placeholder="R$ 0"
+                                                min={0}
+                                                step={0.01}
+                                                value={ferramenta?.valor || 0}
+                                                onChange={(e) => {
+                                                    const novaLista = [...(formData.lista_ferramentas || [])];
+                                                    novaLista[index] = { ...ferramenta, valor: parseFloat(e.target.value) || 0 };
+                                                    setFormData(prev => ({...prev, lista_ferramentas: novaLista}));
+                                                }}
+                                                className="w-32"
+                                            />
+                                            <Button 
+                                                variant="destructive" 
+                                                size="sm"
+                                                onClick={() => {
+                                                    const novaLista = (formData.lista_ferramentas || []).filter((_, i) => i !== index);
+                                                    setFormData(prev => ({...prev, lista_ferramentas: novaLista}));
+                                                }}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
                                 
                                 <Button 
-                                    variant="light" 
+                                    variant="outline" 
                                     size="sm"
-                                    leftSection={<IconPlus size={16} />}
                                     onClick={() => {
                                         setFormData(prev => ({
                                             ...prev, 
                                             lista_ferramentas: [...(prev.lista_ferramentas || []), { nome: '', valor: 0 }]
                                         }));
                                     }}
+                                    className="mt-2"
                                 >
+                                    <Plus className="h-4 w-4 mr-2" />
                                     Adicionar Ferramenta
                                 </Button>
-                            </Box>
+                            </div>
                             
-                            <Divider my="md" />
+                            <Separator />
                             
-                            <Title order={5}>📈 Retornos/Economias</Title>
-                            <Grid>
-                                <Grid.Col span={6}>
-                                    <NumberInput
-                                        label="Horas Economizadas/Mês"
-                                        placeholder="0"
-                                        min={0}
-                                        step={0.5}
-                                        description="Quantas horas por mês o projeto economiza"
-                                        value={formData.horas_economizadas_mes}
-                                        onChange={(value) => setFormData(prev => ({...prev, horas_economizadas_mes: value}))}
-                                    />
-                                </Grid.Col>
-                                <Grid.Col span={6}>
-                                    <NumberInput
-                                        label="Valor Monetário Economizado/Mês (R$)"
-                                        placeholder="0"
-                                        min={0}
-                                        step={0.01}
-                                        description="Outros ganhos em reais (opcional)"
-                                        value={formData.valor_monetario_economizado_mes}
-                                        onChange={(value) => setFormData(prev => ({...prev, valor_monetario_economizado_mes: value}))}
-                                    />
-                                </Grid.Col>
-                            </Grid>
+                            <div>
+                                <h3 className="text-base font-medium mb-4">📈 Retornos/Economias</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm font-medium">Horas Economizadas/Mês</label>
+                                        <p className="text-xs text-muted-foreground mb-1">Quantas horas por mês o projeto economiza</p>
+                                        <Input
+                                            type="number"
+                                            placeholder="0"
+                                            min={0}
+                                            step={0.5}
+                                            value={formData.horas_economizadas_mes}
+                                            onChange={(e) => setFormData(prev => ({...prev, horas_economizadas_mes: parseFloat(e.target.value) || 0}))}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium">Valor Monetário Economizado/Mês (R$)</label>
+                                        <p className="text-xs text-muted-foreground mb-1">Outros ganhos em reais (opcional)</p>
+                                        <Input
+                                            type="number"
+                                            placeholder="0"
+                                            min={0}
+                                            step={0.01}
+                                            value={formData.valor_monetario_economizado_mes}
+                                            onChange={(e) => setFormData(prev => ({...prev, valor_monetario_economizado_mes: parseFloat(e.target.value) || 0}))}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
 
-                            <Divider my="md" />
+                            <Separator />
                             
-                            <Title order={5}>🎯 Controle</Title>
-                            <Grid>
-                                <Grid.Col span={6}>
-                                    <Select
-                                        label="Nível de Autonomia"
-                                        data={[
-                                            { value: 'total', label: 'Totalmente Autônomo' },
-                                            { value: 'parcial', label: 'Requer Supervisão' },
-                                            { value: 'manual', label: 'Processo Manual' }
-                                        ]}
-                                        value={formData.nivel_autonomia}
-                                        onChange={(value) => setFormData(prev => ({...prev, nivel_autonomia: value}))}
-                                        comboboxProps={{ withinPortal: true, zIndex: 1001 }}
-                                    />
-                                </Grid.Col>
-                                <Grid.Col span={6}>
-                                    <TextInput
-                                        label="Data Break-Even (Opcional)"
-                                        placeholder="YYYY-MM-DD"
-                                        description="Ex: 2024-03-15"
-                                        value={formData.data_break_even || ''}
-                                        onChange={(e) => setFormData(prev => ({...prev, data_break_even: e.target.value || null}))}
-                                    />
-                                </Grid.Col>
-                            </Grid>
+                            <div>
+                                <h3 className="text-base font-medium mb-4">🎯 Controle</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm font-medium">Nível de Autonomia</label>
+                                        <Select 
+                                            value={formData.nivel_autonomia}
+                                            onValueChange={(value) => setFormData(prev => ({...prev, nivel_autonomia: value}))}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="total">Totalmente Autônomo</SelectItem>
+                                                <SelectItem value="parcial">Requer Supervisão</SelectItem>
+                                                <SelectItem value="manual">Processo Manual</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium">Data Break-Even (Opcional)</label>
+                                        <p className="text-xs text-muted-foreground mb-1">Ex: 2024-03-15</p>
+                                        <Input
+                                            type="date"
+                                            value={formData.data_break_even || ''}
+                                            onChange={(e) => setFormData(prev => ({...prev, data_break_even: e.target.value || null}))}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
 
                             {formData.horas_totais > 0 && formData.custo_hora_empresa > 0 && (
-                                <Paper withBorder p="md" bg="blue.0" mt="md">
-                                    <Text size="sm" weight={500} mb="xs">💡 Prévia dos Cálculos</Text>
-                                    <Text size="sm">
+                                <div className="border rounded-lg p-4 bg-blue-50 mt-4">
+                                    <h4 className="text-sm font-medium mb-2">💡 Prévia dos Cálculos</h4>
+                                    <p className="text-sm">
                                         Investimento em desenvolvimento: R$ {(formData.horas_totais * formData.custo_hora_empresa).toLocaleString('pt-BR')}
-                                    </Text>
+                                    </p>
                                     {formData.horas_economizadas_mes > 0 && (
-                                        <Text size="sm">
+                                        <p className="text-sm">
                                             Economia/mês: {formData.horas_economizadas_mes}h × R$ {formData.custo_hora_empresa} = R$ {(formData.horas_economizadas_mes * formData.custo_hora_empresa).toLocaleString('pt-BR')}
-                                        </Text>
+                                        </p>
                                     )}
-                                </Paper>
+                                </div>
                             )}
-                        </Stack>
-                    </Tabs.Panel>
-                </Tabs>
+                        </TabsContent>
+                    </Tabs>
 
-                <Group justify="flex-end" mt="xl">
-                    <Button variant="outline" onClick={onClose}>
-                        Cancelar
-                    </Button>
-                    <Button type="submit" loading={loading}>
-                        {projeto ? 'Salvar' : 'Criar Projeto'}
-                    </Button>
-                </Group>
-            </form>
-        </Modal>
+                    <div className="flex justify-end gap-2 mt-6">
+                        <Button variant="outline" onClick={onClose}>
+                            Cancelar
+                        </Button>
+                        <Button type="submit" disabled={loading}>
+                            {loading ? 'Salvando...' : (projeto ? 'Salvar' : 'Criar Projeto')}
+                        </Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
     );
 };
 
@@ -1382,103 +1525,110 @@ function ProjetoDashboard() {
     }, [projetos]);
 
     return (
-        <Container size="xl" p="md">
-            <LoadingOverlay visible={loading} overlayProps={{ radius: "sm", blur: 2 }} />
+        <div className="max-w-7xl mx-auto p-6">
+            {loading && (
+                <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+            )}
 
             {/* Header */}
-            <Group justify="space-between" mb="xl">
-                <Box>
-                    <Title order={2} mb="xs">
-                        <Group gap="sm">
-                            <IconRobot size={32} />
-                            🤖 Dashboard de IA & Automação
-                        </Group>
-                    </Title>
-                    <Text c="dimmed">
+            <div className="flex justify-between items-start mb-8">
+                <div>
+                    <div className="flex items-center gap-3 mb-2">
+                        <Bot className="h-8 w-8" />
+                        <h1 className="text-2xl font-bold">🤖 Dashboard de IA & Automação</h1>
+                    </div>
+                    <p className="text-muted-foreground">
                         Gerencie projetos de IA, automação e suas métricas financeiras
-                    </Text>
-                </Box>
+                    </p>
+                </div>
                 
-                <Group gap="md">
+                <div className="flex gap-3">
                     <Button
-                        leftSection={<IconRefresh size={16} />}
-                        variant="light"
+                        variant="outline"
                         onClick={carregarDadosIniciais}
                     >
+                        <RefreshCw className="h-4 w-4 mr-2" />
                         Atualizar
                     </Button>
                     <Button
-                        leftSection={<IconPlus size={16} />}
                         onClick={() => {
                             setSelectedProjeto(null);
                             setFormModalOpen(true);
                         }}
                     >
+                        <Plus className="h-4 w-4 mr-2" />
                         Novo Projeto
                     </Button>
-                </Group>
-            </Group>
+                </div>
+            </div>
 
             {error && (
-                <Alert 
-                    icon={<IconX size="1rem" />} 
-                    title="Erro" 
-                    color="red" 
-                    mb="md"
-                    onClose={() => setError(null)}
-                >
-                    {error}
+                <Alert variant="destructive" className="mb-4">
+                    <X className="h-4 w-4" />
+                    <AlertDescription>
+                        <strong>Erro:</strong> {error}
+                    </AlertDescription>
                 </Alert>
             )}
 
-            {/* Cards de Estatísticas - CORREÇÃO: Só mostrar 4º card se tiver dados financeiros */}
+            {/* Cards de Estatísticas */}
             {stats && (
-                <SimpleGrid cols={userPermissions?.pode_ver_financeiro && stats.economia_mensal_total ? 4 : 3} spacing="md" mb="xl">
-                    <Paper withBorder p="md" bg="blue.0">
-                        <Group gap="sm">
-                            <IconBrain size={24} />
-                            <Box>
-                                <Text size="sm" c="dimmed">Total de Projetos</Text>
-                                <Text size="xl" weight={700}>{stats.total_projetos}</Text>
-                            </Box>
-                        </Group>
-                    </Paper>
+                <div className={`grid gap-4 mb-8 ${userPermissions?.pode_ver_financeiro && stats.economia_mensal_total ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
+                    <Card className="border bg-blue-50">
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                                <Brain className="h-6 w-6 text-blue-600" />
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Total de Projetos</p>
+                                    <p className="text-2xl font-bold">{stats.total_projetos}</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                     
-                    <Paper withBorder p="md" bg="green.0">
-                        <Group gap="sm">
-                            <IconActivity size={24} />
-                            <Box>
-                                <Text size="sm" c="dimmed">Projetos Ativos</Text>
-                                <Text size="xl" weight={700}>{stats.projetos_ativos}</Text>
-                            </Box>
-                        </Group>
-                    </Paper>
+                    <Card className="border bg-green-50">
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                                <Activity className="h-6 w-6 text-green-600" />
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Projetos Ativos</p>
+                                    <p className="text-2xl font-bold">{stats.projetos_ativos}</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                     
-                    <Paper withBorder p="md" bg="orange.0">
-                        <Group gap="sm">
-                            <IconClock size={24} />
-                            <Box>
-                                <Text size="sm" c="dimmed">Horas Investidas</Text>
-                                <Text size="xl" weight={700}>{stats.horas_totais_investidas}h</Text>
-                            </Box>
-                        </Group>
-                    </Paper>
+                    <Card className="border bg-orange-50">
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                                <Clock className="h-6 w-6 text-orange-600" />
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Horas Investidas</p>
+                                    <p className="text-2xl font-bold">{stats.horas_totais_investidas}h</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                     
-                    {/* CORREÇÃO: Só mostrar se tiver dados financeiros E permissão */}
+                    {/* Só mostrar se tiver dados financeiros E permissão */}
                     {userPermissions?.pode_ver_financeiro && stats.economia_mensal_total && (
-                        <Paper withBorder p="md" bg="teal.0">
-                            <Group gap="sm">
-                                <IconTrendingUp size={24} />
-                                <Box>
-                                    <Text size="sm" c="dimmed">Economia/Mês</Text>
-                                    <Text size="xl" weight={700}>
-                                        R$ {stats.economia_mensal_total?.toLocaleString('pt-BR')}
-                                    </Text>
-                                </Box>
-                            </Group>
-                        </Paper>
+                        <Card className="border bg-teal-50">
+                            <CardContent className="p-4">
+                                <div className="flex items-center gap-3">
+                                    <TrendingUp className="h-6 w-6 text-teal-600" />
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Economia/Mês</p>
+                                        <p className="text-2xl font-bold">
+                                            R$ {stats.economia_mensal_total?.toLocaleString('pt-BR')}
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
                     )}
-                </SimpleGrid>
+                </div>
             )}
 
             {/* Filtros */}

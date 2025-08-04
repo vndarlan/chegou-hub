@@ -1,4 +1,4 @@
-// src/pages/LoginPage.js - MIGRADO PARA SHADCN/UI
+// src/pages/LoginPage.js - TOTALMENTE MIGRADO PARA SHADCN/UI
 import React, { useState, useCallback } from 'react';
 import axios from 'axios';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
@@ -7,8 +7,8 @@ import { Input } from '../components/ui/input';
 import { Alert, AlertDescription, LoadingSpinner } from '../components/ui';
 import { IconCheck, IconX } from '@tabler/icons-react';
 
-// Mantine Select (manter temporariamente)
-import { Select } from '@mantine/core';
+// shadcn/ui Select
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 // Partículas
 import Particles from "react-tsparticles";
@@ -224,23 +224,22 @@ function LoginPage({ setIsLoggedIn }) {
                                     <label className="text-sm font-medium text-foreground block mb-1">
                                         Time
                                     </label>
-                                    <Select
-                                        placeholder="Selecione seu time"
-                                        data={TIMES}
-                                        value={timeSelecionado}
-                                        onChange={setTimeSelecionado}
-                                        required={mode === 'register'}
-                                        searchable
-                                        nothingFoundMessage="Time não encontrado"
+                                    <Select 
+                                        value={timeSelecionado} 
+                                        onValueChange={setTimeSelecionado}
                                         disabled={loading}
-                                        styles={{
-                                            input: {
-                                                minHeight: '40px',
-                                                border: '1px solid hsl(var(--border))',
-                                                borderRadius: '6px',
-                                            }
-                                        }}
-                                    />
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione seu time" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {TIMES.map((time) => (
+                                                <SelectItem key={time.value} value={time.value}>
+                                                    {time.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             )}
 
