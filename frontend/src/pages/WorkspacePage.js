@@ -31,7 +31,6 @@ import EngajamentoPage from '../features/engajamento/EngajamentoPage';
 import NoveltiesPage from '../features/novelties/NoveltiesPage';
 import ProcessamentoPage from '../features/processamento/ProcessamentoPage';
 import FeedbackButton from '../components/FeedbackButton';
-import FeedbackDashboard from '../features/feedback/FeedbackDashboard';
 
 // Mapeamento de breadcrumbs simplificado
 const breadcrumbMap = {
@@ -47,7 +46,6 @@ const breadcrumbMap = {
   '/workspace/engajamento': [{ label: 'Operacional', href: '#' }, { label: 'Engajamento' }],
   '/workspace/novelties': [{ label: 'Operacional', href: '#' }, { label: 'Novelties' }],
   '/workspace/processamento': [{ label: 'Suporte', href: '#' }, { label: 'Processamento' }],
-  '/workspace/feedback': [{ label: 'Suporte', href: '#' }, { label: 'Feedback & Bugs' }],
 };
 
 function WorkspacePage({ setIsLoggedIn }) {
@@ -153,7 +151,6 @@ function WorkspacePage({ setIsLoggedIn }) {
               <Route path="engajamento" element={<EngajamentoPage />} />
               <Route path="novelties" element={<NoveltiesPage />} />
               <Route path="processamento" element={<ProcessamentoPage />} />
-              {userData?.isAdmin && <Route path="feedback" element={<FeedbackDashboard />} />}
               <Route path="*" element={
                 <div className="flex h-full items-center justify-center">
                   <div className="text-center">

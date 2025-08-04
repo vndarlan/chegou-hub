@@ -93,9 +93,6 @@ const FeedbackModal = ({ onClose }) => {
       }
 
       const response = await axios.post('/feedback/create/', submitData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
         withCredentials: true
       });
 
@@ -121,9 +118,26 @@ const FeedbackModal = ({ onClose }) => {
 
     } catch (error) {
       console.error('Erro ao enviar feedback:', error);
+      
+      let errorMessage = 'Erro ao enviar feedback. Tente novamente.';
+      
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.imagem) {
+          errorMessage = `Erro na imagem: ${error.response.data.imagem[0]}`;
+        } else {
+          errorMessage = JSON.stringify(error.response.data);
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       setSubmitStatus({
         type: 'error',
-        message: error.response?.data?.message || 'Erro ao enviar feedback. Tente novamente.'
+        message: errorMessage
       });
     } finally {
       setIsSubmitting(false);

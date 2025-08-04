@@ -189,6 +189,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 if not DEBUG:
     MEDIA_ROOT = BASE_DIR / 'staticfiles' / 'media'
 
+# Configurações de upload
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+
 STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
