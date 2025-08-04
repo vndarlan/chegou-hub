@@ -28,11 +28,11 @@ import {
     FileText, Link, Tag, Brain, Bot
 } from 'lucide-react';
 
-// Keep some Mantine imports temporarily
+// Mantine imports ainda necessários
 import { DatePickerInput } from '@mantine/dates';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { RingProgress, BarChart as MantineBarChart, LineChart, PieChart } from '@mantine/core';
+import { RingProgress, BarChart as MantineBarChart, LineChart, PieChart, Timeline, Paper, SimpleGrid, Text, Box, Group, Stack, Title } from '@mantine/core';
 import axios from 'axios';
 
 // === COMPONENTES AUXILIARES ===
@@ -319,9 +319,16 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
     // VERIFICAÇÃO CONDICIONAL DEPOIS DOS HOOKS
     if (!opcoes) {
         return (
-            <Modal opened={opened} onClose={onClose} title="Carregando...">
-                <LoadingOverlay visible={true} />
-            </Modal>
+            <Dialog open={opened} onOpenChange={onClose}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Carregando...</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex items-center justify-center p-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         );
     }
 
@@ -836,96 +843,110 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
     const metricas = projeto.metricas_financeiras;
 
     return (
-        <Modal 
-            opened={opened} 
-            onClose={onClose}
-            title={projeto.nome}
-            size="xl"
-            zIndex={1000}
-        >
-            <Tabs defaultValue="info">
-                <Tabs.List>
-                    <Tabs.Tab value="info" leftSection={<IconFileText size={16} />}>
-                        Informações
-                    </Tabs.Tab>
-                    {podeVerFinanceiro && (
-                        <Tabs.Tab value="financeiro" leftSection={<IconCoin size={16} />}>
-                            Financeiro
-                        </Tabs.Tab>
-                    )}
-                    <Tabs.Tab value="historico" leftSection={<IconVersions size={16} />}>
-                        Histórico
-                    </Tabs.Tab>
-                </Tabs.List>
+        <Dialog open={opened} onOpenChange={onClose}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle>{projeto.nome}</DialogTitle>
+                </DialogHeader>
+                <Tabs defaultValue="info" className="mt-4">
+                    <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="info" className="flex items-center gap-2">
+                            <FileText className="h-4 w-4" />
+                            Informações
+                        </TabsTrigger>
+                        {podeVerFinanceiro && (
+                            <TabsTrigger value="financeiro" className="flex items-center gap-2">
+                                <Coins className="h-4 w-4" />
+                                Financeiro
+                            </TabsTrigger>
+                        )}
+                        <TabsTrigger value="historico" className="flex items-center gap-2">
+                            <GitBranch className="h-4 w-4" />
+                            Histórico
+                        </TabsTrigger>
+                    </TabsList>
 
-                <Tabs.Panel value="info" pt="md">
-                    <Stack gap="md">
-                        {/* CORREÇÃO 2: Descrição com formatação preservada */}
-                        <Paper withBorder p="md">
-                            <Text size="sm" c="dimmed" mb="xs">Descrição</Text>
-                            <Text style={{ whiteSpace: 'pre-wrap' }}>{projeto.descricao}</Text>
-                        </Paper>
+                    <TabsContent value="info" className="space-y-4 mt-4">
+                        {/* Descrição com formatação preservada */}
+                        <Card>
+                            <CardContent className="p-4">
+                                <p className="text-sm text-muted-foreground mb-2">Descrição</p>
+                                <p className="whitespace-pre-wrap">{projeto.descricao}</p>
+                            </CardContent>
+                        </Card>
                         
-                        <SimpleGrid cols={3} spacing="md">
-                            <Paper withBorder p="sm">
-                                <Text size="xs" c="dimmed">Status</Text>
-                                <StatusBadge status={projeto.status} />
-                            </Paper>
-                            <Paper withBorder p="sm">
-                                <Text size="xs" c="dimmed">Tipo</Text>
-                                <Text size="sm" weight={500}>{projeto.tipo_projeto}</Text>
-                            </Paper>
-                            <Paper withBorder p="sm">
-                                <Text size="xs" c="dimmed">Departamentos</Text>
-                                <Group gap="xs">
-                                    {projeto.departamentos_display?.length > 0 ? (
-                                        projeto.departamentos_display.map((dept, i) => (
-                                            <Badge key={i} size="xs">{dept}</Badge>
-                                        ))
-                                    ) : (
-                                        <Text size="sm">{projeto.departamento_atendido || 'N/A'}</Text>
-                                    )}
-                                </Group>
-                            </Paper>
-                        </SimpleGrid>
+                        <div className="grid grid-cols-3 gap-4">
+                            <Card>
+                                <CardContent className="p-3">
+                                    <p className="text-xs text-muted-foreground">Status</p>
+                                    <StatusBadge status={projeto.status} />
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardContent className="p-3">
+                                    <p className="text-xs text-muted-foreground">Tipo</p>
+                                    <p className="text-sm font-medium">{projeto.tipo_projeto}</p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardContent className="p-3">
+                                    <p className="text-xs text-muted-foreground">Departamentos</p>
+                                    <div className="flex gap-1 flex-wrap">
+                                        {projeto.departamentos_display?.length > 0 ? (
+                                            projeto.departamentos_display.map((dept, i) => (
+                                                <Badge key={i} variant="secondary" className="text-xs">{dept}</Badge>
+                                            ))
+                                        ) : (
+                                            <span className="text-sm">{projeto.departamento_atendido || 'N/A'}</span>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
 
-                        <SimpleGrid cols={2} spacing="md">
-                            <Paper withBorder p="sm">
-                                <Text size="xs" c="dimmed">Prioridade</Text>
-                                <PrioridadeBadge prioridade={projeto.prioridade} />
-                            </Paper>
-                            <Paper withBorder p="sm">
-                                <Text size="xs" c="dimmed">Complexidade</Text>
-                                <Badge color="blue" variant="light">{projeto.complexidade}</Badge>
-                            </Paper>
-                        </SimpleGrid>
+                        <div className="grid grid-cols-2 gap-4">
+                            <Card>
+                                <CardContent className="p-3">
+                                    <p className="text-xs text-muted-foreground">Prioridade</p>
+                                    <PrioridadeBadge prioridade={projeto.prioridade} />
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardContent className="p-3">
+                                    <p className="text-xs text-muted-foreground">Complexidade</p>
+                                    <Badge variant="outline" className="bg-blue-100 text-blue-800">{projeto.complexidade}</Badge>
+                                </CardContent>
+                            </Card>
+                        </div>
 
                         {/* BREAKDOWN DE HORAS */}
-                        <Paper withBorder p="md">
-                            <Title order={5} mb="md">⏱️ Breakdown de Horas</Title>
-                            <SimpleGrid cols={5} spacing="md">
-                                <Box>
-                                    <Text size="xs" c="dimmed">Total</Text>
-                                    <Text size="lg" weight={700}>{projeto.horas_totais}h</Text>
-                                </Box>
-                                <Box>
-                                    <Text size="xs" c="dimmed">Desenvolvimento</Text>
-                                    <Text size="sm">{projeto.horas_desenvolvimento || 0}h</Text>
-                                </Box>
-                                <Box>
-                                    <Text size="xs" c="dimmed">Testes</Text>
-                                    <Text size="sm">{projeto.horas_testes || 0}h</Text>
-                                </Box>
-                                <Box>
-                                    <Text size="xs" c="dimmed">Documentação</Text>
-                                    <Text size="sm">{projeto.horas_documentacao || 0}h</Text>
-                                </Box>
-                                <Box>
-                                    <Text size="xs" c="dimmed">Deploy</Text>
-                                    <Text size="sm">{projeto.horas_deploy || 0}h</Text>
-                                </Box>
-                            </SimpleGrid>
-                        </Paper>
+                        <Card>
+                            <CardContent className="p-4">
+                                <h3 className="text-base font-medium mb-4">⏱️ Breakdown de Horas</h3>
+                                <div className="grid grid-cols-5 gap-4">
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Total</p>
+                                        <p className="text-lg font-bold">{projeto.horas_totais}h</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Desenvolvimento</p>
+                                        <p className="text-sm">{projeto.horas_desenvolvimento || 0}h</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Testes</p>
+                                        <p className="text-sm">{projeto.horas_testes || 0}h</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Documentação</p>
+                                        <p className="text-sm">{projeto.horas_documentacao || 0}h</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Deploy</p>
+                                        <p className="text-sm">{projeto.horas_deploy || 0}h</p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
 
                         {/* INFORMAÇÕES ADICIONAIS */}
                         <SimpleGrid cols={2} spacing="md">
@@ -1144,10 +1165,10 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                                 </Timeline>
                             </Paper>
                         )}
-                    </Stack>
-                </Tabs.Panel>
-            </Tabs>
-        </Modal>
+                    </TabsContent>
+                </Tabs>
+            </DialogContent>
+        </Dialog>
     );
 };
 
@@ -1632,62 +1653,118 @@ function ProjetoDashboard() {
             )}
 
             {/* Filtros */}
-            <Paper withBorder p="md" mb="md">
-                <Grid>
-                    <Grid.Col span={4}>
-                        <TextInput
-                            placeholder="Buscar projetos..."
-                            leftSection={<IconSearch size={16} />}
-                            value={searchValue}
-                            onChange={(e) => setSearchValue(e.target.value)}
-                        />
-                    </Grid.Col>
-                    <Grid.Col span={2}>
-                        <MultiSelect
-                            placeholder="Status"
-                            data={opcoes?.status_choices || []}
-                            value={filtros.status}
-                            onChange={(value) => setFiltros(prev => ({ ...prev, status: value }))}
-                        />
-                    </Grid.Col>
-                    <Grid.Col span={2}>
-                        <MultiSelect
-                            placeholder="Tipo"
-                            data={opcoes?.tipo_projeto_choices || []}
-                            value={filtros.tipo_projeto}
-                            onChange={(value) => setFiltros(prev => ({ ...prev, tipo_projeto: value }))}
-                        />
-                    </Grid.Col>
-                    <Grid.Col span={2}>
-                        <MultiSelect
-                            placeholder="Departamento"
-                            data={opcoes?.departamento_choices || []}
-                            value={filtros.departamento}
-                            onChange={(value) => setFiltros(prev => ({ ...prev, departamento: value }))}
-                        />
-                    </Grid.Col>
-                    <Grid.Col span={2}>
-                        <Group gap="xs">
-                            <ActionIcon
-                                variant={viewMode === 'cards' ? 'filled' : 'outline'}
+            <Card className="mb-4">
+                <CardContent className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                        <div className="md:col-span-2">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Buscar projetos..."
+                                    value={searchValue}
+                                    onChange={(e) => setSearchValue(e.target.value)}
+                                    className="pl-10"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <div className="text-sm text-gray-500 mb-1">
+                                Status: {(filtros.status || []).length > 0 ? `${filtros.status.length} selecionados` : 'Todos'}
+                            </div>
+                            <div className="space-y-1 max-h-24 overflow-y-auto border rounded p-2 text-xs">
+                                {(opcoes?.status_choices || []).map((status) => (
+                                    <div key={status.value} className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            id={`status-${status.value}`}
+                                            checked={(filtros.status || []).includes(status.value)}
+                                            onChange={(e) => {
+                                                const current = filtros.status || [];
+                                                if (e.target.checked) {
+                                                    setFiltros(prev => ({...prev, status: [...current, status.value]}));
+                                                } else {
+                                                    setFiltros(prev => ({...prev, status: current.filter(s => s !== status.value)}));
+                                                }
+                                            }}
+                                        />
+                                        <label htmlFor={`status-${status.value}`} className="text-xs">{status.label}</label>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <div className="text-sm text-gray-500 mb-1">
+                                Tipo: {(filtros.tipo_projeto || []).length > 0 ? `${filtros.tipo_projeto.length} selecionados` : 'Todos'}
+                            </div>
+                            <div className="space-y-1 max-h-24 overflow-y-auto border rounded p-2 text-xs">
+                                {(opcoes?.tipo_projeto_choices || []).map((tipo) => (
+                                    <div key={tipo.value} className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            id={`tipo-${tipo.value}`}
+                                            checked={(filtros.tipo_projeto || []).includes(tipo.value)}
+                                            onChange={(e) => {
+                                                const current = filtros.tipo_projeto || [];
+                                                if (e.target.checked) {
+                                                    setFiltros(prev => ({...prev, tipo_projeto: [...current, tipo.value]}));
+                                                } else {
+                                                    setFiltros(prev => ({...prev, tipo_projeto: current.filter(t => t !== tipo.value)}));
+                                                }
+                                            }}
+                                        />
+                                        <label htmlFor={`tipo-${tipo.value}`} className="text-xs">{tipo.label}</label>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <div className="text-sm text-gray-500 mb-1">
+                                Depto: {(filtros.departamento || []).length > 0 ? `${filtros.departamento.length} selecionados` : 'Todos'}
+                            </div>
+                            <div className="space-y-1 max-h-24 overflow-y-auto border rounded p-2 text-xs">
+                                {(opcoes?.departamento_choices || []).map((dept) => (
+                                    <div key={dept.value} className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            id={`dept-${dept.value}`}
+                                            checked={(filtros.departamento || []).includes(dept.value)}
+                                            onChange={(e) => {
+                                                const current = filtros.departamento || [];
+                                                if (e.target.checked) {
+                                                    setFiltros(prev => ({...prev, departamento: [...current, dept.value]}));
+                                                } else {
+                                                    setFiltros(prev => ({...prev, departamento: current.filter(d => d !== dept.value)}));
+                                                }
+                                            }}
+                                        />
+                                        <label htmlFor={`dept-${dept.value}`} className="text-xs">{dept.label}</label>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button
+                                variant={viewMode === 'cards' ? 'default' : 'outline'}
+                                size="sm"
                                 onClick={() => setViewMode('cards')}
                             >
-                                <IconTarget size={16} />
-                            </ActionIcon>
-                            <ActionIcon
-                                variant={viewMode === 'tabela' ? 'filled' : 'outline'}
+                                <Target className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant={viewMode === 'tabela' ? 'default' : 'outline'}
+                                size="sm"
                                 onClick={() => setViewMode('tabela')}
                             >
-                                <IconFileText size={16} />
-                            </ActionIcon>
-                        </Group>
-                    </Grid.Col>
-                </Grid>
-            </Paper>
+                                <FileText className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Lista de Projetos */}
             {viewMode === 'cards' ? (
-                <SimpleGrid cols={{ base: 1, md: 2, lg: 3 }} spacing="md">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {projetosFiltrados.slice(0, 20).map((projeto) => (
                         <ProjetoCard
                             key={projeto.id}
@@ -1712,58 +1789,60 @@ function ProjetoDashboard() {
                             userPermissions={userPermissions}
                         />
                     ))}
-                </SimpleGrid>
+                </div>
             ) : (
-                <Paper withBorder>
+                <div className="border rounded-lg overflow-hidden">
                     <Table>
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th>Nome</Table.Th>
-                                <Table.Th>Status</Table.Th>
-                                <Table.Th>Tipo</Table.Th>
-                                <Table.Th>Horas</Table.Th>
-                                {userPermissions?.pode_ver_financeiro && <Table.Th>ROI</Table.Th>}
-                                <Table.Th>Ações</Table.Th>
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Nome</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Tipo</TableHead>
+                                <TableHead>Horas</TableHead>
+                                {userPermissions?.pode_ver_financeiro && <TableHead>ROI</TableHead>}
+                                <TableHead>Ações</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
                             {projetosFiltrados.map((projeto) => (
-                                <Table.Tr key={projeto.id}>
-                                    <Table.Td>
-                                        <Text weight={500}>{projeto.nome}</Text>
-                                        <Text size="xs" c="dimmed">{projeto.criadores_nomes.join(', ')}</Text>
-                                    </Table.Td>
-                                    <Table.Td>
+                                <TableRow key={projeto.id}>
+                                    <TableCell>
+                                        <div>
+                                            <p className="font-medium">{projeto.nome}</p>
+                                            <p className="text-xs text-muted-foreground">{projeto.criadores_nomes.join(', ')}</p>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
                                         <StatusBadge status={projeto.status} />
-                                    </Table.Td>
-                                    <Table.Td>{projeto.tipo_projeto}</Table.Td>
-                                    <Table.Td>{projeto.horas_totais}h</Table.Td>
+                                    </TableCell>
+                                    <TableCell>{projeto.tipo_projeto}</TableCell>
+                                    <TableCell>{projeto.horas_totais}h</TableCell>
                                     {userPermissions?.pode_ver_financeiro && (
-                                        <Table.Td>
+                                        <TableCell>
                                             {projeto.metricas_financeiras?.acesso_restrito ? (
-                                                <Text size="xs" c="dimmed">Restrito</Text>
+                                                <span className="text-xs text-muted-foreground">Restrito</span>
                                             ) : (
-                                                <Text weight={500} c={projeto.metricas_financeiras?.roi > 0 ? 'green' : 'red'}>
+                                                <span className={`font-medium ${projeto.metricas_financeiras?.roi > 0 ? 'text-green-600' : 'text-red-600'}`}>
                                                     {projeto.metricas_financeiras?.roi}%
-                                                </Text>
+                                                </span>
                                             )}
-                                        </Table.Td>
+                                        </TableCell>
                                     )}
-                                    <Table.Td>
-                                        <Group gap="xs">
-                                            <ActionIcon size="sm" onClick={() => handleViewProjeto(projeto)}>
-                                                <IconEye size={14} />
-                                            </ActionIcon>
-                                            <ActionIcon size="sm" onClick={() => handleEditProjeto(projeto)}>
-                                                <IconEdit size={14} />
-                                            </ActionIcon>
-                                        </Group>
-                                    </Table.Td>
-                                </Table.Tr>
+                                    <TableCell>
+                                        <div className="flex gap-1">
+                                            <Button variant="ghost" size="sm" onClick={() => handleViewProjeto(projeto)}>
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => handleEditProjeto(projeto)}>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
                             ))}
-                        </Table.Tbody>
+                        </TableBody>
                     </Table>
-                </Paper>
+                </div>
             )}
 
             {/* Modais */}
@@ -1800,7 +1879,7 @@ function ProjetoDashboard() {
                 projeto={selectedProjeto}
                 onSave={carregarProjetos}
             />
-        </Container>
+        </div>
     );
 }
 
@@ -1849,44 +1928,49 @@ const NovaVersaoModal = ({ opened, onClose, projeto, onSave }) => {
     if (!projeto) return null;
 
     return (
-        <Modal 
-            opened={opened} 
-            onClose={onClose}
-            title={`Nova Versão - ${projeto.nome}`}
-            size="md"
-        >
-            <form onSubmit={form.onSubmit(handleSubmit)}>
-                <Stack gap="md">
-                    <Alert color="blue" icon={<IconVersions size={16} />}>
-                        Versão atual: <strong>{projeto.versao_atual}</strong>
+        <Dialog open={opened} onOpenChange={onClose}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Nova Versão - {projeto.nome}</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={form.onSubmit(handleSubmit)} className="space-y-4">
+                    <Alert className="border-blue-200 bg-blue-50">
+                        <GitBranch className="h-4 w-4" />
+                        <AlertDescription>
+                            Versão atual: <strong>{projeto.versao_atual}</strong>
+                        </AlertDescription>
                     </Alert>
                     
-                    <TextInput
-                        label="Nova Versão"
-                        placeholder="Ex: 1.2.0"
-                        required
-                        {...form.getInputProps('versao')}
-                    />
+                    <div>
+                        <label className="text-sm font-medium">Nova Versão</label>
+                        <Input
+                            placeholder="Ex: 1.2.0"
+                            required
+                            {...form.getInputProps('versao')}
+                        />
+                    </div>
                     
-                    <Textarea
-                        label="Motivo da Mudança"
-                        placeholder="Descreva as alterações realizadas..."
-                        rows={4}
-                        required
-                        {...form.getInputProps('motivo_mudanca')}
-                    />
+                    <div>
+                        <label className="text-sm font-medium">Motivo da Mudança</label>
+                        <Textarea
+                            placeholder="Descreva as alterações realizadas..."
+                            rows={4}
+                            required
+                            {...form.getInputProps('motivo_mudanca')}
+                        />
+                    </div>
                     
-                    <Group justify="flex-end">
+                    <div className="flex justify-end gap-2 mt-6">
                         <Button variant="outline" onClick={onClose}>
                             Cancelar
                         </Button>
-                        <Button type="submit" loading={loading}>
-                            Criar Versão
+                        <Button type="submit" disabled={loading}>
+                            {loading ? 'Criando...' : 'Criar Versão'}
                         </Button>
-                    </Group>
-                </Stack>
-            </form>
-        </Modal>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
     );
 };
 
