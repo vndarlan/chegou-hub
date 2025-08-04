@@ -32,7 +32,7 @@ import {
 import { DatePickerInput } from '@mantine/dates';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { RingProgress, BarChart as MantineBarChart, LineChart, PieChart, Timeline, Paper, SimpleGrid, Text, Box, Group, Stack, Title } from '@mantine/core';
+import { RingProgress, BarChart as MantineBarChart, LineChart, PieChart, Timeline } from '@mantine/core';
 import axios from 'axios';
 
 // === COMPONENTES AUXILIARES ===
@@ -949,223 +949,244 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                         </Card>
 
                         {/* INFORMAÇÕES ADICIONAIS */}
-                        <SimpleGrid cols={2} spacing="md">
-                            <Paper withBorder p="sm">
-                                <Text size="xs" c="dimmed">Usuários Impactados</Text>
-                                <Text size="sm" weight={500}>{projeto.usuarios_impactados}</Text>
-                            </Paper>
-                            <Paper withBorder p="sm">
-                                <Text size="xs" c="dimmed">Frequência de Uso</Text>
-                                <Text size="sm" weight={500}>{projeto.frequencia_uso}</Text>
-                            </Paper>
-                        </SimpleGrid>
+                        <div className="grid grid-cols-2 gap-4">
+                            <Card>
+                                <CardContent className="p-3">
+                                    <p className="text-xs text-muted-foreground">Usuários Impactados</p>
+                                    <p className="text-sm font-medium">{projeto.usuarios_impactados}</p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardContent className="p-3">
+                                    <p className="text-xs text-muted-foreground">Frequência de Uso</p>
+                                    <p className="text-sm font-medium">{projeto.frequencia_uso}</p>
+                                </CardContent>
+                            </Card>
+                        </div>
 
                         {/* FERRAMENTAS */}
                         {projeto.ferramentas_tecnologias?.length > 0 && (
-                            <Paper withBorder p="md">
-                                <Text size="sm" c="dimmed" mb="xs">Ferramentas/Tecnologias</Text>
-                                <Group gap="xs">
-                                    {projeto.ferramentas_tecnologias.map((tech, i) => (
-                                        <Badge key={i} variant="outline">{tech}</Badge>
-                                    ))}
-                                </Group>
-                            </Paper>
+                            <Card>
+                                <CardContent className="p-4">
+                                    <p className="text-sm text-muted-foreground mb-2">Ferramentas/Tecnologias</p>
+                                    <div className="flex gap-2 flex-wrap">
+                                        {projeto.ferramentas_tecnologias.map((tech, i) => (
+                                            <Badge key={i} variant="outline">{tech}</Badge>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
                         )}
 
-                        {/* CORREÇÃO 2: Documentação com formatação preservada */}
+                        {/* Documentação com formatação preservada */}
                         {(projeto.documentacao_tecnica || projeto.licoes_aprendidas || projeto.proximos_passos) && (
-                            <Paper withBorder p="md">
-                                <Title order={5} mb="md">📚 Documentação</Title>
-                                <Stack gap="md">
-                                    {projeto.documentacao_tecnica && (
-                                        <Box>
-                                            <Text size="sm" c="dimmed" mb="xs">Documentação Técnica</Text>
-                                            <Text 
-                                                component="a" 
-                                                href={projeto.documentacao_tecnica} 
-                                                target="_blank"
-                                                c="blue"
-                                                size="sm"
-                                            >
-                                                {projeto.documentacao_tecnica}
-                                            </Text>
-                                        </Box>
-                                    )}
-                                    
-                                    {projeto.licoes_aprendidas && (
-                                        <Box>
-                                            <Text size="sm" c="dimmed" mb="xs">Lições Aprendidas</Text>
-                                            <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
-                                                {projeto.licoes_aprendidas}
-                                            </Text>
-                                        </Box>
-                                    )}
-                                    
-                                    {projeto.proximos_passos && (
-                                        <Box>
-                                            <Text size="sm" c="dimmed" mb="xs">Próximos Passos</Text>
-                                            <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
-                                                {projeto.proximos_passos}
-                                            </Text>
-                                        </Box>
-                                    )}
-                                </Stack>
-                            </Paper>
+                            <Card>
+                                <CardContent className="p-4">
+                                    <h3 className="text-base font-medium mb-4">📚 Documentação</h3>
+                                    <div className="space-y-4">
+                                        {projeto.documentacao_tecnica && (
+                                            <div>
+                                                <p className="text-sm text-muted-foreground mb-1">Documentação Técnica</p>
+                                                <a 
+                                                    href={projeto.documentacao_tecnica} 
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-sm text-blue-600 hover:underline"
+                                                >
+                                                    {projeto.documentacao_tecnica}
+                                                </a>
+                                            </div>
+                                        )}
+                                        
+                                        {projeto.licoes_aprendidas && (
+                                            <div>
+                                                <p className="text-sm text-muted-foreground mb-1">Lições Aprendidas</p>
+                                                <p className="text-sm whitespace-pre-wrap">
+                                                    {projeto.licoes_aprendidas}
+                                                </p>
+                                            </div>
+                                        )}
+                                        
+                                        {projeto.proximos_passos && (
+                                            <div>
+                                                <p className="text-sm text-muted-foreground mb-1">Próximos Passos</p>
+                                                <p className="text-sm whitespace-pre-wrap">
+                                                    {projeto.proximos_passos}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
                         )}
 
                         {/* LINK DO PROJETO */}
                         {projeto.link_projeto && (
-                            <Paper withBorder p="md">
-                                <Text size="sm" c="dimmed" mb="xs">Link do Projeto</Text>
-                                <Text 
-                                    component="a" 
-                                    href={projeto.link_projeto} 
-                                    target="_blank"
-                                    c="blue"
-                                >
-                                    {projeto.link_projeto}
-                                </Text>
-                            </Paper>
+                            <Card>
+                                <CardContent className="p-4">
+                                    <p className="text-sm text-muted-foreground mb-1">Link do Projeto</p>
+                                    <a 
+                                        href={projeto.link_projeto} 
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:underline"
+                                    >
+                                        {projeto.link_projeto}
+                                    </a>
+                                </CardContent>
+                            </Card>
                         )}
 
                         {/* CRIADORES */}
-                        <Paper withBorder p="md">
-                            <Text size="sm" c="dimmed" mb="xs">Criadores/Responsáveis</Text>
-                            <Group gap="xs">
-                                {projeto.criadores?.length > 0 ? (
-                                    projeto.criadores.map((criador, i) => (
-                                        <Badge key={i} variant="outline">{criador.nome_completo || criador.username}</Badge>
-                                    ))
-                                ) : (
-                                    <Text size="sm">Nenhum criador definido</Text>
-                                )}
-                            </Group>
-                        </Paper>
-                    </Stack>
+                        <Card>
+                            <CardContent className="p-4">
+                                <p className="text-sm text-muted-foreground mb-2">Criadores/Responsáveis</p>
+                                <div className="flex gap-2 flex-wrap">
+                                    {projeto.criadores?.length > 0 ? (
+                                        projeto.criadores.map((criador, i) => (
+                                            <Badge key={i} variant="outline">{criador.nome_completo || criador.username}</Badge>
+                                        ))
+                                    ) : (
+                                        <span className="text-sm">Nenhum criador definido</span>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
                     </TabsContent>
 
                 {/* ABA FINANCEIRO */}
                 {podeVerFinanceiro && !metricas?.acesso_restrito && (
                     <TabsContent value="financeiro" className="space-y-4 mt-4">
-                        <Stack gap="md">
+                        <div className="space-y-4">
                             {/* CUSTOS */}
-                            <Paper withBorder p="md">
-                                <Title order={5} mb="md">💰 Custos</Title>
-                                <SimpleGrid cols={2} spacing="md">
-                                    <Box>
-                                        <Text size="xs" c="dimmed">Custo/Hora Empresa</Text>
-                                        <Text size="sm" weight={500}>R$ {projeto.custo_hora_empresa || 0}</Text>
-                                    </Box>
-                                    <Box>
-                                        <Text size="xs" c="dimmed">APIs/Mês</Text>
-                                        <Text size="sm" weight={500}>R$ {projeto.custo_apis_mensal || 0}</Text>
-                                    </Box>
-                                </SimpleGrid>
-                                
-                                {/* LISTA DE FERRAMENTAS */}
-                                {projeto.lista_ferramentas?.length > 0 && (
-                                    <Box mt="md">
-                                        <Text size="sm" c="dimmed" mb="xs">Ferramentas/Infraestrutura</Text>
-                                        <Stack gap="xs">
-                                            {projeto.lista_ferramentas.map((ferramenta, i) => (
-                                                <Group key={i} justify="space-between">
-                                                    <Text size="sm">{ferramenta.nome}</Text>
-                                                    <Text size="sm" weight={500}>R$ {ferramenta.valor}</Text>
-                                                </Group>
-                                            ))}
-                                        </Stack>
-                                    </Box>
-                                )}
-                            </Paper>
+                            <Card>
+                                <CardContent className="p-4">
+                                    <h3 className="text-base font-medium mb-4">💰 Custos</h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Custo/Hora Empresa</p>
+                                            <p className="text-sm font-medium">R$ {projeto.custo_hora_empresa || 0}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">APIs/Mês</p>
+                                            <p className="text-sm font-medium">R$ {projeto.custo_apis_mensal || 0}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* LISTA DE FERRAMENTAS */}
+                                    {projeto.lista_ferramentas?.length > 0 && (
+                                        <div className="mt-4">
+                                            <p className="text-sm text-muted-foreground mb-2">Ferramentas/Infraestrutura</p>
+                                            <div className="space-y-2">
+                                                {projeto.lista_ferramentas.map((ferramenta, i) => (
+                                                    <div key={i} className="flex justify-between items-center">
+                                                        <span className="text-sm">{ferramenta.nome}</span>
+                                                        <span className="text-sm font-medium">R$ {ferramenta.valor}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
 
                             {/* RETORNOS */}
-                            <Paper withBorder p="md">
-                                <Title order={5} mb="md">📈 Retornos</Title>
-                                <SimpleGrid cols={2} spacing="md">
-                                    <Box>
-                                        <Text size="xs" c="dimmed">Horas Economizadas/Mês</Text>
-                                        <Text size="sm" weight={500}>{projeto.horas_economizadas_mes || 0}h</Text>
-                                    </Box>
-                                    <Box>
-                                        <Text size="xs" c="dimmed">Valor Monetário/Mês</Text>
-                                        <Text size="sm" weight={500}>R$ {projeto.valor_monetario_economizado_mes || 0}</Text>
-                                    </Box>
-                                </SimpleGrid>
-                            </Paper>
+                            <Card>
+                                <CardContent className="p-4">
+                                    <h3 className="text-base font-medium mb-4">📈 Retornos</h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Horas Economizadas/Mês</p>
+                                            <p className="text-sm font-medium">{projeto.horas_economizadas_mes || 0}h</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Valor Monetário/Mês</p>
+                                            <p className="text-sm font-medium">R$ {projeto.valor_monetario_economizado_mes || 0}</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
 
                             {/* MÉTRICAS CALCULADAS */}
                             {metricas && (
-                                <Paper withBorder p="md" bg="blue.0">
-                                    <Title order={5} mb="md">📊 Métricas Calculadas</Title>
-                                    <SimpleGrid cols={3} spacing="md">
-                                        <Box>
-                                            <Text size="xs" c="dimmed">ROI</Text>
-                                            <Text size="lg" weight={700} c={metricas.roi > 0 ? 'green' : 'red'}>
-                                                {metricas.roi}%
-                                            </Text>
-                                        </Box>
-                                        <Box>
-                                            <Text size="xs" c="dimmed">Economia/Mês</Text>
-                                            <Text size="lg" weight={700}>
-                                                R$ {metricas.economia_mensal?.toLocaleString('pt-BR')}
-                                            </Text>
-                                        </Box>
-                                        <Box>
-                                            <Text size="xs" c="dimmed">Payback (meses)</Text>
-                                            <Text size="lg" weight={700}>
-                                                {metricas.payback_meses}
-                                            </Text>
-                                        </Box>
-                                    </SimpleGrid>
-                                </Paper>
+                                <Card className="bg-blue-50">
+                                    <CardContent className="p-4">
+                                        <h3 className="text-base font-medium mb-4">📊 Métricas Calculadas</h3>
+                                        <div className="grid grid-cols-3 gap-4">
+                                            <div>
+                                                <p className="text-xs text-muted-foreground">ROI</p>
+                                                <p className={`text-lg font-bold ${metricas.roi > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                    {metricas.roi}%
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-muted-foreground">Economia/Mês</p>
+                                                <p className="text-lg font-bold">
+                                                    R$ {metricas.economia_mensal?.toLocaleString('pt-BR')}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-muted-foreground">Payback (meses)</p>
+                                                <p className="text-lg font-bold">
+                                                    {metricas.payback_meses}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
                             )}
-                        </Stack>
+                        </div>
                     </TabsContent>
                 )}
 
                 <TabsContent value="historico" className="space-y-4 mt-4">
-                    <Stack gap="md">
-                        <Paper withBorder p="md">
-                            <Title order={5} mb="md">📋 Informações do Sistema</Title>
-                            <SimpleGrid cols={2} spacing="md">
-                                <Box>
-                                    <Text size="xs" c="dimmed">Criado em</Text>
-                                    <Text size="sm">{new Date(projeto.criado_em).toLocaleDateString('pt-BR')}</Text>
-                                </Box>
-                                <Box>
-                                    <Text size="xs" c="dimmed">Última atualização</Text>
-                                    <Text size="sm">{new Date(projeto.atualizado_em).toLocaleDateString('pt-BR')}</Text>
-                                </Box>
-                                <Box>
-                                    <Text size="xs" c="dimmed">Criado por</Text>
-                                    <Text size="sm">{projeto.criado_por_nome}</Text>
-                                </Box>
-                                <Box>
-                                    <Text size="xs" c="dimmed">Versão atual</Text>
-                                    <Text size="sm">{projeto.versao_atual}</Text>
-                                </Box>
-                            </SimpleGrid>
-                        </Paper>
+                    <div className="space-y-4">
+                        <Card>
+                            <CardContent className="p-4">
+                                <h3 className="text-lg font-semibold mb-4">📋 Informações do Sistema</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Criado em</p>
+                                        <p className="text-sm">{new Date(projeto.criado_em).toLocaleDateString('pt-BR')}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Última atualização</p>
+                                        <p className="text-sm">{new Date(projeto.atualizado_em).toLocaleDateString('pt-BR')}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Criado por</p>
+                                        <p className="text-sm">{projeto.criado_por_nome}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Versão atual</p>
+                                        <p className="text-sm">{projeto.versao_atual}</p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
 
                         {/* HISTÓRICO DE VERSÕES */}
                         {projeto.versoes?.length > 0 && (
-                            <Paper withBorder p="md">
-                                <Title order={5} mb="md">📝 Histórico de Versões</Title>
-                                <Timeline active={projeto.versoes.length}>
-                                    {projeto.versoes.map((versao, i) => (
-                                        <Timeline.Item key={i}>
-                                            <Text size="sm" weight={500}>v{versao.versao}</Text>
-                                            <Text size="xs" c="dimmed">{versao.responsavel_nome}</Text>
-                                            <Text size="xs" c="dimmed">
-                                                {new Date(versao.data_lancamento).toLocaleDateString('pt-BR')}
-                                            </Text>
-                                            <Text size="sm">{versao.motivo_mudanca}</Text>
-                                        </Timeline.Item>
-                                    ))}
-                                </Timeline>
-                            </Paper>
+                            <Card>
+                                <CardContent className="p-4">
+                                    <h3 className="text-lg font-semibold mb-4">📝 Histórico de Versões</h3>
+                                    <Timeline active={projeto.versoes.length}>
+                                        {projeto.versoes.map((versao, i) => (
+                                            <Timeline.Item key={i}>
+                                                <p className="text-sm font-medium">v{versao.versao}</p>
+                                                <p className="text-xs text-muted-foreground">{versao.responsavel_nome}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {new Date(versao.data_lancamento).toLocaleDateString('pt-BR')}
+                                                </p>
+                                                <p className="text-sm">{versao.motivo_mudanca}</p>
+                                            </Timeline.Item>
+                                        ))}
+                                    </Timeline>
+                                </CardContent>
+                            </Card>
                         )}
-                    </TabsContent>
+                    </div>
+                </TabsContent>
                 </Tabs>
             </DialogContent>
         </Dialog>
