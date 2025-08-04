@@ -299,7 +299,7 @@ else:
 LOG_DIR = BASE_DIR / 'logs'
 LOG_DIR.mkdir(exist_ok=True)
 
-# Configurações de logging para RQ
+# Configurações de logging para RQ e Feedback
 if 'LOGGING' not in locals():
     LOGGING = {
         'version': 1,
@@ -321,6 +321,12 @@ if 'LOGGING' not in locals():
                 'filename': LOG_DIR / 'rq.log',
                 'formatter': 'rq',
             },
+            'file_feedback': {
+                'level': 'DEBUG',
+                'class': 'logging.FileHandler',
+                'filename': LOG_DIR / 'feedback.log',
+                'formatter': 'verbose',
+            },
             'console': {
                 'level': 'INFO',
                 'class': 'logging.StreamHandler',
@@ -335,6 +341,11 @@ if 'LOGGING' not in locals():
             },
             'features.metricas_ecomhub': {
                 'handlers': ['file_rq', 'console'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+            'features.feedback': {
+                'handlers': ['file_feedback', 'console'],
                 'level': 'DEBUG',
                 'propagate': False,
             },
