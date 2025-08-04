@@ -1042,11 +1042,11 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                             </Group>
                         </Paper>
                     </Stack>
-                </Tabs.Panel>
+                    </TabsContent>
 
                 {/* ABA FINANCEIRO */}
                 {podeVerFinanceiro && !metricas?.acesso_restrito && (
-                    <Tabs.Panel value="financeiro" pt="md">
+                    <TabsContent value="financeiro" className="space-y-4 mt-4">
                         <Stack gap="md">
                             {/* CUSTOS */}
                             <Paper withBorder p="md">
@@ -1120,10 +1120,10 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                                 </Paper>
                             )}
                         </Stack>
-                    </Tabs.Panel>
+                    </TabsContent>
                 )}
 
-                <Tabs.Panel value="historico" pt="md">
+                <TabsContent value="historico" className="space-y-4 mt-4">
                     <Stack gap="md">
                         <Paper withBorder p="md">
                             <Title order={5} mb="md">📋 Informações do Sistema</Title>
