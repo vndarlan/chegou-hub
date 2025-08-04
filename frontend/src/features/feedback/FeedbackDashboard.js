@@ -59,7 +59,7 @@ const FeedbackDashboard = () => {
     setLoading(true);
     try {
       const [feedbacksRes, statsRes] = await Promise.all([
-        axios.get('/api/feedback/list/', { 
+        axios.get('/feedback/list/', { 
           params: {
             status: filters.status === 'all' ? undefined : filters.status,
             categoria: filters.categoria === 'all' ? undefined : filters.categoria,
@@ -67,7 +67,7 @@ const FeedbackDashboard = () => {
           },
           withCredentials: true 
         }),
-        axios.get('/api/feedback/stats/', { withCredentials: true })
+        axios.get('/feedback/stats/', { withCredentials: true })
       ]);
 
       setFeedbacks(feedbacksRes.data);
@@ -83,7 +83,7 @@ const FeedbackDashboard = () => {
 
   const updateStatus = async (feedbackId, newStatus) => {
     try {
-      await axios.patch(`/api/feedback/update-status/${feedbackId}/`, {
+      await axios.patch(`/feedback/update-status/${feedbackId}/`, {
         status: newStatus
       }, { withCredentials: true });
       
