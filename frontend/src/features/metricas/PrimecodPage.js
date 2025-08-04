@@ -1,41 +1,32 @@
-// frontend/src/features/metricas/PrimecodPage.js - VERSÃO AUTOCONTIDA
+// frontend/src/features/metricas/PrimecodPage.js - VERSÃO SHADCN/UI
 import React, { useState, useEffect } from 'react';
 import {
-    Box,
-    Title,
-    Text,
-    Paper,
-    Group,
-    Button,
-    Table,
-    Badge,
-    FileInput,
-    TextInput,
-    Stack,
-    Grid,
-    Alert,
-    LoadingOverlay,
-    ActionIcon,
-    Modal,
-    Card,
-    List,
-    ThemeIcon
-} from '@mantine/core';
-import {
-    IconUpload,
-    IconDownload,
-    IconTrash,
-    IconRefresh,
-    IconFileText,
-    IconCheck,
-    IconX,
-    IconAlertTriangle,
-    IconTrendingUp,
-    IconUsers,
-    IconCopy,
-    IconChartBar
-} from '@tabler/icons-react';
+    Upload,
+    Download,
+    Trash2,
+    RefreshCw,
+    FileText,
+    Check,
+    X,
+    AlertTriangle,
+    TrendingUp,
+    Users,
+    Copy,
+    BarChart3,
+    Save
+} from 'lucide-react';
 import axios from 'axios';
+
+// shadcn/ui imports
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Badge } from '../../components/ui/badge';
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { LoadingSpinner } from '../../components/ui';
 
 function PrimecodPage() {
     // Estados principais
@@ -230,7 +221,7 @@ function PrimecodPage() {
             });
             
             const totalDelivered = totals.Delivered;
-            const totalLeads = leadsData.find(row => row.Product === 'Total')?.[('Total - duplicados')] || 1;
+            const totalLeads = leadsData.find(row => row.Product === 'Total')?.['Total - duplicados'] || 1;
             const efetividadeMedia = (totalDelivered / totalLeads * 100);
             totals.Efetividade = `${efetividadeMedia.toFixed(0)}% (Média)`;
             
@@ -267,63 +258,63 @@ function PrimecodPage() {
         const taxaConfirmacao = total > 0 ? (confirmados / total * 100) : 0;
         
         return (
-            <Grid gutter="md" mb="xl">
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card withBorder>
-                        <Group justify="space-between">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
                             <div>
-                                <Text size="sm" c="dimmed">Total de Leads</Text>
-                                <Text size="xl" fw={700}>{total.toLocaleString()}</Text>
+                                <p className="text-sm text-muted-foreground">Total de Leads</p>
+                                <p className="text-2xl font-bold">{total.toLocaleString()}</p>
                             </div>
-                            <ThemeIcon color="blue" variant="light" size="xl">
-                                <IconUsers size={24} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
+                            <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                <Users className="h-4 w-4 text-blue-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
                 
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card withBorder>
-                        <Group justify="space-between">
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
                             <div>
-                                <Text size="sm" c="dimmed">Confirmados</Text>
-                                <Text size="xl" fw={700} c="green">{confirmados.toLocaleString()}</Text>
+                                <p className="text-sm text-muted-foreground">Confirmados</p>
+                                <p className="text-2xl font-bold text-green-600">{confirmados.toLocaleString()}</p>
                             </div>
-                            <ThemeIcon color="green" variant="light" size="xl">
-                                <IconCheck size={24} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
+                            <div className="h-8 w-8 rounded-lg bg-green-100 flex items-center justify-center">
+                                <Check className="h-4 w-4 text-green-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
                 
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card withBorder>
-                        <Group justify="space-between">
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
                             <div>
-                                <Text size="sm" c="dimmed">Duplicados</Text>
-                                <Text size="xl" fw={700} c="orange">{duplicados.toLocaleString()}</Text>
+                                <p className="text-sm text-muted-foreground">Duplicados</p>
+                                <p className="text-2xl font-bold text-orange-600">{duplicados.toLocaleString()}</p>
                             </div>
-                            <ThemeIcon color="orange" variant="light" size="xl">
-                                <IconCopy size={24} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
+                            <div className="h-8 w-8 rounded-lg bg-orange-100 flex items-center justify-center">
+                                <Copy className="h-4 w-4 text-orange-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
                 
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card withBorder>
-                        <Group justify="space-between">
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
                             <div>
-                                <Text size="sm" c="dimmed">Taxa de Confirmação</Text>
-                                <Text size="xl" fw={700} c="blue">{taxaConfirmacao.toFixed(1)}%</Text>
+                                <p className="text-sm text-muted-foreground">Taxa de Confirmação</p>
+                                <p className="text-2xl font-bold text-blue-600">{taxaConfirmacao.toFixed(1)}%</p>
                             </div>
-                            <ThemeIcon color="blue" variant="light" size="xl">
-                                <IconChartBar size={24} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
-            </Grid>
+                            <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                <BarChart3 className="h-4 w-4 text-blue-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
         );
     };
 
@@ -334,38 +325,42 @@ function PrimecodPage() {
         const colunas = Object.keys(dados[0]);
         
         return (
-            <Paper shadow="sm" p="md" mt="md">
-                <Title order={4} mb="md">{titulo}</Title>
-                <Box style={{ overflowX: 'auto' }}>
-                    <Table striped highlightOnHover>
-                        <Table.Thead>
-                            <Table.Tr>
-                                {colunas.map(col => (
-                                    <Table.Th key={col}>{col}</Table.Th>
-                                ))}
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                            {dados.map((row, idx) => (
-                                <Table.Tr key={idx} style={{ 
-                                    backgroundColor: row.Product === 'Total' ? '#f8f9fa' : undefined,
-                                    fontWeight: row.Product === 'Total' ? 'bold' : undefined
-                                }}>
+            <Card className="mt-4">
+                <CardHeader>
+                    <CardTitle className="text-lg">{titulo}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
                                     {colunas.map(col => (
-                                        <Table.Td 
-                                            key={col} 
-                                            style={aplicarCores && col === 'Efetividade' ? 
-                                                getEfetividadeCor(row[col]) : {}}
-                                        >
-                                            {typeof row[col] === 'number' ? row[col].toLocaleString() : row[col]}
-                                        </Table.Td>
+                                        <TableHead key={col}>{col}</TableHead>
                                     ))}
-                                </Table.Tr>
-                            ))}
-                        </Table.Tbody>
-                    </Table>
-                </Box>
-            </Paper>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {dados.map((row, idx) => (
+                                    <TableRow 
+                                        key={idx} 
+                                        className={row.Product === 'Total' ? 'bg-muted/50 font-semibold' : ''}
+                                    >
+                                        {colunas.map(col => (
+                                            <TableCell 
+                                                key={col}
+                                                style={aplicarCores && col === 'Efetividade' ? 
+                                                    getEfetividadeCor(row[col]) : {}}
+                                            >
+                                                {typeof row[col] === 'number' ? row[col].toLocaleString() : row[col]}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
         );
     };
 
@@ -376,154 +371,190 @@ function PrimecodPage() {
 
     // ======================== RENDER PRINCIPAL ========================
     return (
-        <Box p="md">
-            <LoadingOverlay visible={isLoading} />
+        <div className="flex-1 space-y-6 p-6">
+            {isLoading && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+                    <LoadingSpinner className="h-8 w-8" />
+                </div>
+            )}
             
             {/* Header */}
-            <Group justify="space-between" mb="xl">
+            <div className="flex items-start justify-between">
                 <div>
-                    <Title order={2}>📊 vndarlan/dashprimecod Prime COD</Title>
-                    <Text c="dimmed">Análise de efetividade</Text>
+                    <h1 className="text-2xl font-bold text-foreground">📊 Prime COD Analytics</h1>
+                    <p className="text-muted-foreground">Análise de efetividade de leads e orders</p>
                 </div>
-                <Group>
+                <div className="flex items-center gap-2">
                     <Button 
-                        leftSection={<IconRefresh size={16} />} 
                         variant="outline" 
                         onClick={fetchAnalises}
+                        disabled={isLoading}
                     >
+                        <RefreshCw className="h-4 w-4 mr-2" />
                         Atualizar
                     </Button>
                     {(dadosLeads || dadosEfetividade) && (
-                        <Button 
-                            leftSection={<IconDownload size={16} />} 
-                            onClick={() => setModalSalvar(true)}
-                        >
+                        <Button onClick={() => setModalSalvar(true)}>
+                            <Save className="h-4 w-4 mr-2" />
                             Salvar Análise
                         </Button>
                     )}
-                </Group>
-            </Group>
+                </div>
+            </div>
 
             {/* Notificações */}
             {notification && (
-                <Alert 
-                    color={notification.type === 'success' ? 'green' : notification.type === 'warning' ? 'yellow' : 'red'}
-                    title={notification.type === 'success' ? 'Sucesso' : notification.type === 'warning' ? 'Atenção' : 'Erro'}
-                    mb="md"
-                    withCloseButton
-                    onClose={() => setNotification(null)}
-                    icon={notification.type === 'success' ? <IconCheck size={16} /> : 
-                          notification.type === 'warning' ? <IconAlertTriangle size={16} /> : <IconX size={16} />}
-                >
-                    {notification.message}
+                <Alert className={`${notification.type === 'error' ? 'border-destructive' : 
+                    notification.type === 'warning' ? 'border-yellow-500' : 'border-green-500'}`}>
+                    {notification.type === 'success' ? <Check className="h-4 w-4" /> : 
+                     notification.type === 'warning' ? <AlertTriangle className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                    <AlertDescription>
+                        <strong>{notification.type === 'success' ? 'Sucesso!' : 
+                                 notification.type === 'warning' ? 'Atenção!' : 'Erro!'}</strong> {notification.message}
+                    </AlertDescription>
                 </Alert>
             )}
 
             {/* Análises Salvas */}
             {analisesSalvas.length > 0 && (
-                <Paper shadow="sm" p="md" mb="xl">
-                    <Title order={4} mb="md">💾 Análises Salvas</Title>
-                    <Grid>
-                        {analisesSalvas.map(analise => (
-                            <Grid.Col span={{ base: 12, sm: 6, md: 4 }} key={analise.id}>
-                                <Card withBorder>
-                                    <Group justify="space-between" mb="xs">
-                                        <Text fw={500} truncate>{analise.nome}</Text>
-                                        <Badge color="blue" variant="light">PRIMECOD</Badge>
-                                    </Group>
-                                    <Text size="xs" c="dimmed" mb="md">
-                                        {new Date(analise.criado_em).toLocaleDateString('pt-BR')} por {analise.criado_por_nome}
-                                    </Text>
-                                    <Group justify="space-between">
-                                        <Button size="xs" variant="light" onClick={() => carregarAnalise(analise)}>
-                                            Carregar
-                                        </Button>
-                                        <ActionIcon 
-                                            color="red" 
-                                            variant="light" 
-                                            onClick={() => deletarAnalise(analise.id, analise.nome)}
-                                        >
-                                            <IconTrash size={16} />
-                                        </ActionIcon>
-                                    </Group>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">💾 Análises Salvas</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            {analisesSalvas.map(analise => (
+                                <Card key={analise.id} className="border">
+                                    <CardContent className="p-4">
+                                        <div className="flex items-start justify-between mb-2">
+                                            <h4 className="font-medium truncate">{analise.nome}</h4>
+                                            <Badge variant="secondary" className="text-xs">PRIMECOD</Badge>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mb-3">
+                                            {new Date(analise.criado_em).toLocaleDateString('pt-BR')} por {analise.criado_por_nome}
+                                        </p>
+                                        <div className="flex items-center justify-between">
+                                            <Button size="sm" variant="outline" onClick={() => carregarAnalise(analise)}>
+                                                Carregar
+                                            </Button>
+                                            <Button 
+                                                size="sm" 
+                                                variant="destructive" 
+                                                onClick={() => deletarAnalise(analise.id, analise.nome)}
+                                                className="h-8 w-8 p-0"
+                                            >
+                                                <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                    </CardContent>
                                 </Card>
-                            </Grid.Col>
-                        ))}
-                    </Grid>
-                </Paper>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
             )}
 
             {/* Upload de Arquivos */}
-            <Grid gutter="md" mb="xl">
-                <Grid.Col span={{ base: 12, md: 6 }}>
-                    <Paper shadow="sm" p="md">
-                        <Title order={4} mb="md">1️⃣ Arquivo de Leads</Title>
-                        <Stack>
-                            <FileInput
-                                label="Leads Export CSV"
-                                placeholder="Selecione o arquivo leadsexport.csv"
-                                accept=".csv"
-                                value={arquivoLeads}
-                                onChange={setArquivoLeads}
-                                leftSection={<IconFileText size={16} />}
-                            />
-                            <Button 
-                                fullWidth 
-                                leftSection={<IconUpload size={16} />}
-                                onClick={() => uploadArquivo(arquivoLeads, 'leads')}
-                                disabled={!arquivoLeads}
-                            >
-                                Processar Leads
-                            </Button>
-                            {dadosLeads && (
-                                <Alert color="green" icon={<IconCheck size={16} />}>
+            <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">1️⃣ Arquivo de Leads</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <Label htmlFor="leads-file">Leads Export CSV</Label>
+                            <div className="flex items-center gap-2 mt-1">
+                                <Input
+                                    id="leads-file"
+                                    type="file"
+                                    accept=".csv"
+                                    onChange={(e) => setArquivoLeads(e.target.files[0])}
+                                    className="file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-muted file:text-muted-foreground hover:file:bg-muted/80"
+                                />
+                            </div>
+                        </div>
+                        <Button 
+                            className="w-full"
+                            onClick={() => uploadArquivo(arquivoLeads, 'leads')}
+                            disabled={!arquivoLeads || isLoading}
+                        >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Processar Leads
+                        </Button>
+                        {dadosLeads && (
+                            <Alert className="border-green-500">
+                                <Check className="h-4 w-4" />
+                                <AlertDescription>
                                     Arquivo de leads processado! {dadosLeads.length - 1} produtos encontrados.
-                                </Alert>
-                            )}
-                        </Stack>
-                    </Paper>
-                </Grid.Col>
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </CardContent>
+                </Card>
                 
-                <Grid.Col span={{ base: 12, md: 6 }}>
-                    <Paper shadow="sm" p="md">
-                        <Title order={4} mb="md">2️⃣ Arquivo de Orders</Title>
-                        <Stack>
-                            <FileInput
-                                label="Orders Export CSV"
-                                placeholder="Selecione o arquivo ordersexport.csv"
-                                accept=".csv"
-                                value={arquivoOrders}
-                                onChange={setArquivoOrders}
-                                leftSection={<IconFileText size={16} />}
-                            />
-                            <Button 
-                                fullWidth 
-                                leftSection={<IconUpload size={16} />}
-                                onClick={() => uploadArquivo(arquivoOrders, 'orders')}
-                                disabled={!arquivoOrders}
-                            >
-                                Processar Orders
-                            </Button>
-                            {dadosOrders && (
-                                <Alert color="green" icon={<IconCheck size={16} />}>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">2️⃣ Arquivo de Orders</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <Label htmlFor="orders-file">Orders Export CSV</Label>
+                            <div className="flex items-center gap-2 mt-1">
+                                <Input
+                                    id="orders-file"
+                                    type="file"
+                                    accept=".csv"
+                                    onChange={(e) => setArquivoOrders(e.target.files[0])}
+                                    className="file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-muted file:text-muted-foreground hover:file:bg-muted/80"
+                                />
+                            </div>
+                        </div>
+                        <Button 
+                            className="w-full"
+                            onClick={() => uploadArquivo(arquivoOrders, 'orders')}
+                            disabled={!arquivoOrders || isLoading}
+                        >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Processar Orders
+                        </Button>
+                        {dadosOrders && (
+                            <Alert className="border-green-500">
+                                <Check className="h-4 w-4" />
+                                <AlertDescription>
                                     Arquivo de orders processado!
-                                </Alert>
-                            )}
-                        </Stack>
-                    </Paper>
-                </Grid.Col>
-            </Grid>
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
 
             {/* Instruções */}
-            <Paper shadow="sm" p="md" mb="xl">
-                <Title order={4} mb="md">📋 Instruções</Title>
-                <List size="sm">
-                    <List.Item>Faça upload do arquivo <strong>leadsexport.csv</strong> exportado da seção de leads do Prime COD</List.Item>
-                    <List.Item>Faça upload do arquivo <strong>ordersexport.csv</strong> exportado da seção de orders do Prime COD</List.Item>
-                    <List.Item>A tabela de efetividade será gerada automaticamente combinando os dois arquivos</List.Item>
-                    <List.Item>Salve sua análise para acessá-la posteriormente</List.Item>
-                </List>
-            </Paper>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg">📋 Instruções</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ul className="space-y-2 text-sm">
+                        <li className="flex items-start gap-2">
+                            <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground mt-2 flex-shrink-0" />
+                            Faça upload do arquivo <strong>leadsexport.csv</strong> exportado da seção de leads do Prime COD
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground mt-2 flex-shrink-0" />
+                            Faça upload do arquivo <strong>ordersexport.csv</strong> exportado da seção de orders do Prime COD
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground mt-2 flex-shrink-0" />
+                            A tabela de efetividade será gerada automaticamente combinando os dois arquivos
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground mt-2 flex-shrink-0" />
+                            Salve sua análise para acessá-la posteriormente
+                        </li>
+                    </ul>
+                </CardContent>
+            </Card>
 
             {/* Estatísticas */}
             {renderEstatisticas()}
@@ -533,34 +564,41 @@ function PrimecodPage() {
             {renderTabela(dadosEfetividade, "📦 Tabela de Efetividade", true)}
 
             {/* Modal para salvar */}
-            <Modal 
-                opened={modalSalvar} 
-                onClose={() => setModalSalvar(false)}
-                title="💾 Salvar Análise"
-            >
-                <Stack>
-                    <TextInput
-                        label="Nome da Análise"
-                        placeholder="Ex: Análise Maio 2025 - Espanha"
-                        value={nomeAnalise}
-                        onChange={(e) => setNomeAnalise(e.target.value)}
-                        required
-                    />
-                    <Group justify="flex-end">
-                        <Button variant="outline" onClick={() => setModalSalvar(false)}>
-                            Cancelar
-                        </Button>
-                        <Button 
-                            onClick={salvarAnalise} 
-                            disabled={!nomeAnalise}
-                            loading={isLoading}
-                        >
-                            Salvar
-                        </Button>
-                    </Group>
-                </Stack>
-            </Modal>
-        </Box>
+            <Dialog open={modalSalvar} onOpenChange={setModalSalvar}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>💾 Salvar Análise</DialogTitle>
+                        <DialogDescription>
+                            Salve sua análise Prime COD para acessá-la posteriormente.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div>
+                            <Label htmlFor="nome-analise">Nome da Análise</Label>
+                            <Input
+                                id="nome-analise"
+                                placeholder="Ex: Análise Maio 2025 - Espanha"
+                                value={nomeAnalise}
+                                onChange={(e) => setNomeAnalise(e.target.value)}
+                                className="mt-1"
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="outline" onClick={() => setModalSalvar(false)}>
+                                Cancelar
+                            </Button>
+                            <Button 
+                                onClick={salvarAnalise} 
+                                disabled={!nomeAnalise || isLoading}
+                            >
+                                {isLoading && <LoadingSpinner className="h-4 w-4 mr-2" />}
+                                Salvar
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </div>
     );
 }
 
