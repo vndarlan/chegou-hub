@@ -2,11 +2,16 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
 from core.views_debug import DebugCorsView
+
+def simple_health(request):
+    return JsonResponse({'status': 'ok', 'health': 'Railway OK'})
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('mapa/', include('features.mapa.urls')),
+    path('health/', simple_health, name='simple_health'),
     path('api/debug/cors/', DebugCorsView.as_view(), name='debug_cors'),
     path('api/', include('core.urls')),
     
