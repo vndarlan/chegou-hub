@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 from core.views_debug import DebugCorsView
 
 urlpatterns = [
@@ -26,3 +28,7 @@ urlpatterns = [
     # URLs do Sistema de Feedback
     path('api/feedback/', include('features.feedback.urls')),
 ]
+
+# Servir arquivos de media em desenvolvimento
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

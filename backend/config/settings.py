@@ -182,8 +182,12 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media files (uploads)
-MEDIA_URL = 'media/'
+MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Para Railway/produção, usar WhiteNoise para servir media files
+if not DEBUG:
+    MEDIA_ROOT = BASE_DIR / 'staticfiles' / 'media'
 
 STORAGES = {
     "staticfiles": {
