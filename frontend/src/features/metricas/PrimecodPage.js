@@ -386,7 +386,7 @@ function PrimecodPage() {
                 </div>
                 <div className="flex items-center gap-2">
                     <Button 
-                        variant="outline" 
+                        variant="ghost" 
                         onClick={fetchAnalises}
                         disabled={isLoading}
                     >

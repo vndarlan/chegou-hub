@@ -1,19 +1,26 @@
-// frontend/src/features/ia/LogsPage.js - VERSÃO COMPLETA COM PAGINAÇÃO
+// frontend/src/features/ia/LogsPage.js - VERSÃO SHADCN/UI
 import React, { useState, useEffect } from 'react';
 import {
-    Box, Title, Text, Card, Group, Stack, Table, Badge, 
-    Button, Select, TextInput, Grid, ActionIcon,
-    Modal, Textarea, Alert, Notification,
-    LoadingOverlay, ScrollArea, Code, JsonInput,
-    Paper, Divider, ThemeIcon, Pagination
-} from '@mantine/core';
-import {
-    IconSearch, IconRefresh, IconCheck, IconX,
-    IconAlertTriangle, IconExclamationCircle,
-    IconEye, IconClock, IconMapPin, IconRobot,
-    IconChartBar, IconActivity, IconGitBranch
-} from '@tabler/icons-react';
+    Search, RefreshCw, Check, X,
+    AlertTriangle, AlertCircle,
+    Eye, Clock, MapPin, Bot,
+    BarChart3, Activity, GitBranch
+} from 'lucide-react';
 import axios from 'axios';
+
+// shadcn/ui imports
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Badge } from '../../components/ui/badge';
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { LoadingSpinner } from '../../components/ui';
+import { Textarea } from '../../components/ui/textarea';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../../components/ui/pagination';
 
 function LogsPage() {
     const [logs, setLogs] = useState([]);
@@ -136,7 +143,7 @@ function LogsPage() {
     };
 
     const getNivelIcon = (nivel) => {
-        return nivel === 'critical' ? IconX : IconExclamationCircle;
+        return nivel === 'critical' ? X : AlertCircle;
     };
 
     const getPaisDisplayName = (pais) => {
@@ -160,52 +167,52 @@ function LogsPage() {
         if (!stats) return null;
         
         return (
-            <Grid mb="xl">
-                <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
-                    <Card shadow="sm" padding="lg" radius="md" withBorder>
-                        <Group justify="space-between">
-                            <Box>
-                                <Text c="dimmed" size="sm" fw={600}>Total de Erros</Text>
-                                <Text fw={700} size="xl" c="red">{stats.total_erros_7d}</Text>
-                                <Text size="xs" c="dimmed">Últimos 7 dias</Text>
-                            </Box>
-                            <ThemeIcon size="xl" radius="md" variant="light" color="red">
-                                <IconAlertTriangle size={24} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
+            <div className="grid gap-4 md:grid-cols-3 mb-6">
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm text-muted-foreground font-medium">Total de Erros</p>
+                                <p className="text-2xl font-bold text-red-600">{stats.total_erros_7d}</p>
+                                <p className="text-xs text-muted-foreground">Últimos 7 dias</p>
+                            </div>
+                            <div className="h-12 w-12 rounded-lg bg-red-100 flex items-center justify-center">
+                                <AlertTriangle className="h-6 w-6 text-red-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
                 
-                <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
-                    <Card shadow="sm" padding="lg" radius="md" withBorder>
-                        <Group justify="space-between">
-                            <Box>
-                                <Text c="dimmed" size="sm" fw={600}>Não Resolvidos</Text>
-                                <Text fw={700} size="xl" c="orange">{stats.nao_resolvidos}</Text>
-                                <Text size="xs" c="dimmed">Precisam atenção</Text>
-                            </Box>
-                            <ThemeIcon size="xl" radius="md" variant="light" color="orange">
-                                <IconClock size={24} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm text-muted-foreground font-medium">Não Resolvidos</p>
+                                <p className="text-2xl font-bold text-orange-600">{stats.nao_resolvidos}</p>
+                                <p className="text-xs text-muted-foreground">Precisam atenção</p>
+                            </div>
+                            <div className="h-12 w-12 rounded-lg bg-orange-100 flex items-center justify-center">
+                                <Clock className="h-6 w-6 text-orange-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
                 
-                <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
-                    <Card shadow="sm" padding="lg" radius="md" withBorder>
-                        <Group justify="space-between">
-                            <Box>
-                                <Text c="dimmed" size="sm" fw={600}>Críticos (7d)</Text>
-                                <Text fw={700} size="xl" c="red">{stats.criticos_7d}</Text>
-                                <Text size="xs" c="dimmed">Erros graves</Text>
-                            </Box>
-                            <ThemeIcon size="xl" radius="md" variant="light" color="red">
-                                <IconX size={24} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
-            </Grid>
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm text-muted-foreground font-medium">Críticos (7d)</p>
+                                <p className="text-2xl font-bold text-red-600">{stats.criticos_7d}</p>
+                                <p className="text-xs text-muted-foreground">Erros graves</p>
+                            </div>
+                            <div className="h-12 w-12 rounded-lg bg-red-100 flex items-center justify-center">
+                                <X className="h-6 w-6 text-red-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
         );
     };
 
@@ -214,436 +221,477 @@ function LogsPage() {
         if (!stats?.por_ferramenta?.length) return null;
         
         return (
-            <Card shadow="sm" padding="lg" radius="md" mb="md" withBorder>
-                <Group mb="md">
-                    <ThemeIcon size="sm" radius="md" variant="light" color="red">
-                        <IconActivity size={16} />
-                    </ThemeIcon>
-                    <Title order={4}>Erros por Ferramenta (24h)</Title>
-                </Group>
-                <Grid>
-                    {stats.por_ferramenta.map((stat) => (
-                        <Grid.Col span={{ base: 12, sm: 6 }} key={stat.ferramenta}>
-                            <Paper p="md" withBorder radius="md" 
-                                   style={{ borderColor: 'var(--mantine-color-red-3)' }}>
-                                <Group justify="space-between" mb="xs">
-                                    <Group gap="xs">
-                                        <Text size="lg">
-                                            {stat.ferramenta === 'Nicochat' ? '🤖' : '⚙️'}
-                                        </Text>
-                                        <Text fw={600} size="sm">{stat.ferramenta}</Text>
-                                    </Group>
-                                    <Badge variant="light" color="red">{stat.erros}</Badge>
-                                </Group>
-                                
-                                <Group gap="xs">
-                                    <ThemeIcon size="xs" radius="xl" color="red" variant="light">
-                                        <IconAlertTriangle size={10} />
-                                    </ThemeIcon>
-                                    <Text size="xs" c="red" fw={600}>
-                                        {stat.erros} erro(s) registrados
-                                    </Text>
-                                </Group>
-                                
-                                {stat.nao_resolvidos > 0 && (
-                                    <Group gap="xs" mt="xs">
-                                        <ThemeIcon size="xs" radius="xl" color="orange" variant="light">
-                                            <IconClock size={10} />
-                                        </ThemeIcon>
-                                        <Text size="xs" c="orange" fw={600}>
-                                            {stat.nao_resolvidos} não resolvidos
-                                        </Text>
-                                    </Group>
-                                )}
-                            </Paper>
-                        </Grid.Col>
-                    ))}
-                </Grid>
+            <Card className="mb-6">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Activity className="h-5 w-5 text-red-600" />
+                        Erros por Ferramenta (24h)
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {stats.por_ferramenta.map((stat) => (
+                            <Card key={stat.ferramenta} className="border border-red-200">
+                                <CardContent className="p-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-lg">
+                                                {stat.ferramenta === 'Nicochat' ? '🤖' : '⚙️'}
+                                            </span>
+                                            <span className="font-medium text-sm">{stat.ferramenta}</span>
+                                        </div>
+                                        <Badge variant="destructive">{stat.erros}</Badge>
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-2 w-2 rounded-full bg-red-500" />
+                                        <span className="text-xs text-red-600 font-medium">
+                                            {stat.erros} erro(s) registrados
+                                        </span>
+                                    </div>
+                                    
+                                    {stat.nao_resolvidos > 0 && (
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <div className="h-2 w-2 rounded-full bg-orange-500" />
+                                            <span className="text-xs text-orange-600 font-medium">
+                                                {stat.nao_resolvidos} não resolvidos
+                                            </span>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </CardContent>
             </Card>
         );
     };
 
     return (
-        <Box p="md">
-            <Group justify="space-between" mb="xl">
-                <Box>
-                    <Group gap="sm" mb="xs">
-                        <ThemeIcon size="lg" radius="md" variant="gradient" 
-                                   gradient={{ from: 'red', to: 'orange', deg: 45 }}>
-                            <IconAlertTriangle size={24} />
-                        </ThemeIcon>
-                        <Title order={2}>Monitoramento de Erros - IA</Title>
-                    </Group>
-                    <Text c="dimmed">Central de erros e falhas críticas do Nicochat e N8N</Text>
-                </Box>
+        <div className="flex-1 space-y-6 p-6">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+                <div>
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
+                            <AlertTriangle className="h-5 w-5 text-white" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-foreground">Monitoramento de Erros - IA</h1>
+                    </div>
+                    <p className="text-muted-foreground">Central de erros e falhas críticas do Nicochat e N8N</p>
+                </div>
                 <Button
-                    leftSection={<IconRefresh size={16} />}
                     onClick={() => { carregarLogs(paginacao.currentPage); carregarStats(); }}
-                    loading={loading}
-                    variant="light"
+                    disabled={loading}
+                    variant="outline"
                 >
+                    <RefreshCw className="h-4 w-4 mr-2" />
                     Atualizar
                 </Button>
-            </Group>
+            </div>
 
+            {/* Notificações */}
             {notification && (
-                <Notification
-                    icon={notification.type === 'success' ? <IconCheck size="1.1rem" /> : <IconX size="1.1rem" />}
-                    color={notification.type === 'success' ? 'teal' : 'red'}
-                    title={notification.type === 'success' ? 'Sucesso!' : 'Erro!'}
-                    onClose={() => setNotification(null)}
-                    mb="md"
-                >
-                    {notification.message}
-                </Notification>
+                <Alert className={`${notification.type === 'error' ? 'border-destructive' : 'border-green-500'}`}>
+                    {notification.type === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                    <AlertDescription>
+                        <strong>{notification.type === 'success' ? 'Sucesso!' : 'Erro!'}</strong> {notification.message}
+                    </AlertDescription>
+                </Alert>
             )}
 
             <StatsErros />
             <ErrosPorFerramenta />
 
             {/* Filtros */}
-            <Card shadow="sm" padding="lg" radius="md" mb="md" withBorder>
-                <Group mb="md">
-                    <ThemeIcon size="sm" radius="md" variant="light" color="red">
-                        <IconSearch size={16} />
-                    </ThemeIcon>
-                    <Title order={4}>Filtros de Pesquisa</Title>
-                </Group>
-                <Grid>
-                    <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
-                        <Select
-                            label="🔧 Ferramenta"
-                            placeholder="Todas"
-                            data={[
-                                { value: '', label: 'Todas' },
-                                { value: 'Nicochat', label: '🤖 Nicochat' },
-                                { value: 'N8N', label: '⚙️ N8N' }
-                            ]}
-                            value={filtros.ferramenta}
-                            onChange={(value) => setFiltros(prev => ({ ...prev, ferramenta: value || '' }))}
-                        />
-                    </Grid.Col>
-                    
-                    <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
-                        <Select
-                            label="⚠️ Gravidade"
-                            data={[
-                                { value: 'error,critical', label: 'Todos os erros' },
-                                { value: 'error', label: '🟠 Apenas Error' },
-                                { value: 'critical', label: '🔴 Apenas Critical' }
-                            ]}
-                            value={filtros.nivel}
-                            onChange={(value) => setFiltros(prev => ({ ...prev, nivel: value }))}
-                        />
-                    </Grid.Col>
-                    
-                    <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
-                        <Select
-                            label="🌍 País (Nicochat)"
-                            placeholder="Todos"
-                            data={[
-                                { value: '', label: 'Todos' },
-                                { value: 'colombia', label: '🇨🇴 Colômbia' },
-                                { value: 'chile', label: '🇨🇱 Chile' },
-                                { value: 'mexico', label: '🇲🇽 México' },
-                                { value: 'polonia', label: '🇵🇱 Polônia' },
-                                { value: 'romenia', label: '🇷🇴 Romênia' },
-                                { value: 'espanha', label: '🇪🇸 Espanha' },
-                                { value: 'italia', label: '🇮🇹 Itália' }
-                            ]}
-                            value={filtros.pais}
-                            onChange={(value) => setFiltros(prev => ({ ...prev, pais: value || '' }))}
-                        />
-                    </Grid.Col>
-                    
-                    <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
-                        <Select
-                            label="✅ Status"
-                            data={[
-                                { value: '', label: 'Todos' },
-                                { value: 'false', label: '⏳ Pendentes' },
-                                { value: 'true', label: '✅ Resolvidos' }
-                            ]}
-                            value={filtros.resolvido}
-                            onChange={(value) => setFiltros(prev => ({ ...prev, resolvido: value || '' }))}
-                        />
-                    </Grid.Col>
-                    
-                    <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
-                        <Select
-                            label="📅 Período"
-                            data={[
-                                { value: '1h', label: 'Última hora' },
-                                { value: '6h', label: 'Últimas 6h' },
-                                { value: '24h', label: 'Últimas 24h' },
-                                { value: '7d', label: 'Últimos 7 dias' },
-                                { value: '30d', label: 'Últimos 30 dias' }
-                            ]}
-                            value={filtros.periodo}
-                            onChange={(value) => setFiltros(prev => ({ ...prev, periodo: value }))}
-                        />
-                    </Grid.Col>
-                    
-                    <Grid.Col span={{ base: 12, md: 2 }}>
-                        <TextInput
-                            label="🔍 Buscar Erro"
-                            placeholder="Mensagem..."
-                            leftSection={<IconSearch size={16} />}
-                            value={filtros.busca}
-                            onChange={(e) => setFiltros(prev => ({ ...prev, busca: e.target.value }))}
-                        />
-                    </Grid.Col>
-                </Grid>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Search className="h-5 w-5" />
+                        Filtros de Pesquisa
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid gap-4 md:grid-cols-6">
+                        <div>
+                            <Label>🔧 Ferramenta</Label>
+                            <Select value={filtros.ferramenta} onValueChange={(value) => setFiltros(prev => ({ ...prev, ferramenta: value || '' }))}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Todas" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="">Todas</SelectItem>
+                                    <SelectItem value="Nicochat">🤖 Nicochat</SelectItem>
+                                    <SelectItem value="N8N">⚙️ N8N</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        
+                        <div>
+                            <Label>⚠️ Gravidade</Label>
+                            <Select value={filtros.nivel} onValueChange={(value) => setFiltros(prev => ({ ...prev, nivel: value }))}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="error,critical">Todos os erros</SelectItem>
+                                    <SelectItem value="error">🟠 Apenas Error</SelectItem>
+                                    <SelectItem value="critical">🔴 Apenas Critical</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        
+                        <div>
+                            <Label>🌍 País (Nicochat)</Label>
+                            <Select value={filtros.pais} onValueChange={(value) => setFiltros(prev => ({ ...prev, pais: value || '' }))}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Todos" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="">Todos</SelectItem>
+                                    <SelectItem value="colombia">🇨🇴 Colômbia</SelectItem>
+                                    <SelectItem value="chile">🇨🇱 Chile</SelectItem>
+                                    <SelectItem value="mexico">🇲🇽 México</SelectItem>
+                                    <SelectItem value="polonia">🇵🇱 Polônia</SelectItem>
+                                    <SelectItem value="romenia">🇷🇴 Romênia</SelectItem>
+                                    <SelectItem value="espanha">🇪🇸 Espanha</SelectItem>
+                                    <SelectItem value="italia">🇮🇹 Itália</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        
+                        <div>
+                            <Label>✅ Status</Label>
+                            <Select value={filtros.resolvido} onValueChange={(value) => setFiltros(prev => ({ ...prev, resolvido: value || '' }))}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Todos" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="">Todos</SelectItem>
+                                    <SelectItem value="false">⏳ Pendentes</SelectItem>
+                                    <SelectItem value="true">✅ Resolvidos</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        
+                        <div>
+                            <Label>📅 Período</Label>
+                            <Select value={filtros.periodo} onValueChange={(value) => setFiltros(prev => ({ ...prev, periodo: value }))}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="1h">Última hora</SelectItem>
+                                    <SelectItem value="6h">Últimas 6h</SelectItem>
+                                    <SelectItem value="24h">Últimas 24h</SelectItem>
+                                    <SelectItem value="7d">Últimos 7 dias</SelectItem>
+                                    <SelectItem value="30d">Últimos 30 dias</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        
+                        <div>
+                            <Label>🔍 Buscar Erro</Label>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Mensagem..."
+                                    value={filtros.busca}
+                                    onChange={(e) => setFiltros(prev => ({ ...prev, busca: e.target.value }))}
+                                    className="pl-10"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
             </Card>
 
             {/* Tabela de Erros */}
-            <Card shadow="sm" padding="lg" radius="md" withBorder>
-                <LoadingOverlay visible={loading} />
-                
-                <Group mb="md">
-                    <ThemeIcon size="sm" radius="md" variant="light" color="red">
-                        <IconChartBar size={16} />
-                    </ThemeIcon>
-                    <Title order={4}>Central de Erros</Title>
-                    <Badge variant="light" color="red">{paginacao.totalItems} erros</Badge>
-                </Group>
-                
-                <ScrollArea>
-                    <Table striped highlightOnHover>
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th>Data/Hora</Table.Th>
-                                <Table.Th>Ferramenta</Table.Th>
-                                <Table.Th>Gravidade</Table.Th>
-                                <Table.Th>Erro</Table.Th>
-                                <Table.Th>País</Table.Th>
-                                <Table.Th>Status</Table.Th>
-                                <Table.Th>Ações</Table.Th>
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                            {logs.map((log) => {
-                                const Icon = getNivelIcon(log.nivel);
-                                return (
-                                    <Table.Tr key={log.id}>
-                                        <Table.Td>
-                                            <Text size="sm" fw={600}>{log.tempo_relativo}</Text>
-                                            <Text size="xs" c="dimmed">
-                                                {new Date(log.timestamp).toLocaleString()}
-                                            </Text>
-                                        </Table.Td>
-                                        <Table.Td>
-                                            <Badge variant="light" color={log.ferramenta === 'Nicochat' ? 'blue' : 'purple'}>
-                                                {log.ferramenta === 'Nicochat' ? '🤖' : '⚙️'} {log.ferramenta}
-                                            </Badge>
-                                        </Table.Td>
-                                        <Table.Td>
-                                            <Badge 
-                                                variant="light" 
-                                                color={getNivelColor(log.nivel)}
-                                                leftSection={<Icon size={16} />}
-                                            >
-                                                {log.nivel.toUpperCase()}
-                                            </Badge>
-                                        </Table.Td>
-                                        <Table.Td style={{ maxWidth: '300px' }}>
-                                            <Text size="sm" truncate c="red">
-                                                {log.mensagem}
-                                            </Text>
-                                        </Table.Td>
-                                        <Table.Td>
-                                            {log.pais && (
-                                                <Badge variant="light" color="cyan" 
-                                                       leftSection={<span>{getPaisFlag(log.pais)}</span>}>
-                                                    {getPaisDisplayName(log.pais)}
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <BarChart3 className="h-5 w-5 text-red-600" />
+                            <CardTitle>Central de Erros</CardTitle>
+                        </div>
+                        <Badge variant="destructive">{paginacao.totalItems} erros</Badge>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    {loading && (
+                        <div className="flex items-center justify-center py-8">
+                            <LoadingSpinner className="h-8 w-8" />
+                        </div>
+                    )}
+                    
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Data/Hora</TableHead>
+                                    <TableHead>Ferramenta</TableHead>
+                                    <TableHead>Gravidade</TableHead>
+                                    <TableHead>Erro</TableHead>
+                                    <TableHead>País</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Ações</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {logs.map((log) => {
+                                    const Icon = getNivelIcon(log.nivel);
+                                    return (
+                                        <TableRow key={log.id}>
+                                            <TableCell>
+                                                <div>
+                                                    <p className="text-sm font-medium">{log.tempo_relativo}</p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {new Date(log.timestamp).toLocaleString()}
+                                                    </p>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant={log.ferramenta === 'Nicochat' ? 'default' : 'secondary'}>
+                                                    {log.ferramenta === 'Nicochat' ? '🤖' : '⚙️'} {log.ferramenta}
                                                 </Badge>
-                                            )}
-                                        </Table.Td>
-                                        <Table.Td>
-                                            <Badge 
-                                                variant="light" 
-                                                color={log.resolvido ? 'green' : 'orange'}
-                                                leftSection={log.resolvido ? <IconCheck size={12} /> : <IconClock size={12} />}
-                                            >
-                                                {log.resolvido ? 'Resolvido' : 'Pendente'}
-                                            </Badge>
-                                        </Table.Td>
-                                        <Table.Td>
-                                            <Group gap="xs">
-                                                <ActionIcon
-                                                    variant="light"
-                                                    color="blue"
-                                                    onClick={() => {
-                                                        setLogSelecionado(log);
-                                                        setModalDetalhes(true);
-                                                    }}
-                                                >
-                                                    <IconEye size={16} />
-                                                </ActionIcon>
-                                                <ActionIcon
-                                                    variant="light"
-                                                    color={log.resolvido ? 'orange' : 'green'}
-                                                    onClick={() => {
-                                                        setLogSelecionado(log);
-                                                        setObservacoesResolucao('');
-                                                        setModalResolucao(true);
-                                                    }}
-                                                >
-                                                    {log.resolvido ? <IconX size={16} /> : <IconCheck size={16} />}
-                                                </ActionIcon>
-                                            </Group>
-                                        </Table.Td>
-                                    </Table.Tr>
-                                );
-                            })}
-                        </Table.Tbody>
-                    </Table>
-                </ScrollArea>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant={log.nivel === 'critical' ? 'destructive' : 'secondary'}>
+                                                    <Icon className="h-3 w-3 mr-1" />
+                                                    {log.nivel.toUpperCase()}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell style={{ maxWidth: '300px' }}>
+                                                <p className="text-sm text-red-600 truncate">
+                                                    {log.mensagem}
+                                                </p>
+                                            </TableCell>
+                                            <TableCell>
+                                                {log.pais && (
+                                                    <Badge variant="outline">
+                                                        <span className="mr-1">{getPaisFlag(log.pais)}</span>
+                                                        {getPaisDisplayName(log.pais)}
+                                                    </Badge>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant={log.resolvido ? 'default' : 'secondary'}>
+                                                    {log.resolvido ? <Check className="h-3 w-3 mr-1" /> : <Clock className="h-3 w-3 mr-1" />}
+                                                    {log.resolvido ? 'Resolvido' : 'Pendente'}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setLogSelecionado(log);
+                                                            setModalDetalhes(true);
+                                                        }}
+                                                        className="h-8 w-8 p-0"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setLogSelecionado(log);
+                                                            setObservacoesResolucao('');
+                                                            setModalResolucao(true);
+                                                        }}
+                                                        className="h-8 w-8 p-0"
+                                                    >
+                                                        {log.resolvido ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </div>
 
-                {/* Paginação */}
-                {logs.length > 0 && (
-                    <Group justify="center" mt="md">
-                        <Pagination
-                            value={paginacao.currentPage}
-                            onChange={handlePageChange}
-                            total={paginacao.totalPages}
-                            size="sm"
-                            withEdges
-                        />
-                        <Text size="sm" c="dimmed">
-                            Página {paginacao.currentPage} de {paginacao.totalPages} 
-                            ({paginacao.totalItems} erros no total)
-                        </Text>
-                    </Group>
-                )}
+                    {/* Paginação */}
+                    {logs.length > 0 && (
+                        <div className="flex items-center justify-center mt-6 space-y-2">
+                            <Pagination>
+                                <PaginationContent>
+                                    <PaginationItem>
+                                        <PaginationPrevious 
+                                            onClick={() => handlePageChange(Math.max(1, paginacao.currentPage - 1))}
+                                            className={paginacao.currentPage <= 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                                        />
+                                    </PaginationItem>
+                                    
+                                    {Array.from({ length: Math.min(5, paginacao.totalPages) }, (_, i) => {
+                                        const pageNum = i + 1;
+                                        return (
+                                            <PaginationItem key={pageNum}>
+                                                <PaginationLink
+                                                    onClick={() => handlePageChange(pageNum)}
+                                                    isActive={pageNum === paginacao.currentPage}
+                                                    className="cursor-pointer"
+                                                >
+                                                    {pageNum}
+                                                </PaginationLink>
+                                            </PaginationItem>
+                                        );
+                                    })}
+                                    
+                                    <PaginationItem>
+                                        <PaginationNext 
+                                            onClick={() => handlePageChange(Math.min(paginacao.totalPages, paginacao.currentPage + 1))}
+                                            className={paginacao.currentPage >= paginacao.totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                                        />
+                                    </PaginationItem>
+                                </PaginationContent>
+                            </Pagination>
+                            <p className="text-sm text-muted-foreground">
+                                Página {paginacao.currentPage} de {paginacao.totalPages} 
+                                ({paginacao.totalItems} erros no total)
+                            </p>
+                        </div>
+                    )}
 
-                {logs.length === 0 && !loading && (
-                    <Box ta="center" py="xl">
-                        <ThemeIcon size="xl" radius="md" variant="light" color="green" mx="auto" mb="md">
-                            <IconCheck size={32} />
-                        </ThemeIcon>
-                        <Text c="green" fw={600}>Nenhum erro encontrado! 🎉</Text>
-                        <Text size="sm" c="dimmed" mt="xs">
-                            Todas as ferramentas estão funcionando sem problemas
-                        </Text>
-                    </Box>
-                )}
+                    {logs.length === 0 && !loading && (
+                        <div className="text-center py-12">
+                            <div className="h-12 w-12 rounded-lg bg-green-100 flex items-center justify-center mx-auto mb-4">
+                                <Check className="h-8 w-8 text-green-600" />
+                            </div>
+                            <p className="text-green-600 font-medium">Nenhum erro encontrado! 🎉</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                Todas as ferramentas estão funcionando sem problemas
+                            </p>
+                        </div>
+                    )}
+                </CardContent>
             </Card>
 
             {/* Modal de Detalhes */}
-                        <Modal
-                            opened={modalDetalhes}
-                            onClose={() => setModalDetalhes(false)}
-                            title={<Group><IconAlertTriangle size={16} color="red" /><Text fw={600}>Detalhes do Erro</Text></Group>}
-                            size="lg"
-                        >
-                            {logSelecionado && (
-                                <Stack gap="md">
-                                    <Group>
-                                        <Badge variant="light" color={logSelecionado.ferramenta === 'Nicochat' ? 'blue' : 'purple'}>
-                                            {logSelecionado.ferramenta === 'Nicochat' ? '🤖' : '⚙️'} {logSelecionado.ferramenta}
-                                        </Badge>
-                                        <Badge 
-                                            variant="light" 
-                                            color={getNivelColor(logSelecionado.nivel)}
-                                        >
-                                            {logSelecionado.nivel.toUpperCase()}
-                                        </Badge>
-                                        {logSelecionado.pais && (
-                                            <Badge variant="light" color="cyan" 
-                                                leftSection={<span>{getPaisFlag(logSelecionado.pais)}</span>}>
-                                                {getPaisDisplayName(logSelecionado.pais)}
-                                            </Badge>
-                                        )}
-                                    </Group>
-                                    
-                                    <Divider />
-                                    
-                                    <Box>
-                                        <Text fw={600} mb="xs">🚨 Mensagem de Erro:</Text>
-                                        <Paper p="sm" withBorder style={{ backgroundColor: 'var(--mantine-color-red-0)' }}>
-                                            <Text c="red">{logSelecionado.mensagem}</Text>
-                                        </Paper>
-                                    </Box>
-                                    
-                                    {logSelecionado.id_conversa && (
-                                        <Box>
-                                            <Text fw={600} mb="xs">💬 ID da Conversa:</Text>
-                                            <Code block>{logSelecionado.id_conversa}</Code>
-                                        </Box>
-                                    )}
-                                    
-                                    {logSelecionado.detalhes && Object.keys(logSelecionado.detalhes).length > 0 && (
-                                        <Box>
-                                            <Text fw={600} mb="xs">🔧 Detalhes Técnicos:</Text>
-                                            <JsonInput
-                                                value={JSON.stringify(logSelecionado.detalhes, null, 2)}
-                                                readOnly
-                                                minRows={4}
-                                                maxRows={8}
-                                            />
-                                        </Box>
-                                    )}
-                                    
-                                    <Divider />
-                                    
-                                    <Grid>
-                                        <Grid.Col span={6}>
-                                            <Text size="sm" c="dimmed" fw={600}>🕒 Ocorreu em:</Text>
-                                            <Text size="sm">{new Date(logSelecionado.timestamp).toLocaleString()}</Text>
-                                        </Grid.Col>
-                                        <Grid.Col span={6}>
-                                            <Text size="sm" c="dimmed" fw={600}>🌐 IP de Origem:</Text>
-                                            <Text size="sm">{logSelecionado.ip_origem || 'N/A'}</Text>
-                                        </Grid.Col>
-                                    </Grid>
-                                    
-                                    {logSelecionado.resolvido && (
-                                        <Alert color="green" icon={<IconCheck size={16} />}>
-                                            <Text fw={600}>✅ Erro resolvido por: {logSelecionado.resolvido_por_nome}</Text>
-                                            <Text size="sm">🕒 Em: {new Date(logSelecionado.data_resolucao).toLocaleString()}</Text>
-                                        </Alert>
-                                    )}
-                                </Stack>
+            <Dialog open={modalDetalhes} onOpenChange={setModalDetalhes}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-red-600" />
+                            Detalhes do Erro
+                        </DialogTitle>
+                    </DialogHeader>
+                    {logSelecionado && (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2">
+                                <Badge variant={logSelecionado.ferramenta === 'Nicochat' ? 'default' : 'secondary'}>
+                                    {logSelecionado.ferramenta === 'Nicochat' ? '🤖' : '⚙️'} {logSelecionado.ferramenta}
+                                </Badge>
+                                <Badge variant={logSelecionado.nivel === 'critical' ? 'destructive' : 'secondary'}>
+                                    {logSelecionado.nivel.toUpperCase()}
+                                </Badge>
+                                {logSelecionado.pais && (
+                                    <Badge variant="outline">
+                                        <span className="mr-1">{getPaisFlag(logSelecionado.pais)}</span>
+                                        {getPaisDisplayName(logSelecionado.pais)}
+                                    </Badge>
+                                )}
+                            </div>
+                            
+                            <div className="border-t pt-4">
+                                <Label className="text-sm font-medium">🚨 Mensagem de Erro:</Label>
+                                <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded">
+                                    <p className="text-red-800">{logSelecionado.mensagem}</p>
+                                </div>
+                            </div>
+                            
+                            {logSelecionado.id_conversa && (
+                                <div>
+                                    <Label className="text-sm font-medium">💬 ID da Conversa:</Label>
+                                    <div className="mt-2 p-2 bg-muted rounded font-mono text-sm">
+                                        {logSelecionado.id_conversa}
+                                    </div>
+                                </div>
                             )}
-                        </Modal>
+                            
+                            {logSelecionado.detalhes && Object.keys(logSelecionado.detalhes).length > 0 && (
+                                <div>
+                                    <Label className="text-sm font-medium">🔧 Detalhes Técnicos:</Label>
+                                    <Textarea
+                                        value={JSON.stringify(logSelecionado.detalhes, null, 2)}
+                                        readOnly
+                                        className="mt-2 font-mono text-xs"
+                                        rows={6}
+                                    />
+                                </div>
+                            )}
+                            
+                            <div className="border-t pt-4">
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div>
+                                        <Label className="text-sm font-medium text-muted-foreground">🕒 Ocorreu em:</Label>
+                                        <p className="text-sm">{new Date(logSelecionado.timestamp).toLocaleString()}</p>
+                                    </div>
+                                    <div>
+                                        <Label className="text-sm font-medium text-muted-foreground">🌐 IP de Origem:</Label>
+                                        <p className="text-sm">{logSelecionado.ip_origem || 'N/A'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {logSelecionado.resolvido && (
+                                <Alert className="border-green-500">
+                                    <Check className="h-4 w-4" />
+                                    <AlertDescription>
+                                        <strong>✅ Erro resolvido por: {logSelecionado.resolvido_por_nome}</strong><br />
+                                        🕒 Em: {new Date(logSelecionado.data_resolucao).toLocaleString()}
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
 
             {/* Modal de Resolução */}
-            <Modal
-                opened={modalResolucao}
-                onClose={() => setModalResolucao(false)}
-                title={`${logSelecionado?.resolvido ? '↩️ Reabrir Erro' : '✅ Marcar como Resolvido'}`}
-            >
-                {logSelecionado && (
-                    <Stack gap="md">
-                        <Text>
-                            Deseja marcar este erro como {logSelecionado.resolvido ? 'não resolvido' : 'resolvido'}?
-                        </Text>
-                        
-                        <Textarea
-                            label="📝 Observações sobre a resolução"
-                            placeholder="Descreva como o erro foi resolvido..."
-                            value={observacoesResolucao}
-                            onChange={(e) => setObservacoesResolucao(e.target.value)}
-                            minRows={3}
-                        />
-                        
-                        <Group justify="flex-end">
-                            <Button variant="outline" onClick={() => setModalResolucao(false)}>
-                                Cancelar
-                            </Button>
-                            <Button 
-                                color={logSelecionado.resolvido ? 'orange' : 'green'}
-                                onClick={() => marcarResolvido(logSelecionado.id, !logSelecionado.resolvido)}
-                                leftSection={logSelecionado.resolvido ? <IconX size={16} /> : <IconCheck size={16} />}
-                            >
-                                {logSelecionado.resolvido ? 'Reabrir Erro' : 'Marcar Resolvido'}
-                            </Button>
-                        </Group>
-                    </Stack>
-                )}
-            </Modal>
-        </Box>
+            <Dialog open={modalResolucao} onOpenChange={setModalResolucao}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {logSelecionado?.resolvido ? '↩️ Reabrir Erro' : '✅ Marcar como Resolvido'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Deseja marcar este erro como {logSelecionado?.resolvido ? 'não resolvido' : 'resolvido'}?
+                        </DialogDescription>
+                    </DialogHeader>
+                    {logSelecionado && (
+                        <div className="space-y-4">
+                            <div>
+                                <Label>📝 Observações sobre a resolução</Label>
+                                <Textarea
+                                    placeholder="Descreva como o erro foi resolvido..."
+                                    value={observacoesResolucao}
+                                    onChange={(e) => setObservacoesResolucao(e.target.value)}
+                                    rows={3}
+                                    className="mt-1"
+                                />
+                            </div>
+                            
+                            <div className="flex justify-end gap-2">
+                                <Button variant="outline" onClick={() => setModalResolucao(false)}>
+                                    Cancelar
+                                </Button>
+                                <Button 
+                                    variant={logSelecionado.resolvido ? 'secondary' : 'default'}
+                                    onClick={() => marcarResolvido(logSelecionado.id, !logSelecionado.resolvido)}
+                                >
+                                    {logSelecionado.resolvido ? <X className="h-4 w-4 mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+                                    {logSelecionado.resolvido ? 'Reabrir Erro' : 'Marcar Resolvido'}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+        </div>
     );
 }
 

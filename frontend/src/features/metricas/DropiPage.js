@@ -1,18 +1,24 @@
-// frontend/src/features/metricas/DropiPage.js
+// frontend/src/features/metricas/DropiPage.js - VERSÃO SHADCN/UI
 import React, { useState, useEffect } from 'react';
 import {
-    Box, Title, Text, Paper, Group, Button, Table, Badge, Stack, Grid,
-    Alert, ActionIcon, Modal, Card, Container, Progress,
-    ScrollArea, Loader, TextInput, ThemeIcon, NumberInput
-} from '@mantine/core';
-import {
-    IconCalendar, IconDownload, IconTrash, IconRefresh, IconCheck, IconX, 
-    IconAlertTriangle, IconTrendingUp, IconBuilding, IconChartBar, IconPlus,
-    IconEye, IconSearch, IconPackage, IconTarget, IconPercentage, IconShoppingCart,
-    IconCurrency, IconMap, IconClock, IconUser, IconPhone, IconMail
-} from '@tabler/icons-react';
-
+    Calendar, Download, Trash2, RefreshCw, Check, X, 
+    AlertTriangle, TrendingUp, Building, BarChart3, Plus,
+    Eye, Search, Package, Target, Percent, ShoppingCart,
+    DollarSign, MapPin, Clock, User, Phone, Mail
+} from 'lucide-react';
 import axios from 'axios';
+
+// shadcn/ui imports
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Badge } from '../../components/ui/badge';
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { LoadingSpinner } from '../../components/ui';
 
 // Status traduzidos do Dropi
 const STATUS_DROPI = {
@@ -195,358 +201,365 @@ function DropiPage() {
         const efetividade = totalPedidos > 0 ? ((entregues / totalPedidos) * 100).toFixed(1) : 0;
         
         return (
-            <Grid gutter="md" mb="xl">
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card withBorder>
-                        <Group justify="space-between">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
                             <div>
-                                <Text size="sm" c="dimmed">Total Pedidos</Text>
-                                <Text size="xl" fw={700}>{totalPedidos}</Text>
+                                <p className="text-sm text-muted-foreground">Total Pedidos</p>
+                                <p className="text-2xl font-bold">{totalPedidos}</p>
                             </div>
-                            <ThemeIcon color="blue" variant="light" size="xl">
-                                <IconShoppingCart size={24} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
+                            <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                <ShoppingCart className="h-4 w-4 text-blue-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
                 
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card withBorder>
-                        <Group justify="space-between">
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
                             <div>
-                                <Text size="sm" c="dimmed">Valor Total</Text>
-                                <Text size="xl" fw={700} c="green">R$ {totalValor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</Text>
+                                <p className="text-sm text-muted-foreground">Valor Total</p>
+                                <p className="text-2xl font-bold text-green-600">R$ {totalValor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                             </div>
-                            <ThemeIcon color="green" variant="light" size="xl">
-                                <IconCurrency size={24} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
+                            <div className="h-8 w-8 rounded-lg bg-green-100 flex items-center justify-center">
+                                <DollarSign className="h-4 w-4 text-green-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
                 
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card withBorder>
-                        <Group justify="space-between">
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
                             <div>
-                                <Text size="sm" c="dimmed">Entregues</Text>
-                                <Text size="xl" fw={700} c="blue">{entregues}</Text>
+                                <p className="text-sm text-muted-foreground">Entregues</p>
+                                <p className="text-2xl font-bold text-blue-600">{entregues}</p>
                             </div>
-                            <ThemeIcon color="blue" variant="light" size="xl">
-                                <IconTarget size={24} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
+                            <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                <Target className="h-4 w-4 text-blue-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
                 
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card withBorder>
-                        <Group justify="space-between">
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
                             <div>
-                                <Text size="sm" c="dimmed">Taxa Entrega</Text>
-                                <Text size="xl" fw={700} c="orange">{efetividade}%</Text>
+                                <p className="text-sm text-muted-foreground">Taxa Entrega</p>
+                                <p className="text-2xl font-bold text-orange-600">{efetividade}%</p>
                             </div>
-                            <ThemeIcon color="orange" variant="light" size="xl">
-                                <IconPercentage size={24} />
-                            </ThemeIcon>
-                        </Group>
-                    </Card>
-                </Grid.Col>
-            </Grid>
+                            <div className="h-8 w-8 rounded-lg bg-orange-100 flex items-center justify-center">
+                                <Percent className="h-4 w-4 text-orange-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
         );
     };
 
     const renderFormulario = () => (
-        <Paper shadow="sm" p="xs" mb="md" style={{ position: 'relative' }}>
-            {loadingProcessar && (
-                <div style={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'rgba(255,255,255,0.95)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 10
-                }}>
-                    <Loader size="lg" />
-                    <Text mt="md" fw={500}>Extraindo dados do Dropi...</Text>
-                    <Text size="sm" c="dimmed" mt="xs">Isso pode levar alguns segundos</Text>
+        <Card className="mb-6">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Search className="h-5 w-5" />
+                    Extrair Pedidos
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {loadingProcessar && (
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-10">
+                        <LoadingSpinner className="h-8 w-8" />
+                        <p className="mt-4 font-medium">Extraindo dados do Dropi...</p>
+                        <p className="text-sm text-muted-foreground mt-1">Isso pode levar alguns segundos</p>
+                    </div>
+                )}
+
+                <div className="grid gap-4 md:grid-cols-3">
+                    <div>
+                        <Label htmlFor="data-inicio">Data de Início</Label>
+                        <Input
+                            id="data-inicio"
+                            type="date"
+                            value={dataInicio ? dataInicio.toISOString().split('T')[0] : ''}
+                            onChange={(e) => setDataInicio(e.target.value ? new Date(e.target.value) : null)}
+                            disabled={loadingProcessar}
+                        />
+                    </div>
+                    
+                    <div>
+                        <Label htmlFor="data-fim">Data de Fim</Label>
+                        <Input
+                            id="data-fim"
+                            type="date"
+                            value={dataFim ? dataFim.toISOString().split('T')[0] : ''}
+                            onChange={(e) => setDataFim(e.target.value ? new Date(e.target.value) : null)}
+                            disabled={loadingProcessar}
+                        />
+                    </div>
+                    
+                    <div>
+                        <Label htmlFor="user-id">User ID Dropi</Label>
+                        <div className="relative">
+                            <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                id="user-id"
+                                type="number"
+                                value={userId}
+                                onChange={(e) => setUserId(e.target.value)}
+                                disabled={loadingProcessar}
+                                className="pl-10"
+                            />
+                        </div>
+                    </div>
                 </div>
-            )}
 
-            <Group gap="sm" mb="sm">
-                <IconSearch size={20} />
-                <Title order={4}>Extrair Pedidos</Title>
-            </Group>
-            
-            <Grid gutter="sm">
-                <Grid.Col span={{ base: 12, sm: 4 }}>
-                    <TextInput
-                        type="date"
-                        label="Data de Início"
-                        value={dataInicio ? dataInicio.toISOString().split('T')[0] : ''}
-                        onChange={(e) => setDataInicio(e.target.value ? new Date(e.target.value) : null)}
-                        disabled={loadingProcessar}
-                    />
-                </Grid.Col>
-                
-                <Grid.Col span={{ base: 12, sm: 4 }}>
-                    <TextInput
-                        type="date"
-                        label="Data de Fim"
-                        value={dataFim ? dataFim.toISOString().split('T')[0] : ''}
-                        onChange={(e) => setDataFim(e.target.value ? new Date(e.target.value) : null)}
-                        disabled={loadingProcessar}
-                    />
-                </Grid.Col>
-                
-                <Grid.Col span={{ base: 12, sm: 4 }}>
-                    <NumberInput
-                        label="User ID Dropi"
-                        value={userId}
-                        onChange={(value) => setUserId(value)}
-                        disabled={loadingProcessar}
-                        leftSection={<IconUser size={16} />}
-                    />
-                </Grid.Col>
-            </Grid>
-
-            <Group justify="flex-end" mt="sm">
-                <Button
-                    leftSection={loadingProcessar ? <Loader size="xs" /> : <IconSearch size={16} />}
-                    onClick={processarDados}
-                    disabled={!dataInicio || !dataFim || !userId || loadingProcessar}
-                    loading={loadingProcessar}
-                    size="md"
-                >
-                    {loadingProcessar ? 'Extraindo...' : 'Extrair Pedidos'}
-                </Button>
-            </Group>
-        </Paper>
+                <div className="flex justify-end">
+                    <Button
+                        onClick={processarDados}
+                        disabled={!dataInicio || !dataFim || !userId || loadingProcessar}
+                        className="min-w-[140px]"
+                    >
+                        {loadingProcessar ? (
+                            <>
+                                <LoadingSpinner className="h-4 w-4 mr-2" />
+                                Extraindo...
+                            </>
+                        ) : (
+                            <>
+                                <Search className="h-4 w-4 mr-2" />
+                                Extrair Pedidos
+                            </>
+                        )}
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
     );
 
     const renderFiltros = () => (
-        <Paper shadow="sm" p="sm" mb="md">
-            <Group gap="sm" mb="sm">
-                <IconTarget size={20} />
-                <Title order={5}>Filtros</Title>
-            </Group>
-            
-            <Grid gutter="sm">
-                <Grid.Col span={{ base: 12, sm: 4 }}>
-                    <TextInput
-                        placeholder="Filtrar por status..."
-                        value={filtroStatus}
-                        onChange={(e) => setFiltroStatus(e.target.value)}
-                        leftSection={<IconClock size={16} />}
-                    />
-                </Grid.Col>
-                
-                <Grid.Col span={{ base: 12, sm: 4 }}>
-                    <TextInput
-                        placeholder="Filtrar por fornecedor..."
-                        value={filtroFornecedor}
-                        onChange={(e) => setFiltroFornecedor(e.target.value)}
-                        leftSection={<IconBuilding size={16} />}
-                    />
-                </Grid.Col>
-                
-                <Grid.Col span={{ base: 12, sm: 4 }}>
-                    <TextInput
-                        placeholder="Filtrar por nome cliente..."
-                        value={filtroNome}
-                        onChange={(e) => setFiltroNome(e.target.value)}
-                        leftSection={<IconUser size={16} />}
-                    />
-                </Grid.Col>
-            </Grid>
-        </Paper>
+        <Card className="mb-4">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                    <Target className="h-4 w-4" />
+                    Filtros
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="grid gap-4 md:grid-cols-3">
+                    <div className="relative">
+                        <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Filtrar por status..."
+                            value={filtroStatus}
+                            onChange={(e) => setFiltroStatus(e.target.value)}
+                            className="pl-10"
+                        />
+                    </div>
+                    
+                    <div className="relative">
+                        <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Filtrar por fornecedor..."
+                            value={filtroFornecedor}
+                            onChange={(e) => setFiltroFornecedor(e.target.value)}
+                            className="pl-10"
+                        />
+                    </div>
+                    
+                    <div className="relative">
+                        <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Filtrar por nome cliente..."
+                            value={filtroNome}
+                            onChange={(e) => setFiltroNome(e.target.value)}
+                            className="pl-10"
+                        />
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
     );
 
     const renderResultados = () => {
         if (!dadosResultado || !Array.isArray(dadosResultado)) return null;
 
         return (
-            <Paper shadow="sm" p="md" mb="md">
-                <Group justify="space-between" mb="md">
-                    <Title order={4}>Pedidos Dropi MX</Title>
-                    <Group>
-                        <Badge variant="light" color="blue">
-                            {dadosFiltrados.length} de {dadosResultado.length} pedidos
-                        </Badge>
-                        <Button
-                            leftSection={<IconDownload size={16} />}
-                            onClick={() => setModalSalvar(true)}
-                            variant="light"
-                        >
-                            Salvar Análise
-                        </Button>
-                    </Group>
-                </Group>
+            <Card className="mb-6">
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <CardTitle>Pedidos Dropi MX</CardTitle>
+                        <div className="flex items-center gap-2">
+                            <Badge variant="secondary">
+                                {dadosFiltrados.length} de {dadosResultado.length} pedidos
+                            </Badge>
+                            <Button onClick={() => setModalSalvar(true)} variant="outline">
+                                <Download className="h-4 w-4 mr-2" />
+                                Salvar Análise
+                            </Button>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    {renderFiltros()}
 
-                {renderFiltros()}
-
-                <ScrollArea>
-                    <Table striped highlightOnHover>
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th>ID</Table.Th>
-                                <Table.Th>Cliente</Table.Th>
-                                <Table.Th>Fornecedor</Table.Th>
-                                <Table.Th>Status</Table.Th>
-                                <Table.Th>Valor</Table.Th>
-                                <Table.Th>Telefone</Table.Th>
-                                <Table.Th>Cidade</Table.Th>
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                            {dadosFiltrados.map((pedido) => (
-                                <Table.Tr key={pedido.id}>
-                                    <Table.Td>
-                                        <Text size="sm" fw={500}>{pedido.id}</Text>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <div>
-                                            <Text size="sm" fw={500}>{pedido.name} {pedido.surname}</Text>
-                                            {pedido.client_email && (
-                                                <Text size="xs" c="dimmed">{pedido.client_email}</Text>
-                                            )}
-                                        </div>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Text size="sm">{pedido.supplier_name}</Text>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Badge 
-                                            color={STATUS_DROPI[pedido.status]?.color || 'gray'}
-                                            variant="light"
-                                        >
-                                            {STATUS_DROPI[pedido.status]?.label || pedido.status}
-                                        </Badge>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Text size="sm" fw={500} c="green">
-                                            R$ {parseFloat(pedido.total_order || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                        </Text>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Text size="sm">{pedido.phone}</Text>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Text size="sm" truncate style={{ maxWidth: '150px' }}>
-                                            {pedido.dir}
-                                        </Text>
-                                    </Table.Td>
-                                </Table.Tr>
-                            ))}
-                        </Table.Tbody>
-                    </Table>
-                </ScrollArea>
-            </Paper>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>ID</TableHead>
+                                    <TableHead>Cliente</TableHead>
+                                    <TableHead>Fornecedor</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Valor</TableHead>
+                                    <TableHead>Telefone</TableHead>
+                                    <TableHead>Cidade</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {dadosFiltrados.map((pedido) => (
+                                    <TableRow key={pedido.id}>
+                                        <TableCell>
+                                            <span className="text-sm font-medium">{pedido.id}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div>
+                                                <p className="text-sm font-medium">{pedido.name} {pedido.surname}</p>
+                                                {pedido.client_email && (
+                                                    <p className="text-xs text-muted-foreground">{pedido.client_email}</p>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-sm">{pedido.supplier_name}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge 
+                                                variant={STATUS_DROPI[pedido.status]?.color === 'green' ? 'default' : 'secondary'}
+                                                className={`${
+                                                    STATUS_DROPI[pedido.status]?.color === 'red' ? 'bg-red-100 text-red-800' :
+                                                    STATUS_DROPI[pedido.status]?.color === 'green' ? 'bg-green-100 text-green-800' :
+                                                    STATUS_DROPI[pedido.status]?.color === 'orange' ? 'bg-orange-100 text-orange-800' :
+                                                    STATUS_DROPI[pedido.status]?.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
+                                                    STATUS_DROPI[pedido.status]?.color === 'blue' ? 'bg-blue-100 text-blue-800' :
+                                                    'bg-gray-100 text-gray-800'
+                                                }`}
+                                            >
+                                                {STATUS_DROPI[pedido.status]?.label || pedido.status}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-sm font-medium text-green-600">
+                                                R$ {parseFloat(pedido.total_order || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-sm">{pedido.phone}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-sm truncate max-w-[150px] block">
+                                                {pedido.dir}
+                                            </span>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
         );
     };
 
     const renderAnalisesSalvas = () => (
-        <Paper shadow="sm" p="md" style={{ position: 'relative' }}>
-            {loadingAnalises && (
-                <div style={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'rgba(255,255,255,0.8)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 10
-                }}>
-                    <Loader size="lg" />
+        <Card>
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5" />
+                        <CardTitle>Análises Salvas</CardTitle>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Badge variant="secondary">{analisesSalvas.length}</Badge>
+                        <Button variant="ghost" size="sm" onClick={fetchAnalises}>
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Atualizar
+                        </Button>
+                    </div>
                 </div>
-            )}
+            </CardHeader>
+            <CardContent>
+                {loadingAnalises && (
+                    <div className="flex items-center justify-center py-8">
+                        <LoadingSpinner className="h-8 w-8" />
+                    </div>
+                )}
 
-            <Group justify="space-between" mb="md">
-                <Group gap="sm">
-                    <IconChartBar size={20} />
-                    <Title order={4}>Análises Salvas</Title>
-                </Group>
-                <Group>
-                    <Badge variant="light">{analisesSalvas.length}</Badge>
-                    <Button
-                        leftSection={<IconRefresh size={16} />}
-                        variant="outline"
-                        size="sm"
-                        onClick={fetchAnalises}
-                    >
-                        Atualizar
-                    </Button>
-                </Group>
-            </Group>
+                {analisesSalvas.length === 0 && !loadingAnalises ? (
+                    <Alert>
+                        <BarChart3 className="h-4 w-4" />
+                        <AlertDescription>
+                            <strong>Nenhuma análise salva</strong><br />
+                            Extraia dados e salve o resultado para vê-lo aqui.
+                        </AlertDescription>
+                    </Alert>
+                ) : (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {analisesSalvas.map(analise => (
+                            <Card key={analise.id} className="border">
+                                <CardContent className="p-4">
+                                    {loadingDelete[analise.id] && (
+                                        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
+                                            <LoadingSpinner className="h-4 w-4" />
+                                        </div>
+                                    )}
 
-            {analisesSalvas.length === 0 ? (
-                <Alert color="blue" icon={<IconChartBar size={16} />}>
-                    <Text fw={500} mb="xs">Nenhuma análise salva</Text>
-                    <Text size="sm" c="dimmed">
-                        Extraia dados e salve o resultado para vê-lo aqui.
-                    </Text>
-                </Alert>
-            ) : (
-                <Grid>
-                    {analisesSalvas.map(analise => (
-                        <Grid.Col span={{ base: 12, sm: 6, md: 4 }} key={analise.id}>
-                            <Card withBorder style={{ position: 'relative' }}>
-                                {loadingDelete[analise.id] && (
-                                    <div style={{
-                                        position: 'absolute',
-                                        top: 0, left: 0, right: 0, bottom: 0,
-                                        backgroundColor: 'rgba(255,255,255,0.8)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        zIndex: 10
-                                    }}>
-                                        <Loader size="sm" />
+                                    <div className="flex items-start justify-between mb-2">
+                                        <h4 className="font-medium truncate max-w-[70%]">
+                                            {analise.nome.replace('[DROPI] ', '')}
+                                        </h4>
+                                        <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800">
+                                            DROPI
+                                        </Badge>
                                     </div>
-                                )}
 
-                                <Group justify="space-between" mb="xs">
-                                    <Text fw={500} truncate style={{ maxWidth: '70%' }}>
-                                        {analise.nome.replace('[DROPI] ', '')}
-                                    </Text>
-                                    <Badge color="orange" variant="light">
-                                        DROPI
-                                    </Badge>
-                                </Group>
+                                    <p className="text-xs text-muted-foreground mb-2">
+                                        {new Date(analise.data_inicio).toLocaleDateString('pt-BR')} - {new Date(analise.data_fim).toLocaleDateString('pt-BR')}
+                                    </p>
 
-                                <Text size="xs" c="dimmed" mb="sm">
-                                    {new Date(analise.data_inicio).toLocaleDateString('pt-BR')} - {new Date(analise.data_fim).toLocaleDateString('pt-BR')}
-                                </Text>
+                                    <p className="text-xs text-muted-foreground mb-3">
+                                        {analise.total_pedidos} pedidos • {new Date(analise.criado_em).toLocaleDateString('pt-BR')}
+                                    </p>
 
-                                <Text size="xs" c="dimmed" mb="md">
-                                    {analise.total_pedidos} pedidos • {new Date(analise.criado_em).toLocaleDateString('pt-BR')}
-                                </Text>
-
-                                <Group justify="space-between">
-                                    <Button
-                                        size="xs"
-                                        variant="light"
-                                        onClick={() => carregarAnalise(analise)}
-                                        leftSection={<IconEye size={14} />}
-                                    >
-                                        Carregar
-                                    </Button>
-                                    <ActionIcon
-                                        color="red"
-                                        variant="light"
-                                        onClick={() => deletarAnalise(analise.id, analise.nome)}
-                                        loading={loadingDelete[analise.id]}
-                                    >
-                                        <IconTrash size={16} />
-                                    </ActionIcon>
-                                </Group>
+                                    <div className="flex items-center justify-between">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => carregarAnalise(analise)}
+                                        >
+                                            <Eye className="h-3 w-3 mr-1" />
+                                            Carregar
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            onClick={() => deletarAnalise(analise.id, analise.nome)}
+                                            disabled={loadingDelete[analise.id]}
+                                            className="h-8 w-8 p-0"
+                                        >
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                </CardContent>
                             </Card>
-                        </Grid.Col>
-                    ))}
-                </Grid>
-            )}
-        </Paper>
+                        ))}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
     );
 
     // ======================== EFEITOS ========================
@@ -566,30 +579,30 @@ function DropiPage() {
     // ======================== RENDER PRINCIPAL ========================
 
     return (
-        <Container fluid p="md">
+        <div className="flex-1 space-y-6 p-6">
             {/* Header */}
-            <Group justify="space-between" mb="xl">
+            <div className="flex items-start justify-between">
                 <div>
-                    <Group gap="sm">
-                        <IconShoppingCart size={28} color="var(--mantine-color-orange-6)" />
-                        <Title order={2}>Dropi MX</Title>
-                    </Group>
-                    <Text c="dimmed">Gestão de pedidos e métricas</Text>
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="h-7 w-7 rounded-lg bg-orange-100 flex items-center justify-center">
+                            <ShoppingCart className="h-4 w-4 text-orange-600" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-foreground">Dropi MX</h1>
+                    </div>
+                    <p className="text-muted-foreground">Gestão de pedidos e métricas</p>
                 </div>
-            </Group>
+            </div>
 
             {/* Notificações */}
             {notification && (
-                <Alert
-                    color={notification.type === 'success' ? 'green' : notification.type === 'warning' ? 'yellow' : 'red'}
-                    title={notification.type === 'success' ? 'Sucesso' : notification.type === 'warning' ? 'Atenção' : 'Erro'}
-                    mb="md"
-                    withCloseButton
-                    onClose={() => setNotification(null)}
-                    icon={notification.type === 'success' ? <IconCheck size={16} /> :
-                        notification.type === 'warning' ? <IconAlertTriangle size={16} /> : <IconX size={16} />}
-                >
-                    {notification.message}
+                <Alert className={`${notification.type === 'error' ? 'border-destructive' : 
+                    notification.type === 'warning' ? 'border-yellow-500' : 'border-green-500'}`}>
+                    {notification.type === 'success' ? <Check className="h-4 w-4" /> : 
+                     notification.type === 'warning' ? <AlertTriangle className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                    <AlertDescription>
+                        <strong>{notification.type === 'success' ? 'Sucesso!' : 
+                                 notification.type === 'warning' ? 'Atenção!' : 'Erro!'}</strong> {notification.message}
+                    </AlertDescription>
                 </Alert>
             )}
 
@@ -606,51 +619,58 @@ function DropiPage() {
             {renderAnalisesSalvas()}
 
             {/* Modal para salvar análise */}
-            <Modal
-                opened={modalSalvar}
-                onClose={() => setModalSalvar(false)}
-                title="Salvar Análise"
-            >
-                <Stack style={{ position: 'relative' }}>
-                    {loadingSalvar && (
-                        <div style={{
-                            position: 'absolute',
-                            top: 0, left: 0, right: 0, bottom: 0,
-                            backgroundColor: 'rgba(255,255,255,0.9)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            zIndex: 10
-                        }}>
-                            <Loader size="lg" />
+            <Dialog open={modalSalvar} onOpenChange={setModalSalvar}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Salvar Análise</DialogTitle>
+                        <DialogDescription>
+                            Salve sua análise Dropi MX para acessá-la posteriormente.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        {loadingSalvar && (
+                            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
+                                <LoadingSpinner className="h-8 w-8" />
+                            </div>
+                        )}
+
+                        <div>
+                            <Label htmlFor="nome-analise">Nome da Análise</Label>
+                            <Input
+                                id="nome-analise"
+                                placeholder="Ex: Dropi MX Janeiro 2025"
+                                value={nomeAnalise}
+                                onChange={(e) => setNomeAnalise(e.target.value)}
+                                disabled={loadingSalvar}
+                                className="mt-1"
+                            />
                         </div>
-                    )}
 
-                    <TextInput
-                        label="Nome da Análise"
-                        placeholder="Ex: Dropi MX Janeiro 2025"
-                        value={nomeAnalise}
-                        onChange={(e) => setNomeAnalise(e.target.value)}
-                        required
-                        disabled={loadingSalvar}
-                    />
-
-                    <Group justify="flex-end">
-                        <Button variant="outline" onClick={() => setModalSalvar(false)} disabled={loadingSalvar}>
-                            Cancelar
-                        </Button>
-                        <Button
-                            onClick={salvarAnalise}
-                            disabled={!nomeAnalise}
-                            loading={loadingSalvar}
-                            leftSection={loadingSalvar ? <Loader size="xs" /> : <IconDownload size={16} />}
-                        >
-                            {loadingSalvar ? 'Salvando...' : 'Salvar'}
-                        </Button>
-                    </Group>
-                </Stack>
-            </Modal>
-        </Container>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="outline" onClick={() => setModalSalvar(false)} disabled={loadingSalvar}>
+                                Cancelar
+                            </Button>
+                            <Button
+                                onClick={salvarAnalise}
+                                disabled={!nomeAnalise || loadingSalvar}
+                            >
+                                {loadingSalvar ? (
+                                    <>
+                                        <LoadingSpinner className="h-4 w-4 mr-2" />
+                                        Salvando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download className="h-4 w-4 mr-2" />
+                                        Salvar
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </div>
     );
 }
 
