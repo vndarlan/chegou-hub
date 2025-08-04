@@ -28,7 +28,7 @@ class Feedback(models.Model):
     prioridade = models.CharField(max_length=10, choices=PRIORIDADE_CHOICES, default='media')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pendente')
     url_pagina = models.URLField(max_length=500)
-    imagem = models.ImageField(upload_to='feedback_images/', blank=True, null=True)
+    imagem = models.ImageField(upload_to='feedback/', blank=True, null=True)
     data_criacao = models.DateTimeField(auto_now_add=True)
     usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     

@@ -181,13 +181,16 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Media files (uploads)
+# Media files (uploads)  
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
 
-# Para Railway/produção, usar WhiteNoise para servir media files
+# Configuração de media files para Railway
 if not DEBUG:
+    # Em produção, salvar media files dentro de staticfiles
     MEDIA_ROOT = BASE_DIR / 'staticfiles' / 'media'
+else:
+    # Em desenvolvimento local
+    MEDIA_ROOT = BASE_DIR / 'media'
 
 # Configurações de upload
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
@@ -198,6 +201,10 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+
+# Configurar WhiteNoise para servir media files em produção
+if not DEBUG:
+    WHITENOISE_USE_FINDERS = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

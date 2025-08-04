@@ -34,6 +34,9 @@ urlpatterns = [
     path('api/feedback/', include('features.feedback.urls')),
 ]
 
-# Servir arquivos de media em desenvolvimento
+# Servir arquivos de media
 if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+else:
+    # Em produção, WhiteNoise vai servir os arquivos media que estão em staticfiles/media
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
