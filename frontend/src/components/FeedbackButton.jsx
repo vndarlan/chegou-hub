@@ -13,7 +13,7 @@ const FeedbackButton = () => {
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 w-8 p-0 hover:bg-accent"
+          className="h-8 w-8 p-0 hover:bg-accent text-foreground hover:text-foreground"
           title="Enviar Feedback"
         >
           <HelpCircle className="h-4 w-4" />

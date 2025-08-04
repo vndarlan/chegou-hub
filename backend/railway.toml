@@ -3,7 +3,7 @@ builder = "dockerfile"
 dockerfilePath = "backend/Dockerfile"
 
 [deploy]
-startCommand = "sh -c 'python manage.py migrate --run-syncdb && python manage.py migrate feedback && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --log-level info --timeout 120'"
+startCommand = "sh -c 'python manage.py migrate && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --log-level info --timeout 120'"
 healthcheckPath = "/health/"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"
