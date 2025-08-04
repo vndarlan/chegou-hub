@@ -1,21 +1,28 @@
-// frontend/src/features/ia/RelatoriosProjetos.js
+// frontend/src/features/ia/RelatoriosProjetos.js - VERSÃO SHADCN/UI
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-    Container, Grid, Title, Text, Paper, Group, Stack, Box,
-    Button, Select, Badge, Table, Alert,
-    LoadingOverlay, SimpleGrid, Progress, Card, Divider,
-    Flex, Center, ActionIcon, Menu, Tooltip, RingProgress, List, ThemeIcon
-} from '@mantine/core';
-import {
-    IconChartBar, IconDownload, IconFilter, IconCalendar,
-    IconTrendingUp, IconTrendingDown, IconCoin, IconClock,
-    IconUsers, IconTarget, IconChevronDown, IconFileExport,
-    IconReportAnalytics, IconActivity, IconBrain, IconRobot,
-    IconCheck, IconX, IconArrowUp, IconArrowDown, IconMinus
-} from '@tabler/icons-react';
-import { DatePickerInput } from '@mantine/dates';
-import { notifications } from '@mantine/notifications';
+    BarChart3, Download, Filter, Calendar,
+    TrendingUp, TrendingDown, DollarSign, Clock,
+    Users, Target, ChevronDown, FileX,
+    FileText, Activity, Brain, Bot,
+    Check, X, ArrowUp, ArrowDown, Minus
+} from 'lucide-react';
 import axios from 'axios';
+
+// shadcn/ui imports
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { LoadingSpinner } from '../../components/ui';
+import { Progress } from '../../components/ui/progress';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu';
 
 // === COMPONENTES DE GRÁFICOS CUSTOMIZADOS ===
 
@@ -23,14 +30,14 @@ import axios from 'axios';
 const ROIChart = ({ dados, userPermissions }) => {
     if (!userPermissions?.pode_ver_financeiro) {
         return (
-            <Paper p="xl" withBorder>
-                <Center>
-                    <Stack align="center" gap="md">
-                        <IconX size={48} color="gray" />
-                        <Text c="dimmed">Sem permissão para ver dados financeiros</Text>
-                    </Stack>
-                </Center>
-            </Paper>
+            <Card className="border">
+                <CardContent className="p-12">
+                    <div className="flex flex-col items-center space-y-4">
+                        <X className="h-12 w-12 text-muted-foreground" />
+                        <p className="text-muted-foreground">Sem permissão para ver dados financeiros</p>
+                    </div>
+                </CardContent>
+            </Card>
         );
     }
 
@@ -40,28 +47,32 @@ const ROIChart = ({ dados, userPermissions }) => {
         .slice(0, 5);
 
     return (
-        <Stack gap="md">
+        <div className="space-y-4">
             {projetosComROI?.map((projeto, index) => (
-                <Paper key={projeto.id} p="sm" withBorder>
-                    <Group justify="space-between">
-                        <Text size="sm" weight={500}>
-                            {projeto.nome.substring(0, 30)}...
-                        </Text>
-                        <Group gap="xs">
-                            <Text size="sm" weight={700} c={projeto.metricas_financeiras.roi > 0 ? 'green' : 'red'}>
-                                {projeto.metricas_financeiras.roi}%
-                            </Text>
-                            <Progress 
-                                value={Math.min(Math.abs(projeto.metricas_financeiras.roi), 100)} 
-                                color={projeto.metricas_financeiras.roi > 0 ? 'green' : 'red'}
-                                size="sm"
-                                w={100}
-                            />
-                        </Group>
-                    </Group>
-                </Paper>
+                <Card key={projeto.id} className="border">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium">
+                                {projeto.nome.substring(0, 30)}...
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <span className={`text-sm font-bold ${
+                                    projeto.metricas_financeiras.roi > 0 ? 'text-green-600' : 'text-red-600'
+                                }`}>
+                                    {projeto.metricas_financeiras.roi}%
+                                </span>
+                                <Progress 
+                                    value={Math.min(Math.abs(projeto.metricas_financeiras.roi), 100)} 
+                                    className={`w-24 h-2 ${
+                                        projeto.metricas_financeiras.roi > 0 ? '[&>div]:bg-green-500' : '[&>div]:bg-red-500'
+                                    }`}
+                                />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             ))}
-        </Stack>
+        </div>
     );
 };
 
@@ -69,14 +80,14 @@ const ROIChart = ({ dados, userPermissions }) => {
 const EconomiaTimelineChart = ({ dados, userPermissions }) => {
     if (!userPermissions?.pode_ver_financeiro) {
         return (
-            <Paper p="xl" withBorder>
-                <Center>
-                    <Stack align="center" gap="md">
-                        <IconX size={48} color="gray" />
-                        <Text c="dimmed">Sem permissão para ver dados financeiros</Text>
-                    </Stack>
-                </Center>
-            </Paper>
+            <Card className="border">
+                <CardContent className="p-12">
+                    <div className="flex flex-col items-center space-y-4">
+                        <X className="h-12 w-12 text-muted-foreground" />
+                        <p className="text-muted-foreground">Sem permissão para ver dados financeiros</p>
+                    </div>
+                </CardContent>
+            </Card>
         );
     }
 
@@ -87,25 +98,25 @@ const EconomiaTimelineChart = ({ dados, userPermissions }) => {
         .reduce((acc, p) => acc + parseFloat(p.metricas_financeiras.economia_mensal || 0), 0);
 
     return (
-        <SimpleGrid cols={6}>
+        <div className="grid grid-cols-6 gap-4">
             {meses.map((mes, index) => {
                 const valor = economiaTotal * (index + 1) * 0.8;
                 return (
-                    <Paper key={mes} p="sm" withBorder>
-                        <Text size="xs" c="dimmed">{mes}</Text>
-                        <Text size="lg" weight={700}>
-                            R$ {valor.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
-                        </Text>
-                        <Progress 
-                            value={(index + 1) * 16.66} 
-                            color="teal" 
-                            size="sm" 
-                            mt="xs"
-                        />
-                    </Paper>
+                    <Card key={mes} className="border">
+                        <CardContent className="p-4">
+                            <p className="text-xs text-muted-foreground">{mes}</p>
+                            <p className="text-lg font-bold">
+                                R$ {valor.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+                            </p>
+                            <Progress 
+                                value={(index + 1) * 16.66} 
+                                className="mt-2 h-2 [&>div]:bg-teal-500"
+                            />
+                        </CardContent>
+                    </Card>
                 );
             })}
-        </SimpleGrid>
+        </div>
     );
 };
 
@@ -120,25 +131,27 @@ const DistribuicaoTipoChart = ({ dados }) => {
     const total = Object.values(distribuicao || {}).reduce((acc, count) => acc + count, 0);
 
     return (
-        <Stack gap="md">
+        <div className="space-y-4">
             {Object.entries(distribuicao || {}).map(([tipo, count]) => {
                 const percentage = total > 0 ? (count / total) * 100 : 0;
                 return (
-                    <Paper key={tipo} p="sm" withBorder>
-                        <Group justify="space-between" mb="xs">
-                            <Text size="sm" weight={500}>
-                                {tipo.replace('_', ' ').toUpperCase()}
-                            </Text>
-                            <Badge variant="light">{count}</Badge>
-                        </Group>
-                        <Progress value={percentage} color="blue" size="lg" />
-                        <Text size="xs" c="dimmed" mt="xs">
-                            {percentage.toFixed(1)}%
-                        </Text>
-                    </Paper>
+                    <Card key={tipo} className="border">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <p className="text-sm font-medium">
+                                    {tipo.replace('_', ' ').toUpperCase()}
+                                </p>
+                                <Badge variant="secondary">{count}</Badge>
+                            </div>
+                            <Progress value={percentage} className="h-3 [&>div]:bg-blue-500" />
+                            <p className="text-xs text-muted-foreground mt-2">
+                                {percentage.toFixed(1)}%
+                            </p>
+                        </CardContent>
+                    </Card>
                 );
             })}
-        </Stack>
+        </div>
     );
 };
 
@@ -168,54 +181,58 @@ const RankingProjetos = ({ dados, userPermissions, tipo = 'roi' }) => {
     }, [dados, tipo]);
 
     const getTrendIcon = (valor, threshold = 0) => {
-        if (valor > threshold) return <IconArrowUp size={16} color="green" />;
-        if (valor < threshold) return <IconArrowDown size={16} color="red" />;
-        return <IconMinus size={16} color="gray" />;
+        if (valor > threshold) return <ArrowUp className="h-4 w-4 text-green-600" />;
+        if (valor < threshold) return <ArrowDown className="h-4 w-4 text-red-600" />;
+        return <Minus className="h-4 w-4 text-muted-foreground" />;
     };
 
     return (
-        <Stack gap="xs">
+        <div className="space-y-2">
             {dadosRanking.map((projeto, index) => (
-                <Paper key={projeto.id} p="sm" withBorder>
-                    <Group justify="space-between">
-                        <Group gap="sm">
-                            <Badge variant="filled" size="lg">
-                                {index + 1}
-                            </Badge>
-                            <Box>
-                                <Text size="sm" weight={500}>{projeto.nome}</Text>
-                                <Text size="xs" c="dimmed">
-                                    {projeto.criadores_nomes?.[0] || 'N/A'}
-                                </Text>
-                            </Box>
-                        </Group>
-                        
-                        <Group gap="xs">
-                            {tipo === 'roi' && userPermissions?.pode_ver_financeiro && (
-                                <Group gap={4}>
-                                    {getTrendIcon(projeto.metricas_financeiras.roi)}
-                                    <Text size="sm" weight={700} c={projeto.metricas_financeiras.roi > 0 ? 'green' : 'red'}>
-                                        {projeto.metricas_financeiras.roi}%
-                                    </Text>
-                                </Group>
-                            )}
+                <Card key={projeto.id} className="border">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <Badge variant="default" className="text-lg min-w-[32px] h-8 flex items-center justify-center">
+                                    {index + 1}
+                                </Badge>
+                                <div>
+                                    <p className="text-sm font-medium">{projeto.nome}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {projeto.criadores_nomes?.[0] || 'N/A'}
+                                    </p>
+                                </div>
+                            </div>
                             
-                            {tipo === 'economia' && userPermissions?.pode_ver_financeiro && (
-                                <Text size="sm" weight={500}>
-                                    R$ {projeto.metricas_financeiras.economia_mensal?.toLocaleString('pt-BR')}
-                                </Text>
-                            )}
-                            
-                            {tipo === 'horas' && (
-                                <Text size="sm" weight={500}>
-                                    {projeto.horas_totais}h
-                                </Text>
-                            )}
-                        </Group>
-                    </Group>
-                </Paper>
+                            <div className="flex items-center gap-2">
+                                {tipo === 'roi' && userPermissions?.pode_ver_financeiro && (
+                                    <div className="flex items-center gap-1">
+                                        {getTrendIcon(projeto.metricas_financeiras.roi)}
+                                        <span className={`text-sm font-bold ${
+                                            projeto.metricas_financeiras.roi > 0 ? 'text-green-600' : 'text-red-600'
+                                        }`}>
+                                            {projeto.metricas_financeiras.roi}%
+                                        </span>
+                                    </div>
+                                )}
+                                
+                                {tipo === 'economia' && userPermissions?.pode_ver_financeiro && (
+                                    <span className="text-sm font-medium">
+                                        R$ {projeto.metricas_financeiras.economia_mensal?.toLocaleString('pt-BR')}
+                                    </span>
+                                )}
+                                
+                                {tipo === 'horas' && (
+                                    <span className="text-sm font-medium">
+                                        {projeto.horas_totais}h
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             ))}
-        </Stack>
+        </div>
     );
 };
 
@@ -227,11 +244,12 @@ function RelatoriosProjetos() {
     const [userPermissions, setUserPermissions] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [notification, setNotification] = useState(null);
     
     // Filtros para relatórios
     const [periodo, setPeriodo] = useState('todos');
-    const [departamento, setDepartamento] = useState('');
-    const [tipoProjeto, setTipoProjeto] = useState('');
+    const [departamento, setDepartamento] = useState('todos');
+    const [tipoProjeto, setTipoProjeto] = useState('todos');
     
     // === EFEITOS ===
     useEffect(() => {
@@ -245,8 +263,8 @@ function RelatoriosProjetos() {
             
             // Construir filtros
             const params = new URLSearchParams();
-            if (departamento) params.append('departamento', departamento);
-            if (tipoProjeto) params.append('tipo_projeto', tipoProjeto);
+            if (departamento && departamento !== 'todos') params.append('departamento', departamento);
+            if (tipoProjeto && tipoProjeto !== 'todos') params.append('tipo_projeto', tipoProjeto);
             
             const [projetosRes, statsRes, permissoesRes] = await Promise.all([
                 axios.get(`/ia/projetos/?${params}`),
@@ -265,20 +283,11 @@ function RelatoriosProjetos() {
         }
     };
 
-    const exportarRelatorio = async () => {
+    const exportarRelatorio = async (tipo) => {
         try {
-            // Aqui implementaria a exportação real
-            notifications.show({
-                title: 'Exportação',
-                message: 'Relatório exportado com sucesso!',
-                color: 'green'
-            });
+            setNotification({ type: 'success', message: 'Relatório exportado com sucesso!' });
         } catch (err) {
-            notifications.show({
-                title: 'Erro',
-                message: 'Erro ao exportar relatório',
-                color: 'red'
-            });
+            setNotification({ type: 'error', message: 'Erro ao exportar relatório' });
         }
     };
 
@@ -312,261 +321,302 @@ function RelatoriosProjetos() {
     }, [dados, userPermissions]);
 
     return (
-        <Container size="xl" p="md">
-            <LoadingOverlay visible={loading} overlayProps={{ radius: "sm", blur: 2 }} />
+        <div className="flex-1 space-y-6 p-6">
+            {loading && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+                    <LoadingSpinner className="h-8 w-8" />
+                </div>
+            )}
 
             {/* Header */}
-            <Group justify="space-between" mb="xl">
-                <Box>
-                    <Title order={2} mb="xs">
-                        <Group gap="sm">
-                            <IconReportAnalytics size={32} />
-                            📊 Relatórios & Análise
-                        </Group>
-                    </Title>
-                    <Text c="dimmed">
+            <div className="flex items-start justify-between">
+                <div>
+                    <div className="flex items-center gap-2 mb-2">
+                        <FileText className="h-8 w-8" />
+                        <h1 className="text-2xl font-bold text-foreground">📊 Relatórios & Análise</h1>
+                    </div>
+                    <p className="text-muted-foreground">
                         Análise detalhada de performance e métricas dos projetos
-                    </Text>
-                </Box>
+                    </p>
+                </div>
                 
-                <Group gap="md">
-                    <Menu shadow="md">
-                        <Menu.Target>
-                            <Button leftSection={<IconDownload size={16} />} variant="light">
-                                Exportar
-                                <IconChevronDown size={16} />
-                            </Button>
-                        </Menu.Target>
-                        <Menu.Dropdown>
-                            <Menu.Item leftSection={<IconFileExport size={14} />} onClick={exportarRelatorio}>
-                                Relatório PDF
-                            </Menu.Item>
-                            <Menu.Item leftSection={<IconFileExport size={14} />} onClick={exportarRelatorio}>
-                                Planilha Excel
-                            </Menu.Item>
-                            <Menu.Item leftSection={<IconFileExport size={14} />} onClick={exportarRelatorio}>
-                                Dados CSV
-                            </Menu.Item>
-                        </Menu.Dropdown>
-                    </Menu>
-                </Group>
-            </Group>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline">
+                            <Download className="h-4 w-4 mr-2" />
+                            Exportar
+                            <ChevronDown className="h-4 w-4 ml-2" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => exportarRelatorio('pdf')}>
+                            <FileX className="h-4 w-4 mr-2" />
+                            Relatório PDF
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => exportarRelatorio('excel')}>
+                            <FileX className="h-4 w-4 mr-2" />
+                            Planilha Excel
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => exportarRelatorio('csv')}>
+                            <FileX className="h-4 w-4 mr-2" />
+                            Dados CSV
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+
+            {/* Notificações */}
+            {notification && (
+                <Alert className={`${notification.type === 'error' ? 'border-destructive' : 'border-green-500'}`}>
+                    {notification.type === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                    <AlertDescription>
+                        <strong>{notification.type === 'success' ? 'Sucesso!' : 'Erro!'}</strong> {notification.message}
+                    </AlertDescription>
+                </Alert>
+            )}
 
             {error && (
-                <Alert 
-                    icon={<IconX size="1rem" />} 
-                    title="Erro" 
-                    color="red" 
-                    mb="md"
-                    onClose={() => setError(null)}
-                >
-                    {error}
+                <Alert className="border-destructive">
+                    <X className="h-4 w-4" />
+                    <AlertDescription>
+                        <strong>Erro!</strong> {error}
+                    </AlertDescription>
                 </Alert>
             )}
 
             {/* Filtros */}
-            <Paper withBorder p="md" mb="xl">
-                <Group gap="md">
-                    <Select
-                        placeholder="Período"
-                        data={[
-                            { value: 'todos', label: 'Todos os períodos' },
-                            { value: '30d', label: 'Últimos 30 dias' },
-                            { value: '90d', label: 'Últimos 90 dias' },
-                            { value: '1y', label: 'Último ano' }
-                        ]}
-                        value={periodo}
-                        onChange={setPeriodo}
-                        leftSection={<IconCalendar size={16} />}
-                    />
-                    
-                    <Select
-                        placeholder="Departamento"
-                        data={[
-                            { value: '', label: 'Todos os departamentos' },
-                            { value: 'ti', label: 'TI' },
-                            { value: 'marketing', label: 'Marketing' },
-                            { value: 'vendas', label: 'Vendas' },
-                            { value: 'operacional', label: 'Operacional' }
-                        ]}
-                        value={departamento}
-                        onChange={setDepartamento}
-                    />
-                    
-                    <Select
-                        placeholder="Tipo de Projeto"
-                        data={[
-                            { value: '', label: 'Todos os tipos' },
-                            { value: 'chatbot', label: 'Chatbot' },
-                            { value: 'automacao', label: 'Automação' },
-                            { value: 'analise_preditiva', label: 'Análise Preditiva' }
-                        ]}
-                        value={tipoProjeto}
-                        onChange={setTipoProjeto}
-                    />
-                </Group>
-            </Paper>
+            <Card>
+                <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                        <Select value={periodo} onValueChange={setPeriodo}>
+                            <SelectTrigger className="w-[180px]">
+                                <Calendar className="h-4 w-4 mr-2" />
+                                <SelectValue placeholder="Período" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="todos">Todos os períodos</SelectItem>
+                                <SelectItem value="30d">Últimos 30 dias</SelectItem>
+                                <SelectItem value="90d">Últimos 90 dias</SelectItem>
+                                <SelectItem value="1y">Último ano</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        
+                        <Select value={departamento} onValueChange={setDepartamento}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Departamento" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="todos">Todos os departamentos</SelectItem>
+                                <SelectItem value="ti">TI</SelectItem>
+                                <SelectItem value="marketing">Marketing</SelectItem>
+                                <SelectItem value="vendas">Vendas</SelectItem>
+                                <SelectItem value="operacional">Operacional</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        
+                        <Select value={tipoProjeto} onValueChange={setTipoProjeto}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Tipo de Projeto" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="todos">Todos os tipos</SelectItem>
+                                <SelectItem value="chatbot">Chatbot</SelectItem>
+                                <SelectItem value="automacao">Automação</SelectItem>
+                                <SelectItem value="analise_preditiva">Análise Preditiva</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Métricas Principais */}
             {userPermissions?.pode_ver_financeiro && metricas && (
-                <SimpleGrid cols={4} spacing="md" mb="xl">
-                    <Paper withBorder p="md" bg="blue.0">
-                        <Group gap="sm">
-                            <IconTrendingUp size={24} color="blue" />
-                            <Box>
-                                <Text size="sm" c="dimmed">ROI Médio</Text>
-                                <Text size="xl" weight={700} c={metricas.roiMedio > 0 ? 'green' : 'red'}>
-                                    {metricas.roiMedio.toFixed(1)}%
-                                </Text>
-                            </Box>
-                        </Group>
-                    </Paper>
+                <div className="grid gap-4 md:grid-cols-4">
+                    <Card className="bg-blue-50">
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                                <TrendingUp className="h-6 w-6 text-blue-600" />
+                                <div>
+                                    <p className="text-sm text-muted-foreground">ROI Médio</p>
+                                    <p className={`text-xl font-bold ${metricas.roiMedio > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        {metricas.roiMedio.toFixed(1)}%
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                     
-                    <Paper withBorder p="md" bg="green.0">
-                        <Group gap="sm">
-                            <IconCoin size={24} color="green" />
-                            <Box>
-                                <Text size="sm" c="dimmed">Economia/Mês</Text>
-                                <Text size="xl" weight={700}>
-                                    R$ {metricas.economiaTotalMensal.toLocaleString('pt-BR')}
-                                </Text>
-                            </Box>
-                        </Group>
-                    </Paper>
+                    <Card className="bg-green-50">
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                                <DollarSign className="h-6 w-6 text-green-600" />
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Economia/Mês</p>
+                                    <p className="text-xl font-bold">
+                                        R$ {metricas.economiaTotalMensal.toLocaleString('pt-BR')}
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                     
-                    <Paper withBorder p="md" bg="orange.0">
-                        <Group gap="sm">
-                            <IconTarget size={24} color="orange" />
-                            <Box>
-                                <Text size="sm" c="dimmed">Investimento Total</Text>
-                                <Text size="xl" weight={700}>
-                                    R$ {metricas.investimentoTotal.toLocaleString('pt-BR')}
-                                </Text>
-                            </Box>
-                        </Group>
-                    </Paper>
+                    <Card className="bg-orange-50">
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                                <Target className="h-6 w-6 text-orange-600" />
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Investimento Total</p>
+                                    <p className="text-xl font-bold">
+                                        R$ {metricas.investimentoTotal.toLocaleString('pt-BR')}
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                     
-                    <Paper withBorder p="md" bg="teal.0">
-                        <Group gap="sm">
-                            <RingProgress
-                                size={60}
-                                thickness={8}
-                                sections={[
-                                    { value: (metricas.projetosPositivos / (metricas.projetosPositivos + metricas.projetosNegativos)) * 100, color: 'green' }
-                                ]}
-                            />
-                            <Box>
-                                <Text size="sm" c="dimmed">Taxa de Sucesso</Text>
-                                <Text size="lg" weight={700}>
-                                    {metricas.projetosPositivos}/{metricas.projetosPositivos + metricas.projetosNegativos}
-                                </Text>
-                            </Box>
-                        </Group>
-                    </Paper>
-                </SimpleGrid>
+                    <Card className="bg-teal-50">
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                                <div className="relative">
+                                    <div className="h-12 w-12 rounded-full border-4 border-teal-200 flex items-center justify-center">
+                                        <span className="text-xs font-bold text-teal-600">
+                                            {Math.round((metricas.projetosPositivos / (metricas.projetosPositivos + metricas.projetosNegativos)) * 100)}%
+                                        </span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Taxa de Sucesso</p>
+                                    <p className="text-lg font-bold">
+                                        {metricas.projetosPositivos}/{metricas.projetosPositivos + metricas.projetosNegativos}
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
             )}
 
             {/* Gráficos Principais */}
-            <Grid mb="xl">
-                <Grid.Col span={8}>
-                    <Paper withBorder p="md">
-                        <Title order={4} mb="md">ROI por Projeto</Title>
-                        <ROIChart dados={dados} userPermissions={userPermissions} />
-                    </Paper>
-                </Grid.Col>
+            <div className="grid gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>ROI por Projeto</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ROIChart dados={dados} userPermissions={userPermissions} />
+                        </CardContent>
+                    </Card>
+                </div>
                 
-                <Grid.Col span={4}>
-                    <Paper withBorder p="md">
-                        <Title order={4} mb="md">Distribuição por Tipo</Title>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Distribuição por Tipo</CardTitle>
+                    </CardHeader>
+                    <CardContent>
                         <DistribuicaoTipoChart dados={dados} />
-                    </Paper>
-                </Grid.Col>
-            </Grid>
+                    </CardContent>
+                </Card>
+            </div>
 
             {/* Evolução Temporal */}
             {userPermissions?.pode_ver_financeiro && (
-                <Paper withBorder p="md" mb="xl">
-                    <Title order={4} mb="md">Evolução da Economia</Title>
-                    <EconomiaTimelineChart dados={dados} userPermissions={userPermissions} />
-                </Paper>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Evolução da Economia</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <EconomiaTimelineChart dados={dados} userPermissions={userPermissions} />
+                    </CardContent>
+                </Card>
             )}
 
             {/* Rankings */}
-            <Grid>
-                <Grid.Col span={4}>
-                    <Paper withBorder p="md">
-                        <Title order={5} mb="md">🏆 Top 5 - ROI</Title>
+            <div className="grid gap-6 md:grid-cols-3">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">🏆 Top 5 - ROI</CardTitle>
+                    </CardHeader>
+                    <CardContent>
                         <RankingProjetos dados={dados} userPermissions={userPermissions} tipo="roi" />
-                    </Paper>
-                </Grid.Col>
+                    </CardContent>
+                </Card>
                 
-                <Grid.Col span={4}>
-                    <Paper withBorder p="md">
-                        <Title order={5} mb="md">💰 Top 5 - Economia</Title>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">💰 Top 5 - Economia</CardTitle>
+                    </CardHeader>
+                    <CardContent>
                         <RankingProjetos dados={dados} userPermissions={userPermissions} tipo="economia" />
-                    </Paper>
-                </Grid.Col>
+                    </CardContent>
+                </Card>
                 
-                <Grid.Col span={4}>
-                    <Paper withBorder p="md">
-                        <Title order={5} mb="md">⏱️ Top 5 - Horas</Title>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">⏱️ Top 5 - Horas</CardTitle>
+                    </CardHeader>
+                    <CardContent>
                         <RankingProjetos dados={dados} userPermissions={userPermissions} tipo="horas" />
-                    </Paper>
-                </Grid.Col>
-            </Grid>
+                    </CardContent>
+                </Card>
+            </div>
 
             {/* Insights e Recomendações */}
             {stats && (
-                <Paper withBorder p="md" mt="xl">
-                    <Title order={4} mb="md">💡 Insights & Recomendações</Title>
-                    <Stack gap="md">
-                        {stats.projetos_ativos > 0 && (
-                            <Group gap="sm">
-                                <ThemeIcon color="blue" size="sm">
-                                    <IconActivity size={16} />
-                                </ThemeIcon>
-                                <Text size="sm">
-                                    Você tem <strong>{stats.projetos_ativos} projetos ativos</strong> gerando resultados
-                                </Text>
-                            </Group>
-                        )}
-                        
-                        {userPermissions?.pode_ver_financeiro && metricas?.roiMedio > 100 && (
-                            <Group gap="sm">
-                                <ThemeIcon color="green" size="sm">
-                                    <IconTrendingUp size={16} />
-                                </ThemeIcon>
-                                <Text size="sm">
-                                    Excelente! ROI médio de <strong>{metricas.roiMedio.toFixed(1)}%</strong> está acima da meta
-                                </Text>
-                            </Group>
-                        )}
-                        
-                        {stats.horas_totais_investidas > 1000 && (
-                            <Group gap="sm">
-                                <ThemeIcon color="orange" size="sm">
-                                    <IconClock size={16} />
-                                </ThemeIcon>
-                                <Text size="sm">
-                                    Mais de <strong>{stats.horas_totais_investidas}h investidas</strong> em automação e IA
-                                </Text>
-                            </Group>
-                        )}
-                        
-                        {dados && dados.length > 5 && (
-                            <Group gap="sm">
-                                <ThemeIcon color="teal" size="sm">
-                                    <IconBrain size={16} />
-                                </ThemeIcon>
-                                <Text size="sm">
-                                    Portfolio robusto com <strong>{dados.length} projetos</strong> - considere documentar melhores práticas
-                                </Text>
-                            </Group>
-                        )}
-                    </Stack>
-                </Paper>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>💡 Insights & Recomendações</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {stats.projetos_ativos > 0 && (
+                                <div className="flex items-center gap-3">
+                                    <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                        <Activity className="h-4 w-4 text-blue-600" />
+                                    </div>
+                                    <p className="text-sm">
+                                        Você tem <strong>{stats.projetos_ativos} projetos ativos</strong> gerando resultados
+                                    </p>
+                                </div>
+                            )}
+                            
+                            {userPermissions?.pode_ver_financeiro && metricas?.roiMedio > 100 && (
+                                <div className="flex items-center gap-3">
+                                    <div className="h-8 w-8 rounded-lg bg-green-100 flex items-center justify-center">
+                                        <TrendingUp className="h-4 w-4 text-green-600" />
+                                    </div>
+                                    <p className="text-sm">
+                                        Excelente! ROI médio de <strong>{metricas.roiMedio.toFixed(1)}%</strong> está acima da meta
+                                    </p>
+                                </div>
+                            )}
+                            
+                            {stats.horas_totais_investidas > 1000 && (
+                                <div className="flex items-center gap-3">
+                                    <div className="h-8 w-8 rounded-lg bg-orange-100 flex items-center justify-center">
+                                        <Clock className="h-4 w-4 text-orange-600" />
+                                    </div>
+                                    <p className="text-sm">
+                                        Mais de <strong>{stats.horas_totais_investidas}h investidas</strong> em automação e IA
+                                    </p>
+                                </div>
+                            )}
+                            
+                            {dados && dados.length > 5 && (
+                                <div className="flex items-center gap-3">
+                                    <div className="h-8 w-8 rounded-lg bg-teal-100 flex items-center justify-center">
+                                        <Brain className="h-4 w-4 text-teal-600" />
+                                    </div>
+                                    <p className="text-sm">
+                                        Portfolio robusto com <strong>{dados.length} projetos</strong> - considere documentar melhores práticas
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
             )}
-        </Container>
+        </div>
     );
 }
 

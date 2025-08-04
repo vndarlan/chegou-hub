@@ -315,12 +315,12 @@ function LogsPage() {
                     <div className="grid gap-4 md:grid-cols-6">
                         <div>
                             <Label>🔧 Ferramenta</Label>
-                            <Select value={filtros.ferramenta} onValueChange={(value) => setFiltros(prev => ({ ...prev, ferramenta: value || '' }))}>
+                            <Select value={filtros.ferramenta || "todas"} onValueChange={(value) => setFiltros(prev => ({ ...prev, ferramenta: value === "todas" ? '' : value }))}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Todas" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Todas</SelectItem>
+                                    <SelectItem value="todas">Todas</SelectItem>
                                     <SelectItem value="Nicochat">🤖 Nicochat</SelectItem>
                                     <SelectItem value="N8N">⚙️ N8N</SelectItem>
                                 </SelectContent>
@@ -343,12 +343,12 @@ function LogsPage() {
                         
                         <div>
                             <Label>🌍 País (Nicochat)</Label>
-                            <Select value={filtros.pais} onValueChange={(value) => setFiltros(prev => ({ ...prev, pais: value || '' }))}>
+                            <Select value={filtros.pais || "todos"} onValueChange={(value) => setFiltros(prev => ({ ...prev, pais: value === "todos" ? '' : value }))}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Todos" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Todos</SelectItem>
+                                    <SelectItem value="todos">Todos</SelectItem>
                                     <SelectItem value="colombia">🇨🇴 Colômbia</SelectItem>
                                     <SelectItem value="chile">🇨🇱 Chile</SelectItem>
                                     <SelectItem value="mexico">🇲🇽 México</SelectItem>
@@ -362,12 +362,12 @@ function LogsPage() {
                         
                         <div>
                             <Label>✅ Status</Label>
-                            <Select value={filtros.resolvido} onValueChange={(value) => setFiltros(prev => ({ ...prev, resolvido: value || '' }))}>
+                            <Select value={filtros.resolvido || "todos"} onValueChange={(value) => setFiltros(prev => ({ ...prev, resolvido: value === "todos" ? '' : value }))}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Todos" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Todos</SelectItem>
+                                    <SelectItem value="todos">Todos</SelectItem>
                                     <SelectItem value="false">⏳ Pendentes</SelectItem>
                                     <SelectItem value="true">✅ Resolvidos</SelectItem>
                                 </SelectContent>
