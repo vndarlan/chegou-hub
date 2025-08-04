@@ -86,6 +86,9 @@ INSTALLED_APPS = [
     'features.metricas_primecod',
     'features.metricas_ecomhub',
     'features.metricas_dropi',
+    
+    # Sistema de Feedback
+    'features.feedback',
 ]
 
 MIDDLEWARE = [
@@ -177,6 +180,11 @@ USE_TZ = True
 # Static files
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Media files (uploads)
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",

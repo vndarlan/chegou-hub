@@ -12,7 +12,8 @@ import {
   Moon,
   Sun,
   Calendar,
-  Map
+  Map,
+  MessageSquare
 } from 'lucide-react'
 
 import {
@@ -176,13 +177,20 @@ export function AppSidebar({
     {
       title: "Suporte",
       icon: Phone,
-      isActive: location.pathname.includes('/workspace/processamento'),
+      isActive: location.pathname.includes('/workspace/processamento') ||
+                location.pathname.includes('/workspace/feedback'),
       items: [
         {
           title: "Processamento",
           url: "/workspace/processamento",
           isActive: location.pathname === "/workspace/processamento",
         },
+        ...(isAdmin ? [{
+          title: "Feedback & Bugs",
+          url: "/workspace/feedback",
+          isActive: location.pathname === "/workspace/feedback",
+          icon: MessageSquare,
+        }] : []),
       ],
     }
   ];
