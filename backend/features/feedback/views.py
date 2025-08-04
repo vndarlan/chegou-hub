@@ -1,8 +1,6 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
-from django.contrib.admin.views.decorators import staff_member_required
-from django.utils.decorators import method_decorator
 from .models import Feedback
 from .serializers import FeedbackSerializer, FeedbackCreateSerializer, FeedbackUpdateStatusSerializer
 
@@ -22,13 +20,16 @@ class FeedbackCreateView(generics.CreateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@method_decorator(staff_member_required, name='dispatch')
 class FeedbackListView(generics.ListAPIView):
     queryset = Feedback.objects.all()
     serializer_class = FeedbackSerializer
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
+        # Verificar se usuário é staff
+        if not self.request.user.is_staff:
+            return Feedback.objects.none()
+            
         queryset = Feedback.objects.all()
         categoria = self.request.query_params.get('categoria')
         status_param = self.request.query_params.get('status')
@@ -44,13 +45,21 @@ class FeedbackListView(generics.ListAPIView):
         return queryset
 
 
-@method_decorator(staff_member_required, name='dispatch')
 class FeedbackUpdateStatusView(generics.UpdateAPIView):
     queryset = Feedback.objects.all()
     serializer_class = FeedbackUpdateStatusSerializer
     permission_classes = [permissions.IsAuthenticated]
     
+    def get_queryset(self):
+        # Apenas staff pode atualizar status
+        if not self.request.user.is_staff:
+            return Feedback.objects.none()
+        return Feedback.objects.all()
+    
     def update(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            return Response({'error': 'Acesso negado'}, status=status.HTTP_403_FORBIDDEN)
+            
         response = super().update(request, *args, **kwargs)
         return Response({
             'message': 'Status atualizado com sucesso!',

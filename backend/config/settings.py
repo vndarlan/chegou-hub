@@ -88,7 +88,7 @@ INSTALLED_APPS = [
     'features.metricas_dropi',
     
     # Sistema de Feedback
-    'features.feedback',
+    'features.feedback.apps.FeedbackConfig',
 ]
 
 MIDDLEWARE = [
