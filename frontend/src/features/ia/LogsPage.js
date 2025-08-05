@@ -165,39 +165,39 @@ function LogsPage() {
         if (!stats) return null;
         
         return (
-            <div className="grid gap-3 md:grid-cols-3 mb-4">
-                <Card>
+            <div className="flex items-center gap-3">
+                <Card className="w-32 bg-gradient-to-b from-muted/50 to-muted border-border">
                     <CardContent className="p-3">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs text-muted-foreground">Total de Erros</p>
-                                <p className="text-xl font-bold text-red-600">{stats.total_erros_7d}</p>
+                                <p className="text-xs text-muted-foreground">Total</p>
+                                <p className="text-lg font-bold text-red-600">{stats.total_erros_7d}</p>
                             </div>
-                            <AlertTriangle className="h-5 w-5 text-red-600" />
+                            <AlertTriangle className="h-4 w-4 text-red-600" />
                         </div>
                     </CardContent>
                 </Card>
                 
-                <Card>
+                <Card className="w-32 bg-gradient-to-b from-muted/50 to-muted border-border">
                     <CardContent className="p-3">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs text-muted-foreground">Não Resolvidos</p>
-                                <p className="text-xl font-bold text-orange-600">{stats.nao_resolvidos}</p>
+                                <p className="text-xs text-muted-foreground">Pendentes</p>
+                                <p className="text-lg font-bold text-orange-600">{stats.nao_resolvidos}</p>
                             </div>
-                            <Clock className="h-5 w-5 text-orange-600" />
+                            <Clock className="h-4 w-4 text-orange-600" />
                         </div>
                     </CardContent>
                 </Card>
                 
-                <Card>
+                <Card className="w-32 bg-gradient-to-b from-muted/50 to-muted border-border">
                     <CardContent className="p-3">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs text-muted-foreground">Críticos (7d)</p>
-                                <p className="text-xl font-bold text-red-600">{stats.criticos_7d}</p>
+                                <p className="text-xs text-muted-foreground">Críticos</p>
+                                <p className="text-lg font-bold text-red-600">{stats.criticos_7d}</p>
                             </div>
-                            <X className="h-5 w-5 text-red-600" />
+                            <X className="h-4 w-4 text-red-600" />
                         </div>
                     </CardContent>
                 </Card>
@@ -236,47 +236,45 @@ function LogsPage() {
             {/* Header */}
             <div className="flex items-start justify-between">
                 <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
-                            <AlertTriangle className="h-5 w-5 text-white" />
-                        </div>
-                        <h1 className="text-2xl font-bold text-foreground">Monitoramento de Erros - IA</h1>
-                    </div>
-                    <p className="text-muted-foreground">Central de erros e falhas críticas do Nicochat e N8N</p>
+                    <h1 className="text-2xl font-bold text-foreground">Monitoramento de Erros</h1>
                 </div>
-                <Button
-                    onClick={() => { carregarLogs(paginacao.currentPage); carregarStats(); }}
-                    disabled={loading}
-                    variant="outline"
-                    className="border-border hover:bg-accent hover:text-accent-foreground"
-                >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Atualizar
-                </Button>
+                <div className="flex items-center gap-3">
+                    <StatsErros />
+                    <Button
+                        onClick={() => { carregarLogs(paginacao.currentPage); carregarStats(); }}
+                        disabled={loading}
+                        variant="outline"
+                        className="bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground"
+                    >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Atualizar
+                    </Button>
+                </div>
             </div>
 
             {/* Notificações */}
             {notification && (
-                <Alert className={`${notification.type === 'error' ? 'border-destructive' : 'border-green-500'}`}>
-                    {notification.type === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
-                    <AlertDescription>
+                <Alert className={`${notification.type === 'error' ? 'border-destructive bg-destructive/10' : 'border-green-500 bg-green-500/10'}`}>
+                    {notification.type === 'success' ? <Check className="h-4 w-4 text-green-600" /> : <X className="h-4 w-4 text-destructive" />}
+                    <AlertDescription className="text-foreground">
                         <strong>{notification.type === 'success' ? 'Sucesso!' : 'Erro!'}</strong> {notification.message}
                     </AlertDescription>
                 </Alert>
             )}
 
-            <StatsErros />
             <ErrosPorFerramenta />
 
-            {/* Filtros */}
+
+            {/* Tabela de Erros */}
             <Card>
                 <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                        <Search className="h-4 w-4" />
-                        Filtros
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                            <BarChart3 className="h-4 w-4 text-red-600" />
+                            <CardTitle className="text-base">Central de Erros</CardTitle>
+                        </div>
+                        <Badge variant="destructive" className="text-xs">{paginacao.totalItems}</Badge>
+                    </div>
                     <div className="grid gap-3 md:grid-cols-6">
                         <div>
                             <Label className="text-xs font-medium mb-1 block">Ferramenta</Label>
@@ -367,19 +365,6 @@ function LogsPage() {
                                 />
                             </div>
                         </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Tabela de Erros */}
-            <Card>
-                <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <BarChart3 className="h-4 w-4 text-red-600" />
-                            <CardTitle className="text-base">Central de Erros</CardTitle>
-                        </div>
-                        <Badge variant="destructive" className="text-xs">{paginacao.totalItems}</Badge>
                     </div>
                 </CardHeader>
                 <CardContent className="pt-0">
@@ -527,7 +512,7 @@ function LogsPage() {
 
                     {logs.length === 0 && !loading && (
                         <div className="text-center py-8">
-                            <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center mx-auto mb-3">
+                            <div className="h-10 w-10 rounded-lg bg-green-100 dark:bg-green-900/20 flex items-center justify-center mx-auto mb-3">
                                 <Check className="h-6 w-6 text-green-600" />
                             </div>
                             <p className="text-green-600 font-medium">Nenhum erro encontrado!</p>
