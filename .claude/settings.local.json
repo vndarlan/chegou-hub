@@ -10,7 +10,10 @@
       "Bash(timeout 300s npm run build)",
       "Bash(npm install:*)",
       "Bash(pip install:*)",
-      "Bash(set CI=false)"
+      "Bash(set CI=false)",
+      "Bash(git rebase:*)",
+      "Bash(git stash:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

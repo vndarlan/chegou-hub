@@ -1,9 +1,12 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse
+from django.views.generic import TemplateView
+from django.views.static import serve
 from core.views_debug import DebugCorsView
+import os
 
 def simple_health(request):
     return JsonResponse({'status': 'ok', 'health': 'Railway OK'})
@@ -43,3 +46,22 @@ if settings.DEBUG:
 else:
     # Em produção, WhiteNoise vai servir os arquivos media que estão em staticfiles/media
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Servir frontend React em produção
+if not settings.DEBUG:
+    # Servir arquivos estáticos do frontend
+    frontend_static_path = os.path.join(settings.STATIC_ROOT, 'frontend', 'static')
+    if os.path.exists(frontend_static_path):
+        urlpatterns += [
+            re_path(r'^static/(?P<path>.*)$', serve, {
+                'document_root': frontend_static_path,
+            }),
+        ]
+    
+    # Servir index.html para todas as rotas que não são da API
+    frontend_index_path = os.path.join(settings.STATIC_ROOT, 'frontend', 'index.html')
+    if os.path.exists(frontend_index_path):
+        urlpatterns += [
+            re_path(r'^(?!api/|admin/|health/|static/|media/).*$', 
+                   TemplateView.as_view(template_name='frontend/index.html')),
+        ]

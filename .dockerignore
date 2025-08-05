@@ -1,0 +1,39 @@
+# Arquivos desnecessários para o build
+.git
+.gitignore
+README.md
+CLAUDE.md
+AGENTES.md
+docs/
+
+# Node modules (serão instalados no container)
+frontend/node_modules
+frontend/build
+
+# Python cache e ambiente virtual
+backend/venv
+backend/__pycache__
+backend/**/__pycache__
+backend/**/**/__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Logs
+backend/logs/*
+*.log
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
