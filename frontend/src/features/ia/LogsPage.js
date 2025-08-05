@@ -212,7 +212,7 @@ function LogsPage() {
         return (
             <div className="flex items-center gap-3 mb-4 p-3 border rounded-lg bg-card">
                 <Activity className="h-4 w-4 text-red-600" />
-                <span className="text-sm font-medium">Erros por Ferramenta:</span>
+                <span className="text-sm font-medium text-foreground">Erros por Ferramenta:</span>
                 <div className="flex items-center gap-3">
                     {stats.por_ferramenta.map((stat) => (
                         <div key={stat.ferramenta} className="flex items-center gap-2">
@@ -220,7 +220,7 @@ function LogsPage() {
                                 <Bot className="h-4 w-4" /> : 
                                 <Settings className="h-4 w-4" />
                             }
-                            <span className="text-sm">{stat.ferramenta}</span>
+                            <span className="text-sm text-foreground">{stat.ferramenta}</span>
                             <Badge variant="destructive" className="text-xs px-2 py-0">
                                 {stat.erros}
                             </Badge>
@@ -541,7 +541,7 @@ function LogsPage() {
                                         <Bot className="h-3 w-3" /> : 
                                         <Settings className="h-3 w-3" />
                                     }
-                                    <span className="text-sm font-medium">{logSelecionado.ferramenta}</span>
+                                    <span className="text-sm font-medium text-foreground">{logSelecionado.ferramenta}</span>
                                 </div>
                                 <Badge variant={logSelecionado.nivel === 'critical' ? 'destructive' : 'secondary'}>
                                     {logSelecionado.nivel.toUpperCase()}
@@ -549,7 +549,7 @@ function LogsPage() {
                                 {logSelecionado.pais && (
                                     <div className="flex items-center gap-1">
                                         <Globe className="h-3 w-3" />
-                                        <span className="text-sm">{getPaisDisplayName(logSelecionado.pais)}</span>
+                                        <span className="text-sm text-foreground">{getPaisDisplayName(logSelecionado.pais)}</span>
                                     </div>
                                 )}
                             </div>
@@ -598,14 +598,14 @@ function LogsPage() {
                                             <Clock className="h-3 w-3" />
                                             Ocorreu em:
                                         </Label>
-                                        <p className="text-sm">{new Date(logSelecionado.timestamp).toLocaleString()}</p>
+                                        <p className="text-sm text-foreground">{new Date(logSelecionado.timestamp).toLocaleString()}</p>
                                     </div>
                                     <div>
                                         <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
                                             <Globe className="h-3 w-3" />
                                             IP de Origem:
                                         </Label>
-                                        <p className="text-sm">{logSelecionado.ip_origem || 'N/A'}</p>
+                                        <p className="text-sm text-foreground">{logSelecionado.ip_origem || 'N/A'}</p>
                                     </div>
                                 </div>
                             </div>
