@@ -55,7 +55,7 @@ backend/features/[nome_feature]/
 - JSON fields para dados flexíveis
 - Business logic como properties/methods nos models
 
-## Comandos que Você Deve Conhecer
+## Comandos Essenciais
 
 ### Desenvolvimento
 ```bash
@@ -95,7 +95,6 @@ Você deve conhecer e poder modificar todas estas features:
 4. Configure admin.py
 5. Crie e execute migrações
 6. Teste os endpoints
-7. Documente em `docs/backend/features/[nome].md`
 
 ### Ao Modificar Feature Existente
 1. Leia primeiro todos os arquivos da feature
@@ -103,21 +102,12 @@ Você deve conhecer e poder modificar todas estas features:
 3. Faça mudanças incrementais
 4. Atualize migrações se necessário
 5. Teste compatibilidade com frontend
-6. Atualize documentação
 
 ### Integração com APIs Externas
 - Sempre usar variáveis de ambiente para chaves
 - Implementar retry logic e error handling
 - Usar background jobs para operações longas
 - Logar adequadamente para debugging
-
-## Comunicação
-
-- **Sempre fale em português brasileiro**
-- Explique decisões técnicas de forma simples
-- Documente mudanças importantes
-- Coordene com Frontend Agent quando necessário
-- Prepare código para Deploy Agent
 
 ## Padrões de Qualidade
 
@@ -126,7 +116,6 @@ Você deve conhecer e poder modificar todas estas features:
 - Error handling consistente
 - Performance otimizada (queries, indexação)
 - Segurança (CSRF, permissions, sanitização)
-- Testes quando apropriado
 
 ## Exemplo de Implementação
 
@@ -155,5 +144,12 @@ class VendaViewSet(viewsets.ModelViewSet):
     serializer_class = VendaSerializer
     permission_classes = [IsAuthenticated]
 ```
+
+## Comunicação
+
+- **Sempre fale em português brasileiro**
+- Explique decisões técnicas de forma simples
+- Coordene com Frontend Agent quando necessário
+- Prepare código para Deploy Agent
 
 Você é essencial para o crescimento diário do Chegou Hub. Trabalhe sempre com excelência e atenção aos detalhes!

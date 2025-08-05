@@ -4,7 +4,9 @@ import {
     Search, RefreshCw, Check, X,
     AlertTriangle, AlertCircle,
     Eye, Clock, MapPin, Bot,
-    BarChart3, Activity, GitBranch
+    BarChart3, Activity, GitBranch,
+    Settings, Globe, MessageCircle,
+    Wrench, Flag, Calendar
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -154,12 +156,8 @@ function LogsPage() {
         return nomes[pais] || pais;
     };
 
-    const getPaisFlag = (pais) => {
-        const flags = {
-            'colombia': '🇨🇴', 'chile': '🇨🇱', 'mexico': '🇲🇽',
-            'polonia': '🇵🇱', 'romenia': '🇷🇴', 'espanha': '🇪🇸', 'italia': '🇮🇹'
-        };
-        return flags[pais] || '🌍';
+    const getPaisIcon = () => {
+        return Globe;
     };
 
     // Componente de estatísticas de erros
@@ -167,48 +165,39 @@ function LogsPage() {
         if (!stats) return null;
         
         return (
-            <div className="grid gap-4 md:grid-cols-3 mb-6">
+            <div className="grid gap-3 md:grid-cols-3 mb-4">
                 <Card>
-                    <CardContent className="p-4">
+                    <CardContent className="p-3">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-muted-foreground font-medium">Total de Erros</p>
-                                <p className="text-2xl font-bold text-red-600">{stats.total_erros_7d}</p>
-                                <p className="text-xs text-muted-foreground">Últimos 7 dias</p>
+                                <p className="text-xs text-muted-foreground">Total de Erros</p>
+                                <p className="text-xl font-bold text-red-600">{stats.total_erros_7d}</p>
                             </div>
-                            <div className="h-12 w-12 rounded-lg bg-red-100 flex items-center justify-center">
-                                <AlertTriangle className="h-6 w-6 text-red-600" />
-                            </div>
+                            <AlertTriangle className="h-5 w-5 text-red-600" />
                         </div>
                     </CardContent>
                 </Card>
                 
                 <Card>
-                    <CardContent className="p-4">
+                    <CardContent className="p-3">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-muted-foreground font-medium">Não Resolvidos</p>
-                                <p className="text-2xl font-bold text-orange-600">{stats.nao_resolvidos}</p>
-                                <p className="text-xs text-muted-foreground">Precisam atenção</p>
+                                <p className="text-xs text-muted-foreground">Não Resolvidos</p>
+                                <p className="text-xl font-bold text-orange-600">{stats.nao_resolvidos}</p>
                             </div>
-                            <div className="h-12 w-12 rounded-lg bg-orange-100 flex items-center justify-center">
-                                <Clock className="h-6 w-6 text-orange-600" />
-                            </div>
+                            <Clock className="h-5 w-5 text-orange-600" />
                         </div>
                     </CardContent>
                 </Card>
                 
                 <Card>
-                    <CardContent className="p-4">
+                    <CardContent className="p-3">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-muted-foreground font-medium">Críticos (7d)</p>
-                                <p className="text-2xl font-bold text-red-600">{stats.criticos_7d}</p>
-                                <p className="text-xs text-muted-foreground">Erros graves</p>
+                                <p className="text-xs text-muted-foreground">Críticos (7d)</p>
+                                <p className="text-xl font-bold text-red-600">{stats.criticos_7d}</p>
                             </div>
-                            <div className="h-12 w-12 rounded-lg bg-red-100 flex items-center justify-center">
-                                <X className="h-6 w-6 text-red-600" />
-                            </div>
+                            <X className="h-5 w-5 text-red-600" />
                         </div>
                     </CardContent>
                 </Card>
@@ -221,54 +210,29 @@ function LogsPage() {
         if (!stats?.por_ferramenta?.length) return null;
         
         return (
-            <Card className="mb-6">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Activity className="h-5 w-5 text-red-600" />
-                        Erros por Ferramenta (24h)
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid gap-4 md:grid-cols-2">
-                        {stats.por_ferramenta.map((stat) => (
-                            <Card key={stat.ferramenta} className="border border-red-200">
-                                <CardContent className="p-4">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-lg">
-                                                {stat.ferramenta === 'Nicochat' ? '🤖' : '⚙️'}
-                                            </span>
-                                            <span className="font-medium text-sm">{stat.ferramenta}</span>
-                                        </div>
-                                        <Badge variant="destructive">{stat.erros}</Badge>
-                                    </div>
-                                    
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-2 w-2 rounded-full bg-red-500" />
-                                        <span className="text-xs text-red-600 font-medium">
-                                            {stat.erros} erro(s) registrados
-                                        </span>
-                                    </div>
-                                    
-                                    {stat.nao_resolvidos > 0 && (
-                                        <div className="flex items-center gap-2 mt-2">
-                                            <div className="h-2 w-2 rounded-full bg-orange-500" />
-                                            <span className="text-xs text-orange-600 font-medium">
-                                                {stat.nao_resolvidos} não resolvidos
-                                            </span>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
+            <div className="flex items-center gap-3 mb-4 p-3 border rounded-lg bg-card">
+                <Activity className="h-4 w-4 text-red-600" />
+                <span className="text-sm font-medium">Erros por Ferramenta:</span>
+                <div className="flex items-center gap-3">
+                    {stats.por_ferramenta.map((stat) => (
+                        <div key={stat.ferramenta} className="flex items-center gap-2">
+                            {stat.ferramenta === 'Nicochat' ? 
+                                <Bot className="h-4 w-4" /> : 
+                                <Settings className="h-4 w-4" />
+                            }
+                            <span className="text-sm">{stat.ferramenta}</span>
+                            <Badge variant="destructive" className="text-xs px-2 py-0">
+                                {stat.erros}
+                            </Badge>
+                        </div>
+                    ))}
+                </div>
+            </div>
         );
     };
 
     return (
-        <div className="flex-1 space-y-6 p-6">
+        <div className="flex-1 space-y-4 p-4">
             {/* Header */}
             <div className="flex items-start justify-between">
                 <div>
@@ -284,6 +248,7 @@ function LogsPage() {
                     onClick={() => { carregarLogs(paginacao.currentPage); carregarStats(); }}
                     disabled={loading}
                     variant="outline"
+                    className="border-border hover:bg-accent hover:text-accent-foreground"
                 >
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Atualizar
@@ -305,79 +270,79 @@ function LogsPage() {
 
             {/* Filtros */}
             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Search className="h-5 w-5" />
-                        Filtros de Pesquisa
+                <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                        <Search className="h-4 w-4" />
+                        Filtros
                     </CardTitle>
                 </CardHeader>
-                <CardContent>
-                    <div className="grid gap-4 md:grid-cols-6">
+                <CardContent className="pt-0">
+                    <div className="grid gap-3 md:grid-cols-6">
                         <div>
-                            <Label>🔧 Ferramenta</Label>
+                            <Label className="text-xs font-medium mb-1 block">Ferramenta</Label>
                             <Select value={filtros.ferramenta || "todas"} onValueChange={(value) => setFiltros(prev => ({ ...prev, ferramenta: value === "todas" ? '' : value }))}>
-                                <SelectTrigger>
+                                <SelectTrigger className="h-8">
                                     <SelectValue placeholder="Todas" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="todas">Todas</SelectItem>
-                                    <SelectItem value="Nicochat">🤖 Nicochat</SelectItem>
-                                    <SelectItem value="N8N">⚙️ N8N</SelectItem>
+                                    <SelectItem value="Nicochat">Nicochat</SelectItem>
+                                    <SelectItem value="N8N">N8N</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                         
                         <div>
-                            <Label>⚠️ Gravidade</Label>
+                            <Label className="text-xs font-medium mb-1 block">Gravidade</Label>
                             <Select value={filtros.nivel} onValueChange={(value) => setFiltros(prev => ({ ...prev, nivel: value }))}>
-                                <SelectTrigger>
+                                <SelectTrigger className="h-8">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="error,critical">Todos os erros</SelectItem>
-                                    <SelectItem value="error">🟠 Apenas Error</SelectItem>
-                                    <SelectItem value="critical">🔴 Apenas Critical</SelectItem>
+                                    <SelectItem value="error">Apenas Error</SelectItem>
+                                    <SelectItem value="critical">Apenas Critical</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                         
                         <div>
-                            <Label>🌍 País (Nicochat)</Label>
+                            <Label className="text-xs font-medium mb-1 block">País</Label>
                             <Select value={filtros.pais || "todos"} onValueChange={(value) => setFiltros(prev => ({ ...prev, pais: value === "todos" ? '' : value }))}>
-                                <SelectTrigger>
+                                <SelectTrigger className="h-8">
                                     <SelectValue placeholder="Todos" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="todos">Todos</SelectItem>
-                                    <SelectItem value="colombia">🇨🇴 Colômbia</SelectItem>
-                                    <SelectItem value="chile">🇨🇱 Chile</SelectItem>
-                                    <SelectItem value="mexico">🇲🇽 México</SelectItem>
-                                    <SelectItem value="polonia">🇵🇱 Polônia</SelectItem>
-                                    <SelectItem value="romenia">🇷🇴 Romênia</SelectItem>
-                                    <SelectItem value="espanha">🇪🇸 Espanha</SelectItem>
-                                    <SelectItem value="italia">🇮🇹 Itália</SelectItem>
+                                    <SelectItem value="colombia">Colômbia</SelectItem>
+                                    <SelectItem value="chile">Chile</SelectItem>
+                                    <SelectItem value="mexico">México</SelectItem>
+                                    <SelectItem value="polonia">Polônia</SelectItem>
+                                    <SelectItem value="romenia">Romênia</SelectItem>
+                                    <SelectItem value="espanha">Espanha</SelectItem>
+                                    <SelectItem value="italia">Itália</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                         
                         <div>
-                            <Label>✅ Status</Label>
+                            <Label className="text-xs font-medium mb-1 block">Status</Label>
                             <Select value={filtros.resolvido || "todos"} onValueChange={(value) => setFiltros(prev => ({ ...prev, resolvido: value === "todos" ? '' : value }))}>
-                                <SelectTrigger>
+                                <SelectTrigger className="h-8">
                                     <SelectValue placeholder="Todos" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="todos">Todos</SelectItem>
-                                    <SelectItem value="false">⏳ Pendentes</SelectItem>
-                                    <SelectItem value="true">✅ Resolvidos</SelectItem>
+                                    <SelectItem value="false">Pendentes</SelectItem>
+                                    <SelectItem value="true">Resolvidos</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                         
                         <div>
-                            <Label>📅 Período</Label>
+                            <Label className="text-xs font-medium mb-1 block">Período</Label>
                             <Select value={filtros.periodo} onValueChange={(value) => setFiltros(prev => ({ ...prev, periodo: value }))}>
-                                <SelectTrigger>
+                                <SelectTrigger className="h-8">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -391,14 +356,14 @@ function LogsPage() {
                         </div>
                         
                         <div>
-                            <Label>🔍 Buscar Erro</Label>
+                            <Label className="text-xs font-medium mb-1 block">Buscar</Label>
                             <div className="relative">
-                                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                <Search className="absolute left-2 top-2 h-3 w-3 text-muted-foreground" />
                                 <Input
                                     placeholder="Mensagem..."
                                     value={filtros.busca}
                                     onChange={(e) => setFiltros(prev => ({ ...prev, busca: e.target.value }))}
-                                    className="pl-10"
+                                    className="pl-7 h-8 text-sm"
                                 />
                             </div>
                         </div>
@@ -408,79 +373,83 @@ function LogsPage() {
 
             {/* Tabela de Erros */}
             <Card>
-                <CardHeader>
+                <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <BarChart3 className="h-5 w-5 text-red-600" />
-                            <CardTitle>Central de Erros</CardTitle>
+                            <BarChart3 className="h-4 w-4 text-red-600" />
+                            <CardTitle className="text-base">Central de Erros</CardTitle>
                         </div>
-                        <Badge variant="destructive">{paginacao.totalItems} erros</Badge>
+                        <Badge variant="destructive" className="text-xs">{paginacao.totalItems}</Badge>
                     </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-0">
                     {loading && (
-                        <div className="flex items-center justify-center py-8">
-                            <LoadingSpinner className="h-8 w-8" />
+                        <div className="flex items-center justify-center py-4">
+                            <LoadingSpinner className="h-6 w-6" />
                         </div>
                     )}
                     
                     <div className="overflow-x-auto">
                         <Table>
                             <TableHeader>
-                                <TableRow>
-                                    <TableHead>Data/Hora</TableHead>
-                                    <TableHead>Ferramenta</TableHead>
-                                    <TableHead>Gravidade</TableHead>
-                                    <TableHead>Erro</TableHead>
-                                    <TableHead>País</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Ações</TableHead>
+                                <TableRow className="h-8">
+                                    <TableHead className="text-xs p-2">Data/Hora</TableHead>
+                                    <TableHead className="text-xs p-2">Ferramenta</TableHead>
+                                    <TableHead className="text-xs p-2">Gravidade</TableHead>
+                                    <TableHead className="text-xs p-2">Erro</TableHead>
+                                    <TableHead className="text-xs p-2">País</TableHead>
+                                    <TableHead className="text-xs p-2">Status</TableHead>
+                                    <TableHead className="text-xs p-2">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {logs.map((log) => {
                                     const Icon = getNivelIcon(log.nivel);
                                     return (
-                                        <TableRow key={log.id}>
-                                            <TableCell>
+                                        <TableRow key={log.id} className="h-10">
+                                            <TableCell className="p-2">
                                                 <div>
-                                                    <p className="text-sm font-medium">{log.tempo_relativo}</p>
+                                                    <p className="text-xs font-medium">{log.tempo_relativo}</p>
                                                     <p className="text-xs text-muted-foreground">
                                                         {new Date(log.timestamp).toLocaleString()}
                                                     </p>
                                                 </div>
                                             </TableCell>
-                                            <TableCell>
-                                                <Badge variant={log.ferramenta === 'Nicochat' ? 'default' : 'secondary'}>
-                                                    {log.ferramenta === 'Nicochat' ? '🤖' : '⚙️'} {log.ferramenta}
-                                                </Badge>
+                                            <TableCell className="p-2">
+                                                <div className="flex items-center gap-1">
+                                                    {log.ferramenta === 'Nicochat' ? 
+                                                        <Bot className="h-3 w-3" /> : 
+                                                        <Settings className="h-3 w-3" />
+                                                    }
+                                                    <span className="text-xs">{log.ferramenta}</span>
+                                                </div>
                                             </TableCell>
-                                            <TableCell>
-                                                <Badge variant={log.nivel === 'critical' ? 'destructive' : 'secondary'}>
+                                            <TableCell className="p-2">
+                                                <Badge variant={log.nivel === 'critical' ? 'destructive' : 'secondary'} className="text-xs px-2 py-0">
                                                     <Icon className="h-3 w-3 mr-1" />
                                                     {log.nivel.toUpperCase()}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell style={{ maxWidth: '300px' }}>
-                                                <p className="text-sm text-red-600 truncate">
+                                            <TableCell className="p-2" style={{ maxWidth: '250px' }}>
+                                                <p className="text-xs text-red-600 truncate">
                                                     {log.mensagem}
                                                 </p>
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell className="p-2">
                                                 {log.pais && (
-                                                    <Badge variant="outline">
-                                                        <span className="mr-1">{getPaisFlag(log.pais)}</span>
-                                                        {getPaisDisplayName(log.pais)}
-                                                    </Badge>
+                                                    <div className="flex items-center gap-1">
+                                                        <Globe className="h-3 w-3" />
+                                                        <span className="text-xs">{getPaisDisplayName(log.pais)}</span>
+                                                    </div>
                                                 )}
                                             </TableCell>
-                                            <TableCell>
-                                                <Badge variant={log.resolvido ? 'default' : 'secondary'}>
-                                                    {log.resolvido ? <Check className="h-3 w-3 mr-1" /> : <Clock className="h-3 w-3 mr-1" />}
-                                                    {log.resolvido ? 'Resolvido' : 'Pendente'}
+                                            <TableCell className="p-2">
+                                                <Badge variant={log.resolvido ? 'default' : 'secondary'} className="text-xs px-2 py-0">
+                                                    {log.resolvido ? <Check className="h-2 w-2 mr-1" /> : <Clock className="h-2 w-2 mr-1" />}
+                                                    {log.resolvido ? 'OK' : 'Pendente'}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell className="p-2">
                                                 <div className="flex items-center gap-1">
                                                     <Button
                                                         variant="ghost"
@@ -489,9 +458,9 @@ function LogsPage() {
                                                             setLogSelecionado(log);
                                                             setModalDetalhes(true);
                                                         }}
-                                                        className="h-8 w-8 p-0"
+                                                        className="h-6 w-6 p-0"
                                                     >
-                                                        <Eye className="h-4 w-4" />
+                                                        <Eye className="h-3 w-3" />
                                                     </Button>
                                                     <Button
                                                         variant="ghost"
@@ -501,9 +470,9 @@ function LogsPage() {
                                                             setObservacoesResolucao('');
                                                             setModalResolucao(true);
                                                         }}
-                                                        className="h-8 w-8 p-0"
+                                                        className="h-6 w-6 p-0"
                                                     >
-                                                        {log.resolvido ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                                                        {log.resolvido ? <X className="h-3 w-3" /> : <Check className="h-3 w-3" />}
                                                     </Button>
                                                 </div>
                                             </TableCell>
@@ -516,7 +485,7 @@ function LogsPage() {
 
                     {/* Paginação */}
                     {logs.length > 0 && (
-                        <div className="flex items-center justify-center mt-6 space-y-2">
+                        <div className="flex items-center justify-center mt-4 space-y-2">
                             <Pagination>
                                 <PaginationContent>
                                     <PaginationItem>
@@ -557,11 +526,11 @@ function LogsPage() {
                     )}
 
                     {logs.length === 0 && !loading && (
-                        <div className="text-center py-12">
-                            <div className="h-12 w-12 rounded-lg bg-green-100 flex items-center justify-center mx-auto mb-4">
-                                <Check className="h-8 w-8 text-green-600" />
+                        <div className="text-center py-8">
+                            <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center mx-auto mb-3">
+                                <Check className="h-6 w-6 text-green-600" />
                             </div>
-                            <p className="text-green-600 font-medium">Nenhum erro encontrado! 🎉</p>
+                            <p className="text-green-600 font-medium">Nenhum erro encontrado!</p>
                             <p className="text-sm text-muted-foreground mt-1">
                                 Todas as ferramentas estão funcionando sem problemas
                             </p>
@@ -582,22 +551,29 @@ function LogsPage() {
                     {logSelecionado && (
                         <div className="space-y-4">
                             <div className="flex items-center gap-2">
-                                <Badge variant={logSelecionado.ferramenta === 'Nicochat' ? 'default' : 'secondary'}>
-                                    {logSelecionado.ferramenta === 'Nicochat' ? '🤖' : '⚙️'} {logSelecionado.ferramenta}
-                                </Badge>
+                                <div className="flex items-center gap-1">
+                                    {logSelecionado.ferramenta === 'Nicochat' ? 
+                                        <Bot className="h-3 w-3" /> : 
+                                        <Settings className="h-3 w-3" />
+                                    }
+                                    <span className="text-sm font-medium">{logSelecionado.ferramenta}</span>
+                                </div>
                                 <Badge variant={logSelecionado.nivel === 'critical' ? 'destructive' : 'secondary'}>
                                     {logSelecionado.nivel.toUpperCase()}
                                 </Badge>
                                 {logSelecionado.pais && (
-                                    <Badge variant="outline">
-                                        <span className="mr-1">{getPaisFlag(logSelecionado.pais)}</span>
-                                        {getPaisDisplayName(logSelecionado.pais)}
-                                    </Badge>
+                                    <div className="flex items-center gap-1">
+                                        <Globe className="h-3 w-3" />
+                                        <span className="text-sm">{getPaisDisplayName(logSelecionado.pais)}</span>
+                                    </div>
                                 )}
                             </div>
                             
                             <div className="border-t pt-4">
-                                <Label className="text-sm font-medium">🚨 Mensagem de Erro:</Label>
+                                <Label className="text-sm font-medium flex items-center gap-1">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    Mensagem de Erro:
+                                </Label>
                                 <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded">
                                     <p className="text-red-800">{logSelecionado.mensagem}</p>
                                 </div>
@@ -605,7 +581,10 @@ function LogsPage() {
                             
                             {logSelecionado.id_conversa && (
                                 <div>
-                                    <Label className="text-sm font-medium">💬 ID da Conversa:</Label>
+                                    <Label className="text-sm font-medium flex items-center gap-1">
+                                        <MessageCircle className="h-3 w-3" />
+                                        ID da Conversa:
+                                    </Label>
                                     <div className="mt-2 p-2 bg-muted rounded font-mono text-sm">
                                         {logSelecionado.id_conversa}
                                     </div>
@@ -614,7 +593,10 @@ function LogsPage() {
                             
                             {logSelecionado.detalhes && Object.keys(logSelecionado.detalhes).length > 0 && (
                                 <div>
-                                    <Label className="text-sm font-medium">🔧 Detalhes Técnicos:</Label>
+                                    <Label className="text-sm font-medium flex items-center gap-1">
+                                        <Settings className="h-3 w-3" />
+                                        Detalhes Técnicos:
+                                    </Label>
                                     <Textarea
                                         value={JSON.stringify(logSelecionado.detalhes, null, 2)}
                                         readOnly
@@ -627,11 +609,17 @@ function LogsPage() {
                             <div className="border-t pt-4">
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div>
-                                        <Label className="text-sm font-medium text-muted-foreground">🕒 Ocorreu em:</Label>
+                                        <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                                            <Clock className="h-3 w-3" />
+                                            Ocorreu em:
+                                        </Label>
                                         <p className="text-sm">{new Date(logSelecionado.timestamp).toLocaleString()}</p>
                                     </div>
                                     <div>
-                                        <Label className="text-sm font-medium text-muted-foreground">🌐 IP de Origem:</Label>
+                                        <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                                            <Globe className="h-3 w-3" />
+                                            IP de Origem:
+                                        </Label>
                                         <p className="text-sm">{logSelecionado.ip_origem || 'N/A'}</p>
                                     </div>
                                 </div>
@@ -641,8 +629,8 @@ function LogsPage() {
                                 <Alert className="border-green-500">
                                     <Check className="h-4 w-4" />
                                     <AlertDescription>
-                                        <strong>✅ Erro resolvido por: {logSelecionado.resolvido_por_nome}</strong><br />
-                                        🕒 Em: {new Date(logSelecionado.data_resolucao).toLocaleString()}
+                                        <strong>Erro resolvido por: {logSelecionado.resolvido_por_nome}</strong><br />
+                                        Em: {new Date(logSelecionado.data_resolucao).toLocaleString()}
                                     </AlertDescription>
                                 </Alert>
                             )}
@@ -656,7 +644,7 @@ function LogsPage() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
-                            {logSelecionado?.resolvido ? '↩️ Reabrir Erro' : '✅ Marcar como Resolvido'}
+                            {logSelecionado?.resolvido ? 'Reabrir Erro' : 'Marcar como Resolvido'}
                         </DialogTitle>
                         <DialogDescription>
                             Deseja marcar este erro como {logSelecionado?.resolvido ? 'não resolvido' : 'resolvido'}?
@@ -665,7 +653,10 @@ function LogsPage() {
                     {logSelecionado && (
                         <div className="space-y-4">
                             <div>
-                                <Label>📝 Observações sobre a resolução</Label>
+                                <Label className="flex items-center gap-1">
+                                    <MessageCircle className="h-3 w-3" />
+                                    Observações sobre a resolução
+                                </Label>
                                 <Textarea
                                     placeholder="Descreva como o erro foi resolvido..."
                                     value={observacoesResolucao}

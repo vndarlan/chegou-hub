@@ -18,7 +18,9 @@
       "Bash(timeout:*)",
       "Bash(del test_chatbot.py)",
       "Bash(rm:*)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(railway status:*)",
+      "Bash(railway logs:*)"
     ],
     "deny": []
   }

@@ -63,23 +63,32 @@ O Workspace é a página principal do Chegou Hub onde você acessa todas as func
 4. A página de agenda aparecerá na área principal
 5. O breadcrumb mostrará "HOME > Agenda da Empresa"
 
-### Exemplo 2: Verificar métricas do PRIMECOD
-**Situação:** Precisa acompanhar dados de vendas
+### Exemplo 2: Verificar métricas do DROPI MX
+**Situação:** Precisa analisar dados de pedidos do México
 1. No menu lateral, encontre a seção "Métricas"
-2. Clique em "📊 PRIMECOD"
-3. A página de métricas PRIMECOD carregará
-4. Breadcrumb mostrará "Métricas > PRIMECOD"
+2. Clique em "📱 DROPI MX"
+3. A página de métricas DROPI carregará
+4. Breadcrumb mostrará "Métricas > DROPI MX"
 
-### Exemplo 3: Navegar entre várias páginas
+### Exemplo 3: Monitorar erros dos sistemas IA
+**Situação:** Quer verificar se Nicochat está funcionando bem
+1. Clique em "IA & Automações" no menu
+2. Clique em "🔍 Logs"
+3. Veja estatísticas de erros e problemas
+4. Use filtros para analisar problemas específicos
+5. Marque erros como resolvidos conforme necessário
+
+### Exemplo 4: Navegar entre várias páginas
 **Situação:** Quer verificar projetos de IA e depois ver novelties
 1. Clique em "IA & Automações" no menu
 2. Clique em "🤖 Projetos"
 3. Analise os projetos na tela
-4. Depois clique em "Operacional" no menu
-5. Clique em "📰 Novelties"
-6. Agora está vendo as novidades da empresa
+4. Depois clique em "📊 Relatórios" para ver análises detalhadas
+5. Por fim, clique em "Operacional" no menu
+6. Clique em "📰 Novelties"
+7. Agora está vendo as novidades da empresa
 
-### Exemplo 4: Fazer logout
+### Exemplo 5: Fazer logout
 **Situação:** Terminou o trabalho e quer sair do sistema
 1. Olhe na barra lateral onde aparece seu nome
 2. Procure pelo botão de logout (geralmente um ícone de saída)
@@ -134,14 +143,14 @@ O Workspace é a página principal do Chegou Hub onde você acessa todas as func
 
 ### IA & Automações
 - **🤖 Projetos** - Dashboard de projetos de IA
-- **📊 Relatórios** - Relatórios dos projetos
-- **🔍 Logs** - Logs de erros do sistema
-- **💬 Nicochat** - Interface de chat IA
+- **📊 Relatórios** - Relatórios e análise de performance dos projetos
+- **🔍 Logs** - Monitoramento de erros do Nicochat e N8N
+- **💬 Nicochat** - Interface de chat IA (em desenvolvimento)
 
 ### Métricas
 - **📈 PRIMECOD** - Métricas da plataforma PRIMECOD
 - **🛒 ECOMHUB** - Dados do ECOMHUB
-- **📱 DROPI MX** - Análises do DROPI
+- **📱 DROPI MX** - Extração e análise de pedidos do Dropi México
 
 ### Operacional
 - **💬 Engajamento** - Compra de engajamentos Facebook

@@ -93,14 +93,14 @@ Criar guias práticos em português que mostram exatamente como usar cada págin
 - **Métricas ECOMHUB** - Como acompanhar métricas ECOMHUB
 - **Métricas DROPI** - Como usar dashboard DROPI
 
-## Exemplos de Guias
+## Exemplo de Guia Compacto
 
-### Exemplo 1: Agenda
+### Como usar a Agenda
 ```markdown
 # Como usar a Agenda
 
 ## Para que serve
-A Agenda mostra todos os eventos e compromissos da empresa em um calendário visual. Você pode ver eventos futuros, criar novos eventos e editar eventos existentes.
+A Agenda mostra todos os eventos e compromissos da empresa em um calendário visual.
 
 ## Como acessar
 1. Faça login no Chegou Hub
@@ -121,48 +121,35 @@ A Agenda mostra todos os eventos e compromissos da empresa em um calendário vis
 **Como usar:**
 1. Clique no botão "Novo Evento" (canto superior direito)
 2. Preencha as informações:
-   - **Título:** Nome do evento (ex: "Reunião de equipe")
+   - **Título:** Nome do evento
    - **Data:** Dia que vai acontecer
    - **Horário:** Hora de início e fim
    - **Descrição:** Detalhes extras (opcional)
 3. Clique em "Salvar"
 4. O evento aparecerá no calendário
 
-### Editar evento existente
-**Para que serve:** Modificar informações de um evento já criado
-**Como usar:**
-1. Clique no evento no calendário
-2. Aparecerá uma janela com os detalhes
-3. Clique em "Editar"
-4. Modifique as informações necessárias
-5. Clique em "Salvar alterações"
-
 ## Casos práticos
 
 ### Exemplo 1: Agendar reunião semanal
-**Situação:** Você precisa agendar a reunião de equipe que acontece toda segunda-feira
 1. Clique em "Novo Evento"
 2. Título: "Reunião de equipe - Semanal"
 3. Data: Próxima segunda-feira
 4. Horário: 09:00 às 10:00
-5. Descrição: "Reunião semanal para alinhamento de projetos"
-6. Salvar
+5. Salvar
 
-### Exemplo 2: Marcar evento importante
-**Situação:** Tem uma apresentação importante para marcar
+### Exemplo 2: Marcar apresentação importante
 1. Clique em "Novo Evento"
 2. Título: "Apresentação - Cliente XYZ"
 3. Data: Data da apresentação
 4. Horário: Horário combinado
-5. Descrição: "Apresentação do projeto para aprovação final"
-6. Salvar
+5. Salvar
 
 ## Problemas comuns
 
 ### Evento não aparece no calendário
 **Sintoma:** Você criou um evento mas não consegue ver no calendário
 **Solução:** 
-1. Verifique se salvou corretamente (botão "Salvar")
+1. Verifique se salvou corretamente
 2. Confirme se a data está correta
 3. Tente atualizar a página (F5)
 
@@ -171,74 +158,12 @@ A Agenda mostra todos os eventos e compromissos da empresa em um calendário vis
 **Solução:**
 1. Clique bem no centro do evento
 2. Aguarde a janela de detalhes carregar
-3. Verifique se tem permissão para editar este evento
+3. Verifique se tem permissão para editar
 
 ## Dicas importantes
 - Use títulos claros para identificar rapidamente os eventos
 - Sempre preencha horário para melhor organização
 - Verifique a data antes de salvar para evitar erros
-- Use cores diferentes para tipos de eventos diferentes
-```
-
-### Exemplo 2: IA Dashboard
-```markdown
-# Como usar o Dashboard de IA
-
-## Para que serve
-O Dashboard de IA mostra todos os projetos de inteligência artificial da empresa, permite criar novos projetos e acompanhar o progresso de cada um.
-
-## Como acessar
-1. Faça login no Chegou Hub
-2. No menu lateral, clique em "🤖 IA"
-3. A página mostrará todos os projetos de IA
-
-## Funcionalidades principais
-
-### Ver lista de projetos
-**Para que serve:** Visualizar todos os projetos de IA em andamento
-**Como usar:**
-1. A lista aparece automaticamente na tela principal
-2. Cada projeto mostra:
-   - Nome do projeto
-   - Status atual (Em andamento, Concluído, etc.)
-   - Data de início
-   - Valor investido
-3. Clique em um projeto para ver detalhes completos
-
-### Criar novo projeto
-**Para que serve:** Adicionar um novo projeto de IA ao sistema
-**Como usar:**
-1. Clique no botão "Novo Projeto"
-2. Preencha as informações:
-   - **Nome:** Título do projeto
-   - **Descrição:** O que o projeto faz
-   - **Orçamento:** Valor previsto
-   - **Departamento:** Área responsável
-   - **Prazo:** Data limite
-3. Clique em "Criar Projeto"
-
-## Casos práticos
-
-### Exemplo 1: Projeto de automação
-**Situação:** Criar projeto para automatizar relatórios
-1. Clique em "Novo Projeto"
-2. Nome: "Automação de Relatórios Mensais"
-3. Descrição: "Sistema para gerar relatórios automaticamente"
-4. Orçamento: R$ 15.000
-5. Departamento: TI
-6. Prazo: 3 meses
-7. Criar Projeto
-
-## Problemas comuns
-
-### Não consegue criar projeto
-**Sintoma:** Formulário não salva
-**Solução:** Verifique se preencheu todos os campos obrigatórios
-
-## Dicas importantes
-- Use nomes descritivos para facilitar busca
-- Sempre defina orçamento realista
-- Acompanhe status regularmente
 ```
 
 ## Princípios dos Guias
@@ -255,12 +180,6 @@ O Dashboard de IA mostra todos os projetos de inteligência artificial da empres
 - Passo a passo detalhado
 - Exemplos práticos reais
 - Solução de problemas
-
-### 🔍 Casos Reais
-- Situações que realmente acontecem
-- Exemplos com dados fictícios mas realistas
-- Diferentes tipos de usuário
-- Variações de uso
 
 ## Workflow de Criação
 

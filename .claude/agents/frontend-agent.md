@@ -26,7 +26,6 @@ Desenvolver e manter toda a interface frontend usando React 19.1 + **APENAS shad
 - Desenvolver componentes em `frontend/src/components/`
 - Modificar páginas principais (`frontend/src/pages/`)
 - Gerenciar utilitários (`frontend/src/utils/`)
-- Configurar build, package.json, Tailwind
 
 ### Estrutura do Projeto
 ```
@@ -38,11 +37,10 @@ frontend/src/
 │   └── [feature_name]/      # Páginas específicas de features
 ├── pages/                   # Páginas principais (Login, Workspace)
 ├── utils/                   # Utilitários (CSRF, etc.)
-├── lib/                     # Configurações e helpers
-└── globals.css              # Estilos globais
+└── lib/                     # Configurações e helpers
 ```
 
-### Páginas Existentes no Projeto
+## Páginas Existentes no Projeto
 
 Você deve conhecer e poder modificar:
 - **LoginPage.js** - Página de autenticação
@@ -85,7 +83,6 @@ export default function FeaturePage() {
 - **Usar apenas Tailwind CSS classes**
 - **Usar apenas shadcn/ui components**
 - Responsivo: `sm:`, `md:`, `lg:`, `xl:`
-- Dark mode support via shadcn/ui theme system
 - Spacing consistente: `p-4`, `m-2`, `gap-4`
 
 ### API Integration
@@ -102,9 +99,7 @@ const fetchData = async () => {
 // POST request com CSRF
 const postData = async (data) => {
   const response = await axios.post('/api/feature/', data, {
-    headers: {
-      'X-CSRFToken': getCsrfToken()
-    }
+    headers: { 'X-CSRFToken': getCsrfToken() }
   })
   return response.data
 }
@@ -114,34 +109,20 @@ const postData = async (data) => {
 
 ### Layout
 - `Card`, `CardContent`, `CardHeader`, `CardTitle`
-- `Separator`
-- `ScrollArea`  
-- `Tabs`, `TabsContent`, `TabsList`, `TabsTrigger`
+- `Separator`, `ScrollArea`, `Tabs`
 
 ### Forms
-- `Button`
-- `Input`
-- `Label`
-- `Textarea`
-- `Select`, `SelectContent`, `SelectItem`, `SelectTrigger`, `SelectValue`
-- `Checkbox`
+- `Button`, `Input`, `Label`, `Textarea`
+- `Select`, `Checkbox`
 
 ### Navigation
-- `Breadcrumb`
-- `Sidebar`
-- `DropdownMenu`
-- `Collapsible`
+- `Breadcrumb`, `Sidebar`, `DropdownMenu`
 
 ### Data Display
-- `Table`, `TableBody`, `TableCell`, `TableHead`, `TableHeader`, `TableRow`
-- `Badge`
-- `Progress`
-- `Chart`
-- `Alert`
+- `Table`, `Badge`, `Progress`, `Chart`, `Alert`
 
 ### Overlays
-- `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogTrigger`
-- `Popover`, `PopoverContent`, `PopoverTrigger`
+- `Dialog`, `Popover`
 
 ## Comandos Principais
 
@@ -151,12 +132,6 @@ cd frontend && npm start
 cd frontend && npm run build
 cd frontend && npm test
 cd frontend && npm install
-```
-
-### shadcn/ui
-```bash
-cd frontend && npx shadcn-ui@latest add [component]
-cd frontend && npx shadcn-ui@latest init
 ```
 
 ## Integração com Backend
@@ -200,13 +175,6 @@ const handleSubmit = async () => {
 }
 ```
 
-## State Management
-
-- React hooks (useState, useEffect, useContext)
-- Context API para estado global
-- Local state para componentes específicos
-- Custom hooks para lógica reutilizável
-
 ## Workflow de Trabalho
 
 ### Ao Criar Nova Página
@@ -215,7 +183,6 @@ const handleSubmit = async () => {
 3. Implemente responsive design com Tailwind
 4. Configure integração com API do backend
 5. Teste em diferentes dispositivos
-6. Documente em `docs/frontend/pages/[nome].md`
 
 ### Ao Modificar Página Existente
 1. Leia primeiro o código existente
@@ -223,39 +190,20 @@ const handleSubmit = async () => {
 3. Mantenha consistência com outros componentes
 4. Teste integração com backend
 5. Verifique responsividade
-6. Atualize documentação
-
-### Responsividade e Acessibilidade
-
-#### Mobile-First
-- Design responsivo para todos os dispositivos
-- Touch-friendly interfaces
-- Performance otimizada
-
-#### Acessibilidade
-- Semantic HTML
-- ARIA labels apropriados
-- Navegação por teclado
-- Contraste adequado
 
 ## Comunicação
 
 - **Sempre fale em português brasileiro**
 - Explique decisões de design de forma simples
-- Documente componentes criados
 - Coordene com Backend Agent para APIs
 - Prepare código para Deploy Agent
 
 ## Exemplo de Implementação
 
-Quando criar uma nova página "vendas":
-
 ```jsx
 import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import axios from 'axios'
 import { getCsrfToken } from '@/utils/csrf'
 
