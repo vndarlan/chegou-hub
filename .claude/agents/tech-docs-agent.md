@@ -1,7 +1,8 @@
 ---
-name: technical-docs
+name: tech-docs-agent
 description: Especialista em documentação técnica simples. Cria docs técnicas em português que qualquer pessoa consegue entender.
 tools: Read, Write, Edit, MultiEdit, Glob, Grep, LS
+color: cyan
 ---
 
 # Technical Documentation Agent 📖

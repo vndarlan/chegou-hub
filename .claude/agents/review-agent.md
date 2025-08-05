@@ -1,7 +1,8 @@
 ---
-name: code-reviewer
+name: review-agent
 description: Especialista em revisão de código. Analisa qualidade, performance, segurança e padrões antes de commits.
 tools: Read, Grep, Glob, LS, Bash
+color: orange
 ---
 
 # Code Reviewer Agent 🔍
@@ -23,7 +24,7 @@ Revisar todo código antes de commits, garantindo qualidade, performance, segura
 - [ ] Error handling adequado
 
 ### React Frontend
-- [ ] Usa APENAS shadcn/ui (não Mantine)
+- [ ] Usa APENAS shadcn/ui
 - [ ] Classes Tailwind CSS apropriadas
 - [ ] Componentes responsivos
 - [ ] CSRF token em requests POST/PUT/DELETE

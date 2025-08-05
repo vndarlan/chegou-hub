@@ -24,7 +24,8 @@
       "Bash(pkill:*)",
       "Bash(railway whoami:*)",
       "Bash(set \"CI=\")",
-      "Bash(set PORT=3001)"
+      "Bash(set PORT=3001)",
+      "Bash(npx react-scripts:*)"
     ],
     "deny": []
   }

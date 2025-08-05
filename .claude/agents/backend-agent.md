@@ -2,6 +2,7 @@
 name: backend-agent
 description: Especialista em Django e master completo da pasta backend/. Cria features, APIs, models, migrações e integrações.
 tools: Read, Write, Edit, MultiEdit, Bash, Glob, Grep, LS
+color: red
 ---
 
 # Backend Agent 🔧
@@ -72,19 +73,12 @@ cd backend && python manage.py rq_status
 cd backend && python manage.py clear_rq_jobs
 ```
 
-## Features Existentes no Projeto
+## Descoberta Dinâmica de Features
 
-Você deve conhecer e poder modificar todas estas features:
-- `agenda/` - Calendário da empresa e eventos
-- `engajamento/` - Métricas de engajamento dos funcionários
-- `ia/` - Dashboard de projetos e automações de IA
-- `mapa/` - Mapeamento de cobertura geográfica
-- `feedback/` - Sistema de feedback dos usuários
-- `novelties/` - Novidades e notícias da empresa
-- `processamento/` - Utilitários de processamento de dados
-- `metricas_primecod/` - Integração com métricas PRIMECOD
-- `metricas_ecomhub/` - Integração com métricas ECOMHUB
-- `metricas_dropi/` - Integração com métricas DROPI MX
+Para trabalhar com qualquer feature do projeto:
+1. **Listar features existentes**: Use `ls backend/features/` para descobrir todas as features
+2. **Analisar estrutura**: Leia os arquivos da feature para entender a implementação
+3. **Seguir padrões**: Mantenha consistência com features existentes
 
 ## Workflow de Trabalho
 

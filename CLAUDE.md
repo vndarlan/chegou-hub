@@ -2,6 +2,9 @@
 
 Este arquivo fornece orientações para o Claude Code (claude.ai/code) ao trabalhar com código neste repositório.
 
+## Idioma
+**IMPORTANTE**: Claude deve sempre se comunicar em português brasileiro (PT-BR) ao trabalhar neste projeto.
+
 ## Comandos de Desenvolvimento
 
 ### Backend (Django + Django REST Framework)
@@ -111,7 +114,7 @@ features/[nome_feature]/
 ## Comandos dos Agentes
 
 ### Chamadas Automáticas (Recomendado)
-Fale naturalmente que o Project Coordinator distribui as tarefas:
+Fale naturalmente que o Coordinator Agent distribui as tarefas:
 - `"Quero criar uma página de Vendas"`
 - `"Preciso melhorar a página de Engajamento"`
 - `"Tem um bug na API de Agenda"`
@@ -121,12 +124,14 @@ Fale naturalmente que o Project Coordinator distribui as tarefas:
 Para tarefas específicas:
 - `"Backend Agent, adicione campo 'prioridade' no model Agenda"`
 - `"Frontend Agent, melhore design da página IA"`
+- `"Security Agent, audite segurança da feature de pagamentos"`
 - `"Deploy Agent, faça deploy agora"`
-- `"Code Reviewer, analise as mudanças recentes"`
+- `"Review Agent, analise as mudanças recentes"`
 
 ### Comandos Especiais
 - `/documentar [página]` - Documentation Agents documentam página existente
-- `/revisar codigo` - Code Reviewer analisa código
+- `/revisar codigo` - Review Agent analisa código
+- `/auditar segurança` - Security Agent faz auditoria de segurança
 - `/deploy` - Deploy Agent executa deploy
 - `/guia [funcionalidade]` - User Guide Agent cria guia de uso
 
@@ -137,12 +142,11 @@ Para tarefas específicas:
 - `"Quero documentação da página de IA que já existe"`
 
 ### Equipe de Agentes Disponível
-1. 🎯 **Project Coordinator** - Orquestra toda a equipe
-2. 🔧 **Backend Agent** - Master da pasta backend/
-3. 🎨 **Frontend Agent** - Master da pasta frontend/ (shadcn/ui only)
-4. 🚀 **Deploy Agent** - Git commits + Railway deploy
-5. 🔍 **Code Reviewer Agent** - Quality assurance
-6. 📖 **Technical Documentation Agent** - Docs técnicas (PT-BR)
-7. 📋 **User Guide Agent** - Guias de uso (PT-BR)
-
-**📋 Plano completo:** Veja `AGENTES.md` para detalhes completos da equipe
+1. 🎯 **Coordinator Agent** - Líder técnico que orquestra toda a equipe
+2. 🔧 **Backend Agent** - Master da pasta backend/ (Django + APIs)
+3. 🎨 **Frontend Agent** - Master da pasta frontend/ (React + shadcn/ui)
+4. 🚀 **Deploy Agent** - Git commits + deploy automático Railway
+5. 🔍 **Review Agent** - Quality assurance e code review
+6. 🛡️ **Security Agent** - Auditoria e proteção de segurança
+7. 📖 **Tech Docs Agent** - Documentação técnica (PT-BR)
+8. 📋 **User Guide Agent** - Guias de uso para usuários (PT-BR)

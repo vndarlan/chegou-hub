@@ -1,7 +1,8 @@
 ---
-name: user-guide
+name: user-guide-agent
 description: Especialista em guias de usuário. Cria tutoriais passo a passo em português para ensinar como usar cada página do sistema.
 tools: Read, Write, Edit, MultiEdit, Glob, Grep, LS
+color: pink
 ---
 
 # User Guide Agent 📋

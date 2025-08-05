@@ -100,9 +100,9 @@ const StatusBadge = ({ status }) => {
     };
     
     const colors = {
-        'ativo': 'bg-green-500 text-white dark:bg-green-600 dark:text-green-50',
-        'arquivado': 'bg-gray-500 text-white dark:bg-gray-600 dark:text-gray-50',
-        'manutencao': 'bg-yellow-500 text-white dark:bg-yellow-600 dark:text-yellow-50'
+        'ativo': 'bg-green-500 text-white',
+        'arquivado': 'bg-gray-500 text-white',
+        'manutencao': 'bg-yellow-500 text-white'
     };
     
     const labels = {
@@ -121,9 +121,9 @@ const StatusBadge = ({ status }) => {
 // Badge de Prioridade - migrado para shadcn/ui
 const PrioridadeBadge = ({ prioridade }) => {
     const colors = {
-        'alta': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800',
-        'media': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800',
-        'baixa': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800'
+        'alta': 'bg-red-100 text-red-800 border-red-200',
+        'media': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+        'baixa': 'bg-blue-100 text-blue-800 border-blue-200'
     };
     
     const labels = {
@@ -197,7 +197,7 @@ const ProjetoCard = React.memo(({ projeto, onEdit, onView, onArchive, onDuplicat
                 </div>
 
                 {podeVerFinanceiro && (
-                    <div className="border rounded-lg p-3 mt-4 bg-blue-50">
+                    <div className="border rounded-lg p-3 mt-4 bg-muted">
                         <div className="flex justify-between">
                             <div>
                                 <p className="text-xs text-muted-foreground">ROI</p>
@@ -406,9 +406,9 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
 
     return (
         <Dialog open={opened} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto dark:bg-gray-900 dark:border-gray-800">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-card">
                 <DialogHeader>
-                    <DialogTitle className="dark:text-gray-100">{projeto ? "Editar Projeto" : "Novo Projeto"}</DialogTitle>
+                    <DialogTitle>{projeto ? "Editar Projeto" : "Novo Projeto"}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit}>
                     <Tabs defaultValue="basico" className="mt-4">
@@ -429,7 +429,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
 
                         <TabsContent value="basico" className="space-y-4 mt-4">
                             <div>
-                                <label className="text-sm font-medium dark:text-gray-200">Nome do Projeto</label>
+                                <label className="text-sm font-medium">Nome do Projeto</label>
                                 <Input
                                     placeholder="Ex: Chatbot de Atendimento"
                                     required
@@ -441,7 +441,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                             </div>
                             
                             <div>
-                                <label className="text-sm font-medium dark:text-gray-200">Descrição</label>
+                                <label className="text-sm font-medium">Descrição</label>
                                 <Textarea
                                     placeholder="Descreva o que o projeto faz..."
                                     rows={3}
@@ -472,7 +472,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium">Departamentos</label>
-                                    <div className="text-sm text-gray-500 mb-2">
+                                    <div className="text-sm text-muted-foreground mb-2">
                                         {(formData.departamentos_atendidos || []).length > 0 
                                             ? `${formData.departamentos_atendidos.length} selecionados`
                                             : 'Nenhum selecionado'
@@ -516,7 +516,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                             
                             <div>
                                 <label className="text-sm font-medium">Criadores/Responsáveis</label>
-                                <div className="text-sm text-gray-500 mb-2">
+                                <div className="text-sm text-muted-foreground mb-2">
                                     {(formData.criadores_ids || []).length > 0 
                                         ? `${formData.criadores_ids.length} selecionados`
                                         : 'Nenhum selecionado'
@@ -657,7 +657,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                             </div>
                             
                             <div className="mt-6">
-                                <h3 className="text-base font-medium mb-4">📚 Documentação</h3>
+                                <h3 className="text-base font-medium mb-4">Documentação</h3>
                                 
                                 <div className="space-y-4">
                                     <div>
@@ -692,20 +692,20 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                             </div>
                             
                             <div>
-                                <label className="text-sm font-medium dark:text-gray-200">Data de Próxima Revisão (Opcional)</label>
-                                <p className="text-xs text-muted-foreground dark:text-gray-400 mb-1">Ex: 2024-03-15</p>
+                                <label className="text-sm font-medium">Data de Próxima Revisão (Opcional)</label>
+                                <p className="text-xs text-muted-foreground mb-1">Ex: 2024-03-15</p>
                                 <Input
                                     type="date"
                                     value={formData.data_revisao || ''}
                                     onChange={(e) => setFormData(prev => ({...prev, data_revisao: e.target.value || null}))}
-                                    className="dark:bg-gray-800 dark:border-gray-600"
+                                    className="bg-input"
                                 />
                             </div>
                         </TabsContent>
 
                         <TabsContent value="financeiro" className="space-y-4 mt-4">
                             <div>
-                                <h3 className="text-base font-medium mb-4">💰 Custos</h3>
+                                <h3 className="text-base font-medium mb-4">Custos</h3>
                                 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -798,7 +798,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                             <Separator />
                             
                             <div>
-                                <h3 className="text-base font-medium mb-4">📈 Retornos/Economias</h3>
+                                <h3 className="text-base font-medium mb-4">Retornos/Economias</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="text-sm font-medium">Horas Economizadas/Mês</label>
@@ -830,7 +830,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                             <Separator />
                             
                             <div>
-                                <h3 className="text-base font-medium mb-4">🎯 Controle</h3>
+                                <h3 className="text-base font-medium mb-4">Controle</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="text-sm font-medium">Nível de Autonomia</label>
@@ -849,21 +849,21 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         </Select>
                                     </div>
                                     <div>
-                                        <label className="text-sm font-medium dark:text-gray-200">Data Break-Even (Opcional)</label>
-                                        <p className="text-xs text-muted-foreground dark:text-gray-400 mb-1">Ex: 2024-03-15</p>
+                                        <label className="text-sm font-medium text-foreground">Data Break-Even (Opcional)</label>
+                                        <p className="text-xs text-muted-foreground text-muted-foreground mb-1">Ex: 2024-03-15</p>
                                         <Input
                                             type="date"
                                             value={formData.data_break_even || ''}
                                             onChange={(e) => setFormData(prev => ({...prev, data_break_even: e.target.value || null}))}
-                                            className="dark:bg-gray-800 dark:border-gray-600"
+                                            className="bg-input border"
                                         />
                                     </div>
                                 </div>
                             </div>
 
                             {formData.horas_totais > 0 && formData.custo_hora_empresa > 0 && (
-                                <div className="border rounded-lg p-4 bg-blue-50 mt-4">
-                                    <h4 className="text-sm font-medium mb-2">💡 Prévia dos Cálculos</h4>
+                                <div className="border rounded-lg p-4 bg-muted mt-4">
+                                    <h4 className="text-sm font-medium mb-2">Prévia dos Cálculos</h4>
                                     <p className="text-sm">
                                         Investimento em desenvolvimento: R$ {(formData.horas_totais * formData.custo_hora_empresa).toLocaleString('pt-BR')}
                                     </p>
@@ -900,9 +900,9 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
 
     return (
         <Dialog open={opened} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto dark:bg-gray-900 dark:border-gray-800">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-card">
                 <DialogHeader>
-                    <DialogTitle className="dark:text-gray-100">{projeto.nome}</DialogTitle>
+                    <DialogTitle>{projeto.nome}</DialogTitle>
                 </DialogHeader>
                 <Tabs defaultValue="info" className="mt-4">
                     <TabsList className="grid w-full grid-cols-3">
@@ -924,29 +924,29 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
 
                     <TabsContent value="info" className="space-y-4 mt-4">
                         {/* Descrição com formatação preservada */}
-                        <Card className="dark:bg-gray-800/50 dark:border-gray-700">
+                        <Card className="bg-card border">
                             <CardContent className="p-4">
-                                <p className="text-sm text-muted-foreground dark:text-gray-400 mb-2">Descrição</p>
-                                <p className="whitespace-pre-wrap dark:text-gray-200">{projeto.descricao}</p>
+                                <p className="text-sm text-muted-foreground mb-2">Descrição</p>
+                                <p className="whitespace-pre-wrap">{projeto.descricao}</p>
                             </CardContent>
                         </Card>
                         
                         <div className="grid grid-cols-3 gap-4">
-                            <Card className="dark:bg-gray-800/50 dark:border-gray-700">
+                            <Card className="bg-card border">
                                 <CardContent className="p-3">
-                                    <p className="text-xs text-muted-foreground dark:text-gray-400">Status</p>
+                                    <p className="text-xs text-muted-foreground">Status</p>
                                     <StatusBadge status={projeto.status} />
                                 </CardContent>
                             </Card>
-                            <Card className="dark:bg-gray-800/50 dark:border-gray-700">
+                            <Card className="bg-card border">
                                 <CardContent className="p-3">
-                                    <p className="text-xs text-muted-foreground dark:text-gray-400">Tipo</p>
-                                    <p className="text-sm font-medium dark:text-gray-200">{projeto.tipo_projeto}</p>
+                                    <p className="text-xs text-muted-foreground text-muted-foreground">Tipo</p>
+                                    <p className="text-sm font-medium text-foreground">{projeto.tipo_projeto}</p>
                                 </CardContent>
                             </Card>
-                            <Card className="dark:bg-gray-800/50 dark:border-gray-700">
+                            <Card className="bg-card border">
                                 <CardContent className="p-3">
-                                    <p className="text-xs text-muted-foreground dark:text-gray-400">Departamentos</p>
+                                    <p className="text-xs text-muted-foreground text-muted-foreground">Departamentos</p>
                                     <div className="flex gap-1 flex-wrap">
                                         {projeto.departamentos_display?.length > 0 ? (
                                             projeto.departamentos_display.map((dept, i) => (
@@ -970,7 +970,7 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                             <Card>
                                 <CardContent className="p-3">
                                     <p className="text-xs text-muted-foreground">Complexidade</p>
-                                    <Badge variant="outline" className="bg-blue-100 text-blue-800">{projeto.complexidade}</Badge>
+                                    <Badge variant="outline">{projeto.complexidade}</Badge>
                                 </CardContent>
                             </Card>
                         </div>
@@ -978,7 +978,7 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                         {/* BREAKDOWN DE HORAS */}
                         <Card>
                             <CardContent className="p-4">
-                                <h3 className="text-base font-medium mb-4">⏱️ Breakdown de Horas</h3>
+                                <h3 className="text-base font-medium mb-4">Breakdown de Horas</h3>
                                 <div className="grid grid-cols-5 gap-4">
                                     <div>
                                         <p className="text-xs text-muted-foreground">Total</p>
@@ -1038,7 +1038,7 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                         {(projeto.documentacao_tecnica || projeto.licoes_aprendidas || projeto.proximos_passos) && (
                             <Card>
                                 <CardContent className="p-4">
-                                    <h3 className="text-base font-medium mb-4">📚 Documentação</h3>
+                                    <h3 className="text-base font-medium mb-4">Documentação</h3>
                                     <div className="space-y-4">
                                         {projeto.documentacao_tecnica && (
                                             <div>
@@ -1117,7 +1117,7 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                             {/* CUSTOS */}
                             <Card>
                                 <CardContent className="p-4">
-                                    <h3 className="text-base font-medium mb-4">💰 Custos</h3>
+                                    <h3 className="text-base font-medium mb-4">Custos</h3>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <p className="text-xs text-muted-foreground">Custo/Hora Empresa</p>
@@ -1149,7 +1149,7 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                             {/* RETORNOS */}
                             <Card>
                                 <CardContent className="p-4">
-                                    <h3 className="text-base font-medium mb-4">📈 Retornos</h3>
+                                    <h3 className="text-base font-medium mb-4">Retornos</h3>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <p className="text-xs text-muted-foreground">Horas Economizadas/Mês</p>
@@ -1165,9 +1165,9 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
 
                             {/* MÉTRICAS CALCULADAS */}
                             {metricas && (
-                                <Card className="bg-blue-50">
+                                <Card className="bg-muted">
                                     <CardContent className="p-4">
-                                        <h3 className="text-base font-medium mb-4">📊 Métricas Calculadas</h3>
+                                        <h3 className="text-base font-medium mb-4">Métricas Calculadas</h3>
                                         <div className="grid grid-cols-3 gap-4">
                                             <div>
                                                 <p className="text-xs text-muted-foreground">ROI</p>
@@ -1199,7 +1199,7 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                     <div className="space-y-4">
                         <Card>
                             <CardContent className="p-4">
-                                <h3 className="text-lg font-semibold mb-4">📋 Informações do Sistema</h3>
+                                <h3 className="text-lg font-semibold mb-4">Informações do Sistema</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <p className="text-xs text-muted-foreground">Criado em</p>
@@ -1225,16 +1225,16 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                         {projeto.versoes?.length > 0 && (
                             <Card>
                                 <CardContent className="p-4">
-                                    <h3 className="text-lg font-semibold mb-4">📝 Histórico de Versões</h3>
+                                    <h3 className="text-lg font-semibold mb-4">Histórico de Versões</h3>
                                     <CustomTimeline>
                                         {projeto.versoes.map((versao, i) => (
                                             <CustomTimeline.Item key={i}>
-                                                <p className="text-sm font-medium dark:text-gray-200">v{versao.versao}</p>
-                                                <p className="text-xs text-muted-foreground dark:text-gray-400">{versao.responsavel_nome}</p>
-                                                <p className="text-xs text-muted-foreground dark:text-gray-400">
+                                                <p className="text-sm font-medium text-foreground">v{versao.versao}</p>
+                                                <p className="text-xs text-muted-foreground text-muted-foreground">{versao.responsavel_nome}</p>
+                                                <p className="text-xs text-muted-foreground text-muted-foreground">
                                                     {new Date(versao.data_lancamento).toLocaleDateString('pt-BR')}
                                                 </p>
-                                                <p className="text-sm dark:text-gray-300">{versao.motivo_mudanca}</p>
+                                                <p className="text-sm text-foreground">{versao.motivo_mudanca}</p>
                                             </CustomTimeline.Item>
                                         ))}
                                     </CustomTimeline>
@@ -1623,34 +1623,32 @@ function ProjetoDashboard() {
     }, [projetos]);
 
     return (
-        <div className="max-w-7xl mx-auto p-6 dark:bg-gray-950 min-h-screen">
+        <div className="p-6 min-h-screen bg-background">
             {loading && (
-                <div className="fixed inset-0 bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm flex items-center justify-center z-50">
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
             )}
 
-            {/* Header */}
-            <div className="flex justify-between items-start mb-8">
-                <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <Bot className="h-8 w-8 dark:text-blue-400" />
-                        <h1 className="text-2xl font-bold dark:text-gray-100">🤖 Dashboard de IA & Automação</h1>
-                    </div>
-                    <p className="text-muted-foreground dark:text-gray-400">
-                        Gerencie projetos de IA, automação e suas métricas financeiras
-                    </p>
+            {/* Header minimalista */}
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <Bot className="h-6 w-6 text-primary" />
+                    <h1 className="text-2xl font-bold text-foreground">Dashboard de IA & Automação</h1>
                 </div>
                 
-                <div className="flex gap-3">
+                <div className="flex items-center gap-3">
                     <Button
                         variant="outline"
+                        size="sm"
                         onClick={carregarDadosIniciais}
+                        className="border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
                     >
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Atualizar
                     </Button>
                     <Button
+                        size="sm"
                         onClick={() => {
                             setSelectedProjeto(null);
                             setFormModalOpen(true);
@@ -1673,55 +1671,55 @@ function ProjetoDashboard() {
 
             {/* Cards de Estatísticas */}
             {stats && (
-                <div className={`grid gap-4 mb-8 ${userPermissions?.pode_ver_financeiro && stats.economia_mensal_total ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
-                    <Card className="border bg-blue-50 dark:bg-blue-950/30 dark:border-blue-800">
+                <div className={`grid gap-4 mb-6 ${userPermissions?.pode_ver_financeiro && stats.economia_mensal_total ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
+                    <Card className="border-border bg-card">
                         <CardContent className="p-4">
-                            <div className="flex items-center gap-3">
-                                <Brain className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                            <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-muted-foreground dark:text-gray-400">Total de Projetos</p>
-                                    <p className="text-2xl font-bold dark:text-gray-100">{stats.total_projetos}</p>
+                                    <p className="text-sm text-muted-foreground">Total de Projetos</p>
+                                    <p className="text-xl font-bold text-card-foreground">{stats.total_projetos}</p>
                                 </div>
+                                <Brain className="h-5 w-5 text-primary" />
                             </div>
                         </CardContent>
                     </Card>
                     
-                    <Card className="border bg-green-50 dark:bg-green-950/30 dark:border-green-800">
+                    <Card className="border-border bg-card">
                         <CardContent className="p-4">
-                            <div className="flex items-center gap-3">
-                                <Activity className="h-6 w-6 text-green-600 dark:text-green-400" />
+                            <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-muted-foreground dark:text-gray-400">Projetos Ativos</p>
-                                    <p className="text-2xl font-bold dark:text-gray-100">{stats.projetos_ativos}</p>
+                                    <p className="text-sm text-muted-foreground">Projetos Ativos</p>
+                                    <p className="text-xl font-bold text-card-foreground">{stats.projetos_ativos}</p>
                                 </div>
+                                <Activity className="h-5 w-5 text-primary" />
                             </div>
                         </CardContent>
                     </Card>
                     
-                    <Card className="border bg-orange-50 dark:bg-orange-950/30 dark:border-orange-800">
+                    <Card className="border-border bg-card">
                         <CardContent className="p-4">
-                            <div className="flex items-center gap-3">
-                                <Clock className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                            <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-muted-foreground dark:text-gray-400">Horas Investidas</p>
-                                    <p className="text-2xl font-bold dark:text-gray-100">{stats.horas_totais_investidas}h</p>
+                                    <p className="text-sm text-muted-foreground">Horas Investidas</p>
+                                    <p className="text-xl font-bold text-card-foreground">{stats.horas_totais_investidas}h</p>
                                 </div>
+                                <Clock className="h-5 w-5 text-primary" />
                             </div>
                         </CardContent>
                     </Card>
                     
                     {/* Só mostrar se tiver dados financeiros E permissão */}
                     {userPermissions?.pode_ver_financeiro && stats.economia_mensal_total && (
-                        <Card className="border bg-teal-50 dark:bg-teal-950/30 dark:border-teal-800">
+                        <Card className="border-border bg-card">
                             <CardContent className="p-4">
-                                <div className="flex items-center gap-3">
-                                    <TrendingUp className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+                                <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm text-muted-foreground dark:text-gray-400">Economia/Mês</p>
-                                        <p className="text-2xl font-bold dark:text-gray-100">
+                                        <p className="text-sm text-muted-foreground">Economia/Mês</p>
+                                        <p className="text-xl font-bold text-card-foreground">
                                             R$ {stats.economia_mensal_total?.toLocaleString('pt-BR')}
                                         </p>
                                     </div>
+                                    <TrendingUp className="h-5 w-5 text-primary" />
                                 </div>
                             </CardContent>
                         </Card>
@@ -1730,7 +1728,7 @@ function ProjetoDashboard() {
             )}
 
             {/* Filtros */}
-            <Card className="mb-4 dark:bg-gray-900/50 dark:border-gray-800">
+            <Card className="mb-4 border-border bg-card">
                 <CardContent className="p-4">
                     <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                         <div className="md:col-span-2">
@@ -1740,12 +1738,12 @@ function ProjetoDashboard() {
                                     placeholder="Buscar projetos..."
                                     value={searchValue}
                                     onChange={(e) => setSearchValue(e.target.value)}
-                                    className="pl-10"
+                                    className="pl-10 border-border bg-background text-foreground"
                                 />
                             </div>
                         </div>
                         <div>
-                            <div className="text-sm text-gray-500 mb-1">
+                            <div className="text-sm text-muted-foreground mb-1">
                                 Status: {(filtros.status || []).length > 0 ? `${filtros.status.length} selecionados` : 'Todos'}
                             </div>
                             <div className="space-y-1 max-h-24 overflow-y-auto border rounded p-2 text-xs">
@@ -1770,7 +1768,7 @@ function ProjetoDashboard() {
                             </div>
                         </div>
                         <div>
-                            <div className="text-sm text-gray-500 mb-1">
+                            <div className="text-sm text-muted-foreground mb-1">
                                 Tipo: {(filtros.tipo_projeto || []).length > 0 ? `${filtros.tipo_projeto.length} selecionados` : 'Todos'}
                             </div>
                             <div className="space-y-1 max-h-24 overflow-y-auto border rounded p-2 text-xs">
@@ -1795,7 +1793,7 @@ function ProjetoDashboard() {
                             </div>
                         </div>
                         <div>
-                            <div className="text-sm text-gray-500 mb-1">
+                            <div className="text-sm text-muted-foreground mb-1">
                                 Depto: {(filtros.departamento || []).length > 0 ? `${filtros.departamento.length} selecionados` : 'Todos'}
                             </div>
                             <div className="space-y-1 max-h-24 overflow-y-auto border rounded p-2 text-xs">
@@ -1868,8 +1866,8 @@ function ProjetoDashboard() {
                     ))}
                 </div>
             ) : (
-                <div className="border rounded-lg overflow-hidden dark:border-gray-800">
-                    <Table className="dark:bg-gray-900/50">
+                <div className="border-border rounded-lg overflow-hidden bg-card">
+                    <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Nome</TableHead>
@@ -2029,15 +2027,15 @@ const NovaVersaoModal = ({ opened, onClose, projeto, onSave }) => {
                     <DialogTitle>Nova Versão - {projeto.nome}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
+                    <Alert className="bg-muted border">
                         <GitBranch className="h-4 w-4" />
-                        <AlertDescription className="dark:text-blue-200">
+                        <AlertDescription className="text-muted-foreground">
                             Versão atual: <strong>{projeto.versao_atual}</strong>
                         </AlertDescription>
                     </Alert>
                     
                     <div>
-                        <label className="text-sm font-medium dark:text-gray-200">Nova Versão</label>
+                        <label className="text-sm font-medium text-foreground">Nova Versão</label>
                         <Input
                             placeholder="Ex: 1.2.0"
                             required
@@ -2051,7 +2049,7 @@ const NovaVersaoModal = ({ opened, onClose, projeto, onSave }) => {
                     </div>
                     
                     <div>
-                        <label className="text-sm font-medium dark:text-gray-200">Motivo da Mudança</label>
+                        <label className="text-sm font-medium text-foreground">Motivo da Mudança</label>
                         <Textarea
                             placeholder="Descreva as alterações realizadas..."
                             rows={4}

@@ -2,6 +2,7 @@
 name: frontend-agent
 description: Especialista em React e master completo da pasta frontend/. Usa APENAS shadcn/ui + Tailwind CSS para criar interfaces.
 tools: Read, Write, Edit, MultiEdit, Bash, Glob, Grep, LS
+color: yellow
 ---
 
 # Frontend Agent 🎨
@@ -40,20 +41,12 @@ frontend/src/
 └── lib/                     # Configurações e helpers
 ```
 
-## Páginas Existentes no Projeto
+## Descoberta Dinâmica de Páginas
 
-Você deve conhecer e poder modificar:
-- **LoginPage.js** - Página de autenticação
-- **WorkspacePage.js** - Página principal com navegação
-- **AgendaPage.js** - Calendário da empresa
-- **EngajamentoPage.js** - Dashboard de engajamento
-- **ProjetoDashboard.js** - Dashboard de projetos IA
-- **MapaPage.js** - Mapa de cobertura
-- **NoveltiesPage.js** - Novidades da empresa
-- **ProcessamentoPage.js** - Processamento de dados
-- **PrimecodPage.js** - Métricas PRIMECOD
-- **EcomhubPage.js** - Métricas ECOMHUB
-- **DropiPage.js** - Métricas DROPI
+Para trabalhar com qualquer página do projeto:
+1. **Encontrar páginas**: Use `find frontend/src -name "*.js" -type f` para descobrir todos os componentes
+2. **Analisar estrutura**: Leia o código existente para entender padrões e convenções
+3. **Manter consistência**: Siga os padrões estabelecidos pelas páginas existentes
 
 ## Padrões de Código
 
