@@ -32,7 +32,7 @@ import { toast } from 'sonner';
 
 // === HOOKS CUSTOMIZADOS ===
 
-// Hook useDebounce para substituir useDebouncedValue do Mantine
+// Hook useDebounce para delay de input
 function useDebounce(value, delay) {
     const [debouncedValue, setDebouncedValue] = useState(value);
     
@@ -49,7 +49,7 @@ function useDebounce(value, delay) {
     return debouncedValue;
 }
 
-// Sistema de toast personalizado para substituir notifications do Mantine
+// Sistema de toast usando sonner
 const showNotification = ({ title, message, type = 'success' }) => {
     const content = title ? `${title}: ${message}` : message;
     
@@ -62,7 +62,7 @@ const showNotification = ({ title, message, type = 'success' }) => {
     }
 };
 
-// Componente CustomTimeline para substituir Timeline do Mantine
+// Componente CustomTimeline personalizado
 const CustomTimeline = ({ children, className = '' }) => {
     return (
         <div className={`space-y-4 ${className}`}>

@@ -1,6 +1,13 @@
 // frontend/src/shared/components/NavbarNested/NavbarNested.js
 import React, { useState } from 'react';
-import { Group, ScrollArea, ActionIcon, Tooltip } from '@mantine/core';
+import { Button } from '../ui/button';
+import { ScrollArea } from '../ui/scroll-area';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../ui/tooltip';
 import {
   IconMap,
   IconCalendar,
@@ -52,20 +59,27 @@ export function NavbarNested({
         <nav className={`${classes.navbar} ${collapsed ? classes.navbarCollapsed : ''}`}>
             {/* Cabeçalho: Logo e botão de colapsar */}
             <div className={classes.header}>
-                <Group justify="space-between" align="center" wrap='nowrap'>
+                <div className="flex justify-between items-center">
                     {!collapsed && <Logo style={{ flexShrink: 0 }} />}
-                    <Tooltip label={collapsed ? "Expandir" : "Recolher"} position="right" withArrow>
-                        <ActionIcon
-                            onClick={() => setCollapsed((c) => !c)}
-                            variant="default"
-                            size="lg"
-                            className={classes.collapseToggle}
-                            aria-label={collapsed ? "Expandir barra lateral" : "Recolher barra lateral"}
-                        >
-                            {collapsed ? <IconLayoutSidebarRightCollapse size="1.1rem" stroke={1.5}/> : <IconLayoutSidebarLeftCollapse size="1.1rem" stroke={1.5}/>}
-                        </ActionIcon>
-                    </Tooltip>
-                </Group>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => setCollapsed((c) => !c)}
+                                    className={classes.collapseToggle}
+                                    aria-label={collapsed ? "Expandir barra lateral" : "Recolher barra lateral"}
+                                >
+                                    {collapsed ? <IconLayoutSidebarRightCollapse size={18} stroke={1.5}/> : <IconLayoutSidebarLeftCollapse size={18} stroke={1.5}/>}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right">
+                                <p>{collapsed ? "Expandir" : "Recolher"}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
             </div>
             <div className={classes.headerDivider}></div>
     

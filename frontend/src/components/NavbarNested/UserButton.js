@@ -1,13 +1,15 @@
 // frontend/src/components/NavbarNested/UserButton.js
 import React from 'react';
-import { 
-  UnstyledButton, 
-  Group, 
-  Avatar, 
-  Text, 
-  rem, 
-  Menu 
-} from '@mantine/core';
+import { Button } from '../ui/button';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
 import { 
   IconLogout, 
   IconChevronRight, 
@@ -35,65 +37,61 @@ export function UserButton({
   };
 
   return (
-    <Menu shadow="md" width={200} position="top-end" withArrow>
-      <Menu.Target>
-        <UnstyledButton className={`${classes.user} ${collapsed ? classes.userCollapsed : ''}`}>
-          <Group gap="sm" wrap="nowrap">
-            <Avatar 
-              radius="xl" 
-              color="orange" 
-              size={collapsed ? 32 : 40}
-            >
-              {getInitials(userName)}
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button 
+          variant="ghost" 
+          className={`${classes.user} ${collapsed ? classes.userCollapsed : ''} w-full justify-start p-2`}
+        >
+          <div className="flex items-center gap-2 w-full">
+            <Avatar className={collapsed ? 'w-8 h-8' : 'w-10 h-10'}>
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                {getInitials(userName)}
+              </AvatarFallback>
             </Avatar>
 
             {!collapsed && (
-              <div style={{ flex: 1, overflow: 'hidden' }}>
-                <Text size="sm" fw={500} truncate>
+              <div className="flex-1 overflow-hidden text-left">
+                <p className="text-sm font-medium truncate">
                   {userName}
-                </Text>
-                <Text c="dimmed" size="xs" truncate>
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
                   {userEmail}
-                </Text>
+                </p>
               </div>
             )}
 
             {!collapsed && (
               <IconChevronRight 
-                style={{ width: rem(14), height: rem(14) }} 
+                size={14}
                 stroke={1.5} 
+                className="ml-auto"
               />
             )}
-          </Group>
-        </UnstyledButton>
-      </Menu.Target>
+          </div>
+        </Button>
+      </DropdownMenuTrigger>
 
-      <Menu.Dropdown>
-        <Menu.Label>Configurações</Menu.Label>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuLabel>Configurações</DropdownMenuLabel>
         
         {toggleColorScheme && (
-          <Menu.Item
-            leftSection={
-              colorScheme === 'dark' 
-                ? <IconSun style={{ width: rem(16), height: rem(16) }} />
-                : <IconMoon style={{ width: rem(16), height: rem(16) }} />
+          <DropdownMenuItem onClick={toggleColorScheme}>
+            {colorScheme === 'dark' 
+              ? <IconSun size={16} className="mr-2" />
+              : <IconMoon size={16} className="mr-2" />
             }
-            onClick={toggleColorScheme}
-          >
             {colorScheme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
-          </Menu.Item>
+          </DropdownMenuItem>
         )}
 
-        <Menu.Divider />
+        <DropdownMenuSeparator />
 
-        <Menu.Item
-          color="red"
-          leftSection={<IconLogout style={{ width: rem(16), height: rem(16) }} />}
-          onClick={onLogout}
-        >
+        <DropdownMenuItem onClick={onLogout} className="text-destructive focus:text-destructive">
+          <IconLogout size={16} className="mr-2" />
           Sair
-        </Menu.Item>
-      </Menu.Dropdown>
-    </Menu>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

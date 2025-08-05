@@ -1,20 +1,22 @@
-// frontend/src/components/AppHeader.js ou onde estiver seu cabeçalho
-import { /* imports existentes */ } from '@mantine/core';
-import ThemeToggle from './ThemeToggle'; // Importe o componente
+// frontend/src/components/AppHeader.js
+import React from 'react';
+import ThemeToggle from './ThemeToggle';
 
 function AppHeader() {
   return (
-    <Header height={60} p="md">
-      <Group position="apart">
-        <Group>
+    <header className="h-16 px-6 border-b border-border bg-background">
+      <div className="flex justify-between items-center h-full">
+        <div className="flex items-center gap-4">
           {/* Logo e outros itens do lado esquerdo */}
-        </Group>
+        </div>
         
-        <Group>
+        <div className="flex items-center gap-2">
           {/* Outros botões/controles do cabeçalho */}
           <ThemeToggle /> {/* Adicione o botão de alternância aqui */}
-        </Group>
-      </Group>
-    </Header>
+        </div>
+      </div>
+    </header>
   );
 }
+
+export default AppHeader;

@@ -4,14 +4,12 @@
   width: 100%;
   padding: 16px;
   border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
 .user:hover {
-  background-color: var(--mantine-color-gray-1);
-}
-
-[data-mantine-color-scheme="dark"] .user:hover {
-  background-color: var(--mantine-color-dark-8);
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
 }
 
 .userCollapsed {

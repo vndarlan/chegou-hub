@@ -1,4 +1,4 @@
-// frontend/src/components/DoubleNavbar.js - VERSÃO COM ADMIN
+// frontend/src/components/DoubleNavbar.js - VERSÃO COM ADMIN (SHADCN/UI)
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -16,7 +16,13 @@ import {
   IconBrandChrome,
   IconLock // NOVO ÍCONE PARA ADMIN
 } from '@tabler/icons-react';
-import { Title, Tooltip, UnstyledButton, Text, Box } from '@mantine/core';
+import { Button } from './ui/button';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from './ui/tooltip';
 import { UserButton } from './NavbarNested/UserButton';
 import classes from './DoubleNavbar.module.css';
 
@@ -101,21 +107,24 @@ export function DoubleNavbar({ userName, userEmail, onLogout, toggleColorScheme,
   const mainLinksMockdata = getMainLinksMockdata(isAdmin);
   
   const mainLinks = mainLinksMockdata.map((link) => (
-    <Tooltip
-      label={link.label}
-      position="right"
-      withArrow
-      transitionProps={{ duration: 0 }}
-      key={link.label}
-    >
-      <UnstyledButton
-        onClick={() => setActive(link.key)}
-        className={classes.mainLink}
-        data-active={link.key === active || undefined}
-      >
-        <link.icon size={22} stroke={1.5} />
-      </UnstyledButton>
-    </Tooltip>
+    <TooltipProvider key={link.label}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setActive(link.key)}
+            className={classes.mainLink}
+            data-active={link.key === active || undefined}
+          >
+            <link.icon size={22} stroke={1.5} />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="right">
+          <p>{link.label}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   ));
 
   // Gerar links da área principal
@@ -137,7 +146,7 @@ export function DoubleNavbar({ userName, userEmail, onLogout, toggleColorScheme,
     >
       {link.label}
       {link.external && (
-        <Text size="xs" c="dimmed" ml="auto">↗</Text>
+        <span className="ml-auto text-xs text-muted-foreground">↗</span>
       )}
     </a>
   )) || [];
@@ -166,9 +175,11 @@ export function DoubleNavbar({ userName, userEmail, onLogout, toggleColorScheme,
           </div>
         </div>
         <div className={classes.main}>
-          <Title order={4} className={classes.title}>
-            {mainLinksMockdata.find(link => link.key === active)?.label || 'HOME'}
-          </Title>
+          <div className={classes.title}>
+            <h4 className="text-lg font-semibold">
+              {mainLinksMockdata.find(link => link.key === active)?.label || 'HOME'}
+            </h4>
+          </div>
           <div className={classes.links}>
             {links}
           </div>

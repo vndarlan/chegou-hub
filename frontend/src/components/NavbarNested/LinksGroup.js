@@ -1,15 +1,12 @@
 // frontend/src/components/NavbarNested/LinksGroup.js
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import {
-  Group,
-  Box,
-  Collapse,
-  ThemeIcon,
-  Text,
-  UnstyledButton,
-  rem,
-} from '@mantine/core';
+import { Button } from '../ui/button';
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '../ui/collapsible';
 import { IconChevronRight } from '@tabler/icons-react';
 import classes from './LinksGroup.module.css';
 
@@ -38,8 +35,7 @@ export function LinksGroup({
 
   // Gera os itens de sublink
   const items = (hasLinks ? links : []).map((subLink) => (
-    <Text
-      component="a"
+    <a
       className={classes.link}
       href={subLink.link || '#'}
       key={subLink.label}
@@ -54,21 +50,23 @@ export function LinksGroup({
       }}
       data-active={location.pathname === subLink.link || undefined}
     >
-      <Group gap="sm" wrap="nowrap">
+      <div className="flex items-center gap-2">
         {subLink.icon && (
-          <ThemeIcon 
-            variant="light" 
-            color={location.pathname === subLink.link ? 'orange' : 'gray'} 
-            size={20}
-          >
+          <div className={`w-5 h-5 flex items-center justify-center rounded ${
+            location.pathname === subLink.link 
+              ? 'bg-primary/10 text-primary' 
+              : 'bg-muted text-muted-foreground'
+          }`}>
             <subLink.icon size={14} />
-          </ThemeIcon>
+          </div>
         )}
-        <Text size="sm" fw={location.pathname === subLink.link ? 600 : 500}>
+        <span className={`text-sm ${
+          location.pathname === subLink.link ? 'font-semibold' : 'font-medium'
+        }`}>
           {subLink.label}
-        </Text>
-      </Group>
-    </Text>
+        </span>
+      </div>
+    </a>
   ));
 
   // Handler para clicar no item principal
@@ -81,43 +79,47 @@ export function LinksGroup({
   };
 
   return (
-    <>
-      <UnstyledButton
-        onClick={handleControlClick}
-        className={`${classes.control} ${isGroupActive ? classes.controlActive : ''}`}
-      >
-        <Group justify="space-between" gap={0} wrap="nowrap">
-          <Group gap="sm">
-            <ThemeIcon 
-              variant="light" 
-              color={isGroupActive ? 'orange' : 'gray'} 
-              size={30}
-            >
-              <Icon style={{ width: rem(18), height: rem(18) }} />
-            </ThemeIcon>
-            <Text 
-              fw={isGroupActive ? 600 : 500} 
-              size="sm" 
-              c={isGroupActive ? 'orange.7' : 'gray.7'}
-            >
-              {label}
-            </Text>
-          </Group>
-          {hasLinks && (
-            <IconChevronRight
-              className={classes.chevron}
-              stroke={1.5}
-              style={{
-                width: rem(16),
-                height: rem(16),
-                transform: shouldBeOpened ? 'rotate(90deg)' : 'none',
-                transition: 'transform 200ms ease',
-              }}
-            />
-          )}
-        </Group>
-      </UnstyledButton>
-      {hasLinks ? <Collapse in={shouldBeOpened}>{items}</Collapse> : null}
-    </>
+    <Collapsible open={shouldBeOpened} onOpenChange={setOpened}>
+      <CollapsibleTrigger asChild>
+        <Button
+          variant="ghost"
+          onClick={handleControlClick}
+          className={`${classes.control} ${isGroupActive ? classes.controlActive : ''} w-full justify-start`}
+        >
+          <div className="flex justify-between items-center w-full">
+            <div className="flex items-center gap-2">
+              <div className={`w-7 h-7 flex items-center justify-center rounded ${
+                isGroupActive 
+                  ? 'bg-primary/10 text-primary' 
+                  : 'bg-muted text-muted-foreground'
+              }`}>
+                <Icon size={18} />
+              </div>
+              <span className={`text-sm ${
+                isGroupActive ? 'font-semibold text-primary' : 'font-medium text-foreground'
+              }`}>
+                {label}
+              </span>
+            </div>
+            {hasLinks && (
+              <IconChevronRight
+                className={classes.chevron}
+                stroke={1.5}
+                size={16}
+                style={{
+                  transform: shouldBeOpened ? 'rotate(90deg)' : 'none',
+                  transition: 'transform 200ms ease',
+                }}
+              />
+            )}
+          </div>
+        </Button>
+      </CollapsibleTrigger>
+      {hasLinks && (
+        <CollapsibleContent className="space-y-1">
+          {items}
+        </CollapsibleContent>
+      )}
+    </Collapsible>
   );
 }

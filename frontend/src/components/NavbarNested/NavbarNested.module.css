@@ -5,13 +5,9 @@
   padding: 16px;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--mantine-color-gray-3);
+  background-color: hsl(var(--background));
+  border-right: 1px solid hsl(var(--border));
   transition: width 0.3s ease;
-}
-
-[data-mantine-color-scheme="dark"] .navbar {
-  background-color: var(--mantine-color-dark-7);
-  border-right-color: var(--mantine-color-dark-4);
 }
 
 .navbarCollapsed {
@@ -45,26 +41,20 @@
   align-items: center;
   text-decoration: none;
   font-size: 14px;
-  color: var(--mantine-color-gray-7);
+  color: hsl(var(--foreground));
   padding: 4px 8px;
   border-radius: 4px;
   font-weight: 500;
-}
-
-[data-mantine-color-scheme="dark"] .link {
-  color: var(--mantine-color-dark-1);
+  transition: all 0.2s ease;
 }
 
 .link:hover {
-  background-color: var(--mantine-color-gray-0);
-}
-
-[data-mantine-color-scheme="dark"] .link:hover {
-  background-color: var(--mantine-color-dark-6);
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
 }
 
 .linkIcon {
-  color: var(--mantine-color-gray-6);
+  color: hsl(var(--muted-foreground));
   margin-right: 8px;
   width: 24px;
   height: 24px;
@@ -73,19 +63,15 @@
   justify-content: center;
 }
 
-[data-mantine-color-scheme="dark"] .linkIcon {
-  color: var(--mantine-color-dark-2);
-}
-
 .linkActive {
-  background-color: var(--mantine-color-orange-0);
-  color: var(--mantine-color-orange-6);
-  font-weight: 500;
+  background-color: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+  font-weight: 600;
 }
 
 .linkActive:hover {
-  background-color: var(--mantine-color-orange-0);
-  color: var(--mantine-color-orange-6);
+  background-color: hsl(var(--primary) / 0.15);
+  color: hsl(var(--primary));
 }
 
 .collapseToggle {
@@ -93,13 +79,9 @@
 }
 
 .footerDivider {
-  border-top: 1px solid var(--mantine-color-gray-3);
+  border-top: 1px solid hsl(var(--border));
   margin-bottom: 8px;
   width: 100%;
-}
-
-[data-mantine-color-scheme="dark"] .footerDivider {
-  border-top-color: var(--mantine-color-dark-4);
 }
 
 .navbarCollapsed .linksInner > * {
@@ -116,13 +98,9 @@
 }
 
 .headerDivider {
-  border-top: 1px solid var(--mantine-color-gray-3);
+  border-top: 1px solid hsl(var(--border));
   margin: 4px 0;
   width: 100%;
-}
-
-[data-mantine-color-scheme="dark"] .headerDivider {
-  border-top-color: var(--mantine-color-dark-4);
 }
 
 .navbarCollapsed .header {

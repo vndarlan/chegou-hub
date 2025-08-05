@@ -97,14 +97,6 @@
   }
 }
 
-/* Remove Mantine conflicts */
-[data-mantine-color-scheme] {
-  color-scheme: unset !important;
-}
-
-.mantine-Container-root {
-  background: transparent !important;
-}
 
 /* SIDEBAR LAYOUT FIXES */
 [data-sidebar="sidebar"] {

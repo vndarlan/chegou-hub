@@ -1,4 +1,4 @@
-// src/App.js - MANTINE + SHADCN/UI THEME
+// src/App.js - SHADCN/UI THEME
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
@@ -8,10 +8,6 @@ import { ThemeProvider } from './components/theme-provider';
 import { LoadingSpinner } from './components/ui';
 import { Toaster } from 'sonner';
 
-// Mantine imports (para páginas que precisam)
-import { MantineProvider, createTheme } from '@mantine/core';
-import '@mantine/core/styles.css';
-import '@mantine/dates/styles.css';
 
 // Importa CSS do shadcn/ui
 import './globals.css';
@@ -23,29 +19,6 @@ import CSRFManager from './components/CSRFManager';
 import LoginPage from './pages/LoginPage';
 import WorkspacePage from './pages/WorkspacePage';
 
-// Tema Mantine neutro (não interfere no shadcn)
-const mantineTheme = createTheme({
-  primaryColor: 'orange',
-  fontFamily: 'inherit', // Usa a fonte do shadcn
-  colors: {
-    orange: [
-      '#fff4e6',
-      '#ffe8cc',
-      '#ffd09e',
-      '#ffb569',
-      '#fe9c3e',
-      '#fd7e14',
-      '#e8590c',
-      '#d63384',
-      '#a02e4b',
-      '#7c2d12'
-    ]
-  },
-  other: {
-    // Remove estilos que possam conflitar
-    respectColorScheme: false
-  }
-});
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -80,58 +53,54 @@ function App() {
   if (isLoading) {
     return (
       <ThemeProvider defaultTheme="light" storageKey="chegou-hub-theme">
-        <MantineProvider theme={mantineTheme}>
-          <div className="fixed inset-0 flex items-center justify-center bg-background">
-            <div className="flex flex-col items-center space-y-4">
-              <LoadingSpinner className="h-8 w-8 text-primary" />
-              <p className="text-sm text-muted-foreground">Carregando...</p>
-            </div>
+        <div className="fixed inset-0 flex items-center justify-center bg-background">
+          <div className="flex flex-col items-center space-y-4">
+            <LoadingSpinner className="h-8 w-8 text-primary" />
+            <p className="text-sm text-muted-foreground">Carregando...</p>
           </div>
-        </MantineProvider>
+        </div>
       </ThemeProvider>
     );
   }
 
   return (
     <ThemeProvider defaultTheme="light" storageKey="chegou-hub-theme">
-      <MantineProvider theme={mantineTheme}>
-        <CSRFManager>
-          <Toaster position="top-right" />
-          <Router>
-            <Routes>
-              <Route
-                path="/login"
-                element={!isLoggedIn ? <LoginPage setIsLoggedIn={setIsLoggedIn} /> : <Navigate to="/workspace/agenda" replace />}
-              />
-              <Route
-                path="/workspace/*"
-                element={isLoggedIn ? 
-                  <WorkspacePage setIsLoggedIn={setIsLoggedIn} /> : 
-                  <Navigate to="/login" replace />
-                }
-              />
-              <Route
-                path="/"
-                element={isLoggedIn ? <Navigate to="/workspace/agenda" replace /> : <Navigate to="/login" replace />}
-              />
-              <Route path="*" element={
-                <div className="min-h-screen flex items-center justify-center bg-background">
-                  <div className="text-center space-y-4">
-                    <h1 className="text-4xl font-bold text-foreground">404</h1>
-                    <p className="text-lg text-muted-foreground">Página não encontrada</p>
-                    <a 
-                      href={isLoggedIn ? "/workspace/agenda" : "/login"}
-                      className="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-                    >
-                      Voltar ao {isLoggedIn ? 'início' : 'login'}
-                    </a>
-                  </div>
+      <CSRFManager>
+        <Toaster position="top-right" />
+        <Router>
+          <Routes>
+            <Route
+              path="/login"
+              element={!isLoggedIn ? <LoginPage setIsLoggedIn={setIsLoggedIn} /> : <Navigate to="/workspace/agenda" replace />}
+            />
+            <Route
+              path="/workspace/*"
+              element={isLoggedIn ? 
+                <WorkspacePage setIsLoggedIn={setIsLoggedIn} /> : 
+                <Navigate to="/login" replace />
+              }
+            />
+            <Route
+              path="/"
+              element={isLoggedIn ? <Navigate to="/workspace/agenda" replace /> : <Navigate to="/login" replace />}
+            />
+            <Route path="*" element={
+              <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="text-center space-y-4">
+                  <h1 className="text-4xl font-bold text-foreground">404</h1>
+                  <p className="text-lg text-muted-foreground">Página não encontrada</p>
+                  <a 
+                    href={isLoggedIn ? "/workspace/agenda" : "/login"}
+                    className="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                  >
+                    Voltar ao {isLoggedIn ? 'início' : 'login'}
+                  </a>
                 </div>
-              } />
-            </Routes>
-          </Router>
-        </CSRFManager>
-      </MantineProvider>
+              </div>
+            } />
+          </Routes>
+        </Router>
+      </CSRFManager>
     </ThemeProvider>
   );
 }
