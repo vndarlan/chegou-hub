@@ -31,6 +31,7 @@ import EngajamentoPage from '../features/engajamento/EngajamentoPage';
 import NoveltiesPage from '../features/novelties/NoveltiesPage';
 import ProcessamentoPage from '../features/processamento/ProcessamentoPage';
 import FeedbackButton from '../components/FeedbackButton';
+import ChatbotWidget from '../components/ui/chatbot-widget';
 
 // Mapeamento de breadcrumbs simplificado
 const breadcrumbMap = {
@@ -162,6 +163,9 @@ function WorkspacePage({ setIsLoggedIn }) {
             </Routes>
           </main>
         </SidebarInset>
+        
+        {/* Chatbot Widget - sempre visível no workspace */}
+        <ChatbotWidget />
       </div>
     </SidebarProvider>
   );

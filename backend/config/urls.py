@@ -32,6 +32,9 @@ urlpatterns = [
     
     # URLs do Sistema de Feedback
     path('api/feedback/', include('features.feedback.urls')),
+    
+    # URLs do Chatbot IA
+    path('api/chatbot/', include('features.chatbot_ia.urls')),
 ]
 
 # Servir arquivos de media

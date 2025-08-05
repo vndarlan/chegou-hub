@@ -89,6 +89,9 @@ INSTALLED_APPS = [
     
     # Sistema de Feedback
     'features.feedback.apps.FeedbackConfig',
+    
+    # Chatbot IA
+    'features.chatbot_ia.apps.ChatbotIaConfig',
 ]
 
 MIDDLEWARE = [
