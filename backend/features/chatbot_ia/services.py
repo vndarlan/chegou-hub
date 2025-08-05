@@ -12,9 +12,12 @@ logger = logging.getLogger(__name__)
 
 class ChatbotService:
     def __init__(self):
-        self.client = anthropic.Anthropic(
-            api_key=os.getenv('ANTHROPIC_API_KEY')
-        )
+        api_key = os.getenv('ANTHROPIC_API_KEY')
+        if not api_key:
+            logger.error("ANTHROPIC_API_KEY não encontrada nas variáveis de ambiente")
+            raise ValueError("API key da Anthropic não configurada")
+        
+        self.client = anthropic.Anthropic(api_key=api_key)
         self.document_reader = DocumentReader()
         self.model = "claude-3-5-sonnet-20241022"
     
@@ -28,7 +31,7 @@ class ChatbotService:
             # Monta o contexto
             system_prompt = self._build_system_prompt(relevant_docs)
             
-            # Chama a API Claude
+            # Chama a API Anthropic Claude
             response = self.client.messages.create(
                 model=self.model,
                 max_tokens=2000,
@@ -55,13 +58,25 @@ class ChatbotService:
             
         except Exception as e:
             response_time = int((time.time() - start_time) * 1000)
-            logger.error(f"Error generating chatbot response for user {user_id}: {str(e)}")
+            error_msg = str(e)
+            
+            # Tratamento específico para erro de API key inválida
+            if "invalid_api_key" in error_msg or "401" in error_msg:
+                logger.error(f"API key inválida para user {user_id}: {error_msg}")
+                return {
+                    'response': self._get_api_key_error_response(),
+                    'response_time_ms': response_time,
+                    'success': False,
+                    'error': "API key inválida ou expirada"
+                }
+            
+            logger.error(f"Error generating chatbot response for user {user_id}: {error_msg}")
             
             return {
                 'response': self._get_fallback_response(),
                 'response_time_ms': response_time,
                 'success': False,
-                'error': str(e)
+                'error': error_msg
             }
     
     def _get_relevant_documents(self, user_message: str) -> List[Dict[str, str]]:
@@ -123,3 +138,21 @@ Você pode tentar:
 - Entrar em contato com o suporte técnico
 
 Como posso ajudar de outra forma?"""
+    
+    def _get_api_key_error_response(self) -> str:
+        """Resposta específica para erro de API key"""
+        return """Ops! Parece que há um problema com as configurações do sistema de IA.
+
+**O que está acontecendo:**
+- A chave de API da Anthropic (Claude) não está configurada ou está inválida
+
+**Para resolver:**
+1. Entre em contato com o administrador do sistema  
+2. Solicite a configuração da ANTHROPIC_API_KEY válida
+3. Verifique se a chave foi adicionada nas variáveis de ambiente
+
+**Enquanto isso:**
+- Consulte os guias de usuário disponíveis no sistema
+- Entre em contato com o suporte técnico
+
+Desculpe pelo inconveniente!"""
