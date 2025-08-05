@@ -13,6 +13,9 @@ from .utils import RateLimiter
 
 logger = logging.getLogger(__name__)
 
+# Log para debugging em produção
+logger.info("CHATBOT_IA Views carregadas com sucesso")
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -132,3 +135,13 @@ def clear_documents_cache(request):
         return Response({
             'error': 'Erro ao limpar cache'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def test_endpoint(request):
+    """Endpoint de teste para verificar se o chatbot_ia está funcionando"""
+    return Response({
+        'status': 'OK',
+        'message': 'Chatbot IA está funcionando',
+        'timestamp': '2025-08-05 12:02:00'
+    }, status=status.HTTP_200_OK)

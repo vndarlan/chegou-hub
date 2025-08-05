@@ -12,12 +12,22 @@ logger = logging.getLogger(__name__)
 
 class ChatbotService:
     def __init__(self):
+        # Log para debugging
+        logger.info("Inicializando ChatbotService")
+        
         api_key = os.getenv('ANTHROPIC_API_KEY')
         if not api_key:
             logger.error("ANTHROPIC_API_KEY não encontrada nas variáveis de ambiente")
-            raise ValueError("API key da Anthropic não configurada")
+            logger.warning("ChatbotService funcionará em modo fallback")
+            self.client = None
+        else:
+            try:
+                self.client = anthropic.Anthropic(api_key=api_key)
+                logger.info("Cliente Anthropic inicializado com sucesso")
+            except Exception as e:
+                logger.error(f"Erro ao inicializar cliente Anthropic: {str(e)}")
+                self.client = None
         
-        self.client = anthropic.Anthropic(api_key=api_key)
         self.document_reader = DocumentReader()
         self.model = "claude-3-5-sonnet-20241022"
     
@@ -25,6 +35,17 @@ class ChatbotService:
         start_time = time.time()
         
         try:
+            # Se não há cliente Anthropic, usar fallback
+            if not self.client:
+                response_time = int((time.time() - start_time) * 1000)
+                logger.warning(f"Usando resposta fallback para user {user_id} (sem API key)")
+                return {
+                    'response': self._get_api_key_error_response(),
+                    'response_time_ms': response_time,
+                    'success': False,
+                    'error': "API key não configurada"
+                }
+            
             # Carrega documentos relevantes
             relevant_docs = self._get_relevant_documents(user_message)
             
