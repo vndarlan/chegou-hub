@@ -219,6 +219,15 @@ CORS_ALLOWED_ORIGINS = [
     "https://chegou-hubb-production.up.railway.app",
 ]
 
+# Adicionar origens locais para desenvolvimento
+if DEBUG:
+    CORS_ALLOWED_ORIGINS.extend([
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ])
+
 CORS_ALLOW_CREDENTIALS = True
 print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
 
@@ -236,6 +245,15 @@ CSRF_TRUSTED_ORIGINS = [
     "https://chegouhub.up.railway.app",
     "https://chegou-hubb-production.up.railway.app"
 ]
+
+# Adicionar origens locais para desenvolvimento
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS.extend([
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ])
 
 print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
 

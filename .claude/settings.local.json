@@ -14,7 +14,11 @@
       "Bash(git rebase:*)",
       "Bash(git stash:*)",
       "Bash(git add:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(timeout:*)",
+      "Bash(del test_chatbot.py)",
+      "Bash(rm:*)",
+      "Bash(npm start)"
     ],
     "deny": []
   }
