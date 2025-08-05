@@ -6,6 +6,7 @@ import axios from 'axios';
 // shadcn/ui imports
 import { ThemeProvider } from './components/theme-provider';
 import { LoadingSpinner } from './components/ui';
+import { Toaster } from 'sonner';
 
 // Mantine imports (para páginas que precisam)
 import { MantineProvider, createTheme } from '@mantine/core';
@@ -95,6 +96,7 @@ function App() {
     <ThemeProvider defaultTheme="light" storageKey="chegou-hub-theme">
       <MantineProvider theme={mantineTheme}>
         <CSRFManager>
+          <Toaster position="top-right" />
           <Router>
             <Routes>
               <Route

@@ -1,6 +1,5 @@
 // frontend/src/features/ia/ProjetoDashboard.js - MIGRADO PARA SHADCN/UI
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useDebouncedValue } from '@mantine/hooks';
 
 // shadcn/ui imports
 import { Button } from '../../components/ui/button';
@@ -28,12 +27,67 @@ import {
     FileText, Link, Tag, Brain, Bot
 } from 'lucide-react';
 
-// Mantine imports ainda necessários
-import { DatePickerInput } from '@mantine/dates';
-import { useForm } from '@mantine/form';
-import { notifications } from '@mantine/notifications';
-import { RingProgress, BarChart as MantineBarChart, LineChart, PieChart, Timeline } from '@mantine/core';
 import axios from 'axios';
+import { toast } from 'sonner';
+
+// === HOOKS CUSTOMIZADOS ===
+
+// Hook useDebounce para substituir useDebouncedValue do Mantine
+function useDebounce(value, delay) {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+    
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+        
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+    
+    return debouncedValue;
+}
+
+// Sistema de toast personalizado para substituir notifications do Mantine
+const showNotification = ({ title, message, type = 'success' }) => {
+    const content = title ? `${title}: ${message}` : message;
+    
+    if (type === 'success') {
+        toast.success(content);
+    } else if (type === 'error') {
+        toast.error(content);
+    } else {
+        toast(content);
+    }
+};
+
+// Componente CustomTimeline para substituir Timeline do Mantine
+const CustomTimeline = ({ children, className = '' }) => {
+    return (
+        <div className={`space-y-4 ${className}`}>
+            {React.Children.map(children, (child, index) => (
+                <div key={index} className="flex items-start gap-3">
+                    <div className="flex flex-col items-center">
+                        <div className="w-3 h-3 bg-primary rounded-full border-2 border-white shadow-md" />
+                        {index < React.Children.count(children) - 1 && (
+                            <div className="w-0.5 h-8 bg-border mt-2" />
+                        )}
+                    </div>
+                    <div className="flex-1 pb-4">
+                        {child}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+const TimelineItem = ({ children }) => {
+    return <div className="space-y-1">{children}</div>;
+};
+
+CustomTimeline.Item = TimelineItem;
 
 // === COMPONENTES AUXILIARES ===
 
@@ -46,9 +100,9 @@ const StatusBadge = ({ status }) => {
     };
     
     const colors = {
-        'ativo': 'bg-green-500 text-white',
-        'arquivado': 'bg-gray-500 text-white',
-        'manutencao': 'bg-yellow-500 text-white'
+        'ativo': 'bg-green-500 text-white dark:bg-green-600 dark:text-green-50',
+        'arquivado': 'bg-gray-500 text-white dark:bg-gray-600 dark:text-gray-50',
+        'manutencao': 'bg-yellow-500 text-white dark:bg-yellow-600 dark:text-yellow-50'
     };
     
     const labels = {
@@ -67,9 +121,9 @@ const StatusBadge = ({ status }) => {
 // Badge de Prioridade - migrado para shadcn/ui
 const PrioridadeBadge = ({ prioridade }) => {
     const colors = {
-        'alta': 'bg-red-100 text-red-800 border-red-200',
-        'media': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-        'baixa': 'bg-blue-100 text-blue-800 border-blue-200'
+        'alta': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800',
+        'media': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800',
+        'baixa': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800'
     };
     
     const labels = {
@@ -352,9 +406,9 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
 
     return (
         <Dialog open={opened} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto dark:bg-gray-900 dark:border-gray-800">
                 <DialogHeader>
-                    <DialogTitle>{projeto ? "Editar Projeto" : "Novo Projeto"}</DialogTitle>
+                    <DialogTitle className="dark:text-gray-100">{projeto ? "Editar Projeto" : "Novo Projeto"}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit}>
                     <Tabs defaultValue="basico" className="mt-4">
@@ -375,7 +429,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
 
                         <TabsContent value="basico" className="space-y-4 mt-4">
                             <div>
-                                <label className="text-sm font-medium">Nome do Projeto</label>
+                                <label className="text-sm font-medium dark:text-gray-200">Nome do Projeto</label>
                                 <Input
                                     placeholder="Ex: Chatbot de Atendimento"
                                     required
@@ -387,7 +441,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                             </div>
                             
                             <div>
-                                <label className="text-sm font-medium">Descrição</label>
+                                <label className="text-sm font-medium dark:text-gray-200">Descrição</label>
                                 <Textarea
                                     placeholder="Descreva o que o projeto faz..."
                                     rows={3}
@@ -638,12 +692,13 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                             </div>
                             
                             <div>
-                                <label className="text-sm font-medium">Data de Próxima Revisão (Opcional)</label>
-                                <p className="text-xs text-muted-foreground mb-1">Ex: 2024-03-15</p>
+                                <label className="text-sm font-medium dark:text-gray-200">Data de Próxima Revisão (Opcional)</label>
+                                <p className="text-xs text-muted-foreground dark:text-gray-400 mb-1">Ex: 2024-03-15</p>
                                 <Input
                                     type="date"
                                     value={formData.data_revisao || ''}
                                     onChange={(e) => setFormData(prev => ({...prev, data_revisao: e.target.value || null}))}
+                                    className="dark:bg-gray-800 dark:border-gray-600"
                                 />
                             </div>
                         </TabsContent>
@@ -794,12 +849,13 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         </Select>
                                     </div>
                                     <div>
-                                        <label className="text-sm font-medium">Data Break-Even (Opcional)</label>
-                                        <p className="text-xs text-muted-foreground mb-1">Ex: 2024-03-15</p>
+                                        <label className="text-sm font-medium dark:text-gray-200">Data Break-Even (Opcional)</label>
+                                        <p className="text-xs text-muted-foreground dark:text-gray-400 mb-1">Ex: 2024-03-15</p>
                                         <Input
                                             type="date"
                                             value={formData.data_break_even || ''}
                                             onChange={(e) => setFormData(prev => ({...prev, data_break_even: e.target.value || null}))}
+                                            className="dark:bg-gray-800 dark:border-gray-600"
                                         />
                                     </div>
                                 </div>
@@ -844,9 +900,9 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
 
     return (
         <Dialog open={opened} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto dark:bg-gray-900 dark:border-gray-800">
                 <DialogHeader>
-                    <DialogTitle>{projeto.nome}</DialogTitle>
+                    <DialogTitle className="dark:text-gray-100">{projeto.nome}</DialogTitle>
                 </DialogHeader>
                 <Tabs defaultValue="info" className="mt-4">
                     <TabsList className="grid w-full grid-cols-3">
@@ -868,29 +924,29 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
 
                     <TabsContent value="info" className="space-y-4 mt-4">
                         {/* Descrição com formatação preservada */}
-                        <Card>
+                        <Card className="dark:bg-gray-800/50 dark:border-gray-700">
                             <CardContent className="p-4">
-                                <p className="text-sm text-muted-foreground mb-2">Descrição</p>
-                                <p className="whitespace-pre-wrap">{projeto.descricao}</p>
+                                <p className="text-sm text-muted-foreground dark:text-gray-400 mb-2">Descrição</p>
+                                <p className="whitespace-pre-wrap dark:text-gray-200">{projeto.descricao}</p>
                             </CardContent>
                         </Card>
                         
                         <div className="grid grid-cols-3 gap-4">
-                            <Card>
+                            <Card className="dark:bg-gray-800/50 dark:border-gray-700">
                                 <CardContent className="p-3">
-                                    <p className="text-xs text-muted-foreground">Status</p>
+                                    <p className="text-xs text-muted-foreground dark:text-gray-400">Status</p>
                                     <StatusBadge status={projeto.status} />
                                 </CardContent>
                             </Card>
-                            <Card>
+                            <Card className="dark:bg-gray-800/50 dark:border-gray-700">
                                 <CardContent className="p-3">
-                                    <p className="text-xs text-muted-foreground">Tipo</p>
-                                    <p className="text-sm font-medium">{projeto.tipo_projeto}</p>
+                                    <p className="text-xs text-muted-foreground dark:text-gray-400">Tipo</p>
+                                    <p className="text-sm font-medium dark:text-gray-200">{projeto.tipo_projeto}</p>
                                 </CardContent>
                             </Card>
-                            <Card>
+                            <Card className="dark:bg-gray-800/50 dark:border-gray-700">
                                 <CardContent className="p-3">
-                                    <p className="text-xs text-muted-foreground">Departamentos</p>
+                                    <p className="text-xs text-muted-foreground dark:text-gray-400">Departamentos</p>
                                     <div className="flex gap-1 flex-wrap">
                                         {projeto.departamentos_display?.length > 0 ? (
                                             projeto.departamentos_display.map((dept, i) => (
@@ -1170,18 +1226,18 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                             <Card>
                                 <CardContent className="p-4">
                                     <h3 className="text-lg font-semibold mb-4">📝 Histórico de Versões</h3>
-                                    <Timeline active={projeto.versoes.length}>
+                                    <CustomTimeline>
                                         {projeto.versoes.map((versao, i) => (
-                                            <Timeline.Item key={i}>
-                                                <p className="text-sm font-medium">v{versao.versao}</p>
-                                                <p className="text-xs text-muted-foreground">{versao.responsavel_nome}</p>
-                                                <p className="text-xs text-muted-foreground">
+                                            <CustomTimeline.Item key={i}>
+                                                <p className="text-sm font-medium dark:text-gray-200">v{versao.versao}</p>
+                                                <p className="text-xs text-muted-foreground dark:text-gray-400">{versao.responsavel_nome}</p>
+                                                <p className="text-xs text-muted-foreground dark:text-gray-400">
                                                     {new Date(versao.data_lancamento).toLocaleDateString('pt-BR')}
                                                 </p>
-                                                <p className="text-sm">{versao.motivo_mudanca}</p>
-                                            </Timeline.Item>
+                                                <p className="text-sm dark:text-gray-300">{versao.motivo_mudanca}</p>
+                                            </CustomTimeline.Item>
                                         ))}
-                                    </Timeline>
+                                    </CustomTimeline>
                                 </CardContent>
                             </Card>
                         )}
@@ -1212,7 +1268,7 @@ function ProjetoDashboard() {
     
     // Estados de filtros
     const [searchValue, setSearchValue] = useState('');
-    const [debouncedSearch] = useDebouncedValue(searchValue, 500);
+    const debouncedSearch = useDebounce(searchValue, 500);
     const [filtros, setFiltros] = useState({
         busca: '',
         status: [],
@@ -1311,10 +1367,10 @@ function ProjetoDashboard() {
             setProjetos(response.data.results || response.data);
         } catch (err) {
             console.error('Erro ao carregar projetos:', err);
-            notifications.show({
+            showNotification({
                 title: 'Erro',
                 message: 'Erro ao carregar projetos',
-                color: 'red'
+                type: 'error'
             });
         }
     };
@@ -1406,10 +1462,10 @@ function ProjetoDashboard() {
                 response = await axios.post('/ia/projetos/', projetoData, config);
             }
             
-            notifications.show({
+            showNotification({
                 title: 'Sucesso',
                 message: selectedProjeto ? 'Projeto atualizado!' : 'Projeto criado!',
-                color: 'green'
+                type: 'success'
             });
             
             setFormModalOpen(false);
@@ -1442,10 +1498,10 @@ function ProjetoDashboard() {
                 errorMessage = err.message;
             }
             
-            notifications.show({
+            showNotification({
                 title: 'Erro',
                 message: errorMessage,
-                color: 'red'
+                type: 'error'
             });
         } finally {
             setFormLoading(false);
@@ -1459,10 +1515,10 @@ function ProjetoDashboard() {
             setDetailModalOpen(true);
         } catch (err) {
             console.error('❌ Erro ao carregar detalhes:', err);
-            notifications.show({
+            showNotification({
                 title: 'Erro',
                 message: 'Erro ao carregar detalhes do projeto',
-                color: 'red'
+                type: 'error'
             });
         }
     };
@@ -1475,10 +1531,10 @@ function ProjetoDashboard() {
             setFormModalOpen(true);
         } catch (err) {
             console.error('❌ Erro ao carregar projeto para edição:', err);
-            notifications.show({
+            showNotification({
                 title: 'Erro',
                 message: 'Erro ao carregar projeto para edição',
-                color: 'red'
+                type: 'error'
             });
         }
     };
@@ -1504,20 +1560,20 @@ function ProjetoDashboard() {
                 'manutencao': 'em manutenção'
             };
             
-            notifications.show({
+            showNotification({
                 title: 'Sucesso',
                 message: `Projeto ${statusLabels[novoStatus]} com sucesso`,
-                color: 'green'
+                type: 'success'
             });
             
             carregarProjetos();
             carregarDadosIniciais();
         } catch (err) {
             console.error('Erro ao alterar status:', err);
-            notifications.show({
+            showNotification({
                 title: 'Erro',
                 message: 'Erro ao alterar status do projeto',
-                color: 'red'
+                type: 'error'
             });
         }
     };
@@ -1525,19 +1581,19 @@ function ProjetoDashboard() {
     const handleArchiveProjeto = async (projeto) => {
         try {
             await axios.post(`/ia/projetos/${projeto.id}/arquivar/`);
-            notifications.show({
+            showNotification({
                 title: 'Sucesso',
                 message: `Projeto ${projeto.status === 'arquivado' ? 'reativado' : 'arquivado'}`,
-                color: 'green'
+                type: 'success'
             });
             carregarProjetos();
             carregarDadosIniciais();
         } catch (err) {
             console.error('Erro ao arquivar projeto:', err);
-            notifications.show({
+            showNotification({
                 title: 'Erro',
                 message: 'Erro ao arquivar projeto',
-                color: 'red'
+                type: 'error'
             });
         }
     };
@@ -1545,18 +1601,18 @@ function ProjetoDashboard() {
     const handleDuplicateProjeto = async (projeto) => {
         try {
             await axios.post(`/ia/projetos/${projeto.id}/duplicar/`);
-            notifications.show({
+            showNotification({
                 title: 'Sucesso',
                 message: 'Projeto duplicado com sucesso',
-                color: 'green'
+                type: 'success'
             });
             carregarProjetos();
         } catch (err) {
             console.error('Erro ao duplicar projeto:', err);
-            notifications.show({
+            showNotification({
                 title: 'Erro',
                 message: 'Erro ao duplicar projeto',
-                color: 'red'
+                type: 'error'
             });
         }
     };
@@ -1567,9 +1623,9 @@ function ProjetoDashboard() {
     }, [projetos]);
 
     return (
-        <div className="max-w-7xl mx-auto p-6">
+        <div className="max-w-7xl mx-auto p-6 dark:bg-gray-950 min-h-screen">
             {loading && (
-                <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
+                <div className="fixed inset-0 bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm flex items-center justify-center z-50">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
             )}
@@ -1578,10 +1634,10 @@ function ProjetoDashboard() {
             <div className="flex justify-between items-start mb-8">
                 <div>
                     <div className="flex items-center gap-3 mb-2">
-                        <Bot className="h-8 w-8" />
-                        <h1 className="text-2xl font-bold">🤖 Dashboard de IA & Automação</h1>
+                        <Bot className="h-8 w-8 dark:text-blue-400" />
+                        <h1 className="text-2xl font-bold dark:text-gray-100">🤖 Dashboard de IA & Automação</h1>
                     </div>
-                    <p className="text-muted-foreground">
+                    <p className="text-muted-foreground dark:text-gray-400">
                         Gerencie projetos de IA, automação e suas métricas financeiras
                     </p>
                 </div>
@@ -1618,37 +1674,37 @@ function ProjetoDashboard() {
             {/* Cards de Estatísticas */}
             {stats && (
                 <div className={`grid gap-4 mb-8 ${userPermissions?.pode_ver_financeiro && stats.economia_mensal_total ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
-                    <Card className="border bg-blue-50">
+                    <Card className="border bg-blue-50 dark:bg-blue-950/30 dark:border-blue-800">
                         <CardContent className="p-4">
                             <div className="flex items-center gap-3">
-                                <Brain className="h-6 w-6 text-blue-600" />
+                                <Brain className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Total de Projetos</p>
-                                    <p className="text-2xl font-bold">{stats.total_projetos}</p>
+                                    <p className="text-sm text-muted-foreground dark:text-gray-400">Total de Projetos</p>
+                                    <p className="text-2xl font-bold dark:text-gray-100">{stats.total_projetos}</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
                     
-                    <Card className="border bg-green-50">
+                    <Card className="border bg-green-50 dark:bg-green-950/30 dark:border-green-800">
                         <CardContent className="p-4">
                             <div className="flex items-center gap-3">
-                                <Activity className="h-6 w-6 text-green-600" />
+                                <Activity className="h-6 w-6 text-green-600 dark:text-green-400" />
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Projetos Ativos</p>
-                                    <p className="text-2xl font-bold">{stats.projetos_ativos}</p>
+                                    <p className="text-sm text-muted-foreground dark:text-gray-400">Projetos Ativos</p>
+                                    <p className="text-2xl font-bold dark:text-gray-100">{stats.projetos_ativos}</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
                     
-                    <Card className="border bg-orange-50">
+                    <Card className="border bg-orange-50 dark:bg-orange-950/30 dark:border-orange-800">
                         <CardContent className="p-4">
                             <div className="flex items-center gap-3">
-                                <Clock className="h-6 w-6 text-orange-600" />
+                                <Clock className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Horas Investidas</p>
-                                    <p className="text-2xl font-bold">{stats.horas_totais_investidas}h</p>
+                                    <p className="text-sm text-muted-foreground dark:text-gray-400">Horas Investidas</p>
+                                    <p className="text-2xl font-bold dark:text-gray-100">{stats.horas_totais_investidas}h</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -1656,13 +1712,13 @@ function ProjetoDashboard() {
                     
                     {/* Só mostrar se tiver dados financeiros E permissão */}
                     {userPermissions?.pode_ver_financeiro && stats.economia_mensal_total && (
-                        <Card className="border bg-teal-50">
+                        <Card className="border bg-teal-50 dark:bg-teal-950/30 dark:border-teal-800">
                             <CardContent className="p-4">
                                 <div className="flex items-center gap-3">
-                                    <TrendingUp className="h-6 w-6 text-teal-600" />
+                                    <TrendingUp className="h-6 w-6 text-teal-600 dark:text-teal-400" />
                                     <div>
-                                        <p className="text-sm text-muted-foreground">Economia/Mês</p>
-                                        <p className="text-2xl font-bold">
+                                        <p className="text-sm text-muted-foreground dark:text-gray-400">Economia/Mês</p>
+                                        <p className="text-2xl font-bold dark:text-gray-100">
                                             R$ {stats.economia_mensal_total?.toLocaleString('pt-BR')}
                                         </p>
                                     </div>
@@ -1674,7 +1730,7 @@ function ProjetoDashboard() {
             )}
 
             {/* Filtros */}
-            <Card className="mb-4">
+            <Card className="mb-4 dark:bg-gray-900/50 dark:border-gray-800">
                 <CardContent className="p-4">
                     <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                         <div className="md:col-span-2">
@@ -1796,10 +1852,10 @@ function ProjetoDashboard() {
                             onDuplicate={handleDuplicateProjeto}
                             onNewVersion={(p) => {
                                 if (!opcoes) {
-                                    notifications.show({
+                                    showNotification({
                                         title: 'Aviso',
                                         message: 'Aguarde o carregamento das opções',
-                                        color: 'yellow'
+                                        type: 'default'
                                     });
                                     return;
                                 }
@@ -1812,8 +1868,8 @@ function ProjetoDashboard() {
                     ))}
                 </div>
             ) : (
-                <div className="border rounded-lg overflow-hidden">
-                    <Table>
+                <div className="border rounded-lg overflow-hidden dark:border-gray-800">
+                    <Table className="dark:bg-gray-900/50">
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Nome</TableHead>
@@ -1907,39 +1963,57 @@ function ProjetoDashboard() {
 // Modal de Nova Versão
 const NovaVersaoModal = ({ opened, onClose, projeto, onSave }) => {
     const [loading, setLoading] = useState(false);
-    
-    const form = useForm({
-        initialValues: {
-            versao: '',
-            motivo_mudanca: ''
-        },
-        validate: {
-            versao: (value) => !value ? 'Versão é obrigatória' : null,
-            motivo_mudanca: (value) => !value ? 'Motivo da mudança é obrigatório' : null
-        }
+    const [formData, setFormData] = useState({
+        versao: '',
+        motivo_mudanca: ''
     });
+    const [errors, setErrors] = useState({});
 
-    const handleSubmit = async (values) => {
-        if (!projeto) return;
+    // Reset form when modal opens
+    useEffect(() => {
+        if (opened) {
+            setFormData({
+                versao: '',
+                motivo_mudanca: ''
+            });
+            setErrors({});
+        }
+    }, [opened]);
+
+    const validateForm = () => {
+        const newErrors = {};
+        if (!formData.versao.trim()) {
+            newErrors.versao = 'Versão é obrigatória';
+        }
+        if (!formData.motivo_mudanca.trim()) {
+            newErrors.motivo_mudanca = 'Motivo da mudança é obrigatório';
+        }
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!projeto || !validateForm()) return;
         
         try {
             setLoading(true);
-            await axios.post(`/ia/projetos/${projeto.id}/nova_versao/`, values);
+            await axios.post(`/ia/projetos/${projeto.id}/nova_versao/`, formData);
             
-            notifications.show({
+            showNotification({
                 title: 'Sucesso',
-                message: `Nova versão ${values.versao} criada com sucesso`,
-                color: 'green'
+                message: `Nova versão ${formData.versao} criada com sucesso`,
+                type: 'success'
             });
             
             onClose();
             onSave();
         } catch (err) {
             console.error('Erro ao criar nova versão:', err);
-            notifications.show({
+            showNotification({
                 title: 'Erro',
                 message: err.response?.data?.detail || 'Erro ao criar nova versão',
-                color: 'red'
+                type: 'error'
             });
         } finally {
             setLoading(false);
@@ -1954,31 +2028,41 @@ const NovaVersaoModal = ({ opened, onClose, projeto, onSave }) => {
                 <DialogHeader>
                     <DialogTitle>Nova Versão - {projeto.nome}</DialogTitle>
                 </DialogHeader>
-                <form onSubmit={form.onSubmit(handleSubmit)} className="space-y-4">
-                    <Alert className="border-blue-200 bg-blue-50">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
                         <GitBranch className="h-4 w-4" />
-                        <AlertDescription>
+                        <AlertDescription className="dark:text-blue-200">
                             Versão atual: <strong>{projeto.versao_atual}</strong>
                         </AlertDescription>
                     </Alert>
                     
                     <div>
-                        <label className="text-sm font-medium">Nova Versão</label>
+                        <label className="text-sm font-medium dark:text-gray-200">Nova Versão</label>
                         <Input
                             placeholder="Ex: 1.2.0"
                             required
-                            {...form.getInputProps('versao')}
+                            value={formData.versao}
+                            onChange={(e) => setFormData(prev => ({ ...prev, versao: e.target.value }))}
+                            className={errors.versao ? 'border-red-500' : ''}
                         />
+                        {errors.versao && (
+                            <p className="text-sm text-red-500 mt-1">{errors.versao}</p>
+                        )}
                     </div>
                     
                     <div>
-                        <label className="text-sm font-medium">Motivo da Mudança</label>
+                        <label className="text-sm font-medium dark:text-gray-200">Motivo da Mudança</label>
                         <Textarea
                             placeholder="Descreva as alterações realizadas..."
                             rows={4}
                             required
-                            {...form.getInputProps('motivo_mudanca')}
+                            value={formData.motivo_mudanca}
+                            onChange={(e) => setFormData(prev => ({ ...prev, motivo_mudanca: e.target.value }))}
+                            className={errors.motivo_mudanca ? 'border-red-500' : ''}
                         />
+                        {errors.motivo_mudanca && (
+                            <p className="text-sm text-red-500 mt-1">{errors.motivo_mudanca}</p>
+                        )}
                     </div>
                     
                     <div className="flex justify-end gap-2 mt-6">

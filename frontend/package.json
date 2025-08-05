@@ -45,6 +45,7 @@
     "react-scripts": "5.0.1",
     "react-tsparticles": "^2.12.2",
     "recharts": "^2.15.3",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^2.2.0",
     "tailwindcss-animate": "^1.0.7",
     "tsparticles-slim": "^2.12.0",
