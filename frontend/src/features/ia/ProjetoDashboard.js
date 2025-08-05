@@ -15,6 +15,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 import { Separator } from '../../components/ui/separator';
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../../components/ui/pagination';
+import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Label } from '../../components/ui/label';
 
 // lucide-react icons (replacement for @tabler/icons-react)
 import {
@@ -1278,6 +1282,10 @@ function ProjetoDashboard() {
         complexidade: []
     });
     const [viewMode, setViewMode] = useState('cards'); // 'cards' ou 'tabela'
+    
+    // Estados de paginação
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
     const [sortBy, setSortBy] = useState('criado_em');
     const [sortOrder, setSortOrder] = useState('desc');
 
@@ -1618,9 +1626,25 @@ function ProjetoDashboard() {
     };
 
     // Projetos filtrados e ordenados
-    const projetosFiltrados = useMemo(() => {
+    // Memo para projetos filtrados (sem paginação)
+    const projetosFiltradosCompletos = useMemo(() => {
         return projetos;
     }, [projetos]);
+    
+    // Memo para projetos paginados
+    const projetosFiltrados = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        return projetosFiltradosCompletos.slice(startIndex, endIndex);
+    }, [projetosFiltradosCompletos, currentPage, itemsPerPage]);
+    
+    // Cálculo do total de páginas
+    const totalPages = Math.ceil(projetosFiltradosCompletos.length / itemsPerPage);
+    
+    // Reset página quando filtros mudam
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filtros, searchValue]);
 
     return (
         <div className="p-6 min-h-screen bg-background">
@@ -1672,7 +1696,7 @@ function ProjetoDashboard() {
             {/* Cards de Estatísticas */}
             {stats && (
                 <div className={`grid gap-4 mb-6 ${userPermissions?.pode_ver_financeiro && stats.economia_mensal_total ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
-                    <Card className="border-border bg-card">
+                    <Card className="bg-gradient-to-b from-muted/50 to-muted border-border">
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <div>
@@ -1684,7 +1708,7 @@ function ProjetoDashboard() {
                         </CardContent>
                     </Card>
                     
-                    <Card className="border-border bg-card">
+                    <Card className="bg-gradient-to-b from-muted/50 to-muted border-border">
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <div>
@@ -1696,7 +1720,7 @@ function ProjetoDashboard() {
                         </CardContent>
                     </Card>
                     
-                    <Card className="border-border bg-card">
+                    <Card className="bg-gradient-to-b from-muted/50 to-muted border-border">
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <div>
@@ -1710,7 +1734,7 @@ function ProjetoDashboard() {
                     
                     {/* Só mostrar se tiver dados financeiros E permissão */}
                     {userPermissions?.pode_ver_financeiro && stats.economia_mensal_total && (
-                        <Card className="border-border bg-card">
+                        <Card className="bg-gradient-to-b from-muted/50 to-muted border-border">
                             <CardContent className="p-4">
                                 <div className="flex items-center justify-between">
                                     <div>
@@ -1743,79 +1767,115 @@ function ProjetoDashboard() {
                             </div>
                         </div>
                         <div>
-                            <div className="text-sm text-muted-foreground mb-1">
-                                Status: {(filtros.status || []).length > 0 ? `${filtros.status.length} selecionados` : 'Todos'}
-                            </div>
-                            <div className="space-y-1 max-h-24 overflow-y-auto border rounded p-2 text-xs">
-                                {(opcoes?.status_choices || []).map((status) => (
-                                    <div key={status.value} className="flex items-center space-x-2">
-                                        <input
-                                            type="checkbox"
-                                            id={`status-${status.value}`}
-                                            checked={(filtros.status || []).includes(status.value)}
-                                            onChange={(e) => {
-                                                const current = filtros.status || [];
-                                                if (e.target.checked) {
-                                                    setFiltros(prev => ({...prev, status: [...current, status.value]}));
-                                                } else {
-                                                    setFiltros(prev => ({...prev, status: current.filter(s => s !== status.value)}));
-                                                }
-                                            }}
-                                        />
-                                        <label htmlFor={`status-${status.value}`} className="text-xs">{status.label}</label>
+                            <div className="text-sm text-muted-foreground mb-2">Status</div>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" className="w-full justify-between text-left">
+                                        {(filtros.status || []).length > 0 
+                                            ? `${filtros.status.length} selecionados`
+                                            : "Todos os status"
+                                        }
+                                        <ChevronDown className="h-4 w-4 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-52 p-0">
+                                    <div className="p-2 space-y-2 max-h-64 overflow-y-auto">
+                                        {(opcoes?.status_choices || []).map((status) => (
+                                            <div key={status.value} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id={`status-${status.value}`}
+                                                    checked={(filtros.status || []).includes(status.value)}
+                                                    onCheckedChange={(checked) => {
+                                                        const current = filtros.status || [];
+                                                        if (checked) {
+                                                            setFiltros(prev => ({...prev, status: [...current, status.value]}));
+                                                        } else {
+                                                            setFiltros(prev => ({...prev, status: current.filter(s => s !== status.value)}));
+                                                        }
+                                                    }}
+                                                />
+                                                <Label htmlFor={`status-${status.value}`} className="text-sm">
+                                                    {status.label}
+                                                </Label>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
+                                </PopoverContent>
+                            </Popover>
                         </div>
                         <div>
-                            <div className="text-sm text-muted-foreground mb-1">
-                                Tipo: {(filtros.tipo_projeto || []).length > 0 ? `${filtros.tipo_projeto.length} selecionados` : 'Todos'}
-                            </div>
-                            <div className="space-y-1 max-h-24 overflow-y-auto border rounded p-2 text-xs">
-                                {(opcoes?.tipo_projeto_choices || []).map((tipo) => (
-                                    <div key={tipo.value} className="flex items-center space-x-2">
-                                        <input
-                                            type="checkbox"
-                                            id={`tipo-${tipo.value}`}
-                                            checked={(filtros.tipo_projeto || []).includes(tipo.value)}
-                                            onChange={(e) => {
-                                                const current = filtros.tipo_projeto || [];
-                                                if (e.target.checked) {
-                                                    setFiltros(prev => ({...prev, tipo_projeto: [...current, tipo.value]}));
-                                                } else {
-                                                    setFiltros(prev => ({...prev, tipo_projeto: current.filter(t => t !== tipo.value)}));
-                                                }
-                                            }}
-                                        />
-                                        <label htmlFor={`tipo-${tipo.value}`} className="text-xs">{tipo.label}</label>
+                            <div className="text-sm text-muted-foreground mb-2">Tipo</div>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" className="w-full justify-between text-left">
+                                        {(filtros.tipo_projeto || []).length > 0 
+                                            ? `${filtros.tipo_projeto.length} selecionados`
+                                            : "Todos os tipos"
+                                        }
+                                        <ChevronDown className="h-4 w-4 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-52 p-0">
+                                    <div className="p-2 space-y-2 max-h-64 overflow-y-auto">
+                                        {(opcoes?.tipo_projeto_choices || []).map((tipo) => (
+                                            <div key={tipo.value} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id={`tipo-${tipo.value}`}
+                                                    checked={(filtros.tipo_projeto || []).includes(tipo.value)}
+                                                    onCheckedChange={(checked) => {
+                                                        const current = filtros.tipo_projeto || [];
+                                                        if (checked) {
+                                                            setFiltros(prev => ({...prev, tipo_projeto: [...current, tipo.value]}));
+                                                        } else {
+                                                            setFiltros(prev => ({...prev, tipo_projeto: current.filter(t => t !== tipo.value)}));
+                                                        }
+                                                    }}
+                                                />
+                                                <Label htmlFor={`tipo-${tipo.value}`} className="text-sm">
+                                                    {tipo.label}
+                                                </Label>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
+                                </PopoverContent>
+                            </Popover>
                         </div>
                         <div>
-                            <div className="text-sm text-muted-foreground mb-1">
-                                Depto: {(filtros.departamento || []).length > 0 ? `${filtros.departamento.length} selecionados` : 'Todos'}
-                            </div>
-                            <div className="space-y-1 max-h-24 overflow-y-auto border rounded p-2 text-xs">
-                                {(opcoes?.departamento_choices || []).map((dept) => (
-                                    <div key={dept.value} className="flex items-center space-x-2">
-                                        <input
-                                            type="checkbox"
-                                            id={`dept-${dept.value}`}
-                                            checked={(filtros.departamento || []).includes(dept.value)}
-                                            onChange={(e) => {
-                                                const current = filtros.departamento || [];
-                                                if (e.target.checked) {
-                                                    setFiltros(prev => ({...prev, departamento: [...current, dept.value]}));
-                                                } else {
-                                                    setFiltros(prev => ({...prev, departamento: current.filter(d => d !== dept.value)}));
-                                                }
-                                            }}
-                                        />
-                                        <label htmlFor={`dept-${dept.value}`} className="text-xs">{dept.label}</label>
+                            <div className="text-sm text-muted-foreground mb-2">Departamento</div>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" className="w-full justify-between text-left">
+                                        {(filtros.departamento || []).length > 0 
+                                            ? `${filtros.departamento.length} selecionados`
+                                            : "Todos os deptos"
+                                        }
+                                        <ChevronDown className="h-4 w-4 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-52 p-0">
+                                    <div className="p-2 space-y-2 max-h-64 overflow-y-auto">
+                                        {(opcoes?.departamento_choices || []).map((dept) => (
+                                            <div key={dept.value} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id={`dept-${dept.value}`}
+                                                    checked={(filtros.departamento || []).includes(dept.value)}
+                                                    onCheckedChange={(checked) => {
+                                                        const current = filtros.departamento || [];
+                                                        if (checked) {
+                                                            setFiltros(prev => ({...prev, departamento: [...current, dept.value]}));
+                                                        } else {
+                                                            setFiltros(prev => ({...prev, departamento: current.filter(d => d !== dept.value)}));
+                                                        }
+                                                    }}
+                                                />
+                                                <Label htmlFor={`dept-${dept.value}`} className="text-sm">
+                                                    {dept.label}
+                                                </Label>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
+                                </PopoverContent>
+                            </Popover>
                         </div>
                         <div className="flex gap-2">
                             <Button
@@ -1917,6 +1977,69 @@ function ProjetoDashboard() {
                             ))}
                         </TableBody>
                     </Table>
+                </div>
+            )}
+
+            {/* Paginação - somente para visualização de tabela */}
+            {viewMode === 'tabela' && totalPages > 1 && (
+                <div className="mt-6 flex justify-center">
+                    <Pagination>
+                        <PaginationContent>
+                            <PaginationItem>
+                                <PaginationPrevious 
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                />
+                            </PaginationItem>
+                            
+                            {/* Páginas */}
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                                // Mostrar páginas próximas à atual
+                                if (
+                                    page === 1 ||
+                                    page === totalPages ||
+                                    (page >= currentPage - 1 && page <= currentPage + 1)
+                                ) {
+                                    return (
+                                        <PaginationItem key={page}>
+                                            <PaginationLink
+                                                onClick={() => setCurrentPage(page)}
+                                                isActive={page === currentPage}
+                                                className="cursor-pointer"
+                                            >
+                                                {page}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                    );
+                                }
+                                
+                                // Mostrar ellipsis
+                                if (page === currentPage - 2 || page === currentPage + 2) {
+                                    return (
+                                        <PaginationItem key={page}>
+                                            <PaginationEllipsis />
+                                        </PaginationItem>
+                                    );
+                                }
+                                
+                                return null;
+                            })}
+                            
+                            <PaginationItem>
+                                <PaginationNext 
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                />
+                            </PaginationItem>
+                        </PaginationContent>
+                    </Pagination>
+                </div>
+            )}
+
+            {/* Informações de paginação */}
+            {viewMode === 'tabela' && projetosFiltradosCompletos.length > 0 && (
+                <div className="mt-4 text-center text-sm text-muted-foreground">
+                    Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, projetosFiltradosCompletos.length)} de {projetosFiltradosCompletos.length} projetos
                 </div>
             )}
 
