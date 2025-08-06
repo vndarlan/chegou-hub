@@ -5,7 +5,7 @@ import {
     AlertTriangle, TrendingUp, BarChart3, Eye, Search, Globe, 
     Filter, Rocket, Loader2, ShoppingCart, Target, Percent,
     Package, DollarSign, Building, Clock, User, ArrowUpDown, 
-    ArrowUp, ArrowDown
+    ArrowUp, ArrowDown, Image as ImageIcon
 } from 'lucide-react';
 import axios from 'axios';
 import { getCSRFToken } from '../../utils/csrf';
@@ -264,13 +264,17 @@ function DropiPage() {
 
         // Agrupar por produto
         const produtosPorStatus = {};
+        const produtosPorImagem = {}; // Para mapear produtos e suas imagens
 
         pedidos.forEach(pedido => {
-            const produto = pedido.product || pedido.supplier_name || 'Produto Desconhecido';
+            // CORREÇÃO: Usar a localização correta da API conforme especificado
+            const produto = pedido.orderdetails?.[0]?.product?.name || 'Produto Desconhecido';
+            const imagemProduto = pedido.orderdetails?.[0]?.product?.gallery?.[0]?.urlS3 || null;
             const status = pedido.status || 'UNKNOWN';
 
             if (!produtosPorStatus[produto]) {
                 produtosPorStatus[produto] = {};
+                produtosPorImagem[produto] = imagemProduto; // Salvar imagem para o produto
             }
 
             if (!produtosPorStatus[produto][status]) {
@@ -285,7 +289,10 @@ function DropiPage() {
         const todosStatus = [...new Set(pedidos.map(p => p.status || 'UNKNOWN'))];
 
         Object.entries(produtosPorStatus).forEach(([produto, statusCount]) => {
-            const row = { Produto: produto };
+            const row = { 
+                Imagem: produtosPorImagem[produto], // NOVA COLUNA: Imagem como primeira
+                Produto: produto 
+            };
             
             let totalProduto = 0;
             let entreguesProduto = 0;
@@ -314,6 +321,7 @@ function DropiPage() {
 
         // Adicionar linha TOTAL
         const totalGeral = {
+            Imagem: null, // Total não tem imagem
             Produto: 'TOTAL',
             Total: pedidos.length,
             Entregues: pedidos.filter(p => p.status === 'ENTREGADO' || p.status === 'ENTREGADO A TRANSPORTADORA').length
@@ -388,15 +396,15 @@ function DropiPage() {
 
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
-    // Header minimalista
+    // Header responsivo
     const renderHeader = () => (
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div className="flex items-center gap-3">
                 <BarChart3 className="h-6 w-6 text-primary" />
-                <h1 className="text-2xl font-bold text-foreground">Análise de Pedidos Dropi</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">Análise de Pedidos Dropi</h1>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <Button
                     variant="outline"
                     size="sm"
@@ -404,11 +412,12 @@ function DropiPage() {
                     className="border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
                 >
                     <AlertTriangle className="h-4 w-4 mr-2" />
-                    Instruções
+                    <span className="hidden sm:inline">Instruções</span>
+                    <span className="sm:hidden">Info</span>
                 </Button>
                 
                 <Select value={paisSelecionado} onValueChange={setPaisSelecionado}>
-                    <SelectTrigger className="w-52 border-border bg-background text-foreground">
+                    <SelectTrigger className="w-full sm:w-52 border-border bg-background text-foreground">
                         <Globe className="h-4 w-4 mr-2" />
                         <SelectValue />
                     </SelectTrigger>
@@ -517,7 +526,7 @@ function DropiPage() {
         const efetividade = totalPedidos > 0 ? ((entregues / totalPedidos) * 100).toFixed(1) : 0;
         
         return (
-            <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <Card className="border-border bg-card">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
@@ -662,7 +671,7 @@ function DropiPage() {
         );
     };
 
-    // Tabela produtos x status (igual EcomhubPage)
+    // Tabela produtos x status com melhorias de responsividade e imagem
     const renderResultados = () => {
         if (!dadosResultado || !Array.isArray(dadosResultado)) {
             return null;
@@ -698,57 +707,122 @@ function DropiPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div className="overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="bg-muted/50 border-border">
-                                        {colunas.map(col => (
-                                            <TableHead key={col} className="whitespace-nowrap px-2 py-2 text-xs text-muted-foreground">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-auto p-0 font-medium text-xs text-muted-foreground hover:text-foreground"
-                                                    onClick={() => handleSort(col)}
-                                                >
-                                                    {col.replace('_', ' ')}
-                                                    {sortBy === col ? (
-                                                        sortOrder === 'asc' ? 
-                                                            <ArrowUp className="ml-1 h-3 w-3" /> : 
-                                                            <ArrowDown className="ml-1 h-3 w-3" />
-                                                    ) : (
-                                                        <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
-                                                    )}
-                                                </Button>
-                                            </TableHead>
-                                        ))}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {dadosOrdenados.map((row, idx) => (
-                                        <TableRow key={idx} className={`border-border ${row.Produto === 'TOTAL' ? 'bg-muted/20 font-medium' : ''}`}>
+                    {/* CORREÇÃO: Container com overflow controlado APENAS na tabela */}
+                    <div className="w-full">
+                        <div className="overflow-x-auto max-w-full">
+                            <div className="min-w-full inline-block align-middle">
+                                <Table className="min-w-full">
+                                    <TableHeader>
+                                        <TableRow className="bg-muted/50 border-border">
                                             {colunas.map(col => (
-                                                <TableCell
-                                                    key={col}
-                                                    className={`px-2 py-2 text-xs text-card-foreground ${
-                                                        col === 'Efetividade' ?
-                                                        `font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center` : ''
+                                                <TableHead 
+                                                    key={col} 
+                                                    className={`whitespace-nowrap px-2 py-2 text-xs text-muted-foreground ${
+                                                        col === 'Imagem' ? 'w-16 min-w-16' : ''
+                                                    } ${
+                                                        col === 'Produto' ? 'min-w-[120px]' : ''
                                                     }`}
                                                 >
-                                                    {col === 'Produto' ? (
-                                                        <div className="max-w-[120px] truncate" title={row[col]}>
-                                                            {row[col]}
+                                                    {col === 'Imagem' ? (
+                                                        <div className="flex items-center justify-center">
+                                                            <ImageIcon className="h-3 w-3" />
                                                         </div>
                                                     ) : (
-                                                        typeof row[col] === 'number' ? row[col].toLocaleString() : row[col]
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-auto p-0 font-medium text-xs text-muted-foreground hover:text-foreground"
+                                                            onClick={() => handleSort(col)}
+                                                        >
+                                                            {col.replace('_', ' ')}
+                                                            {sortBy === col ? (
+                                                                sortOrder === 'asc' ? 
+                                                                    <ArrowUp className="ml-1 h-3 w-3" /> : 
+                                                                    <ArrowDown className="ml-1 h-3 w-3" />
+                                                            ) : (
+                                                                <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
+                                                            )}
+                                                        </Button>
                                                     )}
-                                                </TableCell>
+                                                </TableHead>
                                             ))}
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {dadosOrdenados.map((row, idx) => (
+                                            <TableRow key={idx} className={`border-border ${row.Produto === 'TOTAL' ? 'bg-muted/20 font-medium' : ''}`}>
+                                                {colunas.map(col => (
+                                                    <TableCell
+                                                        key={col}
+                                                        className={`px-2 py-2 text-xs text-card-foreground ${
+                                                            col === 'Efetividade' ?
+                                                            `font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center` : ''
+                                                        } ${
+                                                            col === 'Imagem' ? 'text-center' : ''
+                                                        }`}
+                                                    >
+                                                        {/* NOVA FUNCIONALIDADE: Renderização da coluna Imagem */}
+                                                        {col === 'Imagem' ? (
+                                                            row[col] && row.Produto !== 'TOTAL' ? (
+                                                                <div className="flex justify-center">
+                                                                    <img 
+                                                                        src={row[col]} 
+                                                                        alt={`Produto ${row.Produto}`}
+                                                                        className="w-8 h-8 object-cover rounded border border-border"
+                                                                        loading="lazy" // Lazy loading para performance
+                                                                        onError={(e) => {
+                                                                            // Fallback para placeholder se imagem falhar
+                                                                            e.target.style.display = 'none';
+                                                                            e.target.nextSibling.style.display = 'flex';
+                                                                        }}
+                                                                    />
+                                                                    <div 
+                                                                        className="w-8 h-8 bg-muted border border-border rounded flex items-center justify-center" 
+                                                                        style={{ display: 'none' }}
+                                                                    >
+                                                                        <ImageIcon className="h-3 w-3 text-muted-foreground" />
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                row.Produto === 'TOTAL' ? (
+                                                                    <div className="flex justify-center">
+                                                                        <div className="w-8 h-8 bg-primary/10 border border-border rounded flex items-center justify-center">
+                                                                            <BarChart3 className="h-3 w-3 text-primary" />
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex justify-center">
+                                                                        <div className="w-8 h-8 bg-muted border border-border rounded flex items-center justify-center">
+                                                                            <ImageIcon className="h-3 w-3 text-muted-foreground" />
+                                                                        </div>
+                                                                    </div>
+                                                                )
+                                                            )
+                                                        ) : col === 'Produto' ? (
+                                                            <div 
+                                                                className="max-w-[120px] truncate cursor-help" 
+                                                                title={row[col]}
+                                                            >
+                                                                {row[col]}
+                                                            </div>
+                                                        ) : (
+                                                            typeof row[col] === 'number' ? row[col].toLocaleString() : row[col]
+                                                        )}
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </div>
+                    </div>
+                    
+                    {/* Nota sobre responsividade */}
+                    <div className="px-4 pb-4 pt-2">
+                        <p className="text-xs text-muted-foreground text-center">
+                            💡 Dica: Role horizontalmente para ver todas as colunas em telas menores
+                        </p>
                     </div>
                 </CardContent>
             </Card>
@@ -862,7 +936,7 @@ function DropiPage() {
     // ======================== RENDER PRINCIPAL ========================
 
     return (
-        <div className="flex-1 space-y-4 p-6 min-h-screen bg-background">
+        <div className="flex-1 space-y-4 p-3 sm:p-6 min-h-screen bg-background">
             {/* Notificações */}
             {notification && (
                 <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4 border-border">
