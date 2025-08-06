@@ -30,14 +30,40 @@ const PAISES = [
     { value: 'colombia', label: '🇨🇴 Colômbia' }
 ];
 
-// Status traduzidos do Dropi
+// Status traduzidos do Dropi (baseados nos dados reais da API)
 const STATUS_DROPI = {
+    // Status originais
     'GUIA_GENERADA': { label: 'Guia Gerada', color: 'blue' },
     'PREPARADO PARA TRANSPORTADORA': { label: 'Preparado', color: 'orange' },
-    'ENTREGADO A TRANSPORTADORA': { label: 'Entregue', color: 'green' },
+    'ENTREGADO A TRANSPORTADORA': { label: 'Entregue à Transportadora', color: 'green' },
     'INTENTO DE ENTREGA': { label: 'Tentativa', color: 'yellow' },
     'CANCELADO': { label: 'Cancelado', color: 'red' },
-    'PENDIENTE': { label: 'Pendente', color: 'gray' }
+    'PENDIENTE': { label: 'Pendente', color: 'gray' },
+    
+    // Novos status encontrados na API
+    'BODEGA DESTINO': { label: 'Bodega Destino', color: 'blue' },
+    'EN BODEGA DROPI': { label: 'Em Bodega Dropi', color: 'orange' },
+    'EN BODEGA ORIGEN': { label: 'Em Bodega Origem', color: 'orange' },
+    'EN CAMINO': { label: 'Em Caminho', color: 'blue' },
+    'EN CAMINO A CIUDAD DE DESTINO': { label: 'Rumo à Cidade', color: 'blue' },
+    'EN CIUDAD DE DESTINO': { label: 'Na Cidade Destino', color: 'blue' },
+    'EN CIUDAD DE ORIGEN': { label: 'Na Cidade Origem', color: 'orange' },
+    'EN RUTA': { label: 'Em Rota', color: 'blue' },
+    'EN RUTA DE ENTREGA': { label: 'Rota de Entrega', color: 'blue' },
+    'EN TRANSITO': { label: 'Em Trânsito', color: 'blue' },
+    'ENTREGADO': { label: 'Entregue', color: 'green' },
+    'LISTO PARA ENTREGA': { label: 'Pronto Entrega', color: 'orange' },
+    'LISTO PARA ENTREGAR': { label: 'Pronto Entrega', color: 'orange' },
+    'NOVEDAD': { label: 'Novidade', color: 'yellow' },
+    'NOVEDAD SOLUCIONADA': { label: 'Novidade OK', color: 'green' },
+    'PARA DEVOLUCIÓN': { label: 'Para Devolução', color: 'red' },
+    'PREPARANDO RUTA': { label: 'Preparando Rota', color: 'orange' },
+    'RECOGIDO POR DROPI': { label: 'Coletado Dropi', color: 'orange' },
+    'RECOLECCION ATENDIDA': { label: 'Coleta Atendida', color: 'green' },
+    'TRANSBORDADA': { label: 'Transbordada', color: 'blue' },
+    'VERIFICACION EN LAS INSTALACIONES': { label: 'Verificação', color: 'yellow' },
+    'ENVÍO DOCUMENTADO RECOLECCIÓN': { label: 'Envio Documentado', color: 'orange' },
+    'REENVIO EN DESTINO - TRANSFERENCIA A OFICINA DESTINO': { label: 'Reenvio Destino', color: 'yellow' }
 };
 
 function DropiPage() {
@@ -118,15 +144,13 @@ function DropiPage() {
             });
 
             if (response.data.status === 'success') {
-                // Debug: Vamos ver o que a API está retornando
-                console.log('🔍 DEBUG - Resposta completa da API:', response.data);
-                console.log('🔍 DEBUG - dados_processados:', response.data.dados_processados);
-                console.log('🔍 DEBUG - Tipo dos dados:', typeof response.data.dados_processados);
-                console.log('🔍 DEBUG - É array?', Array.isArray(response.data.dados_processados));
-                console.log('🔍 DEBUG - Quantidade de itens:', response.data.dados_processados?.length);
+                // Corrigido: usar 'pedidos' ao invés de 'dados_processados'
+                const pedidos = response.data.pedidos || [];
+                console.log('✅ CORRIGIDO - Pedidos da API:', pedidos);
+                console.log('✅ CORRIGIDO - Quantidade:', pedidos.length);
                 
-                setDadosResultado(response.data.dados_processados);
-                showNotification('success', `Dados processados com sucesso! ${response.data.dados_processados?.length || 0} registros`);
+                setDadosResultado(pedidos);
+                showNotification('success', `${pedidos.length} pedidos extraídos com sucesso!`);
                 
                 const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
                 const dataStr = `${new Date(dataInicio).toLocaleDateString('pt-BR')} - ${new Date(dataFim).toLocaleDateString('pt-BR')}`;
@@ -153,7 +177,7 @@ function DropiPage() {
 
             const response = await axios.post('/metricas/dropi/analises/', {
                 nome: nomeAnalise,
-                dados_pedidos: dadosResultado,
+                dados_pedidos: dadosResultado, // Agora está correto, é o array de pedidos
                 data_inicio: dataInicio,
                 data_fim: dataFim,
                 pais: paisSelecionado,
@@ -350,7 +374,8 @@ function DropiPage() {
             return acc;
         }, {});
         
-        const entregues = statusCount['ENTREGADO A TRANSPORTADORA'] || 0;
+        // Somar ambos os tipos de entrega
+        const entregues = (statusCount['ENTREGADO'] || 0) + (statusCount['ENTREGADO A TRANSPORTADORA'] || 0);
         const efetividade = totalPedidos > 0 ? ((entregues / totalPedidos) * 100).toFixed(1) : 0;
         
         return (
@@ -453,14 +478,7 @@ function DropiPage() {
 
     // Tabela responsiva
     const renderResultados = () => {
-        // Debug: Vamos verificar se os dados estão chegando no render
-        console.log('🔍 DEBUG renderResultados - dadosResultado:', dadosResultado);
-        console.log('🔍 DEBUG renderResultados - é array?', Array.isArray(dadosResultado));
-        console.log('🔍 DEBUG renderResultados - dadosFiltrados:', dadosFiltrados);
-        console.log('🔍 DEBUG renderResultados - length dadosFiltrados:', dadosFiltrados?.length);
-        
         if (!dadosResultado || !Array.isArray(dadosResultado)) {
-            console.log('🔍 DEBUG renderResultados - RETORNANDO NULL - dados inválidos');
             return null;
         }
 
