@@ -22,7 +22,7 @@ import { Label } from '../../components/ui/label';
 import { Progress } from '../../components/ui/progress';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
-import { DateRangePicker } from '../../components/ui/date-range-picker';
+import { SimpleDateRangePicker } from '../../components/ui/simple-date-range-picker';
 
 const PAISES = [
     { value: 'todos', label: 'Todos os Países' },
@@ -315,7 +315,7 @@ function EcomhubPage() {
                         {/* Date Range Picker */}
                         <div>
                             <Label className="mb-2 block text-foreground">Período</Label>
-                            <DateRangePicker
+                            <SimpleDateRangePicker
                                 dateRange={dateRange}
                                 onDateRangeChange={setDateRange}
                                 disabled={loadingProcessar}
