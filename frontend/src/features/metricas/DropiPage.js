@@ -269,8 +269,27 @@ function DropiPage() {
         pedidos.forEach(pedido => {
             // CORREÇÃO: Usar a localização correta da API conforme especificado
             const produto = pedido.orderdetails?.[0]?.product?.name || 'Produto Desconhecido';
-            const imagemProduto = pedido.orderdetails?.[0]?.product?.gallery?.[0]?.urlS3 || null;
+            let imagemProduto = pedido.orderdetails?.[0]?.product?.gallery?.[0]?.urlS3 || null;
             const status = pedido.status || 'UNKNOWN';
+
+            // Debug das URLs das imagens
+            if (imagemProduto) {
+                console.log('🔍 DEBUG IMAGEM - Produto:', produto);
+                console.log('📸 URL original:', imagemProduto);
+                
+                // Verificar se a URL precisa de protocolo ou domínio base
+                if (!imagemProduto.startsWith('http')) {
+                    // Se não tem protocolo, assumir que precisa de URL base
+                    const urlBase = 'https://dropi.com';
+                    imagemProduto = imagemProduto.startsWith('/') ? 
+                        `${urlBase}${imagemProduto}` : 
+                        `${urlBase}/${imagemProduto}`;
+                    console.log('🔧 URL corrigida:', imagemProduto);
+                }
+                
+                console.log('✅ URL final para uso:', imagemProduto);
+                console.log('---');
+            }
 
             if (!produtosPorStatus[produto]) {
                 produtosPorStatus[produto] = {};
@@ -707,21 +726,93 @@ function DropiPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    {/* CORREÇÃO: Container com overflow controlado APENAS na tabela */}
+                    {/* NOVA IMPLEMENTAÇÃO: Scroll horizontal com colunas fixas */}
                     <div className="w-full">
-                        <div className="overflow-x-auto max-w-full">
+                        {/* CSS Inline para colunas fixas */}
+                        <style dangerouslySetInnerHTML={{
+                            __html: `
+                                .tabela-scroll-fixo {
+                                    border-collapse: separate;
+                                    border-spacing: 0;
+                                }
+                                .coluna-fixa-esquerda {
+                                    position: sticky !important;
+                                    left: 0 !important;
+                                    z-index: 10 !important;
+                                    background: inherit !important;
+                                    box-shadow: 2px 0 4px rgba(0,0,0,0.1) !important;
+                                }
+                                .coluna-fixa-esquerda-2 {
+                                    position: sticky !important;
+                                    left: 80px !important;
+                                    z-index: 10 !important;
+                                    background: inherit !important;
+                                    box-shadow: 2px 0 4px rgba(0,0,0,0.1) !important;
+                                }
+                                .coluna-fixa-direita {
+                                    position: sticky !important;
+                                    right: 0 !important;
+                                    z-index: 10 !important;
+                                    background: inherit !important;
+                                    box-shadow: -2px 0 4px rgba(0,0,0,0.1) !important;
+                                }
+                                .colunas-scroll {
+                                    background: inherit;
+                                }
+                                
+                                /* Melhorias para background e compatibilidade */
+                                .coluna-fixa-esquerda,
+                                .coluna-fixa-esquerda-2,
+                                .coluna-fixa-direita {
+                                    background: hsl(var(--card, 255 255 255)) !important;
+                                }
+                                
+                                .dark .coluna-fixa-esquerda,
+                                .dark .coluna-fixa-esquerda-2,
+                                .dark .coluna-fixa-direita {
+                                    background: hsl(var(--card, 0 0 0)) !important;
+                                }
+                                
+                                /* Cabeçalho com fundo diferenciado */
+                                .tabela-scroll-fixo th.coluna-fixa-esquerda,
+                                .tabela-scroll-fixo th.coluna-fixa-esquerda-2,
+                                .tabela-scroll-fixo th.coluna-fixa-direita {
+                                    background: hsl(var(--muted, 245 245 245)) !important;
+                                }
+                                
+                                .dark .tabela-scroll-fixo th.coluna-fixa-esquerda,
+                                .dark .tabela-scroll-fixo th.coluna-fixa-esquerda-2,
+                                .dark .tabela-scroll-fixo th.coluna-fixa-direita {
+                                    background: hsl(var(--muted, 23 23 23)) !important;
+                                }
+                            `
+                        }} />
+                        <div className="relative overflow-x-auto max-w-full">
                             <div className="min-w-full inline-block align-middle">
-                                <Table className="min-w-full">
+                                <Table className="min-w-full tabela-scroll-fixo">
                                     <TableHeader>
                                         <TableRow className="bg-muted/50 border-border">
-                                            {colunas.map(col => (
+                                            {colunas.map((col, colIndex) => {
+                                                const isImagem = col === 'Imagem';
+                                                const isProduto = col === 'Produto';
+                                                const isEfetividade = col === 'Efetividade';
+                                                
+                                                let classesFixas = 'whitespace-nowrap px-2 py-2 text-xs text-muted-foreground';
+                                                
+                                                if (isImagem) {
+                                                    classesFixas += ' w-16 min-w-16 coluna-fixa-esquerda';
+                                                } else if (isProduto) {
+                                                    classesFixas += ' min-w-[120px] coluna-fixa-esquerda-2';
+                                                } else if (isEfetividade) {
+                                                    classesFixas += ' min-w-[100px] coluna-fixa-direita';
+                                                } else {
+                                                    classesFixas += ' colunas-scroll min-w-[80px]';
+                                                }
+                                                
+                                                return (
                                                 <TableHead 
                                                     key={col} 
-                                                    className={`whitespace-nowrap px-2 py-2 text-xs text-muted-foreground ${
-                                                        col === 'Imagem' ? 'w-16 min-w-16' : ''
-                                                    } ${
-                                                        col === 'Produto' ? 'min-w-[120px]' : ''
-                                                    }`}
+                                                    className={classesFixas}
                                                 >
                                                     {col === 'Imagem' ? (
                                                         <div className="flex items-center justify-center">
@@ -745,21 +836,34 @@ function DropiPage() {
                                                         </Button>
                                                     )}
                                                 </TableHead>
-                                            ))}
+                                                );
+                                            })}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {dadosOrdenados.map((row, idx) => (
                                             <TableRow key={idx} className={`border-border ${row.Produto === 'TOTAL' ? 'bg-muted/20 font-medium' : ''}`}>
-                                                {colunas.map(col => (
+                                                {colunas.map(col => {
+                                                    const isImagem = col === 'Imagem';
+                                                    const isProduto = col === 'Produto';
+                                                    const isEfetividade = col === 'Efetividade';
+                                                    
+                                                    let classesCelula = 'px-2 py-2 text-xs text-card-foreground';
+                                                    
+                                                    if (isImagem) {
+                                                        classesCelula += ' text-center coluna-fixa-esquerda';
+                                                    } else if (isProduto) {
+                                                        classesCelula += ' coluna-fixa-esquerda-2';
+                                                    } else if (isEfetividade) {
+                                                        classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center coluna-fixa-direita`;
+                                                    } else {
+                                                        classesCelula += ' colunas-scroll';
+                                                    }
+                                                    
+                                                    return (
                                                     <TableCell
                                                         key={col}
-                                                        className={`px-2 py-2 text-xs text-card-foreground ${
-                                                            col === 'Efetividade' ?
-                                                            `font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center` : ''
-                                                        } ${
-                                                            col === 'Imagem' ? 'text-center' : ''
-                                                        }`}
+                                                        className={classesCelula}
                                                     >
                                                         {/* NOVA FUNCIONALIDADE: Renderização da coluna Imagem */}
                                                         {col === 'Imagem' ? (
@@ -770,10 +874,21 @@ function DropiPage() {
                                                                         alt={`Produto ${row.Produto}`}
                                                                         className="w-8 h-8 object-cover rounded border border-border"
                                                                         loading="lazy" // Lazy loading para performance
+                                                                        onLoad={(e) => {
+                                                                            // Debug: Log successful image loads
+                                                                            console.log('✅ Imagem carregada:', row[col], 'para produto:', row.Produto);
+                                                                        }}
                                                                         onError={(e) => {
+                                                                            // Debug: Log failed image loads
+                                                                            console.log('❌ Falha ao carregar imagem:', row[col], 'para produto:', row.Produto);
+                                                                            console.log('🔍 URL completa sendo testada:', row[col]);
+                                                                            
                                                                             // Fallback para placeholder se imagem falhar
                                                                             e.target.style.display = 'none';
-                                                                            e.target.nextSibling.style.display = 'flex';
+                                                                            const fallback = e.target.nextSibling;
+                                                                            if (fallback) {
+                                                                                fallback.style.display = 'flex';
+                                                                            }
                                                                         }}
                                                                     />
                                                                     <div 
@@ -809,7 +924,8 @@ function DropiPage() {
                                                             typeof row[col] === 'number' ? row[col].toLocaleString() : row[col]
                                                         )}
                                                     </TableCell>
-                                                ))}
+                                                    );
+                                                })}
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -818,11 +934,16 @@ function DropiPage() {
                         </div>
                     </div>
                     
-                    {/* Nota sobre responsividade */}
+                    {/* Nota sobre responsividade e colunas fixas */}
                     <div className="px-4 pb-4 pt-2">
-                        <p className="text-xs text-muted-foreground text-center">
-                            💡 Dica: Role horizontalmente para ver todas as colunas em telas menores
-                        </p>
+                        <div className="flex flex-col items-center gap-1">
+                            <p className="text-xs text-muted-foreground text-center">
+                                💡 Dica: Role horizontalmente para ver todas as colunas
+                            </p>
+                            <p className="text-xs text-blue-600 text-center font-medium">
+                                📌 Colunas fixas: Imagem, Produto e Efetividade
+                            </p>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -1040,6 +1161,63 @@ function DropiPage() {
                                     </Card>
                                 ))}
                             </div>
+                        </div>
+
+                        <Separator className="bg-border" />
+
+                        <div>
+                            <h4 className="text-lg font-semibold text-purple-600 mb-3">Como é Calculada a Efetividade?</h4>
+                            <p className="text-sm text-muted-foreground mb-4">
+                                A efetividade representa a porcentagem de pedidos que foram entregues com sucesso.
+                            </p>
+                            
+                            <Card className="border-purple-200 bg-card mb-4">
+                                <CardContent className="p-4">
+                                    <div className="space-y-3">
+                                        <div className="bg-muted/30 p-3 rounded-lg">
+                                            <p className="font-semibold text-purple-600 mb-2">📊 Fórmula:</p>
+                                            <code className="text-sm bg-background px-2 py-1 rounded border">
+                                                (Pedidos Entregues / Total de Pedidos) × 100
+                                            </code>
+                                        </div>
+                                        
+                                        <div className="bg-muted/30 p-3 rounded-lg">
+                                            <p className="font-semibold text-green-600 mb-2">✅ Status considerados "Entregues":</p>
+                                            <div className="space-y-1">
+                                                <Badge className="bg-green-100 text-green-800 mr-2">ENTREGADO</Badge>
+                                                <Badge className="bg-green-100 text-green-800">ENTREGADO A TRANSPORTADORA</Badge>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-muted/30 p-3 rounded-lg">
+                                            <p className="font-semibold text-blue-600 mb-2">💡 Exemplo:</p>
+                                            <div className="text-sm space-y-1">
+                                                <p>• Total: 100 pedidos</p>
+                                                <p>• Entregues: 75 pedidos</p>
+                                                <p>• <strong>Efetividade: 75%</strong></p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-muted/30 p-3 rounded-lg">
+                                            <p className="font-semibold text-orange-600 mb-2">🎨 Cores da Efetividade:</p>
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-4 h-4 bg-green-500 rounded"></div>
+                                                    <span className="text-sm">🟢 Verde (≥60%): Excelente</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+                                                    <span className="text-sm">🟡 Amarelo (40-59%): Bom</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-4 h-4 bg-red-500 rounded"></div>
+                                                    <span className="text-sm">🔴 Vermelho (<40%): Precisa melhorar</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
                         </div>
                     </div>
                 </DialogContent>
