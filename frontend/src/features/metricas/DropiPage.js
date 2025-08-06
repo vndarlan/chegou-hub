@@ -26,9 +26,9 @@ import { ScrollArea } from '../../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 
 const PAISES = [
-    { value: 'mexico', label: '🇲🇽 México' },
-    { value: 'chile', label: '🇨🇱 Chile' },
-    { value: 'colombia', label: '🇨🇴 Colômbia' }
+    { value: 'mexico', label: 'México' },
+    { value: 'chile', label: 'Chile' },
+    { value: 'colombia', label: 'Colômbia' }
 ];
 
 // Status traduzidos do Dropi (baseados nos dados reais da API)
@@ -155,17 +155,17 @@ function DropiPage() {
                 // Corrigido: usar 'pedidos' ao invés de 'dados_processados'
                 const pedidos = response.data.pedidos || [];
                 
-                console.log('🔍 ===== DADOS COMPLETOS DA API DROPI =====');
-                console.log('📊 Total de pedidos:', pedidos.length);
-                console.log('🌍 País:', response.data.country || paisSelecionado);
-                console.log('📅 Período:', response.data.period || `${dataInicio} - ${dataFim}`);
-                console.log('💰 Valor total:', response.data.valor_total || 'N/A');
-                console.log('📈 Distribuição status:', response.data.status_distribution || {});
+                console.log('[DEBUG] ===== DADOS COMPLETOS DA API DROPI =====');
+                console.log('[DATA] Total de pedidos:', pedidos.length);
+                console.log('[PAIS] País:', response.data.country || paisSelecionado);
+                console.log('[PERIODO] Período:', response.data.period || `${dataInicio} - ${dataFim}`);
+                console.log('[VALOR] Valor total:', response.data.valor_total || 'N/A');
+                console.log('[STATUS] Distribuição status:', response.data.status_distribution || {});
                 console.log('');
-                console.log('🔬 ===== EXEMPLO DE PEDIDO (ESTRUTURA) =====');
-                console.log('📦 Primeiro pedido completo:', pedidos[0]);
+                console.log('[EXEMPLO] ===== EXEMPLO DE PEDIDO (ESTRUTURA) =====');
+                console.log('[PEDIDO] Primeiro pedido completo:', pedidos[0]);
                 console.log('');
-                console.log('🚀 Dados carregados na interface para análise visual!');
+                console.log('[SUCESSO] Dados carregados na interface para análise visual!');
                 
                 setDadosResultado(pedidos);
                 showNotification('success', `${pedidos.length} pedidos extraídos com sucesso!`);
@@ -274,8 +274,8 @@ function DropiPage() {
 
             // Debug das URLs das imagens
             if (imagemProduto) {
-                console.log('🔍 DEBUG IMAGEM - Produto:', produto);
-                console.log('📸 URL original:', imagemProduto);
+                console.log('[IMG-DEBUG] DEBUG IMAGEM - Produto:', produto);
+                console.log('[IMG-URL] URL original:', imagemProduto);
                 
                 // Verificar se a URL precisa de protocolo ou domínio base
                 if (!imagemProduto.startsWith('http')) {
@@ -284,7 +284,7 @@ function DropiPage() {
                     imagemProduto = imagemProduto.startsWith('/') ? 
                         `${urlBase}${imagemProduto}` : 
                         `${urlBase}/${imagemProduto}`;
-                    console.log('🔧 URL corrigida:', imagemProduto);
+                    console.log('[IMG-FIX] URL corrigida:', imagemProduto);
                 }
                 
                 console.log('✅ URL final para uso:', imagemProduto);
@@ -680,7 +680,7 @@ function DropiPage() {
                         </div>
                         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                             <p className="text-sm text-blue-800">
-                                <strong>💡 Para análises:</strong> Este é o formato dos dados que vêm da API. 
+                                <strong>[INFO] Para análises:</strong> Este é o formato dos dados que vêm da API. 
                                 Cada pedido contém informações como status, produto, valor, datas, etc.
                             </p>
                         </div>
@@ -881,7 +881,7 @@ function DropiPage() {
                                                                         onError={(e) => {
                                                                             // Debug: Log failed image loads
                                                                             console.log('❌ Falha ao carregar imagem:', row[col], 'para produto:', row.Produto);
-                                                                            console.log('🔍 URL completa sendo testada:', row[col]);
+                                                                            console.log('[URL-TEST] URL completa sendo testada:', row[col]);
                                                                             
                                                                             // Fallback para placeholder se imagem falhar
                                                                             e.target.style.display = 'none';
@@ -938,10 +938,10 @@ function DropiPage() {
                     <div className="px-4 pb-4 pt-2">
                         <div className="flex flex-col items-center gap-1">
                             <p className="text-xs text-muted-foreground text-center">
-                                💡 Dica: Role horizontalmente para ver todas as colunas
+                                [DICA] Role horizontalmente para ver todas as colunas
                             </p>
                             <p className="text-xs text-blue-600 text-center font-medium">
-                                📌 Colunas fixas: Imagem, Produto e Efetividade
+                                [INFO] Colunas fixas: Imagem, Produto e Efetividade
                             </p>
                         </div>
                     </div>
@@ -1110,21 +1110,21 @@ function DropiPage() {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <Card className="border-blue-200 bg-card">
                                     <CardContent className="p-4">
-                                        <h5 className="font-semibold text-blue-600 text-sm">🇲🇽 México</h5>
+                                        <h5 className="font-semibold text-blue-600 text-sm">México</h5>
                                         <p className="text-xs text-muted-foreground">Extração de pedidos Dropi México</p>
                                     </CardContent>
                                 </Card>
                                 
                                 <Card className="border-red-200 bg-card">
                                     <CardContent className="p-4">
-                                        <h5 className="font-semibold text-red-600 text-sm">🇨🇱 Chile</h5>
+                                        <h5 className="font-semibold text-red-600 text-sm">Chile</h5>
                                         <p className="text-xs text-muted-foreground">Extração de pedidos Dropi Chile</p>
                                     </CardContent>
                                 </Card>
                                 
                                 <Card className="border-yellow-200 bg-card">
                                     <CardContent className="p-4">
-                                        <h5 className="font-semibold text-yellow-600 text-sm">🇨🇴 Colômbia</h5>
+                                        <h5 className="font-semibold text-yellow-600 text-sm">Colômbia</h5>
                                         <p className="text-xs text-muted-foreground">Extração de pedidos Dropi Colômbia</p>
                                     </CardContent>
                                 </Card>
@@ -1175,9 +1175,9 @@ function DropiPage() {
                                 <CardContent className="p-4">
                                     <div className="space-y-3">
                                         <div className="bg-muted/30 p-3 rounded-lg">
-                                            <p className="font-semibold text-purple-600 mb-2">📊 Fórmula:</p>
+                                            <p className="font-semibold text-purple-600 mb-2">[FÓRMULA]</p>
                                             <code className="text-sm bg-background px-2 py-1 rounded border">
-                                                (Pedidos Entregues / Total de Pedidos) × 100
+                                                (Pedidos Entregues / Total de Pedidos) * 100
                                             </code>
                                         </div>
                                         
@@ -1190,7 +1190,7 @@ function DropiPage() {
                                         </div>
                                         
                                         <div className="bg-muted/30 p-3 rounded-lg">
-                                            <p className="font-semibold text-blue-600 mb-2">💡 Exemplo:</p>
+                                            <p className="font-semibold text-blue-600 mb-2">[EXEMPLO]</p>
                                             <div className="text-sm space-y-1">
                                                 <p>• Total: 100 pedidos</p>
                                                 <p>• Entregues: 75 pedidos</p>
@@ -1199,19 +1199,19 @@ function DropiPage() {
                                         </div>
                                         
                                         <div className="bg-muted/30 p-3 rounded-lg">
-                                            <p className="font-semibold text-orange-600 mb-2">🎨 Cores da Efetividade:</p>
+                                            <p className="font-semibold text-orange-600 mb-2">Cores da Efetividade:</p>
                                             <div className="space-y-2">
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-4 h-4 bg-green-500 rounded"></div>
-                                                    <span className="text-sm">🟢 Verde (≥60%): Excelente</span>
+                                                    <span className="text-sm">Verde (&gt;=60%): Excelente</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-4 h-4 bg-yellow-500 rounded"></div>
-                                                    <span className="text-sm">🟡 Amarelo (40-59%): Bom</span>
+                                                    <span className="text-sm">Amarelo (40-59%): Bom</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-4 h-4 bg-red-500 rounded"></div>
-                                                    <span className="text-sm">🔴 Vermelho (<40%): Precisa melhorar</span>
+                                                    <span className="text-sm">Vermelho (&lt;40%): Precisa melhorar</span>
                                                 </div>
                                             </div>
                                         </div>
