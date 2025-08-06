@@ -22,6 +22,7 @@ import { Label } from '../../components/ui/label';
 import { Progress } from '../../components/ui/progress';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { DateRangePicker } from '../../components/ui/date-range-picker';
 
 const PAISES = [
     { value: 'todos', label: 'Todos os Países' },
@@ -41,9 +42,11 @@ function EcomhubPage() {
     const [secaoAtiva, setSecaoAtiva] = useState('gerar');
     const [tipoVisualizacao, setTipoVisualizacao] = useState('otimizada');
     
-    // Estados do formulário - usando strings para input type="date"
-    const [dataInicio, setDataInicio] = useState('');
-    const [dataFim, setDataFim] = useState('');
+    // Estados do formulário - usando DateRange
+    const [dateRange, setDateRange] = useState({
+        from: undefined,
+        to: undefined
+    });
     const [paisSelecionado, setPaisSelecionado] = useState('todos');
     
     // Estados de modal e loading
@@ -88,12 +91,12 @@ function EcomhubPage() {
     };
 
     const processarDados = async () => {
-        if (!dataInicio || !dataFim || !paisSelecionado) {
-            showNotification('error', 'Selecione as datas e o país');
+        if (!dateRange?.from || !dateRange?.to || !paisSelecionado) {
+            showNotification('error', 'Selecione o período e o país');
             return;
         }
 
-        if (new Date(dataInicio) > new Date(dataFim)) {
+        if (dateRange.from > dateRange.to) {
             showNotification('error', 'Data de início deve ser anterior à data fim');
             return;
         }
@@ -103,8 +106,8 @@ function EcomhubPage() {
 
         try {
             const response = await axios.post('/metricas/ecomhub/analises/processar_selenium/', {
-                data_inicio: dataInicio,
-                data_fim: dataFim,
+                data_inicio: dateRange.from.toISOString().split('T')[0],
+                data_fim: dateRange.to.toISOString().split('T')[0],
                 pais_id: paisSelecionado
             });
 
@@ -115,7 +118,7 @@ function EcomhubPage() {
                 const paisNome = paisSelecionado === 'todos' ? 
                     'Todos os Países' : 
                     PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
-                const dataStr = `${new Date(dataInicio).toLocaleDateString('pt-BR')} - ${new Date(dataFim).toLocaleDateString('pt-BR')}`;
+                const dataStr = `${dateRange.from.toLocaleDateString('pt-BR')} - ${dateRange.to.toLocaleDateString('pt-BR')}`;
                 setNomeAnalise(`${paisNome} ${dataStr}`);
             }
         } catch (error) {
@@ -309,37 +312,21 @@ function EcomhubPage() {
                     </div>
 
                     <div className="flex items-end gap-4">
-                        {/* Data Início - input nativo */}
+                        {/* Date Range Picker */}
                         <div>
-                            <Label className="mb-2 block text-foreground">Data de Início</Label>
-                            <Input
-                                type="date"
-                                value={dataInicio}
-                                onChange={(e) => setDataInicio(e.target.value)}
+                            <Label className="mb-2 block text-foreground">Período</Label>
+                            <DateRangePicker
+                                dateRange={dateRange}
+                                onDateRangeChange={setDateRange}
                                 disabled={loadingProcessar}
-                                className="w-48 border-border bg-background text-foreground"
-                                max={new Date().toISOString().split('T')[0]}
-                                min="2020-01-01"
-                            />
-                        </div>
-                        
-                        {/* Data Fim - input nativo */}
-                        <div>
-                            <Label className="mb-2 block text-foreground">Data de Fim</Label>
-                            <Input
-                                type="date"
-                                value={dataFim}
-                                onChange={(e) => setDataFim(e.target.value)}
-                                disabled={loadingProcessar}
-                                className="w-48 border-border bg-background text-foreground"
-                                max={new Date().toISOString().split('T')[0]}
-                                min={dataInicio || "2020-01-01"}
+                                className="w-80"
+                                placeholder="Selecione o período..."
                             />
                         </div>
                         
                         <Button
                             onClick={processarDados}
-                            disabled={!dataInicio || !dataFim || !paisSelecionado || loadingProcessar}
+                            disabled={!dateRange?.from || !dateRange?.to || !paisSelecionado || loadingProcessar}
                             size="lg"
                             className="min-w-36 bg-primary text-primary-foreground hover:bg-primary/90"
                         >
@@ -639,6 +626,16 @@ function EcomhubPage() {
 
     useEffect(() => {
         fetchAnalises();
+        
+        // Definir período padrão (última semana)
+        const hoje = new Date();
+        const setemantepassada = new Date();
+        setemantepassada.setDate(hoje.getDate() - 7);
+        
+        setDateRange({
+            from: setemantepassada,
+            to: hoje
+        });
     }, []);
 
     // ======================== RENDER PRINCIPAL ========================
