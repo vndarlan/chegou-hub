@@ -118,8 +118,15 @@ function DropiPage() {
             });
 
             if (response.data.status === 'success') {
+                // Debug: Vamos ver o que a API está retornando
+                console.log('🔍 DEBUG - Resposta completa da API:', response.data);
+                console.log('🔍 DEBUG - dados_processados:', response.data.dados_processados);
+                console.log('🔍 DEBUG - Tipo dos dados:', typeof response.data.dados_processados);
+                console.log('🔍 DEBUG - É array?', Array.isArray(response.data.dados_processados));
+                console.log('🔍 DEBUG - Quantidade de itens:', response.data.dados_processados?.length);
+                
                 setDadosResultado(response.data.dados_processados);
-                showNotification('success', 'Dados processados com sucesso!');
+                showNotification('success', `Dados processados com sucesso! ${response.data.dados_processados?.length || 0} registros`);
                 
                 const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
                 const dataStr = `${new Date(dataInicio).toLocaleDateString('pt-BR')} - ${new Date(dataFim).toLocaleDateString('pt-BR')}`;
@@ -446,7 +453,16 @@ function DropiPage() {
 
     // Tabela responsiva
     const renderResultados = () => {
-        if (!dadosResultado || !Array.isArray(dadosResultado)) return null;
+        // Debug: Vamos verificar se os dados estão chegando no render
+        console.log('🔍 DEBUG renderResultados - dadosResultado:', dadosResultado);
+        console.log('🔍 DEBUG renderResultados - é array?', Array.isArray(dadosResultado));
+        console.log('🔍 DEBUG renderResultados - dadosFiltrados:', dadosFiltrados);
+        console.log('🔍 DEBUG renderResultados - length dadosFiltrados:', dadosFiltrados?.length);
+        
+        if (!dadosResultado || !Array.isArray(dadosResultado)) {
+            console.log('🔍 DEBUG renderResultados - RETORNANDO NULL - dados inválidos');
+            return null;
+        }
 
         return (
             <Card className="mb-6 border-border bg-card">
