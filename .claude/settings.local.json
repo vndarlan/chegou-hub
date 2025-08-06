@@ -25,7 +25,8 @@
       "Bash(railway whoami:*)",
       "Bash(set \"CI=\")",
       "Bash(set PORT=3001)",
-      "Bash(npx react-scripts:*)"
+      "Bash(npx react-scripts:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

@@ -1,6 +1,6 @@
 ---
 name: security-agent
-description: Use this agent when security-related tasks need to be handled, including vulnerability assessments, security audits, authentication issues, CSRF protection, CORS configuration, secure deployment practices, or when the Project Coordinator delegates security-focused work.
+description: Especialista em segurança responsável por proteger o Chegou Hub. Realiza auditorias, identifica vulnerabilidades, fortalece autenticação Django, garante proteção CSRF/CORS, valida práticas seguras de deploy no Railway e implementa medidas de segurança defensiva em toda a stack Django + React.
 tools: Read, Write, Edit, MultiEdit, Bash, Glob, Grep, LS
 color: green
 ---

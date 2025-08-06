@@ -113,6 +113,21 @@ features/[nome_feature]/
 
 ## Comandos dos Agentes
 
+## 🎯 **REGRA OBRIGATÓRIA: Chamadas Diretas de Agentes**
+
+**Quando o usuário mencionar explicitamente um agente, o sistema DEVE obrigatoriamente usar esse agente:**
+
+- `"coordinator, ..."` → **OBRIGATÓRIO** usar Coordinator
+- `"frontend, ..."` → **OBRIGATÓRIO** usar Frontend  
+- `"backend, ..."` → **OBRIGATÓRIO** usar Backend
+- `"deploy, ..."` → **OBRIGATÓRIO** usar Deploy
+- `"review, ..."` → **OBRIGATÓRIO** usar Review
+- `"security, ..."` → **OBRIGATÓRIO** usar Security
+- `"tech docs, ..."` → **OBRIGATÓRIO** usar Tech Docs
+- `"user guide, ..."` → **OBRIGATÓRIO** usar User Guide
+
+**⚠️ NUNCA ignore uma chamada direta. Se o usuário pediu um agente específico, use esse agente.**
+
 ### Chamadas Automáticas (Recomendado)
 Fale naturalmente que o Coordinator Agent distribui as tarefas:
 - `"Quero criar uma página de Vendas"`
@@ -122,31 +137,24 @@ Fale naturalmente que o Coordinator Agent distribui as tarefas:
 
 ### Chamadas Diretas
 Para tarefas específicas:
-- `"Backend Agent, adicione campo 'prioridade' no model Agenda"`
-- `"Frontend Agent, melhore design da página IA"`
-- `"Security Agent, audite segurança da feature de pagamentos"`
-- `"Deploy Agent, faça deploy agora"`
-- `"Review Agent, analise as mudanças recentes"`
-
-### Comandos Especiais
-- `/documentar [página]` - Documentation Agents documentam página existente
-- `/revisar codigo` - Review Agent analisa código
-- `/auditar segurança` - Security Agent faz auditoria de segurança
-- `/deploy` - Deploy Agent executa deploy
-- `/guia [funcionalidade]` - User Guide Agent cria guia de uso
+- `"Backend, adicione campo 'prioridade' no model Agenda"`
+- `"Frontend, melhore design da página IA"`
+- `"Security, audite segurança da feature de pagamentos"`
+- `"Deploy, faça deploy agora"`
+- `"Review, analise as mudanças recentes"`
 
 ### Documentação de Páginas Existentes
-- `"Documentation Agents, documentem todas as páginas existentes"`
+- `"Tech Docs e User Guide, documentem todas as páginas existentes"`
 - `"/documentar engajamento"`
 - `"Criem guias para todas as features atuais"`
 - `"Quero documentação da página de IA que já existe"`
 
 ### Equipe de Agentes Disponível
-1. 🎯 **Coordinator Agent** - Líder técnico que orquestra toda a equipe
-2. 🔧 **Backend Agent** - Master da pasta backend/ (Django + APIs)
-3. 🎨 **Frontend Agent** - Master da pasta frontend/ (React + shadcn/ui)
-4. 🚀 **Deploy Agent** - Git commits + deploy automático Railway
-5. 🔍 **Review Agent** - Quality assurance e code review
-6. 🛡️ **Security Agent** - Auditoria e proteção de segurança
-7. 📖 **Tech Docs Agent** - Documentação técnica (PT-BR)
-8. 📋 **User Guide Agent** - Guias de uso para usuários (PT-BR)
+1. 🎯 **Coordinator** - Líder técnico que orquestra toda a equipe
+2. 🔧 **Backend** - Master da pasta backend/ (Django + APIs)
+3. 🎨 **Frontend** - Master da pasta frontend/ (React + shadcn/ui)
+4. 🚀 **Deploy** - Git commits + deploy automático Railway
+5. 🔍 **Review** - Quality assurance e code review
+6. 🛡️ **Security** - Especialista em segurança. Use para avaliações de vulnerabilidade, auditorias de segurança, problemas de autenticação, proteção CSRF, configuração CORS, práticas seguras de deploy ou quando o Coordinator delegar trabalho focado em segurança
+7. 📖 **Tech Docs** - Documentação técnica (PT-BR)
+8. 📋 **User Guide** - Guias de uso para usuários (PT-BR)
