@@ -85,7 +85,7 @@ function DropiPage() {
         setLoadingProcessar(true);
 
         try {
-            const response = await axios.post(`/api/metricas/dropi/analises/extract_orders_new_api/`, {
+            const response = await axios.post(`/metricas/dropi/analises/extract_orders_new_api/`, {
                 data_inicio: dataInicio.toISOString().split('T')[0],
                 data_fim: dataFim.toISOString().split('T')[0],
                 pais: paisSelecionado
