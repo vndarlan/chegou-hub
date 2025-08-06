@@ -38,7 +38,7 @@ function DropiPage() {
     // Estados do formulário
     const [dataInicio, setDataInicio] = useState(null);
     const [dataFim, setDataFim] = useState(null);
-    const [userId, setUserId] = useState('9789'); // Seu user_id padrão
+    const [paisSelecionado, setPaisSelecionado] = useState(null);
     
     // Estados de modal e loading
     const [modalSalvar, setModalSalvar] = useState(false);
@@ -72,8 +72,8 @@ function DropiPage() {
     };
 
     const processarDados = async () => {
-        if (!dataInicio || !dataFim || !userId) {
-            showNotification('error', 'Preencha todos os campos');
+        if (!dataInicio || !dataFim || !paisSelecionado) {
+            showNotification('error', 'Preencha todos os campos obrigatórios');
             return;
         }
 
@@ -85,19 +85,21 @@ function DropiPage() {
         setLoadingProcessar(true);
 
         try {
-            const response = await axios.post('/metricas/dropi/analises/processar_dados/', {
+            const response = await axios.post(`/api/metricas/dropi/analises/extract_orders_new_api/`, {
                 data_inicio: dataInicio.toISOString().split('T')[0],
                 data_fim: dataFim.toISOString().split('T')[0],
-                user_id: userId
+                pais: paisSelecionado
             });
 
             if (response.data.status === 'success') {
                 setDadosResultado(response.data.dados_processados);
                 showNotification('success', `${response.data.total_pedidos} pedidos extraídos com sucesso!`);
                 
-                // Gerar nome automático
+                // Gerar nome automático com flag do país
+                const paisFlags = { mexico: '🇲🇽', chile: '🇨🇱', colombia: '🇨🇴' };
+                const paisNomes = { mexico: 'México', chile: 'Chile', colombia: 'Colômbia' };
                 const dataStr = `${dataInicio.toLocaleDateString()} - ${dataFim.toLocaleDateString()}`;
-                setNomeAnalise(`Dropi MX ${dataStr}`);
+                setNomeAnalise(`Dropi ${paisFlags[paisSelecionado]} ${paisNomes[paisSelecionado]} ${dataStr}`);
             }
         } catch (error) {
             console.error('Erro no processamento:', error);
@@ -120,10 +122,10 @@ function DropiPage() {
                 dados_pedidos: dadosResultado,
                 data_inicio: dataInicio.toISOString().split('T')[0],
                 data_fim: dataFim.toISOString().split('T')[0],
-                user_id_dropi: userId,
+                pais: paisSelecionado,
                 total_pedidos: dadosResultado?.length || 0,
                 tipo_metrica: 'pedidos',
-                descricao: `Extração Dropi MX - ${dadosResultado?.length || 0} pedidos`
+                descricao: `Extração Dropi - ${dadosResultado?.length || 0} pedidos`
             });
 
             if (response.data.id) {
@@ -143,7 +145,7 @@ function DropiPage() {
         setDadosResultado(analise.dados_pedidos);
         setDataInicio(new Date(analise.data_inicio));
         setDataFim(new Date(analise.data_fim));
-        setUserId(analise.user_id_dropi);
+        setPaisSelecionado(analise.pais);
         showNotification('success', 'Análise carregada!');
     };
 
@@ -280,7 +282,21 @@ function DropiPage() {
 
                 <div className="grid gap-4 md:grid-cols-3">
                     <div>
-                        <Label htmlFor="data-inicio">Data de Início</Label>
+                        <Label htmlFor="pais">País *</Label>
+                        <Select value={paisSelecionado} onValueChange={setPaisSelecionado} disabled={loadingProcessar}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecione o país" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="mexico">🇲🇽 México</SelectItem>
+                                <SelectItem value="chile">🇨🇱 Chile</SelectItem>
+                                <SelectItem value="colombia">🇨🇴 Colômbia</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    
+                    <div>
+                        <Label htmlFor="data-inicio">Data de Início *</Label>
                         <Input
                             id="data-inicio"
                             type="date"
@@ -291,7 +307,7 @@ function DropiPage() {
                     </div>
                     
                     <div>
-                        <Label htmlFor="data-fim">Data de Fim</Label>
+                        <Label htmlFor="data-fim">Data de Fim *</Label>
                         <Input
                             id="data-fim"
                             type="date"
@@ -300,27 +316,12 @@ function DropiPage() {
                             disabled={loadingProcessar}
                         />
                     </div>
-                    
-                    <div>
-                        <Label htmlFor="user-id">User ID Dropi</Label>
-                        <div className="relative">
-                            <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                id="user-id"
-                                type="number"
-                                value={userId}
-                                onChange={(e) => setUserId(e.target.value)}
-                                disabled={loadingProcessar}
-                                className="pl-10"
-                            />
-                        </div>
-                    </div>
                 </div>
 
                 <div className="flex justify-end">
                     <Button
                         onClick={processarDados}
-                        disabled={!dataInicio || !dataFim || !userId || loadingProcessar}
+                        disabled={!dataInicio || !dataFim || !paisSelecionado || loadingProcessar}
                         className="min-w-[140px]"
                     >
                         {loadingProcessar ? (
@@ -391,7 +392,15 @@ function DropiPage() {
             <Card className="mb-6">
                 <CardHeader>
                     <div className="flex items-center justify-between">
-                        <CardTitle>Pedidos Dropi MX</CardTitle>
+                        <CardTitle>
+                            {paisSelecionado ? (
+                                <span className="flex items-center gap-2">
+                                    Pedidos Dropi {paisSelecionado === 'mexico' ? '🇲🇽 México' : 
+                                                    paisSelecionado === 'chile' ? '🇨🇱 Chile' : 
+                                                    paisSelecionado === 'colombia' ? '🇨🇴 Colômbia' : 'Dropi'}
+                                </span>
+                            ) : 'Pedidos Dropi'}
+                        </CardTitle>
                         <div className="flex items-center gap-2">
                             <Badge variant="secondary">
                                 {dadosFiltrados.length} de {dadosResultado.length} pedidos
@@ -587,9 +596,19 @@ function DropiPage() {
                         <div className="h-7 w-7 rounded-lg bg-orange-100 flex items-center justify-center">
                             <ShoppingCart className="h-4 w-4 text-orange-600" />
                         </div>
-                        <h1 className="text-2xl font-bold text-foreground">Dropi MX</h1>
+                        <h1 className="text-2xl font-bold text-foreground">
+                            {paisSelecionado ? (
+                                <span className="flex items-center gap-2">
+                                    Dropi {paisSelecionado === 'mexico' ? '🇲🇽' : 
+                                           paisSelecionado === 'chile' ? '🇨🇱' : 
+                                           paisSelecionado === 'colombia' ? '🇨🇴' : ''}
+                                </span>
+                            ) : 'Dropi'}
+                        </h1>
                     </div>
-                    <p className="text-muted-foreground">Gestão de pedidos e métricas</p>
+                    <p className="text-muted-foreground">
+                        Gestão de pedidos e métricas{paisSelecionado ? ` - ${paisSelecionado === 'mexico' ? 'México' : paisSelecionado === 'chile' ? 'Chile' : 'Colômbia'}` : ''}
+                    </p>
                 </div>
             </div>
 
@@ -624,7 +643,7 @@ function DropiPage() {
                     <DialogHeader>
                         <DialogTitle>Salvar Análise</DialogTitle>
                         <DialogDescription>
-                            Salve sua análise Dropi MX para acessá-la posteriormente.
+                            Salve sua análise Dropi para acessá-la posteriormente.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
@@ -638,7 +657,7 @@ function DropiPage() {
                             <Label htmlFor="nome-analise">Nome da Análise</Label>
                             <Input
                                 id="nome-analise"
-                                placeholder="Ex: Dropi MX Janeiro 2025"
+                                placeholder="Ex: Dropi México Janeiro 2025"
                                 value={nomeAnalise}
                                 onChange={(e) => setNomeAnalise(e.target.value)}
                                 disabled={loadingSalvar}

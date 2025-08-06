@@ -41,3 +41,17 @@ class ProcessamentoDropiSerializer(serializers.Serializer):
         if data['data_inicio'] > data['data_fim']:
             raise serializers.ValidationError("Data de início deve ser anterior à data fim")
         return data
+
+class ProcessamentoDropiNovaApiSerializer(serializers.Serializer):
+    """Serializer para processamento via nova API unificada"""
+    data_inicio = serializers.DateField(required=True)
+    data_fim = serializers.DateField(required=True)
+    pais = serializers.ChoiceField(
+        choices=[('mexico', 'México'), ('colombia', 'Colômbia'), ('chile', 'Chile')],
+        required=True
+    )
+    
+    def validate(self, data):
+        if data['data_inicio'] > data['data_fim']:
+            raise serializers.ValidationError("Data de início deve ser anterior à data fim")
+        return data

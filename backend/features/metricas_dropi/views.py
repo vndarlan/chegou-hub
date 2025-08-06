@@ -11,7 +11,7 @@ from django.core.cache import cache
 from django.utils import timezone as django_timezone
 
 from .models import AnaliseDropi, DropiToken
-from .serializers import AnaliseDropiSerializer, ProcessamentoDropiSerializer
+from .serializers import AnaliseDropiSerializer, ProcessamentoDropiSerializer, ProcessamentoDropiNovaApiSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -296,3 +296,121 @@ class AnaliseDropiViewSet(viewsets.ModelViewSet):
                 'status': 'error',
                 'message': f'Erro inesperado: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['post'])
+    def extract_orders_new_api(self, request):
+        """Extrai pedidos usando a nova API unificada da Dropi"""
+        serializer = ProcessamentoDropiNovaApiSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            try:
+                data = serializer.validated_data
+                country = data['pais']  # Recebe país do payload validado
+                
+                logger.info(f"Extraindo pedidos via nova API {country}: {data['data_inicio']} - {data['data_fim']}")
+                
+                # URL da nova API unificada
+                url = f"https://dropi-api.up.railway.app/api/dados/{country}"
+                
+                payload = {
+                    "data_inicio": data['data_inicio'].strftime('%Y-%m-%d'),
+                    "data_fim": data['data_fim'].strftime('%Y-%m-%d')
+                }
+                
+                headers = {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'User-Agent': 'ChegouHub/1.0'
+                }
+                
+                try:
+                    response = requests.post(
+                        url,
+                        json=payload,
+                        headers=headers,
+                        timeout=300  # 5 minutos para processamento
+                    )
+                    
+                    if response.status_code == 200:
+                        response_data = response.json()
+                        
+                        # Valida estrutura da resposta
+                        if response_data.get('status') == 'success':
+                            return Response({
+                                'status': 'success',
+                                'country': response_data.get('country', country),
+                                'period': response_data.get('period'),
+                                'total_pedidos': response_data.get('total_pedidos', 0),
+                                'valor_total': response_data.get('valor_total', 0.0),
+                                'status_distribution': response_data.get('status_distribution', {}),
+                                'pedidos': response_data.get('pedidos', []),
+                                'message': f'Dados extraídos com sucesso via nova API - {country.title()}'
+                            })
+                        else:
+                            # API retornou erro
+                            error_msg = response_data.get('message', 'Erro desconhecido na API')
+                            logger.error(f"Erro na nova API {country}: {error_msg}")
+                            
+                            return Response({
+                                'status': 'error',
+                                'message': f'Erro na nova API: {error_msg}',
+                                'fallback_available': True
+                            }, status=status.HTTP_502_BAD_GATEWAY)
+                    
+                    elif response.status_code == 404:
+                        return Response({
+                            'status': 'error',
+                            'message': f'País {country} não está disponível na nova API',
+                            'fallback_available': True
+                        }, status=status.HTTP_404_NOT_FOUND)
+                    
+                    elif response.status_code == 422:
+                        return Response({
+                            'status': 'error',
+                            'message': 'Dados inválidos enviados para a API',
+                            'details': response.text
+                        }, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+                    
+                    else:
+                        # Outros erros HTTP
+                        logger.error(f"Erro HTTP {response.status_code} na nova API {country}: {response.text}")
+                        return Response({
+                            'status': 'error',
+                            'message': f'Erro HTTP {response.status_code} na nova API',
+                            'details': response.text[:500],  # Limita detalhes
+                            'fallback_available': True
+                        }, status=status.HTTP_502_BAD_GATEWAY)
+                
+                except requests.exceptions.Timeout:
+                    logger.error(f"Timeout na nova API {country}")
+                    return Response({
+                        'status': 'error',
+                        'message': 'Timeout na requisição para nova API (>5min)',
+                        'fallback_available': True
+                    }, status=status.HTTP_504_GATEWAY_TIMEOUT)
+                
+                except requests.exceptions.ConnectionError:
+                    logger.error(f"Erro de conexão com nova API {country}")
+                    return Response({
+                        'status': 'error',
+                        'message': 'Erro de conexão com a nova API',
+                        'fallback_available': True
+                    }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+                
+                except requests.exceptions.RequestException as e:
+                    logger.error(f"Erro na requisição para nova API {country}: {e}")
+                    return Response({
+                        'status': 'error',
+                        'message': f'Erro na requisição: {str(e)}',
+                        'fallback_available': True
+                    }, status=status.HTTP_502_BAD_GATEWAY)
+            
+            except Exception as e:
+                logger.error(f"Erro inesperado na nova API {country}: {e}")
+                return Response({
+                    'status': 'error',
+                    'message': f'Erro inesperado: {str(e)}',
+                    'fallback_available': True
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
