@@ -100,6 +100,9 @@ function DropiPage() {
     const [sortBy, setSortBy] = useState(null);
     const [sortOrder, setSortOrder] = useState('asc');
 
+    // Estado para mostrar exemplo de pedido
+    const [mostrarExemplo, setMostrarExemplo] = useState(false);
+
     // ======================== FUNÇÕES DE API ========================
 
     const fetchAnalises = async () => {
@@ -151,8 +154,18 @@ function DropiPage() {
             if (response.data.status === 'success') {
                 // Corrigido: usar 'pedidos' ao invés de 'dados_processados'
                 const pedidos = response.data.pedidos || [];
-                console.log('✅ CORRIGIDO - Pedidos da API:', pedidos);
-                console.log('✅ CORRIGIDO - Quantidade:', pedidos.length);
+                
+                console.log('🔍 ===== DADOS COMPLETOS DA API DROPI =====');
+                console.log('📊 Total de pedidos:', pedidos.length);
+                console.log('🌍 País:', response.data.country || paisSelecionado);
+                console.log('📅 Período:', response.data.period || `${dataInicio} - ${dataFim}`);
+                console.log('💰 Valor total:', response.data.valor_total || 'N/A');
+                console.log('📈 Distribuição status:', response.data.status_distribution || {});
+                console.log('');
+                console.log('🔬 ===== EXEMPLO DE PEDIDO (ESTRUTURA) =====');
+                console.log('📦 Primeiro pedido completo:', pedidos[0]);
+                console.log('');
+                console.log('🚀 Dados carregados na interface para análise visual!');
                 
                 setDadosResultado(pedidos);
                 showNotification('success', `${pedidos.length} pedidos extraídos com sucesso!`);
@@ -600,6 +613,54 @@ function DropiPage() {
         </Card>
     );
 
+    // Renderizar exemplo de pedido da API em JSON
+    const renderExemploPedido = () => {
+        if (!dadosResultado || !Array.isArray(dadosResultado) || dadosResultado.length === 0) return null;
+
+        const exemplotPedido = dadosResultado[0]; // Primeiro pedido como exemplo
+
+        return (
+            <Card className="mb-6 border-border bg-card">
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle className="text-lg text-card-foreground flex items-center gap-2">
+                                <Eye className="h-5 w-5" />
+                                Estrutura da API - Exemplo de Pedido
+                            </CardTitle>
+                            <CardDescription className="text-muted-foreground">
+                                Primeiro pedido dos dados extraídos (formato JSON bruto da API)
+                            </CardDescription>
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setMostrarExemplo(!mostrarExemplo)}
+                            className="border-border bg-background text-foreground hover:bg-accent"
+                        >
+                            {mostrarExemplo ? "Ocultar" : "Mostrar"} Dados
+                        </Button>
+                    </div>
+                </CardHeader>
+
+                {mostrarExemplo && (
+                    <CardContent>
+                        <div className="bg-muted/20 border border-border rounded-lg p-4 overflow-x-auto">
+                            <pre className="text-xs text-card-foreground whitespace-pre-wrap">
+                                {JSON.stringify(exemplotPedido, null, 2)}
+                            </pre>
+                        </div>
+                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p className="text-sm text-blue-800">
+                                <strong>💡 Para análises:</strong> Este é o formato dos dados que vêm da API. 
+                                Cada pedido contém informações como status, produto, valor, datas, etc.
+                            </p>
+                        </div>
+                    </CardContent>
+                )}
+            </Card>
+        );
+    };
 
     // Tabela produtos x status (igual EcomhubPage)
     const renderResultados = () => {
@@ -829,6 +890,7 @@ function DropiPage() {
                 <TabsContent value="gerar" className="space-y-4">
                     {renderFormulario()}
                     {renderEstatisticas()}
+                    {renderExemploPedido()}
                     {renderResultados()}
                 </TabsContent>
 
