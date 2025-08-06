@@ -4,7 +4,8 @@ import {
     Calendar as CalendarIcon, Download, Trash2, RefreshCw, Check, X, 
     AlertTriangle, TrendingUp, BarChart3, Eye, Search, Globe, 
     Filter, Rocket, Loader2, ShoppingCart, Target, Percent,
-    Package, DollarSign, Building, Clock, User
+    Package, DollarSign, Building, Clock, User, ArrowUpDown, 
+    ArrowUp, ArrowDown
 } from 'lucide-react';
 import axios from 'axios';
 import { getCSRFToken } from '../../utils/csrf';
@@ -94,6 +95,10 @@ function DropiPage() {
     const [filtroStatus, setFiltroStatus] = useState('');
     const [filtroFornecedor, setFiltroFornecedor] = useState('');
     const [filtroNome, setFiltroNome] = useState('');
+
+    // Estados para ordenação (igual EcomhubPage)
+    const [sortBy, setSortBy] = useState(null);
+    const [sortOrder, setSortOrder] = useState('asc');
 
     // ======================== FUNÇÕES DE API ========================
 
@@ -240,7 +245,127 @@ function DropiPage() {
         setTimeout(() => setNotification(null), 5000);
     };
 
-    // Filtrar dados da tabela
+    // Transformar dados de pedidos em tabela produtos x status
+    const processarDadosParaTabela = (pedidos) => {
+        if (!pedidos || !Array.isArray(pedidos) || pedidos.length === 0) return [];
+
+        // Agrupar por produto
+        const produtosPorStatus = {};
+
+        pedidos.forEach(pedido => {
+            const produto = pedido.product || pedido.supplier_name || 'Produto Desconhecido';
+            const status = pedido.status || 'UNKNOWN';
+
+            if (!produtosPorStatus[produto]) {
+                produtosPorStatus[produto] = {};
+            }
+
+            if (!produtosPorStatus[produto][status]) {
+                produtosPorStatus[produto][status] = 0;
+            }
+
+            produtosPorStatus[produto][status]++;
+        });
+
+        // Converter para formato de tabela
+        const tabelaData = [];
+        const todosStatus = [...new Set(pedidos.map(p => p.status || 'UNKNOWN'))];
+
+        Object.entries(produtosPorStatus).forEach(([produto, statusCount]) => {
+            const row = { Produto: produto };
+            
+            let totalProduto = 0;
+            let entreguesProduto = 0;
+
+            // Adicionar cada status como coluna
+            todosStatus.forEach(status => {
+                const count = statusCount[status] || 0;
+                row[STATUS_DROPI[status]?.label || status] = count;
+                totalProduto += count;
+
+                // Contar entregues (ENTREGADO + ENTREGADO A TRANSPORTADORA)
+                if (status === 'ENTREGADO' || status === 'ENTREGADO A TRANSPORTADORA') {
+                    entreguesProduto += count;
+                }
+            });
+
+            row.Total = totalProduto;
+            row.Entregues = entreguesProduto;
+            row.Efetividade = totalProduto > 0 ? `${((entreguesProduto / totalProduto) * 100).toFixed(1)}%` : '0%';
+
+            tabelaData.push(row);
+        });
+
+        // Ordenar por total (maior primeiro)
+        tabelaData.sort((a, b) => b.Total - a.Total);
+
+        // Adicionar linha TOTAL
+        const totalGeral = {
+            Produto: 'TOTAL',
+            Total: pedidos.length,
+            Entregues: pedidos.filter(p => p.status === 'ENTREGADO' || p.status === 'ENTREGADO A TRANSPORTADORA').length
+        };
+
+        todosStatus.forEach(status => {
+            const count = pedidos.filter(p => p.status === status).length;
+            totalGeral[STATUS_DROPI[status]?.label || status] = count;
+        });
+
+        totalGeral.Efetividade = totalGeral.Total > 0 ? `${((totalGeral.Entregues / totalGeral.Total) * 100).toFixed(1)}%` : '0%';
+
+        tabelaData.push(totalGeral);
+
+        return tabelaData;
+    };
+
+    // Função para cores da efetividade (igual EcomhubPage)
+    const getEfetividadeCor = (valor) => {
+        if (!valor || typeof valor !== 'string') return '';
+        
+        const numero = parseFloat(valor.replace('%', ''));
+        
+        if (numero >= 60) return 'bg-green-600 text-white';
+        if (numero >= 50) return 'bg-green-500 text-white';
+        if (numero >= 40) return 'bg-yellow-500 text-black';
+        return 'bg-red-500 text-white';
+    };
+
+    // Função de ordenação (igual EcomhubPage)
+    const sortData = (data, sortBy, sortOrder) => {
+        if (!sortBy) return data;
+        
+        return [...data].sort((a, b) => {
+            let aVal = a[sortBy];
+            let bVal = b[sortBy];
+            
+            if (typeof aVal === 'string' && aVal.includes('%')) {
+                aVal = parseFloat(aVal.replace('%', ''));
+            }
+            if (typeof bVal === 'string' && bVal.includes('%')) {
+                bVal = parseFloat(bVal.replace('%', ''));
+            }
+            
+            if (typeof aVal === 'string' && !isNaN(aVal)) aVal = parseFloat(aVal);
+            if (typeof bVal === 'string' && !isNaN(bVal)) bVal = parseFloat(bVal);
+            
+            if (sortOrder === 'asc') {
+                return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+            } else {
+                return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+            }
+        });
+    };
+
+    const handleSort = (column) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('asc');
+        }
+    };
+
+    // Filtrar dados da tabela (agora não usado para tabela de produtos)
     const dadosFiltrados = dadosResultado?.filter(pedido => {
         const matchStatus = !filtroStatus || pedido.status?.includes(filtroStatus.toUpperCase());
         const matchFornecedor = !filtroFornecedor || pedido.supplier_name?.toLowerCase().includes(filtroFornecedor.toLowerCase());
@@ -476,19 +601,26 @@ function DropiPage() {
     );
 
 
-    // Tabela responsiva
+    // Tabela produtos x status (igual EcomhubPage)
     const renderResultados = () => {
         if (!dadosResultado || !Array.isArray(dadosResultado)) {
             return null;
         }
+
+        // Transformar dados em tabela produtos x status
+        const dadosTabela = processarDadosParaTabela(dadosResultado);
+        if (!dadosTabela || dadosTabela.length === 0) return null;
+
+        const colunas = Object.keys(dadosTabela[0] || {});
+        const dadosOrdenados = sortData(dadosTabela, sortBy, sortOrder);
 
         return (
             <Card className="mb-6 border-border bg-card">
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle className="text-lg text-card-foreground">Resultados</CardTitle>
-                            <CardDescription className="text-muted-foreground">{dadosFiltrados.length} registros</CardDescription>
+                            <CardTitle className="text-lg text-card-foreground">Produtos por Status</CardTitle>
+                            <CardDescription className="text-muted-foreground">{dadosTabela.length} produtos</CardDescription>
                         </div>
                         <div className="flex items-center gap-2">
                             <Button 
@@ -505,67 +637,52 @@ function DropiPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    {renderFiltros()}
-                    
                     <div className="overflow-hidden">
                         <div className="overflow-x-auto">
                             <Table>
                                 <TableHeader>
                                     <TableRow className="bg-muted/50 border-border">
-                                        <TableHead className="whitespace-nowrap px-2 py-2 text-xs text-muted-foreground">ID</TableHead>
-                                        <TableHead className="whitespace-nowrap px-2 py-2 text-xs text-muted-foreground">Cliente</TableHead>
-                                        <TableHead className="whitespace-nowrap px-2 py-2 text-xs text-muted-foreground">Fornecedor</TableHead>
-                                        <TableHead className="whitespace-nowrap px-2 py-2 text-xs text-muted-foreground">Status</TableHead>
-                                        <TableHead className="whitespace-nowrap px-2 py-2 text-xs text-muted-foreground">Valor</TableHead>
-                                        <TableHead className="whitespace-nowrap px-2 py-2 text-xs text-muted-foreground">Telefone</TableHead>
-                                        <TableHead className="whitespace-nowrap px-2 py-2 text-xs text-muted-foreground">Cidade</TableHead>
+                                        {colunas.map(col => (
+                                            <TableHead key={col} className="whitespace-nowrap px-2 py-2 text-xs text-muted-foreground">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-auto p-0 font-medium text-xs text-muted-foreground hover:text-foreground"
+                                                    onClick={() => handleSort(col)}
+                                                >
+                                                    {col.replace('_', ' ')}
+                                                    {sortBy === col ? (
+                                                        sortOrder === 'asc' ? 
+                                                            <ArrowUp className="ml-1 h-3 w-3" /> : 
+                                                            <ArrowDown className="ml-1 h-3 w-3" />
+                                                    ) : (
+                                                        <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
+                                                    )}
+                                                </Button>
+                                            </TableHead>
+                                        ))}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {dadosFiltrados.map((pedido) => (
-                                        <TableRow key={pedido.id} className="border-border">
-                                            <TableCell className="px-2 py-2 text-xs text-card-foreground">
-                                                <span className="font-medium">{pedido.id}</span>
-                                            </TableCell>
-                                            <TableCell className="px-2 py-2 text-xs text-card-foreground">
-                                                <div>
-                                                    <p className="font-medium">{pedido.name} {pedido.surname}</p>
-                                                    {pedido.client_email && (
-                                                        <p className="text-xs text-muted-foreground">{pedido.client_email}</p>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="px-2 py-2 text-xs text-card-foreground">
-                                                <span>{pedido.supplier_name}</span>
-                                            </TableCell>
-                                            <TableCell className="px-2 py-2 text-xs text-card-foreground">
-                                                <Badge 
-                                                    variant="secondary"
-                                                    className={`${
-                                                        STATUS_DROPI[pedido.status]?.color === 'red' ? 'bg-red-100 text-red-800' :
-                                                        STATUS_DROPI[pedido.status]?.color === 'green' ? 'bg-green-100 text-green-800' :
-                                                        STATUS_DROPI[pedido.status]?.color === 'orange' ? 'bg-orange-100 text-orange-800' :
-                                                        STATUS_DROPI[pedido.status]?.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
-                                                        STATUS_DROPI[pedido.status]?.color === 'blue' ? 'bg-blue-100 text-blue-800' :
-                                                        'bg-gray-100 text-gray-800'
+                                    {dadosOrdenados.map((row, idx) => (
+                                        <TableRow key={idx} className={`border-border ${row.Produto === 'TOTAL' ? 'bg-muted/20 font-medium' : ''}`}>
+                                            {colunas.map(col => (
+                                                <TableCell
+                                                    key={col}
+                                                    className={`px-2 py-2 text-xs text-card-foreground ${
+                                                        col === 'Efetividade' ?
+                                                        `font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center` : ''
                                                     }`}
                                                 >
-                                                    {STATUS_DROPI[pedido.status]?.label || pedido.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="px-2 py-2 text-xs text-card-foreground">
-                                                <span className="font-medium text-green-600">
-                                                    R$ {parseFloat(pedido.total_order || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="px-2 py-2 text-xs text-card-foreground">
-                                                <span>{pedido.phone}</span>
-                                            </TableCell>
-                                            <TableCell className="px-2 py-2 text-xs text-card-foreground">
-                                                <span className="truncate max-w-[120px] block" title={pedido.dir}>
-                                                    {pedido.dir}
-                                                </span>
-                                            </TableCell>
+                                                    {col === 'Produto' ? (
+                                                        <div className="max-w-[120px] truncate" title={row[col]}>
+                                                            {row[col]}
+                                                        </div>
+                                                    ) : (
+                                                        typeof row[col] === 'number' ? row[col].toLocaleString() : row[col]
+                                                    )}
+                                                </TableCell>
+                                            ))}
                                         </TableRow>
                                     ))}
                                 </TableBody>
