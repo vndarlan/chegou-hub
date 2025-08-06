@@ -25,7 +25,6 @@ import { ScrollArea } from '../../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 
 const PAISES = [
-    { value: 'todos', label: 'Todos os Países' },
     { value: 'mexico', label: '🇲🇽 México' },
     { value: 'chile', label: '🇨🇱 Chile' },
     { value: 'colombia', label: '🇨🇴 Colômbia' }
@@ -50,7 +49,7 @@ function DropiPage() {
     // Estados do formulário - usando strings para input type="date"
     const [dataInicio, setDataInicio] = useState('');
     const [dataFim, setDataFim] = useState('');
-    const [paisSelecionado, setPaisSelecionado] = useState('todos');
+    const [paisSelecionado, setPaisSelecionado] = useState(null);
     
     // Estados de modal e loading
     const [modalSalvar, setModalSalvar] = useState(false);
@@ -75,7 +74,7 @@ function DropiPage() {
     const fetchAnalises = async () => {
         setLoadingAnalises(true);
         try {
-            const response = await axios.get('/api/metricas/dropi/analises/');
+            const response = await axios.get('/metricas/dropi/analises/');
             setAnalisesSalvas(response.data);
         } catch (error) {
             console.error('Erro ao buscar análises:', error);
@@ -86,7 +85,7 @@ function DropiPage() {
     };
 
     const getAnalisesFiltradas = () => {
-        if (paisSelecionado === 'todos') return analisesSalvas;
+        if (!paisSelecionado) return analisesSalvas;
         const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label;
         return analisesSalvas.filter(analise => 
             analise.nome.includes(paisNome) || analise.descricao?.includes(paisNome)
@@ -108,7 +107,7 @@ function DropiPage() {
         setProgressoAtual({ etapa: 'Iniciando...', porcentagem: 0 });
 
         try {
-            const response = await axios.post('/api/metricas/dropi/analises/extract_orders_new_api/', {
+            const response = await axios.post('/metricas/dropi/analises/extract_orders_new_api/', {
                 data_inicio: dataInicio,
                 data_fim: dataFim,
                 pais: paisSelecionado
@@ -122,9 +121,7 @@ function DropiPage() {
                 setDadosResultado(response.data.dados_processados);
                 showNotification('success', 'Dados processados com sucesso!');
                 
-                const paisNome = paisSelecionado === 'todos' ? 
-                    'Todos os Países' : 
-                    PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
+                const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
                 const dataStr = `${new Date(dataInicio).toLocaleDateString('pt-BR')} - ${new Date(dataFim).toLocaleDateString('pt-BR')}`;
                 setNomeAnalise(`${paisNome} ${dataStr}`);
             }
@@ -145,11 +142,9 @@ function DropiPage() {
 
         setLoadingSalvar(true);
         try {
-            const descricaoPais = paisSelecionado === 'todos' ? 
-                'Extração Dropi - Todos os Países' :
-                `Extração Dropi - ${PAISES.find(p => p.value === paisSelecionado)?.label}`;
+            const descricaoPais = `Extração Dropi - ${PAISES.find(p => p.value === paisSelecionado)?.label}`;
 
-            const response = await axios.post('/api/metricas/dropi/analises/', {
+            const response = await axios.post('/metricas/dropi/analises/', {
                 nome: nomeAnalise,
                 dados_pedidos: dadosResultado,
                 data_inicio: dataInicio,
@@ -189,7 +184,7 @@ function DropiPage() {
 
         setLoadingDelete(prev => ({ ...prev, [id]: true }));
         try {
-            await axios.delete(`/api/metricas/dropi/analises/${id}/`, {
+            await axios.delete(`/metricas/dropi/analises/${id}/`, {
                 headers: {
                     'X-CSRFToken': getCSRFToken()
                 }
@@ -642,6 +637,14 @@ function DropiPage() {
 
     useEffect(() => {
         fetchAnalises();
+        
+        // Definir datas padrão (última semana) como strings para input type="date"
+        const hoje = new Date();
+        const setemantepassada = new Date();
+        setemantepassada.setDate(hoje.getDate() - 7);
+        
+        setDataFim(hoje.toISOString().split('T')[0]);
+        setDataInicio(setemantepassada.toISOString().split('T')[0]);
     }, []);
 
     // ======================== RENDER PRINCIPAL ========================
