@@ -6,7 +6,7 @@ import { ptBR } from "date-fns/locale"
 import { cn } from "../../lib/utils.js"
 import { Button } from "./button"
 import { Calendar } from "./calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "./popover"
+import { Popover, PopoverContent, PopoverTrigger } from "./popover-radix"
 
 export function DateRangePicker({
   dateRange,
@@ -49,7 +49,7 @@ export function DateRangePicker({
             variant="outline"
             className={cn(
               "w-full justify-start text-left font-normal",
-              !dateRange && "text-muted-foreground"
+              !dateRange?.from && "text-muted-foreground"
             )}
             disabled={disabled}
           >
@@ -57,7 +57,7 @@ export function DateRangePicker({
             {formatDateRange()}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0" align="start" side="bottom">
           <Calendar
             initialFocus
             mode="range"
@@ -65,7 +65,7 @@ export function DateRangePicker({
             selected={dateRange}
             onSelect={handleSelect}
             numberOfMonths={2}
-            className="rounded-lg border-0 shadow-none"
+            className="rounded-lg border-0"
           />
         </PopoverContent>
       </Popover>
