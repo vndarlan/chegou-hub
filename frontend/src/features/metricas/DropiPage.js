@@ -663,30 +663,28 @@ function DropiPage() {
             {renderHeader()}
 
             {/* Navegação */}
-            {paisSelecionado && (
-                <Tabs value={secaoAtiva} onValueChange={setSecaoAtiva} className="w-full">
-                    <TabsList className="grid w-fit grid-cols-2 bg-muted">
-                        <TabsTrigger value="gerar" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
-                            <Rocket className="h-4 w-4 mr-2" />
-                            Gerar
-                        </TabsTrigger>
-                        <TabsTrigger value="salvas" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
-                            <BarChart3 className="h-4 w-4 mr-2" />
-                            Salvas
-                        </TabsTrigger>
-                    </TabsList>
+            <Tabs value={secaoAtiva} onValueChange={setSecaoAtiva} className="w-full">
+                <TabsList className="grid w-fit grid-cols-2 bg-muted">
+                    <TabsTrigger value="gerar" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
+                        <Rocket className="h-4 w-4 mr-2" />
+                        Gerar
+                    </TabsTrigger>
+                    <TabsTrigger value="salvas" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Salvas
+                    </TabsTrigger>
+                </TabsList>
 
-                    <TabsContent value="gerar" className="space-y-4">
-                        {renderFormulario()}
-                        {renderEstatisticas()}
-                        {renderResultados()}
-                    </TabsContent>
+                <TabsContent value="gerar" className="space-y-4">
+                    {renderFormulario()}
+                    {renderEstatisticas()}
+                    {renderResultados()}
+                </TabsContent>
 
-                    <TabsContent value="salvas">
-                        {renderAnalisesSalvas()}
-                    </TabsContent>
-                </Tabs>
-            )}
+                <TabsContent value="salvas">
+                    {renderAnalisesSalvas()}
+                </TabsContent>
+            </Tabs>
 
             {/* Modal instruções */}
             <Dialog open={modalInstrucoes} onOpenChange={setModalInstrucoes}>
