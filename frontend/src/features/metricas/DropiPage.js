@@ -31,6 +31,9 @@ const PAISES = [
     { value: 'colombia', label: 'Colômbia' }
 ];
 
+// Cache global para a base de URL que funciona (evita testar para cada imagem)
+let BASE_URL_CACHE = null;
+
 // Componente especializado para testar múltiplas URLs de imagem
 const ImagemProdutoComFallback = ({ urlInicial, produto, onDebugUpdate }) => {
     const [urlAtual, setUrlAtual] = useState(urlInicial);
@@ -43,30 +46,54 @@ const ImagemProdutoComFallback = ({ urlInicial, produto, onDebugUpdate }) => {
         
         const urls = [];
         
+        // Se já temos uma base cacheada que funciona, usar ela primeiro
+        if (BASE_URL_CACHE && !urlOriginal.startsWith('http')) {
+            const urlComCache = urlOriginal.startsWith('/') ? 
+                `${BASE_URL_CACHE}${urlOriginal}` : 
+                `${BASE_URL_CACHE}/${urlOriginal}`;
+            urls.push(urlComCache);
+            console.log(`🎯 USANDO BASE CACHEADA: ${BASE_URL_CACHE} para produto "${produto}"`);
+        }
+        
         if (urlOriginal.startsWith('http')) {
             // Se já tem protocolo, testar diretamente
             urls.push(urlOriginal);
         } else {
-            // Testar diferentes bases de URL
+            // Testar diferentes bases de URL - LISTA EXPANDIDA PARA DESCOBRIR A CORRETA
             const baseUrls = [
+                '', // URL original sem base para testar diretamente
                 'https://dropi.com',
                 'https://api.dropi.com', 
                 'https://cdn.dropi.com',
                 'https://storage.dropi.com',
                 'https://assets.dropi.com',
-                'https://images.dropi.com'
+                'https://images.dropi.com',
+                'https://static.dropi.com',
+                'https://files.dropi.com',
+                'https://media.dropi.com',
+                'https://uploads.dropi.com',
+                'https://content.dropi.com',
+                'https://s3.amazonaws.com/dropi',
+                'https://dropi-images.s3.amazonaws.com',
+                'https://dropi.s3.amazonaws.com',
+                'https://dropi-assets.s3.amazonaws.com',
+                'https://s3.us-east-1.amazonaws.com/dropi',
+                'https://s3-us-west-2.amazonaws.com/dropi',
+                'https://cloudflare.dropi.com',
+                'https://imagekit.dropi.com',
+                'https://aws.dropi.com'
             ];
             
             baseUrls.forEach(base => {
+                // Evitar duplicatas se já está no cache
                 const url = urlOriginal.startsWith('/') ? 
                     `${base}${urlOriginal}` : 
                     `${base}/${urlOriginal}`;
-                urls.push(url);
+                
+                if (!urls.includes(url)) {
+                    urls.push(url);
+                }
             });
-            
-            // Testar AWS S3 direto (comum para urlS3)
-            urls.push(`https://s3.amazonaws.com/${urlOriginal}`);
-            urls.push(`https://dropi-assets.s3.amazonaws.com/${urlOriginal}`);
         }
         
         return urls;
@@ -74,23 +101,35 @@ const ImagemProdutoComFallback = ({ urlInicial, produto, onDebugUpdate }) => {
 
     const urlsParaTestar = gerarUrlsParaTestar(urlInicial);
 
+    // Log inicial para debug
+    useEffect(() => {
+        if (urlInicial && produto) {
+            console.log(`🆔 INICIALIZANDO IMAGEM para produto "${produto}"`);
+            console.log(`🖼️ URL ORIGINAL da API:`, urlInicial);
+            console.log(`📝 Será testada ${urlsParaTestar.length} variações de URL`);
+        }
+    }, [urlInicial, produto]);
+
     const tentarProximaUrl = () => {
         const proximoIndice = indiceUrl + 1;
         
         if (proximoIndice < urlsParaTestar.length) {
             const proximaUrl = urlsParaTestar[proximoIndice];
-            console.log(`🔄 Tentando URL ${proximoIndice + 1}/${urlsParaTestar.length} para "${produto}":`, proximaUrl);
+            console.log(`🔄 TENTATIVA ${proximoIndice + 1}/${urlsParaTestar.length} para "${produto}"`);
+            console.log(`🧪 TESTANDO URL:`, proximaUrl);
             setUrlAtual(proximaUrl);
             setIndiceUrl(proximoIndice);
         } else {
-            console.log(`❌ Todas as URLs falharam para "${produto}". Mostrando placeholder.`);
+            console.log(`❌ TODAS AS ${urlsParaTestar.length} URLs FALHARAM para "${produto}"`);
+            console.log(`📋 URLs testadas:`, urlsParaTestar);
             setMostrarPlaceholder(true);
             
             // Registrar falha total
             if (onDebugUpdate) {
                 onDebugUpdate({
                     tipo: 'falha_total',
-                    produto
+                    produto,
+                    urlsTestadas: urlsParaTestar
                 });
             }
         }
@@ -98,6 +137,20 @@ const ImagemProdutoComFallback = ({ urlInicial, produto, onDebugUpdate }) => {
 
     const handleImageLoad = () => {
         console.log(`✅ SUCESSO! Imagem carregada para "${produto}" com URL:`, urlAtual);
+        
+        // DESCOBRIR E CACHEAR A BASE CORRETA
+        if (!BASE_URL_CACHE && !urlInicial.startsWith('http')) {
+            // Extrair a base da URL que funcionou
+            const urlOriginalSemProtocolo = urlInicial.startsWith('/') ? urlInicial.substring(1) : urlInicial;
+            const baseEncontrada = urlAtual.replace(urlOriginalSemProtocolo, '').replace(/\/$/, '');
+            
+            if (baseEncontrada && baseEncontrada !== urlInicial) {
+                BASE_URL_CACHE = baseEncontrada;
+                console.log(`🎯 BASE DE URL DESCOBERTA E CACHEADA: "${BASE_URL_CACHE}"`);
+                console.log(`📋 Esta base será usada para todas as próximas imagens!`);
+            }
+        }
+        
         setMostrarPlaceholder(false);
         
         // Atualizar estatísticas de debug
@@ -106,13 +159,14 @@ const ImagemProdutoComFallback = ({ urlInicial, produto, onDebugUpdate }) => {
                 tipo: 'sucesso',
                 produto,
                 url: urlAtual,
-                tentativas: indiceUrl + 1
+                tentativas: indiceUrl + 1,
+                baseEncontrada: BASE_URL_CACHE
             });
         }
     };
 
     const handleImageError = () => {
-        console.log(`❌ Falha na URL ${indiceUrl + 1}/${urlsParaTestar.length} para "${produto}":`, urlAtual);
+        console.log(`❌ FALHA ${indiceUrl + 1}/${urlsParaTestar.length} para "${produto}":`, urlAtual);
         
         // Registrar falha individual
         if (onDebugUpdate) {
@@ -206,7 +260,9 @@ function DropiPage() {
         sucessos: 0,
         falhas: 0,
         urlsQueForam: [],
-        urlsQueFalharam: []
+        urlsQueFalharam: [],
+        baseDescoberta: null,
+        urlsTestadasPorProduto: {}
     });
     
     // Estados do formulário - usando strings para input type="date"
@@ -306,12 +362,15 @@ function DropiPage() {
                 setDadosResultado(pedidos);
                 
                 // Resetar debug de imagens para nova análise
+                BASE_URL_CACHE = null; // Limpar cache da base
                 setDebugImagens({
                     totalTentativas: 0,
                     sucessos: 0,
                     falhas: 0,
                     urlsQueForam: [],
-                    urlsQueFalharam: []
+                    urlsQueFalharam: [],
+                    baseDescoberta: null,
+                    urlsTestadasPorProduto: {}
                 });
                 
                 showNotification('success', `${pedidos.length} pedidos extraídos com sucesso!`);
@@ -418,7 +477,15 @@ function DropiPage() {
                     tentativas: debugInfo.tentativas
                 });
                 
+                // Salvar base descoberta
+                if (debugInfo.baseEncontrada && !novo.baseDescoberta) {
+                    novo.baseDescoberta = debugInfo.baseEncontrada;
+                }
+                
                 console.log(`📊 DEBUG STATS: ${novo.sucessos}/${novo.totalTentativas} imagens carregadas`);
+                if (debugInfo.baseEncontrada) {
+                    console.log(`🎯 BASE DESCOBERTA: ${debugInfo.baseEncontrada}`);
+                }
             } else if (debugInfo.tipo === 'falha_individual') {
                 novo.urlsQueFalharam.push({
                     produto: debugInfo.produto,
@@ -428,6 +495,11 @@ function DropiPage() {
             } else if (debugInfo.tipo === 'falha_total') {
                 novo.falhas += 1;
                 novo.totalTentativas += 1;
+                
+                // Salvar todas as URLs testadas para este produto
+                if (debugInfo.urlsTestadas) {
+                    novo.urlsTestadasPorProduto[debugInfo.produto] = debugInfo.urlsTestadas;
+                }
                 
                 console.log(`📊 DEBUG STATS: ${novo.falhas} falhas totais de ${novo.totalTentativas} produtos`);
             }
@@ -914,18 +986,57 @@ function DropiPage() {
                         </div>
                     </div>
                     
+                    {/* Informações de taxa de sucesso e base descoberta */}
                     {debugImagens.totalTentativas > 0 && (
-                        <div className="mt-4 p-3 bg-muted/20 border border-border rounded-lg">
-                            <p className="text-sm text-muted-foreground">
-                                <strong>Taxa de Sucesso:</strong> {
-                                    debugImagens.totalTentativas > 0 ? 
-                                        `${((debugImagens.sucessos / debugImagens.totalTentativas) * 100).toFixed(1)}%` : 
-                                        '0%'
-                                }
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Verifique o console do navegador para detalhes completos das URLs testadas
-                            </p>
+                        <div className="mt-4 space-y-3">
+                            <div className="p-3 bg-muted/20 border border-border rounded-lg">
+                                <p className="text-sm text-muted-foreground">
+                                    <strong>Taxa de Sucesso:</strong> {
+                                        debugImagens.totalTentativas > 0 ? 
+                                            `${((debugImagens.sucessos / debugImagens.totalTentativas) * 100).toFixed(1)}%` : 
+                                            '0%'
+                                    }
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Verifique o console do navegador para detalhes completos das URLs testadas
+                                </p>
+                            </div>
+                            
+                            {/* Mostrar base descoberta se houver */}
+                            {debugImagens.baseDescoberta && (
+                                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                        <span className="text-sm font-medium text-green-800">BASE DE URL DESCOBERTA</span>
+                                    </div>
+                                    <p className="text-sm font-mono text-green-700 bg-green-100 px-2 py-1 rounded border">
+                                        {debugImagens.baseDescoberta}
+                                    </p>
+                                    <p className="text-xs text-green-600 mt-1">
+                                        Esta base está sendo usada para carregar todas as imagens automaticamente.
+                                    </p>
+                                </div>
+                            )}
+                            
+                            {/* Mostrar produtos com falha se houver */}
+                            {Object.keys(debugImagens.urlsTestadasPorProduto).length > 0 && (
+                                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                                        <span className="text-sm font-medium text-red-800">PRODUTOS SEM IMAGEM</span>
+                                    </div>
+                                    <div className="text-sm text-red-700 space-y-1">
+                                        {Object.keys(debugImagens.urlsTestadasPorProduto).map((produto, index) => (
+                                            <p key={index} className="truncate">
+                                                • {produto}
+                                            </p>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-red-600 mt-1">
+                                        Verifique o console para ver todas as URLs testadas para cada produto.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </CardContent>
