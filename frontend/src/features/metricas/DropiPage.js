@@ -31,6 +31,133 @@ const PAISES = [
     { value: 'colombia', label: 'Colômbia' }
 ];
 
+// Componente especializado para testar múltiplas URLs de imagem
+const ImagemProdutoComFallback = ({ urlInicial, produto, onDebugUpdate }) => {
+    const [urlAtual, setUrlAtual] = useState(urlInicial);
+    const [indiceUrl, setIndiceUrl] = useState(0);
+    const [mostrarPlaceholder, setMostrarPlaceholder] = useState(false);
+
+    // Gerar todas as URLs possíveis para testar
+    const gerarUrlsParaTestar = (urlOriginal) => {
+        if (!urlOriginal) return [];
+        
+        const urls = [];
+        
+        if (urlOriginal.startsWith('http')) {
+            // Se já tem protocolo, testar diretamente
+            urls.push(urlOriginal);
+        } else {
+            // Testar diferentes bases de URL
+            const baseUrls = [
+                'https://dropi.com',
+                'https://api.dropi.com', 
+                'https://cdn.dropi.com',
+                'https://storage.dropi.com',
+                'https://assets.dropi.com',
+                'https://images.dropi.com'
+            ];
+            
+            baseUrls.forEach(base => {
+                const url = urlOriginal.startsWith('/') ? 
+                    `${base}${urlOriginal}` : 
+                    `${base}/${urlOriginal}`;
+                urls.push(url);
+            });
+            
+            // Testar AWS S3 direto (comum para urlS3)
+            urls.push(`https://s3.amazonaws.com/${urlOriginal}`);
+            urls.push(`https://dropi-assets.s3.amazonaws.com/${urlOriginal}`);
+        }
+        
+        return urls;
+    };
+
+    const urlsParaTestar = gerarUrlsParaTestar(urlInicial);
+
+    const tentarProximaUrl = () => {
+        const proximoIndice = indiceUrl + 1;
+        
+        if (proximoIndice < urlsParaTestar.length) {
+            const proximaUrl = urlsParaTestar[proximoIndice];
+            console.log(`🔄 Tentando URL ${proximoIndice + 1}/${urlsParaTestar.length} para "${produto}":`, proximaUrl);
+            setUrlAtual(proximaUrl);
+            setIndiceUrl(proximoIndice);
+        } else {
+            console.log(`❌ Todas as URLs falharam para "${produto}". Mostrando placeholder.`);
+            setMostrarPlaceholder(true);
+            
+            // Registrar falha total
+            if (onDebugUpdate) {
+                onDebugUpdate({
+                    tipo: 'falha_total',
+                    produto
+                });
+            }
+        }
+    };
+
+    const handleImageLoad = () => {
+        console.log(`✅ SUCESSO! Imagem carregada para "${produto}" com URL:`, urlAtual);
+        setMostrarPlaceholder(false);
+        
+        // Atualizar estatísticas de debug
+        if (onDebugUpdate) {
+            onDebugUpdate({
+                tipo: 'sucesso',
+                produto,
+                url: urlAtual,
+                tentativas: indiceUrl + 1
+            });
+        }
+    };
+
+    const handleImageError = () => {
+        console.log(`❌ Falha na URL ${indiceUrl + 1}/${urlsParaTestar.length} para "${produto}":`, urlAtual);
+        
+        // Registrar falha individual
+        if (onDebugUpdate) {
+            onDebugUpdate({
+                tipo: 'falha_individual',
+                produto,
+                url: urlAtual,
+                tentativa: indiceUrl + 1
+            });
+        }
+        
+        tentarProximaUrl();
+    };
+
+    // Reset quando urlInicial muda
+    useEffect(() => {
+        setUrlAtual(urlInicial);
+        setIndiceUrl(0);
+        setMostrarPlaceholder(false);
+    }, [urlInicial]);
+
+    if (mostrarPlaceholder || !urlAtual) {
+        return (
+            <div className="flex justify-center">
+                <div className="w-8 h-8 bg-muted border border-border rounded flex items-center justify-center">
+                    <ImageIcon className="h-3 w-3 text-muted-foreground" />
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex justify-center">
+            <img 
+                src={urlAtual}
+                alt={`Produto ${produto}`}
+                className="w-8 h-8 object-cover rounded border border-border"
+                loading="lazy"
+                onLoad={handleImageLoad}
+                onError={handleImageError}
+            />
+        </div>
+    );
+};
+
 // Status traduzidos do Dropi (baseados nos dados reais da API)
 const STATUS_DROPI = {
     // Status originais
@@ -72,6 +199,15 @@ function DropiPage() {
     const [analisesSalvas, setAnalisesSalvas] = useState([]);
     const [dadosResultado, setDadosResultado] = useState(null);
     const [secaoAtiva, setSecaoAtiva] = useState('gerar');
+    
+    // Estado para debug das imagens
+    const [debugImagens, setDebugImagens] = useState({
+        totalTentativas: 0,
+        sucessos: 0,
+        falhas: 0,
+        urlsQueForam: [],
+        urlsQueFalharam: []
+    });
     
     // Estados do formulário - usando strings para input type="date"
     const [dataInicio, setDataInicio] = useState('');
@@ -168,6 +304,16 @@ function DropiPage() {
                 console.log('[SUCESSO] Dados carregados na interface para análise visual!');
                 
                 setDadosResultado(pedidos);
+                
+                // Resetar debug de imagens para nova análise
+                setDebugImagens({
+                    totalTentativas: 0,
+                    sucessos: 0,
+                    falhas: 0,
+                    urlsQueForam: [],
+                    urlsQueFalharam: []
+                });
+                
                 showNotification('success', `${pedidos.length} pedidos extraídos com sucesso!`);
                 
                 const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
@@ -258,6 +404,38 @@ function DropiPage() {
         setTimeout(() => setNotification(null), 5000);
     };
 
+    // Função para atualizar estatísticas de debug das imagens
+    const handleDebugImagemUpdate = (debugInfo) => {
+        setDebugImagens(prev => {
+            const novo = { ...prev };
+            
+            if (debugInfo.tipo === 'sucesso') {
+                novo.sucessos += 1;
+                novo.totalTentativas += 1;
+                novo.urlsQueForam.push({
+                    produto: debugInfo.produto,
+                    url: debugInfo.url,
+                    tentativas: debugInfo.tentativas
+                });
+                
+                console.log(`📊 DEBUG STATS: ${novo.sucessos}/${novo.totalTentativas} imagens carregadas`);
+            } else if (debugInfo.tipo === 'falha_individual') {
+                novo.urlsQueFalharam.push({
+                    produto: debugInfo.produto,
+                    url: debugInfo.url,
+                    tentativa: debugInfo.tentativa
+                });
+            } else if (debugInfo.tipo === 'falha_total') {
+                novo.falhas += 1;
+                novo.totalTentativas += 1;
+                
+                console.log(`📊 DEBUG STATS: ${novo.falhas} falhas totais de ${novo.totalTentativas} produtos`);
+            }
+            
+            return novo;
+        });
+    };
+
     // Transformar dados de pedidos em tabela produtos x status
     const processarDadosParaTabela = (pedidos) => {
         if (!pedidos || !Array.isArray(pedidos) || pedidos.length === 0) return [];
@@ -269,27 +447,91 @@ function DropiPage() {
         pedidos.forEach(pedido => {
             // CORREÇÃO: Usar a localização correta da API conforme especificado
             const produto = pedido.orderdetails?.[0]?.product?.name || 'Produto Desconhecido';
-            let imagemProduto = pedido.orderdetails?.[0]?.product?.gallery?.[0]?.urlS3 || null;
+            let imagemProduto = null;
             const status = pedido.status || 'UNKNOWN';
 
-            // Debug das URLs das imagens
-            if (imagemProduto) {
-                console.log('[IMG-DEBUG] DEBUG IMAGEM - Produto:', produto);
-                console.log('[IMG-URL] URL original:', imagemProduto);
+            // ===== DEBUG COMPLETO DA ESTRUTURA DO PRODUTO =====
+            console.log('🖼️ ===== DEBUG COMPLETO IMAGEM =====');
+            console.log('- Pedido ID:', pedido.id || pedido.order_id || 'N/A');
+            console.log('- Produto:', produto);
+            console.log('- OrderDetails completo:', pedido.orderdetails);
+            console.log('- Product completo:', pedido.orderdetails?.[0]?.product);
+            console.log('- Gallery completo:', pedido.orderdetails?.[0]?.product?.gallery);
+            
+            // TESTAR MÚLTIPLAS POSSIBILIDADES DE IMAGEM
+            const product = pedido.orderdetails?.[0]?.product;
+            if (product) {
+                // 1. Tentar gallery[0].urlS3 (padrão especificado)
+                const gallery0UrlS3 = product.gallery?.[0]?.urlS3;
+                // 2. Tentar gallery[0].url (alternativa comum)
+                const gallery0Url = product.gallery?.[0]?.url;
+                // 3. Tentar outros índices do gallery
+                const gallery1UrlS3 = product.gallery?.[1]?.urlS3;
+                const gallery1Url = product.gallery?.[1]?.url;
+                // 4. Tentar campo direto no produto
+                const productImage = product.image || product.img_url || product.thumbnail;
                 
-                // Verificar se a URL precisa de protocolo ou domínio base
-                if (!imagemProduto.startsWith('http')) {
-                    // Se não tem protocolo, assumir que precisa de URL base
-                    const urlBase = 'https://dropi.com';
-                    imagemProduto = imagemProduto.startsWith('/') ? 
-                        `${urlBase}${imagemProduto}` : 
-                        `${urlBase}/${imagemProduto}`;
-                    console.log('[IMG-FIX] URL corrigida:', imagemProduto);
+                console.log('- Gallery[0].urlS3:', gallery0UrlS3);
+                console.log('- Gallery[0].url:', gallery0Url);
+                console.log('- Gallery[1].urlS3:', gallery1UrlS3);
+                console.log('- Gallery[1].url:', gallery1Url);
+                console.log('- Product.image:', productImage);
+                
+                // PRIORIZAR A PRIMEIRA URL DISPONÍVEL
+                imagemProduto = gallery0UrlS3 || gallery0Url || gallery1UrlS3 || gallery1Url || productImage;
+                
+                if (imagemProduto) {
+                    console.log('✅ URL escolhida (original):', imagemProduto);
+                    
+                    // TESTAR DIFERENTES FORMATOS DE URL
+                    const urlsParaTestar = [];
+                    
+                    // Se não tem protocolo, testar diferentes bases
+                    if (!imagemProduto.startsWith('http')) {
+                        // Teste 1: URL direta com https://dropi.com
+                        const url1 = imagemProduto.startsWith('/') ? 
+                            `https://dropi.com${imagemProduto}` : 
+                            `https://dropi.com/${imagemProduto}`;
+                        urlsParaTestar.push(url1);
+                        
+                        // Teste 2: URL com https://api.dropi.com
+                        const url2 = imagemProduto.startsWith('/') ? 
+                            `https://api.dropi.com${imagemProduto}` : 
+                            `https://api.dropi.com/${imagemProduto}`;
+                        urlsParaTestar.push(url2);
+                        
+                        // Teste 3: URL com https://cdn.dropi.com
+                        const url3 = imagemProduto.startsWith('/') ? 
+                            `https://cdn.dropi.com${imagemProduto}` : 
+                            `https://cdn.dropi.com/${imagemProduto}`;
+                        urlsParaTestar.push(url3);
+                        
+                        // Teste 4: URL com https://storage.dropi.com
+                        const url4 = imagemProduto.startsWith('/') ? 
+                            `https://storage.dropi.com${imagemProduto}` : 
+                            `https://storage.dropi.com/${imagemProduto}`;
+                        urlsParaTestar.push(url4);
+                        
+                        // Teste 5: URL direta AWS S3 (comum para urlS3)
+                        const url5 = `https://s3.amazonaws.com/${imagemProduto}`;
+                        urlsParaTestar.push(url5);
+                        
+                        // Usar a primeira opção por padrão
+                        imagemProduto = urlsParaTestar[0];
+                        
+                        console.log('🔧 URLs que serão testadas:', urlsParaTestar);
+                        console.log('🎯 URL FINAL selecionada:', imagemProduto);
+                    } else {
+                        console.log('🎯 URL já tem protocolo, usando diretamente:', imagemProduto);
+                    }
+                } else {
+                    console.log('❌ Nenhuma imagem encontrada para este produto');
                 }
-                
-                console.log('✅ URL final para uso:', imagemProduto);
-                console.log('---');
+            } else {
+                console.log('❌ Produto não encontrado no orderdetails[0]');
             }
+            console.log('====================================');
+            console.log('');
 
             if (!produtosPorStatus[produto]) {
                 produtosPorStatus[produto] = {};
@@ -354,6 +596,25 @@ function DropiPage() {
         totalGeral.Efetividade = totalGeral.Total > 0 ? `${((totalGeral.Entregues / totalGeral.Total) * 100).toFixed(1)}%` : '0%';
 
         tabelaData.push(totalGeral);
+
+        // Debug final: Imprimir resumo das imagens encontradas
+        console.log('🖼️ ===== RESUMO FINAL DEBUG IMAGENS =====');
+        console.log(`📊 Total de produtos únicos processados: ${Object.keys(produtosPorImagem).length}`);
+        console.log(`✅ Produtos com imagem encontrada: ${Object.values(produtosPorImagem).filter(url => url).length}`);
+        console.log(`❌ Produtos sem imagem: ${Object.values(produtosPorImagem).filter(url => !url).length}`);
+        
+        console.log('\n📋 LISTA DE PRODUTOS E SUAS IMAGENS:');
+        Object.entries(produtosPorImagem).forEach(([produto, url], index) => {
+            if (url) {
+                console.log(`${index + 1}. ✅ ${produto}:`);
+                console.log(`   URL: ${url}`);
+            } else {
+                console.log(`${index + 1}. ❌ ${produto}: SEM IMAGEM`);
+            }
+        });
+        
+        console.log('\n🔄 Aguarde o carregamento das imagens na interface...');
+        console.log('===================================\n');
 
         return tabelaData;
     };
@@ -594,6 +855,81 @@ function DropiPage() {
                     </CardContent>
                 </Card>
             </div>
+        );
+    };
+
+    // Relatório de debug das imagens
+    const renderDebugImagens = () => {
+        if (!dadosResultado || !Array.isArray(dadosResultado)) return null;
+        
+        return (
+            <Card className="mb-6 border-border bg-card">
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle className="text-lg text-card-foreground flex items-center gap-2">
+                                <ImageIcon className="h-5 w-5" />
+                                Debug de Imagens
+                            </CardTitle>
+                            <CardDescription className="text-muted-foreground">
+                                Status do carregamento das imagens dos produtos
+                            </CardDescription>
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                console.log('📊 RELATÓRIO COMPLETO DEBUG IMAGENS:', debugImagens);
+                            }}
+                            className="border-border bg-background text-foreground hover:bg-accent"
+                        >
+                            Log Completo
+                        </Button>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                <span className="text-sm font-medium text-green-800">Sucessos</span>
+                            </div>
+                            <p className="text-2xl font-bold text-green-700">{debugImagens.sucessos}</p>
+                        </div>
+                        
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                                <span className="text-sm font-medium text-red-800">Falhas</span>
+                            </div>
+                            <p className="text-2xl font-bold text-red-700">{debugImagens.falhas}</p>
+                        </div>
+                        
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                <span className="text-sm font-medium text-blue-800">Total</span>
+                            </div>
+                            <p className="text-2xl font-bold text-blue-700">{debugImagens.totalTentativas}</p>
+                        </div>
+                    </div>
+                    
+                    {debugImagens.totalTentativas > 0 && (
+                        <div className="mt-4 p-3 bg-muted/20 border border-border rounded-lg">
+                            <p className="text-sm text-muted-foreground">
+                                <strong>Taxa de Sucesso:</strong> {
+                                    debugImagens.totalTentativas > 0 ? 
+                                        `${((debugImagens.sucessos / debugImagens.totalTentativas) * 100).toFixed(1)}%` : 
+                                        '0%'
+                                }
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Verifique o console do navegador para detalhes completos das URLs testadas
+                            </p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         );
     };
 
@@ -865,39 +1201,14 @@ function DropiPage() {
                                                         key={col}
                                                         className={classesCelula}
                                                     >
-                                                        {/* NOVA FUNCIONALIDADE: Renderização da coluna Imagem */}
+                                                        {/* NOVA FUNCIONALIDADE: Renderização da coluna Imagem com MÚLTIPLOS FALLBACKS */}
                                                         {col === 'Imagem' ? (
                                                             row[col] && row.Produto !== 'TOTAL' ? (
-                                                                <div className="flex justify-center">
-                                                                    <img 
-                                                                        src={row[col]} 
-                                                                        alt={`Produto ${row.Produto}`}
-                                                                        className="w-8 h-8 object-cover rounded border border-border"
-                                                                        loading="lazy" // Lazy loading para performance
-                                                                        onLoad={(e) => {
-                                                                            // Debug: Log successful image loads
-                                                                            console.log('✅ Imagem carregada:', row[col], 'para produto:', row.Produto);
-                                                                        }}
-                                                                        onError={(e) => {
-                                                                            // Debug: Log failed image loads
-                                                                            console.log('❌ Falha ao carregar imagem:', row[col], 'para produto:', row.Produto);
-                                                                            console.log('[URL-TEST] URL completa sendo testada:', row[col]);
-                                                                            
-                                                                            // Fallback para placeholder se imagem falhar
-                                                                            e.target.style.display = 'none';
-                                                                            const fallback = e.target.nextSibling;
-                                                                            if (fallback) {
-                                                                                fallback.style.display = 'flex';
-                                                                            }
-                                                                        }}
-                                                                    />
-                                                                    <div 
-                                                                        className="w-8 h-8 bg-muted border border-border rounded flex items-center justify-center" 
-                                                                        style={{ display: 'none' }}
-                                                                    >
-                                                                        <ImageIcon className="h-3 w-3 text-muted-foreground" />
-                                                                    </div>
-                                                                </div>
+                                                                <ImagemProdutoComFallback 
+                                                                    urlInicial={row[col]}
+                                                                    produto={row.Produto}
+                                                                    onDebugUpdate={handleDebugImagemUpdate}
+                                                                />
                                                             ) : (
                                                                 row.Produto === 'TOTAL' ? (
                                                                     <div className="flex justify-center">
@@ -1085,6 +1396,7 @@ function DropiPage() {
                 <TabsContent value="gerar" className="space-y-4">
                     {renderFormulario()}
                     {renderEstatisticas()}
+                    {renderDebugImagens()}
                     {renderExemploPedido()}
                     {renderResultados()}
                 </TabsContent>
