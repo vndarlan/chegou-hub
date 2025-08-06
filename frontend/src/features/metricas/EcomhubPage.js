@@ -23,6 +23,7 @@ import { Progress } from '../../components/ui/progress';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { SimpleDateRangePicker } from '../../components/ui/simple-date-range-picker';
+import { DateInputs } from '../../components/ui/date-inputs';
 
 const PAISES = [
     { value: 'todos', label: 'Todos os Países' },
@@ -312,7 +313,15 @@ function EcomhubPage() {
                     </div>
 
                     <div className="flex items-end gap-4">
-                        {/* Date Range Picker */}
+                        {/* Date Inputs - mais confiável que calendário popup */}
+                        <DateInputs
+                            dateRange={dateRange}
+                            onDateRangeChange={setDateRange}
+                            disabled={loadingProcessar}
+                            className="w-96"
+                        />
+                        
+                        {/* Fallback: Se quiser testar o calendário popup, descomente:
                         <div>
                             <Label className="mb-2 block text-foreground">Período</Label>
                             <SimpleDateRangePicker
@@ -323,6 +332,7 @@ function EcomhubPage() {
                                 placeholder="Selecione o período..."
                             />
                         </div>
+                        */}
                         
                         <Button
                             onClick={processarDados}
