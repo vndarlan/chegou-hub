@@ -2,7 +2,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from .models import Feedback
-from .serializers import FeedbackCreateSerializer, FeedbackSerializer
+from .serializers import FeedbackCreateSerializer, FeedbackSerializer, FeedbackNotificationSerializer
 import logging
 import traceback
 
@@ -46,6 +46,61 @@ class FeedbackPendingView(generics.ListAPIView):
         except Exception as e:
             logger.error(f"Erro ao listar feedbacks pendentes: {str(e)}")
             raise
+
+
+class FeedbackNotificationsView(generics.ListAPIView):
+    """View específica para retornar feedbacks pendentes no formato de notificações."""
+    serializer_class = FeedbackNotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        # Verificar se o usuário é administrador
+        if not self.request.user.is_staff:
+            logger.warning(f"Usuário não-admin {self.request.user.username} tentou acessar notificações de feedback")
+            return Feedback.objects.none()
+        
+        # Retornar apenas feedbacks pendentes, ordenados por data mais recente
+        queryset = Feedback.objects.filter(
+            status='pendente'
+        ).select_related('usuario').order_by('-data_criacao')
+        
+        logger.info(f"Retornando {queryset.count()} notificações de feedback para admin {self.request.user.username}")
+        return queryset
+    
+    def list(self, request, *args, **kwargs):
+        """Override para adicionar logs e formatação adequada para notificações."""
+        try:
+            response = super().list(request, *args, **kwargs)
+            
+            # Formatar dados para o formato de notificação esperado pelo frontend
+            notifications_data = []
+            for feedback in response.data:
+                notifications_data.append({
+                    'id': feedback['id'],
+                    'title': feedback['titulo'],
+                    'message': f"Novo feedback de {feedback['usuario_nome']} - {feedback['categoria']}",
+                    'created_at': feedback['data_criacao'],
+                    'priority': feedback['prioridade'],
+                    'category': feedback['categoria'],
+                    'user': feedback['usuario_nome'],
+                    'type': 'feedback',
+                    'url': f'/feedback/{feedback["id"]}'  # URL para redirecionar no frontend
+                })
+            
+            logger.info(f"API /api/notifications/feedbacks/ chamada por {request.user.username} - Retornadas: {len(notifications_data)} notificações")
+            
+            return Response({
+                'results': notifications_data,
+                'count': len(notifications_data)
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Erro ao listar notificações de feedback: {str(e)}")
+            return Response({
+                'error': 'Erro interno do servidor',
+                'results': [],
+                'count': 0
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class FeedbackCreateView(generics.CreateAPIView):

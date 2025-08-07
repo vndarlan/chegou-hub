@@ -14,6 +14,7 @@ from .views import (
     EnsureCSRFView,
 )
 from .views_debug import DebugCorsView
+from features.feedback.views import FeedbackNotificationsView
 
 urlpatterns = [
     # Autenticação/Estado
@@ -27,6 +28,9 @@ urlpatterns = [
     # Debug
     path('debug/cors/', DebugCorsView.as_view(), name='debug_cors'),
     path('cors-debug/', DebugCorsView.as_view(), name='cors_debug'),
+    
+    # Notificações centralizadas
+    path('notifications/feedbacks/', FeedbackNotificationsView.as_view(), name='notifications_feedbacks'),
     
     # ===== ROTAS TEMPORÁRIAS REMOVIDAS =====
     # Agora usa apenas features.ia.urls

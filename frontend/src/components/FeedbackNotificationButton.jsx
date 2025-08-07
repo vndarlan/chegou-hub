@@ -2,20 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { Bell, Clock, AlertTriangle, User, Calendar } from 'lucide-react';
+import { Bell, Clock, AlertTriangle, User, Calendar, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Separator } from './ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import axios from 'axios';
 import { getCSRFToken } from '../utils/csrf';
 
 const FeedbackNotificationButton = ({ isAdmin }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [pendingFeedbacks, setPendingFeedbacks] = useState([]);
+  const [feedbackNotifications, setFeedbackNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [count, setCount] = useState(0);
+  const [notificationsCount, setNotificationsCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
 
-  // Buscar apenas a contagem (mais rápido)
+  // Buscar apenas a contagem de feedbacks pendentes (mais rápido)
   const fetchPendingCount = async () => {
     if (!isAdmin) return;
     
@@ -26,11 +31,40 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
           'X-CSRFToken': getCSRFToken(),
         }
       });
-      setCount(response.data?.count || 0);
+      const pendingCount = response.data?.count || 0;
+      setCount(pendingCount);
+      updateTotalCount(pendingCount, notificationsCount);
     } catch (error) {
       console.error('Erro ao buscar contagem de feedbacks pendentes:', error);
       setCount(0);
+      updateTotalCount(0, notificationsCount);
     }
+  };
+
+  // Buscar contagem de notificações de feedbacks
+  const fetchNotificationsCount = async () => {
+    if (!isAdmin) return;
+    
+    try {
+      const response = await axios.get('/api/notifications/feedbacks/', {
+        withCredentials: true,
+        headers: {
+          'X-CSRFToken': getCSRFToken(),
+        }
+      });
+      const notifCount = response.data?.count || 0;
+      setNotificationsCount(notifCount);
+      updateTotalCount(count, notifCount);
+    } catch (error) {
+      console.error('Erro ao buscar contagem de notificações:', error);
+      setNotificationsCount(0);
+      updateTotalCount(count, 0);
+    }
+  };
+
+  // Atualizar contagem total
+  const updateTotalCount = (pendingCount, notifCount) => {
+    setTotalCount(Math.max(pendingCount, notifCount)); // Usar o maior valor para evitar duplicação
   };
   
   // Buscar feedbacks completos (apenas quando modal abrir)
@@ -56,30 +90,56 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
     }
   };
 
-  // Buscar feedbacks quando o modal for aberto
+  // Buscar notificações de feedbacks completas (apenas quando modal abrir)
+  const fetchFeedbackNotifications = async () => {
+    if (!isAdmin) return;
+    
+    try {
+      setNotificationsLoading(true);
+      const response = await axios.get('/api/notifications/feedbacks/', {
+        withCredentials: true,
+        headers: {
+          'X-CSRFToken': getCSRFToken(),
+        }
+      });
+      setFeedbackNotifications(response.data?.results || []);
+      setNotificationsCount(response.data?.count || 0);
+    } catch (error) {
+      console.error('Erro ao buscar notificações de feedbacks:', error);
+      setFeedbackNotifications([]);
+      setNotificationsCount(0);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  // Buscar dados quando o modal for aberto
   useEffect(() => {
     if (isOpen && isAdmin) {
       fetchPendingFeedbacks();
+      fetchFeedbackNotifications();
     }
   }, [isOpen, isAdmin]);
 
-  // Buscar contagem inicial quando o componente montar
+  // Buscar contagens iniciais quando o componente montar
   useEffect(() => {
     if (isAdmin) {
       fetchPendingCount();
+      fetchNotificationsCount();
     }
   }, [isAdmin]);
   
-  // Atualizar periodicamente apenas a contagem (a cada 30 segundos)
+  // Atualizar periodicamente apenas as contagens (a cada 30 segundos)
   useEffect(() => {
     if (!isAdmin) return;
     
     const interval = setInterval(() => {
       fetchPendingCount();
+      fetchNotificationsCount();
     }, 30000); // 30 segundos
     
     return () => clearInterval(interval);
-  }, [isAdmin]);
+  }, [isAdmin, count, notificationsCount]);
 
   // Não renderizar nada se não for admin
   if (!isAdmin) {
@@ -139,15 +199,15 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
           variant="ghost"
           size="sm"
           className="h-8 w-8 p-0 hover:bg-accent text-foreground hover:text-foreground relative"
-          title={`Feedbacks pendentes (${count})`}
+          title={`Notificações (${totalCount})`}
         >
           <Bell className="h-4 w-4" />
-          {count > 0 && (
+          {totalCount > 0 && (
             <Badge 
               variant="destructive" 
               className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-xs"
             >
-              {count > 99 ? '99+' : count}
+              {totalCount > 99 ? '99+' : totalCount}
             </Badge>
           )}
         </Button>
@@ -156,116 +216,188 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5" />
-            Feedbacks Pendentes ({count})
+            Central de Notificações
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
-          {loading ? (
-            <div className="flex items-center justify-center p-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : pendingFeedbacks.length === 0 ? (
-            <div className="text-center p-8 text-muted-foreground">
-              <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhum feedback pendente!</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {pendingFeedbacks.map((feedback) => (
-                <Card key={feedback.id} className="border-l-4 border-l-orange-500">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base font-medium truncate">
-                          {feedback.titulo}
-                        </CardTitle>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                          <div className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            {feedback.usuario_nome}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {formatDate(feedback.data_criacao)}
+        <Tabs defaultValue="notifications" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="notifications" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Notificações ({notificationsCount})
+            </TabsTrigger>
+            <TabsTrigger value="feedbacks" className="flex items-center gap-2">
+              <Bell className="h-4 w-4" />
+              Feedbacks Detalhados ({count})
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="notifications" className="space-y-4 mt-4">
+            {notificationsLoading ? (
+              <div className="flex items-center justify-center p-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : feedbackNotifications.length === 0 ? (
+              <div className="text-center p-8 text-muted-foreground">
+                <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Nenhuma notificação de feedback!</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {feedbackNotifications.map((notification) => (
+                  <Card key={notification.id} className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => {
+                          // Aqui poderia implementar navegação para detalhes do feedback
+                          console.log('Clicked notification:', notification);
+                        }}>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-base font-medium truncate">
+                            {notification.title}
+                          </CardTitle>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {notification.message}
+                          </p>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+                            <div className="flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              {notification.user}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {formatDate(notification.created_at)}
+                            </div>
                           </div>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <Badge 
+                            variant="outline" 
+                            className={getPrioridadeColor(notification.priority)}
+                          >
+                            {notification.priority === 'alta' && <AlertTriangle className="h-3 w-3 mr-1" />}
+                            {getPrioridadeLabel(notification.priority)}
+                          </Badge>
+                          <Badge variant="secondary" className="flex items-center gap-1">
+                            <MessageSquare className="h-3 w-3" />
+                            {getCategoriaLabel(notification.category)}
+                          </Badge>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge 
-                          variant="outline" 
-                          className={getPrioridadeColor(feedback.prioridade)}
-                        >
-                          {feedback.prioridade === 'alta' && <AlertTriangle className="h-3 w-3 mr-1" />}
-                          {getPrioridadeLabel(feedback.prioridade)}
-                        </Badge>
-                        <Badge variant="secondary" className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {getStatusLabel(feedback.status)}
-                        </Badge>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="feedbacks" className="space-y-4 mt-4">
+            {loading ? (
+              <div className="flex items-center justify-center p-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : pendingFeedbacks.length === 0 ? (
+              <div className="text-center p-8 text-muted-foreground">
+                <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Nenhum feedback pendente!</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pendingFeedbacks.map((feedback) => (
+                  <Card key={feedback.id} className="border-l-4 border-l-orange-500">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-base font-medium truncate">
+                            {feedback.titulo}
+                          </CardTitle>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                            <div className="flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              {feedback.usuario_nome}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {formatDate(feedback.data_criacao)}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge 
+                            variant="outline" 
+                            className={getPrioridadeColor(feedback.prioridade)}
+                          >
+                            {feedback.prioridade === 'alta' && <AlertTriangle className="h-3 w-3 mr-1" />}
+                            {getPrioridadeLabel(feedback.prioridade)}
+                          </Badge>
+                          <Badge variant="secondary" className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {getStatusLabel(feedback.status)}
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="space-y-2">
-                      <div>
-                        <span className="text-sm font-medium text-muted-foreground">
-                          Categoria: 
-                        </span>
-                        <span className="text-sm ml-2">
-                          {getCategoriaLabel(feedback.categoria)}
-                        </span>
-                      </div>
-                      
-                      {feedback.url_pagina && (
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="space-y-2">
                         <div>
                           <span className="text-sm font-medium text-muted-foreground">
-                            Página: 
+                            Categoria: 
                           </span>
-                          <span className="text-sm ml-2 text-blue-600 hover:underline">
-                            <a 
-                              href={feedback.url_pagina} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="break-all"
-                            >
-                              {feedback.url_pagina}
-                            </a>
+                          <span className="text-sm ml-2">
+                            {getCategoriaLabel(feedback.categoria)}
                           </span>
                         </div>
-                      )}
-                      
-                      <Separator className="my-2" />
-                      
-                      <div>
-                        <span className="text-sm font-medium text-muted-foreground block mb-1">
-                          Descrição:
-                        </span>
-                        <p className="text-sm whitespace-pre-wrap break-words">
-                          {feedback.descricao}
-                        </p>
-                      </div>
-                      
-                      {feedback.imagem_url && (
+                        
+                        {feedback.url_pagina && (
+                          <div>
+                            <span className="text-sm font-medium text-muted-foreground">
+                              Página: 
+                            </span>
+                            <span className="text-sm ml-2 text-blue-600 hover:underline">
+                              <a 
+                                href={feedback.url_pagina} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="break-all"
+                              >
+                                {feedback.url_pagina}
+                              </a>
+                            </span>
+                          </div>
+                        )}
+                        
+                        <Separator className="my-2" />
+                        
                         <div>
-                          <span className="text-sm font-medium text-muted-foreground block mb-2">
-                            Imagem:
+                          <span className="text-sm font-medium text-muted-foreground block mb-1">
+                            Descrição:
                           </span>
-                          <img 
-                            src={feedback.imagem_url} 
-                            alt="Screenshot do feedback"
-                            className="max-w-full h-auto rounded border"
-                            style={{ maxHeight: '200px' }}
-                          />
+                          <p className="text-sm whitespace-pre-wrap break-words">
+                            {feedback.descricao}
+                          </p>
                         </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
+                        
+                        {feedback.imagem_url && (
+                          <div>
+                            <span className="text-sm font-medium text-muted-foreground block mb-2">
+                              Imagem:
+                            </span>
+                            <img 
+                              src={feedback.imagem_url} 
+                              alt="Screenshot do feedback"
+                              className="max-w-full h-auto rounded border"
+                              style={{ maxHeight: '200px' }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
         
         <div className="flex justify-between items-center">
           <div className="text-sm text-muted-foreground">
@@ -275,10 +407,13 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={fetchPendingFeedbacks}
-              disabled={loading}
+              onClick={() => {
+                fetchPendingFeedbacks();
+                fetchFeedbackNotifications();
+              }}
+              disabled={loading || notificationsLoading}
             >
-              {loading ? 'Atualizando...' : 'Atualizar'}
+              {(loading || notificationsLoading) ? 'Atualizando...' : 'Atualizar Tudo'}
             </Button>
             <Button 
               variant="outline" 

@@ -27,6 +27,15 @@ class FeedbackSerializer(serializers.ModelSerializer):
         return None
         
 
+class FeedbackNotificationSerializer(serializers.ModelSerializer):
+    """Serializer específico para notificações de feedback pendente."""
+    usuario_nome = serializers.CharField(source='usuario.username', read_only=True)
+    
+    class Meta:
+        model = Feedback
+        fields = ['id', 'titulo', 'data_criacao', 'usuario_nome', 'status', 'categoria', 'prioridade']
+
+
 class FeedbackCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Feedback
