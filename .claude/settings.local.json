@@ -31,7 +31,9 @@
       "Bash(curl:*)",
       "mcp__ide__getDiagnostics",
       "Bash(set DISABLE_ESLINT_PLUGIN=true)",
-      "Bash(set GENERATE_SOURCEMAP=false)"
+      "Bash(set GENERATE_SOURCEMAP=false)",
+      "Bash(del test_simple_media.py)",
+      "Bash(del check_feedback_status.py)"
     ],
     "deny": []
   }

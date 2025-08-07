@@ -6,7 +6,7 @@ import { Bell, Clock, AlertTriangle, User, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Separator } from './ui/separator';
 import axios from 'axios';
-import { getCsrfToken } from '../utils/csrf';
+import { getCSRFToken } from '../utils/csrf';
 
 const FeedbackNotificationButton = ({ isAdmin }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,7 +22,7 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
       const response = await axios.get('/api/feedback/pending/count/', {
         withCredentials: true,
         headers: {
-          'X-CSRFToken': getCsrfToken(),
+          'X-CSRFToken': getCSRFToken(),
         }
       });
       setCount(response.data?.count || 0);
@@ -41,7 +41,7 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
       const response = await axios.get('/api/feedback/pending/', {
         withCredentials: true,
         headers: {
-          'X-CSRFToken': getCsrfToken(),
+          'X-CSRFToken': getCSRFToken(),
         }
       });
       setPendingFeedbacks(response.data || []);
