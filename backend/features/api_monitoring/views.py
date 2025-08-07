@@ -215,17 +215,41 @@ class CostRecordViewSet(viewsets.ReadOnlyModelViewSet):
         ).order_by('-daily_total').first()
         
         # Melhor custo/benefício (menor custo por token)
-        cost_efficiency = queryset.values('model_name').annotate(
-            avg_cost=Sum(F('input_cost') + F('output_cost') + F('cached_cost') + F('other_costs')) / Sum(F('usagerecord__input_tokens') + F('usagerecord__output_tokens'))
-        ).filter(avg_cost__gt=0).order_by('avg_cost').first()
+        # Primeiro verificar se há dados de uso relacionados
+        usage_data = UsageRecord.objects.filter(
+            api_key__in=queryset.values_list('api_key', flat=True).distinct(),
+            date__range=[start_date, end_date]
+        )
+        
+        cost_efficiency = None
+        if usage_data.exists():
+            # Calcular eficiência apenas se houver dados de uso
+            efficiency_data = []
+            for model in queryset.values('model_name').distinct():
+                model_name = model['model_name']
+                model_costs = queryset.filter(model_name=model_name).aggregate(
+                    total_cost=Sum(F('input_cost') + F('output_cost') + F('cached_cost') + F('other_costs'))
+                )
+                model_usage = usage_data.filter(model_name=model_name).aggregate(
+                    total_tokens=Sum(F('input_tokens') + F('output_tokens'))
+                )
+                
+                if model_costs['total_cost'] and model_usage['total_tokens'] and model_usage['total_tokens'] > 0:
+                    efficiency_data.append({
+                        'model_name': model_name,
+                        'avg_cost': float(model_costs['total_cost']) / float(model_usage['total_tokens'])
+                    })
+            
+            if efficiency_data:
+                cost_efficiency = min(efficiency_data, key=lambda x: x['avg_cost'])
         
         insights_data = {
             'most_expensive_api_key': most_expensive['api_key__name'] if most_expensive else 'N/A',
-            'most_expensive_cost': most_expensive['total'] if most_expensive else 0,
+            'most_expensive_cost': float(most_expensive['total']) if most_expensive and most_expensive.get('total') else 0.0,
             'highest_usage_day': highest_day['date'] if highest_day else start_date,
-            'highest_usage_amount': highest_day['daily_total'] if highest_day else 0,
+            'highest_usage_amount': float(highest_day['daily_total']) if highest_day and highest_day.get('daily_total') else 0.0,
             'best_cost_efficiency_model': cost_efficiency['model_name'] if cost_efficiency else 'N/A',
-            'cost_efficiency_ratio': cost_efficiency['avg_cost'] if cost_efficiency else 0,
+            'cost_efficiency_ratio': cost_efficiency.get('avg_cost', 0) if cost_efficiency else 0.0,
         }
         
         serializer = InsightsSerializer(insights_data)
