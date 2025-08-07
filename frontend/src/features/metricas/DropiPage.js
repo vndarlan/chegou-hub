@@ -1173,134 +1173,33 @@ function DropiPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    {/* IMPLEMENTAÇÃO CORRIGIDA: Scroll restrito à tabela */}
-                    <div className="w-full">
-                        {/* CSS Inline para colunas fixas e container de scroll */}
-                        <style dangerouslySetInnerHTML={{
-                            __html: `
-                                .container-tabela-scroll {
-                                    max-width: 100%;
-                                    overflow-x: auto;
-                                    overflow-y: visible;
-                                    border-radius: 8px;
-                                }
-                                
-                                @media (max-width: 768px) {
-                                    .container-tabela-scroll {
-                                        border-radius: 4px;
-                                    }
-                                    
-                                    .coluna-fixa-esquerda-2 {
-                                        left: 60px !important;
-                                    }
-                                }
-                                .tabela-scroll-fixo {
-                                    border-collapse: separate;
-                                    border-spacing: 0;
-                                    width: max-content;
-                                    min-width: 100%;
-                                }
-                                .coluna-fixa-esquerda {
-                                    position: sticky !important;
-                                    left: 0 !important;
-                                    z-index: 10 !important;
-                                    background: inherit !important;
-                                    box-shadow: 2px 0 4px rgba(0,0,0,0.1) !important;
-                                }
-                                .coluna-fixa-esquerda-2 {
-                                    position: sticky !important;
-                                    left: 80px !important;
-                                    z-index: 10 !important;
-                                    background: inherit !important;
-                                    box-shadow: 2px 0 4px rgba(0,0,0,0.1) !important;
-                                }
-                                .coluna-fixa-direita {
-                                    position: sticky !important;
-                                    right: 0 !important;
-                                    z-index: 10 !important;
-                                    background: inherit !important;
-                                    box-shadow: -2px 0 4px rgba(0,0,0,0.1) !important;
-                                }
-                                .colunas-scroll {
-                                    background: inherit;
-                                }
-                                
-                                /* Melhorias para background e compatibilidade */
-                                .coluna-fixa-esquerda,
-                                .coluna-fixa-esquerda-2,
-                                .coluna-fixa-direita {
-                                    background: hsl(var(--card, 255 255 255)) !important;
-                                }
-                                
-                                .dark .coluna-fixa-esquerda,
-                                .dark .coluna-fixa-esquerda-2,
-                                .dark .coluna-fixa-direita {
-                                    background: hsl(var(--card, 0 0 0)) !important;
-                                }
-                                
-                                /* Cabeçalho com fundo diferenciado */
-                                .tabela-scroll-fixo th.coluna-fixa-esquerda,
-                                .tabela-scroll-fixo th.coluna-fixa-esquerda-2,
-                                .tabela-scroll-fixo th.coluna-fixa-direita {
-                                    background: hsl(var(--muted, 245 245 245)) !important;
-                                }
-                                
-                                .dark .tabela-scroll-fixo th.coluna-fixa-esquerda,
-                                .dark .tabela-scroll-fixo th.coluna-fixa-esquerda-2,
-                                .dark .tabela-scroll-fixo th.coluna-fixa-direita {
-                                    background: hsl(var(--muted, 23 23 23)) !important;
-                                }
-                                
-                                /* NOVAS REGRAS: Prevenir scroll da página e garantir scroll apenas na tabela */
-                                .container-tabela-scroll {
-                                    scrollbar-width: thin;
-                                    scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
-                                }
-                                
-                                .container-tabela-scroll::-webkit-scrollbar {
-                                    height: 8px;
-                                }
-                                
-                                .container-tabela-scroll::-webkit-scrollbar-track {
-                                    background: rgba(0, 0, 0, 0.1);
-                                    border-radius: 4px;
-                                }
-                                
-                                .container-tabela-scroll::-webkit-scrollbar-thumb {
-                                    background: rgba(0, 0, 0, 0.3);
-                                    border-radius: 4px;
-                                }
-                                
-                                .container-tabela-scroll::-webkit-scrollbar-thumb:hover {
-                                    background: rgba(0, 0, 0, 0.5);
-                                }
-                            `
-                        }} />
-                        <div className="container-tabela-scroll">
-                            <Table className="tabela-scroll-fixo">
+                    {/* IMPLEMENTAÇÃO NOVA: Scroll apenas na área da tabela */}
+                    <ScrollArea className="w-full whitespace-nowrap">
+                        <div className="w-max">
+                            <Table className="w-full">
                                     <TableHeader>
                                         <TableRow className="bg-muted/50 border-border">
-                                            {colunas.map((col, colIndex) => {
+                                            {colunas.map((col) => {
                                                 const isImagem = col === 'Imagem';
                                                 const isProduto = col === 'Produto';
                                                 const isEfetividade = col === 'Efetividade';
                                                 
-                                                let classesFixas = 'whitespace-nowrap px-2 py-2 text-xs text-muted-foreground';
+                                                let classesSimples = 'whitespace-nowrap px-3 py-3 text-xs text-muted-foreground font-medium';
                                                 
                                                 if (isImagem) {
-                                                    classesFixas += ' w-16 min-w-16 coluna-fixa-esquerda';
+                                                    classesSimples += ' w-16 text-center';
                                                 } else if (isProduto) {
-                                                    classesFixas += ' min-w-[120px] coluna-fixa-esquerda-2';
+                                                    classesSimples += ' min-w-[150px]';
                                                 } else if (isEfetividade) {
-                                                    classesFixas += ' min-w-[100px] coluna-fixa-direita';
+                                                    classesSimples += ' min-w-[100px] text-center';
                                                 } else {
-                                                    classesFixas += ' colunas-scroll min-w-[80px]';
+                                                    classesSimples += ' min-w-[90px] text-center';
                                                 }
                                                 
                                                 return (
                                                 <TableHead 
                                                     key={col} 
-                                                    className={classesFixas}
+                                                    className={classesSimples}
                                                 >
                                                     {col === 'Imagem' ? (
                                                         <div className="flex items-center justify-center">
@@ -1336,16 +1235,16 @@ function DropiPage() {
                                                     const isProduto = col === 'Produto';
                                                     const isEfetividade = col === 'Efetividade';
                                                     
-                                                    let classesCelula = 'px-2 py-2 text-xs text-card-foreground';
+                                                    let classesCelula = 'px-3 py-3 text-xs text-card-foreground';
                                                     
                                                     if (isImagem) {
-                                                        classesCelula += ' text-center coluna-fixa-esquerda';
+                                                        classesCelula += ' text-center';
                                                     } else if (isProduto) {
-                                                        classesCelula += ' coluna-fixa-esquerda-2';
+                                                        classesCelula += ' font-medium';
                                                     } else if (isEfetividade) {
-                                                        classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center coluna-fixa-direita`;
+                                                        classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center`;
                                                     } else {
-                                                        classesCelula += ' colunas-scroll';
+                                                        classesCelula += ' text-center';
                                                     }
                                                     
                                                     return (
@@ -1378,7 +1277,7 @@ function DropiPage() {
                                                             )
                                                         ) : col === 'Produto' ? (
                                                             <div 
-                                                                className="max-w-[120px] truncate cursor-help" 
+                                                                className="max-w-[180px] truncate cursor-help" 
                                                                 title={row[col]}
                                                             >
                                                                 {row[col]}
@@ -1394,16 +1293,16 @@ function DropiPage() {
                                     </TableBody>
                                 </Table>
                         </div>
-                    </div>
+                    </ScrollArea>
                     
-                    {/* Nota sobre responsividade e colunas fixas */}
+                    {/* Nota sobre scroll da tabela */}
                     <div className="px-4 pb-4 pt-2">
                         <div className="flex flex-col items-center gap-1">
                             <p className="text-xs text-muted-foreground text-center">
-                                [DICA] Role a tabela horizontalmente para ver todos os status
+                                [DICA] Role horizontalmente na área da tabela para ver todos os status
                             </p>
-                            <p className="text-xs text-blue-600 text-center font-medium">
-                                [CORRIGIDO] ✅ Scroll restrito apenas à tabela - página não rola lateralmente
+                            <p className="text-xs text-green-600 text-center font-medium">
+                                ✅ Scroll otimizado - apenas a tabela rola, não a página
                             </p>
                         </div>
                     </div>

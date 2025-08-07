@@ -57,7 +57,7 @@ const sidebarItems = [
     items: [
       { label: 'PRIMECOD', path: '/workspace/metricas/primecod' },
       { label: 'ECOMHUB', path: '/workspace/metricas/ecomhub' },
-      { label: 'DROPI MX', path: '/workspace/metricas/dropi' },
+      { label: 'Dropi', path: '/workspace/metricas/dropi' },
     ]
   },
   {

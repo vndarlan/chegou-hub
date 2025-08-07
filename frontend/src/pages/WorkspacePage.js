@@ -43,7 +43,7 @@ const breadcrumbMap = {
   '/workspace/nicochat': [{ label: 'IA & Automações', href: '#' }, { label: 'Nicochat' }],
   '/workspace/metricas/primecod': [{ label: 'Métricas', href: '#' }, { label: 'PRIMECOD' }],
   '/workspace/metricas/ecomhub': [{ label: 'Métricas', href: '#' }, { label: 'ECOMHUB' }],
-  '/workspace/metricas/dropi': [{ label: 'Métricas', href: '#' }, { label: 'DROPI MX' }],
+  '/workspace/metricas/dropi': [{ label: 'Métricas', href: '#' }, { label: 'Dropi' }],
   '/workspace/engajamento': [{ label: 'Operacional', href: '#' }, { label: 'Engajamento' }],
   '/workspace/novelties': [{ label: 'Operacional', href: '#' }, { label: 'Novelties' }],
   '/workspace/processamento': [{ label: 'Suporte', href: '#' }, { label: 'Processamento' }],

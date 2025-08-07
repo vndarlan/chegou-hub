@@ -150,7 +150,7 @@ export function AppSidebar({
           isActive: location.pathname === "/workspace/metricas/ecomhub",
         },
         {
-          title: "DROPI MX",
+          title: "Dropi",
           url: "/workspace/metricas/dropi",
           isActive: location.pathname === "/workspace/metricas/dropi",
         },
