@@ -12,6 +12,9 @@ RUN pip install gunicorn==21.2.0
 # Copiar o código
 COPY . .
 
+# Definir variável para indicar que é ambiente Railway (para collectstatic funcionar)
+ENV RAILWAY_ENVIRONMENT_NAME=production
+
 # Coletar arquivos estáticos
 RUN python manage.py collectstatic --noinput
 
