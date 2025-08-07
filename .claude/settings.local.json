@@ -36,7 +36,8 @@
       "Bash(del check_feedback_status.py)",
       "WebFetch(domain:cookbook.openai.com)",
       "WebFetch(domain:docs.anthropic.com)",
-      "WebFetch(domain:console.anthropic.com)"
+      "WebFetch(domain:console.anthropic.com)",
+      "Bash(git init:*)"
     ],
     "deny": []
   }
