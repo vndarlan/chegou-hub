@@ -25,7 +25,6 @@ const FeedbackModal = ({ onClose }) => {
   const categorias = [
     { value: 'bug', label: 'Bug/Erro' },
     { value: 'melhoria', label: 'Sugestão de melhoria' },
-    { value: 'usabilidade', label: 'Problema de usabilidade' },
     { value: 'outro', label: 'Outro' }
   ];
 

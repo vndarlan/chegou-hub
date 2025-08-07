@@ -1,12 +1,28 @@
+import os
 from django.db import models
 from django.contrib.auth.models import User
+from django.conf import settings
+
+
+def feedback_image_upload_path(instance, filename):
+    """
+    Função para gerar path de upload de imagens de feedback.
+    Garante que o diretório existe antes de salvar.
+    """
+    # Criar path relativo
+    upload_path = os.path.join('feedback', filename)
+    
+    # Garantir que o diretório absoluto existe
+    full_dir = os.path.join(settings.MEDIA_ROOT, 'feedback')
+    os.makedirs(full_dir, exist_ok=True)
+    
+    return upload_path
 
 
 class Feedback(models.Model):
     CATEGORIA_CHOICES = [
         ('bug', 'Bug/Erro'),
         ('melhoria', 'Sugestão de melhoria'),
-        ('usabilidade', 'Problema de usabilidade'),
         ('outro', 'Outro'),
     ]
     
@@ -28,7 +44,7 @@ class Feedback(models.Model):
     prioridade = models.CharField(max_length=10, choices=PRIORIDADE_CHOICES, default='media')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pendente')
     url_pagina = models.URLField(max_length=500)
-    imagem = models.ImageField(upload_to='feedback/', blank=True, null=True)
+    imagem = models.ImageField(upload_to=feedback_image_upload_path, blank=True, null=True)
     data_criacao = models.DateTimeField(auto_now_add=True)
     usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     

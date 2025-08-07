@@ -1,11 +1,20 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from .models import Feedback
-from .serializers import FeedbackCreateSerializer
+from .serializers import FeedbackCreateSerializer, FeedbackSerializer
 import logging
 import traceback
 
 logger = logging.getLogger(__name__)
+
+
+class FeedbackListView(generics.ListAPIView):
+    """View para listar todos os feedbacks."""
+    serializer_class = FeedbackSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        return Feedback.objects.all().select_related('usuario')
 
 
 class FeedbackCreateView(generics.CreateAPIView):
