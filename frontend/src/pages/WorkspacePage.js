@@ -31,6 +31,7 @@ import EngajamentoPage from '../features/engajamento/EngajamentoPage';
 import NoveltiesPage from '../features/novelties/NoveltiesPage';
 import ProcessamentoPage from '../features/processamento/ProcessamentoPage';
 import FeedbackButton from '../components/FeedbackButton';
+import FeedbackNotificationButton from '../components/FeedbackNotificationButton';
 import ChatbotWidget from '../components/ui/chatbot-widget';
 
 // Mapeamento de breadcrumbs simplificado
@@ -133,7 +134,8 @@ function WorkspacePage({ setIsLoggedIn }) {
                 ))}
               </BreadcrumbList>
             </Breadcrumb>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+              <FeedbackNotificationButton isAdmin={userData?.isAdmin} />
               <FeedbackButton />
             </div>
           </header>

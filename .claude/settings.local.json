@@ -29,7 +29,9 @@
       "Bash(mv:*)",
       "Bash(git commit:*)",
       "Bash(curl:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(set DISABLE_ESLINT_PLUGIN=true)",
+      "Bash(set GENERATE_SOURCEMAP=false)"
     ],
     "deny": []
   }
