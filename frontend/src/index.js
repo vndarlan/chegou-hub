@@ -6,10 +6,8 @@ import './globals.css'; // Novo CSS com Tailwind e variáveis do tema
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
-// Configuração base do Axios
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://chegou-hubb-production.up.railway.app/api'
-  : 'http://localhost:8000/api';
+// Configuração base do Axios (mantém igual)
+const API_URL = 'https://chegou-hubb-production.up.railway.app/api';
 axios.defaults.baseURL = API_URL;
 axios.defaults.withCredentials = true;
 console.log("API Base URL configurada:", axios.defaults.baseURL);
