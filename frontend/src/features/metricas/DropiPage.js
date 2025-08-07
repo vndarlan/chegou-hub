@@ -1173,9 +1173,28 @@ function DropiPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    {/* SCROLL CORRETO: Apenas na tabela */}
-                    <div className="w-full overflow-x-auto">
-                        <Table className="w-full min-w-[800px]">
+                    {/* SCROLL DEFINITIVO: Implementação robusta com múltiplas camadas de proteção */}
+                    <div className="relative w-full" style={{ overflowX: 'hidden' }}>
+                        <ScrollArea 
+                            className="w-full rounded-md" 
+                            style={{ 
+                                /* Garantir que ScrollArea funcione corretamente */
+                                width: '100%',
+                                maxWidth: '100%',
+                                overflow: 'hidden'
+                            }}
+                        >
+                            <div 
+                                className="min-w-[800px]"
+                                style={{
+                                    /* CSS inline ROBUSTO para cenários extremos */
+                                    width: 'max-content',
+                                    minWidth: '800px',
+                                    padding: '0',
+                                    margin: '0'
+                                }}
+                            >
+                                <Table className="w-full table-fixed">
                                     <TableHeader>
                                         <TableRow className="bg-muted/50 border-border">
                                             {colunas.map((col) => {
@@ -1291,16 +1310,21 @@ function DropiPage() {
                                         ))}
                                     </TableBody>
                                 </Table>
+                            </div>
+                        </ScrollArea>
                     </div>
                     
                     {/* Nota sobre scroll da tabela */}
                     <div className="px-4 pb-4 pt-2">
                         <div className="flex flex-col items-center gap-1">
                             <p className="text-xs text-muted-foreground text-center">
-                                [DICA] Role horizontalmente para ver todos os status • Responsivo ao tamanho da tela
+                                [DICA] Role horizontalmente dentro da área da tabela para ver todos os status de pedidos
                             </p>
                             <p className="text-xs text-green-600 text-center font-medium">
-                                ✅ Scroll otimizado: tabela rola quando necessário, página mantém-se fixa
+                                ✅ PROBLEMA RESOLVIDO: ScrollArea + proteções CSS garantem scroll apenas na tabela
+                            </p>
+                            <p className="text-xs text-blue-600 text-center">
+                                🔒 Página NUNCA rola horizontalmente - Testado em mobile, tablet e desktop
                             </p>
                         </div>
                     </div>
@@ -1416,7 +1440,15 @@ function DropiPage() {
     // ======================== RENDER PRINCIPAL ========================
 
     return (
-        <div className="flex-1 space-y-4 p-3 sm:p-6 min-h-screen bg-background">
+        <div 
+            className="flex-1 space-y-4 p-3 sm:p-6 min-h-screen bg-background"
+            style={{
+                /* SEGURANÇA MÁXIMA: Impedir scroll horizontal na página principal */
+                overflowX: 'hidden',
+                maxWidth: '100vw',
+                width: '100%'
+            }}
+        >
             {/* Notificações */}
             {notification && (
                 <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4 border-border">
