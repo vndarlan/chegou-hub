@@ -14,6 +14,7 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
   const [loading, setLoading] = useState(false);
   const [count, setCount] = useState(0);
 
+
   // Buscar apenas a contagem (mais rápido)
   const fetchPendingCount = async () => {
     if (!isAdmin) return;
