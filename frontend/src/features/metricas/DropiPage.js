@@ -1173,10 +1173,51 @@ function DropiPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    {/* IMPLEMENTAÇÃO NOVA: Scroll apenas na área da tabela */}
-                    <ScrollArea className="w-full whitespace-nowrap">
-                        <div className="w-max">
-                            <Table className="w-full">
+                    {/* IMPLEMENTAÇÃO DEFINITIVA: Scroll APENAS na tabela */}
+                    <div className="relative">
+                        <style dangerouslySetInnerHTML={{
+                            __html: `
+                                /* Forçar que a página NUNCA tenha scroll horizontal */
+                                body, html, #root {
+                                    overflow-x: hidden !important;
+                                    max-width: 100vw !important;
+                                }
+                                
+                                /* Container da tabela com scroll controlado */
+                                .container-tabela-horizontal {
+                                    width: 100%;
+                                    max-width: 100%;
+                                    overflow-x: auto;
+                                    overflow-y: visible;
+                                    border-radius: 6px;
+                                    -webkit-overflow-scrolling: touch;
+                                }
+                                
+                                /* Estilizar a scrollbar */
+                                .container-tabela-horizontal::-webkit-scrollbar {
+                                    height: 8px;
+                                }
+                                .container-tabela-horizontal::-webkit-scrollbar-track {
+                                    background: hsl(var(--muted));
+                                    border-radius: 4px;
+                                }
+                                .container-tabela-horizontal::-webkit-scrollbar-thumb {
+                                    background: hsl(var(--muted-foreground) / 0.3);
+                                    border-radius: 4px;
+                                }
+                                .container-tabela-horizontal::-webkit-scrollbar-thumb:hover {
+                                    background: hsl(var(--muted-foreground) / 0.5);
+                                }
+                                
+                                /* Tabela com largura mínima para forçar scroll interno */
+                                .tabela-scroll-horizontal {
+                                    min-width: 800px;
+                                    width: max-content;
+                                }
+                            `
+                        }} />
+                        <div className="container-tabela-horizontal">
+                            <Table className="tabela-scroll-horizontal">
                                     <TableHeader>
                                         <TableRow className="bg-muted/50 border-border">
                                             {colunas.map((col) => {
@@ -1293,16 +1334,16 @@ function DropiPage() {
                                     </TableBody>
                                 </Table>
                         </div>
-                    </ScrollArea>
+                    </div>
                     
                     {/* Nota sobre scroll da tabela */}
                     <div className="px-4 pb-4 pt-2">
                         <div className="flex flex-col items-center gap-1">
                             <p className="text-xs text-muted-foreground text-center">
-                                [DICA] Role horizontalmente na área da tabela para ver todos os status
+                                [DICA] Role horizontalmente dentro da tabela para ver todos os status de pedidos
                             </p>
                             <p className="text-xs text-green-600 text-center font-medium">
-                                ✅ Scroll otimizado - apenas a tabela rola, não a página
+                                ✅ CORRIGIDO: Scroll restrito à tabela - página não rola lateralmente
                             </p>
                         </div>
                     </div>
@@ -1418,7 +1459,7 @@ function DropiPage() {
     // ======================== RENDER PRINCIPAL ========================
 
     return (
-        <div className="flex-1 space-y-4 p-3 sm:p-6 min-h-screen bg-background">
+        <div className="flex-1 space-y-4 p-3 sm:p-6 min-h-screen bg-background overflow-x-hidden max-w-full">
             {/* Notificações */}
             {notification && (
                 <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4 border-border">
