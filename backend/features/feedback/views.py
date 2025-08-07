@@ -70,11 +70,14 @@ class FeedbackNotificationsView(generics.ListAPIView):
     def list(self, request, *args, **kwargs):
         """Override para adicionar logs e formatação adequada para notificações."""
         try:
-            response = super().list(request, *args, **kwargs)
+            # Obter queryset e serializar
+            queryset = self.get_queryset()
+            serializer_class = self.get_serializer_class()
+            serializer = serializer_class(queryset, many=True, context={'request': request})
             
             # Formatar dados para o formato de notificação esperado pelo frontend
             notifications_data = []
-            for feedback in response.data:
+            for feedback in serializer.data:
                 notifications_data.append({
                     'id': feedback['id'],
                     'title': feedback['titulo'],
@@ -87,7 +90,7 @@ class FeedbackNotificationsView(generics.ListAPIView):
                     'url': f'/feedback/{feedback["id"]}'  # URL para redirecionar no frontend
                 })
             
-            logger.info(f"API /api/notifications/feedbacks/ chamada por {request.user.username} - Retornadas: {len(notifications_data)} notificações")
+            logger.info(f"API /api/feedback/notifications/ chamada por {request.user.username} - Retornadas: {len(notifications_data)} notificações")
             
             return Response({
                 'results': notifications_data,

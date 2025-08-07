@@ -46,7 +46,7 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
     if (!isAdmin) return;
     
     try {
-      const response = await axios.get('/api/notifications/feedbacks/', {
+      const response = await axios.get('/api/feedback/notifications/', {
         withCredentials: true,
         headers: {
           'X-CSRFToken': getCSRFToken(),
@@ -96,7 +96,7 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
     
     try {
       setNotificationsLoading(true);
-      const response = await axios.get('/api/notifications/feedbacks/', {
+      const response = await axios.get('/api/feedback/notifications/', {
         withCredentials: true,
         headers: {
           'X-CSRFToken': getCSRFToken(),

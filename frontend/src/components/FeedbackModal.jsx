@@ -8,6 +8,7 @@ import { Card, CardContent } from './ui/card';
 import { Alert, AlertDescription } from './ui/alert';
 import { Upload, X, CheckCircle, AlertCircle } from 'lucide-react';
 import axios from 'axios';
+import { getCSRFToken } from '../utils/csrf';
 
 const FeedbackModal = ({ onClose }) => {
   const [formData, setFormData] = useState({
@@ -91,8 +92,11 @@ const FeedbackModal = ({ onClose }) => {
         submitData.append('imagem', formData.imagem);
       }
 
-      const response = await axios.post('/feedback/create/', submitData, {
-        withCredentials: true
+      const response = await axios.post('/api/feedback/create/', submitData, {
+        withCredentials: true,
+        headers: {
+          'X-CSRFToken': getCSRFToken(),
+        }
       });
 
       setSubmitStatus({
