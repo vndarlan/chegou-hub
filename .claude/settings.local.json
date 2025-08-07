@@ -28,7 +28,8 @@
       "Bash(npx react-scripts:*)",
       "Bash(mv:*)",
       "Bash(git commit:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": []
   }

@@ -433,7 +433,7 @@ function DropiPage() {
     };
 
     const deletarAnalise = async (id, nome) => {
-        const nomeDisplay = nome.replace('[DROPI] ', '');
+        const nomeDisplay = nome.replace('[Dropi] ', '');
         if (!window.confirm(`Deletar análise '${nomeDisplay}'?`)) return;
 
         setLoadingDelete(prev => ({ ...prev, [id]: true }));
@@ -1173,14 +1173,32 @@ function DropiPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    {/* NOVA IMPLEMENTAÇÃO: Scroll horizontal com colunas fixas */}
+                    {/* IMPLEMENTAÇÃO CORRIGIDA: Scroll restrito à tabela */}
                     <div className="w-full">
-                        {/* CSS Inline para colunas fixas */}
+                        {/* CSS Inline para colunas fixas e container de scroll */}
                         <style dangerouslySetInnerHTML={{
                             __html: `
+                                .container-tabela-scroll {
+                                    max-width: 100%;
+                                    overflow-x: auto;
+                                    overflow-y: visible;
+                                    border-radius: 8px;
+                                }
+                                
+                                @media (max-width: 768px) {
+                                    .container-tabela-scroll {
+                                        border-radius: 4px;
+                                    }
+                                    
+                                    .coluna-fixa-esquerda-2 {
+                                        left: 60px !important;
+                                    }
+                                }
                                 .tabela-scroll-fixo {
                                     border-collapse: separate;
                                     border-spacing: 0;
+                                    width: max-content;
+                                    min-width: 100%;
                                 }
                                 .coluna-fixa-esquerda {
                                     position: sticky !important;
@@ -1232,11 +1250,34 @@ function DropiPage() {
                                 .dark .tabela-scroll-fixo th.coluna-fixa-direita {
                                     background: hsl(var(--muted, 23 23 23)) !important;
                                 }
+                                
+                                /* NOVAS REGRAS: Prevenir scroll da página e garantir scroll apenas na tabela */
+                                .container-tabela-scroll {
+                                    scrollbar-width: thin;
+                                    scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+                                }
+                                
+                                .container-tabela-scroll::-webkit-scrollbar {
+                                    height: 8px;
+                                }
+                                
+                                .container-tabela-scroll::-webkit-scrollbar-track {
+                                    background: rgba(0, 0, 0, 0.1);
+                                    border-radius: 4px;
+                                }
+                                
+                                .container-tabela-scroll::-webkit-scrollbar-thumb {
+                                    background: rgba(0, 0, 0, 0.3);
+                                    border-radius: 4px;
+                                }
+                                
+                                .container-tabela-scroll::-webkit-scrollbar-thumb:hover {
+                                    background: rgba(0, 0, 0, 0.5);
+                                }
                             `
                         }} />
-                        <div className="relative overflow-x-auto max-w-full">
-                            <div className="min-w-full inline-block align-middle">
-                                <Table className="min-w-full tabela-scroll-fixo">
+                        <div className="container-tabela-scroll">
+                            <Table className="tabela-scroll-fixo">
                                     <TableHeader>
                                         <TableRow className="bg-muted/50 border-border">
                                             {colunas.map((col, colIndex) => {
@@ -1352,7 +1393,6 @@ function DropiPage() {
                                         ))}
                                     </TableBody>
                                 </Table>
-                            </div>
                         </div>
                     </div>
                     
@@ -1360,10 +1400,10 @@ function DropiPage() {
                     <div className="px-4 pb-4 pt-2">
                         <div className="flex flex-col items-center gap-1">
                             <p className="text-xs text-muted-foreground text-center">
-                                [DICA] Role horizontalmente para ver todas as colunas
+                                [DICA] Role a tabela horizontalmente para ver todos os status
                             </p>
                             <p className="text-xs text-blue-600 text-center font-medium">
-                                [INFO] Colunas fixas: Imagem, Produto e Efetividade
+                                [CORRIGIDO] ✅ Scroll restrito apenas à tabela - página não rola lateralmente
                             </p>
                         </div>
                     </div>
@@ -1423,9 +1463,9 @@ function DropiPage() {
                                     <CardContent className="p-4">
                                         <div className="flex items-start justify-between mb-3">
                                             <h3 className="font-medium text-sm truncate max-w-[80%] text-card-foreground">
-                                                {analise.nome.replace('[DROPI] ', '')}
+                                                {analise.nome.replace('[Dropi] ', '')}
                                             </h3>
-                                            <Badge variant="secondary" className="text-xs bg-secondary text-secondary-foreground">DROPI</Badge>
+                                            <Badge variant="secondary" className="text-xs bg-secondary text-secondary-foreground">Dropi</Badge>
                                         </div>
 
                                         <p className="text-xs text-muted-foreground mb-3">
@@ -1521,7 +1561,7 @@ function DropiPage() {
             <Dialog open={modalInstrucoes} onOpenChange={setModalInstrucoes}>
                 <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto border-border bg-popover">
                     <DialogHeader>
-                        <DialogTitle className="text-orange-600">Manual de Instruções - Métricas DROPI</DialogTitle>
+                        <DialogTitle className="text-orange-600">Manual de Instruções - Métricas Dropi</DialogTitle>
                         <DialogDescription className="text-muted-foreground">
                             Guia completo para uso da ferramenta
                         </DialogDescription>
