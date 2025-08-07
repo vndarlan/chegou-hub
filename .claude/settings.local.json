@@ -33,7 +33,10 @@
       "Bash(set DISABLE_ESLINT_PLUGIN=true)",
       "Bash(set GENERATE_SOURCEMAP=false)",
       "Bash(del test_simple_media.py)",
-      "Bash(del check_feedback_status.py)"
+      "Bash(del check_feedback_status.py)",
+      "WebFetch(domain:cookbook.openai.com)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:console.anthropic.com)"
     ],
     "deny": []
   }

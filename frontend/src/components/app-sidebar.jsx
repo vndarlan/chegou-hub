@@ -110,7 +110,8 @@ export function AppSidebar({
       isActive: location.pathname.includes('/workspace/projetos') ||
                 location.pathname.includes('/workspace/relatorios') ||
                 location.pathname.includes('/workspace/logs') ||
-                location.pathname.includes('/workspace/nicochat'),
+                location.pathname.includes('/workspace/nicochat') ||
+                location.pathname.includes('/workspace/openai-analytics'),
       items: [
         {
           title: "Projetos",
@@ -131,6 +132,11 @@ export function AppSidebar({
           title: "Nicochat",
           url: "/workspace/nicochat",
           isActive: location.pathname === "/workspace/nicochat",
+        },
+        {
+          title: "OpenAI Analytics",
+          url: "/workspace/openai-analytics",
+          isActive: location.pathname === "/workspace/openai-analytics",
         },
       ],
     },

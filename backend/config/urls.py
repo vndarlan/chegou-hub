@@ -38,6 +38,9 @@ urlpatterns = [
     
     # URLs do Chatbot IA
     path('api/chatbot/', include('features.chatbot_ia.urls')),
+    
+    # URLs do API Monitoring
+    path('api/monitoring/', include('features.api_monitoring.urls')),
 ]
 
 # Servir arquivos de media

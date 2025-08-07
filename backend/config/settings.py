@@ -81,6 +81,7 @@ INSTALLED_APPS = [
     'features.ia',
     'features.novelties',
     'features.processamento',
+    'features.api_monitoring.apps.ApiMonitoringConfig',
     
     # Métricas Separadas
     'features.metricas_primecod',
