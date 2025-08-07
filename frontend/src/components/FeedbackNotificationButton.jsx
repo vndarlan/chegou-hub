@@ -245,13 +245,13 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
                         </p>
                       </div>
                       
-                      {feedback.imagem && (
+                      {feedback.imagem_url && (
                         <div>
                           <span className="text-sm font-medium text-muted-foreground block mb-2">
                             Imagem:
                           </span>
                           <img 
-                            src={feedback.imagem} 
+                            src={feedback.imagem_url} 
                             alt="Screenshot do feedback"
                             className="max-w-full h-auto rounded border"
                             style={{ maxHeight: '200px' }}

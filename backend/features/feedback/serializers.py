@@ -10,10 +10,21 @@ logger = logging.getLogger(__name__)
 class FeedbackSerializer(serializers.ModelSerializer):
     """Serializer para listagem e detalhamento de feedbacks."""
     usuario_nome = serializers.CharField(source='usuario.username', read_only=True)
+    imagem_url = serializers.SerializerMethodField()
     
     class Meta:
         model = Feedback
         fields = '__all__'
+    
+    def get_imagem_url(self, obj):
+        """Retorna URL completa da imagem se existir."""
+        if obj.imagem and obj.imagem.name:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.imagem.url)
+            # Fallback se não houver request no context
+            return obj.imagem.url
+        return None
         
 
 class FeedbackCreateSerializer(serializers.ModelSerializer):
