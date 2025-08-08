@@ -3,11 +3,17 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.conf import settings
 
+try:
+    from cloudinary.models import CloudinaryField
+    CLOUDINARY_AVAILABLE = hasattr(settings, 'CLOUDINARY_CONFIGURED') and settings.CLOUDINARY_CONFIGURED
+except ImportError:
+    CLOUDINARY_AVAILABLE = False
+
 
 def feedback_image_upload_path(instance, filename):
     """
     Função para gerar path de upload de imagens de feedback.
-    Garante que o diretório existe antes de salvar.
+    Usado como fallback quando Cloudinary não está disponível.
     """
     # Criar path relativo
     upload_path = os.path.join('feedback', filename)
@@ -44,7 +50,22 @@ class Feedback(models.Model):
     prioridade = models.CharField(max_length=10, choices=PRIORIDADE_CHOICES, default='media')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pendente')
     url_pagina = models.URLField(max_length=500)
-    imagem = models.ImageField(upload_to=feedback_image_upload_path, blank=True, null=True)
+    
+    # Campo de imagem que usa Cloudinary quando disponível
+    if CLOUDINARY_AVAILABLE:
+        imagem = CloudinaryField(
+            'image', 
+            blank=True, 
+            null=True, 
+            folder='feedback/',
+            transformation={
+                'quality': 'auto:good',
+                'fetch_format': 'auto'
+            }
+        )
+    else:
+        imagem = models.ImageField(upload_to=feedback_image_upload_path, blank=True, null=True)
+    
     data_criacao = models.DateTimeField(auto_now_add=True)
     usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     

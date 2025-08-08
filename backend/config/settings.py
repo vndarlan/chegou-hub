@@ -93,6 +93,10 @@ INSTALLED_APPS = [
     
     # Chatbot IA
     'features.chatbot_ia.apps.ChatbotIaConfig',
+    
+    # Cloudinary para storage de imagens
+    'cloudinary_storage',
+    'cloudinary',
 ]
 
 MIDDLEWARE = [
@@ -222,6 +226,48 @@ if not DEBUG:
     # Adicionar diretório media ao WhiteNoise
     WHITENOISE_ROOT = STATIC_ROOT
     WHITENOISE_AUTOREFRESH = True
+
+# ======================== CONFIGURAÇÃO CLOUDINARY ========================
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+# Configurações do Cloudinary
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME', ''),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY', ''),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET', ''),
+    'SECURE': True,  # Sempre usar HTTPS
+    'INVALIDATE': True,  # Invalidar cache após upload
+}
+
+# Configurar cloudinary
+cloudinary.config(
+    cloud_name=CLOUDINARY_STORAGE['CLOUD_NAME'],
+    api_key=CLOUDINARY_STORAGE['API_KEY'],
+    api_secret=CLOUDINARY_STORAGE['API_SECRET'],
+    secure=True
+)
+
+# Verificar se as credenciais do Cloudinary estão configuradas
+CLOUDINARY_CONFIGURED = all([
+    CLOUDINARY_STORAGE['CLOUD_NAME'],
+    CLOUDINARY_STORAGE['API_KEY'],
+    CLOUDINARY_STORAGE['API_SECRET']
+])
+
+print(f"Cloudinary configurado: {CLOUDINARY_CONFIGURED}")
+if not CLOUDINARY_CONFIGURED and not DEBUG:
+    print("AVISO: Cloudinary nao esta configurado. Imagens serao perdidas apos deploy!")
+
+# Atualizar STORAGES para usar Cloudinary quando configurado
+if CLOUDINARY_CONFIGURED:
+    STORAGES["default"] = {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    }
+    print("Usando Cloudinary para storage de media files")
+else:
+    print("Usando FileSystemStorage (desenvolvimento local)")
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
