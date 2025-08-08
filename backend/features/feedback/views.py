@@ -1,6 +1,7 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.views import APIView
 from .models import Feedback
 from .serializers import FeedbackCreateSerializer, FeedbackSerializer, FeedbackNotificationSerializer
 import logging
@@ -166,3 +167,54 @@ def feedback_pending_count(request):
             'error': 'Erro interno do servidor',
             'count': 0
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class FeedbackUpdateStatusView(APIView):
+    """View para atualizar o status de um feedback - apenas para administradores."""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def patch(self, request, feedback_id):
+        try:
+            # Verificar se o usuário é administrador
+            if not request.user.is_staff:
+                logger.warning(f"Usuário não-admin {request.user.username} tentou atualizar status do feedback {feedback_id}")
+                return Response({
+                    'error': 'Acesso negado. Apenas administradores podem atualizar o status de feedbacks.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Buscar o feedback
+            try:
+                feedback = Feedback.objects.get(id=feedback_id)
+            except Feedback.DoesNotExist:
+                return Response({
+                    'error': 'Feedback não encontrado.'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Validar o status recebido
+            novo_status = request.data.get('status')
+            status_validos = ['pendente', 'em_analise', 'resolvido']
+            
+            if not novo_status or novo_status not in status_validos:
+                return Response({
+                    'error': f'Status inválido. Valores permitidos: {", ".join(status_validos)}'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Atualizar o status
+            feedback.status = novo_status
+            feedback.save()
+            
+            logger.info(f"Admin {request.user.username} atualizou status do feedback {feedback_id} para '{novo_status}'")
+            
+            return Response({
+                'message': f'Status do feedback atualizado para "{feedback.get_status_display()}" com sucesso!',
+                'feedback_id': feedback.id,
+                'novo_status': novo_status,
+                'status_display': feedback.get_status_display()
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Erro ao atualizar status do feedback {feedback_id}: {str(e)}")
+            logger.error(f"Traceback completo: {traceback.format_exc()}")
+            return Response({
+                'error': 'Erro interno do servidor'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

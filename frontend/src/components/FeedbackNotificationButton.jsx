@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { Bell, Clock, AlertTriangle, User, Calendar, MessageSquare } from 'lucide-react';
+import { Bell, Clock, AlertTriangle, User, Calendar, MessageSquare, Check, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Separator } from './ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { useToast } from './ui/use-toast';
 import axios from 'axios';
 import { getCSRFToken } from '../utils/csrf';
 
@@ -18,6 +20,7 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
   const [count, setCount] = useState(0);
   const [notificationsCount, setNotificationsCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const { toast } = useToast();
 
 
   // Buscar apenas a contagem de feedbacks pendentes (mais rápido)
@@ -65,6 +68,60 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
   // Atualizar contagem total
   const updateTotalCount = (pendingCount, notifCount) => {
     setTotalCount(Math.max(pendingCount, notifCount)); // Usar o maior valor para evitar duplicação
+  };
+
+  // Função para atualizar status do feedback
+  const updateFeedbackStatus = async (feedbackId, newStatus) => {
+    try {
+      const response = await axios.patch(`/feedback/${feedbackId}/update-status/`, {
+        status: newStatus
+      }, {
+        withCredentials: true,
+        headers: {
+          'X-CSRFToken': getCSRFToken(),
+        }
+      });
+
+      // Atualizar a lista local de feedbacks
+      setPendingFeedbacks(prev => 
+        prev.map(feedback => 
+          feedback.id === feedbackId 
+            ? { ...feedback, status: newStatus }
+            : feedback
+        ).filter(feedback => {
+          // Se o status mudou para 'resolvido', remover da lista de pendentes
+          if (newStatus === 'resolvido') {
+            return feedback.id !== feedbackId;
+          }
+          return true;
+        })
+      );
+
+      // Atualizar contagens
+      fetchPendingCount();
+      fetchNotificationsCount();
+
+      // Mostrar toast de sucesso
+      toast({
+        title: "Status atualizado",
+        description: response.data.message,
+        variant: "default",
+      });
+
+    } catch (error) {
+      console.error('Erro ao atualizar status do feedback:', error);
+      
+      let errorMessage = 'Erro ao atualizar status do feedback.';
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+
+      toast({
+        title: "Erro",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
   };
   
   // Buscar feedbacks completos (apenas quando modal abrir)
@@ -254,12 +311,9 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <CardTitle className="text-base font-medium truncate">
-                            {notification.title}
+                            Feedback: {notification.title}
                           </CardTitle>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {notification.message}
-                          </p>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                             <div className="flex items-center gap-1">
                               <User className="h-3 w-3" />
                               {notification.user}
@@ -331,21 +385,56 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
                             {getPrioridadeLabel(feedback.prioridade)}
                           </Badge>
                           <Badge variant="secondary" className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {getStatusLabel(feedback.status)}
+                            <MessageSquare className="h-3 w-3" />
+                            {getCategoriaLabel(feedback.categoria)}
                           </Badge>
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
                       <div className="space-y-2">
-                        <div>
-                          <span className="text-sm font-medium text-muted-foreground">
-                            Categoria: 
-                          </span>
-                          <span className="text-sm ml-2">
-                            {getCategoriaLabel(feedback.categoria)}
-                          </span>
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <span className="text-sm font-medium text-muted-foreground">
+                              Status: 
+                            </span>
+                            <span className="text-sm ml-2">
+                              {getStatusLabel(feedback.status)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-muted-foreground">
+                              Alterar status:
+                            </span>
+                            <Select
+                              value={feedback.status}
+                              onValueChange={(newStatus) => updateFeedbackStatus(feedback.id, newStatus)}
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pendente">
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3 text-orange-500" />
+                                    Pendente
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="em_analise">
+                                  <div className="flex items-center gap-1">
+                                    <AlertCircle className="h-3 w-3 text-blue-500" />
+                                    Em análise
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="resolvido">
+                                  <div className="flex items-center gap-1">
+                                    <Check className="h-3 w-3 text-green-500" />
+                                    Resolvido
+                                  </div>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                         
                         {feedback.url_pagina && (
@@ -399,10 +488,7 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
           </TabsContent>
         </Tabs>
         
-        <div className="flex justify-between items-center">
-          <div className="text-sm text-muted-foreground">
-            Atualizado automaticamente a cada 30 segundos
-          </div>
+        <div className="flex justify-end items-center">
           <div className="flex gap-2">
             <Button 
               variant="outline" 
