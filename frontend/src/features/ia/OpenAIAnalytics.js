@@ -1,6 +1,15 @@
 // frontend/src/features/ia/OpenAIAnalytics.js
+// 
+// CORREÇÕES IMPLEMENTADAS:
+// - Validação rigorosa de datas para prevenir timestamps futuras
+// - Logs de debug para monitorar geração de datas e timestamps Unix
+// - Tratamento específico para erro 400 Bad Request da API OpenAI
+// - Uso da função getCSRFToken padronizada do projeto
+// - Validação de datas futuras em todas as funções (loadAnalytics, sync, export)
+//
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
+import { getCSRFToken } from '../../utils/csrf';
 
 // shadcn/ui imports
 import { Button } from '../../components/ui/button';
@@ -80,9 +89,9 @@ const OpenAIAnalytics = () => {
 
     // Configurar axios com CSRF token
     useEffect(() => {
-        const token = document.querySelector('[name=csrfmiddlewaretoken]');
+        const token = getCSRFToken();
         if (token) {
-            axios.defaults.headers.common['X-CSRFToken'] = token.value;
+            axios.defaults.headers.common['X-CSRFToken'] = token;
         }
     }, []);
 
@@ -127,13 +136,36 @@ const OpenAIAnalytics = () => {
         try {
             const params = new URLSearchParams();
             
-            // Calcular datas
-            const endDate = new Date();
-            const startDate = new Date();
+            // Calcular datas com validação rigorosa
+            const now = new Date();
+            const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Limpa horas
+            const startDate = new Date(endDate);
             startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
 
-            params.append('start_date', startDate.toISOString().split('T')[0]);
-            params.append('end_date', endDate.toISOString().split('T')[0]);
+            // Validação para garantir que as datas não sejam futuras
+            const todayStr = new Date().toISOString().split('T')[0];
+            const startDateStr = startDate.toISOString().split('T')[0];
+            const endDateStr = endDate.toISOString().split('T')[0];
+            
+            // Log das datas para debug
+            console.log('📅 Datas calculadas:', {
+                selectedPeriod,
+                startDate: startDateStr,
+                endDate: endDateStr,
+                today: todayStr,
+                startTimestamp: Math.floor(startDate.getTime() / 1000),
+                endTimestamp: Math.floor(endDate.getTime() / 1000)
+            });
+            
+            // Validação extra: não permitir datas futuras
+            if (endDateStr > todayStr) {
+                console.error('❌ Data final é futura:', endDateStr, '>', todayStr);
+                setError('Erro de data: não é possível buscar dados futuros');
+                return;
+            }
+
+            params.append('start_date', startDateStr);
+            params.append('end_date', endDateStr);
 
             // Adicionar API keys selecionadas
             selectedApiKeys.forEach(keyId => {
@@ -156,7 +188,15 @@ const OpenAIAnalytics = () => {
             setDetailData(detailRes.data.results || []);
 
         } catch (err) {
-            setError('Erro ao carregar dados de analytics: ' + (err.response?.data?.detail || err.message));
+            console.error('❌ Erro ao carregar analytics:', err);
+            let errorMessage = 'Erro ao carregar dados de analytics: ';
+            
+            if (err.response?.status === 400 && err.response?.data?.detail?.includes('Bad Request')) {
+                errorMessage += 'Erro de datas - verifique se as datas não são futuras. ';
+            }
+            
+            errorMessage += (err.response?.data?.detail || err.message);
+            setError(errorMessage);
         }
     };
 
@@ -219,7 +259,7 @@ const OpenAIAnalytics = () => {
             setSyncing(true);
             setError(null);
             
-            // Validar período de datas
+            // Validar período de datas com verificação rigorosa
             const now = new Date();
             const daysBack = parseInt(selectedPeriod);
             
@@ -231,6 +271,18 @@ const OpenAIAnalytics = () => {
                 });
                 return;
             }
+            
+            // Validação de datas futuras
+            const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const startDate = new Date(endDate);
+            startDate.setDate(endDate.getDate() - daysBack);
+            
+            console.log('🔄 Sincronizando com datas:', {
+                daysBack,
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString(),
+                now: now.toISOString()
+            });
 
             toast({
                 title: "🔄 Sincronizando...",
@@ -262,6 +314,14 @@ const OpenAIAnalytics = () => {
         } catch (err) {
             const errorMsg = err.response?.data?.error || err.message;
             
+            // Log completo do erro para debug
+            console.error('❌ Erro na sincronização:', {
+                error: err,
+                response: err.response?.data,
+                status: err.response?.status,
+                message: errorMsg
+            });
+            
             // Mensagens específicas baseadas no erro
             let title = "❌ Erro na Sincronização";
             let description = errorMsg;
@@ -272,7 +332,10 @@ const OpenAIAnalytics = () => {
             } else if (errorMsg.includes("403") || errorMsg.includes("permiss")) {
                 title = "🚫 Sem Permissões";
                 description = "Sua API key precisa ter permissões de admin. Crie uma em platform.openai.com/settings/organization/admin-keys";
-            } else if (errorMsg.includes("400") || errorMsg.includes("data")) {
+            } else if (errorMsg.includes("400") || errorMsg.includes("Bad Request")) {
+                title = "📅 Erro de Datas";
+                description = "Erro nas datas enviadas. Verifique se as timestamps não são futuras. Tente um período menor.";
+            } else if (errorMsg.includes("data")) {
                 title = "📅 Erro de Parâmetros";
                 description = "Verifique as datas selecionadas. Não é possível buscar dados futuros.";
             }
@@ -302,12 +365,29 @@ const OpenAIAnalytics = () => {
     const handleExportCSV = async (type) => {
         try {
             const params = new URLSearchParams();
-            const endDate = new Date();
-            const startDate = new Date();
+            
+            // Calcular datas com validação
+            const now = new Date();
+            const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const startDate = new Date(endDate);
             startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
             
-            params.append('start_date', startDate.toISOString().split('T')[0]);
-            params.append('end_date', endDate.toISOString().split('T')[0]);
+            const startDateStr = startDate.toISOString().split('T')[0];
+            const endDateStr = endDate.toISOString().split('T')[0];
+            
+            // Validação de datas futuras
+            const todayStr = new Date().toISOString().split('T')[0];
+            if (endDateStr > todayStr) {
+                toast({
+                    title: "❌ Erro de Data",
+                    description: "Não é possível exportar dados futuros.",
+                    variant: "destructive",
+                });
+                return;
+            }
+            
+            params.append('start_date', startDateStr);
+            params.append('end_date', endDateStr);
             
             const url = `${API_BASE}/export/${type}/csv/?${params.toString()}`;
             
@@ -344,12 +424,29 @@ const OpenAIAnalytics = () => {
     const handleExportJSON = async () => {
         try {
             const params = new URLSearchParams();
-            const endDate = new Date();
-            const startDate = new Date();
+            
+            // Calcular datas com validação
+            const now = new Date();
+            const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const startDate = new Date(endDate);
             startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
             
-            params.append('start_date', startDate.toISOString().split('T')[0]);
-            params.append('end_date', endDate.toISOString().split('T')[0]);
+            const startDateStr = startDate.toISOString().split('T')[0];
+            const endDateStr = endDate.toISOString().split('T')[0];
+            
+            // Validação de datas futuras
+            const todayStr = new Date().toISOString().split('T')[0];
+            if (endDateStr > todayStr) {
+                toast({
+                    title: "❌ Erro de Data",
+                    description: "Não é possível exportar dados futuros.",
+                    variant: "destructive",
+                });
+                return;
+            }
+            
+            params.append('start_date', startDateStr);
+            params.append('end_date', endDateStr);
             
             const url = `${API_BASE}/export/summary/json/?${params.toString()}`;
             
