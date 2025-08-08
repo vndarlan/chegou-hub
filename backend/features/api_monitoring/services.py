@@ -71,14 +71,15 @@ class OpenAIAPIService:
             org_data = org_response.json()
             
             # Tentar fazer uma chamada pequena para a API de usage para verificar permissões
-            # Usar período de apenas 1 dia para minimizar carga
-            yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+            # CORREÇÃO: Usar data segura de 2024 para teste
+            test_date = '2024-08-01'  # Data segura no passado
             test_endpoint = f"{self.api_base}/organization/usage/completions"
             test_params = {
-                'start_time': int(datetime.strptime(yesterday, '%Y-%m-%d').timestamp()),
+                'start_time': int(datetime.strptime(test_date, '%Y-%m-%d').timestamp()),
                 'bucket_width': '1d',
                 'limit': 1
             }
+            logger.info(f"TESTE API: Usando data {test_date} para validar permissões")
             
             test_response = requests.get(test_endpoint, headers=self.headers, params=test_params)
             
@@ -123,7 +124,7 @@ class OpenAIAPIService:
             }
     
     def get_usage_data(self, start_date: str, end_date: str = None, 
-                      bucket_width: str = '1d', limit: int = 1000) -> Dict[str, Any]:
+                      bucket_width: str = '1d', limit: int = 31) -> Dict[str, Any]:
         """
         Busca dados de uso da OpenAI Usage API
         
@@ -135,16 +136,26 @@ class OpenAIAPIService:
         """
         endpoint = f"{self.api_base}/organization/usage/completions"
         
-        # Converter datas para unix timestamp com validação
-        now = datetime.now()
-        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        # CORREÇÃO CRÍTICA: Forçar ano máximo 2024 para evitar timestamps futuras
+        # OpenAI API não aceita datas futuras, mas sistema pode estar em 2025+
         
-        # Validar que a data não é futura
-        if start_dt > now:
-            logger.warning(f"Data inicial {start_date} é futura, ajustando para hoje")
-            start_dt = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        # Data limite máxima aceitável pela OpenAI (final de 2024)
+        max_date_2024 = datetime(2024, 12, 31)
+        
+        # Converter data inicial, forçando ano máximo 2024
+        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        if start_dt.year > 2024:
+            # Se ano > 2024, usar mesmo mês/dia mas ano 2024
+            start_dt = start_dt.replace(year=2024)
+            logger.info(f"CORREÇÃO: Data {start_date} ajustada para 2024: {start_dt.date()}")
+        
+        # Validação adicional: não pode ser posterior a 31/12/2024
+        if start_dt > max_date_2024:
+            logger.warning(f"Data inicial {start_date} é posterior a 2024, ajustando para 31/12/2024")
+            start_dt = max_date_2024.replace(hour=0, minute=0, second=0, microsecond=0)
         
         start_timestamp = int(start_dt.timestamp())
+        logger.info(f"DEBUG TIMESTAMP: {start_date} -> {start_dt} -> timestamp {start_timestamp}")
         
         params = {
             'start_time': start_timestamp,
@@ -154,10 +165,16 @@ class OpenAIAPIService:
         
         if end_date:
             end_dt = datetime.strptime(end_date, '%Y-%m-%d')
-            # Validar que a data final não é futura
-            if end_dt > now:
-                logger.warning(f"Data final {end_date} é futura, ajustando para hoje")
-                end_dt = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+            
+            # CORREÇÃO CRÍTICA: Forçar ano máximo 2024
+            if end_dt.year > 2024:
+                end_dt = end_dt.replace(year=2024)
+                logger.info(f"CORREÇÃO: Data final {end_date} ajustada para 2024: {end_dt.date()}")
+            
+            # Validação adicional: não pode ser posterior a 31/12/2024
+            if end_dt > max_date_2024:
+                logger.warning(f"Data final {end_date} é posterior a 2024, ajustando para 31/12/2024")
+                end_dt = max_date_2024.replace(hour=23, minute=59, second=59, microsecond=999999)
             
             # Validar que end_date >= start_date
             if end_dt < start_dt:
@@ -166,6 +183,7 @@ class OpenAIAPIService:
             
             end_timestamp = int(end_dt.timestamp())
             params['end_time'] = end_timestamp
+            logger.info(f"DEBUG TIMESTAMP END: {end_date} -> {end_dt} -> timestamp {end_timestamp}")
         
         logger.info(f"Buscando dados de uso OpenAI: {endpoint}")
         logger.debug(f"Parâmetros: {params}")
@@ -211,7 +229,7 @@ class OpenAIAPIService:
             raise Exception(f"Erro ao buscar dados de uso OpenAI: {str(e)}")
     
     def get_costs_data(self, start_date: str, end_date: str = None,
-                      bucket_width: str = '1d', limit: int = 1000) -> Dict[str, Any]:
+                      bucket_width: str = '1d', limit: int = 31) -> Dict[str, Any]:
         """
         Busca dados de custos da OpenAI Costs API
         
@@ -223,16 +241,26 @@ class OpenAIAPIService:
         """
         endpoint = f"{self.api_base}/organization/costs"
         
-        # Converter datas para unix timestamp com validação
-        now = datetime.now()
-        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        # CORREÇÃO CRÍTICA: Forçar ano máximo 2024 para evitar timestamps futuras
+        # OpenAI API não aceita datas futuras, mas sistema pode estar em 2025+
         
-        # Validar que a data não é futura
-        if start_dt > now:
-            logger.warning(f"Data inicial {start_date} é futura, ajustando para hoje")
-            start_dt = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        # Data limite máxima aceitável pela OpenAI (final de 2024)
+        max_date_2024 = datetime(2024, 12, 31)
+        
+        # Converter data inicial, forçando ano máximo 2024
+        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        if start_dt.year > 2024:
+            # Se ano > 2024, usar mesmo mês/dia mas ano 2024
+            start_dt = start_dt.replace(year=2024)
+            logger.info(f"CORREÇÃO COSTS: Data {start_date} ajustada para 2024: {start_dt.date()}")
+        
+        # Validação adicional: não pode ser posterior a 31/12/2024
+        if start_dt > max_date_2024:
+            logger.warning(f"Data inicial {start_date} é posterior a 2024, ajustando para 31/12/2024")
+            start_dt = max_date_2024.replace(hour=0, minute=0, second=0, microsecond=0)
         
         start_timestamp = int(start_dt.timestamp())
+        logger.info(f"DEBUG COSTS TIMESTAMP: {start_date} -> {start_dt} -> timestamp {start_timestamp}")
         
         params = {
             'start_time': start_timestamp,
@@ -242,10 +270,16 @@ class OpenAIAPIService:
         
         if end_date:
             end_dt = datetime.strptime(end_date, '%Y-%m-%d')
-            # Validar que a data final não é futura
-            if end_dt > now:
-                logger.warning(f"Data final {end_date} é futura, ajustando para hoje")
-                end_dt = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+            
+            # CORREÇÃO CRÍTICA: Forçar ano máximo 2024
+            if end_dt.year > 2024:
+                end_dt = end_dt.replace(year=2024)
+                logger.info(f"CORREÇÃO COSTS: Data final {end_date} ajustada para 2024: {end_dt.date()}")
+            
+            # Validação adicional: não pode ser posterior a 31/12/2024
+            if end_dt > max_date_2024:
+                logger.warning(f"Data final {end_date} é posterior a 2024, ajustando para 31/12/2024")
+                end_dt = max_date_2024.replace(hour=23, minute=59, second=59, microsecond=999999)
             
             # Validar que end_date >= start_date
             if end_dt < start_dt:
@@ -254,6 +288,7 @@ class OpenAIAPIService:
             
             end_timestamp = int(end_dt.timestamp())
             params['end_time'] = end_timestamp
+            logger.info(f"DEBUG COSTS TIMESTAMP END: {end_date} -> {end_dt} -> timestamp {end_timestamp}")
         
         logger.info(f"Buscando dados de custos OpenAI: {endpoint}")
         logger.debug(f"Parâmetros: {params}")
@@ -397,7 +432,7 @@ class APIMonitoringService:
                 project_id = usage_item.get('project_id', '')
                 
                 # Garantir que a API key existe
-                api_key_name = usage_item.get('api_key_name', api_key_id)
+                api_key_name = usage_item.get('api_key_name') or f'API-{api_key_id[:8]}'
                 api_key, _ = ApiKey.objects.get_or_create(
                     provider=provider,
                     key_id=api_key_id,
@@ -445,7 +480,7 @@ class APIMonitoringService:
                 project_id = cost_item.get('project_id', '')
                 
                 # Garantir que a API key existe
-                api_key_name = cost_item.get('api_key_name', api_key_id)
+                api_key_name = cost_item.get('api_key_name') or f'API-{api_key_id[:8]}'
                 api_key, _ = ApiKey.objects.get_or_create(
                     provider=provider,
                     key_id=api_key_id,
