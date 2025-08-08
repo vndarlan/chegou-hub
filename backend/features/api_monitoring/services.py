@@ -1,11 +1,15 @@
 import requests
 import os
+import logging
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import List, Dict, Any, Optional
 from django.conf import settings
 from django.utils import timezone
 from .models import ApiProvider, ApiKey, UsageRecord, CostRecord, DataSync
+
+# Configurar logger
+logger = logging.getLogger(__name__)
 
 
 class OpenAIAPIService:
@@ -22,6 +26,80 @@ class OpenAIAPIService:
             'Content-Type': 'application/json'
         }
     
+    def validate_api_key(self) -> Dict[str, Any]:
+        """
+        Valida se a API key tem permissões de admin
+        
+        Returns:
+            Dict com status da validação e informações da organização
+        """
+        try:
+            # Primeiro, tentar buscar informações da organização
+            org_endpoint = f"{self.api_base}/organization"
+            org_response = requests.get(org_endpoint, headers=self.headers)
+            
+            if org_response.status_code != 200:
+                return {
+                    'valid': False,
+                    'has_admin_permissions': False,
+                    'error': f"Não foi possível acessar informações da organização (status {org_response.status_code})",
+                    'details': org_response.text[:200] if org_response.text else None
+                }
+            
+            org_data = org_response.json()
+            
+            # Tentar fazer uma chamada pequena para a API de usage para verificar permissões
+            # Usar período de apenas 1 dia para minimizar carga
+            yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+            test_endpoint = f"{self.api_base}/organization/usage/completions"
+            test_params = {
+                'start_time': int(datetime.strptime(yesterday, '%Y-%m-%d').timestamp()),
+                'bucket_width': '1d',
+                'limit': 1
+            }
+            
+            test_response = requests.get(test_endpoint, headers=self.headers, params=test_params)
+            
+            # Analisar resposta
+            if test_response.status_code == 200:
+                return {
+                    'valid': True,
+                    'has_admin_permissions': True,
+                    'organization': org_data.get('name', 'Unknown'),
+                    'organization_id': org_data.get('id', 'Unknown'),
+                    'message': 'API key validada com sucesso. Tem permissões de admin.'
+                }
+            elif test_response.status_code == 403:
+                return {
+                    'valid': True,
+                    'has_admin_permissions': False,
+                    'organization': org_data.get('name', 'Unknown'),
+                    'organization_id': org_data.get('id', 'Unknown'),
+                    'error': 'API key válida mas sem permissões de admin',
+                    'details': 'Você precisa criar uma Admin Key em https://platform.openai.com/settings/organization/admin-keys'
+                }
+            elif test_response.status_code == 401:
+                return {
+                    'valid': False,
+                    'has_admin_permissions': False,
+                    'error': 'API key inválida ou expirada'
+                }
+            else:
+                return {
+                    'valid': False,
+                    'has_admin_permissions': False,
+                    'error': f"Erro ao validar permissões (status {test_response.status_code})",
+                    'details': test_response.text[:200] if test_response.text else None
+                }
+                
+        except Exception as e:
+            logger.error(f"Erro ao validar API key: {str(e)}")
+            return {
+                'valid': False,
+                'has_admin_permissions': False,
+                'error': f"Erro ao validar API key: {str(e)}"
+            }
+    
     def get_usage_data(self, start_date: str, end_date: str = None, 
                       bucket_width: str = '1d', limit: int = 1000) -> Dict[str, Any]:
         """
@@ -35,8 +113,17 @@ class OpenAIAPIService:
         """
         endpoint = f"{self.api_base}/organization/usage/completions"
         
-        # Converter datas para unix timestamp
-        start_timestamp = int(datetime.strptime(start_date, '%Y-%m-%d').timestamp())
+        # Converter datas para unix timestamp com validação
+        now = datetime.now()
+        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        
+        # Validar que a data não é futura
+        if start_dt > now:
+            logger.warning(f"Data inicial {start_date} é futura, ajustando para hoje")
+            start_dt = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        start_timestamp = int(start_dt.timestamp())
+        
         params = {
             'start_time': start_timestamp,
             'bucket_width': bucket_width,
@@ -44,14 +131,52 @@ class OpenAIAPIService:
         }
         
         if end_date:
-            end_timestamp = int(datetime.strptime(end_date, '%Y-%m-%d').timestamp())
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+            # Validar que a data final não é futura
+            if end_dt > now:
+                logger.warning(f"Data final {end_date} é futura, ajustando para hoje")
+                end_dt = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+            
+            # Validar que end_date >= start_date
+            if end_dt < start_dt:
+                logger.warning(f"Data final {end_date} é anterior à inicial, ajustando")
+                end_dt = start_dt
+            
+            end_timestamp = int(end_dt.timestamp())
             params['end_time'] = end_timestamp
+        
+        logger.info(f"Buscando dados de uso OpenAI: {endpoint}")
+        logger.debug(f"Parâmetros: {params}")
         
         try:
             response = requests.get(endpoint, headers=self.headers, params=params)
+            
+            # Log detalhado em caso de erro
+            if response.status_code != 200:
+                logger.error(f"Erro na API OpenAI: Status {response.status_code}")
+                logger.error(f"Resposta: {response.text}")
+                
+                # Mensagens de erro específicas
+                if response.status_code == 400:
+                    error_msg = "Requisição inválida. Verifique os parâmetros de data."
+                elif response.status_code == 401:
+                    error_msg = "Chave API inválida ou sem permissões de admin."
+                elif response.status_code == 403:
+                    error_msg = "Acesso negado. A chave API precisa ter permissões de admin."
+                elif response.status_code == 429:
+                    error_msg = "Limite de requisições excedido. Tente novamente mais tarde."
+                else:
+                    error_msg = f"Erro {response.status_code}: {response.text[:200]}"
+                
+                raise Exception(error_msg)
+            
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            logger.info(f"Dados de uso obtidos com sucesso: {len(data.get('data', []))} buckets")
+            return data
+            
         except requests.RequestException as e:
+            logger.error(f"Erro ao buscar dados de uso OpenAI: {str(e)}")
             raise Exception(f"Erro ao buscar dados de uso OpenAI: {str(e)}")
     
     def get_costs_data(self, start_date: str, end_date: str = None,
@@ -67,7 +192,17 @@ class OpenAIAPIService:
         """
         endpoint = f"{self.api_base}/organization/costs"
         
-        start_timestamp = int(datetime.strptime(start_date, '%Y-%m-%d').timestamp())
+        # Converter datas para unix timestamp com validação
+        now = datetime.now()
+        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        
+        # Validar que a data não é futura
+        if start_dt > now:
+            logger.warning(f"Data inicial {start_date} é futura, ajustando para hoje")
+            start_dt = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        start_timestamp = int(start_dt.timestamp())
+        
         params = {
             'start_time': start_timestamp,
             'bucket_width': bucket_width,
@@ -75,14 +210,52 @@ class OpenAIAPIService:
         }
         
         if end_date:
-            end_timestamp = int(datetime.strptime(end_date, '%Y-%m-%d').timestamp())
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+            # Validar que a data final não é futura
+            if end_dt > now:
+                logger.warning(f"Data final {end_date} é futura, ajustando para hoje")
+                end_dt = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+            
+            # Validar que end_date >= start_date
+            if end_dt < start_dt:
+                logger.warning(f"Data final {end_date} é anterior à inicial, ajustando")
+                end_dt = start_dt
+            
+            end_timestamp = int(end_dt.timestamp())
             params['end_time'] = end_timestamp
+        
+        logger.info(f"Buscando dados de custos OpenAI: {endpoint}")
+        logger.debug(f"Parâmetros: {params}")
         
         try:
             response = requests.get(endpoint, headers=self.headers, params=params)
+            
+            # Log detalhado em caso de erro
+            if response.status_code != 200:
+                logger.error(f"Erro na API OpenAI Costs: Status {response.status_code}")
+                logger.error(f"Resposta: {response.text}")
+                
+                # Mensagens de erro específicas
+                if response.status_code == 400:
+                    error_msg = "Requisição inválida. Verifique os parâmetros de data."
+                elif response.status_code == 401:
+                    error_msg = "Chave API inválida ou sem permissões de admin."
+                elif response.status_code == 403:
+                    error_msg = "Acesso negado. A chave API precisa ter permissões de admin."
+                elif response.status_code == 429:
+                    error_msg = "Limite de requisições excedido. Tente novamente mais tarde."
+                else:
+                    error_msg = f"Erro {response.status_code}: {response.text[:200]}"
+                
+                raise Exception(error_msg)
+            
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            logger.info(f"Dados de custos obtidos com sucesso: {len(data.get('data', []))} buckets")
+            return data
+            
         except requests.RequestException as e:
+            logger.error(f"Erro ao buscar dados de custos OpenAI: {str(e)}")
             raise Exception(f"Erro ao buscar dados de custos OpenAI: {str(e)}")
 
 

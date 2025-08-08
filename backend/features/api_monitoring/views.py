@@ -1,6 +1,9 @@
+import csv
+import io
 from datetime import datetime, timedelta
 from django.db.models import Sum, Max, Count, Q, F
 from django.utils import timezone
+from django.http import HttpResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
@@ -261,6 +264,262 @@ class DataSyncViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = DataSync.objects.select_related('provider')
     serializer_class = DataSyncSerializer
     permission_classes = [IsAuthenticated]
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def validate_api_key(request):
+    """
+    Endpoint para validar a API key OpenAI
+    GET /api/monitoring/validate-key/
+    """
+    try:
+        from .services import OpenAIAPIService
+        service = OpenAIAPIService()
+        result = service.validate_api_key()
+        
+        if result.get('valid') and result.get('has_admin_permissions'):
+            return Response(result, status=status.HTTP_200_OK)
+        elif result.get('valid') and not result.get('has_admin_permissions'):
+            return Response(result, status=status.HTTP_403_FORBIDDEN)
+        else:
+            return Response(result, status=status.HTTP_401_UNAUTHORIZED)
+            
+    except ValueError as e:
+        # API key não configurada
+        return Response({
+            'valid': False,
+            'has_admin_permissions': False,
+            'error': str(e),
+            'details': 'Configure OPENAI_ADMIN_API_KEY no arquivo .env ou nas variáveis de ambiente'
+        }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    except Exception as e:
+        return Response({
+            'valid': False,
+            'has_admin_permissions': False,
+            'error': f'Erro ao validar API key: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def export_costs_csv(request):
+    """
+    Endpoint para exportar dados de custos em CSV
+    GET /api/monitoring/export/costs/csv/
+    """
+    try:
+        # Parâmetros de data
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=7)
+        
+        if request.query_params.get('start_date'):
+            start_date = datetime.strptime(request.query_params.get('start_date'), '%Y-%m-%d').date()
+        if request.query_params.get('end_date'):
+            end_date = datetime.strptime(request.query_params.get('end_date'), '%Y-%m-%d').date()
+        
+        # Buscar dados
+        queryset = CostRecord.objects.filter(
+            date__range=[start_date, end_date]
+        ).select_related('api_key').order_by('-date')
+        
+        # Criar CSV
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="openai_costs_{start_date}_{end_date}.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow([
+            'Data', 'API Key', 'Modelo', 'Projeto ID',
+            'Custo Input', 'Custo Output', 'Custo Cache', 
+            'Outros Custos', 'Custo Total', 'Moeda'
+        ])
+        
+        for record in queryset:
+            total_cost = (
+                float(record.input_cost or 0) + 
+                float(record.output_cost or 0) + 
+                float(record.cached_cost or 0) + 
+                float(record.other_costs or 0)
+            )
+            writer.writerow([
+                record.date.strftime('%Y-%m-%d'),
+                record.api_key.name,
+                record.model_name,
+                record.project_id or '',
+                float(record.input_cost or 0),
+                float(record.output_cost or 0),
+                float(record.cached_cost or 0),
+                float(record.other_costs or 0),
+                total_cost,
+                record.currency
+            ])
+        
+        return response
+        
+    except Exception as e:
+        return Response({
+            'error': f'Erro ao exportar CSV: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def export_usage_csv(request):
+    """
+    Endpoint para exportar dados de uso em CSV
+    GET /api/monitoring/export/usage/csv/
+    """
+    try:
+        # Parâmetros de data
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=7)
+        
+        if request.query_params.get('start_date'):
+            start_date = datetime.strptime(request.query_params.get('start_date'), '%Y-%m-%d').date()
+        if request.query_params.get('end_date'):
+            end_date = datetime.strptime(request.query_params.get('end_date'), '%Y-%m-%d').date()
+        
+        # Buscar dados
+        queryset = UsageRecord.objects.filter(
+            date__range=[start_date, end_date]
+        ).select_related('api_key').order_by('-date')
+        
+        # Criar CSV
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="openai_usage_{start_date}_{end_date}.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow([
+            'Data', 'API Key', 'Modelo', 'Projeto ID',
+            'Total Requests', 'Input Tokens', 'Output Tokens', 
+            'Cached Tokens', 'Batch'
+        ])
+        
+        for record in queryset:
+            writer.writerow([
+                record.date.strftime('%Y-%m-%d'),
+                record.api_key.name,
+                record.model_name,
+                record.project_id or '',
+                record.total_requests,
+                record.input_tokens,
+                record.output_tokens,
+                record.cached_tokens,
+                'Sim' if record.is_batch else 'Não'
+            ])
+        
+        return response
+        
+    except Exception as e:
+        return Response({
+            'error': f'Erro ao exportar CSV: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def export_summary_json(request):
+    """
+    Endpoint para exportar resumo em JSON
+    GET /api/monitoring/export/summary/json/
+    """
+    try:
+        # Parâmetros de data
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=7)
+        
+        if request.query_params.get('start_date'):
+            start_date = datetime.strptime(request.query_params.get('start_date'), '%Y-%m-%d').date()
+        if request.query_params.get('end_date'):
+            end_date = datetime.strptime(request.query_params.get('end_date'), '%Y-%m-%d').date()
+        
+        # Calcular métricas
+        cost_queryset = CostRecord.objects.filter(date__range=[start_date, end_date])
+        usage_queryset = UsageRecord.objects.filter(date__range=[start_date, end_date])
+        
+        # Resumo de custos
+        cost_summary = cost_queryset.aggregate(
+            total_cost=Sum(F('input_cost') + F('output_cost') + F('cached_cost') + F('other_costs')),
+            total_input_cost=Sum('input_cost'),
+            total_output_cost=Sum('output_cost'),
+            total_cached_cost=Sum('cached_cost'),
+            total_other_costs=Sum('other_costs')
+        )
+        
+        # Resumo de uso
+        usage_summary = usage_queryset.aggregate(
+            total_requests=Sum('total_requests'),
+            total_input_tokens=Sum('input_tokens'),
+            total_output_tokens=Sum('output_tokens'),
+            total_cached_tokens=Sum('cached_tokens')
+        )
+        
+        # Breakdown por modelo
+        model_breakdown = cost_queryset.values('model_name').annotate(
+            total_cost=Sum(F('input_cost') + F('output_cost') + F('cached_cost') + F('other_costs')),
+            total_requests=Count('id')
+        ).order_by('-total_cost')
+        
+        # Breakdown por API key
+        key_breakdown = cost_queryset.values('api_key__name').annotate(
+            total_cost=Sum(F('input_cost') + F('output_cost') + F('cached_cost') + F('other_costs')),
+            total_requests=Count('id')
+        ).order_by('-total_cost')
+        
+        # Timeline diário
+        daily_timeline = cost_queryset.values('date').annotate(
+            daily_cost=Sum(F('input_cost') + F('output_cost') + F('cached_cost') + F('other_costs'))
+        ).order_by('date')
+        
+        summary_data = {
+            'period': {
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat()
+            },
+            'cost_summary': {
+                'total': float(cost_summary.get('total_cost') or 0),
+                'input': float(cost_summary.get('total_input_cost') or 0),
+                'output': float(cost_summary.get('total_output_cost') or 0),
+                'cached': float(cost_summary.get('total_cached_cost') or 0),
+                'other': float(cost_summary.get('total_other_costs') or 0)
+            },
+            'usage_summary': {
+                'requests': usage_summary.get('total_requests') or 0,
+                'input_tokens': usage_summary.get('total_input_tokens') or 0,
+                'output_tokens': usage_summary.get('total_output_tokens') or 0,
+                'cached_tokens': usage_summary.get('total_cached_tokens') or 0
+            },
+            'model_breakdown': [
+                {
+                    'model': item['model_name'],
+                    'cost': float(item['total_cost'] or 0),
+                    'requests': item['total_requests']
+                }
+                for item in model_breakdown
+            ],
+            'api_key_breakdown': [
+                {
+                    'api_key': item['api_key__name'],
+                    'cost': float(item['total_cost'] or 0),
+                    'requests': item['total_requests']
+                }
+                for item in key_breakdown
+            ],
+            'daily_timeline': [
+                {
+                    'date': item['date'].isoformat(),
+                    'cost': float(item['daily_cost'] or 0)
+                }
+                for item in daily_timeline
+            ]
+        }
+        
+        return Response(summary_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'error': f'Erro ao exportar JSON: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])

@@ -1,5 +1,5 @@
 // frontend/src/features/ia/OpenAIAnalytics.js
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
 
 // shadcn/ui imports
@@ -8,15 +8,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Badge } from '../../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
+import { Toaster } from '../../components/ui/toaster';
+import { useToast } from '../../components/ui/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Progress } from '../../components/ui/progress';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger
+} from '../../components/ui/dropdown-menu';
 
 // lucide-react icons
 import {
     DollarSign, Activity, Zap, Bot, RefreshCw, Filter,
     TrendingUp, Calendar, AlertCircle, BarChart3,
-    LineChart, Users, Clock, Coins
+    LineChart, Users, Clock, Coins, CheckCircle,
+    Download, ShieldCheck, XCircle
 } from 'lucide-react';
 
 // Recharts imports
@@ -48,6 +59,10 @@ const OpenAIAnalytics = () => {
     const [loading, setLoading] = useState(true);
     const [syncing, setSyncing] = useState(false);
     const [error, setError] = useState(null);
+    const [validatingKey, setValidatingKey] = useState(false);
+    const [apiKeyStatus, setApiKeyStatus] = useState(null);
+    
+    const { toast } = useToast();
     
     const [selectedPeriod, setSelectedPeriod] = useState('7'); // 7 dias padrão
     const [selectedApiKeys, setSelectedApiKeys] = useState([]);
@@ -145,25 +160,129 @@ const OpenAIAnalytics = () => {
         }
     };
 
+    const validateApiKey = useCallback(async () => {
+        try {
+            setValidatingKey(true);
+            const response = await axios.get(`${API_BASE}/validate-key/`);
+            
+            setApiKeyStatus(response.data);
+            
+            if (response.data.valid && response.data.has_admin_permissions) {
+                toast({
+                    title: "✅ API Key Válida",
+                    description: `Conectado à organização: ${response.data.organization}`,
+                    variant: "default",
+                });
+            } else if (response.data.valid && !response.data.has_admin_permissions) {
+                toast({
+                    title: "⚠️ Permissões Insuficientes",
+                    description: response.data.details || "A API key precisa ter permissões de admin.",
+                    variant: "destructive",
+                });
+            } else {
+                toast({
+                    title: "❌ API Key Inválida",
+                    description: response.data.error || "Verifique sua configuração.",
+                    variant: "destructive",
+                });
+            }
+            
+            return response.data;
+        } catch (err) {
+            const errorMsg = err.response?.data?.error || err.message;
+            toast({
+                title: "❌ Erro ao Validar",
+                description: errorMsg,
+                variant: "destructive",
+            });
+            setApiKeyStatus({ valid: false, error: errorMsg });
+            return null;
+        } finally {
+            setValidatingKey(false);
+        }
+    }, [API_BASE, toast]);
+
     const handleSyncData = async () => {
         try {
+            // Primeiro validar a API key
+            const keyValidation = await validateApiKey();
+            
+            if (!keyValidation?.valid || !keyValidation?.has_admin_permissions) {
+                toast({
+                    title: "❌ Sincronização Cancelada",
+                    description: "Por favor, configure uma API key válida com permissões de admin.",
+                    variant: "destructive",
+                });
+                return;
+            }
+            
             setSyncing(true);
             setError(null);
+            
+            // Validar período de datas
+            const now = new Date();
+            const daysBack = parseInt(selectedPeriod);
+            
+            if (daysBack > 30) {
+                toast({
+                    title: "⚠️ Período Muito Longo",
+                    description: "Máximo de 30 dias permitido para sincronização.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            toast({
+                title: "🔄 Sincronizando...",
+                description: `Buscando dados dos últimos ${daysBack} dias...`,
+            });
 
             const response = await axios.post(`${API_BASE}/sync-openai/`, {
-                days_back: parseInt(selectedPeriod)
+                days_back: daysBack
             });
 
             if (response.data.success) {
                 // Recarregar dados após sincronização
                 await loadInitialData();
-                alert(`Sincronização concluída! ${response.data.data.usage_records_synced} registros de uso e ${response.data.data.cost_records_synced} de custos sincronizados.`);
+                
+                toast({
+                    title: "✅ Sincronização Concluída",
+                    description: `${response.data.data.usage_records_synced} registros de uso e ${response.data.data.cost_records_synced} de custos sincronizados.`,
+                    variant: "default",
+                });
             } else {
                 setError('Erro na sincronização: ' + response.data.error);
+                toast({
+                    title: "❌ Erro na Sincronização",
+                    description: response.data.error || "Erro desconhecido",
+                    variant: "destructive",
+                });
             }
 
         } catch (err) {
-            setError('Erro ao sincronizar dados: ' + (err.response?.data?.error || err.message));
+            const errorMsg = err.response?.data?.error || err.message;
+            
+            // Mensagens específicas baseadas no erro
+            let title = "❌ Erro na Sincronização";
+            let description = errorMsg;
+            
+            if (errorMsg.includes("401") || errorMsg.includes("API key")) {
+                title = "🔑 Problema com API Key";
+                description = "Verifique se a OPENAI_ADMIN_API_KEY está configurada corretamente.";
+            } else if (errorMsg.includes("403") || errorMsg.includes("permiss")) {
+                title = "🚫 Sem Permissões";
+                description = "Sua API key precisa ter permissões de admin. Crie uma em platform.openai.com/settings/organization/admin-keys";
+            } else if (errorMsg.includes("400") || errorMsg.includes("data")) {
+                title = "📅 Erro de Parâmetros";
+                description = "Verifique as datas selecionadas. Não é possível buscar dados futuros.";
+            }
+            
+            setError(errorMsg);
+            toast({
+                title,
+                description,
+                variant: "destructive",
+            });
         } finally {
             setSyncing(false);
         }
@@ -177,6 +296,88 @@ const OpenAIAnalytics = () => {
                 ? selectedApiKeys.filter(k => k !== value)
                 : [...selectedApiKeys, value];
             setSelectedApiKeys(currentKeys);
+        }
+    };
+
+    const handleExportCSV = async (type) => {
+        try {
+            const params = new URLSearchParams();
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+            
+            params.append('start_date', startDate.toISOString().split('T')[0]);
+            params.append('end_date', endDate.toISOString().split('T')[0]);
+            
+            const url = `${API_BASE}/export/${type}/csv/?${params.toString()}`;
+            
+            // Fazer download do CSV
+            const response = await axios.get(url, {
+                responseType: 'blob'
+            });
+            
+            // Criar link para download
+            const blob = new Blob([response.data], { type: 'text/csv' });
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = `openai_${type}_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+            
+            toast({
+                title: "✅ Exportação Concluída",
+                description: `Arquivo CSV de ${type === 'costs' ? 'custos' : 'uso'} baixado com sucesso.`,
+            });
+            
+        } catch (err) {
+            toast({
+                title: "❌ Erro na Exportação",
+                description: err.response?.data?.error || err.message,
+                variant: "destructive",
+            });
+        }
+    };
+
+    const handleExportJSON = async () => {
+        try {
+            const params = new URLSearchParams();
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+            
+            params.append('start_date', startDate.toISOString().split('T')[0]);
+            params.append('end_date', endDate.toISOString().split('T')[0]);
+            
+            const url = `${API_BASE}/export/summary/json/?${params.toString()}`;
+            
+            const response = await axios.get(url);
+            
+            // Criar arquivo JSON para download
+            const jsonStr = JSON.stringify(response.data, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = `openai_summary_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+            
+            toast({
+                title: "✅ Exportação Concluída",
+                description: "Resumo JSON baixado com sucesso.",
+            });
+            
+        } catch (err) {
+            toast({
+                title: "❌ Erro na Exportação",
+                description: err.response?.data?.error || err.message,
+                variant: "destructive",
+            });
         }
     };
 
@@ -208,15 +409,32 @@ const OpenAIAnalytics = () => {
 
     if (error) {
         return (
-            <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-            </Alert>
+            <>
+                <Toaster />
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Erro</AlertTitle>
+                    <AlertDescription>
+                        {error}
+                        <div className="mt-4">
+                            <Button 
+                                onClick={() => window.location.reload()}
+                                variant="outline"
+                                size="sm"
+                            >
+                                <RefreshCw className="h-4 w-4 mr-2" />
+                                Recarregar Página
+                            </Button>
+                        </div>
+                    </AlertDescription>
+                </Alert>
+            </>
         );
     }
 
     return (
         <div className="space-y-6">
+            <Toaster />
             {/* Header com Filtros */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
@@ -232,8 +450,8 @@ const OpenAIAnalytics = () => {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="7">Últimos 7 dias</SelectItem>
+                            <SelectItem value="14">Últimos 14 dias</SelectItem>
                             <SelectItem value="30">Últimos 30 dias</SelectItem>
-                            <SelectItem value="90">Últimos 90 dias</SelectItem>
                         </SelectContent>
                     </Select>
 
@@ -253,9 +471,23 @@ const OpenAIAnalytics = () => {
                     </Select>
 
                     <Button 
-                        onClick={handleSyncData} 
-                        disabled={syncing}
+                        onClick={validateApiKey} 
+                        disabled={validatingKey}
                         variant="outline"
+                        size="sm"
+                    >
+                        {validatingKey ? (
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <ShieldCheck className="h-4 w-4 mr-2" />
+                        )}
+                        {validatingKey ? 'Validando...' : 'Validar Key'}
+                    </Button>
+                    
+                    <Button 
+                        onClick={handleSyncData} 
+                        disabled={syncing || validatingKey}
+                        variant="default"
                     >
                         {syncing ? (
                             <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
@@ -264,6 +496,32 @@ const OpenAIAnalytics = () => {
                         )}
                         {syncing ? 'Sincronizando...' : 'Sincronizar'}
                     </Button>
+                    
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline">
+                                <Download className="h-4 w-4 mr-2" />
+                                Exportar
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuLabel>Escolha o formato</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleExportCSV('costs')}>
+                                <DollarSign className="h-4 w-4 mr-2" />
+                                Custos (CSV)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleExportCSV('usage')}>
+                                <Activity className="h-4 w-4 mr-2" />
+                                Uso (CSV)
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={handleExportJSON}>
+                                <BarChart3 className="h-4 w-4 mr-2" />
+                                Resumo Completo (JSON)
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
 
@@ -503,27 +761,76 @@ const OpenAIAnalytics = () => {
                 </TabsContent>
             </Tabs>
 
-            {/* Status da Sincronização */}
-            {syncStatus && (
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                                <Clock className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground">
-                                    Última sincronização: {syncStatus.last_sync_date || 'Nunca'}
-                                </span>
+            {/* Status da Sincronização e API Key */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {syncStatus && (
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-medium">Status da Sincronização</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                    <Clock className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-sm text-muted-foreground">
+                                        Última: {syncStatus.last_sync_date || 'Nunca'}
+                                    </span>
+                                </div>
+                                <Badge variant={syncStatus.sync_status === 'success' ? 'default' : 'destructive'}>
+                                    {syncStatus.sync_status === 'success' ? (
+                                        <><CheckCircle className="h-3 w-3 mr-1" /> Sucesso</>
+                                    ) : (
+                                        <><XCircle className="h-3 w-3 mr-1" /> Erro</>
+                                    )}
+                                </Badge>
                             </div>
-                            <Badge variant={syncStatus.sync_status === 'success' ? 'default' : 'destructive'}>
-                                {syncStatus.sync_status === 'success' ? 'Sucesso' : 'Erro'}
-                            </Badge>
-                        </div>
-                        {syncStatus.error_message && (
-                            <p className="text-sm text-destructive mt-2">{syncStatus.error_message}</p>
-                        )}
-                    </CardContent>
-                </Card>
-            )}
+                            {syncStatus.error_message && (
+                                <Alert variant="destructive" className="mt-3">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertDescription className="text-xs">
+                                        {syncStatus.error_message}
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
+                
+                {apiKeyStatus && (
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-medium">Status da API Key</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                    <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-sm text-muted-foreground">
+                                        {apiKeyStatus.organization || 'Não configurada'}
+                                    </span>
+                                </div>
+                                <Badge variant={apiKeyStatus.valid && apiKeyStatus.has_admin_permissions ? 'default' : 'destructive'}>
+                                    {apiKeyStatus.valid && apiKeyStatus.has_admin_permissions ? (
+                                        <><CheckCircle className="h-3 w-3 mr-1" /> Admin</>
+                                    ) : apiKeyStatus.valid ? (
+                                        <><AlertCircle className="h-3 w-3 mr-1" /> Sem Admin</>
+                                    ) : (
+                                        <><XCircle className="h-3 w-3 mr-1" /> Inválida</>
+                                    )}
+                                </Badge>
+                            </div>
+                            {apiKeyStatus.error && (
+                                <Alert variant="destructive" className="mt-3">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertDescription className="text-xs">
+                                        {apiKeyStatus.error}
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
         </div>
     );
 };
