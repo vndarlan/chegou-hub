@@ -18,13 +18,23 @@ class OpenAIAPIService:
     def __init__(self):
         self.api_base = "https://api.openai.com/v1"
         self.admin_key = os.getenv('OPENAI_ADMIN_API_KEY')
+        
+        # Validações melhoradas da API key
         if not self.admin_key:
-            raise ValueError("OPENAI_ADMIN_API_KEY não configurada")
+            raise ValueError("OPENAI_ADMIN_API_KEY não configurada. Configure no arquivo .env ou nas variáveis de ambiente.")
+        
+        if self.admin_key.startswith('your_') or 'placeholder' in self.admin_key.lower():
+            raise ValueError("OPENAI_ADMIN_API_KEY parece ser um placeholder. Configure com uma API key real da OpenAI.")
+        
+        if not self.admin_key.startswith('sk-'):
+            raise ValueError("OPENAI_ADMIN_API_KEY deve começar com 'sk-'. Verifique se é uma API key válida da OpenAI.")
         
         self.headers = {
             'Authorization': f'Bearer {self.admin_key}',
             'Content-Type': 'application/json'
         }
+        
+        logger.info(f"OpenAI API Service inicializado com key: ...{self.admin_key[-8:]}")
     
     def validate_api_key(self) -> Dict[str, Any]:
         """
@@ -39,11 +49,23 @@ class OpenAIAPIService:
             org_response = requests.get(org_endpoint, headers=self.headers)
             
             if org_response.status_code != 200:
+                error_details = org_response.text[:200] if org_response.text else None
+                
+                if org_response.status_code == 401:
+                    error_msg = "API key inválida ou expirada. Verifique se a OPENAI_ADMIN_API_KEY está correta."
+                elif org_response.status_code == 404:
+                    error_msg = "Organização não encontrada. Verifique se a API key pertence a uma organização válida."
+                elif org_response.status_code == 403:
+                    error_msg = "Acesso negado. A API key precisa ter permissões de organização."
+                else:
+                    error_msg = f"Erro {org_response.status_code} ao acessar organização"
+                
                 return {
                     'valid': False,
                     'has_admin_permissions': False,
-                    'error': f"Não foi possível acessar informações da organização (status {org_response.status_code})",
-                    'details': org_response.text[:200] if org_response.text else None
+                    'error': error_msg,
+                    'details': error_details,
+                    'suggestion': 'Verifique se a API key é uma Admin Key criada em https://platform.openai.com/settings/organization/admin-keys'
                 }
             
             org_data = org_response.json()
@@ -151,20 +173,29 @@ class OpenAIAPIService:
         try:
             response = requests.get(endpoint, headers=self.headers, params=params)
             
-            # Log detalhado em caso de erro
+            # Log detalhado em caso de erro com timestamps para debug
             if response.status_code != 200:
-                logger.error(f"Erro na API OpenAI: Status {response.status_code}")
-                logger.error(f"Resposta: {response.text}")
+                logger.error(f"Erro na API OpenAI Usage: Status {response.status_code}")
+                logger.error(f"URL chamada: {endpoint}?{params}")
+                logger.error(f"Timestamps enviados: start={params.get('start_time')} ({datetime.fromtimestamp(params.get('start_time', 0))}), end={params.get('end_time', 'N/A')}")
+                logger.error(f"Resposta da API: {response.text[:500]}")
                 
-                # Mensagens de erro específicas
+                # Mensagens de erro específicas e detalhadas
                 if response.status_code == 400:
-                    error_msg = "Requisição inválida. Verifique os parâmetros de data."
+                    # Verificar se é problema de timestamp futuro
+                    response_text = response.text.lower()
+                    if 'start_time' in response_text or 'timestamp' in response_text:
+                        error_msg = f"Parâmetros de data inválidos. Timestamps: start={params.get('start_time')} ({datetime.fromtimestamp(params.get('start_time', 0))}). Verifique se as datas não são futuras."
+                    else:
+                        error_msg = "Requisição inválida. Verifique os parâmetros enviados."
                 elif response.status_code == 401:
-                    error_msg = "Chave API inválida ou sem permissões de admin."
+                    error_msg = "API key inválida. Configure uma API key válida em OPENAI_ADMIN_API_KEY."
                 elif response.status_code == 403:
-                    error_msg = "Acesso negado. A chave API precisa ter permissões de admin."
+                    error_msg = "Sem permissões de admin. Crie uma Admin Key em https://platform.openai.com/settings/organization/admin-keys"
                 elif response.status_code == 429:
-                    error_msg = "Limite de requisições excedido. Tente novamente mais tarde."
+                    error_msg = "Limite de requisições excedido. Aguarde alguns minutos antes de tentar novamente."
+                elif response.status_code == 404:
+                    error_msg = "Endpoint não encontrado. Verifique se sua organização tem acesso à API de Usage."
                 else:
                     error_msg = f"Erro {response.status_code}: {response.text[:200]}"
                 
@@ -230,20 +261,29 @@ class OpenAIAPIService:
         try:
             response = requests.get(endpoint, headers=self.headers, params=params)
             
-            # Log detalhado em caso de erro
+            # Log detalhado em caso de erro com timestamps para debug
             if response.status_code != 200:
                 logger.error(f"Erro na API OpenAI Costs: Status {response.status_code}")
-                logger.error(f"Resposta: {response.text}")
+                logger.error(f"URL chamada: {endpoint}?{params}")
+                logger.error(f"Timestamps enviados: start={params.get('start_time')} ({datetime.fromtimestamp(params.get('start_time', 0))}), end={params.get('end_time', 'N/A')}")
+                logger.error(f"Resposta da API: {response.text[:500]}")
                 
-                # Mensagens de erro específicas
+                # Mensagens de erro específicas e detalhadas
                 if response.status_code == 400:
-                    error_msg = "Requisição inválida. Verifique os parâmetros de data."
+                    # Verificar se é problema de timestamp futuro
+                    response_text = response.text.lower()
+                    if 'start_time' in response_text or 'timestamp' in response_text:
+                        error_msg = f"Parâmetros de data inválidos. Timestamps: start={params.get('start_time')} ({datetime.fromtimestamp(params.get('start_time', 0))}). Verifique se as datas não são futuras."
+                    else:
+                        error_msg = "Requisição inválida. Verifique os parâmetros enviados."
                 elif response.status_code == 401:
-                    error_msg = "Chave API inválida ou sem permissões de admin."
+                    error_msg = "API key inválida. Configure uma API key válida em OPENAI_ADMIN_API_KEY."
                 elif response.status_code == 403:
-                    error_msg = "Acesso negado. A chave API precisa ter permissões de admin."
+                    error_msg = "Sem permissões de admin. Crie uma Admin Key em https://platform.openai.com/settings/organization/admin-keys"
                 elif response.status_code == 429:
-                    error_msg = "Limite de requisições excedido. Tente novamente mais tarde."
+                    error_msg = "Limite de requisições excedido. Aguarde alguns minutos antes de tentar novamente."
+                elif response.status_code == 404:
+                    error_msg = "Endpoint não encontrado. Verifique se sua organização tem acesso à API de Costs."
                 else:
                     error_msg = f"Erro {response.status_code}: {response.text[:200]}"
                 

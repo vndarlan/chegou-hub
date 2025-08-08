@@ -286,12 +286,30 @@ def validate_api_key(request):
             return Response(result, status=status.HTTP_401_UNAUTHORIZED)
             
     except ValueError as e:
-        # API key não configurada
+        # API key não configurada ou inválida
+        error_msg = str(e)
+        
+        # Dar instruções específicas baseadas no tipo de erro
+        if 'não configurada' in error_msg:
+            details = 'Adicione OPENAI_ADMIN_API_KEY=sua-admin-key-aqui no arquivo .env'
+        elif 'placeholder' in error_msg:
+            details = 'Substitua o placeholder por uma API key real da OpenAI'
+        elif 'sk-' in error_msg:
+            details = 'Use uma API key válida que comece com "sk-" da OpenAI'
+        else:
+            details = 'Verifique sua configuração da API key OpenAI'
+        
         return Response({
             'valid': False,
             'has_admin_permissions': False,
-            'error': str(e),
-            'details': 'Configure OPENAI_ADMIN_API_KEY no arquivo .env ou nas variáveis de ambiente'
+            'error': error_msg,
+            'details': details,
+            'next_steps': [
+                '1. Acesse https://platform.openai.com/settings/organization/admin-keys',
+                '2. Crie uma nova Admin API Key',
+                '3. Copie a key e configure como OPENAI_ADMIN_API_KEY',
+                '4. Reinicie o servidor'
+            ]
         }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
     except Exception as e:
         return Response({
