@@ -70,10 +70,9 @@ class FeedbackNotificationsView(generics.ListAPIView):
     def list(self, request, *args, **kwargs):
         """Override para adicionar logs e formatação adequada para notificações."""
         try:
-            # Obter queryset e serializar
+            # Obter queryset e serializar usando o serializer diretamente
             queryset = self.get_queryset()
-            serializer_class = self.get_serializer_class()
-            serializer = serializer_class(queryset, many=True, context={'request': request})
+            serializer = self.serializer_class(queryset, many=True, context={'request': request})
             
             # Formatar dados para o formato de notificação esperado pelo frontend
             notifications_data = []
@@ -99,6 +98,7 @@ class FeedbackNotificationsView(generics.ListAPIView):
             
         except Exception as e:
             logger.error(f"Erro ao listar notificações de feedback: {str(e)}")
+            logger.error(f"Traceback completo: {traceback.format_exc()}")
             return Response({
                 'error': 'Erro interno do servidor',
                 'results': [],

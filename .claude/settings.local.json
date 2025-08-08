@@ -38,7 +38,9 @@
       "WebFetch(domain:docs.anthropic.com)",
       "WebFetch(domain:console.anthropic.com)",
       "Bash(git init:*)",
-      "Bash(git ls-tree:*)"
+      "Bash(git ls-tree:*)",
+      "Bash(set DATABASE_URL=)",
+      "Bash(dir:*)"
     ],
     "deny": []
   }

@@ -92,7 +92,7 @@ const FeedbackModal = ({ onClose }) => {
         submitData.append('imagem', formData.imagem);
       }
 
-      const response = await axios.post('/api/feedback/create/', submitData, {
+      const response = await axios.post('/feedback/create/', submitData, {
         withCredentials: true,
         headers: {
           'X-CSRFToken': getCSRFToken(),

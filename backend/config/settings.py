@@ -142,14 +142,21 @@ if DEBUG and not IS_RAILWAY_DEPLOYMENT and os.getenv('USE_PUBLIC_DB_URL_LOCALLY'
         DATABASE_URL_FROM_ENV = public_db_url
 
 DATABASES = {}
-if DATABASE_URL_FROM_ENV:
-    print(f"Conectando ao banco de dados via URL (host e nome omitidos por segurança no log)...")
-    DATABASES['default'] = dj_database_url.parse(
-        DATABASE_URL_FROM_ENV,
-        conn_max_age=600,
-        conn_health_checks=True,
-        ssl_require=os.getenv('DB_SSL_REQUIRE', 'False').lower() == 'true'
-    )
+if DATABASE_URL_FROM_ENV and DATABASE_URL_FROM_ENV.strip():
+    try:
+        print(f"Conectando ao banco de dados via URL (host e nome omitidos por segurança no log)...")
+        DATABASES['default'] = dj_database_url.parse(
+            DATABASE_URL_FROM_ENV,
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=os.getenv('DB_SSL_REQUIRE', 'False').lower() == 'true'
+        )
+    except Exception as e:
+        print(f"ERRO ao configurar DATABASE_URL: {e}. Usando SQLite como fallback.")
+        DATABASES['default'] = {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
 else:
     print("AVISO: DATABASE_URL não definida. Usando SQLite como fallback.")
     DATABASES['default'] = {

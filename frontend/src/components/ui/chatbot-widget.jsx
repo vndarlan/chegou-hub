@@ -73,7 +73,7 @@ const ChatbotWidget = ({ className = '' }) => {
         throw new Error('Não foi possível obter o token CSRF. Você precisa estar logado.');
       }
       
-      const response = await fetch('/api/chatbot/ask/', {
+      const response = await fetch('/chatbot/ask/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +93,7 @@ const ChatbotWidget = ({ className = '' }) => {
           
           if (newToken) {
             // Faz nova tentativa com token renovado
-            const retryResponse = await fetch('/api/chatbot/ask/', {
+            const retryResponse = await fetch('/chatbot/ask/', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
