@@ -53,8 +53,12 @@ class Command(BaseCommand):
         for feedback in feedbacks_com_imagem:
             try:
                 if options['dry_run']:
-                    self.stdout.write(f'[DRY-RUN] Migraria: {feedback.titulo} - {feedback.imagem.name}')
-                    migrados += 1
+                    # Verificar se já é Cloudinary ou local file
+                    if hasattr(feedback.imagem, 'public_id') and feedback.imagem.public_id:
+                        self.stdout.write(f'[DRY-RUN] Já no Cloudinary: {feedback.titulo} - {feedback.imagem.public_id}')
+                    elif hasattr(feedback.imagem, 'name') and feedback.imagem.name:
+                        self.stdout.write(f'[DRY-RUN] Migraria: {feedback.titulo} - {feedback.imagem.name}')
+                        migrados += 1
                     continue
 
                 # Verificar se arquivo existe
@@ -64,24 +68,37 @@ class Command(BaseCommand):
                     )
                     continue
 
-                # Verificar se o arquivo físico existe
-                try:
-                    image_path = feedback.imagem.path
-                    if not os.path.exists(image_path):
-                        self.stdout.write(
-                            self.style.WARNING(f'⚠️  Arquivo não encontrado: {image_path}')
-                        )
-                        continue
-                except (ValueError, AttributeError):
-                    # Pode acontecer se a imagem já estiver no Cloudinary
+                # Verificar se já está no Cloudinary
+                if hasattr(feedback.imagem, 'public_id') and feedback.imagem.public_id:
                     self.stdout.write(
-                        self.style.WARNING(f'⚠️  Feedback {feedback.id}: imagem pode já estar no Cloudinary')
+                        self.style.SUCCESS(f'✅ Já no Cloudinary: {feedback.titulo} - {feedback.imagem.public_id}')
                     )
                     continue
 
-                # Aqui faríamos o upload para Cloudinary
-                # Por enquanto, apenas loggar o que seria feito
-                self.stdout.write(f'🔄 Migrando: {feedback.titulo} - {feedback.imagem.name}')
+                # Verificar se o arquivo físico existe (apenas para ImageField)
+                if hasattr(feedback.imagem, 'name') and feedback.imagem.name:
+                    try:
+                        image_path = feedback.imagem.path
+                        if not os.path.exists(image_path):
+                            self.stdout.write(
+                                self.style.WARNING(f'⚠️  Arquivo não encontrado: {image_path}')
+                            )
+                            continue
+                        
+                        # Aqui faríamos o upload para Cloudinary
+                        # Por enquanto, apenas loggar o que seria feito
+                        self.stdout.write(f'🔄 Migrando: {feedback.titulo} - {feedback.imagem.name}')
+                        
+                    except (ValueError, AttributeError) as e:
+                        self.stdout.write(
+                            self.style.WARNING(f'⚠️  Erro ao acessar arquivo do feedback {feedback.id}: {str(e)}')
+                        )
+                        continue
+                else:
+                    self.stdout.write(
+                        self.style.WARNING(f'⚠️  Feedback {feedback.id}: tipo de imagem não reconhecido')
+                    )
+                    continue
                 
                 # TODO: Implementar upload real para Cloudinary
                 # cloudinary.uploader.upload(image_path, folder="feedback/")

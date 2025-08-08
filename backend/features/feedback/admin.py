@@ -32,43 +32,64 @@ class FeedbackAdmin(admin.ModelAdmin):
     
     def status_imagem(self, obj):
         """Mostra o status da imagem (existe ou não)"""
-        if not obj.imagem or not obj.imagem.name:
+        if not obj.imagem:
             return format_html('<span style="color: gray;">Sem imagem</span>')
         
         try:
-            if os.path.exists(obj.imagem.path):
-                return format_html('<span style="color: green;">✓ OK</span>')
+            # Para CloudinaryResource
+            if hasattr(obj.imagem, 'public_id') and obj.imagem.public_id:
+                return format_html('<span style="color: green;">✓ Cloudinary OK</span>')
+            # Para ImageField normal
+            elif hasattr(obj.imagem, 'name') and obj.imagem.name:
+                if os.path.exists(obj.imagem.path):
+                    return format_html('<span style="color: green;">✓ Arquivo OK</span>')
+                else:
+                    return format_html('<span style="color: red;">✗ Arquivo perdido</span>')
             else:
-                return format_html('<span style="color: red;">✗ Arquivo perdido</span>')
-        except:
+                return format_html('<span style="color: gray;">Sem imagem</span>')
+        except Exception:
             return format_html('<span style="color: orange;">⚠ Erro</span>')
     status_imagem.short_description = 'Status da Imagem'
     
     def preview_imagem(self, obj):
         """Mostra preview da imagem no admin"""
-        if not obj.imagem or not obj.imagem.name:
+        if not obj.imagem:
             return "Nenhuma imagem anexada"
             
         try:
-            if os.path.exists(obj.imagem.path):
+            # Para CloudinaryResource
+            if hasattr(obj.imagem, 'public_id') and obj.imagem.public_id:
                 return format_html(
                     '<div style="max-width: 400px; text-align: center;">'
                     '<img src="{}" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">'
-                    '<br><br><a href="{}" target="_blank" style="background: #007cba; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;">Abrir imagem</a>'
+                    '<br><br><a href="{}" target="_blank" style="background: #007cba; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;">Abrir no Cloudinary</a>'
                     '</div>',
                     obj.imagem.url,
                     obj.imagem.url
                 )
+            # Para ImageField normal
+            elif hasattr(obj.imagem, 'name') and obj.imagem.name:
+                if os.path.exists(obj.imagem.path):
+                    return format_html(
+                        '<div style="max-width: 400px; text-align: center;">'
+                        '<img src="{}" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">'
+                        '<br><br><a href="{}" target="_blank" style="background: #007cba; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;">Abrir imagem</a>'
+                        '</div>',
+                        obj.imagem.url,
+                        obj.imagem.url
+                    )
+                else:
+                    return format_html(
+                        '<div style="color: red; padding: 10px; background: #ffebee; border: 1px solid #ffcdd2; border-radius: 4px;">'
+                        '<strong>⚠ Arquivo de imagem não encontrado!</strong><br>'
+                        'Caminho esperado: {}<br>'
+                        'URL: {}'
+                        '</div>',
+                        obj.imagem.path,
+                        obj.imagem.url
+                    )
             else:
-                return format_html(
-                    '<div style="color: red; padding: 10px; background: #ffebee; border: 1px solid #ffcdd2; border-radius: 4px;">'
-                    '<strong>⚠ Arquivo de imagem não encontrado!</strong><br>'
-                    'Caminho esperado: {}<br>'
-                    'URL: {}'
-                    '</div>',
-                    obj.imagem.path,
-                    obj.imagem.url
-                )
+                return "Imagem sem dados válidos"
         except Exception as e:
             return format_html(
                 '<div style="color: orange; padding: 10px; background: #fff3e0; border: 1px solid #ffcc02; border-radius: 4px;">'
@@ -80,26 +101,42 @@ class FeedbackAdmin(admin.ModelAdmin):
     
     def info_imagem(self, obj):
         """Mostra informações técnicas da imagem"""
-        if not obj.imagem or not obj.imagem.name:
+        if not obj.imagem:
             return "N/A"
             
         try:
-            path = obj.imagem.path
-            if os.path.exists(path):
-                size = os.path.getsize(path)
-                size_kb = round(size / 1024, 1)
+            # Para CloudinaryResource
+            if hasattr(obj.imagem, 'public_id') and obj.imagem.public_id:
                 return format_html(
                     '<small>'
-                    '<strong>Nome:</strong> {}<br>'
-                    '<strong>Tamanho:</strong> {} KB<br>'
-                    '<strong>Caminho:</strong> {}'
+                    '<strong>Tipo:</strong> Cloudinary<br>'
+                    '<strong>Public ID:</strong> {}<br>'
+                    '<strong>URL:</strong> <a href="{}" target="_blank">Link</a>'
                     '</small>',
-                    obj.imagem.name,
-                    size_kb,
-                    path
+                    obj.imagem.public_id,
+                    obj.imagem.url
                 )
+            # Para ImageField normal
+            elif hasattr(obj.imagem, 'name') and obj.imagem.name:
+                path = obj.imagem.path
+                if os.path.exists(path):
+                    size = os.path.getsize(path)
+                    size_kb = round(size / 1024, 1)
+                    return format_html(
+                        '<small>'
+                        '<strong>Tipo:</strong> Arquivo Local<br>'
+                        '<strong>Nome:</strong> {}<br>'
+                        '<strong>Tamanho:</strong> {} KB<br>'
+                        '<strong>Caminho:</strong> {}'
+                        '</small>',
+                        obj.imagem.name,
+                        size_kb,
+                        path
+                    )
+                else:
+                    return format_html('<small style="color: red;">Arquivo não existe: {}</small>', path)
             else:
-                return format_html('<small style="color: red;">Arquivo não existe: {}</small>', path)
+                return "Informação indisponível"
         except Exception as e:
             return format_html('<small style="color: orange;">Erro: {}</small>', str(e))
     info_imagem.short_description = 'Info Técnica'
@@ -108,12 +145,18 @@ class FeedbackAdmin(admin.ModelAdmin):
         """Action para limpar registros com imagens que não existem mais"""
         count = 0
         for feedback in queryset:
-            if feedback.imagem and feedback.imagem.name:
+            if feedback.imagem:
                 try:
-                    if not os.path.exists(feedback.imagem.path):
-                        feedback.imagem.delete(save=False)  # Remove apenas a referência
-                        feedback.save()
-                        count += 1
+                    # Para CloudinaryResource, não há arquivo local para verificar
+                    if hasattr(feedback.imagem, 'public_id') and feedback.imagem.public_id:
+                        # Cloudinary - não precisa verificar arquivo local
+                        continue
+                    # Para ImageField normal
+                    elif hasattr(feedback.imagem, 'name') and feedback.imagem.name:
+                        if not os.path.exists(feedback.imagem.path):
+                            feedback.imagem.delete(save=False)  # Remove apenas a referência
+                            feedback.save()
+                            count += 1
                 except:
                     pass
         

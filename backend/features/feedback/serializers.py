@@ -18,12 +18,17 @@ class FeedbackSerializer(serializers.ModelSerializer):
     
     def get_imagem_url(self, obj):
         """Retorna URL completa da imagem se existir."""
-        if obj.imagem and obj.imagem.name:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.imagem.url)
-            # Fallback se não houver request no context
-            return obj.imagem.url
+        if obj.imagem:
+            # Para CloudinaryResource, verificar se tem public_id ou url
+            if hasattr(obj.imagem, 'public_id') and obj.imagem.public_id:
+                # É CloudinaryResource - já retorna URL completa
+                return obj.imagem.url
+            elif hasattr(obj.imagem, 'name') and obj.imagem.name:
+                # É ImageField normal - construir URL
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(obj.imagem.url)
+                return obj.imagem.url
         return None
         
 
@@ -78,7 +83,13 @@ class FeedbackCreateSerializer(serializers.ModelSerializer):
             feedback = super().create(validated_data)
             
             if has_image:
-                logger.info(f"Feedback com imagem criado com sucesso. ID: {feedback.id}, Imagem: {feedback.imagem.name}")
+                # Log compatível com CloudinaryResource e ImageField
+                imagem_info = "CloudinaryResource"
+                if hasattr(feedback.imagem, 'public_id'):
+                    imagem_info = f"Cloudinary ID: {feedback.imagem.public_id}"
+                elif hasattr(feedback.imagem, 'name'):
+                    imagem_info = f"Local file: {feedback.imagem.name}"
+                logger.info(f"Feedback com imagem criado com sucesso. ID: {feedback.id}, Imagem: {imagem_info}")
             else:
                 logger.info(f"Feedback sem imagem criado com sucesso. ID: {feedback.id}")
             
