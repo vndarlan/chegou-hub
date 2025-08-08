@@ -219,6 +219,9 @@ STORAGES = {
 # Configurar WhiteNoise para servir media files em produção
 if not DEBUG:
     WHITENOISE_USE_FINDERS = True
+    # Adicionar diretório media ao WhiteNoise
+    WHITENOISE_ROOT = STATIC_ROOT
+    WHITENOISE_AUTOREFRESH = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

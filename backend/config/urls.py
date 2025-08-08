@@ -45,10 +45,18 @@ urlpatterns = [
 
 # Servir arquivos de media
 if settings.DEBUG:
+    # Em desenvolvimento, usar serving nativo do Django
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 else:
-    # Em produção, WhiteNoise vai servir os arquivos media que estão em staticfiles/media
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    # Em produção, usar view de serving customizada para media files
+    # WhiteNoise NÃO serve media files por padrão, só static files
+    # No Railway, media files são salvos dentro de staticfiles/media
+    media_root_production = settings.MEDIA_ROOT
+    urlpatterns += [
+        re_path(r'^media/(?P<path>.*)$', serve, {
+            'document_root': media_root_production,
+        }),
+    ]
 
 # Servir frontend React em produção
 if not settings.DEBUG:
