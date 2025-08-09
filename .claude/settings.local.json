@@ -41,7 +41,10 @@
       "Bash(git ls-tree:*)",
       "Bash(set DATABASE_URL=)",
       "Bash(dir:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(taskkill:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run:*)"
     ],
     "deny": []
   }

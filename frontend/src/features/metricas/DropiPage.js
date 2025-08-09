@@ -120,6 +120,9 @@ function DropiPage() {
     // Estados de notificação e progresso
     const [notification, setNotification] = useState(null);
     const [progressoAtual, setProgressoAtual] = useState(null);
+    
+    // Estado para responsividade dos calendários
+    const [isMobile, setIsMobile] = useState(false);
 
     // Estados para filtros da tabela
     const [filtroStatus, setFiltroStatus] = useState('');
@@ -288,6 +291,11 @@ function DropiPage() {
     const showNotification = (type, message) => {
         setNotification({ type, message });
         setTimeout(() => setNotification(null), 5000);
+    };
+
+    // Função para verificar se é mobile
+    const checkIfMobile = () => {
+        setIsMobile(window.innerWidth < 768);
     };
 
 
@@ -522,17 +530,18 @@ function DropiPage() {
                                         {dataInicio ? dataInicio.toLocaleDateString('pt-BR') : "Selecionar data"}
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0 border-border bg-popover" align="start">
+                                <PopoverContent className={`w-auto p-0 border-border bg-popover ${!isMobile ? 'max-w-2xl' : ''}`} align="start">
                                     <Calendar
                                         mode="single"
                                         selected={dataInicio}
                                         onSelect={setDataInicio}
+                                        defaultMonth={dataInicio}
                                         disabled={(date) =>
                                             date > new Date() || date < new Date("2020-01-01")
                                         }
                                         initialFocus
-                                        numberOfMonths={1}
-                                        className="rounded-md border-0"
+                                        numberOfMonths={isMobile ? 1 : 2}
+                                        className="rounded-lg border shadow-sm"
                                         showOutsideDays={false}
                                         fixedWeeks={false}
                                     />
@@ -556,19 +565,20 @@ function DropiPage() {
                                         {dataFim ? dataFim.toLocaleDateString('pt-BR') : "Selecionar data"}
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0 border-border bg-popover" align="start">
+                                <PopoverContent className={`w-auto p-0 border-border bg-popover ${!isMobile ? 'max-w-2xl' : ''}`} align="start">
                                     <Calendar
                                         mode="single"
                                         selected={dataFim}
                                         onSelect={setDataFim}
+                                        defaultMonth={dataFim}
                                         disabled={(date) =>
                                             date > new Date() || 
                                             (dataInicio && date < dataInicio) ||
                                             date < new Date("2020-01-01")
                                         }
                                         initialFocus
-                                        numberOfMonths={1}
-                                        className="rounded-md border-0"
+                                        numberOfMonths={isMobile ? 1 : 2}
+                                        className="rounded-lg border shadow-sm"
                                         showOutsideDays={false}
                                         fixedWeeks={false}
                                     />
@@ -991,6 +1001,16 @@ function DropiPage() {
         
         setDataFim(hoje);
         setDataInicio(setemantepassada);
+        
+        // Configurar responsividade dos calendários
+        checkIfMobile();
+        const handleResize = () => checkIfMobile();
+        window.addEventListener('resize', handleResize);
+        
+        // Cleanup
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
     }, []);
 
     // ======================== RENDER PRINCIPAL ========================
