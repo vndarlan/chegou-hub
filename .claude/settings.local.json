@@ -44,7 +44,9 @@
       "Bash(find:*)",
       "Bash(taskkill:*)",
       "Bash(npm run lint:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(cp:*)",
+      "Bash(sed:*)"
     ],
     "deny": []
   }

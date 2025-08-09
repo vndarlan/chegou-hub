@@ -190,7 +190,7 @@ function DropiPage() {
                 console.log('[DEBUG] ===== DADOS COMPLETOS DA API DROPI =====');
                 console.log('[DATA] Total de pedidos:', pedidos.length);
                 console.log('[PAIS] País:', response.data.country || paisSelecionado);
-                console.log('[PERIODO] Período:', response.data.period || `${periodoSelecionado.from.toLocaleDateString("pt-BR")} - ${periodoSelecionado.to.toLocaleDateString("pt-BR")}`);
+                console.log('[PERIODO] Período:', response.data.period || `${dataInicio} - ${dataFim}`);
                 console.log('[VALOR] Valor total:', response.data.valor_total || 'N/A');
                 console.log('[STATUS] Distribuição status:', response.data.status_distribution || {});
                 console.log('');
