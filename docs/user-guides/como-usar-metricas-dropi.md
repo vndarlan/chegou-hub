@@ -18,26 +18,43 @@ A página de Análise de Pedidos Dropi permite extrair, analisar e gerenciar dad
    - 🇲🇽 **México** - Análise de pedidos Dropi México  
    - 🇨🇱 **Chile** - Análise de pedidos Dropi Chile
    - 🇨🇴 **Colômbia** - Análise de pedidos Dropi Colômbia
-2. **Defina o período usando o novo Calendar:**
-   - **Data de Início:** Clique no botão do calendário e selecione a data
-   - **Data de Fim:** Clique no botão do calendário e selecione a data
-   - ✅ **Nova Interface:** Calendário visual com navegação por mês/ano
-   - 🔄 **Validação:** Sistema impede selecionar data fim antes da data início
+2. **Defina o período usando o NOVO SELETOR ÚNICO:**
+   - ✅ **MUDANÇA IMPORTANTE:** Agora você tem apenas UM calendário que seleciona o período completo
+   - **Clique no botão de período:** Mostra "Selecionar período" se vazio
+   - **Selecione início e fim no mesmo calendário:** Clique na data de início, depois na data de fim
+   - **Visualização inteligente:** Desktop mostra 2 meses lado a lado, mobile mostra 1 mês
+   - **Validação automática:** Sistema impede selecionar data fim antes da data início
 3. **Clique em "Processar"** para extrair os dados
 4. O sistema conectará na API do Dropi e buscará todos os pedidos do período
 5. Aguarde o carregamento - pode demorar alguns segundos dependendo da quantidade
 
-### Como usar o novo Calendar (shadcn/ui)
-**Mudança importante:** Substituímos os campos de data nativos por um calendário visual moderno
-**Como usar:**
-1. **Clique no botão com ícone de calendário** (mostra "Selecionar data" se vazio)
-2. **Navegue pelo calendário:**
+### 🆕 Como usar o NOVO SELETOR DE PERÍODO ÚNICO
+**GRANDE MUDANÇA:** Substituímos os dois calendários separados por um seletor de range único e mais inteligente
+
+**Vantagens do novo sistema:**
+- ✅ **Mais rápido:** Seleciona início e fim no mesmo lugar
+- ✅ **Responsivo:** Adapta automaticamente ao seu dispositivo  
+- ✅ **Inteligente:** Evita erros de período inválido
+- ✅ **Visual:** Vê o range completo selecionado
+
+**Como usar passo a passo:**
+1. **Clique no botão "Período"** (mostra "Selecionar período" se vazio)
+2. **Um calendário abrirá com layout inteligente:**
+   - 💻 **Desktop:** 2 meses lado a lado para seleção mais fácil
+   - 📱 **Mobile:** 1 mês otimizado para toque
+   - 📱 **Tablet:** Layout adaptado automaticamente
+3. **Selecione o período:**
+   - **Primeiro clique:** Define data de INÍCIO (fica destacada)
+   - **Segundo clique:** Define data de FIM (cria o range)
+   - **Range visual:** Período selecionado fica destacado no calendário
+4. **Navegação no calendário:**
    - Use as setas para navegar entre meses
-   - Clique no mês/ano para navegar mais rapidamente
-   - Clique na data desejada para selecionar
-3. **Calendario fecha automaticamente** após seleção
-4. **Data aparece formatada** no botão (ex: "15/01/2025")
-5. **Validações automáticas:** Não permite datas futuras ou anteriores a 2020
+   - Clique no mês/ano no topo para navegação rápida
+5. **Validações automáticas:**
+   - Não permite datas futuras
+   - Não permite datas anteriores a 2020
+   - Impede data fim anterior à data início
+6. **Resultado:** Botão mostra período formatado (ex: "15/01/2025 - 31/01/2025")
 
 ### Visualizar estatísticas dos pedidos
 **Para que serve:** Acompanhar performance de vendas e entregas
@@ -78,26 +95,33 @@ A página de Análise de Pedidos Dropi permite extrair, analisar e gerenciar dad
    - 🟡 **Amarelo (40-49%):** Performance regular
    - 🔴 **Vermelho (<40%):** Precisa melhorar
 
-### Responsividade da interface
-**Para que serve:** Garantir boa experiência em qualquer dispositivo
-**Como usar:**
-1. **📱 Mobile (celular):**
-   - Interface se adapta automaticamente
-   - Calendar ocupa tela inteira para melhor seleção
-   - Tabela com scroll horizontal suave
-   - Botões ficam empilhados verticalmente
+### 🆕 Responsividade do NOVO SELETOR DE PERÍODO
+**Para que serve:** Garantir seleção perfeita de datas em qualquer dispositivo
+**NOVA TECNOLOGIA:** Sistema detecta automaticamente seu dispositivo e adapta o calendário
 
-2. **📱 Tablet:**
-   - Layout otimizado para toque
-   - Calendar em tamanho médio
-   - Tabela com área de scroll definida
-   - Cards de estatísticas em grade 2x2
+**📱 Mobile (celular - largura < 768px):**
+- **Seletor único:** Mostra 1 mês por vez para melhor visibilidade
+- **Toque otimizado:** Datas grandes e fáceis de tocar
+- **Navegação suave:** Setas grandes para mudança de mês
+- **Popover responsivo:** Calendar ocupa largura ideal para mobile
 
-3. **💻 Desktop:**
-   - Layout completo em linha
-   - Calendar compacto em popover
-   - Tabela com todos os recursos visíveis
-   - Cards de estatísticas em linha única
+**📱 Tablet (largura entre 768px-1024px):**
+- **Layout híbrido:** Calendário adapta conforme orientação
+- **Retrato:** 1 mês otimizado para toque
+- **Paisagem:** Pode mostrar 2 meses se espaço permitir
+- **Toque preciso:** Controles adaptados para dedo
+
+**💻 Desktop (largura ≥ 768px):**
+- **Vista dupla:** 2 meses lado a lado para seleção mais rápida
+- **Mouse otimizado:** Hover effects e navegação precisa
+- **Popover compacto:** Abre próximo ao botão sem ocupar muito espaço
+- **Atalhos de teclado:** Suporte a navegação por teclado
+
+**🔄 Redimensionamento automático:**
+- **Detecção em tempo real:** Sistema monitora mudanças de tamanho da tela
+- **Adaptação instantânea:** Calendar muda de 1 para 2 meses automaticamente
+- **Sem recarregamento:** Funciona ao rotacionar tablet ou redimensionar janela
+- **Memória de seleção:** Período selecionado é mantido durante adaptação
 
 ### Salvar análise para consulta posterior
 **Para que serve:** Guardar dados extraídos para acessar depois sem precisar reprocessar
@@ -204,24 +228,31 @@ A página de Análise de Pedidos Dropi permite extrair, analisar e gerenciar dad
 
 ## Problemas comuns
 
-### Calendar não abre ou não responde
-**Sintoma:** Clica no botão do calendário mas nada acontece
+### 🆕 Novo Seletor de Período não abre
+**Sintoma:** Clica no botão "Período" mas o calendário não aparece
 **Solução:**
-1. **Aguarde alguns segundos** - componente pode estar carregando
-2. **Tente clicar na área do botão** (não apenas no ícone)
-3. **Recarregue a página** se persistir
-4. **Verifique se não há popup bloqueado** no navegador
-5. **Mobile:** Toque com firmeza na área do botão
+1. **Aguarde carregamento:** Novo componente pode demorar alguns segundos para inicializar
+2. **Clique na área completa do botão** (não apenas no ícone de calendário)
+3. **Teste responsividade:** Redimensione janela - pode estar detectando dispositivo errado
+4. **Verifique console do navegador:** Pressione F12 e veja se há erros no console
+5. **Mobile:** Use toque firme e preciso no centro do botão
+6. **Recarregue página:** Força nova detecção de responsividade
 
-### Data não seleciona no Calendar
-**Sintoma:** Clica na data mas ela não é selecionada
+### 🆕 Range de período não seleciona corretamente
+**Sintoma:** Clica em datas mas o período não fica selecionado ou se comporta estranho
 **Solução:**
-1. **Verifique se data não está desabilitada:**
-   - Datas futuras são bloqueadas
+1. **Seleção de range passo a passo:**
+   - **Primeiro clique:** Deve definir data de INÍCIO (fica destacada em azul)
+   - **Segundo clique:** Deve definir data de FIM (cria range visual)
+   - **Se não funcionar:** Clique novamente na primeira data para "resetar"
+2. **Validações automáticas do novo sistema:**
+   - Datas futuras são bloqueadas automaticamente
    - Datas anteriores a 2020 são bloqueadas
-   - Data fim não pode ser anterior à data início
-2. **Tente datas válidas** dentro do intervalo permitido
-3. **Mobile:** Use toque (não arraste) na data
+   - Data fim anterior à início é corrigida automaticamente
+3. **Problemas de range:**
+   - **Range não aparece:** Certifique-se de clicar em duas datas válidas
+   - **Range errado:** Clique fora do calendário e reabra para tentar novamente
+   - **Mobile:** Use toques precisos, evite arrastar o dedo
 
 ### Tabela não rola horizontalmente
 **Sintoma:** Não consegue ver todas as colunas de status
@@ -258,6 +289,24 @@ A página de Análise de Pedidos Dropi permite extrair, analisar e gerenciar dad
    - Laranja: 50-59% - Bom
    - Amarelo: 40-49% - Regular  
    - Vermelho: <40% - Precisa melhorar
+
+### 🆕 Calendário mostra número errado de meses
+**Sintoma:** Desktop mostra 1 mês ou mobile mostra 2 meses quando deveria ser o contrário
+**Solução:**
+1. **Detecção de responsividade pode estar incorreta:**
+   - **Desktop:** Deve mostrar 2 meses lado a lado (largura ≥ 768px)
+   - **Mobile:** Deve mostrar 1 mês (largura < 768px)
+2. **Forçar nova detecção:**
+   - Redimensione a janela ligeiramente
+   - Recarregue a página
+   - Feche e reabra o calendário
+3. **Verifique zoom do navegador:**
+   - Zoom muito alto pode fazer desktop parecer mobile
+   - Use Ctrl+0 para voltar zoom ao padrão
+4. **Debug no console:**
+   - Pressione F12, aba Console
+   - Procure por mensagens começando com "[DEBUG] Responsividade"
+   - Verifique se largura detectada está correta
 
 ### Análises não filtram por país selecionado
 **Sintoma:** Na aba "Salvas", aparecem análises de todos os países
@@ -318,12 +367,20 @@ A página de Análise de Pedidos Dropi permite extrair, analisar e gerenciar dad
 
 ## Dicas importantes
 
-### Melhorias na nova interface
-- ✅ **Calendar visual:** Mais fácil selecionar períodos, navegue por mês/ano
+### 🆕 Melhorias do NOVO SELETOR DE PERÍODO ÚNICO
+- ✅ **Seletor único:** Um só calendário para início e fim - muito mais rápido
+- ✅ **Range visual:** Vê o período completo destacado no calendário
+- ✅ **Responsividade inteligente:** Desktop mostra 2 meses, mobile 1 mês
+- ✅ **Detecção automática:** Adapta em tempo real ao redimensionar janela
+- ✅ **Validação avançada:** Impede automaticamente períodos inválidos
+- ✅ **Memória de estado:** Período selecionado é mantido durante adaptações
+- ✅ **Debug integrado:** Console mostra informações de responsividade para suporte
+
+### Outras melhorias da interface
 - ✅ **Scroll otimizado:** Tabela rola horizontalmente sem afetar página
 - ✅ **Produtos com imagens:** Identificação visual mais rápida
 - ✅ **Múltiplos países:** Compare performance entre México, Chile e Colômbia
-- ✅ **Responsivo:** Funciona bem em mobile, tablet e desktop
+- ✅ **Responsivo completo:** Funciona perfeitamente em mobile, tablet e desktop
 
 ### Boas práticas de uso
 - **Extraia dados regulares:** Mantenha análises semanais ou mensais

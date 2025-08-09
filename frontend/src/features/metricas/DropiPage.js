@@ -120,8 +120,13 @@ function DropiPage() {
     const [notification, setNotification] = useState(null);
     const [progressoAtual, setProgressoAtual] = useState(null);
     
-    // Estado para responsividade dos calendários
-    const [isMobile, setIsMobile] = useState(false);
+    // Estado para responsividade dos calendários (melhorado com detecção inicial)
+    const [isMobile, setIsMobile] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return window.innerWidth < 768;
+        }
+        return false;
+    });
 
     // Estados para filtros da tabela
     const [filtroStatus, setFiltroStatus] = useState('');
@@ -292,9 +297,10 @@ function DropiPage() {
         setTimeout(() => setNotification(null), 5000);
     };
 
-    // Função para verificar se é mobile
+    // Função para verificar se é mobile (melhorada)
     const checkIfMobile = () => {
-        setIsMobile(window.innerWidth < 768);
+        const isMobileNow = window.innerWidth < 768;
+        setIsMobile(isMobileNow);
     };
 
 
@@ -974,8 +980,8 @@ function DropiPage() {
             to: hoje
         });
         
-        // Configurar responsividade dos calendários
-        checkIfMobile();
+        // Configurar responsividade dos calendários (melhorado)
+        checkIfMobile(); // Detecção inicial
         const handleResize = () => checkIfMobile();
         window.addEventListener('resize', handleResize);
         
