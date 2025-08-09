@@ -1,6 +1,6 @@
 ---
 name: frontend-agent
-description: Especialista em React e master completo da pasta frontend/. Usa APENAS shadcn/ui + Tailwind CSS para criar interfaces.
+description: Especialista React que proativamente gerencia tudo em frontend/. Use para páginas, componentes, UI, interfaces, design, shadcn/ui, Tailwind CSS e qualquer mudança visual. SEMPRE usar quando mencionado "frontend", "página", "interface", "componente", "UI" ou ao criar/modificar telas.
 tools: Read, Write, Edit, MultiEdit, Bash, Glob, Grep, LS
 color: yellow
 ---
@@ -8,6 +8,8 @@ color: yellow
 # Frontend Agent 🎨
 
 Especialista em React 19.1 + shadcn/ui + Tailwind CSS para o projeto Chegou Hub.
+
+**Idioma**: Sempre se comunicar em português brasileiro (PT-BR).
 
 ## Abordagem Adaptativa
 
@@ -58,5 +60,3 @@ export default function FeaturePage() {
 cd frontend && npm start    # desenvolvimento
 cd frontend && npm run build # produção
 ```
-
-Sempre fale em português e mantenha consistência com o projeto existente!

@@ -22,8 +22,10 @@ import { Separator } from '../../components/ui/separator';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Progress } from '../../components/ui/progress';
-import { ScrollArea } from '../../components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '../../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { Calendar } from '../../components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
 
 const PAISES = [
     { value: 'mexico', label: 'México' },
@@ -265,9 +267,9 @@ function DropiPage() {
         urlsTestadasPorProduto: {}
     });
     
-    // Estados do formulário - usando strings para input type="date"
-    const [dataInicio, setDataInicio] = useState('');
-    const [dataFim, setDataFim] = useState('');
+    // Estados do formulário - usando Date objects para Calendar do shadcn/ui
+    const [dataInicio, setDataInicio] = useState(null);
+    const [dataFim, setDataFim] = useState(null);
     const [paisSelecionado, setPaisSelecionado] = useState(null);
     
     // Estados de modal e loading
@@ -324,7 +326,7 @@ function DropiPage() {
             return;
         }
 
-        if (new Date(dataInicio) > new Date(dataFim)) {
+        if (dataInicio > dataFim) {
             showNotification('error', 'Data de início deve ser anterior à data fim');
             return;
         }
@@ -334,8 +336,8 @@ function DropiPage() {
 
         try {
             const response = await axios.post('/metricas/dropi/analises/extract_orders_new_api/', {
-                data_inicio: dataInicio,
-                data_fim: dataFim,
+                data_inicio: dataInicio.toISOString().split('T')[0],
+                data_fim: dataFim.toISOString().split('T')[0],
                 pais: paisSelecionado
             }, {
                 headers: {
@@ -376,7 +378,7 @@ function DropiPage() {
                 showNotification('success', `${pedidos.length} pedidos extraídos com sucesso!`);
                 
                 const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
-                const dataStr = `${new Date(dataInicio).toLocaleDateString('pt-BR')} - ${new Date(dataFim).toLocaleDateString('pt-BR')}`;
+                const dataStr = `${dataInicio.toLocaleDateString('pt-BR')} - ${dataFim.toLocaleDateString('pt-BR')}`;
                 setNomeAnalise(`${paisNome} ${dataStr}`);
             }
         } catch (error) {
@@ -401,8 +403,8 @@ function DropiPage() {
             const response = await axios.post('/metricas/dropi/analises/', {
                 nome: nomeAnalise,
                 dados_pedidos: dadosResultado, // Agora está correto, é o array de pedidos
-                data_inicio: dataInicio,
-                data_fim: dataFim,
+                data_inicio: dataInicio.toISOString().split('T')[0],
+                data_fim: dataFim.toISOString().split('T')[0],
                 pais: paisSelecionado,
                 total_pedidos: dadosResultado?.length || 0,
                 tipo_metrica: 'pedidos',
@@ -812,32 +814,68 @@ function DropiPage() {
                     </div>
 
                     <div className="flex items-end gap-4">
-                        {/* Data Início - input nativo */}
+                        {/* Data Início - Calendar do shadcn/ui */}
                         <div>
                             <Label className="mb-2 block text-foreground">Data de Início</Label>
-                            <Input
-                                type="date"
-                                value={dataInicio}
-                                onChange={(e) => setDataInicio(e.target.value)}
-                                disabled={loadingProcessar}
-                                className="w-48 border-border bg-background text-foreground"
-                                max={new Date().toISOString().split('T')[0]}
-                                min="2020-01-01"
-                            />
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        disabled={loadingProcessar}
+                                        className={`w-48 justify-start text-left font-normal border-border bg-background text-foreground hover:bg-accent ${
+                                            !dataInicio && "text-muted-foreground"
+                                        }`}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dataInicio ? dataInicio.toLocaleDateString('pt-BR') : "Selecionar data"}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 border-border bg-popover">
+                                    <Calendar
+                                        mode="single"
+                                        selected={dataInicio}
+                                        onSelect={setDataInicio}
+                                        disabled={(date) =>
+                                            date > new Date() || date < new Date("2020-01-01")
+                                        }
+                                        className="rounded-md border-0 shadow-sm"
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
                         
-                        {/* Data Fim - input nativo */}
+                        {/* Data Fim - Calendar do shadcn/ui */}
                         <div>
                             <Label className="mb-2 block text-foreground">Data de Fim</Label>
-                            <Input
-                                type="date"
-                                value={dataFim}
-                                onChange={(e) => setDataFim(e.target.value)}
-                                disabled={loadingProcessar}
-                                className="w-48 border-border bg-background text-foreground"
-                                max={new Date().toISOString().split('T')[0]}
-                                min={dataInicio || "2020-01-01"}
-                            />
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        disabled={loadingProcessar}
+                                        className={`w-48 justify-start text-left font-normal border-border bg-background text-foreground hover:bg-accent ${
+                                            !dataFim && "text-muted-foreground"
+                                        }`}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dataFim ? dataFim.toLocaleDateString('pt-BR') : "Selecionar data"}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 border-border bg-popover">
+                                    <Calendar
+                                        mode="single"
+                                        selected={dataFim}
+                                        onSelect={setDataFim}
+                                        disabled={(date) =>
+                                            date > new Date() || 
+                                            (dataInicio && date < dataInicio) ||
+                                            date < new Date("2020-01-01")
+                                        }
+                                        className="rounded-md border-0 shadow-sm"
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
                         
                         <Button
@@ -1173,28 +1211,11 @@ function DropiPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    {/* SCROLL DEFINITIVO: Implementação robusta com múltiplas camadas de proteção */}
-                    <div className="relative w-full" style={{ overflowX: 'hidden' }}>
-                        <ScrollArea 
-                            className="w-full rounded-md" 
-                            style={{ 
-                                /* Garantir que ScrollArea funcione corretamente */
-                                width: '100%',
-                                maxWidth: '100%',
-                                overflow: 'hidden'
-                            }}
-                        >
-                            <div 
-                                className="min-w-[800px]"
-                                style={{
-                                    /* CSS inline ROBUSTO para cenários extremos */
-                                    width: 'max-content',
-                                    minWidth: '800px',
-                                    padding: '0',
-                                    margin: '0'
-                                }}
-                            >
-                                <Table className="w-full table-fixed">
+                    {/* SCROLL APRIMORADO: ScrollArea otimizado para tabelas largas com scroll horizontal */}
+                    <div className="relative w-full overflow-hidden">
+                        <ScrollArea className="w-full whitespace-nowrap rounded-md">
+                            <div className="flex w-max">
+                                <Table className="w-max min-w-full">
                                     <TableHeader>
                                         <TableRow className="bg-muted/50 border-border">
                                             {colunas.map((col) => {
@@ -1311,6 +1332,7 @@ function DropiPage() {
                                     </TableBody>
                                 </Table>
                             </div>
+                            <ScrollBar orientation="horizontal" />
                         </ScrollArea>
                     </div>
                     
@@ -1318,13 +1340,13 @@ function DropiPage() {
                     <div className="px-4 pb-4 pt-2">
                         <div className="flex flex-col items-center gap-1">
                             <p className="text-xs text-muted-foreground text-center">
-                                [DICA] Role horizontalmente dentro da área da tabela para ver todos os status de pedidos
+                                💡 Role horizontalmente dentro da tabela para ver todos os status de pedidos
                             </p>
                             <p className="text-xs text-green-600 text-center font-medium">
-                                ✅ PROBLEMA RESOLVIDO: ScrollArea + proteções CSS garantem scroll apenas na tabela
+                                ✅ Scroll horizontal otimizado - Funciona apenas na tabela
                             </p>
                             <p className="text-xs text-blue-600 text-center">
-                                🔒 Página NUNCA rola horizontalmente - Testado em mobile, tablet e desktop
+                                📱 Responsivo para mobile, tablet e desktop
                             </p>
                         </div>
                     </div>
@@ -1428,13 +1450,13 @@ function DropiPage() {
     useEffect(() => {
         fetchAnalises();
         
-        // Definir datas padrão (última semana) como strings para input type="date"
+        // Definir datas padrão (última semana) como Date objects para Calendar
         const hoje = new Date();
         const setemantepassada = new Date();
         setemantepassada.setDate(hoje.getDate() - 7);
         
-        setDataFim(hoje.toISOString().split('T')[0]);
-        setDataInicio(setemantepassada.toISOString().split('T')[0]);
+        setDataFim(hoje);
+        setDataInicio(setemantepassada);
     }, []);
 
     // ======================== RENDER PRINCIPAL ========================
