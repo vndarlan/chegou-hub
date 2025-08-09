@@ -235,6 +235,220 @@ code {
   font-family: 'SF Mono', Monaco, Inconsolata, 'Roboto Mono', Consolas, 'Courier New', monospace;
 }
 
+/* REACT DAY PICKER STYLES - CORREÇÃO DO CALENDAR SHADCN/UI */
+.rdp {
+  --rdp-cell-size: 36px;
+  --rdp-accent-color: hsl(var(--primary));
+  --rdp-background-color: hsl(var(--background));
+  --rdp-accent-color-dark: hsl(var(--primary));
+  --rdp-background-color-dark: hsl(var(--background));
+  margin: 1rem;
+}
+
+.rdp-months {
+  display: flex;
+  flex-direction: column;
+}
+
+.rdp-month {
+  margin: 0;
+}
+
+.rdp-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.rdp-with_weeknumber .rdp-table {
+  border-collapse: collapse;
+}
+
+.rdp-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+  text-align: left;
+}
+
+.rdp-multiple_months .rdp-caption {
+  position: relative;
+  display: block;
+  text-align: center;
+}
+
+.rdp-caption_label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  position: relative;
+  z-index: 1;
+}
+
+.rdp-nav {
+  display: flex;
+  align-items: center;
+}
+
+.rdp-multiple_months .rdp-caption_start .rdp-nav {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
+
+.rdp-multiple_months .rdp-caption_end .rdp-nav {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+}
+
+.rdp-nav_button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  background-color: transparent;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.rdp-nav_button:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.rdp-nav_button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring));
+}
+
+.rdp-nav_button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rdp-months {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.rdp-month {
+  width: 100%;
+}
+
+.rdp-weeknumber {
+  font-size: 0.75rem;
+}
+
+.rdp-weekdays {
+  border: 0;
+}
+
+.rdp-weekday {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.8rem;
+  font-weight: normal;
+  width: var(--rdp-cell-size);
+  height: var(--rdp-cell-size);
+  text-align: center;
+  padding: 0;
+  margin: 0;
+}
+
+.rdp-tbody {
+  border: 0;
+}
+
+.rdp-button_reset {
+  appearance: none;
+  outline: none;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.rdp-cell {
+  width: var(--rdp-cell-size);
+  height: var(--rdp-cell-size);
+  text-align: center;
+  font-size: 0.875rem;
+  padding: 0;
+  position: relative;
+}
+
+.rdp-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--rdp-cell-size);
+  height: var(--rdp-cell-size);
+  border-radius: calc(var(--radius) - 2px);
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: hsl(var(--foreground));
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.rdp-button:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.rdp-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring));
+}
+
+.rdp-day_today .rdp-button {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+  font-weight: 500;
+}
+
+.rdp-day_selected .rdp-button {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+  font-weight: 500;
+}
+
+.rdp-day_selected:hover .rdp-button {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.rdp-day_outside .rdp-button {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.5;
+}
+
+.rdp-day_disabled .rdp-button {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rdp-day_range_middle .rdp-button {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.rdp-day_hidden {
+  visibility: hidden;
+}
+
 /* Animation classes */
 @keyframes fadeIn {
   from { opacity: 0; }

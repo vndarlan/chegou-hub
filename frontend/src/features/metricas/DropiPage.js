@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import {
     Calendar as CalendarIcon, Download, Trash2, RefreshCw, Check, X, 
     AlertTriangle, TrendingUp, BarChart3, Eye, Search, Globe, 
-    Filter, Rocket, Loader2, ShoppingCart, Target, Percent,
-    Package, DollarSign, Building, Clock, User, ArrowUpDown, 
+    Filter, Rocket, Loader2, Target, Percent,
+    Package, Building, Clock, User, ArrowUpDown, 
     ArrowUp, ArrowDown, Image as ImageIcon
 } from 'lucide-react';
 import axios from 'axios';
@@ -33,164 +33,11 @@ const PAISES = [
     { value: 'colombia', label: 'Colômbia' }
 ];
 
-// Cache global para a base de URL que funciona (evita testar para cada imagem)
-let BASE_URL_CACHE = null;
+// Componente simples para imagem de produto com fallback
+const ImagemProduto = ({ url, produto }) => {
+    const [imagemFalhou, setImagemFalhou] = useState(false);
 
-// Componente especializado para testar múltiplas URLs de imagem
-const ImagemProdutoComFallback = ({ urlInicial, produto, onDebugUpdate }) => {
-    const [urlAtual, setUrlAtual] = useState(urlInicial);
-    const [indiceUrl, setIndiceUrl] = useState(0);
-    const [mostrarPlaceholder, setMostrarPlaceholder] = useState(false);
-
-    // Gerar todas as URLs possíveis para testar
-    const gerarUrlsParaTestar = (urlOriginal) => {
-        if (!urlOriginal) return [];
-        
-        const urls = [];
-        
-        // Se já temos uma base cacheada que funciona, usar ela primeiro
-        if (BASE_URL_CACHE && !urlOriginal.startsWith('http')) {
-            const urlComCache = urlOriginal.startsWith('/') ? 
-                `${BASE_URL_CACHE}${urlOriginal}` : 
-                `${BASE_URL_CACHE}/${urlOriginal}`;
-            urls.push(urlComCache);
-            console.log(`🎯 USANDO BASE CACHEADA: ${BASE_URL_CACHE} para produto "${produto}"`);
-        }
-        
-        if (urlOriginal.startsWith('http')) {
-            // Se já tem protocolo, testar diretamente
-            urls.push(urlOriginal);
-        } else {
-            // Testar diferentes bases de URL - LISTA EXPANDIDA PARA DESCOBRIR A CORRETA
-            const baseUrls = [
-                '', // URL original sem base para testar diretamente
-                'https://dropi.com',
-                'https://api.dropi.com', 
-                'https://cdn.dropi.com',
-                'https://storage.dropi.com',
-                'https://assets.dropi.com',
-                'https://images.dropi.com',
-                'https://static.dropi.com',
-                'https://files.dropi.com',
-                'https://media.dropi.com',
-                'https://uploads.dropi.com',
-                'https://content.dropi.com',
-                'https://s3.amazonaws.com/dropi',
-                'https://dropi-images.s3.amazonaws.com',
-                'https://dropi.s3.amazonaws.com',
-                'https://dropi-assets.s3.amazonaws.com',
-                'https://s3.us-east-1.amazonaws.com/dropi',
-                'https://s3-us-west-2.amazonaws.com/dropi',
-                'https://cloudflare.dropi.com',
-                'https://imagekit.dropi.com',
-                'https://aws.dropi.com'
-            ];
-            
-            baseUrls.forEach(base => {
-                // Evitar duplicatas se já está no cache
-                const url = urlOriginal.startsWith('/') ? 
-                    `${base}${urlOriginal}` : 
-                    `${base}/${urlOriginal}`;
-                
-                if (!urls.includes(url)) {
-                    urls.push(url);
-                }
-            });
-        }
-        
-        return urls;
-    };
-
-    const urlsParaTestar = gerarUrlsParaTestar(urlInicial);
-
-    // Log inicial para debug
-    useEffect(() => {
-        if (urlInicial && produto) {
-            console.log(`🆔 INICIALIZANDO IMAGEM para produto "${produto}"`);
-            console.log(`🖼️ URL ORIGINAL da API:`, urlInicial);
-            console.log(`📝 Será testada ${urlsParaTestar.length} variações de URL`);
-        }
-    }, [urlInicial, produto]);
-
-    const tentarProximaUrl = () => {
-        const proximoIndice = indiceUrl + 1;
-        
-        if (proximoIndice < urlsParaTestar.length) {
-            const proximaUrl = urlsParaTestar[proximoIndice];
-            console.log(`🔄 TENTATIVA ${proximoIndice + 1}/${urlsParaTestar.length} para "${produto}"`);
-            console.log(`🧪 TESTANDO URL:`, proximaUrl);
-            setUrlAtual(proximaUrl);
-            setIndiceUrl(proximoIndice);
-        } else {
-            console.log(`❌ TODAS AS ${urlsParaTestar.length} URLs FALHARAM para "${produto}"`);
-            console.log(`📋 URLs testadas:`, urlsParaTestar);
-            setMostrarPlaceholder(true);
-            
-            // Registrar falha total
-            if (onDebugUpdate) {
-                onDebugUpdate({
-                    tipo: 'falha_total',
-                    produto,
-                    urlsTestadas: urlsParaTestar
-                });
-            }
-        }
-    };
-
-    const handleImageLoad = () => {
-        console.log(`✅ SUCESSO! Imagem carregada para "${produto}" com URL:`, urlAtual);
-        
-        // DESCOBRIR E CACHEAR A BASE CORRETA
-        if (!BASE_URL_CACHE && !urlInicial.startsWith('http')) {
-            // Extrair a base da URL que funcionou
-            const urlOriginalSemProtocolo = urlInicial.startsWith('/') ? urlInicial.substring(1) : urlInicial;
-            const baseEncontrada = urlAtual.replace(urlOriginalSemProtocolo, '').replace(/\/$/, '');
-            
-            if (baseEncontrada && baseEncontrada !== urlInicial) {
-                BASE_URL_CACHE = baseEncontrada;
-                console.log(`🎯 BASE DE URL DESCOBERTA E CACHEADA: "${BASE_URL_CACHE}"`);
-                console.log(`📋 Esta base será usada para todas as próximas imagens!`);
-            }
-        }
-        
-        setMostrarPlaceholder(false);
-        
-        // Atualizar estatísticas de debug
-        if (onDebugUpdate) {
-            onDebugUpdate({
-                tipo: 'sucesso',
-                produto,
-                url: urlAtual,
-                tentativas: indiceUrl + 1,
-                baseEncontrada: BASE_URL_CACHE
-            });
-        }
-    };
-
-    const handleImageError = () => {
-        console.log(`❌ FALHA ${indiceUrl + 1}/${urlsParaTestar.length} para "${produto}":`, urlAtual);
-        
-        // Registrar falha individual
-        if (onDebugUpdate) {
-            onDebugUpdate({
-                tipo: 'falha_individual',
-                produto,
-                url: urlAtual,
-                tentativa: indiceUrl + 1
-            });
-        }
-        
-        tentarProximaUrl();
-    };
-
-    // Reset quando urlInicial muda
-    useEffect(() => {
-        setUrlAtual(urlInicial);
-        setIndiceUrl(0);
-        setMostrarPlaceholder(false);
-    }, [urlInicial]);
-
-    if (mostrarPlaceholder || !urlAtual) {
+    if (!url || imagemFalhou) {
         return (
             <div className="flex justify-center">
                 <div className="w-8 h-8 bg-muted border border-border rounded flex items-center justify-center">
@@ -203,12 +50,11 @@ const ImagemProdutoComFallback = ({ urlInicial, produto, onDebugUpdate }) => {
     return (
         <div className="flex justify-center">
             <img 
-                src={urlAtual}
+                src={url}
                 alt={`Produto ${produto}`}
                 className="w-8 h-8 object-cover rounded border border-border"
                 loading="lazy"
-                onLoad={handleImageLoad}
-                onError={handleImageError}
+                onError={() => setImagemFalhou(true)}
             />
         </div>
     );
@@ -256,16 +102,6 @@ function DropiPage() {
     const [dadosResultado, setDadosResultado] = useState(null);
     const [secaoAtiva, setSecaoAtiva] = useState('gerar');
     
-    // Estado para debug das imagens
-    const [debugImagens, setDebugImagens] = useState({
-        totalTentativas: 0,
-        sucessos: 0,
-        falhas: 0,
-        urlsQueForam: [],
-        urlsQueFalharam: [],
-        baseDescoberta: null,
-        urlsTestadasPorProduto: {}
-    });
     
     // Estados do formulário - usando Date objects para Calendar do shadcn/ui
     const [dataInicio, setDataInicio] = useState(null);
@@ -363,17 +199,6 @@ function DropiPage() {
                 
                 setDadosResultado(pedidos);
                 
-                // Resetar debug de imagens para nova análise
-                BASE_URL_CACHE = null; // Limpar cache da base
-                setDebugImagens({
-                    totalTentativas: 0,
-                    sucessos: 0,
-                    falhas: 0,
-                    urlsQueForam: [],
-                    urlsQueFalharam: [],
-                    baseDescoberta: null,
-                    urlsTestadasPorProduto: {}
-                });
                 
                 showNotification('success', `${pedidos.length} pedidos extraídos com sucesso!`);
                 
@@ -465,50 +290,6 @@ function DropiPage() {
         setTimeout(() => setNotification(null), 5000);
     };
 
-    // Função para atualizar estatísticas de debug das imagens
-    const handleDebugImagemUpdate = (debugInfo) => {
-        setDebugImagens(prev => {
-            const novo = { ...prev };
-            
-            if (debugInfo.tipo === 'sucesso') {
-                novo.sucessos += 1;
-                novo.totalTentativas += 1;
-                novo.urlsQueForam.push({
-                    produto: debugInfo.produto,
-                    url: debugInfo.url,
-                    tentativas: debugInfo.tentativas
-                });
-                
-                // Salvar base descoberta
-                if (debugInfo.baseEncontrada && !novo.baseDescoberta) {
-                    novo.baseDescoberta = debugInfo.baseEncontrada;
-                }
-                
-                console.log(`📊 DEBUG STATS: ${novo.sucessos}/${novo.totalTentativas} imagens carregadas`);
-                if (debugInfo.baseEncontrada) {
-                    console.log(`🎯 BASE DESCOBERTA: ${debugInfo.baseEncontrada}`);
-                }
-            } else if (debugInfo.tipo === 'falha_individual') {
-                novo.urlsQueFalharam.push({
-                    produto: debugInfo.produto,
-                    url: debugInfo.url,
-                    tentativa: debugInfo.tentativa
-                });
-            } else if (debugInfo.tipo === 'falha_total') {
-                novo.falhas += 1;
-                novo.totalTentativas += 1;
-                
-                // Salvar todas as URLs testadas para este produto
-                if (debugInfo.urlsTestadas) {
-                    novo.urlsTestadasPorProduto[debugInfo.produto] = debugInfo.urlsTestadas;
-                }
-                
-                console.log(`📊 DEBUG STATS: ${novo.falhas} falhas totais de ${novo.totalTentativas} produtos`);
-            }
-            
-            return novo;
-        });
-    };
 
     // Transformar dados de pedidos em tabela produtos x status
     const processarDadosParaTabela = (pedidos) => {
@@ -524,88 +305,24 @@ function DropiPage() {
             let imagemProduto = null;
             const status = pedido.status || 'UNKNOWN';
 
-            // ===== DEBUG COMPLETO DA ESTRUTURA DO PRODUTO =====
-            console.log('🖼️ ===== DEBUG COMPLETO IMAGEM =====');
-            console.log('- Pedido ID:', pedido.id || pedido.order_id || 'N/A');
-            console.log('- Produto:', produto);
-            console.log('- OrderDetails completo:', pedido.orderdetails);
-            console.log('- Product completo:', pedido.orderdetails?.[0]?.product);
-            console.log('- Gallery completo:', pedido.orderdetails?.[0]?.product?.gallery);
-            
-            // TESTAR MÚLTIPLAS POSSIBILIDADES DE IMAGEM
+            // Buscar imagem do produto
             const product = pedido.orderdetails?.[0]?.product;
             if (product) {
-                // 1. Tentar gallery[0].urlS3 (padrão especificado)
+                // Tentar diferentes campos de imagem
                 const gallery0UrlS3 = product.gallery?.[0]?.urlS3;
-                // 2. Tentar gallery[0].url (alternativa comum)
                 const gallery0Url = product.gallery?.[0]?.url;
-                // 3. Tentar outros índices do gallery
-                const gallery1UrlS3 = product.gallery?.[1]?.urlS3;
-                const gallery1Url = product.gallery?.[1]?.url;
-                // 4. Tentar campo direto no produto
                 const productImage = product.image || product.img_url || product.thumbnail;
                 
-                console.log('- Gallery[0].urlS3:', gallery0UrlS3);
-                console.log('- Gallery[0].url:', gallery0Url);
-                console.log('- Gallery[1].urlS3:', gallery1UrlS3);
-                console.log('- Gallery[1].url:', gallery1Url);
-                console.log('- Product.image:', productImage);
+                // Escolher a primeira URL disponível
+                imagemProduto = gallery0UrlS3 || gallery0Url || productImage;
                 
-                // PRIORIZAR A PRIMEIRA URL DISPONÍVEL
-                imagemProduto = gallery0UrlS3 || gallery0Url || gallery1UrlS3 || gallery1Url || productImage;
-                
-                if (imagemProduto) {
-                    console.log('✅ URL escolhida (original):', imagemProduto);
-                    
-                    // TESTAR DIFERENTES FORMATOS DE URL
-                    const urlsParaTestar = [];
-                    
-                    // Se não tem protocolo, testar diferentes bases
-                    if (!imagemProduto.startsWith('http')) {
-                        // Teste 1: URL direta com https://dropi.com
-                        const url1 = imagemProduto.startsWith('/') ? 
-                            `https://dropi.com${imagemProduto}` : 
-                            `https://dropi.com/${imagemProduto}`;
-                        urlsParaTestar.push(url1);
-                        
-                        // Teste 2: URL com https://api.dropi.com
-                        const url2 = imagemProduto.startsWith('/') ? 
-                            `https://api.dropi.com${imagemProduto}` : 
-                            `https://api.dropi.com/${imagemProduto}`;
-                        urlsParaTestar.push(url2);
-                        
-                        // Teste 3: URL com https://cdn.dropi.com
-                        const url3 = imagemProduto.startsWith('/') ? 
-                            `https://cdn.dropi.com${imagemProduto}` : 
-                            `https://cdn.dropi.com/${imagemProduto}`;
-                        urlsParaTestar.push(url3);
-                        
-                        // Teste 4: URL com https://storage.dropi.com
-                        const url4 = imagemProduto.startsWith('/') ? 
-                            `https://storage.dropi.com${imagemProduto}` : 
-                            `https://storage.dropi.com/${imagemProduto}`;
-                        urlsParaTestar.push(url4);
-                        
-                        // Teste 5: URL direta AWS S3 (comum para urlS3)
-                        const url5 = `https://s3.amazonaws.com/${imagemProduto}`;
-                        urlsParaTestar.push(url5);
-                        
-                        // Usar a primeira opção por padrão
-                        imagemProduto = urlsParaTestar[0];
-                        
-                        console.log('🔧 URLs que serão testadas:', urlsParaTestar);
-                        console.log('🎯 URL FINAL selecionada:', imagemProduto);
-                    } else {
-                        console.log('🎯 URL já tem protocolo, usando diretamente:', imagemProduto);
-                    }
-                } else {
-                    console.log('❌ Nenhuma imagem encontrada para este produto');
+                // Se não tem protocolo, adicionar base padrão
+                if (imagemProduto && !imagemProduto.startsWith('http')) {
+                    imagemProduto = imagemProduto.startsWith('/') ? 
+                        `https://dropi.com${imagemProduto}` : 
+                        `https://dropi.com/${imagemProduto}`;
                 }
-            } else {
-                console.log('❌ Produto não encontrado no orderdetails[0]');
             }
-            console.log('====================================');
-            console.log('');
 
             if (!produtosPorStatus[produto]) {
                 produtosPorStatus[produto] = {};
@@ -671,24 +388,6 @@ function DropiPage() {
 
         tabelaData.push(totalGeral);
 
-        // Debug final: Imprimir resumo das imagens encontradas
-        console.log('🖼️ ===== RESUMO FINAL DEBUG IMAGENS =====');
-        console.log(`📊 Total de produtos únicos processados: ${Object.keys(produtosPorImagem).length}`);
-        console.log(`✅ Produtos com imagem encontrada: ${Object.values(produtosPorImagem).filter(url => url).length}`);
-        console.log(`❌ Produtos sem imagem: ${Object.values(produtosPorImagem).filter(url => !url).length}`);
-        
-        console.log('\n📋 LISTA DE PRODUTOS E SUAS IMAGENS:');
-        Object.entries(produtosPorImagem).forEach(([produto, url], index) => {
-            if (url) {
-                console.log(`${index + 1}. ✅ ${produto}:`);
-                console.log(`   URL: ${url}`);
-            } else {
-                console.log(`${index + 1}. ❌ ${produto}: SEM IMAGEM`);
-            }
-        });
-        
-        console.log('\n🔄 Aguarde o carregamento das imagens na interface...');
-        console.log('===================================\n');
 
         return tabelaData;
     };
@@ -740,13 +439,6 @@ function DropiPage() {
         }
     };
 
-    // Filtrar dados da tabela (agora não usado para tabela de produtos)
-    const dadosFiltrados = dadosResultado?.filter(pedido => {
-        const matchStatus = !filtroStatus || pedido.status?.includes(filtroStatus.toUpperCase());
-        const matchFornecedor = !filtroFornecedor || pedido.supplier_name?.toLowerCase().includes(filtroFornecedor.toLowerCase());
-        const matchNome = !filtroNome || pedido.name?.toLowerCase().includes(filtroNome.toLowerCase());
-        return matchStatus && matchFornecedor && matchNome;
-    }) || [];
 
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
@@ -830,7 +522,7 @@ function DropiPage() {
                                         {dataInicio ? dataInicio.toLocaleDateString('pt-BR') : "Selecionar data"}
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0 border-border bg-popover">
+                                <PopoverContent className="w-auto p-0 border-border bg-popover" align="start">
                                     <Calendar
                                         mode="single"
                                         selected={dataInicio}
@@ -838,8 +530,11 @@ function DropiPage() {
                                         disabled={(date) =>
                                             date > new Date() || date < new Date("2020-01-01")
                                         }
-                                        className="rounded-md border-0 shadow-sm"
                                         initialFocus
+                                        numberOfMonths={1}
+                                        className="rounded-md border-0"
+                                        showOutsideDays={false}
+                                        fixedWeeks={false}
                                     />
                                 </PopoverContent>
                             </Popover>
@@ -861,7 +556,7 @@ function DropiPage() {
                                         {dataFim ? dataFim.toLocaleDateString('pt-BR') : "Selecionar data"}
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0 border-border bg-popover">
+                                <PopoverContent className="w-auto p-0 border-border bg-popover" align="start">
                                     <Calendar
                                         mode="single"
                                         selected={dataFim}
@@ -871,8 +566,11 @@ function DropiPage() {
                                             (dataInicio && date < dataInicio) ||
                                             date < new Date("2020-01-01")
                                         }
-                                        className="rounded-md border-0 shadow-sm"
                                         initialFocus
+                                        numberOfMonths={1}
+                                        className="rounded-md border-0"
+                                        showOutsideDays={false}
+                                        fixedWeeks={false}
                                     />
                                 </PopoverContent>
                             </Popover>
@@ -968,163 +666,7 @@ function DropiPage() {
         );
     };
 
-    // Relatório de debug das imagens
-    const renderDebugImagens = () => {
-        if (!dadosResultado || !Array.isArray(dadosResultado)) return null;
-        
-        return (
-            <Card className="mb-6 border-border bg-card">
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle className="text-lg text-card-foreground flex items-center gap-2">
-                                <ImageIcon className="h-5 w-5" />
-                                Debug de Imagens
-                            </CardTitle>
-                            <CardDescription className="text-muted-foreground">
-                                Status do carregamento das imagens dos produtos
-                            </CardDescription>
-                        </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                                console.log('📊 RELATÓRIO COMPLETO DEBUG IMAGENS:', debugImagens);
-                            }}
-                            className="border-border bg-background text-foreground hover:bg-accent"
-                        >
-                            Log Completo
-                        </Button>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                <span className="text-sm font-medium text-green-800">Sucessos</span>
-                            </div>
-                            <p className="text-2xl font-bold text-green-700">{debugImagens.sucessos}</p>
-                        </div>
-                        
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                                <span className="text-sm font-medium text-red-800">Falhas</span>
-                            </div>
-                            <p className="text-2xl font-bold text-red-700">{debugImagens.falhas}</p>
-                        </div>
-                        
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                                <span className="text-sm font-medium text-blue-800">Total</span>
-                            </div>
-                            <p className="text-2xl font-bold text-blue-700">{debugImagens.totalTentativas}</p>
-                        </div>
-                    </div>
-                    
-                    {/* Informações de taxa de sucesso e base descoberta */}
-                    {debugImagens.totalTentativas > 0 && (
-                        <div className="mt-4 space-y-3">
-                            <div className="p-3 bg-muted/20 border border-border rounded-lg">
-                                <p className="text-sm text-muted-foreground">
-                                    <strong>Taxa de Sucesso:</strong> {
-                                        debugImagens.totalTentativas > 0 ? 
-                                            `${((debugImagens.sucessos / debugImagens.totalTentativas) * 100).toFixed(1)}%` : 
-                                            '0%'
-                                    }
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    Verifique o console do navegador para detalhes completos das URLs testadas
-                                </p>
-                            </div>
-                            
-                            {/* Mostrar base descoberta se houver */}
-                            {debugImagens.baseDescoberta && (
-                                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                        <span className="text-sm font-medium text-green-800">BASE DE URL DESCOBERTA</span>
-                                    </div>
-                                    <p className="text-sm font-mono text-green-700 bg-green-100 px-2 py-1 rounded border">
-                                        {debugImagens.baseDescoberta}
-                                    </p>
-                                    <p className="text-xs text-green-600 mt-1">
-                                        Esta base está sendo usada para carregar todas as imagens automaticamente.
-                                    </p>
-                                </div>
-                            )}
-                            
-                            {/* Mostrar produtos com falha se houver */}
-                            {Object.keys(debugImagens.urlsTestadasPorProduto).length > 0 && (
-                                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                                        <span className="text-sm font-medium text-red-800">PRODUTOS SEM IMAGEM</span>
-                                    </div>
-                                    <div className="text-sm text-red-700 space-y-1">
-                                        {Object.keys(debugImagens.urlsTestadasPorProduto).map((produto, index) => (
-                                            <p key={index} className="truncate">
-                                                • {produto}
-                                            </p>
-                                        ))}
-                                    </div>
-                                    <p className="text-xs text-red-600 mt-1">
-                                        Verifique o console para ver todas as URLs testadas para cada produto.
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        );
-    };
 
-    const renderFiltros = () => (
-        <Card className="mb-4 border-border bg-card">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base text-card-foreground">
-                    <Target className="h-4 w-4" />
-                    Filtros
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="grid gap-4 md:grid-cols-3">
-                    <div className="relative">
-                        <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Filtrar por status..."
-                            value={filtroStatus}
-                            onChange={(e) => setFiltroStatus(e.target.value)}
-                            className="pl-10 border-border bg-background text-foreground"
-                        />
-                    </div>
-                    
-                    <div className="relative">
-                        <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Filtrar por fornecedor..."
-                            value={filtroFornecedor}
-                            onChange={(e) => setFiltroFornecedor(e.target.value)}
-                            className="pl-10 border-border bg-background text-foreground"
-                        />
-                    </div>
-                    
-                    <div className="relative">
-                        <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Filtrar por nome cliente..."
-                            value={filtroNome}
-                            onChange={(e) => setFiltroNome(e.target.value)}
-                            className="pl-10 border-border bg-background text-foreground"
-                        />
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-    );
 
     // Renderizar exemplo de pedido da API em JSON
     const renderExemploPedido = () => {
@@ -1211,10 +753,9 @@ function DropiPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    {/* SCROLL APRIMORADO: ScrollArea otimizado para tabelas largas com scroll horizontal */}
-                    <div className="relative w-full overflow-hidden">
-                        <ScrollArea className="w-full whitespace-nowrap rounded-md">
-                            <div className="flex w-max">
+                    <div className="relative w-full">
+                        <ScrollArea className="w-full whitespace-nowrap rounded-md overflow-x-auto">
+                            <div className="flex w-max min-w-full">
                                 <Table className="w-max min-w-full">
                                     <TableHeader>
                                         <TableRow className="bg-muted/50 border-border">
@@ -1291,13 +832,12 @@ function DropiPage() {
                                                         key={col}
                                                         className={classesCelula}
                                                     >
-                                                        {/* NOVA FUNCIONALIDADE: Renderização da coluna Imagem com MÚLTIPLOS FALLBACKS */}
+                                                        {/* Renderização da coluna Imagem */}
                                                         {col === 'Imagem' ? (
                                                             row[col] && row.Produto !== 'TOTAL' ? (
-                                                                <ImagemProdutoComFallback 
-                                                                    urlInicial={row[col]}
+                                                                <ImagemProduto 
+                                                                    url={row[col]}
                                                                     produto={row.Produto}
-                                                                    onDebugUpdate={handleDebugImagemUpdate}
                                                                 />
                                                             ) : (
                                                                 row.Produto === 'TOTAL' ? (
@@ -1332,21 +872,15 @@ function DropiPage() {
                                     </TableBody>
                                 </Table>
                             </div>
-                            <ScrollBar orientation="horizontal" />
+                            <ScrollBar orientation="horizontal" className="h-3" />
                         </ScrollArea>
                     </div>
                     
-                    {/* Nota sobre scroll da tabela */}
-                    <div className="px-4 pb-4 pt-2">
+                    {/* Nota sobre scroll da tabela - CORRIGIDA */}
+                    <div className="px-4 pb-4 pt-2 overflow-hidden">
                         <div className="flex flex-col items-center gap-1">
                             <p className="text-xs text-muted-foreground text-center">
                                 💡 Role horizontalmente dentro da tabela para ver todos os status de pedidos
-                            </p>
-                            <p className="text-xs text-green-600 text-center font-medium">
-                                ✅ Scroll horizontal otimizado - Funciona apenas na tabela
-                            </p>
-                            <p className="text-xs text-blue-600 text-center">
-                                📱 Responsivo para mobile, tablet e desktop
                             </p>
                         </div>
                     </div>
@@ -1462,15 +996,7 @@ function DropiPage() {
     // ======================== RENDER PRINCIPAL ========================
 
     return (
-        <div 
-            className="flex-1 space-y-4 p-3 sm:p-6 min-h-screen bg-background"
-            style={{
-                /* SEGURANÇA MÁXIMA: Impedir scroll horizontal na página principal */
-                overflowX: 'hidden',
-                maxWidth: '100vw',
-                width: '100%'
-            }}
-        >
+        <div className="flex-1 space-y-4 p-3 sm:p-6 min-h-screen bg-background">
             {/* Notificações */}
             {notification && (
                 <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4 border-border">
@@ -1498,7 +1024,6 @@ function DropiPage() {
                 <TabsContent value="gerar" className="space-y-4">
                     {renderFormulario()}
                     {renderEstatisticas()}
-                    {renderDebugImagens()}
                     {renderExemploPedido()}
                     {renderResultados()}
                 </TabsContent>
