@@ -297,10 +297,12 @@ function DropiPage() {
         setTimeout(() => setNotification(null), 5000);
     };
 
-    // Função para verificar se é mobile (melhorada)
+    // Função para verificar se é mobile (melhorada com debounce)
     const checkIfMobile = () => {
         const isMobileNow = window.innerWidth < 768;
-        setIsMobile(isMobileNow);
+        if (isMobileNow !== isMobile) {
+            setIsMobile(isMobileNow);
+        }
     };
 
 
@@ -518,7 +520,7 @@ function DropiPage() {
                         </div>
                     </div>
 
-                    <div className="flex items-end gap-4">
+                    <div className={`flex ${isMobile ? 'flex-col' : 'items-end'} gap-4`}>
                         {/* Período Único - Calendar Range */}
                         <div>
                             <Label className="mb-2 block text-foreground">Período</Label>
@@ -527,7 +529,7 @@ function DropiPage() {
                                     <Button
                                         variant="outline"
                                         disabled={loadingProcessar}
-                                        className={`w-80 justify-start text-left font-normal border-border bg-background text-foreground hover:bg-accent ${
+                                        className={`${isMobile ? 'w-full' : 'w-80'} justify-start text-left font-normal border-border bg-background text-foreground hover:bg-accent ${
                                             !periodoSelecionado?.from && "text-muted-foreground"
                                         }`}
                                     >
@@ -543,7 +545,7 @@ function DropiPage() {
                                         )}
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className={`w-auto p-0 border-border bg-popover ${!isMobile ? 'max-w-2xl' : ''}`} align="start">
+                                <PopoverContent className={`w-auto p-0 border-border bg-popover ${!isMobile ? 'max-w-2xl' : 'max-w-sm'}`} align="start">
                                     <Calendar
                                         mode="range"
                                         defaultMonth={periodoSelecionado?.from}
@@ -566,7 +568,7 @@ function DropiPage() {
                             onClick={processarDados}
                             disabled={!periodoSelecionado?.from || !periodoSelecionado?.to || !paisSelecionado || loadingProcessar}
                             size="lg"
-                            className="min-w-36 bg-primary text-primary-foreground hover:bg-primary/90"
+                            className={`${isMobile ? 'w-full min-w-0' : 'min-w-36'} bg-primary text-primary-foreground hover:bg-primary/90`}
                         >
                             {loadingProcessar ? (
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
