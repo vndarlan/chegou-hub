@@ -511,8 +511,8 @@ function DropiPage() {
             )}
 
             <CardHeader>
-                <div className="flex flex-col gap-4">
-                    {/* Título e descrição */}
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    {/* Título e descrição - sempre à esquerda */}
                     <div className="flex items-center gap-3">
                         <Filter className="h-5 w-5 text-primary" />
                         <div>
@@ -520,20 +520,18 @@ function DropiPage() {
                             <CardDescription className="text-muted-foreground">Configure o período e execute</CardDescription>
                         </div>
                     </div>
-                    
-                    {/* Controles (período + botão) */}
-                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:ml-auto">
+
+                    {/* Controles - mobile: abaixo, desktop: à direita */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                         {/* Seletor de período */}
-                        <div className="w-full sm:w-auto">
-                            <Label className="mb-2 block text-foreground">Período</Label>
+                        <div className="min-w-0">
+                            <Label className="mb-2 block text-foreground text-sm">Período</Label>
                             <Popover>
                                 <PopoverTrigger asChild>
                                     <Button
                                         variant="outline"
                                         disabled={loadingProcessar}
-                                        className={`w-full sm:w-80 justify-start text-left font-normal border-border bg-background text-foreground hover:bg-accent ${
-                                            !periodoSelecionado?.from && "text-muted-foreground"
-                                        }`}
+                                        className="w-full sm:w-[280px] justify-start text-left font-normal border-border bg-background text-foreground hover:bg-accent"
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
                                         <span className="truncate">
@@ -550,9 +548,11 @@ function DropiPage() {
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent 
-                                    className="w-auto p-0 border-border bg-popover" 
-                                    align={isMobile ? "center" : "start"}
-                                    side={isMobile ? "bottom" : "bottom"}
+                                    className="w-auto p-0 border-border bg-popover"
+                                    align="start"
+                                    side="bottom"
+                                    sideOffset={5}
+                                    avoidCollisions={true}
                                 >
                                     <Calendar
                                         mode="range"
@@ -563,7 +563,7 @@ function DropiPage() {
                                             date > new Date() || date < new Date("2020-01-01")
                                         }
                                         initialFocus
-                                        numberOfMonths={isMobile ? 1 : 2}
+                                        numberOfMonths={window.innerWidth < 640 ? 1 : 2}
                                         className="rounded-lg border-0 shadow-sm"
                                         showOutsideDays={false}
                                         fixedWeeks={false}
@@ -573,19 +573,21 @@ function DropiPage() {
                         </div>
                         
                         {/* Botão processar */}
-                        <Button
-                            onClick={processarDados}
-                            disabled={!periodoSelecionado?.from || !periodoSelecionado?.to || !paisSelecionado || loadingProcessar}
-                            size="lg"
-                            className="w-full sm:w-auto sm:min-w-36 bg-primary text-primary-foreground hover:bg-primary/90"
-                        >
-                            {loadingProcessar ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                                <Search className="h-4 w-4 mr-2" />
-                            )}
-                            {loadingProcessar ? 'Processando...' : 'Processar'}
-                        </Button>
+                        <div className="sm:mt-6"> {/* Alinha com o input */}
+                            <Button
+                                onClick={processarDados}
+                                disabled={!periodoSelecionado?.from || !periodoSelecionado?.to || !paisSelecionado || loadingProcessar}
+                                size="lg"
+                                className="w-full sm:w-auto px-8 bg-primary text-primary-foreground hover:bg-primary/90"
+                            >
+                                {loadingProcessar ? (
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                    <Search className="h-4 w-4 mr-2" />
+                                )}
+                                {loadingProcessar ? 'Processando...' : 'Processar'}
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </CardHeader>
