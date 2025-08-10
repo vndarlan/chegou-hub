@@ -547,26 +547,16 @@ function DropiPage() {
                                         </span>
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent 
-                                    className="w-auto p-0 border-border bg-popover"
-                                    align="start"
-                                    side="bottom"
-                                    sideOffset={5}
-                                    avoidCollisions={true}
-                                >
+                                <PopoverContent className="w-auto p-0">
                                     <Calendar
                                         mode="range"
-                                        defaultMonth={periodoSelecionado?.from}
                                         selected={periodoSelecionado}
                                         onSelect={setPeriodoSelecionado}
                                         disabled={(date) =>
                                             date > new Date() || date < new Date("2020-01-01")
                                         }
                                         initialFocus
-                                        numberOfMonths={window.innerWidth < 640 ? 1 : 2}
-                                        className="rounded-lg border-0 shadow-sm"
-                                        showOutsideDays={false}
-                                        fixedWeeks={false}
+                                        numberOfMonths={isMobile ? 1 : 2}
                                     />
                                 </PopoverContent>
                             </Popover>
