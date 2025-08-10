@@ -511,7 +511,7 @@ function DropiPage() {
             )}
 
             <CardHeader>
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     {/* Título e descrição - sempre à esquerda */}
                     <div className="flex items-center gap-3">
                         <Filter className="h-5 w-5 text-primary" />
