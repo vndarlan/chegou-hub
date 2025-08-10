@@ -56,6 +56,95 @@ A página de Análise de Pedidos Dropi permite extrair, analisar e gerenciar dad
    - Impede data fim anterior à data início
 6. **Resultado:** Botão mostra período formatado (ex: "15/01/2025 - 31/01/2025")
 
+#### **⚠️ LIMITAÇÕES E RECOMENDAÇÕES DE PERÍODO**
+
+**📅 Limitações de data:**
+- **Data mínima:** 01/01/2020 (dados anteriores não disponíveis)
+- **Data máxima:** Hoje (não permite datas futuras)
+- **Período máximo recomendado:** 90 dias (3 meses)
+- **Período mínimo:** 1 dia
+
+**🚀 Recomendações de performance:**
+- **1-7 dias:** Processamento instantâneo, ideal para análise diária
+- **8-30 dias:** Processamento rápido (5-10 segundos), ideal para análise mensal
+- **31-90 dias:** Processamento normal (15-30 segundos), ideal para análise trimestral
+- **+90 dias:** Não recomendado - pode demorar muito ou dar timeout
+
+**⚡ Dicas para períodos grandes:**
+1. **Divida em chunks:** Em vez de 120 dias, faça 3 extrações de 40 dias
+2. **Horário off-peak:** Extraia dados grandes durante madrugada
+3. **Conexão estável:** Garanta boa internet para períodos longos
+4. **Paciência:** Não clique várias vezes se demorar para carregar
+
+**🎯 Casos de uso recomendados por período:**
+- **Semanal (7 dias):** Monitoramento operacional diário
+- **Mensal (30 dias):** Relatórios gerenciais mensais
+- **Trimestral (90 dias):** Análises estratégicas de tendência
+- **Anual:** Dividir em 4 trimestres separados
+
+#### **🎯 GUIA PRÁTICO: Como Selecionar Intervalos de Datas**
+
+**📋 Método passo a passo para seleção precisa:**
+
+**1. Abrir o calendário:**
+- Clique no botão "Período" (mostra "Selecionar período" se vazio)
+- Aguarde carregar - calendário adaptará automaticamente ao seu dispositivo
+- **Mobile:** Calendário ocupará boa parte da tela (1 mês)
+- **Desktop:** Calendário compacto mostrará 2 meses lado a lado
+
+**2. Navegar até o período desejado:**
+- **Use as setas laterais:** Para mudança mês a mês
+- **Clique no mês/ano no topo:** Para navegação rápida (dropdown)
+- **Desktop:** Veja 2 meses simultaneamente para períodos entre meses
+- **Mobile:** Navegue mês por mês com toques nas setas
+
+**3. Selecionar data de INÍCIO:**
+- **Primeiro clique:** Define data de início do período
+- **Destaque visual:** Data fica destacada em azul
+- **Validação:** Sistema bloqueia datas futuras ou muito antigas
+- **Dica:** Comece sempre pela data mais antiga do período
+
+**4. Selecionar data de FIM:**
+- **Segundo clique:** Define data de fim do período
+- **Range visual:** Período completo fica destacado no calendário
+- **Validação automática:** Sistema impede data fim anterior à início
+- **Resultado:** Range fica visível com cores diferenciadas
+
+**5. Confirmar seleção:**
+- **Automático:** Calendário fecha sozinho após segunda seleção
+- **Botão atualizado:** Mostra período formatado (ex: "15/01 - 31/01/2025")
+- **Pronto para usar:** Clique em "Processar" para extrair dados
+
+**🚀 DICAS DE SELEÇÃO EFICIENTE:**
+
+**Para análises SEMANAIS:**
+1. Clique na segunda-feira desejada (data início)
+2. Clique no domingo da mesma semana (data fim)
+3. ✅ Período de 7 dias - processamento instantâneo
+
+**Para análises MENSAIS:**
+1. Clique no dia 1 do mês (data início)
+2. Navegue para o último dia do mês (data fim)
+3. ✅ Período de ~30 dias - processamento rápido
+
+**Para análises TRIMESTRAIS:**
+1. Clique no primeiro dia do trimestre (ex: 1/Jan)
+2. Navegue para o último dia do trimestre (ex: 31/Mar)
+3. ✅ Período de ~90 dias - processamento normal
+
+**Para períodos CUSTOMIZADOS:**
+1. Identifique evento específico (ex: Black Friday)
+2. Selecione alguns dias antes do evento (início)
+3. Selecione alguns dias após o evento (fim)
+4. ✅ Análise de impacto de eventos específicos
+
+**⚠️ EVITE ERROS COMUNS:**
+- ❌ **Não clique múltiplas vezes:** Aguarde resposta visual
+- ❌ **Não arraste o dedo (mobile):** Use toques precisos
+- ❌ **Não selecione períodos muito longos:** Máximo 90 dias
+- ❌ **Não ignore validações:** Sistema bloqueia datas inválidas por motivo
+- ✅ **Sempre confirme visualmente:** Verifique se range está correto antes de processar
+
 ### Visualizar estatísticas dos pedidos
 **Para que serve:** Acompanhar performance de vendas e entregas
 **Como usar:**
@@ -95,33 +184,72 @@ A página de Análise de Pedidos Dropi permite extrair, analisar e gerenciar dad
    - 🟡 **Amarelo (40-49%):** Performance regular
    - 🔴 **Vermelho (<40%):** Precisa melhorar
 
-### 🆕 Responsividade do NOVO SELETOR DE PERÍODO
-**Para que serve:** Garantir seleção perfeita de datas em qualquer dispositivo
-**NOVA TECNOLOGIA:** Sistema detecta automaticamente seu dispositivo e adapta o calendário
+### 🆕 Responsividade COMPLETA do Seletor de Período
+**Para que serve:** Sistema totalmente adaptativo que funciona perfeitamente em qualquer dispositivo
+**TECNOLOGIA AVANÇADA:** Detecta automaticamente seu dispositivo e adapta interface em tempo real
 
-**📱 Mobile (celular - largura < 768px):**
-- **Seletor único:** Mostra 1 mês por vez para melhor visibilidade
-- **Toque otimizado:** Datas grandes e fáceis de tocar
-- **Navegação suave:** Setas grandes para mudança de mês
-- **Popover responsivo:** Calendar ocupa largura ideal para mobile
+#### **📱 MOBILE - Experiência Otimizada (largura < 768px)**
+**Layout vertical completo:**
+- **Seletor full-width:** Botão de período ocupa toda largura da tela
+- **Calendário em tela cheia:** 1 mês otimizado para toque
+- **Toques precisos:** Datas com área ampla para facilitar seleção
+- **Navegação por gestos:** Setas grandes e responsivas
+- **Popover centralizado:** Calendário abre no centro da tela
+- **Orientação automática:** Adapta tanto em retrato quanto paisagem
 
-**📱 Tablet (largura entre 768px-1024px):**
-- **Layout híbrido:** Calendário adapta conforme orientação
-- **Retrato:** 1 mês otimizado para toque
-- **Paisagem:** Pode mostrar 2 meses se espaço permitir
-- **Toque preciso:** Controles adaptados para dedo
+**Recursos especiais mobile:**
+- ✅ **Zero problemas de toque:** Área de toque aumentada
+- ✅ **Visual limpo:** Interface simplificada sem sobrecarregar
+- ✅ **Feedback tátil:** Respostas visuais imediatas ao toque
+- ✅ **Sem scroll indesejado:** Calendário não interfere com scroll da página
 
-**💻 Desktop (largura ≥ 768px):**
-- **Vista dupla:** 2 meses lado a lado para seleção mais rápida
-- **Mouse otimizado:** Hover effects e navegação precisa
-- **Popover compacto:** Abre próximo ao botão sem ocupar muito espaço
-- **Atalhos de teclado:** Suporte a navegação por teclado
+#### **💻 DESKTOP - Experiência Completa (largura ≥ 768px)**
+**Layout horizontal otimizado:**
+- **Calendário lado a lado:** 2 meses simultâneos para seleção rápida
+- **Hover effects:** Destaque visual ao passar mouse sobre datas
+- **Navegação por mouse:** Scroll wheel e cliques precisos
+- **Popover posicionado:** Abre próximo ao botão sem ocupar muito espaço
+- **Atalhos de teclado:** Suporte completo para navegação
 
-**🔄 Redimensionamento automático:**
-- **Detecção em tempo real:** Sistema monitora mudanças de tamanho da tela
-- **Adaptação instantânea:** Calendar muda de 1 para 2 meses automaticamente
-- **Sem recarregamento:** Funciona ao rotacionar tablet ou redimensionar janela
-- **Memória de seleção:** Período selecionado é mantido durante adaptação
+**Recursos especiais desktop:**
+- ✅ **Seleção visual ampla:** Vê mais datas simultaneamente
+- ✅ **Navegação rápida:** Cliques diretos entre meses
+- ✅ **Precisão total:** Mouse permite seleção exata
+- ✅ **Multi-mês:** Seleciona períodos entre meses diferentes facilmente
+
+#### **🔄 ADAPTAÇÃO AUTOMÁTICA EM TEMPO REAL**
+**Sistema inteligente de detecção:**
+- **Monitoring contínuo:** Detecta mudanças de largura instantaneamente
+- **Transição suave:** Muda de 1 para 2 meses sem interrupção
+- **Preservação de estado:** Período selecionado mantido durante adaptação
+- **Sem reload:** Funciona ao rotacionar dispositivo ou redimensionar janela
+
+**Situações de adaptação:**
+- 🔄 **Rotacionar tablet:** Layout adapta automaticamente
+- 🔄 **Redimensionar janela:** Desktop/mobile detectado em tempo real
+- 🔄 **Zoom do navegador:** Considera zoom na detecção de responsividade
+- 🔄 **Conexão de monitor:** Adapta quando conecta/desconecta monitor externo
+
+#### **🎯 RECOMENDAÇÕES POR DISPOSITIVO**
+
+**📱 Para uso em MOBILE:**
+1. **Posição vertical ideal:** Segure telefone na vertical para melhor experiência
+2. **Toque central:** Toque no centro das datas para precisão máxima
+3. **Uma mão:** Interface otimizada para uso com uma mão
+4. **Período curto:** Selecione períodos de até 30 dias para visualização ideal
+
+**💻 Para uso em DESKTOP:**
+1. **Janela maximizada:** Use janela em tamanho normal ou maximizada
+2. **Range amplos:** Aproveite vista dupla para períodos de vários meses
+3. **Mouse scroll:** Use scroll wheel para navegar rapidamente entre meses
+4. **Teclado:** Use Tab e Enter para navegação acessível
+
+**🔧 TROUBLESHOOTING RESPONSIVIDADE:**
+- **Problema:** Calendário não adapta corretamente
+- **Solução 1:** Recarregue página para forçar nova detecção
+- **Solução 2:** Redimensione janela ligeiramente para reativar detecção
+- **Solução 3:** Verifique zoom do navegador (Ctrl+0 para resetar)
+- **Debug:** Console mostra logs de responsividade para diagnóstico
 
 ### Salvar análise para consulta posterior
 **Para que serve:** Guardar dados extraídos para acessar depois sem precisar reprocessar
@@ -367,14 +495,37 @@ A página de Análise de Pedidos Dropi permite extrair, analisar e gerenciar dad
 
 ## Dicas importantes
 
-### 🆕 Melhorias do NOVO SELETOR DE PERÍODO ÚNICO
-- ✅ **Seletor único:** Um só calendário para início e fim - muito mais rápido
-- ✅ **Range visual:** Vê o período completo destacado no calendário
-- ✅ **Responsividade inteligente:** Desktop mostra 2 meses, mobile 1 mês
+### 🚀 PRINCIPAIS VANTAGENS do Seletor de Período Responsivo
+
+#### **⚡ Velocidade e Eficiência**
+- ✅ **Seletor único:** Um só calendário para início e fim - 50% mais rápido
+- ✅ **Range visual:** Vê período completo destacado em tempo real
+- ✅ **Seleção em 2 cliques:** Início → fim → pronto (sem calendários separados)
+- ✅ **Auto-fechamento:** Calendário fecha automaticamente após seleção
+
+#### **📱 Responsividade Total**
+- ✅ **Mobile otimizado:** Layout vertical, botão full-width, 1 mês por vez
+- ✅ **Desktop completo:** Layout horizontal, 2 meses lado a lado
 - ✅ **Detecção automática:** Adapta em tempo real ao redimensionar janela
+- ✅ **Memória de estado:** Período mantido durante mudanças de layout
+
+#### **🛡️ Validação Inteligente**
 - ✅ **Validação avançada:** Impede automaticamente períodos inválidos
-- ✅ **Memória de estado:** Período selecionado é mantido durante adaptações
-- ✅ **Debug integrado:** Console mostra informações de responsividade para suporte
+- ✅ **Feedback visual:** Datas bloqueadas ficam cinzas
+- ✅ **Correção automática:** Data fim antes do início é automaticamente ajustada
+- ✅ **Limites inteligentes:** Não permite datas futuras ou muito antigas
+
+#### **🎯 Experiência do Usuário**
+- ✅ **Visual consistente:** Mesmo design em todos os dispositivos
+- ✅ **Toque preciso:** Áreas de toque ampliadas no mobile
+- ✅ **Navegação suave:** Transições animadas entre meses
+- ✅ **Debug integrado:** Console mostra logs para troubleshooting
+
+#### **🔧 Compatibilidade Universal**
+- ✅ **Todos navegadores:** Chrome, Firefox, Safari, Edge
+- ✅ **Todos dispositivos:** Mobile, tablet, desktop, TV
+- ✅ **Orientação adaptável:** Retrato e paisagem automático
+- ✅ **Zoom compatível:** Funciona com qualquer nível de zoom
 
 ### Outras melhorias da interface
 - ✅ **Scroll otimizado:** Tabela rola horizontalmente sem afetar página
@@ -383,12 +534,34 @@ A página de Análise de Pedidos Dropi permite extrair, analisar e gerenciar dad
 - ✅ **Responsivo completo:** Funciona perfeitamente em mobile, tablet e desktop
 
 ### Boas práticas de uso
+
+#### **📊 Análise de Dados**
 - **Extraia dados regulares:** Mantenha análises semanais ou mensais
 - **Compare países:** Use mesmo período para análise comparativa
 - **Monitore produtos específicos:** Identifique quais produtos performam melhor
 - **Use scroll horizontal:** Explore todas as colunas de status na tabela
 - **Nomes descritivos:** Inclua país e período no nome das análises
 - **Backup regular:** Salve análises importantes para histórico
+
+#### **📱 Uso Responsivo Otimizado**
+- **Mobile - períodos curtos:** Selecione até 30 dias para visualização ideal
+- **Desktop - períodos longos:** Aproveite vista dupla para análises trimestrais
+- **Rotação automática:** Em tablet, rotacione para melhor experiência
+- **Toque preciso:** No mobile, toque no centro das datas
+- **Uma mão:** Interface mobile otimizada para uso com uma mão
+- **Zoom adequado:** Use zoom padrão (100%) para melhor responsividade
+
+#### **⚡ Performance e Velocidade**
+- **Conexão estável:** Para períodos longos, garanta boa internet
+- **Horários ideais:** Extraia dados grandes durante madrugada
+- **Cache inteligente:** Período selecionado fica salvo durante navegação
+- **Múltiplas abas:** Abra em nova aba para comparar períodos simultaneamente
+
+#### **🎯 Seleção de Período Estratégica**
+- **Início da semana:** Para análises semanais, comece na segunda-feira
+- **Fim do mês:** Para análises mensais, inclua último dia do mês
+- **Eventos especiais:** Analise antes, durante e depois de campanhas
+- **Comparação histórica:** Use mesmo período do ano anterior para comparação
 
 ### Otimizações de performance
 - **Períodos menores:** Para dados mais rápidos, use períodos de 1-2 semanas

@@ -511,7 +511,8 @@ function DropiPage() {
             )}
 
             <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-4">
+                    {/* Título e descrição */}
                     <div className="flex items-center gap-3">
                         <Filter className="h-5 w-5 text-primary" />
                         <div>
@@ -519,33 +520,40 @@ function DropiPage() {
                             <CardDescription className="text-muted-foreground">Configure o período e execute</CardDescription>
                         </div>
                     </div>
-
-                    <div className={`flex ${isMobile ? 'flex-col' : 'items-end'} gap-4`}>
-                        {/* Período Único - Calendar Range */}
-                        <div>
+                    
+                    {/* Controles (período + botão) */}
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:ml-auto">
+                        {/* Seletor de período */}
+                        <div className="w-full sm:w-auto">
                             <Label className="mb-2 block text-foreground">Período</Label>
                             <Popover>
                                 <PopoverTrigger asChild>
                                     <Button
                                         variant="outline"
                                         disabled={loadingProcessar}
-                                        className={`${isMobile ? 'w-full' : 'w-80'} justify-start text-left font-normal border-border bg-background text-foreground hover:bg-accent ${
+                                        className={`w-full sm:w-80 justify-start text-left font-normal border-border bg-background text-foreground hover:bg-accent ${
                                             !periodoSelecionado?.from && "text-muted-foreground"
                                         }`}
                                     >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {periodoSelecionado?.from ? (
-                                            periodoSelecionado.to ? (
-                                                `${periodoSelecionado.from.toLocaleDateString('pt-BR')} - ${periodoSelecionado.to.toLocaleDateString('pt-BR')}`
+                                        <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                                        <span className="truncate">
+                                            {periodoSelecionado?.from ? (
+                                                periodoSelecionado.to ? (
+                                                    `${periodoSelecionado.from.toLocaleDateString('pt-BR')} - ${periodoSelecionado.to.toLocaleDateString('pt-BR')}`
+                                                ) : (
+                                                    `${periodoSelecionado.from.toLocaleDateString('pt-BR')} - Selecione fim`
+                                                )
                                             ) : (
-                                                `${periodoSelecionado.from.toLocaleDateString('pt-BR')} - Selecione fim`
-                                            )
-                                        ) : (
-                                            "Selecionar período"
-                                        )}
+                                                "Selecionar período"
+                                            )}
+                                        </span>
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className={`w-auto p-0 border-border bg-popover ${!isMobile ? 'max-w-2xl' : 'max-w-sm'}`} align="start">
+                                <PopoverContent 
+                                    className="w-auto p-0 border-border bg-popover" 
+                                    align={isMobile ? "center" : "start"}
+                                    side={isMobile ? "bottom" : "bottom"}
+                                >
                                     <Calendar
                                         mode="range"
                                         defaultMonth={periodoSelecionado?.from}
@@ -564,11 +572,12 @@ function DropiPage() {
                             </Popover>
                         </div>
                         
+                        {/* Botão processar */}
                         <Button
                             onClick={processarDados}
                             disabled={!periodoSelecionado?.from || !periodoSelecionado?.to || !paisSelecionado || loadingProcessar}
                             size="lg"
-                            className={`${isMobile ? 'w-full min-w-0' : 'min-w-36'} bg-primary text-primary-foreground hover:bg-primary/90`}
+                            className="w-full sm:w-auto sm:min-w-36 bg-primary text-primary-foreground hover:bg-primary/90"
                         >
                             {loadingProcessar ? (
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
