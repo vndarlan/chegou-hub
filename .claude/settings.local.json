@@ -46,7 +46,11 @@
       "Bash(npm run lint:*)",
       "Bash(npm run:*)",
       "Bash(cp:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(move:*)",
+      "Bash(copy:*)",
+      "Bash(del \"backend\\configuracoes.md\")",
+      "Bash(del \"docs\\autenticacao-sistema.md\")"
     ],
     "deny": []
   }

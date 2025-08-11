@@ -1,237 +1,177 @@
-# 🤖 Guia: Como Trabalhar com IA na Nova Estrutura
+# 🚀 Chegou Hub - Plataforma de Gestão Empresarial com IA
 
-## 🆕 **Criar Nova Página**
+## 📋 Sobre o Projeto
 
-### Arquivos para enviar:
+O Chegou Hub é uma plataforma full-stack moderna que centraliza automações de IA, métricas empresariais e ferramentas de produtividade. Desenvolvido com Django + React, integra múltiplas APIs e oferece dashboards inteligentes para tomada de decisões.
+
+## 🛠️ Stack Tecnológico
+
 ```
-📁 Para IA: "Crie uma nova funcionalidade X"
-├── 📁 Exemplo de estrutura (envie uma funcionalidade existente):
-│   ├── backend/features/agenda/ (pasta inteira)
-│   └── frontend/src/features/agenda/ (pasta inteira)
-└── 📝 Prompt: "Baseado nesta estrutura, crie uma nova funcionalidade Y com as características: [descrever]"
+Frontend:  React 19.1 + shadcn/ui + Tailwind CSS
+Backend:   Django 5.2 + Django REST Framework + PostgreSQL
+Deploy:    Railway (auto-deploy via Git)
+IA APIs:   OpenAI GPT-4 + Anthropic Claude
+Cache:     Django cache framework
 ```
 
-### Exemplo de prompt:
-```
-🤖 "Baseado na estrutura da funcionalidade Agenda, crie uma nova funcionalidade chamada 'Tarefas' que:
-- Backend: Model para Task com título, descrição, status, deadline
-- Frontend: Página com lista, formulário de criação, filtros por status
-- Inclua todos os arquivos: models.py, views.py, serializers.py, admin.py, urls.py, TaskPage.js"
+## 📚 Documentação
 
-[Enviar pasta backend/features/agenda/ completa]
-[Enviar pasta frontend/src/features/agenda/ completa]
+### 🎯 **Documentação Contextual** (Nova Estrutura)
+A documentação foi completamente reestruturada para fornecer **contexto estratégico** ideal para briefings de IA:
+
+- **[📚 Guia da Documentação](docs/README.md)** - Como usar a nova documentação
+- **[🛠️ Stack Tecnológico](docs/stack-tecnologico.md)** - Tecnologias, bibliotecas e decisões arquiteturais
+- **[⚙️ Configurações de Ambiente](docs/configuracoes-ambiente.md)** - Variáveis, segurança e Railway
+- **[🚀 Railway & Produção](docs/railway-producao.md)** - Deploy, infraestrutura e monitoramento
+- **[📊 Features Principais](docs/features-principais.md)** - Visão estratégica das funcionalidades
+- **[🔗 Integrações Externas](docs/integracoes-externas.md)** - APIs, web scraping e serviços
+- **[📈 Monitoramento & Logs](docs/monitoramento-logs.md)** - Observabilidade e troubleshooting
+
+### 📖 **Guias do Usuário**
+- **[📁 User Guides](docs/user-guides/)** - Tutoriais passo a passo para usuários finais
+
+## 🤖 Features Principais
+
+### **Inteligência Artificial**
+- **Dashboard IA**: Gestão de ROI de projetos de automação (25+ projetos ativos)
+- **OpenAI Analytics**: Monitoramento de custos e uso de APIs de IA
+- **Chatbot Claude**: Assistente interno com conhecimento da documentação
+
+### **Métricas & Análises**
+- **PRIMECOD**: Integração direta via API para métricas de tráfego
+- **ECOMHUB**: Web scraping automatizado via Selenium Grid
+- **DROPI MX**: Sistema de tokens para métricas de dropshipping
+- **Mapa Geográfico**: Visualização de cobertura e performance por região
+
+### **Operacional**
+- **Sistema de Feedback**: Canal direto usuário-desenvolvedor com screenshots
+- **Agenda Corporativa**: Sincronização bidirecional com Google Calendar
+- **Background Jobs**: Processamento assíncrono via Django-RQ
+- **Monitoramento**: Logs estruturados e métricas em tempo real
+
+## ⚡ Quick Start
+
+### Desenvolvimento Local
+```bash
+# Backend
+cd backend
+python manage.py runserver
+
+# Frontend
+cd frontend
+npm start
+
+# Workers (opcional)
+cd backend
+python manage.py rqworker
 ```
+
+### Deploy Automático
+```bash
+# Push para main dispara deploy automático no Railway
+git add .
+git commit -m "feat: nova funcionalidade"
+git push origin main
+```
+
+## 🔧 Configurações Essenciais
+
+### Variáveis de Ambiente (Produção)
+```bash
+# Django Core
+DJANGO_SECRET_KEY=sua-chave-super-secreta
+DEBUG=False
+
+# APIs de IA (obrigatórias)
+OPENAI_API_KEY=sk-proj-sua-chave-openai
+ANTHROPIC_API_KEY=sk-ant-api03-sua-chave-claude
+
+# Integrações Empresariais
+PRIMECOD_API_TOKEN=token-primecod
+ECOMHUB_API_TOKEN=token-ecomhub
+DROPI_API_TOKEN=token-dropi-mx
+```
+
+### Railway (Auto-configurado)
+```bash
+DATABASE_URL=postgresql://... (auto-gerado)
+REDIS_URL=redis://... (auto-gerado)
+RAILWAY_ENVIRONMENT_NAME=production
+```
+
+## 📊 Arquitetura
+
+### Monorepo Full-Stack
+```
+📁 chegou-hub/
+├── 🔧 backend/          # Django REST API + Background Jobs
+├── 🎨 frontend/         # React SPA com shadcn/ui
+├── 📚 docs/             # Documentação contextual
+└── 🚀 Dockerfile        # Multi-stage build (Node.js + Python)
+```
+
+### Deploy Pipeline
+```
+Git Push → Railway Build → Multi-stage Docker → 
+Frontend Build (Node.js) → Backend + Static Files → 
+Database Migration → Health Check → Live
+```
+
+## 🌐 Integrações
+
+### APIs Externas
+- **OpenAI GPT-4**: Automações e análises inteligentes
+- **Anthropic Claude**: Chatbot interno e suporte
+- **Google Calendar**: Sincronização de agenda corporativa
+- **PRIMECOD/ECOMHUB/DROPI**: Métricas empresariais via API + scraping
+
+### Selenium Grid Architecture
+```
+Chegou Hub → Selenium Grid (Railway) → Target Websites → Data Extraction
+```
+
+## 🎯 Como Briefar IA para Este Projeto
+
+### Contexto Rápido
+> "Sistema Django+React no Railway com dashboard IA para ROI de projetos, integra OpenAI/PRIMECOD/ECOMHUB, usa PostgreSQL+Redis, background jobs Django-RQ, chatbot Claude interno, web scraping via Selenium Grid."
+
+### Para Desenvolvimento
+Leia primeiro: [Stack Tecnológico](docs/stack-tecnologico.md) + [Features Principais](docs/features-principais.md)
+
+### Para Modificações
+Consulte: [Documentação Contextual Completa](docs/README.md)
+
+## 📈 Status do Projeto
+
+- ✅ **Produção**: Ativo no Railway
+- ✅ **Features**: 8 funcionalidades principais operacionais
+- ✅ **Integrações**: 6+ APIs externas integradas
+- ✅ **Monitoramento**: Logs estruturados + métricas Railway
+- ✅ **Documentação**: 100% contextual para IA
+
+## 🔗 Links Importantes
+
+- **Produção**: https://chegouhub.com.br
+- **Documentação**: [docs/README.md](docs/README.md)
+- **Stack Completo**: [docs/stack-tecnologico.md](docs/stack-tecnologico.md)
+- **Deploy Info**: [docs/railway-producao.md](docs/railway-producao.md)
 
 ---
 
-## ✏️ **Editar Página Existente**
+# Auxilios para o meu dia a dia
 
-### Arquivos para enviar:
-```
-📁 Para IA: "Melhore a funcionalidade X"
-├── backend/features/[nome_funcionalidade]/ (pasta inteira)
-└── frontend/src/features/[nome_funcionalidade]/ (pasta inteira)
-```
+## Comandos para ativar Pensamento Profundo
+"Think more" - Extended reasoning
+"Think a lot"- Comprehensive reasoning
+"Think longer" - Extended time reasoning
+"Ultrathink" - Maximum reasoning capability
 
-### Exemplo - Melhorar Agenda:
-```
-📁 Enviar para IA:
-├── backend/features/agenda/
-│   ├── models.py
-│   ├── views.py  
-│   ├── serializers.py
-│   ├── admin.py
-│   └── urls.py
-└── frontend/src/features/agenda/
-    └── AgendaPage.js
-
-🤖 Prompt: "Melhore esta funcionalidade adicionando:
-- Notificações de eventos próximos
-- Filtro por mês/semana
-- Export para PDF
-- Interface mais responsiva"
-```
-
-### Exemplo - Melhorar Mapa:
-```
-📁 Enviar para IA:
-├── backend/features/mapa/ (todos os arquivos)
-└── frontend/src/features/mapa/
-    └── MapaPage.js
-
-🤖 Prompt: "Adicione à funcionalidade Mapa:
-- Filtros por continente
-- Informações de população por país
-- Animações nos marcadores
-- Modal com detalhes do país"
-```
+## Documentações do Claude Code
+- https://github.com/coleam00/context-engineering-intro/tree/main/claude-code-full-guide
+- https://docs.anthropic.com/en/docs/claude-code/devcontainer
+- https://www.anthropic.com/engineering/claude-code-best-practices
+- https://www.aitmpl.com/
 
 ---
 
-## 📋 **Templates de Prompts**
-
-### 🆕 **Nova Funcionalidade:**
-```
-"Baseado na estrutura de [funcionalidade_existente], crie uma nova funcionalidade '[nome]' que:
-
-Backend:
-- Model: [descrever campos]
-- API: [descrever endpoints]
-- Admin: [funcionalidades admin]
-
-Frontend:
-- Interface: [descrever layout]
-- Funcionalidades: [listar features]
-- Componentes: [tipo de componentes]
-
-[Enviar pasta de exemplo completa]"
-```
-
-### ✏️ **Melhorar Existente:**
-```
-"Melhore esta funcionalidade [nome] adicionando:
-- [Feature 1]
-- [Feature 2] 
-- [Feature 3]
-- Correções de bugs: [se houver]
-
-[Enviar pasta da funcionalidade completa]"
-```
-
-### 🐛 **Corrigir Bug:**
-```
-"Tem um bug nesta funcionalidade:
-Problema: [descrever problema]
-Erro: [colar erro se houver]
-Comportamento esperado: [descrever]
-
-[Enviar pasta da funcionalidade completa]"
-```
-
----
-
-## ⚡ **Dicas Importantes**
-
-### ✅ **Sempre Envie:**
-- **Pasta backend completa** da funcionalidade
-- **Pasta frontend completa** da funcionalidade  
-- **Prompt claro** com o que quer
-
-### ❌ **Nunca Envie:**
-- Arquivos de outras funcionalidades
-- config/, core/ (a menos que seja problema de autenticação)
-- package.json, settings.py (a menos que seja problema de configuração)
-
-### 🎯 **Resultado:**
-- IA entende perfeitamente o contexto
-- Respostas precisas e aplicáveis
-- Código organizado na mesma estrutura
-- Fácil de aplicar as mudanças
-
----
-
-## 📁 **Checklist Rápido**
-
-**Para Nova Página:**
-- [ ] Escolher funcionalidade existente como exemplo
-- [ ] Enviar pasta backend/features/[exemplo]/
-- [ ] Enviar pasta frontend/src/features/[exemplo]/
-- [ ] Prompt explicando nova funcionalidade
-
-**Para Editar Página:**
-- [ ] Enviar pasta backend/features/[nome]/  
-- [ ] Enviar pasta frontend/src/features/[nome]/
-- [ ] Prompt explicando melhorias desejadas
-
-**Resultado:** IA retorna arquivos prontos para colar nas pastas! 🚀
-
----
-
-## 🔧 **Casos Especiais - Quando Enviar Outros Arquivos**
-
-### 🔐 **Problemas de Login/Autenticação**
-```
-📁 Enviar para IA:
-├── backend/core/ (pasta inteira)
-├── backend/config/settings.py
-├── backend/config/urls.py
-└── frontend/src/shared/pages/LoginPage.js
-
-🤖 Prompt: "Erro no login: [descrever problema]"
-```
-
-### 🌐 **Problemas de CORS/API**
-```
-📁 Enviar para IA:
-├── backend/config/settings.py
-├── backend/core/middleware.py
-├── backend/core/views_debug.py
-└── frontend/src/shared/components/CSRFManager.js
-
-🤖 Prompt: "Erro de CORS: [colar erro]"
-```
-
-### 🎨 **Problemas de Tema/Navbar**
-```
-📁 Enviar para IA:
-├── frontend/src/App.js
-├── frontend/src/shared/components/NavbarNested/ (pasta inteira)
-└── frontend/src/shared/pages/WorkspacePage.js
-
-🤖 Prompt: "Problema no tema/navegação: [descrever]"
-```
-
-### 🗄️ **Problemas de Database/Models**
-```
-📁 Enviar para IA:
-├── backend/config/settings.py
-├── backend/features/[funcionalidade]/models.py (específica)
-└── Logs de erro do migrate
-
-🤖 Prompt: "Erro de migração: [colar erro]"
-```
-
-### 📦 **Problemas de Deploy/Configuração**
-```
-📁 Enviar para IA:
-├── backend/requirements.txt
-├── backend/railway.toml
-├── backend/runtime.txt
-├── frontend/package.json
-└── Logs do Railway
-
-🤖 Prompt: "Erro de deploy: [colar logs]"
-```
-
-### 🔄 **Problemas de Roteamento**
-```
-📁 Enviar para IA:
-├── backend/config/urls.py
-├── backend/features/[funcionalidade]/urls.py
-└── frontend/src/shared/pages/WorkspacePage.js
-
-🤖 Prompt: "Erro 404/roteamento: [descrever]"
-```
-
----
-
-## 📋 **Checklist de Troubleshooting**
-
-**1. Identifique o tipo de erro:**
-- 🔐 Login/Auth → Core + Config
-- 🌐 API/CORS → Config + Middleware  
-- 🎨 UI/Tema → App + Shared
-- 🗄️ Database → Models + Settings
-- 📦 Deploy → Config files + Logs
-- 🔄 Rotas → URLs + Workspace
-
-**2. Envie apenas arquivos relevantes:**
-- ❌ Não envie funcionalidades não relacionadas
-- ✅ Foque no sistema afetado
-
-**3. Inclua logs/erros:**
-- Console do navegador
-- Logs do servidor
-- Mensagens de erro específicas
-
-**Resultado:** IA resolve problemas sistêmicos rapidamente! 🚀
+**🤖 Sistema otimizado para automação, IA e análises empresariais data-driven**

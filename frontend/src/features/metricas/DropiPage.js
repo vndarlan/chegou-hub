@@ -5,7 +5,7 @@ import {
     AlertTriangle, TrendingUp, BarChart3, Eye, Search, Globe, 
     Filter, Rocket, Loader2, Target, Percent,
     Package, Building, Clock, User, ArrowUpDown, 
-    ArrowUp, ArrowDown, Image as ImageIcon, ChevronLeft, ChevronRight
+    ArrowUp, ArrowDown, Image as ImageIcon
 } from 'lucide-react';
 import axios from 'axios';
 import { getCSRFToken } from '../../utils/csrf';
@@ -547,7 +547,7 @@ function DropiPage() {
                                         </span>
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0 bg-popover border-border" align="start">
+                                <PopoverContent className="w-auto p-0" align="start">
                                     <Calendar
                                         mode="range"
                                         selected={periodoSelecionado}
@@ -557,37 +557,7 @@ function DropiPage() {
                                         }
                                         initialFocus
                                         numberOfMonths={isMobile ? 1 : 2}
-                                        className="rounded-md border-0 p-3"
-                                        components={{
-                                            IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
-                                            IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />
-                                        }}
-                                        classNames={{
-                                            months: isMobile 
-                                                ? "flex flex-col space-y-4" 
-                                                : "flex flex-row space-x-4",
-                                            month: "space-y-4 min-w-[280px]",
-                                            caption: "flex justify-between items-center pt-1 mb-2 px-2 relative",
-                                            caption_label: "text-sm font-medium text-foreground",
-                                            nav: "flex items-center gap-1",
-                                            nav_button: "h-8 w-8 bg-transparent p-0 opacity-70 hover:opacity-100 rounded-md hover:bg-accent flex items-center justify-center border border-border transition-all hover:border-primary",
-                                            nav_button_previous: "z-10",
-                                            nav_button_next: "z-10",
-                                            table: "w-full border-collapse",
-                                            head_row: "flex w-full",
-                                            head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] flex items-center justify-center",
-                                            row: "flex w-full mt-1",
-                                            cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md",
-                                            day: "h-9 w-9 p-0 font-normal rounded-md hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground [&[aria-selected]]:opacity-100",
-                                            day_range_start: "day-range-start bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-l-md",
-                                            day_range_end: "day-range-end bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-r-md",
-                                            day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                                            day_today: "bg-accent text-accent-foreground font-semibold",
-                                            day_outside: "text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
-                                            day_disabled: "text-muted-foreground opacity-50 cursor-not-allowed",
-                                            day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground rounded-none",
-                                            day_hidden: "invisible"
-                                        }}
+                                        className="rounded-md border"
                                     />
                                 </PopoverContent>
                             </Popover>

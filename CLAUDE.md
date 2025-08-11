@@ -40,8 +40,8 @@ Tech Docs Agent + User Guide Agent (paralelo)
 3. 🎨 **Frontend** - Master da pasta frontend/ (React + shadcn/ui)
 4. 🚀 **Deploy** - Git commits + deploy automático Railway
 5. 🔍 **Review** - Quality assurance e code review
-6. 🛡️ **Security** - Especialista em segurança. Use para avaliações de vulnerabilidade, auditorias de segurança, problemas de autenticação, proteção CSRF, configuração CORS, práticas seguras de deploy ou quando o Coordinator delegar trabalho focado em segurança
-7. 📖 **Tech Docs** - Documentação técnica (PT-BR)
+6. 🛡️ **Security** - Especialista em segurança.
+7. 📖 **Tech Docs** - Especialista em documentação contextual estratégica (PT-BR)
 8. 📋 **User Guide** - Guias de uso para usuários (PT-BR)
 
 ## **Comandos Básicos**
