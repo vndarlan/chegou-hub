@@ -5,7 +5,7 @@ import {
     AlertTriangle, TrendingUp, BarChart3, Eye, Search, Globe, 
     Filter, Rocket, Loader2, Target, Percent,
     Package, Building, Clock, User, ArrowUpDown, 
-    ArrowUp, ArrowDown, Image as ImageIcon
+    ArrowUp, ArrowDown, Image as ImageIcon, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import axios from 'axios';
 import { getCSRFToken } from '../../utils/csrf';
@@ -558,17 +558,21 @@ function DropiPage() {
                                         initialFocus
                                         numberOfMonths={isMobile ? 1 : 2}
                                         className="rounded-md border-0 p-3"
+                                        components={{
+                                            IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
+                                            IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />
+                                        }}
                                         classNames={{
                                             months: isMobile 
                                                 ? "flex flex-col space-y-4" 
                                                 : "flex flex-row space-x-4",
                                             month: "space-y-4 min-w-[280px]",
-                                            caption: "flex justify-center pt-1 relative items-center mb-2",
+                                            caption: "flex justify-between items-center pt-1 mb-2 px-2 relative",
                                             caption_label: "text-sm font-medium text-foreground",
-                                            nav: "space-x-1 flex items-center",
-                                            nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 rounded-md hover:bg-accent",
-                                            nav_button_previous: "absolute left-1",
-                                            nav_button_next: "absolute right-1",
+                                            nav: "flex items-center gap-1",
+                                            nav_button: "h-8 w-8 bg-transparent p-0 opacity-70 hover:opacity-100 rounded-md hover:bg-accent flex items-center justify-center border border-border transition-all hover:border-primary",
+                                            nav_button_previous: "z-10",
+                                            nav_button_next: "z-10",
                                             table: "w-full border-collapse",
                                             head_row: "flex w-full",
                                             head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] flex items-center justify-center",
