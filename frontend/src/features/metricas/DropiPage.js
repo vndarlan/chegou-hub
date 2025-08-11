@@ -558,6 +558,12 @@ function DropiPage() {
                                         initialFocus
                                         numberOfMonths={isMobile ? 1 : 2}
                                         className="rounded-md border"
+                                        classNames={{
+                                            months: isMobile 
+                                                ? "flex flex-col space-y-4" 
+                                                : "flex flex-row space-x-4",
+                                            month: "space-y-4"
+                                        }}
                                     />
                                 </PopoverContent>
                             </Popover>
