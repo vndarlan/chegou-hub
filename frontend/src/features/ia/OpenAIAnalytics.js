@@ -396,16 +396,21 @@ const OpenAIAnalytics = () => {
                 responseType: 'blob'
             });
             
-            // Criar link para download
+            // Criar link para download (método React-safe)
             const blob = new Blob([response.data], { type: 'text/csv' });
             const downloadUrl = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = downloadUrl;
             link.download = `openai_${type}_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.csv`;
-            document.body.appendChild(link);
+            link.style.display = 'none'; // Ocultar completamente
+            
+            // Trigger download sem modificar DOM
             link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(downloadUrl);
+            
+            // Cleanup imediato
+            setTimeout(() => {
+                window.URL.revokeObjectURL(downloadUrl);
+            }, 100);
             
             toast({
                 title: "✅ Exportação Concluída",
@@ -452,17 +457,22 @@ const OpenAIAnalytics = () => {
             
             const response = await axios.get(url);
             
-            // Criar arquivo JSON para download
+            // Criar arquivo JSON para download (método React-safe)
             const jsonStr = JSON.stringify(response.data, null, 2);
             const blob = new Blob([jsonStr], { type: 'application/json' });
             const downloadUrl = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = downloadUrl;
             link.download = `openai_summary_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.json`;
-            document.body.appendChild(link);
+            link.style.display = 'none'; // Ocultar completamente
+            
+            // Trigger download sem modificar DOM
             link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(downloadUrl);
+            
+            // Cleanup imediato
+            setTimeout(() => {
+                window.URL.revokeObjectURL(downloadUrl);
+            }, 100);
             
             toast({
                 title: "✅ Exportação Concluída",
