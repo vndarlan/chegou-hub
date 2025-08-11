@@ -547,7 +547,10 @@ function DropiPage() {
                                         </span>
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
+                                <PopoverContent 
+                                    className={`p-0 ${isMobile ? 'w-auto' : 'w-fit min-w-[640px]'}`} 
+                                    align="start"
+                                >
                                     <Calendar
                                         mode="range"
                                         selected={periodoSelecionado}
@@ -562,7 +565,7 @@ function DropiPage() {
                                             months: isMobile 
                                                 ? "flex flex-col space-y-4" 
                                                 : "flex flex-row space-x-4",
-                                            month: "space-y-4"
+                                            month: "space-y-4 min-w-[280px]"
                                         }}
                                     />
                                 </PopoverContent>
