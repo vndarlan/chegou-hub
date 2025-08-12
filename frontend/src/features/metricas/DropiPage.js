@@ -27,9 +27,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 
 const PAISES = [
     { value: 'todos', label: 'Todos os Países' },
-    { value: 'mexico', label: 'México' },
-    { value: 'chile', label: 'Chile' },
-    { value: 'colombia', label: 'Colômbia' }
+    { value: 'mexico', label: 'México', sigla: 'MX' },
+    { value: 'chile', label: 'Chile', sigla: 'CL' },
+    { value: 'colombia', label: 'Colômbia', sigla: 'CO' }
 ];
 
 // Componente simples para imagem de produto com fallback
@@ -105,7 +105,7 @@ function DropiPage() {
     // Estado do período (usando input date simples)
     const [dataInicio, setDataInicio] = useState('');
     const [dataFim, setDataFim] = useState('');
-    const [paisSelecionado, setPaisSelecionado] = useState(null);
+    const [paisSelecionado, setPaisSelecionado] = useState('todos');
     
     // Estados de modal e loading
     const [modalSalvar, setModalSalvar] = useState(false);
@@ -413,8 +413,13 @@ function DropiPage() {
         const todosStatus = [...new Set(pedidos.map(p => p.status || 'UNKNOWN'))];
 
         Object.entries(produtosPorStatus).forEach(([produto, statusCount]) => {
+            // Converter nome do país para sigla
+            const paisNome = produtosPorPais[produto];
+            const paisObj = PAISES.find(p => p.label === paisNome);
+            const paisSigla = paisObj ? paisObj.sigla : paisNome;
+            
             const row = { 
-                País: produtosPorPais[produto], // NOVA COLUNA: País do produto como primeira
+                País: paisSigla, // SIGLA do país ao invés do nome completo
                 Imagem: produtosPorImagem[produto], // Imagem como segunda
                 Produto: produto 
             };
@@ -446,7 +451,15 @@ function DropiPage() {
 
         // Adicionar linha TOTAL
         const paisesUnicos = [...new Set(pedidos.map(p => p.pais_origem))];
-        const paisExibicao = paisesUnicos.length > 1 ? 'Todos os Países' : paisesUnicos[0] || 'País';
+        let paisExibicao;
+        if (paisesUnicos.length > 1) {
+            paisExibicao = 'TODOS';
+        } else {
+            // Converter nome único para sigla
+            const paisNome = paisesUnicos[0] || 'País';
+            const paisObj = PAISES.find(p => p.label === paisNome);
+            paisExibicao = paisObj ? paisObj.sigla : paisNome;
+        }
         
         const totalGeral = {
             País: paisExibicao, // País também na linha total
@@ -804,7 +817,7 @@ function DropiPage() {
                     <div className="w-full max-w-[calc(100vw-280px)] overflow-x-auto">
                         <div className="max-h-[600px] overflow-y-auto">
                             <Table className="w-full table-auto" style={{ minWidth: '1400px' }}>
-                                        <TableHeader className="sticky top-0 z-10 bg-background shadow-sm">
+                                        <TableHeader className="sticky top-0 z-10 bg-background shadow-sm border-b border-border">
                                             <TableRow className="bg-muted/50 border-border">
                                             {colunas.map((col) => {
                                                 const isPais = col === 'País';
@@ -815,11 +828,11 @@ function DropiPage() {
                                                 let classesSimples = 'px-4 py-3 text-xs text-muted-foreground font-medium text-left';
                                                 
                                                 if (isPais) {
-                                                    classesSimples += ' min-w-[130px] text-center font-semibold sticky left-0 z-20 bg-background border-r border-border';
+                                                    classesSimples += ' min-w-[80px] text-center font-semibold sticky left-0 z-20 bg-background border-r border-border';
                                                 } else if (isImagem) {
-                                                    classesSimples += ' min-w-[70px] text-center sticky left-[130px] z-20 bg-background border-r border-border';
+                                                    classesSimples += ' min-w-[70px] text-center sticky left-[80px] z-20 bg-background border-r border-border';
                                                 } else if (isProduto) {
-                                                    classesSimples += ' min-w-[220px] sticky left-[200px] z-20 bg-background border-r border-border';
+                                                    classesSimples += ' min-w-[220px] sticky left-[150px] z-20 bg-background border-r border-border';
                                                 } else if (isEfetividade) {
                                                     classesSimples += ' min-w-[110px] text-center';
                                                 } else {
@@ -870,11 +883,11 @@ function DropiPage() {
                                                     let classesCelula = 'px-4 py-3 text-xs text-card-foreground text-left';
                                                     
                                                     if (isPais) {
-                                                        classesCelula += ' text-center font-semibold min-w-[130px] sticky left-0 z-10 bg-background border-r border-border';
+                                                        classesCelula += ' text-center font-semibold min-w-[80px] sticky left-0 z-10 bg-background border-r border-border';
                                                     } else if (isImagem) {
-                                                        classesCelula += ' text-center min-w-[70px] sticky left-[130px] z-10 bg-background border-r border-border';
+                                                        classesCelula += ' text-center min-w-[70px] sticky left-[80px] z-10 bg-background border-r border-border';
                                                     } else if (isProduto) {
-                                                        classesCelula += ' font-medium min-w-[220px] sticky left-[200px] z-10 bg-background border-r border-border';
+                                                        classesCelula += ' font-medium min-w-[220px] sticky left-[150px] z-10 bg-background border-r border-border';
                                                     } else if (isEfetividade) {
                                                         classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center min-w-[110px]`;
                                                     } else {
@@ -890,11 +903,11 @@ function DropiPage() {
                                                         {col === 'País' ? (
                                                             <div className="flex items-center justify-center">
                                                                 {row.Produto === 'TOTAL' ? (
-                                                                    <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+                                                                    <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 font-bold text-xs">
                                                                         {row[col]}
                                                                     </Badge>
                                                                 ) : (
-                                                                    <span className="text-muted-foreground">{row[col]}</span>
+                                                                    <span className="text-muted-foreground font-medium text-xs">{row[col]}</span>
                                                                 )}
                                                             </div>
                                                         ) : col === 'Imagem' ? (
@@ -942,10 +955,10 @@ function DropiPage() {
                         <div className="px-4 pb-4 pt-2">
                             <div className="flex flex-col items-center gap-1">
                                 <p className="text-xs text-muted-foreground text-center">
-                                    💡 Role horizontalmente e verticalmente na área da tabela - Cabeçalho e primeiras 3 colunas sempre visíveis
+                                    💡 Role horizontalmente e verticalmente na área da tabela - Cabeçalho fixo e primeiras 3 colunas sempre visíveis
                                 </p>
                                 <p className="text-xs text-muted-foreground/80 text-center">
-                                    (País, Imagem e Produto fixos durante scroll horizontal - Máximo 600px de altura)
+                                    (País com siglas MX/CL/CO, Imagem e Produto fixos durante scroll - Máximo 600px de altura)
                                 </p>
                             </div>
                         </div>
