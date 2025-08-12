@@ -311,18 +311,37 @@ class PrimeCODClient:
     def test_connection(self) -> Dict:
         """Testa conectividade com API PrimeCOD"""
         try:
-            # Fazer uma requisição simples para testar
-            response = self._make_request('GET', f"{self.base_url}/health")
+            # Testar com um endpoint que sabemos que existe (orders página 1)
+            # Usar método POST como na documentação real
+            response = self._make_request('POST', f"{self.base_url}/orders?page=1", json={})
             
             return {
                 'status': 'success',
                 'message': 'Conexão com PrimeCOD estabelecida com sucesso',
-                'api_status': response.status_code
+                'api_status': response.status_code,
+                'token_valido': True
             }
             
+        except PrimeCODAPIError as e:
+            # Se for erro de token (401), reportar especificamente
+            if "401" in str(e):
+                return {
+                    'status': 'error',
+                    'message': 'Token PrimeCOD inválido ou expirado',
+                    'api_status': 401,
+                    'token_valido': False
+                }
+            else:
+                return {
+                    'status': 'error',
+                    'message': f'Erro na API PrimeCOD: {str(e)}',
+                    'api_status': None,
+                    'token_valido': False
+                }
         except Exception as e:
             return {
                 'status': 'error',
-                'message': f'Erro ao conectar com PrimeCOD: {str(e)}',
-                'api_status': None
+                'message': f'Erro inesperado ao conectar: {str(e)}',
+                'api_status': None,
+                'token_valido': False
             }
