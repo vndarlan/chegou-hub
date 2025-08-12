@@ -24,8 +24,6 @@ import { Label } from '../../components/ui/label';
 import { Progress } from '../../components/ui/progress';
 import { ScrollArea, ScrollBar } from '../../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
-import { Calendar } from '../../components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
 
 const PAISES = [
     { value: 'mexico', label: 'México' },
@@ -103,8 +101,9 @@ function DropiPage() {
     const [secaoAtiva, setSecaoAtiva] = useState('gerar');
     
     
-    // Estado do período (refatorado para seletor único)
-    const [periodoSelecionado, setPeriodoSelecionado] = useState({from: undefined, to: undefined});
+    // Estado do período (usando input date simples)
+    const [dataInicio, setDataInicio] = useState('');
+    const [dataFim, setDataFim] = useState('');
     const [paisSelecionado, setPaisSelecionado] = useState(null);
     
     // Estados de modal e loading
@@ -164,12 +163,12 @@ function DropiPage() {
     };
 
     const processarDados = async () => {
-        if (!periodoSelecionado?.from || !periodoSelecionado?.to || !paisSelecionado) {
+        if (!dataInicio || !dataFim || !paisSelecionado) {
             showNotification('error', 'Selecione o período completo e o país');
             return;
         }
 
-        if (periodoSelecionado.from > periodoSelecionado.to) {
+        if (new Date(dataInicio) > new Date(dataFim)) {
             showNotification('error', 'Data de início deve ser anterior à data fim');
             return;
         }
@@ -179,8 +178,8 @@ function DropiPage() {
 
         try {
             const response = await axios.post('/metricas/dropi/analises/extract_orders_new_api/', {
-                data_inicio: periodoSelecionado.from.toISOString().split('T')[0],
-                data_fim: periodoSelecionado.to.toISOString().split('T')[0],
+                data_inicio: dataInicio,
+                data_fim: dataFim,
                 pais: paisSelecionado
             }, {
                 headers: {
@@ -195,7 +194,7 @@ function DropiPage() {
                 console.log('[DEBUG] ===== DADOS COMPLETOS DA API DROPI =====');
                 console.log('[DATA] Total de pedidos:', pedidos.length);
                 console.log('[PAIS] País:', response.data.country || paisSelecionado);
-                console.log('[PERIODO] Período:', response.data.period || `${periodoSelecionado.from.toLocaleDateString("pt-BR")} - ${periodoSelecionado.to.toLocaleDateString("pt-BR")}`);
+                console.log('[PERIODO] Período:', response.data.period || `${new Date(dataInicio).toLocaleDateString("pt-BR")} - ${new Date(dataFim).toLocaleDateString("pt-BR")}`);
                 console.log('[VALOR] Valor total:', response.data.valor_total || 'N/A');
                 console.log('[STATUS] Distribuição status:', response.data.status_distribution || {});
                 console.log('');
@@ -210,7 +209,7 @@ function DropiPage() {
                 showNotification('success', `${pedidos.length} pedidos extraídos com sucesso!`);
                 
                 const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
-                const dataStr = `${periodoSelecionado.from.toLocaleDateString('pt-BR')} - ${periodoSelecionado.to.toLocaleDateString('pt-BR')}`;
+                const dataStr = `${new Date(dataInicio).toLocaleDateString('pt-BR')} - ${new Date(dataFim).toLocaleDateString('pt-BR')}`;
                 setNomeAnalise(`${paisNome} ${dataStr}`);
             }
         } catch (error) {
@@ -235,8 +234,8 @@ function DropiPage() {
             const response = await axios.post('/metricas/dropi/analises/', {
                 nome: nomeAnalise,
                 dados_pedidos: dadosResultado, // Agora está correto, é o array de pedidos
-                data_inicio: periodoSelecionado.from.toISOString().split('T')[0],
-                data_fim: periodoSelecionado.to.toISOString().split('T')[0],
+                data_inicio: dataInicio,
+                data_fim: dataFim,
                 pais: paisSelecionado,
                 total_pedidos: dadosResultado?.length || 0,
                 tipo_metrica: 'pedidos',
@@ -310,6 +309,9 @@ function DropiPage() {
     const processarDadosParaTabela = (pedidos) => {
         if (!pedidos || !Array.isArray(pedidos) || pedidos.length === 0) return [];
 
+        // Obter o nome do país selecionado
+        const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
+
         // Agrupar por produto
         const produtosPorStatus = {};
         const produtosPorImagem = {}; // Para mapear produtos e suas imagens
@@ -357,7 +359,8 @@ function DropiPage() {
 
         Object.entries(produtosPorStatus).forEach(([produto, statusCount]) => {
             const row = { 
-                Imagem: produtosPorImagem[produto], // NOVA COLUNA: Imagem como primeira
+                País: paisNome, // NOVA COLUNA: País como primeira
+                Imagem: produtosPorImagem[produto], // Imagem como segunda
                 Produto: produto 
             };
             
@@ -388,6 +391,7 @@ function DropiPage() {
 
         // Adicionar linha TOTAL
         const totalGeral = {
+            País: paisNome, // País também na linha total
             Imagem: null, // Total não tem imagem
             Produto: 'TOTAL',
             Total: pedidos.length,
@@ -523,92 +527,46 @@ function DropiPage() {
 
                     {/* Controles - mobile: abaixo, desktop: à direita */}
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                        {/* Seletor de período */}
-                        <div className="min-w-0">
-                            <Label className="mb-2 block text-foreground text-sm">Período</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
+                        {/* Seletores de data simples */}
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <div>
+                                <Label className="mb-2 block text-foreground text-sm">Data Início</Label>
+                                <div className="relative">
+                                    <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                    <Input
+                                        type="date"
+                                        value={dataInicio}
+                                        onChange={(e) => setDataInicio(e.target.value)}
                                         disabled={loadingProcessar}
-                                        className="w-full sm:w-[280px] justify-start text-left font-normal border-border bg-background text-foreground hover:bg-accent"
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-                                        <span className="truncate">
-                                            {periodoSelecionado?.from ? (
-                                                periodoSelecionado.to ? (
-                                                    `${periodoSelecionado.from.toLocaleDateString('pt-BR')} - ${periodoSelecionado.to.toLocaleDateString('pt-BR')}`
-                                                ) : (
-                                                    `${periodoSelecionado.from.toLocaleDateString('pt-BR')} - Selecione fim`
-                                                )
-                                            ) : (
-                                                "Selecionar período"
-                                            )}
-                                        </span>
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent 
-                                    className="p-0 w-auto max-w-none" 
-                                    align="start"
-                                    style={{
-                                        width: isMobile ? 'auto' : '680px',
-                                        maxWidth: 'none'
-                                    }}
-                                >
-                                    <div className={isMobile ? '' : 'grid grid-cols-2 gap-4 p-4'}>
-                                        {isMobile ? (
-                                            <Calendar
-                                                mode="range"
-                                                selected={periodoSelecionado}
-                                                onSelect={setPeriodoSelecionado}
-                                                disabled={(date) =>
-                                                    date > new Date() || date < new Date("2020-01-01")
-                                                }
-                                                initialFocus
-                                                numberOfMonths={1}
-                                                className="rounded-md border"
-                                            />
-                                        ) : (
-                                            <>
-                                                <Calendar
-                                                    mode="range"
-                                                    selected={periodoSelecionado}
-                                                    onSelect={setPeriodoSelecionado}
-                                                    disabled={(date) =>
-                                                        date > new Date() || date < new Date("2020-01-01")
-                                                    }
-                                                    initialFocus
-                                                    numberOfMonths={1}
-                                                    defaultMonth={periodoSelecionado?.from || new Date()}
-                                                    className="rounded-md border w-full"
-                                                />
-                                                <Calendar
-                                                    mode="range"
-                                                    selected={periodoSelecionado}
-                                                    onSelect={setPeriodoSelecionado}
-                                                    disabled={(date) =>
-                                                        date > new Date() || date < new Date("2020-01-01")
-                                                    }
-                                                    numberOfMonths={1}
-                                                    defaultMonth={
-                                                        periodoSelecionado?.from 
-                                                            ? new Date(periodoSelecionado.from.getFullYear(), periodoSelecionado.from.getMonth() + 1, 1)
-                                                            : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)
-                                                    }
-                                                    className="rounded-md border w-full"
-                                                />
-                                            </>
-                                        )}
-                                    </div>
-                                </PopoverContent>
-                            </Popover>
+                                        min="2020-01-01"
+                                        max={new Date().toISOString().split('T')[0]}
+                                        className="pl-10 w-full sm:w-40 border-border bg-background text-foreground"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <Label className="mb-2 block text-foreground text-sm">Data Fim</Label>
+                                <div className="relative">
+                                    <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                    <Input
+                                        type="date"
+                                        value={dataFim}
+                                        onChange={(e) => setDataFim(e.target.value)}
+                                        disabled={loadingProcessar}
+                                        min={dataInicio || "2020-01-01"}
+                                        max={new Date().toISOString().split('T')[0]}
+                                        className="pl-10 w-full sm:w-40 border-border bg-background text-foreground"
+                                    />
+                                </div>
+                            </div>
                         </div>
                         
                         {/* Botão processar */}
                         <div className="sm:mt-6"> {/* Alinha com o input */}
                             <Button
                                 onClick={processarDados}
-                                disabled={!periodoSelecionado?.from || !periodoSelecionado?.to || !paisSelecionado || loadingProcessar}
+                                disabled={!dataInicio || !dataFim || !paisSelecionado || loadingProcessar}
                                 size="lg"
                                 className="w-full sm:w-auto px-8 bg-primary text-primary-foreground hover:bg-primary/90"
                             >
@@ -784,20 +742,23 @@ function DropiPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div className="relative w-full">
-                        <ScrollArea className="w-full whitespace-nowrap rounded-md overflow-x-auto">
-                            <div className="flex w-max min-w-full">
-                                <Table className="w-max min-w-full">
+                    <div className="relative w-full overflow-hidden">
+                        <ScrollArea className="w-full">
+                            <div className="min-w-full overflow-x-auto">
+                                <Table className="w-full">
                                     <TableHeader>
                                         <TableRow className="bg-muted/50 border-border">
                                             {colunas.map((col) => {
+                                                const isPais = col === 'País';
                                                 const isImagem = col === 'Imagem';
                                                 const isProduto = col === 'Produto';
                                                 const isEfetividade = col === 'Efetividade';
                                                 
                                                 let classesSimples = 'whitespace-nowrap px-3 py-3 text-xs text-muted-foreground font-medium';
                                                 
-                                                if (isImagem) {
+                                                if (isPais) {
+                                                    classesSimples += ' min-w-[100px] text-center font-semibold';
+                                                } else if (isImagem) {
                                                     classesSimples += ' w-16 text-center';
                                                 } else if (isProduto) {
                                                     classesSimples += ' min-w-[150px]';
@@ -815,6 +776,11 @@ function DropiPage() {
                                                     {col === 'Imagem' ? (
                                                         <div className="flex items-center justify-center">
                                                             <ImageIcon className="h-3 w-3" />
+                                                        </div>
+                                                    ) : col === 'País' ? (
+                                                        <div className="flex items-center justify-center">
+                                                            <Globe className="h-3 w-3 mr-1" />
+                                                            <span>{col}</span>
                                                         </div>
                                                     ) : (
                                                         <Button
@@ -842,13 +808,16 @@ function DropiPage() {
                                         {dadosOrdenados.map((row, idx) => (
                                             <TableRow key={idx} className={`border-border ${row.Produto === 'TOTAL' ? 'bg-muted/20 font-medium' : ''}`}>
                                                 {colunas.map(col => {
+                                                    const isPais = col === 'País';
                                                     const isImagem = col === 'Imagem';
                                                     const isProduto = col === 'Produto';
                                                     const isEfetividade = col === 'Efetividade';
                                                     
                                                     let classesCelula = 'px-3 py-3 text-xs text-card-foreground';
                                                     
-                                                    if (isImagem) {
+                                                    if (isPais) {
+                                                        classesCelula += ' text-center font-semibold';
+                                                    } else if (isImagem) {
                                                         classesCelula += ' text-center';
                                                     } else if (isProduto) {
                                                         classesCelula += ' font-medium';
@@ -863,8 +832,18 @@ function DropiPage() {
                                                         key={col}
                                                         className={classesCelula}
                                                     >
-                                                        {/* Renderização da coluna Imagem */}
-                                                        {col === 'Imagem' ? (
+                                                        {/* Renderização da coluna País */}
+                                                        {col === 'País' ? (
+                                                            <div className="flex items-center justify-center">
+                                                                {row.Produto === 'TOTAL' ? (
+                                                                    <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+                                                                        {row[col]}
+                                                                    </Badge>
+                                                                ) : (
+                                                                    <span className="text-muted-foreground">{row[col]}</span>
+                                                                )}
+                                                            </div>
+                                                        ) : col === 'Imagem' ? (
                                                             row[col] && row.Produto !== 'TOTAL' ? (
                                                                 <ImagemProduto 
                                                                     url={row[col]}
@@ -1020,10 +999,9 @@ function DropiPage() {
         const seteDiasAtras = new Date();
         seteDiasAtras.setDate(hoje.getDate() - 7);
         
-        setPeriodoSelecionado({
-            from: seteDiasAtras,
-            to: hoje
-        });
+        // Converter para formato YYYY-MM-DD para input date
+        setDataInicio(seteDiasAtras.toISOString().split('T')[0]);
+        setDataFim(hoje.toISOString().split('T')[0]);
         
         // Configurar responsividade dos calendários (melhorado)
         checkIfMobile(); // Detecção inicial
