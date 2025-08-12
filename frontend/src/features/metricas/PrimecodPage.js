@@ -59,7 +59,7 @@ const STATUS_MAPPING = {
 
 // Cliente Backend Proxy PrimeCOD
 const buscarDadosPrimeCOD = async (dataInicio, dataFim, paisSelecionado) => {
-    const response = await axios.post('/api/metricas/primecod/buscar-orders/', {
+    const response = await axios.post('/metricas/primecod/buscar-orders/', {
         data_inicio: dataInicio,
         data_fim: dataFim,
         pais_filtro: paisSelecionado !== 'todos' ? paisSelecionado : null
@@ -73,7 +73,7 @@ const buscarDadosPrimeCOD = async (dataInicio, dataFim, paisSelecionado) => {
 };
 
 const testarConexaoPrimeCOD = async () => {
-    const response = await axios.get('/api/metricas/primecod/testar-conexao/');
+    const response = await axios.get('/metricas/primecod/testar-conexao/');
     return response.data;
 };
 
@@ -117,7 +117,7 @@ function PrimecodPage() {
     const fetchAnalises = async () => {
         setLoadingAnalises(true);
         try {
-            const response = await axios.get('/api/metricas/primecod/analises/');
+            const response = await axios.get('/metricas/primecod/analises/');
             const primecodAnalises = response.data.filter(a => 
                 a.tipo === 'PRIMECOD' || a.tipo === 'primecod'
             );
@@ -224,7 +224,7 @@ function PrimecodPage() {
                 }
             };
 
-            const response = await axios.post('/api/metricas/primecod/analises/', dadosParaSalvar, {
+            const response = await axios.post('/metricas/primecod/analises/', dadosParaSalvar, {
                 headers: {
                     'X-CSRFToken': getCSRFToken(),
                     'Content-Type': 'application/json'
@@ -277,7 +277,7 @@ function PrimecodPage() {
 
         setLoadingDelete(prev => ({ ...prev, [id]: true }));
         try {
-            await axios.delete(`/api/metricas/primecod/analises/${id}/`, {
+            await axios.delete(`/metricas/primecod/analises/${id}/`, {
                 headers: {
                     'X-CSRFToken': getCSRFToken(),
                     'Content-Type': 'application/json'
