@@ -802,7 +802,7 @@ function DropiPage() {
                 <CardContent className="p-0">
                     {/* Container com largura limitada forçada para prevenir overflow global */}
                     <div className="w-full max-w-[calc(100vw-280px)] overflow-x-auto">
-                        <Table className="w-full table-fixed" style={{ minWidth: '1200px' }}>
+                        <Table className="w-full table-auto" style={{ minWidth: '1400px' }}>
                                     <TableHeader>
                                         <TableRow className="bg-muted/50 border-border">
                                             {colunas.map((col) => {
@@ -811,18 +811,18 @@ function DropiPage() {
                                                 const isProduto = col === 'Produto';
                                                 const isEfetividade = col === 'Efetividade';
                                                 
-                                                let classesSimples = 'whitespace-nowrap px-3 py-3 text-xs text-muted-foreground font-medium';
+                                                let classesSimples = 'px-4 py-3 text-xs text-muted-foreground font-medium text-left';
                                                 
                                                 if (isPais) {
-                                                    classesSimples += ' w-[120px] text-center font-semibold';
+                                                    classesSimples += ' min-w-[130px] text-center font-semibold';
                                                 } else if (isImagem) {
-                                                    classesSimples += ' w-[64px] text-center';
+                                                    classesSimples += ' min-w-[70px] text-center';
                                                 } else if (isProduto) {
-                                                    classesSimples += ' w-[200px]';
+                                                    classesSimples += ' min-w-[220px]';
                                                 } else if (isEfetividade) {
-                                                    classesSimples += ' w-[120px] text-center';
+                                                    classesSimples += ' min-w-[110px] text-center';
                                                 } else {
-                                                    classesSimples += ' w-[100px] text-center';
+                                                    classesSimples += ' min-w-[120px] text-center whitespace-nowrap';
                                                 }
                                                 
                                                 return (
@@ -838,11 +838,11 @@ function DropiPage() {
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            className="h-auto p-0 font-medium text-xs text-muted-foreground hover:text-foreground"
+                                                            className="h-auto p-1 font-medium text-xs text-muted-foreground hover:text-foreground whitespace-nowrap"
                                                             onClick={() => handleSort(col)}
                                                         >
                                                             {col === 'País' && <Globe className="h-3 w-3 mr-1" />}
-                                                            {col.replace('_', ' ')}
+                                                            <span className="truncate max-w-[100px]">{col.replace('_', ' ')}</span>
                                                             {sortBy === col ? (
                                                                 sortOrder === 'asc' ? 
                                                                     <ArrowUp className="ml-1 h-3 w-3" /> : 
@@ -866,18 +866,18 @@ function DropiPage() {
                                                     const isProduto = col === 'Produto';
                                                     const isEfetividade = col === 'Efetividade';
                                                     
-                                                    let classesCelula = 'px-3 py-3 text-xs text-card-foreground';
+                                                    let classesCelula = 'px-4 py-3 text-xs text-card-foreground text-left';
                                                     
                                                     if (isPais) {
-                                                        classesCelula += ' text-center font-semibold w-[120px]';
+                                                        classesCelula += ' text-center font-semibold min-w-[130px]';
                                                     } else if (isImagem) {
-                                                        classesCelula += ' text-center w-[64px]';
+                                                        classesCelula += ' text-center min-w-[70px]';
                                                     } else if (isProduto) {
-                                                        classesCelula += ' font-medium w-[200px]';
+                                                        classesCelula += ' font-medium min-w-[220px]';
                                                     } else if (isEfetividade) {
-                                                        classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center w-[120px]`;
+                                                        classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center min-w-[110px]`;
                                                     } else {
-                                                        classesCelula += ' text-center w-[100px]';
+                                                        classesCelula += ' text-center min-w-[120px] whitespace-nowrap';
                                                     }
                                                     
                                                     return (
