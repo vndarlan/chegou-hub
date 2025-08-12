@@ -800,9 +800,9 @@ function DropiPage() {
                         </div>
                     </CardHeader>
 
-                    <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
-                        <div className="flex-1 min-h-0 overflow-auto">
-                            <Table className="w-full">
+                    <CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                            <Table className="w-max min-w-full">
                                     <TableHeader>
                                         <TableRow className="bg-muted/50 border-border">
                                             {colunas.map((col) => {
@@ -937,10 +937,10 @@ function DropiPage() {
                         </div>
                         
                         {/* Nota sobre scroll da tabela */}
-                        <div className="px-4 pb-4 pt-2 flex-shrink-0">
+                        <div className="px-4 pb-4 pt-2">
                             <div className="flex flex-col items-center gap-1">
                                 <p className="text-xs text-muted-foreground text-center">
-                                    💡 Role verticalmente e horizontalmente dentro da tabela para ver todos os dados
+                                    💡 Role horizontalmente (lateralmente) na tabela para ver todas as colunas de status
                                 </p>
                             </div>
                         </div>
