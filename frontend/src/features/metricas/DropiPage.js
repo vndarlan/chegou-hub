@@ -800,8 +800,9 @@ function DropiPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div className="max-w-full overflow-x-auto">
-                        <Table className="table-auto" style={{ minWidth: 'max-content' }}>
+                    {/* Container com largura limitada forçada para prevenir overflow global */}
+                    <div className="w-full max-w-[calc(100vw-280px)] overflow-x-auto">
+                        <Table className="w-full table-fixed" style={{ minWidth: '1200px' }}>
                                     <TableHeader>
                                         <TableRow className="bg-muted/50 border-border">
                                             {colunas.map((col) => {
@@ -813,15 +814,15 @@ function DropiPage() {
                                                 let classesSimples = 'whitespace-nowrap px-3 py-3 text-xs text-muted-foreground font-medium';
                                                 
                                                 if (isPais) {
-                                                    classesSimples += ' min-w-[120px] text-center font-semibold';
+                                                    classesSimples += ' w-[120px] text-center font-semibold';
                                                 } else if (isImagem) {
-                                                    classesSimples += ' w-16 min-w-[64px] text-center';
+                                                    classesSimples += ' w-[64px] text-center';
                                                 } else if (isProduto) {
-                                                    classesSimples += ' min-w-[200px]';
+                                                    classesSimples += ' w-[200px]';
                                                 } else if (isEfetividade) {
-                                                    classesSimples += ' min-w-[120px] text-center';
+                                                    classesSimples += ' w-[120px] text-center';
                                                 } else {
-                                                    classesSimples += ' min-w-[120px] text-center';
+                                                    classesSimples += ' w-[100px] text-center';
                                                 }
                                                 
                                                 return (
@@ -868,15 +869,15 @@ function DropiPage() {
                                                     let classesCelula = 'px-3 py-3 text-xs text-card-foreground';
                                                     
                                                     if (isPais) {
-                                                        classesCelula += ' text-center font-semibold min-w-[120px]';
+                                                        classesCelula += ' text-center font-semibold w-[120px]';
                                                     } else if (isImagem) {
-                                                        classesCelula += ' text-center w-16 min-w-[64px]';
+                                                        classesCelula += ' text-center w-[64px]';
                                                     } else if (isProduto) {
-                                                        classesCelula += ' font-medium min-w-[200px]';
+                                                        classesCelula += ' font-medium w-[200px]';
                                                     } else if (isEfetividade) {
-                                                        classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center min-w-[120px]`;
+                                                        classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center w-[120px]`;
                                                     } else {
-                                                        classesCelula += ' text-center min-w-[120px]';
+                                                        classesCelula += ' text-center w-[100px]';
                                                     }
                                                     
                                                     return (
@@ -939,7 +940,10 @@ function DropiPage() {
                         <div className="px-4 pb-4 pt-2">
                             <div className="flex flex-col items-center gap-1">
                                 <p className="text-xs text-muted-foreground text-center">
-                                    💡 Role horizontalmente (lateralmente) na tabela para ver todas as colunas de status
+                                    💡 Role horizontalmente na área da tabela para ver todas as colunas de status
+                                </p>
+                                <p className="text-xs text-muted-foreground/80 text-center">
+                                    (O scroll fica apenas na tabela, não no site todo)
                                 </p>
                             </div>
                         </div>

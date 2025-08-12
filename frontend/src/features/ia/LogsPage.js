@@ -374,8 +374,9 @@ function LogsPage() {
                         </div>
                     )}
                     
-                    <div className="overflow-x-auto">
-                        <Table>
+                    {/* Container com largura limitada forçada para prevenir overflow global */}
+                    <div className="w-full max-w-[calc(100vw-280px)] overflow-x-auto">
+                        <Table className="w-full table-fixed" style={{ minWidth: '900px' }}>
                             <TableHeader>
                                 <TableRow className="h-8">
                                     <TableHead className="text-xs p-2">Data/Hora</TableHead>

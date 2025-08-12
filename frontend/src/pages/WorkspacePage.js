@@ -142,7 +142,7 @@ function WorkspacePage({ setIsLoggedIn }) {
             </div>
           </header>
           
-          <main className="flex-1 overflow-auto p-4">
+          <main className="flex-1 overflow-auto p-4 max-w-full">
             <Routes>
               <Route path="agenda" element={<AgendaPage />} />
               <Route path="mapa" element={<MapaPage />} />

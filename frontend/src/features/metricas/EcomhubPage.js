@@ -482,9 +482,9 @@ function EcomhubPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div className="overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <Table>
+                    {/* Container com largura limitada forçada para prevenir overflow global */}
+                    <div className="w-full max-w-[calc(100vw-280px)] overflow-x-auto">
+                        <Table className="w-full table-fixed" style={{ minWidth: '1000px' }}>
                                 <TableHeader>
                                     <TableRow className="bg-muted/50 border-border">
                                         {colunas.map(col => (

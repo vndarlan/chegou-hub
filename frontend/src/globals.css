@@ -94,6 +94,13 @@
       sans-serif;
     font-feature-settings: 'cv11', 'ss01';
     font-variation-settings: 'opsz' 32;
+    /* Previne scroll horizontal desnecessário */
+    overflow-x: hidden;
+  }
+  
+  /* Garante que elementos root não ultrapassem a viewport */
+  html {
+    overflow-x: hidden;
   }
 }
 

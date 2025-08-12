@@ -330,8 +330,9 @@ function PrimecodPage() {
                     <CardTitle className="text-lg">{titulo}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="overflow-x-auto">
-                        <Table>
+                    {/* Container com largura limitada forçada para prevenir overflow global */}
+                    <div className="w-full max-w-[calc(100vw-280px)] overflow-x-auto">
+                        <Table className="w-full table-fixed" style={{ minWidth: '800px' }}>
                             <TableHeader>
                                 <TableRow>
                                     {colunas.map(col => (
