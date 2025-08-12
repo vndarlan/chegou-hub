@@ -778,29 +778,28 @@ function DropiPage() {
         const dadosOrdenados = sortData(dadosTabela, sortBy, sortOrder);
 
         return (
-            <div className="h-full">
-                <Card className="border-border bg-card h-full flex flex-col">
-                    <CardHeader className="pb-3 flex-shrink-0">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <CardTitle className="text-lg text-card-foreground">Produtos por Status</CardTitle>
-                                <CardDescription className="text-muted-foreground">{dadosTabela.length} produtos</CardDescription>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onClick={() => setModalSalvar(true)}
-                                    className="border-border bg-background text-foreground hover:bg-accent"
-                                >
-                                    <Download className="h-4 w-4 mr-2" />
-                                    Salvar
-                                </Button>
-                            </div>
+            <Card className="mb-6 border-border bg-card">
+                <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle className="text-lg text-card-foreground">Produtos por Status</CardTitle>
+                            <CardDescription className="text-muted-foreground">{dadosTabela.length} produtos</CardDescription>
                         </div>
-                    </CardHeader>
+                        <div className="flex items-center gap-2">
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => setModalSalvar(true)}
+                                className="border-border bg-background text-foreground hover:bg-accent"
+                            >
+                                <Download className="h-4 w-4 mr-2" />
+                                Salvar
+                            </Button>
+                        </div>
+                    </div>
+                </CardHeader>
 
-                    <CardContent className="p-0">
+                <CardContent className="p-0">
                         <div className="w-full overflow-x-auto">
                             <div className="min-w-max">
                                 <Table className="w-full table-auto">
@@ -947,8 +946,7 @@ function DropiPage() {
                             </div>
                         </div>
                     </CardContent>
-                </Card>
-            </div>
+            </Card>
         );
     };
 
@@ -957,15 +955,14 @@ function DropiPage() {
         const analisesFiltradas = getAnalisesFiltradas();
         
         return (
-            <div className="h-full">
-                <Card className="relative border-border bg-card h-full flex flex-col">
+            <Card className="relative border-border bg-card">
                 {loadingAnalises && (
                     <div className="absolute inset-0 bg-background/80 backdrop-blur flex items-center justify-center z-10 rounded-lg">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     </div>
                 )}
 
-                <CardHeader className="flex-shrink-0">
+                <CardHeader>
                     <div className="flex items-center justify-between">
                         <div>
                             <CardTitle className="text-card-foreground">Análises Salvas</CardTitle>
@@ -983,7 +980,7 @@ function DropiPage() {
                     </div>
                 </CardHeader>
 
-                <CardContent className="flex-1 min-h-0 overflow-auto">
+                <CardContent>
                     {analisesFiltradas.length === 0 ? (
                         <Alert className="border-border bg-background">
                             <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -1039,8 +1036,7 @@ function DropiPage() {
                         </div>
                     )}
                 </CardContent>
-                </Card>
-            </div>
+            </Card>
         );
     };
 
@@ -1072,9 +1068,8 @@ function DropiPage() {
     // ======================== RENDER PRINCIPAL ========================
 
     return (
-        <div className="h-screen bg-background flex flex-col overflow-hidden">
-            {/* Header e navegação - altura fixa */}
-            <div className="flex-shrink-0 p-3 sm:p-6">
+        <div className="min-h-screen bg-background">
+            <div className="space-y-4 p-3 sm:p-6">
                 {/* Notificações */}
                 {notification && (
                     <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4 border-border">
@@ -1098,27 +1093,15 @@ function DropiPage() {
                             Salvas
                         </TabsTrigger>
                     </TabsList>
-                </Tabs>
-            </div>
 
-            {/* Conteúdo principal - ocupa resto da tela */}
-            <div className="flex-1 min-h-0 px-3 sm:px-6 pb-3 sm:pb-6">
-                <Tabs value={secaoAtiva} onValueChange={setSecaoAtiva} className="h-full">
-                    <TabsContent value="gerar" className="h-full flex flex-col space-y-4">
-                        {/* Elementos fixos */}
-                        <div className="flex-shrink-0 space-y-4">
-                            {renderFormulario()}
-                            {renderEstatisticas()}
-                            {renderExemploPedido()}
-                        </div>
-                        
-                        {/* Área da tabela - restante do espaço */}
-                        <div className="flex-1 min-h-0">
-                            {renderResultados()}
-                        </div>
+                    <TabsContent value="gerar" className="space-y-4 mt-4">
+                        {renderFormulario()}
+                        {renderEstatisticas()}
+                        {renderExemploPedido()}
+                        {renderResultados()}
                     </TabsContent>
 
-                    <TabsContent value="salvas" className="h-full">
+                    <TabsContent value="salvas" className="mt-4">
                         {renderAnalisesSalvas()}
                     </TabsContent>
                 </Tabs>
