@@ -109,6 +109,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Middleware de segurança para detecção de IP
+    'features.processamento.middleware.ip_security_middleware.IPDetectorSecurityMiddleware',
+    'features.processamento.middleware.ip_security_middleware.SecurityAuditMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'

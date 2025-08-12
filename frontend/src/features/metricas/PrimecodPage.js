@@ -1,57 +1,164 @@
-// frontend/src/features/metricas/PrimecodPage.js - VERSÃO SHADCN/UI
+// frontend/src/features/metricas/PrimecodPage.js - INTEGRAÇÃO DIRETA API PRIMECOD
 import React, { useState, useEffect } from 'react';
 import {
-    Upload,
-    Download,
-    Trash2,
-    RefreshCw,
-    FileText,
-    Check,
-    X,
-    AlertTriangle,
-    TrendingUp,
-    Users,
-    Copy,
-    BarChart3,
-    Save
+    Calendar as CalendarIcon, Download, Trash2, RefreshCw, Check, X, 
+    AlertTriangle, TrendingUp, BarChart3, Eye, Search, Globe, 
+    ArrowUpDown, ArrowUp, ArrowDown, Package, Target, Percent, 
+    PieChart, Filter, Rocket, LayoutDashboard, Loader2
 } from 'lucide-react';
 import axios from 'axios';
 
-// shadcn/ui imports
+// shadcn/ui components
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
 import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../components/ui/dialog';
-import { LoadingSpinner } from '../../components/ui';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Separator } from '../../components/ui/separator';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Progress } from '../../components/ui/progress';
+import { ScrollArea } from '../../components/ui/scroll-area';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { SimpleDateRangePicker } from '../../components/ui/simple-date-range-picker';
+import { DateInputs } from '../../components/ui/date-inputs';
+import { getCSRFToken } from '../../utils/csrf';
+
+// Países PrimeCOD disponíveis
+const PAISES_PRIMECOD = [
+    { value: 'todos', label: 'Todos os Países' },
+    { value: 'Austria', label: 'Austria' },
+    { value: 'Bulgaria', label: 'Bulgaria' },
+    { value: 'Croatia', label: 'Croatia' },
+    { value: 'Czech Republic', label: 'Czech Republic' },
+    { value: 'Greece', label: 'Greece' },
+    { value: 'Hungary', label: 'Hungary' },
+    { value: 'Italy', label: 'Italy' },
+    { value: 'Poland', label: 'Poland' },
+    { value: 'Romania', label: 'Romania' },
+    { value: 'Slovakia', label: 'Slovakia' },
+    { value: 'Slovenia', label: 'Slovenia' },
+    { value: 'Spain', label: 'Spain' },
+    { value: 'Ukraine', label: 'Ukraine' },
+    { value: 'United Kingdom', label: 'United Kingdom' }
+];
+
+// Status mapping PrimeCOD
+const STATUS_MAPPING = {
+    1: "Placed",
+    2: "Packed", 
+    4: "Shipped",
+    6: "Out for delivery",
+    7: "Delivered",
+    8: "Refused",
+    10: "Returned",
+    12: "Cancelled"
+};
+
+// Token API PrimeCOD - Via variável de ambiente
+const API_TOKEN = process.env.REACT_APP_PRIMECOD_TOKEN;
+
+// Validação de token obrigatória
+if (!API_TOKEN) {
+    console.error('❌ ERRO DE CONFIGURAÇÃO: Token PrimeCOD não encontrado');
+    console.error('Configure REACT_APP_PRIMECOD_TOKEN no arquivo .env');
+}
+
+// Cliente API PrimeCOD
+class PrimeCODClient {
+    constructor() {
+        this.baseUrl = 'https://api.primecod.app/api';
+        
+        // Validar token antes de criar headers
+        if (!API_TOKEN) {
+            throw new Error('Token PrimeCOD não configurado. Verifique REACT_APP_PRIMECOD_TOKEN no .env');
+        }
+        
+        this.headers = {
+            'Authorization': `Bearer ${API_TOKEN}`,
+            'Content-Type': 'application/json'
+        };
+    }
+
+    async getOrders(page = 1, dateRange = null) {
+        const url = `${this.baseUrl}/orders?page=${page}`;
+        const body = {};
+        
+        if (dateRange) {
+            body.date_range = {
+                start: dateRange.start,
+                end: dateRange.end
+            };
+        }
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: this.headers,
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+            // Log seguro - não expor token completo
+            const tokenMasked = API_TOKEN ? `${API_TOKEN.substring(0, 8)}...${API_TOKEN.substring(-4)}` : 'não configurado';
+            console.error('Erro PrimeCOD API:', {
+                status: response.status,
+                url: url,
+                tokenStatus: API_TOKEN ? 'presente' : 'ausente'
+            });
+            
+            if (response.status === 401) {
+                throw new Error('Token PrimeCOD inválido ou expirado. Verifique as credenciais.');
+            } else if (response.status === 403) {
+                throw new Error('Acesso negado. Token sem permissões necessárias.');
+            } else {
+                throw new Error(`Erro na API PrimeCOD: ${response.status} ${response.statusText}`);
+            }
+        }
+
+        return await response.json();
+    }
+}
 
 function PrimecodPage() {
     // Estados principais
-    const [isLoading, setIsLoading] = useState(false);
     const [analisesSalvas, setAnalisesSalvas] = useState([]);
-    const [analiseSelecionada, setAnaliseSelecionada] = useState(null);
+    const [dadosResultado, setDadosResultado] = useState(null);
+    const [secaoAtiva, setSecaoAtiva] = useState('gerar');
+    const [tipoVisualizacao, setTipoVisualizacao] = useState('otimizada');
     
-    // Estados para upload
-    const [arquivoLeads, setArquivoLeads] = useState(null);
-    const [arquivoOrders, setArquivoOrders] = useState(null);
-    const [dadosLeads, setDadosLeads] = useState(null);
-    const [dadosOrders, setDadosOrders] = useState(null);
-    const [dadosEfetividade, setDadosEfetividade] = useState(null);
+    // Estados do formulário
+    const [dateRange, setDateRange] = useState({
+        from: undefined,
+        to: undefined
+    });
+    const [paisSelecionado, setPaisSelecionado] = useState('todos');
     
-    // Estados para salvar
+    // Estados de modal e loading
     const [modalSalvar, setModalSalvar] = useState(false);
+    const [modalInstrucoes, setModalInstrucoes] = useState(false);
     const [nomeAnalise, setNomeAnalise] = useState('');
+    const [loadingProcessar, setLoadingProcessar] = useState(false);
+    const [loadingSalvar, setLoadingSalvar] = useState(false);
+    const [loadingAnalises, setLoadingAnalises] = useState(false);
+    const [loadingDelete, setLoadingDelete] = useState({});
     
-    // Estados de notificação
+    // Estados de notificação e progresso
     const [notification, setNotification] = useState(null);
+    const [progressoAtual, setProgressoAtual] = useState(null);
+
+    // Estados para ordenação
+    const [sortBy, setSortBy] = useState(null);
+    const [sortOrder, setSortOrder] = useState('asc');
+
+    // Cliente API
+    const [apiClient] = useState(new PrimeCODClient());
 
     // ======================== FUNÇÕES DE API ========================
 
-    // Buscar análises salvas
     const fetchAnalises = async () => {
+        setLoadingAnalises(true);
         try {
             const response = await axios.get('/metricas/primecod/analises/');
             const primecodAnalises = response.data.filter(a => a.tipo === 'PRIMECOD');
@@ -59,258 +166,417 @@ function PrimecodPage() {
         } catch (error) {
             console.error('Erro ao buscar análises:', error);
             showNotification('error', 'Erro ao carregar análises salvas');
-        }
-    };
-
-    // Upload de arquivo
-    const uploadArquivo = async (arquivo, tipo) => {
-        if (!arquivo) return;
-        
-        setIsLoading(true);
-        const formData = new FormData();
-        formData.append('arquivo', arquivo);
-        formData.append('tipo_arquivo', tipo);
-        
-        try {
-            const response = await axios.post('/metricas/primecod/analises/upload_csv/', formData);
-            
-            if (response.data.status === 'success') {
-                const dados = response.data.dados_processados;
-                const unmapped = response.data.status_nao_mapeados || [];
-                
-                if (tipo === 'leads') {
-                    setDadosLeads(dados);
-                    if (unmapped.length > 0) {
-                        showNotification('warning', `Status não mapeados encontrados: ${unmapped.join(', ')}`);
-                    }
-                } else if (tipo === 'orders') {
-                    setDadosOrders(dados);
-                    if (unmapped.length > 0) {
-                        showNotification('warning', `Status de shipping não mapeados: ${unmapped.join(', ')}`);
-                    }
-                }
-                
-                // Se ambos os arquivos foram processados, gerar efetividade
-                if (dadosLeads && tipo === 'orders') {
-                    gerarEfetividade(dadosLeads, dados);
-                } else if (dadosOrders && tipo === 'leads') {
-                    gerarEfetividade(dados, dadosOrders);
-                }
-                
-                showNotification('success', `Arquivo de ${tipo} processado com sucesso!`);
-            }
-        } catch (error) {
-            showNotification('error', `Erro ao processar arquivo: ${error.response?.data?.message || error.message}`);
         } finally {
-            setIsLoading(false);
+            setLoadingAnalises(false);
         }
     };
 
-    // Salvar análise
-    const salvarAnalise = async () => {
-        if (!nomeAnalise || !dadosLeads) {
-            showNotification('error', 'Nome da análise e dados de leads são obrigatórios');
+    const processarDados = async () => {
+        // Validação de token primeiro
+        if (!API_TOKEN) {
+            showNotification('error', 'Token PrimeCOD não configurado. Verifique o arquivo .env');
             return;
         }
         
-        setIsLoading(true);
+        if (!dateRange?.from || !dateRange?.to) {
+            showNotification('error', 'Selecione o período de análise');
+            return;
+        }
+
+        if (dateRange.from > dateRange.to) {
+            showNotification('error', 'Data de início deve ser anterior à data fim');
+            return;
+        }
+
+        setLoadingProcessar(true);
+        setProgressoAtual({ etapa: 'Iniciando busca de dados...', porcentagem: 0 });
+
         try {
-            const response = await axios.post('/metricas/primecod/analises/processar_analise/', {
-                nome_analise: nomeAnalise,
-                tipo: 'PRIMECOD',
-                dados_leads: dadosLeads,
-                dados_orders: dadosOrders || {}
-            });
+            const dataInicio = dateRange.from.toISOString().split('T')[0];
+            const dataFim = dateRange.to.toISOString().split('T')[0];
             
-            if (response.data.status === 'success') {
-                showNotification('success', `Análise '${nomeAnalise}' salva com sucesso!`);
+            // Buscar todas as páginas de dados
+            let todasOrders = [];
+            let paginaAtual = 1;
+            let totalPaginas = 1;
+            let parar = false;
+
+            while (paginaAtual <= totalPaginas && paginaAtual <= 400 && !parar) {
+                setProgressoAtual({ 
+                    etapa: `Processando página ${paginaAtual} de ${totalPaginas}...`, 
+                    porcentagem: Math.round((paginaAtual / Math.max(totalPaginas, 1)) * 100) 
+                });
+
+                try {
+                    const response = await apiClient.getOrders(paginaAtual, {
+                        start: dataInicio,
+                        end: dataFim
+                    });
+
+                    if (response.data && response.data.length > 0) {
+                        // Filtrar localmente por created_at (API ignora filtro)
+                        const ordersFiltradas = response.data.filter(order => {
+                            const orderDate = new Date(order.created_at).toISOString().split('T')[0];
+                            return orderDate >= dataInicio && orderDate <= dataFim;
+                        });
+
+                        todasOrders = todasOrders.concat(ordersFiltradas);
+
+                        // Se todas as datas são anteriores ao período, parar
+                        const todasAnteriores = response.data.every(order => {
+                            const orderDate = new Date(order.created_at).toISOString().split('T')[0];
+                            return orderDate < dataInicio;
+                        });
+
+                        if (todasAnteriores) {
+                            parar = true;
+                        }
+
+                        // Atualizar total de páginas se disponível
+                        if (response.last_page) {
+                            totalPaginas = response.last_page;
+                        }
+                    } else {
+                        parar = true;
+                    }
+
+                    paginaAtual++;
+                    
+                    // Pequeno delay para não sobrecarregar a API
+                    await new Promise(resolve => setTimeout(resolve, 100));
+
+                } catch (error) {
+                    console.warn(`Erro na página ${paginaAtual}:`, error);
+                    parar = true;
+                }
+            }
+
+            setProgressoAtual({ etapa: 'Processando dados coletados...', porcentagem: 95 });
+
+            // Processar dados coletados
+            const dadosProcessados = processarOrdersPrimeCOD(todasOrders, paisSelecionado);
+            setDadosResultado(dadosProcessados);
+            
+            // Gerar nome automático
+            const paisNome = paisSelecionado === 'todos' ? 
+                'Todos os Países' : 
+                PAISES_PRIMECOD.find(p => p.value === paisSelecionado)?.label || 'País';
+            const dataStr = `${dateRange.from.toLocaleDateString('pt-BR')} - ${dateRange.to.toLocaleDateString('pt-BR')}`;
+            setNomeAnalise(`PrimeCOD ${paisNome} ${dataStr}`);
+
+            showNotification('success', `Dados processados: ${todasOrders.length} orders encontradas`);
+            
+        } catch (error) {
+            console.error('Erro no processamento:', error);
+            showNotification('error', `Erro: ${error.message}`);
+        } finally {
+            setLoadingProcessar(false);
+            setProgressoAtual(null);
+        }
+    };
+
+    const processarOrdersPrimeCOD = (orders, paisFiltro) => {
+        // Filtrar por país se especificado
+        let ordersFiltradas = orders;
+        if (paisFiltro !== 'todos') {
+            ordersFiltradas = orders.filter(order => 
+                order.shipping_country === paisFiltro
+            );
+        }
+
+        // Agrupar por produto + país + status
+        const agrupamento = {};
+        
+        ordersFiltradas.forEach(order => {
+            const produto = order.product_sku || 'Sem SKU';
+            const pais = order.shipping_country || 'Sem País';
+            const statusId = order.status_id;
+            const statusNome = STATUS_MAPPING[statusId] || `Status ${statusId}`;
+
+            const chave = `${produto}|${pais}`;
+            
+            if (!agrupamento[chave]) {
+                agrupamento[chave] = {
+                    produto,
+                    pais,
+                    ...Object.values(STATUS_MAPPING).reduce((acc, status) => {
+                        acc[status] = 0;
+                        return acc;
+                    }, {}),
+                    total: 0
+                };
+            }
+
+            agrupamento[chave][statusNome] = (agrupamento[chave][statusNome] || 0) + 1;
+            agrupamento[chave].total += 1;
+        });
+
+        // Converter para array e ordenar
+        const resultado = Object.values(agrupamento).sort((a, b) => {
+            if (a.produto !== b.produto) {
+                return a.produto.localeCompare(b.produto);
+            }
+            return a.pais.localeCompare(b.pais);
+        });
+
+        // Adicionar linha de totais
+        if (resultado.length > 0) {
+            const totais = {
+                produto: 'TOTAL',
+                pais: 'TODOS',
+                ...Object.values(STATUS_MAPPING).reduce((acc, status) => {
+                    acc[status] = resultado.reduce((sum, item) => sum + (item[status] || 0), 0);
+                    return acc;
+                }, {}),
+                total: resultado.reduce((sum, item) => sum + item.total, 0)
+            };
+            resultado.push(totais);
+        }
+
+        return resultado;
+    };
+
+    const salvarAnalise = async () => {
+        if (!dadosResultado || !nomeAnalise) {
+            showNotification('error', 'Dados ou nome da análise inválidos');
+            return;
+        }
+
+        setLoadingSalvar(true);
+        try {
+            const response = await axios.post('/metricas/primecod/analises/', {
+                nome: nomeAnalise,
+                tipo: 'PRIMECOD',
+                dados_processados: dadosResultado,
+                descricao: `Integração API PrimeCOD - ${paisSelecionado === 'todos' ? 'Todos os Países' : PAISES_PRIMECOD.find(p => p.value === paisSelecionado)?.label}`
+            }, {
+                headers: {
+                    'X-CSRFToken': getCSRFToken()
+                }
+            });
+
+            if (response.data.status === 'success' || response.data.id) {
+                showNotification('success', `Análise '${nomeAnalise}' salva!`);
                 setModalSalvar(false);
                 setNomeAnalise('');
                 fetchAnalises();
             }
         } catch (error) {
-            showNotification('error', `Erro ao salvar análise: ${error.response?.data?.message || error.message}`);
+            showNotification('error', `Erro ao salvar: ${error.response?.data?.message || error.message}`);
         } finally {
-            setIsLoading(false);
+            setLoadingSalvar(false);
         }
     };
 
-    // Carregar análise
     const carregarAnalise = (analise) => {
-        setDadosLeads(analise.dados_leads);
-        setDadosEfetividade(analise.dados_efetividade);
-        setAnaliseSelecionada(analise);
-        showNotification('success', `Análise '${analise.nome}' carregada!`);
+        setDadosResultado(analise.dados_processados || analise.dados_leads || analise.dados_efetividade);
+        setSecaoAtiva('gerar');
+        showNotification('success', 'Análise carregada!');
     };
 
-    // Deletar análise
     const deletarAnalise = async (id, nome) => {
-        if (!window.confirm(`Deseja deletar a análise '${nome}'?`)) return;
-        
-        setIsLoading(true);
+        if (!window.confirm(`Deletar análise '${nome}'?`)) return;
+
+        setLoadingDelete(prev => ({ ...prev, [id]: true }));
         try {
-            await axios.delete(`/metricas/primecod/analises/${id}/`);
-            showNotification('success', `Análise '${nome}' deletada!`);
+            await axios.delete(`/metricas/primecod/analises/${id}/`, {
+                headers: {
+                    'X-CSRFToken': getCSRFToken()
+                }
+            });
+            showNotification('success', `Análise deletada!`);
             fetchAnalises();
             
-            if (analiseSelecionada?.id === id) {
-                setAnaliseSelecionada(null);
-                setDadosLeads(null);
-                setDadosEfetividade(null);
+            if (dadosResultado?.id === id) {
+                setDadosResultado(null);
             }
         } catch (error) {
-            showNotification('error', `Erro ao deletar análise: ${error.response?.data?.message || error.message}`);
+            showNotification('error', `Erro ao deletar: ${error.response?.data?.message || error.message}`);
         } finally {
-            setIsLoading(false);
+            setLoadingDelete(prev => ({ ...prev, [id]: false }));
         }
     };
 
     // ======================== FUNÇÕES AUXILIARES ========================
 
-    // Sistema de notificações
     const showNotification = (type, message) => {
         setNotification({ type, message });
         setTimeout(() => setNotification(null), 5000);
     };
 
-    // Gerar efetividade combinada
-    const gerarEfetividade = (leadsData, ordersData) => {
-        const efetividade = [];
+    const sortData = (data, sortBy, sortOrder) => {
+        if (!sortBy || !data) return data;
         
-        leadsData.forEach(leadRow => {
-            if (leadRow.Product === 'Total') return;
+        return [...data].sort((a, b) => {
+            let aVal = a[sortBy];
+            let bVal = b[sortBy];
             
-            const product = leadRow.Product;
-            const confirmed = leadRow.Confirmed || 0;
-            const totalMinusDup = leadRow['Total - duplicados'] || 0;
+            if (typeof aVal === 'string' && !isNaN(aVal)) aVal = parseFloat(aVal);
+            if (typeof bVal === 'string' && !isNaN(bVal)) bVal = parseFloat(bVal);
             
-            const orderInfo = ordersData[product] || {};
-            const delivered = orderInfo.Delivered || 0;
-            
-            const efetividadePercent = totalMinusDup > 0 ? (delivered / totalMinusDup * 100) : 0;
-            
-            efetividade.push({
-                Product: product,
-                'Confirmed (Leads)': confirmed,
-                Delivered: delivered,
-                Returned: orderInfo.Returned || 0,
-                Refused: orderInfo.Refused || 0,
-                Incident: orderInfo.Incident || 0,
-                'Order Placed': orderInfo['Order Placed'] || 0,
-                'Out of Stock': orderInfo['Out of Stock'] || 0,
-                Returning: orderInfo.Returning || 0,
-                'Out for Delivery': orderInfo['Out for Delivery'] || 0,
-                Shipped: orderInfo.Shipped || 0,
-                Canceled: orderInfo.Canceled || 0,
-                'Outros Orders': orderInfo.Outros || 0,
-                Efetividade: `${efetividadePercent.toFixed(0)}%`
-            });
+            if (sortOrder === 'asc') {
+                return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+            } else {
+                return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+            }
         });
-        
-        // Adicionar totais
-        if (efetividade.length > 0) {
-            const totals = { Product: 'Total' };
-            const numericCols = [
-                'Confirmed (Leads)', 'Delivered', 'Returned', 'Refused', 'Incident',
-                'Order Placed', 'Out of Stock', 'Returning', 'Out for Delivery', 
-                'Shipped', 'Canceled', 'Outros Orders'
-            ];
-            
-            numericCols.forEach(col => {
-                totals[col] = efetividade.reduce((sum, row) => sum + (row[col] || 0), 0);
-            });
-            
-            const totalDelivered = totals.Delivered;
-            const totalLeads = leadsData.find(row => row.Product === 'Total')?.['Total - duplicados'] || 1;
-            const efetividadeMedia = (totalDelivered / totalLeads * 100);
-            totals.Efetividade = `${efetividadeMedia.toFixed(0)}% (Média)`;
-            
-            efetividade.push(totals);
-        }
-        
-        setDadosEfetividade(efetividade);
     };
 
-    // Cores para efetividade
-    const getEfetividadeCor = (valor) => {
-        if (!valor || typeof valor !== 'string') return {};
-        
-        const numero = parseFloat(valor.replace('%', '').replace('(Média)', ''));
-        
-        if (numero >= 60) return { backgroundColor: '#2E7D2E', color: 'white', fontWeight: 'bold' };
-        if (numero >= 50) return { backgroundColor: '#4CAF50', color: 'white', fontWeight: 'bold' };
-        if (numero >= 40) return { backgroundColor: '#FFA726', color: 'black', fontWeight: 'bold' };
-        return { backgroundColor: '#F44336', color: 'white', fontWeight: 'bold' };
+    const handleSort = (column) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('asc');
+        }
     };
 
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
-    // Cards de estatísticas
+    const renderHeader = () => (
+        <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+                <BarChart3 className="h-6 w-6 text-primary" />
+                <h1 className="text-2xl font-bold text-foreground">📊 Prime COD Analytics</h1>
+            </div>
+            
+            <div className="flex items-center gap-3">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setModalInstrucoes(true)}
+                    className="border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
+                >
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Instruções
+                </Button>
+                
+                <Select value={paisSelecionado} onValueChange={setPaisSelecionado}>
+                    <SelectTrigger className="w-52 border-border bg-background text-foreground">
+                        <Globe className="h-4 w-4 mr-2" />
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="border-border bg-popover">
+                        {PAISES_PRIMECOD.map(pais => (
+                            <SelectItem key={pais.value} value={pais.value} className="text-popover-foreground hover:bg-accent">
+                                {pais.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
+    );
+
+    const renderFormulario = () => (
+        <Card className="mb-6 relative border-border bg-card">
+            {loadingProcessar && (
+                <div className="absolute inset-0 bg-background/95 backdrop-blur flex flex-col items-center justify-center z-10 rounded-lg">
+                    <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+                    <p className="font-medium mb-2 text-foreground">Buscando dados da API PrimeCOD...</p>
+                    {progressoAtual && (
+                        <>
+                            <Progress value={progressoAtual.porcentagem} className="w-60 mb-2" />
+                            <p className="text-sm text-muted-foreground">{progressoAtual.etapa}</p>
+                        </>
+                    )}
+                </div>
+            )}
+
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <Filter className="h-5 w-5 text-primary" />
+                        <div>
+                            <CardTitle className="text-card-foreground">Configuração</CardTitle>
+                            <CardDescription className="text-muted-foreground">Configure o período e execute a busca na API</CardDescription>
+                        </div>
+                    </div>
+
+                    <div className="flex items-end gap-4">
+                        <DateInputs
+                            dateRange={dateRange}
+                            onDateRangeChange={setDateRange}
+                            disabled={loadingProcessar}
+                            className="w-96"
+                        />
+                        
+                        <Button
+                            onClick={processarDados}
+                            disabled={!dateRange?.from || !dateRange?.to || loadingProcessar}
+                            size="lg"
+                            className="min-w-36 bg-primary text-primary-foreground hover:bg-primary/90"
+                        >
+                            {loadingProcessar ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                                <Search className="h-4 w-4 mr-2" />
+                            )}
+                            {loadingProcessar ? 'Processando...' : 'Buscar Dados'}
+                        </Button>
+                    </div>
+                </div>
+            </CardHeader>
+        </Card>
+    );
+
     const renderEstatisticas = () => {
-        if (!dadosLeads) return null;
+        if (!dadosResultado || !Array.isArray(dadosResultado)) return null;
         
-        const totalRow = dadosLeads.find(row => row.Product === 'Total');
-        if (!totalRow) return null;
+        const produtos = dadosResultado.filter(item => item.produto !== 'TOTAL');
+        const totalRow = dadosResultado.find(item => item.produto === 'TOTAL');
         
-        const total = totalRow['Total - duplicados'] || 0;
-        const confirmados = totalRow.Confirmed || 0;
-        const duplicados = totalRow.Duplicate || 0;
-        const taxaConfirmacao = total > 0 ? (confirmados / total * 100) : 0;
+        const totalProdutos = produtos.length;
+        const totalOrders = totalRow?.total || 0;
+        const totalDelivered = totalRow?.Delivered || 0;
+        const totalReturned = totalRow?.Returned || 0;
         
         return (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-                <Card>
+            <div className="grid grid-cols-4 gap-4 mb-6">
+                <Card className="border-border bg-card">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-muted-foreground">Total de Leads</p>
-                                <p className="text-2xl font-bold">{total.toLocaleString()}</p>
+                                <p className="text-sm text-muted-foreground">Produtos</p>
+                                <p className="text-xl font-bold text-card-foreground">{totalProdutos}</p>
                             </div>
-                            <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                                <Users className="h-4 w-4 text-blue-600" />
-                            </div>
+                            <Package className="h-5 w-5 text-blue-500" />
                         </div>
                     </CardContent>
                 </Card>
                 
-                <Card>
+                <Card className="border-border bg-card">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-muted-foreground">Confirmados</p>
-                                <p className="text-2xl font-bold text-green-600">{confirmados.toLocaleString()}</p>
+                                <p className="text-sm text-muted-foreground">Total Orders</p>
+                                <p className="text-xl font-bold text-blue-600">{totalOrders.toLocaleString()}</p>
                             </div>
-                            <div className="h-8 w-8 rounded-lg bg-green-100 flex items-center justify-center">
-                                <Check className="h-4 w-4 text-green-600" />
-                            </div>
+                            <Target className="h-5 w-5 text-blue-500" />
                         </div>
                     </CardContent>
                 </Card>
                 
-                <Card>
+                <Card className="border-border bg-card">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-muted-foreground">Duplicados</p>
-                                <p className="text-2xl font-bold text-orange-600">{duplicados.toLocaleString()}</p>
+                                <p className="text-sm text-muted-foreground">Entregues</p>
+                                <p className="text-xl font-bold text-green-600">{totalDelivered.toLocaleString()}</p>
                             </div>
-                            <div className="h-8 w-8 rounded-lg bg-orange-100 flex items-center justify-center">
-                                <Copy className="h-4 w-4 text-orange-600" />
-                            </div>
+                            <TrendingUp className="h-5 w-5 text-green-500" />
                         </div>
                     </CardContent>
                 </Card>
                 
-                <Card>
+                <Card className="border-border bg-card">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-muted-foreground">Taxa de Confirmação</p>
-                                <p className="text-2xl font-bold text-blue-600">{taxaConfirmacao.toFixed(1)}%</p>
+                                <p className="text-sm text-muted-foreground">Devolvidos</p>
+                                <p className="text-xl font-bold text-red-600">{totalReturned.toLocaleString()}</p>
                             </div>
-                            <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                                <BarChart3 className="h-4 w-4 text-blue-600" />
-                            </div>
+                            <Percent className="h-5 w-5 text-red-500" />
                         </div>
                     </CardContent>
                 </Card>
@@ -318,43 +584,103 @@ function PrimecodPage() {
         );
     };
 
-    // Renderizar tabela
-    const renderTabela = (dados, titulo, aplicarCores = false) => {
-        if (!dados || dados.length === 0) return null;
-        
-        const colunas = Object.keys(dados[0]);
-        
+    const renderResultados = () => {
+        if (!dadosResultado || !Array.isArray(dadosResultado)) return null;
+
+        const dadosOrdenados = sortData(dadosResultado, sortBy, sortOrder);
+        const statusColumns = Object.values(STATUS_MAPPING);
+        const colunas = ['produto', 'pais', ...statusColumns, 'total'];
+
         return (
-            <Card className="mt-4">
-                <CardHeader>
-                    <CardTitle className="text-lg">{titulo}</CardTitle>
+            <Card className="mb-6 border-border bg-card">
+                <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle className="text-lg text-card-foreground">Tabela Cruzada: Produto × País × Status</CardTitle>
+                            <CardDescription className="text-muted-foreground">{dadosResultado.length} registros</CardDescription>
+                        </div>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setModalSalvar(true)}
+                            className="border-border bg-background text-foreground hover:bg-accent"
+                        >
+                            <Download className="h-4 w-4 mr-2" />
+                            Salvar
+                        </Button>
+                    </div>
                 </CardHeader>
-                <CardContent>
-                    {/* Container com largura limitada forçada para prevenir overflow global */}
+
+                <CardContent className="p-0">
                     <div className="w-full max-w-[calc(100vw-280px)] overflow-x-auto">
-                        <Table className="w-full table-fixed" style={{ minWidth: '800px' }}>
+                        <Table className="w-full table-fixed" style={{ minWidth: '1200px' }}>
                             <TableHeader>
-                                <TableRow>
-                                    {colunas.map(col => (
-                                        <TableHead key={col}>{col}</TableHead>
-                                    ))}
+                                <TableRow className="bg-muted/50 border-border">
+                                    {colunas.map(col => {
+                                        const isProduto = col === 'produto';
+                                        const isPais = col === 'pais';
+                                        
+                                        let classesHeader = 'whitespace-nowrap px-2 py-2 text-xs text-muted-foreground';
+                                        
+                                        if (isProduto) {
+                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border min-w-[150px]';
+                                        } else if (isPais) {
+                                            classesHeader += ' sticky left-[150px] z-20 bg-background border-r border-border min-w-[120px]';
+                                        }
+                                        
+                                        return (
+                                            <TableHead key={col} className={classesHeader}>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-auto p-0 font-medium text-xs text-muted-foreground hover:text-foreground"
+                                                    onClick={() => handleSort(col)}
+                                                >
+                                                    {col.toUpperCase()}
+                                                    {sortBy === col ? (
+                                                        sortOrder === 'asc' ? 
+                                                            <ArrowUp className="ml-1 h-3 w-3" /> : 
+                                                            <ArrowDown className="ml-1 h-3 w-3" />
+                                                    ) : (
+                                                        <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
+                                                    )}
+                                                </Button>
+                                            </TableHead>
+                                        );
+                                    })}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {dados.map((row, idx) => (
-                                    <TableRow 
-                                        key={idx} 
-                                        className={row.Product === 'Total' ? 'bg-muted/50 font-semibold' : ''}
-                                    >
-                                        {colunas.map(col => (
-                                            <TableCell 
-                                                key={col}
-                                                style={aplicarCores && col === 'Efetividade' ? 
-                                                    getEfetividadeCor(row[col]) : {}}
-                                            >
-                                                {typeof row[col] === 'number' ? row[col].toLocaleString() : row[col]}
-                                            </TableCell>
-                                        ))}
+                                {dadosOrdenados.map((row, idx) => (
+                                    <TableRow key={idx} className={`border-border ${row.produto === 'TOTAL' ? 'bg-muted/20 font-medium' : ''}`}>
+                                        {colunas.map(col => {
+                                            const isProduto = col === 'produto';
+                                            const isPais = col === 'pais';
+                                            
+                                            let classesCelula = 'px-2 py-2 text-xs text-card-foreground';
+                                            
+                                            if (isProduto) {
+                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border min-w-[150px]';
+                                            } else if (isPais) {
+                                                classesCelula += ' sticky left-[150px] z-10 bg-background border-r border-border min-w-[120px]';
+                                            }
+                                            
+                                            return (
+                                                <TableCell key={col} className={classesCelula}>
+                                                    {col === 'produto' ? (
+                                                        <div className="max-w-[120px] truncate" title={row[col]}>
+                                                            {row[col]}
+                                                        </div>
+                                                    ) : col === 'pais' ? (
+                                                        <div className="max-w-[100px] truncate" title={row[col]}>
+                                                            {row[col]}
+                                                        </div>
+                                                    ) : (
+                                                        typeof row[col] === 'number' ? row[col].toLocaleString() : (row[col] || 0)
+                                                    )}
+                                                </TableCell>
+                                            );
+                                        })}
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -365,238 +691,272 @@ function PrimecodPage() {
         );
     };
 
-    // ======================== EFEITOS ========================
-    useEffect(() => {
-        fetchAnalises();
-    }, []);
-
-    // ======================== RENDER PRINCIPAL ========================
-    return (
-        <div className="flex-1 space-y-6 p-6">
-            {isLoading && (
-                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
-                    <LoadingSpinner className="h-8 w-8" />
+    const renderAnalisesSalvas = () => (
+        <Card className="relative border-border bg-card">
+            {loadingAnalises && (
+                <div className="absolute inset-0 bg-background/80 backdrop-blur flex items-center justify-center z-10 rounded-lg">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
             )}
-            
-            {/* Header */}
-            <div className="flex items-start justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-foreground">📊 Prime COD Analytics</h1>
-                    <p className="text-muted-foreground">Análise de efetividade de leads e orders</p>
-                </div>
-                <div className="flex items-center gap-2">
+
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <CardTitle className="text-card-foreground">Análises Salvas</CardTitle>
+                        <CardDescription className="text-muted-foreground">{analisesSalvas.length} análises PrimeCOD</CardDescription>
+                    </div>
                     <Button 
-                        variant="ghost" 
+                        variant="outline" 
+                        size="sm" 
                         onClick={fetchAnalises}
-                        disabled={isLoading}
+                        className="border-border bg-background text-foreground hover:bg-accent"
                     >
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Atualizar
                     </Button>
-                    {(dadosLeads || dadosEfetividade) && (
-                        <Button onClick={() => setModalSalvar(true)}>
-                            <Save className="h-4 w-4 mr-2" />
-                            Salvar Análise
-                        </Button>
-                    )}
                 </div>
-            </div>
+            </CardHeader>
 
+            <CardContent>
+                {analisesSalvas.length === 0 ? (
+                    <Alert className="border-border bg-background">
+                        <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                        <AlertDescription className="text-muted-foreground">
+                            Nenhuma análise PrimeCOD encontrada. Processe dados e salve o resultado.
+                        </AlertDescription>
+                    </Alert>
+                ) : (
+                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        {analisesSalvas.map(analise => (
+                            <Card key={analise.id} className="relative border-border bg-card">
+                                {loadingDelete[analise.id] && (
+                                    <div className="absolute inset-0 bg-background/80 backdrop-blur flex items-center justify-center z-10 rounded-lg">
+                                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                    </div>
+                                )}
+
+                                <CardContent className="p-4">
+                                    <div className="flex items-start justify-between mb-3">
+                                        <h3 className="font-medium text-sm truncate max-w-[80%] text-card-foreground">
+                                            {analise.nome}
+                                        </h3>
+                                        <Badge variant="secondary" className="text-xs bg-secondary text-secondary-foreground">PRIMECOD</Badge>
+                                    </div>
+
+                                    <p className="text-xs text-muted-foreground mb-3">
+                                        {new Date(analise.criado_em).toLocaleDateString('pt-BR')} por {analise.criado_por_nome}
+                                    </p>
+
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => carregarAnalise(analise)}
+                                            className="flex-1 border-border bg-background text-foreground hover:bg-accent"
+                                        >
+                                            <Eye className="h-3 w-3 mr-1" />
+                                            Carregar
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => deletarAnalise(analise.id, analise.nome)}
+                                            disabled={loadingDelete[analise.id]}
+                                            className="text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                        >
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+
+    // ======================== EFEITOS ========================
+
+    useEffect(() => {
+        // Verificar configuração de token na inicialização
+        if (!API_TOKEN) {
+            showNotification('error', 'CONFIGURAÇÃO OBRIGATÓRIA: Configure REACT_APP_PRIMECOD_TOKEN no .env');
+            console.error('🛡️ SEGURANÇA: Token PrimeCOD obrigatório não encontrado');
+        } else {
+            console.log('✅ Token PrimeCOD configurado corretamente');
+        }
+        
+        fetchAnalises();
+        
+        // Definir período padrão (última semana)
+        const hoje = new Date();
+        const semanaPassada = new Date();
+        semanaPassada.setDate(hoje.getDate() - 7);
+        
+        setDateRange({
+            from: semanaPassada,
+            to: hoje
+        });
+    }, []);
+
+    // ======================== RENDER PRINCIPAL ========================
+
+    return (
+        <div className="flex-1 space-y-4 p-6 min-h-screen bg-background">
             {/* Notificações */}
             {notification && (
-                <Alert className={`${notification.type === 'error' ? 'border-destructive' : 
-                    notification.type === 'warning' ? 'border-yellow-500' : 'border-green-500'}`}>
-                    {notification.type === 'success' ? <Check className="h-4 w-4" /> : 
-                     notification.type === 'warning' ? <AlertTriangle className="h-4 w-4" /> : <X className="h-4 w-4" />}
-                    <AlertDescription>
-                        <strong>{notification.type === 'success' ? 'Sucesso!' : 
-                                 notification.type === 'warning' ? 'Atenção!' : 'Erro!'}</strong> {notification.message}
-                    </AlertDescription>
+                <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4 border-border">
+                    {notification.type === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                    <AlertDescription>{notification.message}</AlertDescription>
                 </Alert>
             )}
 
-            {/* Análises Salvas */}
-            {analisesSalvas.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">💾 Análises Salvas</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {analisesSalvas.map(analise => (
-                                <Card key={analise.id} className="border">
-                                    <CardContent className="p-4">
-                                        <div className="flex items-start justify-between mb-2">
-                                            <h4 className="font-medium truncate">{analise.nome}</h4>
-                                            <Badge variant="secondary" className="text-xs">PRIMECOD</Badge>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground mb-3">
-                                            {new Date(analise.criado_em).toLocaleDateString('pt-BR')} por {analise.criado_por_nome}
-                                        </p>
-                                        <div className="flex items-center justify-between">
-                                            <Button size="sm" variant="outline" onClick={() => carregarAnalise(analise)}>
-                                                Carregar
-                                            </Button>
-                                            <Button 
-                                                size="sm" 
-                                                variant="destructive" 
-                                                onClick={() => deletarAnalise(analise.id, analise.nome)}
-                                                className="h-8 w-8 p-0"
-                                            >
-                                                <Trash2 className="h-3 w-3" />
-                                            </Button>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
+            {/* Header */}
+            {renderHeader()}
 
-            {/* Upload de Arquivos */}
-            <div className="grid gap-4 md:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">1️⃣ Arquivo de Leads</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <Label htmlFor="leads-file">Leads Export CSV</Label>
-                            <div className="flex items-center gap-2 mt-1">
-                                <Input
-                                    id="leads-file"
-                                    type="file"
-                                    accept=".csv"
-                                    onChange={(e) => setArquivoLeads(e.target.files[0])}
-                                    className="file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-muted file:text-muted-foreground hover:file:bg-muted/80"
-                                />
-                            </div>
-                        </div>
-                        <Button 
-                            className="w-full"
-                            onClick={() => uploadArquivo(arquivoLeads, 'leads')}
-                            disabled={!arquivoLeads || isLoading}
-                        >
-                            <Upload className="h-4 w-4 mr-2" />
-                            Processar Leads
-                        </Button>
-                        {dadosLeads && (
-                            <Alert className="border-green-500">
-                                <Check className="h-4 w-4" />
-                                <AlertDescription>
-                                    Arquivo de leads processado! {dadosLeads.length - 1} produtos encontrados.
-                                </AlertDescription>
-                            </Alert>
-                        )}
-                    </CardContent>
-                </Card>
-                
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">2️⃣ Arquivo de Orders</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <Label htmlFor="orders-file">Orders Export CSV</Label>
-                            <div className="flex items-center gap-2 mt-1">
-                                <Input
-                                    id="orders-file"
-                                    type="file"
-                                    accept=".csv"
-                                    onChange={(e) => setArquivoOrders(e.target.files[0])}
-                                    className="file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-muted file:text-muted-foreground hover:file:bg-muted/80"
-                                />
-                            </div>
-                        </div>
-                        <Button 
-                            className="w-full"
-                            onClick={() => uploadArquivo(arquivoOrders, 'orders')}
-                            disabled={!arquivoOrders || isLoading}
-                        >
-                            <Upload className="h-4 w-4 mr-2" />
-                            Processar Orders
-                        </Button>
-                        {dadosOrders && (
-                            <Alert className="border-green-500">
-                                <Check className="h-4 w-4" />
-                                <AlertDescription>
-                                    Arquivo de orders processado!
-                                </AlertDescription>
-                            </Alert>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
+            {/* Navegação */}
+            <Tabs value={secaoAtiva} onValueChange={setSecaoAtiva} className="w-full">
+                <TabsList className="grid w-fit grid-cols-2 bg-muted">
+                    <TabsTrigger value="gerar" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
+                        <Rocket className="h-4 w-4 mr-2" />
+                        Gerar
+                    </TabsTrigger>
+                    <TabsTrigger value="salvas" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Salvas
+                    </TabsTrigger>
+                </TabsList>
 
-            {/* Instruções */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg">📋 Instruções</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <ul className="space-y-2 text-sm">
-                        <li className="flex items-start gap-2">
-                            <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground mt-2 flex-shrink-0" />
-                            Faça upload do arquivo <strong>leadsexport.csv</strong> exportado da seção de leads do Prime COD
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground mt-2 flex-shrink-0" />
-                            Faça upload do arquivo <strong>ordersexport.csv</strong> exportado da seção de orders do Prime COD
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground mt-2 flex-shrink-0" />
-                            A tabela de efetividade será gerada automaticamente combinando os dois arquivos
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground mt-2 flex-shrink-0" />
-                            Salve sua análise para acessá-la posteriormente
-                        </li>
-                    </ul>
-                </CardContent>
-            </Card>
+                <TabsContent value="gerar" className="space-y-4">
+                    {renderFormulario()}
+                    {renderEstatisticas()}
+                    {renderResultados()}
+                </TabsContent>
 
-            {/* Estatísticas */}
-            {renderEstatisticas()}
+                <TabsContent value="salvas">
+                    {renderAnalisesSalvas()}
+                </TabsContent>
+            </Tabs>
 
-            {/* Tabelas */}
-            {renderTabela(dadosLeads, "📊 Tabela de Leads")}
-            {renderTabela(dadosEfetividade, "📦 Tabela de Efetividade", true)}
-
-            {/* Modal para salvar */}
-            <Dialog open={modalSalvar} onOpenChange={setModalSalvar}>
-                <DialogContent className="max-w-md">
+            {/* Modal instruções */}
+            <Dialog open={modalInstrucoes} onOpenChange={setModalInstrucoes}>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto border-border bg-popover">
                     <DialogHeader>
-                        <DialogTitle>💾 Salvar Análise</DialogTitle>
-                        <DialogDescription>
-                            Salve sua análise Prime COD para acessá-la posteriormente.
+                        <DialogTitle className="text-blue-600">Manual - PrimeCOD API Analytics</DialogTitle>
+                        <DialogDescription className="text-muted-foreground">
+                            Integração direta com a API do PrimeCOD
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4">
+                    
+                    <div className="space-y-6">
                         <div>
-                            <Label htmlFor="nome-analise">Nome da Análise</Label>
-                            <Input
-                                id="nome-analise"
-                                placeholder="Ex: Análise Maio 2025 - Espanha"
-                                value={nomeAnalise}
-                                onChange={(e) => setNomeAnalise(e.target.value)}
-                                className="mt-1"
-                            />
+                            <h4 className="text-lg font-semibold text-green-600 mb-3">🔗 Integração API Direta</h4>
+                            <p className="text-sm text-muted-foreground mb-4">
+                                Esta ferramenta conecta diretamente com a API do PrimeCOD para buscar dados em tempo real.
+                            </p>
+                            
+                            <div className="space-y-2">
+                                <p className="text-sm text-foreground">• <strong>Fonte:</strong> API PrimeCOD oficial</p>
+                                <p className="text-sm text-foreground">• <strong>Limite:</strong> Até 400 páginas por busca</p>
+                                <p className="text-sm text-foreground">• <strong>Filtros:</strong> Período de datas e países</p>
+                                <p className="text-sm text-foreground">• <strong>Dados:</strong> Produto, País, Status das orders</p>
+                            </div>
                         </div>
-                        <div className="flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => setModalSalvar(false)}>
-                                Cancelar
-                            </Button>
-                            <Button 
-                                onClick={salvarAnalise} 
-                                disabled={!nomeAnalise || isLoading}
-                            >
-                                {isLoading && <LoadingSpinner className="h-4 w-4 mr-2" />}
-                                Salvar
-                            </Button>
+
+                        <Separator className="bg-border" />
+
+                        <div>
+                            <h4 className="text-lg font-semibold text-purple-600 mb-3">📊 Status Disponíveis</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                                {Object.entries(STATUS_MAPPING).map(([id, status]) => (
+                                    <Card key={id} className="border-blue-200 bg-card">
+                                        <CardContent className="p-3">
+                                            <div className="flex items-center justify-between">
+                                                <span className="font-semibold text-blue-600 text-sm">{status}</span>
+                                                <Badge variant="outline" className="text-xs">ID: {id}</Badge>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        </div>
+
+                        <Separator className="bg-border" />
+
+                        <div>
+                            <h4 className="text-lg font-semibold text-orange-600 mb-3">🌍 Países Suportados</h4>
+                            <div className="grid grid-cols-3 gap-2">
+                                {PAISES_PRIMECOD.slice(1).map(pais => (
+                                    <span key={pais.value} className="text-sm text-foreground">{pais.label}</span>
+                                ))}
+                            </div>
+                        </div>
+
+                        <Separator className="bg-border" />
+
+                        <div>
+                            <h4 className="text-lg font-semibold text-teal-600 mb-3">📈 Tabela de Resultados</h4>
+                            <p className="text-sm text-muted-foreground mb-4">
+                                Visualização cruzada agrupando dados por:
+                            </p>
+                            <div className="space-y-1">
+                                <p className="text-sm text-foreground">• <strong>Produto:</strong> SKU do produto</p>
+                                <p className="text-sm text-foreground">• <strong>País:</strong> País de envio</p>
+                                <p className="text-sm text-foreground">• <strong>Status:</strong> Colunas para cada status</p>
+                                <p className="text-sm text-foreground">• <strong>Total:</strong> Soma de todos os status</p>
+                            </div>
                         </div>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal salvar */}
+            <Dialog open={modalSalvar} onOpenChange={setModalSalvar}>
+                <DialogContent className="border-border bg-popover">
+                    <DialogHeader>
+                        <DialogTitle className="text-popover-foreground">Salvar Análise PrimeCOD</DialogTitle>
+                        <DialogDescription className="text-muted-foreground">Digite um nome para identificar esta análise</DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="relative py-4">
+                        {loadingSalvar && (
+                            <div className="absolute inset-0 bg-background/90 backdrop-blur flex items-center justify-center z-10 rounded">
+                                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                            </div>
+                        )}
+
+                        <div className="space-y-2">
+                            <Label htmlFor="nome-analise" className="text-foreground">Nome da Análise</Label>
+                            <Input
+                                id="nome-analise"
+                                placeholder="Ex: PrimeCOD Grécia Janeiro 2025"
+                                value={nomeAnalise}
+                                onChange={(e) => setNomeAnalise(e.target.value)}
+                                disabled={loadingSalvar}
+                                className="border-border bg-background text-foreground"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button 
+                            variant="outline" 
+                            onClick={() => setModalSalvar(false)} 
+                            disabled={loadingSalvar}
+                            className="border-border bg-background text-foreground hover:bg-accent"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button 
+                            onClick={salvarAnalise} 
+                            disabled={!nomeAnalise || loadingSalvar}
+                            className="bg-primary text-primary-foreground hover:bg-primary/90"
+                        >
+                            {loadingSalvar ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                            {loadingSalvar ? 'Salvando...' : 'Salvar'}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>

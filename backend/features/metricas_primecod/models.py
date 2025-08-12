@@ -5,10 +5,16 @@ class AnalisePrimeCOD(models.Model):
     nome = models.CharField(max_length=255, verbose_name="Nome da Análise")
     descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
     
+    # Campo tipo para compatibilidade frontend
+    tipo = models.CharField(max_length=20, default='PRIMECOD', verbose_name="Tipo de Análise")
+    
     # Dados salvos como JSON
     dados_leads = models.JSONField(null=True, blank=True, verbose_name="Dados de Leads")
     dados_orders = models.JSONField(null=True, blank=True, verbose_name="Dados de Orders")
     dados_efetividade = models.JSONField(null=True, blank=True, verbose_name="Dados de Efetividade")
+    
+    # Campo unificado para compatibilidade frontend
+    dados_processados = models.JSONField(null=True, blank=True, verbose_name="Dados Processados (Frontend)")
     
     # Metadados
     criado_por = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Criado por")

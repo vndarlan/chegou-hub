@@ -447,3 +447,162 @@ class ShopifyDuplicateOrderDetector:
             dup["product_names"] = dup.get("common_product_names", [])
         
         return duplicates
+    
+    def get_orders_by_ip(self, days=30, min_orders=2):
+        """
+        Agrupa pedidos por IP dos últimos X dias
+        
+        Args:
+            days (int): Dias para buscar pedidos (máximo 90)
+            min_orders (int): Mínimo de pedidos por IP para incluir no resultado
+            
+        Returns:
+            dict: Pedidos agrupados por IP com estatísticas
+        """
+        # Limita período máximo para performance
+        if days > 90:
+            days = 90
+        
+        date_min = (datetime.now() - timedelta(days=days)).isoformat()
+        all_orders = []
+        page_info = None
+        page = 1
+        
+        # Busca todos os pedidos do período
+        while True:
+            if page_info:
+                params = {
+                    "limit": 250,
+                    "page_info": page_info
+                }
+            else:
+                params = {
+                    "limit": 250,
+                    "status": "any",
+                    "created_at_min": date_min,
+                    "financial_status": "any"  # Inclui todos os status financeiros
+                }
+            
+            url = f"{self.base_url}/orders.json"
+            
+            try:
+                response = requests.get(url, headers=self.headers, params=params, timeout=30)
+                response.raise_for_status()
+                orders = response.json()["orders"]
+                
+                if not orders:
+                    break
+                
+                # Filtra apenas pedidos válidos
+                for order in orders:
+                    # Ignora pedidos cancelados
+                    if order.get("cancelled_at"):
+                        continue
+                        
+                    # Verifica se tem client_details com browser_ip
+                    client_details = order.get("client_details", {})
+                    browser_ip = client_details.get("browser_ip")
+                    
+                    if browser_ip and browser_ip.strip():
+                        order["_browser_ip"] = browser_ip.strip()
+                        all_orders.append(order)
+                
+                # Próxima página
+                link_header = response.headers.get('Link')
+                page_info = self.extract_page_info_from_link_header(link_header)
+                
+                if not page_info:
+                    break
+                
+                page += 1
+                if page > 50:  # Segurança
+                    break
+                    
+            except requests.exceptions.RequestException as e:
+                raise Exception(f"Erro ao buscar pedidos por IP na página {page}: {e}")
+        
+        # Agrupa pedidos por IP
+        ip_groups = defaultdict(list)
+        for order in all_orders:
+            ip = order["_browser_ip"]
+            ip_groups[ip].append(order)
+        
+        # Filtra apenas IPs com quantidade mínima de pedidos
+        filtered_groups = {}
+        for ip, orders in ip_groups.items():
+            if len(orders) >= min_orders:
+                filtered_groups[ip] = orders
+        
+        # Prepara resultado final
+        result_groups = []
+        for ip, orders in filtered_groups.items():
+            # Ordena pedidos por data
+            orders.sort(key=lambda x: x["created_at"])
+            
+            # Calcula estatísticas
+            total_sales = sum(float(order.get("total_price", 0)) for order in orders)
+            unique_customers = set()
+            currencies = set()
+            
+            for order in orders:
+                # Cliente único por email ou phone
+                customer = order.get("customer", {})
+                if customer:
+                    email = customer.get("email")
+                    phone = customer.get("phone")
+                    if email:
+                        unique_customers.add(email)
+                    elif phone:
+                        unique_customers.add(self.normalize_phone(phone))
+                
+                # Moeda
+                currency = order.get("currency", "BRL")
+                currencies.add(currency)
+            
+            # Determina moeda predominante
+            main_currency = list(currencies)[0] if currencies else "BRL"
+            
+            # Prepara dados dos pedidos para retorno
+            order_data = []
+            for order in orders:
+                customer = order.get("customer", {})
+                order_data.append({
+                    "id": order["id"],
+                    "order_number": order["order_number"],
+                    "created_at": order["created_at"],
+                    "total_price": order["total_price"],
+                    "currency": order.get("currency", "BRL"),
+                    "financial_status": order["financial_status"],
+                    "fulfillment_status": order.get("fulfillment_status"),
+                    "customer": {
+                        "email": customer.get("email", ""),
+                        "first_name": customer.get("first_name", ""),
+                        "last_name": customer.get("last_name", ""),
+                        "phone": customer.get("phone", "")
+                    },
+                    "line_items_count": len(order.get("line_items", [])),
+                    "tags": order.get("tags", "")
+                })
+            
+            result_groups.append({
+                "ip": ip,
+                "order_count": len(orders),
+                "unique_customers": len(unique_customers),
+                "total_sales": f"{total_sales:.2f}",
+                "currency": main_currency,
+                "date_range": {
+                    "first": orders[0]["created_at"],
+                    "last": orders[-1]["created_at"]
+                },
+                "orders": order_data
+            })
+        
+        # Ordena por quantidade de pedidos (decrescente)
+        result_groups.sort(key=lambda x: x["order_count"], reverse=True)
+        
+        return {
+            "ip_groups": result_groups,
+            "total_ips_found": len(result_groups),
+            "total_orders_analyzed": len(all_orders),
+            "period_days": days
+        }

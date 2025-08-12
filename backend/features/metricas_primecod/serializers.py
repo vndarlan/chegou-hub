@@ -11,14 +11,41 @@ class AnalisePrimeCODSerializer(serializers.ModelSerializer):
     class Meta:
         model = AnalisePrimeCOD
         fields = [
-            'id', 'nome', 'descricao', 'dados_leads', 'dados_orders', 'dados_efetividade',
-            'criado_por', 'criado_por_nome', 'criado_em', 'atualizado_em'
+            'id', 'nome', 'descricao', 'tipo', 'dados_leads', 'dados_orders', 
+            'dados_efetividade', 'dados_processados', 'criado_por', 'criado_por_nome', 
+            'criado_em', 'atualizado_em'
         ]
         read_only_fields = ['criado_por', 'criado_em', 'atualizado_em']
 
     def create(self, validated_data):
         validated_data['criado_por'] = self.context['request'].user
+        
+        # Garantir compatibilidade frontend - dados_processados como fallback
+        if not validated_data.get('dados_processados'):
+            # Prioridade: efetividade > leads > orders
+            if validated_data.get('dados_efetividade'):
+                validated_data['dados_processados'] = validated_data['dados_efetividade']
+            elif validated_data.get('dados_leads'):
+                validated_data['dados_processados'] = validated_data['dados_leads']
+            elif validated_data.get('dados_orders'):
+                validated_data['dados_processados'] = validated_data['dados_orders']
+                
         return super().create(validated_data)
+    
+    def to_representation(self, instance):
+        """Garantir compatibilidade na leitura"""
+        data = super().to_representation(instance)
+        
+        # Se dados_processados está vazio, usar fallback
+        if not data.get('dados_processados'):
+            if data.get('dados_efetividade'):
+                data['dados_processados'] = data['dados_efetividade']
+            elif data.get('dados_leads'):
+                data['dados_processados'] = data['dados_leads']
+            elif data.get('dados_orders'):
+                data['dados_processados'] = data['dados_orders']
+                
+        return data
 
 class CSVUploadPrimeCODSerializer(serializers.Serializer):
     arquivo = serializers.FileField()
@@ -71,8 +98,10 @@ class CSVUploadPrimeCODSerializer(serializers.Serializer):
 
 class ProcessarAnalisePrimeCODSerializer(serializers.Serializer):
     nome_analise = serializers.CharField(max_length=255)
-    dados_leads = serializers.JSONField(required=True)
+    dados_leads = serializers.JSONField(required=False, allow_null=True)
     dados_orders = serializers.JSONField(required=False, allow_null=True)
+    dados_processados = serializers.JSONField(required=False, allow_null=True)
+    tipo = serializers.CharField(default='PRIMECOD', required=False)
     
     def validate(self, data):
         if not data.get('dados_leads'):

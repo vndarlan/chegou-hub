@@ -75,6 +75,7 @@ const sidebarItems = [
     label: 'SUPORTE',
     items: [
       { label: 'Processamento', path: '/workspace/processamento' },
+      { label: 'Detector de IP', path: '/workspace/detector-ip' },
       { label: 'Suporte', path: '/workspace/suporte' },
     ]
   }
@@ -130,7 +131,7 @@ export function SidebarNavigation({
     else if (path.includes('/projetos') || path.includes('/relatorios') || 
              path.includes('/logs') || path.includes('/nicochat') || path.includes('/n8n')) setActiveSection('ia');
     else if (path.includes('/engajamento') || path.includes('/novelties')) setActiveSection('operacional');
-    else if (path.includes('/suporte') || path.includes('/processamento')) setActiveSection('suporte');
+    else if (path.includes('/suporte') || path.includes('/processamento') || path.includes('/detector-ip')) setActiveSection('suporte');
     else if (path.includes('/admin')) setActiveSection('admin');
     else setActiveSection('home');
   }, [location.pathname]);

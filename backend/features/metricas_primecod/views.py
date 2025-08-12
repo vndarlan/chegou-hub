@@ -21,7 +21,14 @@ class AnalisePrimeCODViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        return AnalisePrimeCOD.objects.all().order_by('-atualizado_em')
+        queryset = AnalisePrimeCOD.objects.all().order_by('-atualizado_em')
+        
+        # Filtro por tipo para compatibilidade frontend
+        tipo = self.request.query_params.get('tipo', None)
+        if tipo:
+            queryset = queryset.filter(tipo=tipo)
+            
+        return queryset
     
     @action(detail=False, methods=['post'], parser_classes=[MultiPartParser, FormParser])
     def upload_csv(self, request):
@@ -65,17 +72,40 @@ class AnalisePrimeCODViewSet(viewsets.ModelViewSet):
                 resultado = self._criar_analise_primecod(data)
                 
                 # Salvar análise
-                analise = AnalisePrimeCOD.objects.create(
-                    nome=data['nome_analise'],
-                    dados_leads=data['dados_leads'],
-                    dados_orders=data.get('dados_orders'),
-                    dados_efetividade=resultado.get('dados_efetividade'),
-                    criado_por=request.user
-                )
+                analise_data = {
+                    'nome': data['nome_analise'],
+                    'tipo': data.get('tipo', 'PRIMECOD'),
+                    'criado_por': request.user
+                }
                 
+                # Compatibilidade: aceitar dados_processados ou campos separados
+                if data.get('dados_processados'):
+                    analise_data['dados_processados'] = data['dados_processados']
+                    # Também popular campos específicos se possível
+                    if data.get('dados_leads'):
+                        analise_data['dados_leads'] = data['dados_leads']
+                    if data.get('dados_orders'):
+                        analise_data['dados_orders'] = data['dados_orders']
+                else:
+                    # Modo legacy
+                    analise_data['dados_leads'] = data.get('dados_leads')
+                    analise_data['dados_orders'] = data.get('dados_orders')
+                
+                # Adicionar dados de efetividade se calculados
+                if resultado.get('dados_efetividade'):
+                    analise_data['dados_efetividade'] = resultado['dados_efetividade']
+                    # Se não tem dados_processados, usar efetividade
+                    if not analise_data.get('dados_processados'):
+                        analise_data['dados_processados'] = resultado['dados_efetividade']
+                
+                analise = AnalisePrimeCOD.objects.create(**analise_data)
+                
+                # Serializar resposta com compatibilidade
+                serializer = AnalisePrimeCODSerializer(analise)
                 return Response({
                     'status': 'success',
                     'analise_id': analise.id,
+                    'analise': serializer.data,
                     'message': f"Análise '{analise.nome}' salva com sucesso!"
                 })
                 

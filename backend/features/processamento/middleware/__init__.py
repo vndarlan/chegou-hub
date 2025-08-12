@@ -1,0 +1,1 @@
+# backend/features/processamento/middleware/__init__.py
