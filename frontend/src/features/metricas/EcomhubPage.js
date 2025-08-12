@@ -527,11 +527,11 @@ function EcomhubPage() {
                                             const isProduto = col === 'Produto';
                                             const isImagem = col === 'Imagem';
                                             
-                                            let classesCelula = `px-2 py-2 text-xs text-card-foreground ${
-                                                tipoVisualizacao === 'otimizada' &&
-                                                (col === 'Efetividade_Total' || col === 'Efetividade_Parcial') ?
-                                                `font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center` : ''
-                                            }`;
+                                            let classesCelula = 'px-2 py-2 text-xs text-card-foreground';
+                                            
+                                            if (tipoVisualizacao === 'otimizada' && (col === 'Efetividade_Total' || col === 'Efetividade_Parcial')) {
+                                                classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center`;
+                                            }
                                             
                                             if (isProduto) {
                                                 classesCelula += ' sticky left-0 z-10 bg-background border-r border-border min-w-[150px]';
@@ -555,7 +555,7 @@ function EcomhubPage() {
                                                     )}
                                                 </TableCell>
                                             );
-                                        })
+                                        })}
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -564,7 +564,7 @@ function EcomhubPage() {
                 </CardContent>
         </Card>
     );
-};
+    };
 
     // Análises salvas
     const renderAnalisesSalvas = () => {
