@@ -104,8 +104,11 @@ class ProcessarAnalisePrimeCODSerializer(serializers.Serializer):
     tipo = serializers.CharField(default='PRIMECOD', required=False)
     
     def validate(self, data):
-        if not data.get('dados_leads'):
-            raise serializers.ValidationError("Dados de leads são obrigatórios para análise Prime COD.")
+        # Compatibilidade: aceitar dados_processados OU dados_leads
+        if not data.get('dados_leads') and not data.get('dados_processados'):
+            raise serializers.ValidationError(
+                "É obrigatório fornecer 'dados_leads' ou 'dados_processados' para análise Prime COD."
+            )
         return data
 
 class StatusMappingPrimeCODSerializer(serializers.ModelSerializer):

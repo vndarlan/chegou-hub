@@ -51,7 +51,14 @@
       "Bash(copy:*)",
       "Bash(del \"backend\\configuracoes.md\")",
       "Bash(del \"docs\\autenticacao-sistema.md\")",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(grep:*)",
+      "Bash(npm start:*)",
+      "Bash(del test_primecod_integration.py)",
+      "Bash(del test_primecod_simple.py)",
+      "Bash(npm ls:*)",
+      "Bash(set CI=true)",
+      "Bash(set DJANGO_SETTINGS_MODULE=config.settings)"
     ],
     "deny": []
   }
