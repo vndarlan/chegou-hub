@@ -778,7 +778,7 @@ function DropiPage() {
         const dadosOrdenados = sortData(dadosTabela, sortBy, sortOrder);
 
         return (
-            <Card className="border-border bg-card flex flex-col">
+            <Card className="border-border bg-card h-full flex flex-col">
                 <CardHeader className="pb-3 flex-shrink-0">
                     <div className="flex items-center justify-between">
                         <div>
@@ -799,8 +799,8 @@ function DropiPage() {
                     </div>
                 </CardHeader>
 
-                <CardContent className="p-0 flex-1 min-h-0">
-                    <div className="h-96 overflow-hidden">
+                <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
+                    <div className="flex-1 overflow-hidden">
                         <ScrollArea className="h-full w-full">
                             <div className="min-w-full">
                                 <Table className="w-full">
@@ -835,11 +835,6 @@ function DropiPage() {
                                                         <div className="flex items-center justify-center">
                                                             <ImageIcon className="h-3 w-3" />
                                                         </div>
-                                                    ) : col === 'País' ? (
-                                                        <div className="flex items-center justify-center">
-                                                            <Globe className="h-3 w-3 mr-1" />
-                                                            <span>{col}</span>
-                                                        </div>
                                                     ) : (
                                                         <Button
                                                             variant="ghost"
@@ -847,6 +842,7 @@ function DropiPage() {
                                                             className="h-auto p-0 font-medium text-xs text-muted-foreground hover:text-foreground"
                                                             onClick={() => handleSort(col)}
                                                         >
+                                                            {col === 'País' && <Globe className="h-3 w-3 mr-1" />}
                                                             {col.replace('_', ' ')}
                                                             {sortBy === col ? (
                                                                 sortOrder === 'asc' ? 
@@ -1104,14 +1100,21 @@ function DropiPage() {
                 </Tabs>
             </div>
 
-            {/* Conteúdo com scroll controlado */}
-            <div className="flex-1 overflow-hidden px-3 sm:px-6">
+            {/* Conteúdo dividido: fixo + scroll controlado */}
+            <div className="flex-1 flex flex-col overflow-hidden px-3 sm:px-6">
                 <Tabs value={secaoAtiva} onValueChange={setSecaoAtiva} className="h-full flex flex-col">
-                    <TabsContent value="gerar" className="flex-1 overflow-y-auto space-y-4 mt-4">
-                        {renderFormulario()}
-                        {renderEstatisticas()}
-                        {renderExemploPedido()}
-                        {renderResultados()}
+                    <TabsContent value="gerar" className="flex-1 flex flex-col overflow-hidden mt-4">
+                        {/* Seção fixa - sem scroll */}
+                        <div className="flex-shrink-0 space-y-4">
+                            {renderFormulario()}
+                            {renderEstatisticas()}
+                            {renderExemploPedido()}
+                        </div>
+                        
+                        {/* Seção com scroll - apenas tabela */}
+                        <div className="flex-1 overflow-hidden mt-4">
+                            {renderResultados()}
+                        </div>
                     </TabsContent>
 
                     <TabsContent value="salvas" className="flex-1 overflow-y-auto mt-4">
