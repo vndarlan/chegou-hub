@@ -800,9 +800,8 @@ function DropiPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                        <div className="w-full overflow-x-auto">
-                            <div className="min-w-max">
-                                <Table className="w-full table-auto">
+                    <div className="max-w-full overflow-x-auto">
+                        <Table className="table-auto" style={{ minWidth: 'max-content' }}>
                                     <TableHeader>
                                         <TableRow className="bg-muted/50 border-border">
                                             {colunas.map((col) => {
@@ -934,8 +933,7 @@ function DropiPage() {
                                         ))}
                                     </TableBody>
                                 </Table>
-                            </div>
-                        </div>
+                    </div>
                         
                         {/* Nota sobre scroll da tabela */}
                         <div className="px-4 pb-4 pt-2">
