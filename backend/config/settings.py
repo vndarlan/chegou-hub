@@ -475,6 +475,10 @@ print(f"Servidor Extrator Dropi configurado: {DROPI_EXTRACTOR_SERVER}")
 # Token Service URL
 DROPI_TOKEN_SERVICE_URL = os.getenv('DROPI_TOKEN_SERVICE_URL', 'http://localhost:8002')
 
+# ======================== CONFIGURAÇÃO API PRIMECOD ========================
+PRIMECOD_API_TOKEN = os.getenv('PRIMECOD_API_TOKEN', '')
+print(f"PrimeCOD API configurado: {'Sim' if PRIMECOD_API_TOKEN else 'Não'}")
+
 # Cache para tokens (opcional, melhora performance)
 CACHES = {
     'default': {

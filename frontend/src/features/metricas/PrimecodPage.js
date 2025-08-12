@@ -1,4 +1,4 @@
-// frontend/src/features/metricas/PrimecodPage.js - INTEGRAÇÃO DIRETA API PRIMECOD
+// frontend/src/features/metricas/PrimecodPage.js - INTEGRAÇÃO VIA PROXY BACKEND
 import React, { useState, useEffect } from 'react';
 import {
     Calendar as CalendarIcon, Download, Trash2, RefreshCw, Check, X, 
@@ -57,81 +57,25 @@ const STATUS_MAPPING = {
     12: "Cancelled"
 };
 
-// Token API PrimeCOD - Via variável de ambiente segura
-const API_TOKEN = process.env.REACT_APP_PRIMECOD_TOKEN;
-
-// Validação robusta de token obrigatória
-if (!API_TOKEN) {
-    console.error('❌ CONFIGURAÇÃO OBRIGATÓRIA: Token PrimeCOD não encontrado');
-    console.error('👉 Configure REACT_APP_PRIMECOD_TOKEN no arquivo .env');
-    console.error('👉 Exemplo: REACT_APP_PRIMECOD_TOKEN=seu_token_aqui');
-} else if (API_TOKEN.length < 10) {
-    console.warn('⚠️ AVISO: Token PrimeCOD parece muito curto. Verifique se está correto.');
-} else {
-    console.log('✅ Token PrimeCOD configurado e validado');
-}
-
-// Cliente API PrimeCOD
-class PrimeCODClient {
-    constructor() {
-        this.baseUrl = 'https://api.primecod.app/api';
-        
-        // Validar token antes de criar headers
-        if (!API_TOKEN) {
-            throw new Error('Token PrimeCOD não configurado. Verifique REACT_APP_PRIMECOD_TOKEN no .env');
-        }
-        
-        this.headers = {
-            'Authorization': `Bearer ${API_TOKEN}`,
+// Cliente Backend Proxy PrimeCOD
+const buscarDadosPrimeCOD = async (dataInicio, dataFim, paisSelecionado) => {
+    const response = await axios.post('/api/metricas/primecod/buscar-orders/', {
+        data_inicio: dataInicio,
+        data_fim: dataFim,
+        pais_filtro: paisSelecionado !== 'todos' ? paisSelecionado : null
+    }, {
+        headers: {
+            'X-CSRFToken': getCSRFToken(),
             'Content-Type': 'application/json'
-        };
-    }
-
-    async getOrders(page = 1, dateRange = null) {
-        const url = `${this.baseUrl}/orders?page=${page}`;
-        const body = {};
-        
-        if (dateRange) {
-            body.date_range = {
-                start: dateRange.start,
-                end: dateRange.end
-            };
         }
+    });
+    return response.data;
+};
 
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: this.headers,
-            body: JSON.stringify(body)
-        });
-
-        if (!response.ok) {
-            // Log seguro - não expor token completo
-            const tokenMasked = API_TOKEN ? `${API_TOKEN.substring(0, 6)}...${API_TOKEN.slice(-4)}` : 'não configurado';
-            console.error('❌ Erro PrimeCOD API:', {
-                status: response.status,
-                statusText: response.statusText,
-                url: url.replace(/Bearer [^&]*/, 'Bearer [TOKEN_MASKED]'),
-                tokenStatus: API_TOKEN ? 'presente' : 'ausente',
-                tokenLength: API_TOKEN ? API_TOKEN.length : 0
-            });
-            
-            // Error handling mais específico
-            if (response.status === 401) {
-                throw new Error('Token PrimeCOD inválido ou expirado. Verifique as credenciais.');
-            } else if (response.status === 403) {
-                throw new Error('Token sem permissões necessárias. Contate o suporte PrimeCOD.');
-            } else if (response.status === 429) {
-                throw new Error('Muitas requisições. Aguarde alguns minutos e tente novamente.');
-            } else if (response.status >= 500) {
-                throw new Error(`Erro interno da API PrimeCOD (${response.status}). Tente novamente.`);
-            } else {
-                throw new Error(`Erro na API PrimeCOD: ${response.status} ${response.statusText}`);
-            }
-        }
-
-        return await response.json();
-    }
-}
+const testarConexaoPrimeCOD = async () => {
+    const response = await axios.get('/api/metricas/primecod/testar-conexao/');
+    return response.data;
+};
 
 function PrimecodPage() {
     // Estados principais
@@ -160,24 +104,20 @@ function PrimecodPage() {
     const [notification, setNotification] = useState(null);
     const [progressoAtual, setProgressoAtual] = useState(null);
     
-    // Estado para rastreamento de compatibilidade
-    const [backendCompatible, setBackendCompatible] = useState(true);
+    // Estado para verificação de conectividade backend
+    const [statusBackend, setStatusBackend] = useState({ conectado: false, verificando: true });
 
     // Estados para ordenação
     const [sortBy, setSortBy] = useState(null);
     const [sortOrder, setSortOrder] = useState('asc');
 
-    // Cliente API
-    const [apiClient] = useState(new PrimeCODClient());
 
     // ======================== FUNÇÕES DE API ========================
 
     const fetchAnalises = async () => {
         setLoadingAnalises(true);
         try {
-            // Usar endpoint correto com fallback automático
-            const response = await axios.get('/metricas/primecod/analises/');
-            // Backend já filtra por PRIMECOD, mas aplicamos filtro adicional por segurança
+            const response = await axios.get('/api/metricas/primecod/analises/');
             const primecodAnalises = response.data.filter(a => 
                 a.tipo === 'PRIMECOD' || a.tipo === 'primecod'
             );
@@ -195,12 +135,6 @@ function PrimecodPage() {
     };
 
     const processarDados = async () => {
-        // Validação de token primeiro
-        if (!API_TOKEN) {
-            showNotification('error', 'Token PrimeCOD não configurado. Verifique o arquivo .env');
-            return;
-        }
-        
         if (!dateRange?.from || !dateRange?.to) {
             showNotification('error', 'Selecione o período de análise');
             return;
@@ -211,96 +145,53 @@ function PrimecodPage() {
             return;
         }
 
+        if (!statusBackend.conectado) {
+            showNotification('error', 'Backend PrimeCOD não está disponível');
+            return;
+        }
+
         setLoadingProcessar(true);
-        setProgressoAtual({ etapa: 'Iniciando busca de dados...', porcentagem: 0 });
+        setProgressoAtual({ etapa: 'Conectando com PrimeCOD...', porcentagem: 0 });
 
         try {
             const dataInicio = dateRange.from.toISOString().split('T')[0];
             const dataFim = dateRange.to.toISOString().split('T')[0];
             
-            // Buscar todas as páginas de dados
-            let todasOrders = [];
-            let paginaAtual = 1;
-            let totalPaginas = 1;
-            let parar = false;
-
-            while (paginaAtual <= totalPaginas && paginaAtual <= 400 && !parar) {
-                setProgressoAtual({ 
-                    etapa: `Processando página ${paginaAtual} de ${totalPaginas}...`, 
-                    porcentagem: Math.round((paginaAtual / Math.max(totalPaginas, 1)) * 100) 
-                });
-
-                try {
-                    const response = await apiClient.getOrders(paginaAtual, {
-                        start: dataInicio,
-                        end: dataFim
-                    });
-
-                    if (response.data && response.data.length > 0) {
-                        // Filtrar localmente por created_at (API ignora filtro)
-                        const ordersFiltradas = response.data.filter(order => {
-                            const orderDate = new Date(order.created_at).toISOString().split('T')[0];
-                            return orderDate >= dataInicio && orderDate <= dataFim;
-                        });
-
-                        todasOrders = todasOrders.concat(ordersFiltradas);
-
-                        // Se todas as datas são anteriores ao período, parar
-                        const todasAnteriores = response.data.every(order => {
-                            const orderDate = new Date(order.created_at).toISOString().split('T')[0];
-                            return orderDate < dataInicio;
-                        });
-
-                        if (todasAnteriores) {
-                            parar = true;
-                        }
-
-                        // Atualizar total de páginas se disponível
-                        if (response.last_page) {
-                            totalPaginas = response.last_page;
-                        }
-                    } else {
-                        parar = true;
-                    }
-
-                    paginaAtual++;
-                    
-                    // Pequeno delay para não sobrecarregar a API
-                    await new Promise(resolve => setTimeout(resolve, 100));
-
-                } catch (error) {
-                    console.warn(`Erro na página ${paginaAtual}:`, error);
-                    parar = true;
-                }
-            }
-
-            setProgressoAtual({ etapa: 'Processando dados coletados...', porcentagem: 95 });
-
-            // Processar dados coletados
-            const dadosProcessados = processarOrdersPrimeCOD(todasOrders, paisSelecionado);
-            setDadosResultado(dadosProcessados);
+            setProgressoAtual({ etapa: 'Buscando dados...', porcentagem: 50 });
             
-            // Gerar nome automático
-            const paisNome = paisSelecionado === 'todos' ? 
-                'Todos os Países' : 
-                PAISES_PRIMECOD.find(p => p.value === paisSelecionado)?.label || 'País';
-            const dataStr = `${dateRange.from.toLocaleDateString('pt-BR')} - ${dateRange.to.toLocaleDateString('pt-BR')}`;
-            setNomeAnalise(`PrimeCOD ${paisNome} ${dataStr}`);
+            // Chamar endpoint interno do backend
+            const result = await buscarDadosPrimeCOD(dataInicio, dataFim, paisSelecionado);
+            
+            setProgressoAtual({ etapa: 'Processando dados...', porcentagem: 90 });
+            
+            if (result.status === 'success' && result.dados_processados) {
+                setDadosResultado(result.dados_processados);
+                
+                // Gerar nome automático
+                const paisNome = paisSelecionado === 'todos' ? 
+                    'Todos os Países' : 
+                    PAISES_PRIMECOD.find(p => p.value === paisSelecionado)?.label || 'País';
+                const dataStr = `${dateRange.from.toLocaleDateString('pt-BR')} - ${dateRange.to.toLocaleDateString('pt-BR')}`;
+                setNomeAnalise(`PrimeCOD ${paisNome} ${dataStr}`);
 
-            showNotification('success', `Dados processados: ${todasOrders.length} orders encontradas`);
+                showNotification('success', 
+                    `Dados processados com sucesso! ${result.total_orders || 0} orders encontradas` +
+                    (result.tempo_processamento ? ` (${result.tempo_processamento})` : '')
+                );
+            } else {
+                showNotification('error', result.message || 'Erro no processamento dos dados');
+            }
             
         } catch (error) {
             console.error('Erro no processamento:', error);
             
-            // Error handling robusto baseado no tipo de erro
-            if (error.message && error.message.includes('Token PrimeCOD inválido')) {
-                showNotification('error', 'Token PrimeCOD inválido ou expirado. Verifique as credenciais.');
-            } else if (error.message && error.message.includes('Token sem permissões')) {
-                showNotification('error', 'Token PrimeCOD sem permissões necessárias. Contate o suporte.');
-            } else if (error.message && error.message.includes('Token PrimeCOD não configurado')) {
-                showNotification('error', 'CONFIGURAÇÃO: Token PrimeCOD não encontrado no .env');
+            // Error handling específico para backend
+            if (error.response?.status === 500) {
+                showNotification('error', 'Erro interno do servidor. Tente novamente.');
+            } else if (error.response?.status === 503) {
+                showNotification('error', 'Serviço PrimeCOD temporariamente indisponível.');
             } else {
-                showNotification('error', `Erro na busca de dados: ${error.message}`);
+                showNotification('error', `Erro: ${error.response?.data?.message || error.message}`);
             }
         } finally {
             setLoadingProcessar(false);
@@ -308,66 +199,6 @@ function PrimecodPage() {
         }
     };
 
-    const processarOrdersPrimeCOD = (orders, paisFiltro) => {
-        // Filtrar por país se especificado
-        let ordersFiltradas = orders;
-        if (paisFiltro !== 'todos') {
-            ordersFiltradas = orders.filter(order => 
-                order.shipping_country === paisFiltro
-            );
-        }
-
-        // Agrupar por produto + país + status
-        const agrupamento = {};
-        
-        ordersFiltradas.forEach(order => {
-            const produto = order.product_sku || 'Sem SKU';
-            const pais = order.shipping_country || 'Sem País';
-            const statusId = order.status_id;
-            const statusNome = STATUS_MAPPING[statusId] || `Status ${statusId}`;
-
-            const chave = `${produto}|${pais}`;
-            
-            if (!agrupamento[chave]) {
-                agrupamento[chave] = {
-                    produto,
-                    pais,
-                    ...Object.values(STATUS_MAPPING).reduce((acc, status) => {
-                        acc[status] = 0;
-                        return acc;
-                    }, {}),
-                    total: 0
-                };
-            }
-
-            agrupamento[chave][statusNome] = (agrupamento[chave][statusNome] || 0) + 1;
-            agrupamento[chave].total += 1;
-        });
-
-        // Converter para array e ordenar
-        const resultado = Object.values(agrupamento).sort((a, b) => {
-            if (a.produto !== b.produto) {
-                return a.produto.localeCompare(b.produto);
-            }
-            return a.pais.localeCompare(b.pais);
-        });
-
-        // Adicionar linha de totais
-        if (resultado.length > 0) {
-            const totais = {
-                produto: 'TOTAL',
-                pais: 'TODOS',
-                ...Object.values(STATUS_MAPPING).reduce((acc, status) => {
-                    acc[status] = resultado.reduce((sum, item) => sum + (item[status] || 0), 0);
-                    return acc;
-                }, {}),
-                total: resultado.reduce((sum, item) => sum + item.total, 0)
-            };
-            resultado.push(totais);
-        }
-
-        return resultado;
-    };
 
     const salvarAnalise = async () => {
         if (!dadosResultado || !nomeAnalise) {
@@ -381,8 +212,8 @@ function PrimecodPage() {
             const dadosParaSalvar = {
                 nome: nomeAnalise.trim(),
                 tipo: 'PRIMECOD',
-                dados_processados: dadosResultado, // Campo agora suportado pelo backend
-                descricao: `Integração API PrimeCOD - ${paisSelecionado === 'todos' ? 'Todos os Países' : PAISES_PRIMECOD.find(p => p.value === paisSelecionado)?.label}`,
+                dados_processados: dadosResultado,
+                descricao: `Integração Backend PrimeCOD - ${paisSelecionado === 'todos' ? 'Todos os Países' : PAISES_PRIMECOD.find(p => p.value === paisSelecionado)?.label}`,
                 configuracao: {
                     pais: paisSelecionado,
                     periodo: {
@@ -393,7 +224,7 @@ function PrimecodPage() {
                 }
             };
 
-            const response = await axios.post('/metricas/primecod/analises/', dadosParaSalvar, {
+            const response = await axios.post('/api/metricas/primecod/analises/', dadosParaSalvar, {
                 headers: {
                     'X-CSRFToken': getCSRFToken(),
                     'Content-Type': 'application/json'
@@ -446,7 +277,7 @@ function PrimecodPage() {
 
         setLoadingDelete(prev => ({ ...prev, [id]: true }));
         try {
-            await axios.delete(`/metricas/primecod/analises/${id}/`, {
+            await axios.delete(`/api/metricas/primecod/analises/${id}/`, {
                 headers: {
                     'X-CSRFToken': getCSRFToken(),
                     'Content-Type': 'application/json'
@@ -521,17 +352,22 @@ function PrimecodPage() {
             </div>
             
             <div className="flex items-center gap-3">
-                {/* Indicador de Status de Configuração */}
+                {/* Indicador de Status Backend */}
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border">
-                    {backendCompatible ? (
+                    {statusBackend.verificando ? (
+                        <>
+                            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                            <span className="text-sm text-yellow-600 font-medium">Verificando...</span>
+                        </>
+                    ) : statusBackend.conectado ? (
                         <>
                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <span className="text-sm text-green-600 font-medium">API Configurada</span>
+                            <span className="text-sm text-green-600 font-medium">Backend Ativo</span>
                         </>
                     ) : (
                         <>
                             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                            <span className="text-sm text-red-600 font-medium">Token Pendente</span>
+                            <span className="text-sm text-red-600 font-medium">Backend Offline</span>
                         </>
                     )}
                 </div>
@@ -568,7 +404,7 @@ function PrimecodPage() {
             {loadingProcessar && (
                 <div className="absolute inset-0 bg-background/95 backdrop-blur flex flex-col items-center justify-center z-10 rounded-lg">
                     <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
-                    <p className="font-medium mb-2 text-foreground">Buscando dados da API PrimeCOD...</p>
+                    <p className="font-medium mb-2 text-foreground">Processando dados via backend...</p>
                     {progressoAtual && (
                         <>
                             <Progress value={progressoAtual.porcentagem} className="w-60 mb-2" />
@@ -598,7 +434,7 @@ function PrimecodPage() {
                         
                         <Button
                             onClick={processarDados}
-                            disabled={!dateRange?.from || !dateRange?.to || loadingProcessar || !backendCompatible}
+                            disabled={!dateRange?.from || !dateRange?.to || loadingProcessar || !statusBackend.conectado}
                             size="lg"
                             className="min-w-36 bg-primary text-primary-foreground hover:bg-primary/90"
                         >
@@ -873,46 +709,46 @@ function PrimecodPage() {
 
     // ======================== EFEITOS ========================
 
-    useEffect(() => {
-        // Verificação robusta de configuração na inicialização
-        const verificarConfiguracao = () => {
-            if (!API_TOKEN) {
-                setBackendCompatible(false);
-                showNotification('error', 'CONFIGURAÇÃO OBRIGATÓRIA: Configure REACT_APP_PRIMECOD_TOKEN no .env');
-                console.error('🛡️ SEGURANÇA: Token PrimeCOD obrigatório não encontrado');
-                console.error('📋 INSTRUÇÕES:', {
-                    passo1: 'Crie/edite o arquivo .env na raiz do projeto frontend',
-                    passo2: 'Adicione: REACT_APP_PRIMECOD_TOKEN=seu_token_aqui',
-                    passo3: 'Reinicie o servidor de desenvolvimento'
-                });
-                return false;
-            } else if (API_TOKEN.length < 10) {
-                showNotification('error', 'Token PrimeCOD parece inválido. Verifique o formato.');
-                console.warn('⚠️ Token muito curto, possivelmente inválido');
-                return false;
-            } else {
-                console.log('✅ Token PrimeCOD configurado e validado');
-                setBackendCompatible(true);
+    const verificarBackend = async () => {
+        try {
+            const result = await testarConexaoPrimeCOD();
+            if (result.status === 'success') {
+                setStatusBackend({ conectado: true, verificando: false });
+                console.log('✅ Backend PrimeCOD conectado');
                 return true;
+            } else {
+                setStatusBackend({ conectado: false, verificando: false });
+                showNotification('error', 'Backend PrimeCOD não está respondendo');
+                return false;
             }
+        } catch (error) {
+            setStatusBackend({ conectado: false, verificando: false });
+            console.error('❌ Erro ao verificar backend:', error);
+            showNotification('error', 'Erro ao conectar com o backend PrimeCOD');
+            return false;
+        }
+    };
+
+    useEffect(() => {
+        const inicializar = async () => {
+            // Verificar conexão com backend
+            const backendOk = await verificarBackend();
+            
+            // Buscar análises independente do status do backend
+            fetchAnalises();
+            
+            // Definir período padrão (última semana)
+            const hoje = new Date();
+            const semanaPassada = new Date();
+            semanaPassada.setDate(hoje.getDate() - 7);
+            
+            setDateRange({
+                from: semanaPassada,
+                to: hoje
+            });
         };
         
-        const tokenValido = verificarConfiguracao();
-        
-        // Só buscar análises se token estiver válido
-        if (tokenValido) {
-            fetchAnalises();
-        }
-        
-        // Definir período padrão (última semana)
-        const hoje = new Date();
-        const semanaPassada = new Date();
-        semanaPassada.setDate(hoje.getDate() - 7);
-        
-        setDateRange({
-            from: semanaPassada,
-            to: hoje
-        });
+        inicializar();
     }, []);
 
     // ======================== RENDER PRINCIPAL ========================
@@ -967,20 +803,32 @@ function PrimecodPage() {
                     <div className="space-y-6">
                         {/* Status de Configuração */}
                         <div>
-                            <h4 className="text-lg font-semibold mb-3">🔧 Status de Configuração</h4>
-                            <Card className={`border-2 ${backendCompatible ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+                            <h4 className="text-lg font-semibold mb-3">🔧 Status do Sistema</h4>
+                            <Card className={`border-2 ${
+                                statusBackend.verificando ? 'border-yellow-200 bg-yellow-50' :
+                                statusBackend.conectado ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+                            }`}>
                                 <CardContent className="p-4">
                                     <div className="flex items-center gap-3">
-                                        <div className={`w-3 h-3 rounded-full ${backendCompatible ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`}></div>
+                                        <div className={`w-3 h-3 rounded-full ${
+                                            statusBackend.verificando ? 'bg-yellow-500 animate-pulse' :
+                                            statusBackend.conectado ? 'bg-green-500' : 'bg-red-500 animate-pulse'
+                                        }`}></div>
                                         <div>
-                                            <p className={`font-medium ${backendCompatible ? 'text-green-700' : 'text-red-700'}`}>
-                                                {backendCompatible ? 'API PrimeCOD Configurada' : 'Configuração Pendente'}
+                                            <p className={`font-medium ${
+                                                statusBackend.verificando ? 'text-yellow-700' :
+                                                statusBackend.conectado ? 'text-green-700' : 'text-red-700'
+                                            }`}>
+                                                {statusBackend.verificando ? 'Verificando Backend...' :
+                                                 statusBackend.conectado ? 'Backend PrimeCOD Ativo' : 'Backend Indisponível'}
                                             </p>
-                                            <p className={`text-sm ${backendCompatible ? 'text-green-600' : 'text-red-600'}`}>
-                                                {backendCompatible ? 
-                                                    'Token válido e sistema pronto para uso' : 
-                                                    'Configure REACT_APP_PRIMECOD_TOKEN no arquivo .env'
-                                                }
+                                            <p className={`text-sm ${
+                                                statusBackend.verificando ? 'text-yellow-600' :
+                                                statusBackend.conectado ? 'text-green-600' : 'text-red-600'
+                                            }`}>
+                                                {statusBackend.verificando ? 'Testando conectividade com PrimeCOD...' :
+                                                 statusBackend.conectado ? 'Proxy backend funcionando normalmente' : 
+                                                 'Verifique se o backend está rodando'}
                                             </p>
                                         </div>
                                     </div>
@@ -991,16 +839,16 @@ function PrimecodPage() {
                         <Separator className="bg-border" />
 
                         <div>
-                            <h4 className="text-lg font-semibold text-green-600 mb-3">🔗 Integração API Direta</h4>
+                            <h4 className="text-lg font-semibold text-green-600 mb-3">🔗 Integração via Backend</h4>
                             <p className="text-sm text-muted-foreground mb-4">
-                                Esta ferramenta conecta diretamente com a API do PrimeCOD para buscar dados em tempo real.
+                                Esta ferramenta usa o backend Django como proxy para a API do PrimeCOD, garantindo segurança e performance.
                             </p>
                             
                             <div className="space-y-2">
-                                <p className="text-sm text-foreground">• <strong>Fonte:</strong> API PrimeCOD oficial</p>
-                                <p className="text-sm text-foreground">• <strong>Limite:</strong> Até 400 páginas por busca</p>
+                                <p className="text-sm text-foreground">• <strong>Arquitetura:</strong> Frontend → Backend Django → API PrimeCOD</p>
+                                <p className="text-sm text-foreground">• <strong>Segurança:</strong> Token API protegido no backend</p>
                                 <p className="text-sm text-foreground">• <strong>Filtros:</strong> Período de datas e países</p>
-                                <p className="text-sm text-foreground">• <strong>Dados:</strong> Produto, País, Status das orders</p>
+                                <p className="text-sm text-foreground">• <strong>Processamento:</strong> Backend otimizado com cache</p>
                             </div>
                         </div>
 

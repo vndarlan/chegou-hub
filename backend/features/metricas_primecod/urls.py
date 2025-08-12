@@ -1,6 +1,12 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import AnalisePrimeCODViewSet, StatusMappingPrimeCODViewSet
+from .views import (
+    AnalisePrimeCODViewSet, 
+    StatusMappingPrimeCODViewSet,
+    buscar_orders_primecod,
+    processar_dados_primecod,
+    testar_conexao_primecod
+)
 
 router = DefaultRouter()
 router.register(r'analises', AnalisePrimeCODViewSet, basename='analise_primecod')
@@ -8,4 +14,9 @@ router.register(r'status-mapping', StatusMappingPrimeCODViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    
+    # Endpoints Proxy para API PrimeCOD (NOVOS)
+    path('buscar-orders/', buscar_orders_primecod, name='buscar_orders_primecod'),
+    path('processar-dados/', processar_dados_primecod, name='processar_dados_primecod'),
+    path('testar-conexao/', testar_conexao_primecod, name='testar_conexao_primecod'),
 ]

@@ -1,5 +1,5 @@
 from rest_framework import viewsets, status, permissions
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
@@ -11,10 +11,14 @@ from .serializers import (
     StatusMappingPrimeCODSerializer
 )
 from .utils import PrimeCODProcessor
+from .utils.primecod_client import PrimeCODClient, PrimeCODAPIError
 import pandas as pd
 import json
 import re
+import logging
 from collections import defaultdict
+
+logger = logging.getLogger(__name__)
 
 class AnalisePrimeCODViewSet(viewsets.ModelViewSet):
     serializer_class = AnalisePrimeCODSerializer
@@ -171,3 +175,202 @@ class StatusMappingPrimeCODViewSet(viewsets.ModelViewSet):
     queryset = StatusMappingPrimeCOD.objects.all()
     serializer_class = StatusMappingPrimeCODSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+
+# ===== ENDPOINTS PROXY PARA API PRIMECOD =====
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def buscar_orders_primecod(request):
+    """
+    Proxy para buscar orders da API PrimeCOD de forma segura
+    Substitui chamadas diretas do frontend para a API externa
+    """
+    try:
+        # Extrair parâmetros da requisição
+        data_inicio = request.data.get('data_inicio')
+        data_fim = request.data.get('data_fim')
+        pais_filtro = request.data.get('pais_filtro')
+        max_paginas = request.data.get('max_paginas', 50)  # Limite padrão menor
+        
+        logger.info(f"Usuário {request.user.username} iniciou busca PrimeCOD: {data_inicio} a {data_fim}")
+        
+        # Validar parâmetros
+        if not data_inicio or not data_fim:
+            return Response({
+                'status': 'error',
+                'message': 'Parâmetros data_inicio e data_fim são obrigatórios'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Inicializar cliente PrimeCOD
+        try:
+            client = PrimeCODClient()
+        except PrimeCODAPIError as e:
+            logger.error(f"Erro ao inicializar cliente PrimeCOD: {str(e)}")
+            return Response({
+                'status': 'error',
+                'message': 'Erro de configuração da API PrimeCOD. Contate o administrador.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Preparar filtro de data
+        date_range = {
+            'start': data_inicio,
+            'end': data_fim
+        }
+        
+        # Buscar orders com paginação progressiva
+        try:
+            resultado = client.get_orders(
+                page=1,
+                date_range=date_range,
+                max_pages=max_paginas
+            )
+            
+            # Processar os dados dos orders
+            orders_processados = client.process_orders_data(
+                orders=resultado['orders'],
+                pais_filtro=pais_filtro
+            )
+            
+            # Combinar resultados
+            resposta = {
+                'status': 'success',
+                'dados_brutos': {
+                    'total_orders': resultado['total_orders'],
+                    'pages_processed': resultado['pages_processed'],
+                    'date_range_applied': resultado['date_range_applied']
+                },
+                'dados_processados': orders_processados['dados_processados'],
+                'estatisticas': orders_processados['estatisticas'],
+                'status_nao_mapeados': orders_processados['status_nao_mapeados'],
+                'message': f"Busca concluída: {resultado['total_orders']} orders encontrados"
+            }
+            
+            logger.info(f"Busca PrimeCOD concluída para {request.user.username}: {resultado['total_orders']} orders")
+            return Response(resposta)
+            
+        except PrimeCODAPIError as e:
+            logger.error(f"Erro na API PrimeCOD: {str(e)}")
+            return Response({
+                'status': 'error',
+                'message': f'Erro na API PrimeCOD: {str(e)}'
+            }, status=status.HTTP_502_BAD_GATEWAY)
+            
+    except Exception as e:
+        logger.error(f"Erro inesperado em buscar_orders_primecod: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Erro interno do servidor: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def processar_dados_primecod(request):
+    """
+    Processa dados já buscados da API PrimeCOD
+    Permite reprocessamento com diferentes filtros sem nova busca na API
+    """
+    try:
+        # Extrair dados da requisição
+        orders_data = request.data.get('orders_data', [])
+        pais_filtro = request.data.get('pais_filtro')
+        nome_analise = request.data.get('nome_analise')
+        
+        if not orders_data:
+            return Response({
+                'status': 'error',
+                'message': 'Dados de orders são obrigatórios para processamento'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        logger.info(f"Processamento de dados PrimeCOD para {request.user.username}: {len(orders_data)} orders")
+        
+        # Inicializar cliente para processar dados
+        client = PrimeCODClient()
+        
+        # Processar dados
+        resultado = client.process_orders_data(
+            orders=orders_data,
+            pais_filtro=pais_filtro
+        )
+        
+        # Se nome_analise foi fornecido, salvar a análise
+        if nome_analise:
+            try:
+                analise = AnalisePrimeCOD.objects.create(
+                    nome=nome_analise,
+                    tipo='PRIMECOD_API',
+                    criado_por=request.user,
+                    dados_processados=resultado['dados_processados'],
+                    dados_orders=orders_data  # Manter dados originais também
+                )
+                
+                serializer = AnalisePrimeCODSerializer(analise)
+                
+                return Response({
+                    'status': 'success',
+                    'analise_salva': True,
+                    'analise_id': analise.id,
+                    'analise': serializer.data,
+                    'dados_processados': resultado['dados_processados'],
+                    'estatisticas': resultado['estatisticas'],
+                    'status_nao_mapeados': resultado['status_nao_mapeados'],
+                    'message': f"Análise '{nome_analise}' salva com sucesso!"
+                })
+                
+            except Exception as e:
+                logger.error(f"Erro ao salvar análise: {str(e)}")
+                # Retornar dados processados mesmo se falhou ao salvar
+                return Response({
+                    'status': 'warning',
+                    'analise_salva': False,
+                    'dados_processados': resultado['dados_processados'],
+                    'estatisticas': resultado['estatisticas'],
+                    'status_nao_mapeados': resultado['status_nao_mapeados'],
+                    'message': f"Dados processados com sucesso, mas erro ao salvar: {str(e)}"
+                })
+        
+        # Retornar apenas dados processados
+        return Response({
+            'status': 'success',
+            'analise_salva': False,
+            'dados_processados': resultado['dados_processados'],
+            'estatisticas': resultado['estatisticas'],
+            'status_nao_mapeados': resultado['status_nao_mapeados'],
+            'message': 'Dados processados com sucesso'
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro em processar_dados_primecod: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Erro ao processar dados: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def testar_conexao_primecod(request):
+    """
+    Testa conectividade com API PrimeCOD
+    Endpoint útil para verificar se as credenciais estão funcionando
+    """
+    try:
+        client = PrimeCODClient()
+        resultado = client.test_connection()
+        
+        if resultado['status'] == 'success':
+            return Response(resultado)
+        else:
+            return Response(resultado, status=status.HTTP_502_BAD_GATEWAY)
+            
+    except PrimeCODAPIError as e:
+        return Response({
+            'status': 'error',
+            'message': str(e)
+        }, status=status.HTTP_502_BAD_GATEWAY)
+    except Exception as e:
+        return Response({
+            'status': 'error',
+            'message': f'Erro inesperado: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
