@@ -802,9 +802,10 @@ function DropiPage() {
                 <CardContent className="p-0">
                     {/* Container com largura limitada forçada para prevenir overflow global */}
                     <div className="w-full max-w-[calc(100vw-280px)] overflow-x-auto">
-                        <Table className="w-full table-auto" style={{ minWidth: '1400px' }}>
-                                    <TableHeader>
-                                        <TableRow className="bg-muted/50 border-border">
+                        <div className="max-h-[600px] overflow-y-auto">
+                            <Table className="w-full table-auto" style={{ minWidth: '1400px' }}>
+                                        <TableHeader className="sticky top-0 z-10 bg-background shadow-sm">
+                                            <TableRow className="bg-muted/50 border-border">
                                             {colunas.map((col) => {
                                                 const isPais = col === 'País';
                                                 const isImagem = col === 'Imagem';
@@ -934,16 +935,17 @@ function DropiPage() {
                                         ))}
                                     </TableBody>
                                 </Table>
+                        </div>
                     </div>
                         
                         {/* Nota sobre scroll da tabela */}
                         <div className="px-4 pb-4 pt-2">
                             <div className="flex flex-col items-center gap-1">
                                 <p className="text-xs text-muted-foreground text-center">
-                                    💡 Role horizontalmente na área da tabela para ver todas as colunas de status
+                                    💡 Role horizontalmente e verticalmente na área da tabela - Cabeçalho sempre visível
                                 </p>
                                 <p className="text-xs text-muted-foreground/80 text-center">
-                                    (O scroll fica apenas na tabela, não no site todo)
+                                    (Máximo 600px de altura - Scroll independente do resto da página)
                                 </p>
                             </div>
                         </div>
