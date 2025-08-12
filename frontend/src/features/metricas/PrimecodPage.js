@@ -722,9 +722,16 @@ function PrimecodPage() {
                 return false;
             }
         } catch (error) {
-            setStatusBackend({ conectado: false, verificando: false });
             console.error('❌ Erro ao verificar backend:', error);
-            showNotification('error', 'Erro ao conectar com o backend PrimeCOD');
+            
+            // Tratamento específico para token não configurado
+            if (error.response?.status === 503) {
+                setStatusBackend({ conectado: false, verificando: false, status: 'token_nao_configurado' });
+                showNotification('error', 'Token PrimeCOD não configurado. Adicione PRIMECOD_API_TOKEN nas variáveis de ambiente do Railway.');
+            } else {
+                setStatusBackend({ conectado: false, verificando: false });
+                showNotification('error', 'Erro ao conectar com o backend PrimeCOD');
+            }
             return false;
         }
     };

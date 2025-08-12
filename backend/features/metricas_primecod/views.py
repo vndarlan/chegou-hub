@@ -202,6 +202,18 @@ def buscar_orders_primecod(request):
                 'message': 'Parâmetros data_inicio e data_fim são obrigatórios'
             }, status=status.HTTP_400_BAD_REQUEST)
         
+        # Verificar configuração do token antes de inicializar cliente
+        from django.conf import settings
+        token = getattr(settings, 'PRIMECOD_API_TOKEN', None)
+        
+        if not token or token == 'your_primecod_api_token_here':
+            logger.warning("PRIMECOD_API_TOKEN não configurado no ambiente")
+            return Response({
+                'status': 'error',
+                'message': 'Token PrimeCOD não configurado. Adicione PRIMECOD_API_TOKEN nas variáveis de ambiente do Railway.',
+                'configured': False
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        
         # Inicializar cliente PrimeCOD
         try:
             client = PrimeCODClient()
@@ -285,8 +297,27 @@ def processar_dados_primecod(request):
         
         logger.info(f"Processamento de dados PrimeCOD para {request.user.username}: {len(orders_data)} orders")
         
+        # Verificar configuração do token antes de inicializar cliente
+        from django.conf import settings
+        token = getattr(settings, 'PRIMECOD_API_TOKEN', None)
+        
+        if not token or token == 'your_primecod_api_token_here':
+            logger.warning("PRIMECOD_API_TOKEN não configurado no ambiente")
+            return Response({
+                'status': 'error',
+                'message': 'Token PrimeCOD não configurado. Adicione PRIMECOD_API_TOKEN nas variáveis de ambiente do Railway.',
+                'configured': False
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        
         # Inicializar cliente para processar dados
-        client = PrimeCODClient()
+        try:
+            client = PrimeCODClient()
+        except PrimeCODAPIError as e:
+            logger.error(f"Erro ao inicializar cliente PrimeCOD: {str(e)}")
+            return Response({
+                'status': 'error',
+                'message': 'Erro de configuração da API PrimeCOD. Contate o administrador.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         # Processar dados
         resultado = client.process_orders_data(
@@ -356,6 +387,18 @@ def testar_conexao_primecod(request):
     Endpoint útil para verificar se as credenciais estão funcionando
     """
     try:
+        # Primeiro verifica se o token está configurado
+        from django.conf import settings
+        token = getattr(settings, 'PRIMECOD_API_TOKEN', None)
+        
+        if not token or token == 'your_primecod_api_token_here':
+            logger.warning("PRIMECOD_API_TOKEN não configurado no ambiente")
+            return Response({
+                'status': 'error',
+                'message': 'Token PrimeCOD não configurado. Adicione PRIMECOD_API_TOKEN nas variáveis de ambiente do Railway.',
+                'configured': False
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        
         client = PrimeCODClient()
         resultado = client.test_connection()
         
@@ -365,11 +408,13 @@ def testar_conexao_primecod(request):
             return Response(resultado, status=status.HTTP_502_BAD_GATEWAY)
             
     except PrimeCODAPIError as e:
+        logger.error(f"Erro PrimeCOD API: {str(e)}")
         return Response({
             'status': 'error',
             'message': str(e)
         }, status=status.HTTP_502_BAD_GATEWAY)
     except Exception as e:
+        logger.error(f"Erro inesperado em testar_conexao_primecod: {str(e)}")
         return Response({
             'status': 'error',
             'message': f'Erro inesperado: {str(e)}'
