@@ -548,20 +548,58 @@ function DropiPage() {
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent 
-                                    className={`p-0 ${isMobile ? 'w-auto' : 'w-fit min-w-[640px]'}`} 
+                                    className="p-0 w-auto max-w-none" 
                                     align="start"
+                                    style={{
+                                        width: isMobile ? 'auto' : '680px',
+                                        maxWidth: 'none'
+                                    }}
                                 >
-                                    <Calendar
-                                        mode="range"
-                                        selected={periodoSelecionado}
-                                        onSelect={setPeriodoSelecionado}
-                                        disabled={(date) =>
-                                            date > new Date() || date < new Date("2020-01-01")
-                                        }
-                                        initialFocus
-                                        numberOfMonths={isMobile ? 1 : 2}
-                                        className="rounded-md border"
-                                    />
+                                    <div className={isMobile ? '' : 'grid grid-cols-2 gap-4 p-4'}>
+                                        {isMobile ? (
+                                            <Calendar
+                                                mode="range"
+                                                selected={periodoSelecionado}
+                                                onSelect={setPeriodoSelecionado}
+                                                disabled={(date) =>
+                                                    date > new Date() || date < new Date("2020-01-01")
+                                                }
+                                                initialFocus
+                                                numberOfMonths={1}
+                                                className="rounded-md border"
+                                            />
+                                        ) : (
+                                            <>
+                                                <Calendar
+                                                    mode="range"
+                                                    selected={periodoSelecionado}
+                                                    onSelect={setPeriodoSelecionado}
+                                                    disabled={(date) =>
+                                                        date > new Date() || date < new Date("2020-01-01")
+                                                    }
+                                                    initialFocus
+                                                    numberOfMonths={1}
+                                                    defaultMonth={periodoSelecionado?.from || new Date()}
+                                                    className="rounded-md border w-full"
+                                                />
+                                                <Calendar
+                                                    mode="range"
+                                                    selected={periodoSelecionado}
+                                                    onSelect={setPeriodoSelecionado}
+                                                    disabled={(date) =>
+                                                        date > new Date() || date < new Date("2020-01-01")
+                                                    }
+                                                    numberOfMonths={1}
+                                                    defaultMonth={
+                                                        periodoSelecionado?.from 
+                                                            ? new Date(periodoSelecionado.from.getFullYear(), periodoSelecionado.from.getMonth() + 1, 1)
+                                                            : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)
+                                                    }
+                                                    className="rounded-md border w-full"
+                                                />
+                                            </>
+                                        )}
+                                    </div>
                                 </PopoverContent>
                             </Popover>
                         </div>
