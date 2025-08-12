@@ -26,6 +26,7 @@ import { ScrollArea, ScrollBar } from '../../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 
 const PAISES = [
+    { value: 'todos', label: 'Todos os Países' },
     { value: 'mexico', label: 'México' },
     { value: 'chile', label: 'Chile' },
     { value: 'colombia', label: 'Colômbia' }
@@ -177,40 +178,94 @@ function DropiPage() {
         setProgressoAtual({ etapa: 'Iniciando...', porcentagem: 0 });
 
         try {
-            const response = await axios.post('/metricas/dropi/analises/extract_orders_new_api/', {
-                data_inicio: dataInicio,
-                data_fim: dataFim,
-                pais: paisSelecionado
-            }, {
-                headers: {
-                    'X-CSRFToken': getCSRFToken()
-                }
-            });
-
-            if (response.data.status === 'success') {
-                // Corrigido: usar 'pedidos' ao invés de 'dados_processados'
-                const pedidos = response.data.pedidos || [];
+            let todosPedidos = [];
+            
+            // Se selecionou "todos", fazer requisições para cada país
+            if (paisSelecionado === 'todos') {
+                const paisesParaProcessar = ['mexico', 'chile', 'colombia'];
+                let porcentagemBase = 0;
                 
-                console.log('[DEBUG] ===== DADOS COMPLETOS DA API DROPI =====');
+                for (const pais of paisesParaProcessar) {
+                    const paisLabel = PAISES.find(p => p.value === pais)?.label;
+                    setProgressoAtual({ 
+                        etapa: `Processando ${paisLabel}...`, 
+                        porcentagem: porcentagemBase 
+                    });
+                    
+                    const response = await axios.post('/metricas/dropi/analises/extract_orders_new_api/', {
+                        data_inicio: dataInicio,
+                        data_fim: dataFim,
+                        pais: pais
+                    }, {
+                        headers: {
+                            'X-CSRFToken': getCSRFToken()
+                        }
+                    });
+                    
+                    if (response.data.status === 'success' && response.data.pedidos) {
+                        // Adicionar o país a cada pedido para identificação
+                        const pedidosComPais = response.data.pedidos.map(pedido => ({
+                            ...pedido,
+                            pais_origem: paisLabel
+                        }));
+                        todosPedidos = [...todosPedidos, ...pedidosComPais];
+                    }
+                    
+                    porcentagemBase += 33;
+                }
+                
+                const pedidos = todosPedidos;
+                
+                console.log('[DEBUG] ===== DADOS COMPLETOS DA API DROPI (TODOS) =====');
                 console.log('[DATA] Total de pedidos:', pedidos.length);
-                console.log('[PAIS] País:', response.data.country || paisSelecionado);
-                console.log('[PERIODO] Período:', response.data.period || `${new Date(dataInicio).toLocaleDateString("pt-BR")} - ${new Date(dataFim).toLocaleDateString("pt-BR")}`);
-                console.log('[VALOR] Valor total:', response.data.valor_total || 'N/A');
-                console.log('[STATUS] Distribuição status:', response.data.status_distribution || {});
+                console.log('[PAIS] Todos os países processados');
+                console.log('[PERIODO] Período:', `${new Date(dataInicio).toLocaleDateString("pt-BR")} - ${new Date(dataFim).toLocaleDateString("pt-BR")}`);
                 console.log('');
-                console.log('[EXEMPLO] ===== EXEMPLO DE PEDIDO (ESTRUTURA) =====');
-                console.log('[PEDIDO] Primeiro pedido completo:', pedidos[0]);
-                console.log('');
-                console.log('[SUCESSO] Dados carregados na interface para análise visual!');
                 
                 setDadosResultado(pedidos);
+                showNotification('success', `${pedidos.length} pedidos extraídos de todos os países!`);
+                setNomeAnalise(`Todos os Países ${new Date(dataInicio).toLocaleDateString('pt-BR')} - ${new Date(dataFim).toLocaleDateString('pt-BR')}`);
                 
+            } else {
+                // Processar apenas um país
+                const response = await axios.post('/metricas/dropi/analises/extract_orders_new_api/', {
+                    data_inicio: dataInicio,
+                    data_fim: dataFim,
+                    pais: paisSelecionado
+                }, {
+                    headers: {
+                        'X-CSRFToken': getCSRFToken()
+                    }
+                });
                 
-                showNotification('success', `${pedidos.length} pedidos extraídos com sucesso!`);
-                
-                const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
-                const dataStr = `${new Date(dataInicio).toLocaleDateString('pt-BR')} - ${new Date(dataFim).toLocaleDateString('pt-BR')}`;
-                setNomeAnalise(`${paisNome} ${dataStr}`);
+                if (response.data.status === 'success') {
+                    const pedidos = response.data.pedidos || [];
+                    const paisLabel = PAISES.find(p => p.value === paisSelecionado)?.label;
+                    
+                    // Adicionar o país a cada pedido para padronização
+                    const pedidosComPais = pedidos.map(pedido => ({
+                        ...pedido,
+                        pais_origem: paisLabel
+                    }));
+                    
+                    console.log('[DEBUG] ===== DADOS COMPLETOS DA API DROPI =====');
+                    console.log('[DATA] Total de pedidos:', pedidosComPais.length);
+                    console.log('[PAIS] País:', paisLabel);
+                    console.log('[PERIODO] Período:', `${new Date(dataInicio).toLocaleDateString("pt-BR")} - ${new Date(dataFim).toLocaleDateString("pt-BR")}`);
+                    console.log('[VALOR] Valor total:', response.data.valor_total || 'N/A');
+                    console.log('[STATUS] Distribuição status:', response.data.status_distribution || {});
+                    console.log('');
+                    console.log('[EXEMPLO] ===== EXEMPLO DE PEDIDO (ESTRUTURA) =====');
+                    console.log('[PEDIDO] Primeiro pedido completo:', pedidosComPais[0]);
+                    console.log('');
+                    console.log('[SUCESSO] Dados carregados na interface para análise visual!');
+                    
+                    setDadosResultado(pedidosComPais);
+                    showNotification('success', `${pedidosComPais.length} pedidos extraídos com sucesso!`);
+                    
+                    const dataStr = `${new Date(dataInicio).toLocaleDateString('pt-BR')} - ${new Date(dataFim).toLocaleDateString('pt-BR')}`;
+                    setNomeAnalise(`${paisLabel} ${dataStr}`);
+                }
             }
         } catch (error) {
             console.error('Erro no processamento:', error);
@@ -309,16 +364,15 @@ function DropiPage() {
     const processarDadosParaTabela = (pedidos) => {
         if (!pedidos || !Array.isArray(pedidos) || pedidos.length === 0) return [];
 
-        // Obter o nome do país selecionado
-        const paisNome = PAISES.find(p => p.value === paisSelecionado)?.label || 'País';
-
-        // Agrupar por produto
+        // Agrupar por produto e país
         const produtosPorStatus = {};
         const produtosPorImagem = {}; // Para mapear produtos e suas imagens
+        const produtosPorPais = {}; // Para mapear produtos e seus países
 
         pedidos.forEach(pedido => {
             // CORREÇÃO: Usar a localização correta da API conforme especificado
             const produto = pedido.orderdetails?.[0]?.product?.name || 'Produto Desconhecido';
+            const paisPedido = pedido.pais_origem || 'País Desconhecido';
             let imagemProduto = null;
             const status = pedido.status || 'UNKNOWN';
 
@@ -344,6 +398,7 @@ function DropiPage() {
             if (!produtosPorStatus[produto]) {
                 produtosPorStatus[produto] = {};
                 produtosPorImagem[produto] = imagemProduto; // Salvar imagem para o produto
+                produtosPorPais[produto] = paisPedido; // Salvar país para o produto
             }
 
             if (!produtosPorStatus[produto][status]) {
@@ -359,7 +414,7 @@ function DropiPage() {
 
         Object.entries(produtosPorStatus).forEach(([produto, statusCount]) => {
             const row = { 
-                País: paisNome, // NOVA COLUNA: País como primeira
+                País: produtosPorPais[produto], // NOVA COLUNA: País do produto como primeira
                 Imagem: produtosPorImagem[produto], // Imagem como segunda
                 Produto: produto 
             };
@@ -390,8 +445,11 @@ function DropiPage() {
         tabelaData.sort((a, b) => b.Total - a.Total);
 
         // Adicionar linha TOTAL
+        const paisesUnicos = [...new Set(pedidos.map(p => p.pais_origem))];
+        const paisExibicao = paisesUnicos.length > 1 ? 'Todos os Países' : paisesUnicos[0] || 'País';
+        
         const totalGeral = {
-            País: paisNome, // País também na linha total
+            País: paisExibicao, // País também na linha total
             Imagem: null, // Total não tem imagem
             Produto: 'TOTAL',
             Total: pedidos.length,
@@ -720,8 +778,8 @@ function DropiPage() {
         const dadosOrdenados = sortData(dadosTabela, sortBy, sortOrder);
 
         return (
-            <Card className="mb-6 border-border bg-card">
-                <CardHeader className="pb-3">
+            <Card className="border-border bg-card flex flex-col">
+                <CardHeader className="pb-3 flex-shrink-0">
                     <div className="flex items-center justify-between">
                         <div>
                             <CardTitle className="text-lg text-card-foreground">Produtos por Status</CardTitle>
@@ -741,10 +799,10 @@ function DropiPage() {
                     </div>
                 </CardHeader>
 
-                <CardContent className="p-0">
-                    <div className="relative w-full overflow-hidden">
-                        <ScrollArea className="w-full">
-                            <div className="min-w-full overflow-x-auto">
+                <CardContent className="p-0 flex-1 min-h-0">
+                    <div className="h-96 overflow-hidden">
+                        <ScrollArea className="h-full w-full">
+                            <div className="min-w-full">
                                 <Table className="w-full">
                                     <TableHeader>
                                         <TableRow className="bg-muted/50 border-border">
@@ -886,11 +944,11 @@ function DropiPage() {
                         </ScrollArea>
                     </div>
                     
-                    {/* Nota sobre scroll da tabela - CORRIGIDA */}
-                    <div className="px-4 pb-4 pt-2 overflow-hidden">
+                    {/* Nota sobre scroll da tabela */}
+                    <div className="px-4 pb-4 pt-2 overflow-hidden flex-shrink-0">
                         <div className="flex flex-col items-center gap-1">
                             <p className="text-xs text-muted-foreground text-center">
-                                💡 Role horizontalmente dentro da tabela para ver todos os status de pedidos
+                                💡 Role horizontalmente e verticalmente dentro da tabela para ver todos os dados
                             </p>
                         </div>
                     </div>
@@ -1017,42 +1075,50 @@ function DropiPage() {
     // ======================== RENDER PRINCIPAL ========================
 
     return (
-        <div className="flex-1 space-y-4 p-3 sm:p-6 min-h-screen bg-background">
-            {/* Notificações */}
-            {notification && (
-                <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4 border-border">
-                    {notification.type === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
-                    <AlertDescription>{notification.message}</AlertDescription>
-                </Alert>
-            )}
+        <div className="flex flex-col h-screen bg-background">
+            {/* Header fixo */}
+            <div className="flex-shrink-0 p-3 sm:p-6 pb-0">
+                {/* Notificações */}
+                {notification && (
+                    <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4 border-border">
+                        {notification.type === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                        <AlertDescription>{notification.message}</AlertDescription>
+                    </Alert>
+                )}
 
-            {/* Header minimalista */}
-            {renderHeader()}
+                {/* Header minimalista */}
+                {renderHeader()}
 
-            {/* Navegação */}
-            <Tabs value={secaoAtiva} onValueChange={setSecaoAtiva} className="w-full">
-                <TabsList className="grid w-fit grid-cols-2 bg-muted">
-                    <TabsTrigger value="gerar" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
-                        <Rocket className="h-4 w-4 mr-2" />
-                        Gerar
-                    </TabsTrigger>
-                    <TabsTrigger value="salvas" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
-                        <BarChart3 className="h-4 w-4 mr-2" />
-                        Salvas
-                    </TabsTrigger>
-                </TabsList>
+                {/* Navegação */}
+                <Tabs value={secaoAtiva} onValueChange={setSecaoAtiva} className="w-full">
+                    <TabsList className="grid w-fit grid-cols-2 bg-muted">
+                        <TabsTrigger value="gerar" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
+                            <Rocket className="h-4 w-4 mr-2" />
+                            Gerar
+                        </TabsTrigger>
+                        <TabsTrigger value="salvas" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
+                            <BarChart3 className="h-4 w-4 mr-2" />
+                            Salvas
+                        </TabsTrigger>
+                    </TabsList>
+                </Tabs>
+            </div>
 
-                <TabsContent value="gerar" className="space-y-4">
-                    {renderFormulario()}
-                    {renderEstatisticas()}
-                    {renderExemploPedido()}
-                    {renderResultados()}
-                </TabsContent>
+            {/* Conteúdo com scroll controlado */}
+            <div className="flex-1 overflow-hidden px-3 sm:px-6">
+                <Tabs value={secaoAtiva} onValueChange={setSecaoAtiva} className="h-full flex flex-col">
+                    <TabsContent value="gerar" className="flex-1 overflow-y-auto space-y-4 mt-4">
+                        {renderFormulario()}
+                        {renderEstatisticas()}
+                        {renderExemploPedido()}
+                        {renderResultados()}
+                    </TabsContent>
 
-                <TabsContent value="salvas">
-                    {renderAnalisesSalvas()}
-                </TabsContent>
-            </Tabs>
+                    <TabsContent value="salvas" className="flex-1 overflow-y-auto mt-4">
+                        {renderAnalisesSalvas()}
+                    </TabsContent>
+                </Tabs>
+            </div>
 
             {/* Modal instruções */}
             <Dialog open={modalInstrucoes} onOpenChange={setModalInstrucoes}>
