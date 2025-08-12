@@ -486,50 +486,76 @@ function EcomhubPage() {
                         <Table className="w-full table-fixed" style={{ minWidth: '1000px' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
-                                    {colunas.map(col => (
-                                        <TableHead key={col} className="whitespace-nowrap px-2 py-2 text-xs text-muted-foreground">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-auto p-0 font-medium text-xs text-muted-foreground hover:text-foreground"
-                                                onClick={() => handleSort(col)}
-                                            >
-                                                {col.replace('_', ' ')}
-                                                {sortBy === col ? (
-                                                    sortOrder === 'asc' ? 
-                                                        <ArrowUp className="ml-1 h-3 w-3" /> : 
-                                                        <ArrowDown className="ml-1 h-3 w-3" />
-                                                ) : (
-                                                    <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
-                                                )}
-                                            </Button>
-                                        </TableHead>
-                                    ))}
+                                    {colunas.map(col => {
+                                        const isProduto = col === 'Produto';
+                                        const isImagem = col === 'Imagem';
+                                        
+                                        let classesHeader = 'whitespace-nowrap px-2 py-2 text-xs text-muted-foreground';
+                                        
+                                        if (isProduto) {
+                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border min-w-[150px]';
+                                        } else if (isImagem) {
+                                            classesHeader += ' sticky left-[150px] z-20 bg-background border-r border-border min-w-[80px]';
+                                        }
+                                        
+                                        return (
+                                            <TableHead key={col} className={classesHeader}>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-auto p-0 font-medium text-xs text-muted-foreground hover:text-foreground"
+                                                    onClick={() => handleSort(col)}
+                                                >
+                                                    {col.replace('_', ' ')}
+                                                    {sortBy === col ? (
+                                                        sortOrder === 'asc' ? 
+                                                            <ArrowUp className="ml-1 h-3 w-3" /> : 
+                                                            <ArrowDown className="ml-1 h-3 w-3" />
+                                                    ) : (
+                                                        <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
+                                                    )}
+                                                </Button>
+                                            </TableHead>
+                                        );
+                                    })}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {dadosOrdenados.map((row, idx) => (
                                     <TableRow key={idx} className={`border-border ${row.Produto === 'Total' ? 'bg-muted/20 font-medium' : ''}`}>
-                                        {colunas.map(col => (
-                                            <TableCell
-                                                key={col}
-                                                className={`px-2 py-2 text-xs text-card-foreground ${
-                                                    tipoVisualizacao === 'otimizada' &&
-                                                    (col === 'Efetividade_Total' || col === 'Efetividade_Parcial') ?
-                                                    `font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center` : ''
-                                                }`}
-                                            >
-                                                {col === 'Imagem' ? (
-                                                    renderImagemProduto(row[col], idx)
-                                                ) : col === 'Produto' ? (
-                                                    <div className="max-w-[120px] truncate" title={row[col]}>
-                                                        {row[col]}
-                                                    </div>
-                                                ) : (
-                                                    typeof row[col] === 'number' ? row[col].toLocaleString() : row[col]
-                                                )}
-                                            </TableCell>
-                                        ))}
+                                        {colunas.map(col => {
+                                            const isProduto = col === 'Produto';
+                                            const isImagem = col === 'Imagem';
+                                            
+                                            let classesCelula = `px-2 py-2 text-xs text-card-foreground ${
+                                                tipoVisualizacao === 'otimizada' &&
+                                                (col === 'Efetividade_Total' || col === 'Efetividade_Parcial') ?
+                                                `font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center` : ''
+                                            }`;
+                                            
+                                            if (isProduto) {
+                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border min-w-[150px]';
+                                            } else if (isImagem) {
+                                                classesCelula += ' sticky left-[150px] z-10 bg-background border-r border-border min-w-[80px]';
+                                            }
+                                            
+                                            return (
+                                                <TableCell
+                                                    key={col}
+                                                    className={classesCelula}
+                                                >
+                                                    {col === 'Imagem' ? (
+                                                        renderImagemProduto(row[col], idx)
+                                                    ) : col === 'Produto' ? (
+                                                        <div className="max-w-[120px] truncate" title={row[col]}>
+                                                            {row[col]}
+                                                        </div>
+                                                    ) : (
+                                                        typeof row[col] === 'number' ? row[col].toLocaleString() : row[col]
+                                                    )}
+                                                </TableCell>
+                                            );
+                                        })
                                     </TableRow>
                                 ))}
                             </TableBody>

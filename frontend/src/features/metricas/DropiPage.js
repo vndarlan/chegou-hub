@@ -815,11 +815,11 @@ function DropiPage() {
                                                 let classesSimples = 'px-4 py-3 text-xs text-muted-foreground font-medium text-left';
                                                 
                                                 if (isPais) {
-                                                    classesSimples += ' min-w-[130px] text-center font-semibold';
+                                                    classesSimples += ' min-w-[130px] text-center font-semibold sticky left-0 z-20 bg-background border-r border-border';
                                                 } else if (isImagem) {
-                                                    classesSimples += ' min-w-[70px] text-center';
+                                                    classesSimples += ' min-w-[70px] text-center sticky left-[130px] z-20 bg-background border-r border-border';
                                                 } else if (isProduto) {
-                                                    classesSimples += ' min-w-[220px]';
+                                                    classesSimples += ' min-w-[220px] sticky left-[200px] z-20 bg-background border-r border-border';
                                                 } else if (isEfetividade) {
                                                     classesSimples += ' min-w-[110px] text-center';
                                                 } else {
@@ -870,11 +870,11 @@ function DropiPage() {
                                                     let classesCelula = 'px-4 py-3 text-xs text-card-foreground text-left';
                                                     
                                                     if (isPais) {
-                                                        classesCelula += ' text-center font-semibold min-w-[130px]';
+                                                        classesCelula += ' text-center font-semibold min-w-[130px] sticky left-0 z-10 bg-background border-r border-border';
                                                     } else if (isImagem) {
-                                                        classesCelula += ' text-center min-w-[70px]';
+                                                        classesCelula += ' text-center min-w-[70px] sticky left-[130px] z-10 bg-background border-r border-border';
                                                     } else if (isProduto) {
-                                                        classesCelula += ' font-medium min-w-[220px]';
+                                                        classesCelula += ' font-medium min-w-[220px] sticky left-[200px] z-10 bg-background border-r border-border';
                                                     } else if (isEfetividade) {
                                                         classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center min-w-[110px]`;
                                                     } else {
@@ -942,10 +942,10 @@ function DropiPage() {
                         <div className="px-4 pb-4 pt-2">
                             <div className="flex flex-col items-center gap-1">
                                 <p className="text-xs text-muted-foreground text-center">
-                                    💡 Role horizontalmente e verticalmente na área da tabela - Cabeçalho sempre visível
+                                    💡 Role horizontalmente e verticalmente na área da tabela - Cabeçalho e primeiras 3 colunas sempre visíveis
                                 </p>
                                 <p className="text-xs text-muted-foreground/80 text-center">
-                                    (Máximo 600px de altura - Scroll independente do resto da página)
+                                    (País, Imagem e Produto fixos durante scroll horizontal - Máximo 600px de altura)
                                 </p>
                             </div>
                         </div>
