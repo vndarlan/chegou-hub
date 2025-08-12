@@ -162,12 +162,18 @@ export function AppSidebar({
     {
       title: "Suporte",
       icon: Phone,
-      isActive: location.pathname.includes('/workspace/processamento'),
+      isActive: location.pathname.includes('/workspace/processamento') ||
+                location.pathname.includes('/workspace/detector-ip'),
       items: [
         {
           title: "Processamento",
           url: "/workspace/processamento",
           isActive: location.pathname === "/workspace/processamento",
+        },
+        {
+          title: "Detector de IP",
+          url: "/workspace/detector-ip",
+          isActive: location.pathname === "/workspace/detector-ip",
         },
       ],
     }
