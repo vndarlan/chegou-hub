@@ -13,7 +13,8 @@ import {
   Sun,
   Calendar,
   Map,
-  MessageSquare
+  MessageSquare,
+  TrendingUp
 } from 'lucide-react'
 
 import {
@@ -102,8 +103,8 @@ export function AppSidebar({
     });
   }
 
-  // Setores items
-  const setoresItems = [
+  // Times items (anteriormente Setores)
+  const timesItems = [
     {
       title: "IA & Automações",
       icon: Bot,
@@ -141,28 +142,6 @@ export function AppSidebar({
       ],
     },
     {
-      title: "Métricas",
-      icon: BarChart3,
-      isActive: location.pathname.includes('/workspace/metricas/'),
-      items: [
-        {
-          title: "PRIMECOD",
-          url: "/workspace/metricas/primecod",
-          isActive: location.pathname === "/workspace/metricas/primecod",
-        },
-        {
-          title: "ECOMHUB",
-          url: "/workspace/metricas/ecomhub",
-          isActive: location.pathname === "/workspace/metricas/ecomhub",
-        },
-        {
-          title: "Dropi",
-          url: "/workspace/metricas/dropi",
-          isActive: location.pathname === "/workspace/metricas/dropi",
-        },
-      ],
-    },
-    {
       title: "Operacional",
       icon: Settings,
       isActive: location.pathname.includes('/workspace/engajamento') ||
@@ -189,6 +168,32 @@ export function AppSidebar({
           title: "Processamento",
           url: "/workspace/processamento",
           isActive: location.pathname === "/workspace/processamento",
+        },
+      ],
+    }
+  ];
+
+  // Métricas items (nova categoria principal)
+  const metricasItems = [
+    {
+      title: "Efetividade",
+      icon: TrendingUp,
+      isActive: location.pathname.includes('/workspace/metricas/'),
+      items: [
+        {
+          title: "Dropi",
+          url: "/workspace/metricas/dropi",
+          isActive: location.pathname === "/workspace/metricas/dropi",
+        },
+        {
+          title: "PRIMECOD",
+          url: "/workspace/metricas/primecod",
+          isActive: location.pathname === "/workspace/metricas/primecod",
+        },
+        {
+          title: "ECOMHUB",
+          url: "/workspace/metricas/ecomhub",
+          isActive: location.pathname === "/workspace/metricas/ecomhub",
         },
       ],
     }
@@ -253,9 +258,58 @@ export function AppSidebar({
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Setores</SidebarGroupLabel>
+          <SidebarGroupLabel>Times</SidebarGroupLabel>
           <SidebarMenu>
-            {setoresItems.map((item) => (
+            {timesItems.map((item) => (
+              <Collapsible
+                key={item.title}
+                asChild
+                defaultOpen={item.isActive}
+                className="group/collapsible"
+              >
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton 
+                      tooltip={item.title} 
+                      isActive={item.isActive}
+                    >
+                      <item.icon className="size-4" />
+                      <span>{item.title}</span>
+                      <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {item.items?.map((subItem) => (
+                        <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubButton 
+                            asChild
+                            isActive={subItem.isActive}
+                          >
+                            <a
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleNavigation(subItem);
+                              }}
+                            >
+                              <span>{subItem.title}</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Métricas</SidebarGroupLabel>
+          <SidebarMenu>
+            {metricasItems.map((item) => (
               <Collapsible
                 key={item.title}
                 asChild
