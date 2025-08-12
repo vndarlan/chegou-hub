@@ -698,7 +698,7 @@ function ProcessamentoPage() {
                             <p className="text-sm text-muted-foreground">Execute uma busca para detectar pedidos duplicados</p>
                         </div>
                     ) : duplicates.length > 0 ? (
-                        {/* Container com largura limitada forçada para prevenir overflow global */}
+                        // Container com largura limitada forçada para prevenir overflow global
                         <div className="w-full max-w-[calc(100vw-280px)] overflow-x-auto">
                             <div className="rounded-md border border-border" style={{ minWidth: '800px' }}>
                                 <Table className="w-full table-fixed">
