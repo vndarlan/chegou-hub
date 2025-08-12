@@ -801,8 +801,9 @@ function DropiPage() {
                     </CardHeader>
 
                     <CardContent className="p-0">
-                        <div className="overflow-x-auto">
-                            <Table className="w-max min-w-full">
+                        <div className="w-full overflow-x-auto">
+                            <div className="min-w-max">
+                                <Table className="w-full table-auto">
                                     <TableHeader>
                                         <TableRow className="bg-muted/50 border-border">
                                             {colunas.map((col) => {
@@ -814,15 +815,15 @@ function DropiPage() {
                                                 let classesSimples = 'whitespace-nowrap px-3 py-3 text-xs text-muted-foreground font-medium';
                                                 
                                                 if (isPais) {
-                                                    classesSimples += ' min-w-[100px] text-center font-semibold';
+                                                    classesSimples += ' min-w-[120px] text-center font-semibold';
                                                 } else if (isImagem) {
-                                                    classesSimples += ' w-16 text-center';
+                                                    classesSimples += ' w-16 min-w-[64px] text-center';
                                                 } else if (isProduto) {
-                                                    classesSimples += ' min-w-[150px]';
+                                                    classesSimples += ' min-w-[200px]';
                                                 } else if (isEfetividade) {
-                                                    classesSimples += ' min-w-[100px] text-center';
+                                                    classesSimples += ' min-w-[120px] text-center';
                                                 } else {
-                                                    classesSimples += ' min-w-[90px] text-center';
+                                                    classesSimples += ' min-w-[120px] text-center';
                                                 }
                                                 
                                                 return (
@@ -869,15 +870,15 @@ function DropiPage() {
                                                     let classesCelula = 'px-3 py-3 text-xs text-card-foreground';
                                                     
                                                     if (isPais) {
-                                                        classesCelula += ' text-center font-semibold';
+                                                        classesCelula += ' text-center font-semibold min-w-[120px]';
                                                     } else if (isImagem) {
-                                                        classesCelula += ' text-center';
+                                                        classesCelula += ' text-center w-16 min-w-[64px]';
                                                     } else if (isProduto) {
-                                                        classesCelula += ' font-medium';
+                                                        classesCelula += ' font-medium min-w-[200px]';
                                                     } else if (isEfetividade) {
-                                                        classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center`;
+                                                        classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center min-w-[120px]`;
                                                     } else {
-                                                        classesCelula += ' text-center';
+                                                        classesCelula += ' text-center min-w-[120px]';
                                                     }
                                                     
                                                     return (
@@ -934,6 +935,7 @@ function DropiPage() {
                                         ))}
                                     </TableBody>
                                 </Table>
+                            </div>
                         </div>
                         
                         {/* Nota sobre scroll da tabela */}
