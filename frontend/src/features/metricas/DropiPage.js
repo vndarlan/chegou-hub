@@ -778,32 +778,31 @@ function DropiPage() {
         const dadosOrdenados = sortData(dadosTabela, sortBy, sortOrder);
 
         return (
-            <Card className="border-border bg-card h-full flex flex-col">
-                <CardHeader className="pb-3 flex-shrink-0">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle className="text-lg text-card-foreground">Produtos por Status</CardTitle>
-                            <CardDescription className="text-muted-foreground">{dadosTabela.length} produtos</CardDescription>
+            <div className="h-full">
+                <Card className="border-border bg-card h-full flex flex-col">
+                    <CardHeader className="pb-3 flex-shrink-0">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle className="text-lg text-card-foreground">Produtos por Status</CardTitle>
+                                <CardDescription className="text-muted-foreground">{dadosTabela.length} produtos</CardDescription>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => setModalSalvar(true)}
+                                    className="border-border bg-background text-foreground hover:bg-accent"
+                                >
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Salvar
+                                </Button>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => setModalSalvar(true)}
-                                className="border-border bg-background text-foreground hover:bg-accent"
-                            >
-                                <Download className="h-4 w-4 mr-2" />
-                                Salvar
-                            </Button>
-                        </div>
-                    </div>
-                </CardHeader>
+                    </CardHeader>
 
-                <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
-                    <div className="flex-1 overflow-hidden">
-                        <ScrollArea className="h-full w-full">
-                            <div className="min-w-full">
-                                <Table className="w-full">
+                    <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
+                        <div className="flex-1 min-h-0 overflow-auto">
+                            <Table className="w-full">
                                     <TableHeader>
                                         <TableRow className="bg-muted/50 border-border">
                                             {colunas.map((col) => {
@@ -935,21 +934,19 @@ function DropiPage() {
                                         ))}
                                     </TableBody>
                                 </Table>
-                            </div>
-                            <ScrollBar orientation="horizontal" className="h-3" />
-                        </ScrollArea>
-                    </div>
-                    
-                    {/* Nota sobre scroll da tabela */}
-                    <div className="px-4 pb-4 pt-2 overflow-hidden flex-shrink-0">
-                        <div className="flex flex-col items-center gap-1">
-                            <p className="text-xs text-muted-foreground text-center">
-                                💡 Role horizontalmente e verticalmente dentro da tabela para ver todos os dados
-                            </p>
                         </div>
-                    </div>
-                </CardContent>
-            </Card>
+                        
+                        {/* Nota sobre scroll da tabela */}
+                        <div className="px-4 pb-4 pt-2 flex-shrink-0">
+                            <div className="flex flex-col items-center gap-1">
+                                <p className="text-xs text-muted-foreground text-center">
+                                    💡 Role verticalmente e horizontalmente dentro da tabela para ver todos os dados
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
         );
     };
 
@@ -958,14 +955,15 @@ function DropiPage() {
         const analisesFiltradas = getAnalisesFiltradas();
         
         return (
-            <Card className="relative border-border bg-card">
+            <div className="h-full">
+                <Card className="relative border-border bg-card h-full flex flex-col">
                 {loadingAnalises && (
                     <div className="absolute inset-0 bg-background/80 backdrop-blur flex items-center justify-center z-10 rounded-lg">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     </div>
                 )}
 
-                <CardHeader>
+                <CardHeader className="flex-shrink-0">
                     <div className="flex items-center justify-between">
                         <div>
                             <CardTitle className="text-card-foreground">Análises Salvas</CardTitle>
@@ -983,7 +981,7 @@ function DropiPage() {
                     </div>
                 </CardHeader>
 
-                <CardContent>
+                <CardContent className="flex-1 min-h-0 overflow-auto">
                     {analisesFiltradas.length === 0 ? (
                         <Alert className="border-border bg-background">
                             <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -1039,7 +1037,8 @@ function DropiPage() {
                         </div>
                     )}
                 </CardContent>
-            </Card>
+                </Card>
+            </div>
         );
     };
 
@@ -1071,9 +1070,9 @@ function DropiPage() {
     // ======================== RENDER PRINCIPAL ========================
 
     return (
-        <div className="flex flex-col h-screen bg-background">
-            {/* Header fixo */}
-            <div className="flex-shrink-0 p-3 sm:p-6 pb-0">
+        <div className="h-screen bg-background flex flex-col overflow-hidden">
+            {/* Header e navegação - altura fixa */}
+            <div className="flex-shrink-0 p-3 sm:p-6">
                 {/* Notificações */}
                 {notification && (
                     <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4 border-border">
@@ -1100,24 +1099,24 @@ function DropiPage() {
                 </Tabs>
             </div>
 
-            {/* Conteúdo dividido: fixo + scroll controlado */}
-            <div className="flex-1 flex flex-col overflow-hidden px-3 sm:px-6">
-                <Tabs value={secaoAtiva} onValueChange={setSecaoAtiva} className="h-full flex flex-col">
-                    <TabsContent value="gerar" className="flex-1 flex flex-col overflow-hidden mt-4">
-                        {/* Seção fixa - sem scroll */}
+            {/* Conteúdo principal - ocupa resto da tela */}
+            <div className="flex-1 min-h-0 px-3 sm:px-6 pb-3 sm:pb-6">
+                <Tabs value={secaoAtiva} onValueChange={setSecaoAtiva} className="h-full">
+                    <TabsContent value="gerar" className="h-full flex flex-col space-y-4">
+                        {/* Elementos fixos */}
                         <div className="flex-shrink-0 space-y-4">
                             {renderFormulario()}
                             {renderEstatisticas()}
                             {renderExemploPedido()}
                         </div>
                         
-                        {/* Seção com scroll - apenas tabela */}
-                        <div className="flex-1 overflow-hidden mt-4">
+                        {/* Área da tabela - restante do espaço */}
+                        <div className="flex-1 min-h-0">
                             {renderResultados()}
                         </div>
                     </TabsContent>
 
-                    <TabsContent value="salvas" className="flex-1 overflow-y-auto mt-4">
+                    <TabsContent value="salvas" className="h-full">
                         {renderAnalisesSalvas()}
                     </TabsContent>
                 </Tabs>
