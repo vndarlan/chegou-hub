@@ -11,7 +11,7 @@ from .serializers import (
     StatusMappingPrimeCODSerializer
 )
 from .utils import PrimeCODProcessor
-from .utils.primecod_client import PrimeCODClient, PrimeCODAPIError
+from .clients.primecod_client import PrimeCODClient, PrimeCODAPIError
 import pandas as pd
 import json
 import re

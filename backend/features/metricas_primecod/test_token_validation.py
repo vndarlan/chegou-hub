@@ -4,7 +4,7 @@ Teste de validação do token PrimeCOD - Migração de Segurança
 
 from django.test import TestCase
 from django.conf import settings
-from .utils.primecod_client import PrimeCODClient, PrimeCODAPIError
+from .clients.primecod_client import PrimeCODClient, PrimeCODAPIError
 import os
 
 class PrimeCODTokenValidationTest(TestCase):

@@ -12,7 +12,7 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
-from .utils.primecod_client import PrimeCODClient, PrimeCODAPIError
+from .clients.primecod_client import PrimeCODClient, PrimeCODAPIError
 from django.contrib.auth.models import User
 
 def test_primecod_client():
