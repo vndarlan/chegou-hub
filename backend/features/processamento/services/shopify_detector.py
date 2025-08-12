@@ -495,17 +495,31 @@ class ShopifyDuplicateOrderDetector:
                 
                 # Filtra apenas pedidos válidos
                 for order in orders:
-                    # Ignora pedidos cancelados
-                    if order.get("cancelled_at"):
-                        continue
-                        
-                    # Verifica se tem client_details com browser_ip
-                    client_details = order.get("client_details", {})
-                    browser_ip = client_details.get("browser_ip")
-                    
-                    if browser_ip and browser_ip.strip():
-                        order["_browser_ip"] = browser_ip.strip()
+                    try:
+                        # Ignora pedidos cancelados
+                        if order.get("cancelled_at"):
+                            continue
+                            
+                        # Verifica se tem client_details com browser_ip - VALIDAÇÃO ROBUSTA
+                        client_details = order.get("client_details")
+                        if not client_details or not isinstance(client_details, dict):
+                            continue
+                            
+                        browser_ip = client_details.get("browser_ip")
+                        if not browser_ip or not isinstance(browser_ip, str):
+                            continue
+                            
+                        browser_ip = browser_ip.strip()
+                        if not browser_ip:
+                            continue
+                            
+                        order["_browser_ip"] = browser_ip
                         all_orders.append(order)
+                        
+                    except Exception as e:
+                        # Log do erro mas continua processando outros pedidos
+                        print(f"Erro ao processar pedido {order.get('id', 'unknown')}: {e}")
+                        continue
                 
                 # Próxima página
                 link_header = response.headers.get('Link')
