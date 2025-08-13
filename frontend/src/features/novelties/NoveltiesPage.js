@@ -264,7 +264,14 @@ function NoveltiesPage() {
                             />
                             <ChartTooltip
                                 cursor={false}
-                                content={<ChartTooltipContent indicator="line" />}
+                                content={<ChartTooltipContent 
+                                    indicator="line"
+                                    labelFormatter={(value) => new Date(value).toLocaleDateString('pt-BR')}
+                                    formatter={(value, name) => [
+                                        value,
+                                        chartConfig[name]?.label || name
+                                    ]}
+                                />}
                             />
                             <Area
                                 dataKey="error"
@@ -298,7 +305,13 @@ function NoveltiesPage() {
                                 stroke="hsl(142, 76%, 36%)"
                                 stackId="a"
                             />
-                            <ChartLegend content={<ChartLegendContent />} />
+                            <ChartLegend 
+                                content={<ChartLegendContent 
+                                    formatter={(value, entry) => {
+                                        return chartConfig[value]?.label || value;
+                                    }}
+                                />} 
+                            />
                         </AreaChart>
                     </ChartContainer>
                 </CardContent>
