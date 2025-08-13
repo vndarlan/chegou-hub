@@ -3,6 +3,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import Group
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -36,11 +37,19 @@ class CanViewNoveltiesPermission(BasePermission):
         
         return any(group in allowed_groups for group in user_groups)
 
+# CORREÇÃO 1: Classe de paginação DRF para NoveltyExecution
+class NoveltyExecutionPagination(PageNumberPagination):
+    """Paginação personalizada para execuções de novelties"""
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
 class NoveltyExecutionViewSet(viewsets.ModelViewSet):
     """ViewSet para gerenciar execuções de novelties"""
     queryset = NoveltyExecution.objects.all()
     serializer_class = NoveltyExecutionSerializer
     permission_classes = [IsAuthenticated, CanViewNoveltiesPermission]
+    pagination_class = NoveltyExecutionPagination  # CORREÇÃO 1: Paginação DRF
     
     def get_queryset(self):
         queryset = NoveltyExecution.objects.all()
@@ -108,10 +117,10 @@ class NoveltyExecutionViewSet(viewsets.ModelViewSet):
                     'avg_execution_time': 0.0,
                     'daily_stats': [],
                     'status_distribution': {
-                        'Sucesso': 0,
-                        'Parcial': 0,
-                        'Falha': 0,
-                        'Erro Crítico': 0
+                        'success': 0,
+                        'partial': 0,
+                        'failed': 0,
+                        'error': 0
                     }
                 }
                 return Response(empty_stats)
@@ -161,12 +170,12 @@ class NoveltyExecutionViewSet(viewsets.ModelViewSet):
             
             daily_stats.reverse()  # Ordem cronológica
             
-            # Distribuição por status
+            # CORREÇÃO 3: Distribuição por status com códigos padronizados
             status_distribution = {}
             for choice in NoveltyExecution.STATUS_CHOICES:
                 status_code, status_name = choice
                 count = all_executions.filter(status=status_code).count()
-                status_distribution[status_name] = count
+                status_distribution[status_code] = count  # Usar código ao invés do nome
             
             stats_data = {
                 'total_executions': total_executions,
@@ -286,6 +295,7 @@ def execution_trends(request):
         end_date = timezone.now().date()
         start_date = end_date - timedelta(days=days)
         
+        # CORREÇÃO 2: Dados completos para trends com todos os status
         daily_data = []
         for i in range(days):
             date = start_date + timedelta(days=i)
@@ -294,12 +304,20 @@ def execution_trends(request):
             if country_filter and country_filter != 'all':
                 day_executions = day_executions.filter(country=country_filter)
             
+            # Contagem por status
+            success_count = day_executions.filter(status='success').aggregate(total=Sum('successful'))['total'] or 0
+            partial_count = day_executions.filter(status='partial').aggregate(total=Sum('successful'))['total'] or 0
+            failed_count = day_executions.filter(status='failed').aggregate(total=Sum('failed'))['total'] or 0
+            error_count = day_executions.filter(status='error').aggregate(total=Sum('failed'))['total'] or 0
+            
             daily_data.append({
                 'date': date.strftime('%Y-%m-%d'),
                 'executions': day_executions.count(),
                 'total_processed': day_executions.aggregate(total=Sum('total_processed'))['total'] or 0,
-                'successful': day_executions.aggregate(total=Sum('successful'))['total'] or 0,
-                'failed': day_executions.aggregate(total=Sum('failed'))['total'] or 0,
+                'success': success_count,
+                'partial': partial_count,
+                'failed': failed_count,
+                'error': error_count
             })
         
         return Response({

@@ -1,9 +1,7 @@
 // frontend/src/features/novelties/NoveltiesPage.js - NOVELTIES DASHBOARD
 import React, { useState, useEffect } from 'react';
 import {
-  RefreshCw, Calendar, TrendingUp, TrendingDown, Clock, 
-  Check, X, AlertTriangle, Activity, BarChart3, Eye, Globe, Filter,
-  ChevronDown, Users, Target, Zap
+  RefreshCw, TrendingUp, TrendingDown, X, AlertTriangle, Activity, BarChart3, Globe, Target, Zap
 } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, XAxis, Bar, BarChart, YAxis } from 'recharts';
 import axios from 'axios';
@@ -16,7 +14,6 @@ import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Separator } from '../../components/ui/separator';
 import {
   Pagination,
   PaginationContent,
@@ -27,7 +24,6 @@ import {
   PaginationPrevious,
 } from '../../components/ui/pagination';
 import {
-  ChartConfig,
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
@@ -51,7 +47,7 @@ function NoveltiesPage() {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
-    const [filterPeriod, setFilterPeriod] = useState('7');
+    const [filterPeriod] = useState('7');
     const [selectedCountry, setSelectedCountry] = useState('all');
     const [totalExecutions, setTotalExecutions] = useState(0);
     const [nextPage, setNextPage] = useState(null);
@@ -228,14 +224,12 @@ function NoveltiesPage() {
         );
     };
 
-    // Configuração do gráfico com cores específicas e tradução
+    // Configuração do gráfico com cores hardcoded para garantir funcionamento
     const chartConfig = {
-        processed: { label: "Processadas", color: "hsl(217, 91%, 60%)" }, // azul
-        successful: { label: "Sucessos", color: "hsl(142, 76%, 36%)" }, // verde
-        failed: { label: "Falha", color: "hsl(0, 84%, 60%)" }, // vermelho
-        partial: { label: "Parcial", color: "hsl(38, 92%, 50%)" }, // laranja
-        error: { label: "Erro Crítico", color: "hsl(0, 100%, 50%)" }, // vermelho vibrante
-        success: { label: "Sucesso", color: "hsl(142, 76%, 36%)" }, // verde (alias)
+        success: { label: "Sucesso", color: "hsl(142, 76%, 36%)" },    // Verde
+        partial: { label: "Parcial", color: "hsl(38, 92%, 50%)" },    // Laranja  
+        failed: { label: "Falha", color: "hsl(0, 84%, 60%)" },        // Vermelho
+        error: { label: "Erro Crítico", color: "hsl(0, 100%, 50%)" }  // Vermelho vibrante
     };
 
     // Gráfico de tendências (mesmos status da distribuição)
@@ -275,33 +269,33 @@ function NoveltiesPage() {
                             <Area
                                 dataKey="error"
                                 type="natural"
-                                fill="var(--color-error)"
+                                fill="hsl(0, 100%, 50%)"
                                 fillOpacity={0.4}
-                                stroke="var(--color-error)"
+                                stroke="hsl(0, 100%, 50%)"
                                 stackId="a"
                             />
                             <Area
                                 dataKey="failed"
                                 type="natural"
-                                fill="var(--color-failed)"
+                                fill="hsl(0, 84%, 60%)"
                                 fillOpacity={0.4}
-                                stroke="var(--color-failed)"
+                                stroke="hsl(0, 84%, 60%)"
                                 stackId="a"
                             />
                             <Area
                                 dataKey="partial"
                                 type="natural"
-                                fill="var(--color-partial)"
+                                fill="hsl(38, 92%, 50%)"
                                 fillOpacity={0.4}
-                                stroke="var(--color-partial)"
+                                stroke="hsl(38, 92%, 50%)"
                                 stackId="a"
                             />
                             <Area
                                 dataKey="success"
                                 type="natural"
-                                fill="var(--color-success)"
+                                fill="hsl(142, 76%, 36%)"
                                 fillOpacity={0.4}
-                                stroke="var(--color-success)"
+                                stroke="hsl(142, 76%, 36%)"
                                 stackId="a"
                             />
                             <ChartLegend content={<ChartLegendContent />} />
@@ -338,7 +332,9 @@ function NoveltiesPage() {
         const data = Object.entries(dashboardStats.status_distribution).map(([status, count]) => ({
             browser: status,
             visitors: count,
-            fill: `var(--color-${status})`
+            fill: status === 'success' ? 'hsl(142, 76%, 36%)' : 
+                  status === 'partial' ? 'hsl(38, 92%, 50%)' : 
+                  status === 'failed' ? 'hsl(0, 84%, 60%)' : 'hsl(0, 100%, 50%)'
         }));
 
         const statusConfig = {
@@ -372,7 +368,7 @@ function NoveltiesPage() {
                                 tickMargin={10}
                                 axisLine={false}
                                 tickFormatter={(value) =>
-                                    statusConfig[value]?.label || statusMapping[value] || value
+                                    statusMapping[value] || statusConfig[value]?.label || value
                                 }
                             />
                             <XAxis dataKey="visitors" type="number" hide />
