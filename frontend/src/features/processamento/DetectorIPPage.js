@@ -378,6 +378,26 @@ function DetectorIPPage() {
                                     ? `${ipGroups.length} endereços IP com múltiplos pedidos encontrados`
                                     : 'Execute uma busca para analisar pedidos por IP'
                                 }
+                                {ipGroups.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {(() => {
+                                            const suspiciousCount = ipGroups.filter(ip => ip.is_suspicious).length;
+                                            const legitimateCount = ipGroups.length - suspiciousCount;
+                                            return (
+                                                <>
+                                                    <Badge variant="default" className="text-xs">
+                                                        {legitimateCount} IPs legítimos
+                                                    </Badge>
+                                                    {suspiciousCount > 0 && (
+                                                        <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                                                            {suspiciousCount} IPs suspeitos (possível servidor/proxy)
+                                                        </Badge>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
                             </CardDescription>
                         </div>
                     </div>
@@ -424,14 +444,28 @@ function DetectorIPPage() {
                                                 Math.ceil((new Date(ipGroup.date_range.last) - new Date(ipGroup.date_range.first)) / (1000 * 60 * 60 * 24)) : 0;
                                             
                                             return (
-                                                <TableRow key={`${ipGroup.ip}-${index}`} className="border-border hover:bg-muted/50">
+                                                <TableRow key={`${ipGroup.ip}-${index}`} className={`border-border hover:bg-muted/50 ${ipGroup.is_suspicious ? 'bg-amber-50/30 dark:bg-amber-950/20' : ''}`}>
                                                     <TableCell>
                                                         <div className="flex items-center space-x-3">
-                                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                                                                <Globe className="h-4 w-4 text-primary" />
+                                                            <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                                                                ipGroup.is_suspicious ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-primary/10'
+                                                            }`}>
+                                                                <Globe className={`h-4 w-4 ${
+                                                                    ipGroup.is_suspicious ? 'text-amber-600 dark:text-amber-400' : 'text-primary'
+                                                                }`} />
                                                             </div>
-                                                            <div>
-                                                                <p className="font-mono text-sm text-foreground">{ipGroup.ip}</p>
+                                                            <div className="space-y-1">
+                                                                <div className="flex items-center space-x-2">
+                                                                    <p className="font-mono text-sm text-foreground">{ipGroup.ip}</p>
+                                                                    {ipGroup.is_suspicious && (
+                                                                        <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                                                                            Suspeito
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+                                                                {ipGroup.is_suspicious && ipGroup.suspicious_flags?.pattern_match && (
+                                                                    <p className="text-xs text-muted-foreground">{ipGroup.suspicious_flags.pattern_match}</p>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </TableCell>

@@ -448,6 +448,165 @@ class ShopifyDuplicateOrderDetector:
         
         return duplicates
     
+    def _extract_real_customer_ip(self, order):
+        """
+        Extrai o IP real do cliente de múltiplas fontes possíveis do pedido Shopify
+        
+        HIERARQUIA DE BUSCA (por prioridade):
+        1. customer.default_address.* (campos de endereço do cliente)
+        2. shipping_address.* (IP associado ao endereço de entrega)  
+        3. billing_address.* (IP associado ao endereço de cobrança)
+        4. customer.* (outros campos do customer)
+        5. client_details.* (campos alternativos do client_details)
+        6. order.* (campos diretos do pedido)
+        
+        Args:
+            order (dict): Dados completos do pedido do Shopify
+            
+        Returns:
+            tuple: (ip_string, source_description) ou (None, None) se não encontrado
+        """
+        
+        # 1. BUSCAR NO CUSTOMER.DEFAULT_ADDRESS (prioridade máxima)
+        customer = order.get("customer", {})
+        if customer:
+            default_address = customer.get("default_address", {})
+            if default_address:
+                ip_candidates = [
+                    ("client_ip", "customer.default_address.client_ip"),
+                    ("customer_ip", "customer.default_address.customer_ip"), 
+                    ("ip_address", "customer.default_address.ip_address"),
+                    ("ip", "customer.default_address.ip"),
+                    ("browser_ip", "customer.default_address.browser_ip"),
+                ]
+                
+                for field, source in ip_candidates:
+                    ip = default_address.get(field)
+                    if ip and isinstance(ip, str):
+                        ip = ip.strip()
+                        if ip and self._is_valid_ip(ip):
+                            return ip, source
+        
+        # 2. BUSCAR NO SHIPPING ADDRESS
+        shipping_address = order.get("shipping_address", {})
+        if shipping_address:
+            shipping_candidates = [
+                ("client_ip", "shipping_address.client_ip"),
+                ("customer_ip", "shipping_address.customer_ip"),
+                ("ip_address", "shipping_address.ip_address"),
+                ("ip", "shipping_address.ip"),
+            ]
+            
+            for field, source in shipping_candidates:
+                ip = shipping_address.get(field)
+                if ip and isinstance(ip, str):
+                    ip = ip.strip()
+                    if ip and self._is_valid_ip(ip):
+                        return ip, source
+        
+        # 3. BUSCAR NO BILLING ADDRESS  
+        billing_address = order.get("billing_address", {})
+        if billing_address:
+            billing_candidates = [
+                ("client_ip", "billing_address.client_ip"),
+                ("customer_ip", "billing_address.customer_ip"), 
+                ("ip_address", "billing_address.ip_address"),
+                ("ip", "billing_address.ip"),
+            ]
+            
+            for field, source in billing_candidates:
+                ip = billing_address.get(field)
+                if ip and isinstance(ip, str):
+                    ip = ip.strip()
+                    if ip and self._is_valid_ip(ip):
+                        return ip, source
+        
+        # 4. OUTROS CAMPOS DO CUSTOMER
+        if customer:
+            customer_candidates = [
+                ("last_order_ip", "customer.last_order_ip"),
+                ("customer_ip", "customer.customer_ip"),
+                ("registration_ip", "customer.registration_ip"),
+                ("ip_address", "customer.ip_address"),
+            ]
+            
+            for field, source in customer_candidates:
+                ip = customer.get(field)
+                if ip and isinstance(ip, str):
+                    ip = ip.strip()
+                    if ip and self._is_valid_ip(ip):
+                        return ip, source
+        
+        # 5. CLIENT DETAILS (campos alternativos)
+        client_details = order.get("client_details", {})
+        if client_details:
+            client_candidates = [
+                ("customer_ip", "client_details.customer_ip"),
+                ("real_ip", "client_details.real_ip"),
+                ("user_ip", "client_details.user_ip"),
+                ("origin_ip", "client_details.origin_ip"),
+            ]
+            
+            for field, source in client_candidates:
+                ip = client_details.get(field)
+                if ip and isinstance(ip, str):
+                    ip = ip.strip()
+                    if ip and self._is_valid_ip(ip):
+                        return ip, source
+        
+        # 6. CAMPOS DIRETOS DO PEDIDO
+        order_candidates = [
+            ("customer_ip", "order.customer_ip"),
+            ("client_ip", "order.client_ip"), 
+            ("real_ip", "order.real_ip"),
+            ("origin_ip", "order.origin_ip"),
+            ("user_ip", "order.user_ip"),
+        ]
+        
+        for field, source in order_candidates:
+            ip = order.get(field)
+            if ip and isinstance(ip, str):
+                ip = ip.strip()
+                if ip and self._is_valid_ip(ip):
+                    return ip, source
+        
+        return None, None
+    
+    def _is_valid_ip(self, ip_string):
+        """
+        Valida se uma string é um endereço IP válido (IPv4 ou IPv6)
+        
+        Args:
+            ip_string (str): String para validar
+            
+        Returns:
+            bool: True se é um IP válido
+        """
+        if not ip_string or not isinstance(ip_string, str):
+            return False
+        
+        ip_string = ip_string.strip()
+        
+        # Validação básica de formato IPv4
+        if '.' in ip_string:
+            parts = ip_string.split('.')
+            if len(parts) == 4:
+                try:
+                    for part in parts:
+                        num = int(part)
+                        if not (0 <= num <= 255):
+                            return False
+                    return True
+                except ValueError:
+                    return False
+        
+        # Validação básica de formato IPv6 (simplificada)
+        elif ':' in ip_string:
+            # IPv6 tem pelo menos 2 grupos separados por :
+            return len(ip_string.split(':')) >= 2
+        
+        return False
+    
     def get_orders_by_ip(self, days=30, min_orders=2):
         """
         Agrupa pedidos por IP dos últimos X dias
@@ -467,6 +626,19 @@ class ShopifyDuplicateOrderDetector:
         all_orders = []
         page_info = None
         page = 1
+        
+        # Contador de diagnóstico
+        debug_stats = {
+            "total_orders_fetched": 0,
+            "orders_without_client_details": 0,
+            "orders_without_browser_ip": 0,
+            "orders_with_empty_ip": 0,
+            "orders_with_real_ip_found": 0,
+            "orders_fallback_browser_ip": 0,
+            "unique_ips_found": set(),
+            "suspicious_ips": {},  # IP -> contagem para detectar padrões suspeitos
+            "ip_extraction_sources": {}  # Fonte -> contagem (para debug)
+        }
         
         # Busca todos os pedidos do período
         while True:
@@ -496,24 +668,63 @@ class ShopifyDuplicateOrderDetector:
                 # Filtra apenas pedidos válidos
                 for order in orders:
                     try:
+                        debug_stats["total_orders_fetched"] += 1
+                        
                         # Ignora pedidos cancelados
                         if order.get("cancelled_at"):
                             continue
+                        
+                        # === NOVA LÓGICA: EXTRAÇÃO DO IP REAL DO CLIENTE ===
+                        
+                        # Tenta extrair IP real do cliente de múltiplas fontes
+                        real_customer_ip, ip_source = self._extract_real_customer_ip(order)
+                        
+                        if real_customer_ip:
+                            # IP real encontrado em customer/address data
+                            customer_ip = real_customer_ip
+                            debug_stats["orders_with_real_ip_found"] += 1
+                            order["_ip_source"] = ip_source  # Fonte detalhada
+                        else:
+                            # Fallback para browser_ip (lógica anterior)
+                            client_details = order.get("client_details")
+                            if not client_details or not isinstance(client_details, dict):
+                                debug_stats["orders_without_client_details"] += 1
+                                continue
+                                
+                            browser_ip = client_details.get("browser_ip")
+                            if not browser_ip or not isinstance(browser_ip, str):
+                                debug_stats["orders_without_browser_ip"] += 1
+                                continue
+                                
+                            browser_ip = browser_ip.strip()
+                            if not browser_ip:
+                                debug_stats["orders_with_empty_ip"] += 1
+                                continue
                             
-                        # Verifica se tem client_details com browser_ip - VALIDAÇÃO ROBUSTA
-                        client_details = order.get("client_details")
-                        if not client_details or not isinstance(client_details, dict):
-                            continue
+                            customer_ip = browser_ip
+                            debug_stats["orders_fallback_browser_ip"] += 1
+                            order["_ip_source"] = "browser_ip_fallback"
+                        
+                        # Registra fonte para estatísticas
+                        source = order["_ip_source"]
+                        if source not in debug_stats["ip_extraction_sources"]:
+                            debug_stats["ip_extraction_sources"][source] = 0
+                        debug_stats["ip_extraction_sources"][source] += 1
+                        
+                        # === FILTROS ANTI-FALSO POSITIVO ===
+                        
+                        # 1. DETECTA IPs SUSPEITOS (provavelmente servidores/proxies)
+                        if self._is_suspicious_ip(customer_ip):
+                            if customer_ip not in debug_stats["suspicious_ips"]:
+                                debug_stats["suspicious_ips"][customer_ip] = 0
+                            debug_stats["suspicious_ips"][customer_ip] += 1
+                            # AINDA INCLUI mas marca como suspeito para debug
+                            order["_ip_suspicious"] = True
+                        else:
+                            order["_ip_suspicious"] = False
                             
-                        browser_ip = client_details.get("browser_ip")
-                        if not browser_ip or not isinstance(browser_ip, str):
-                            continue
-                            
-                        browser_ip = browser_ip.strip()
-                        if not browser_ip:
-                            continue
-                            
-                        order["_browser_ip"] = browser_ip
+                        debug_stats["unique_ips_found"].add(customer_ip)
+                        order["_customer_ip"] = customer_ip  # Nome mais descritivo
                         all_orders.append(order)
                         
                     except Exception as e:
@@ -535,10 +746,38 @@ class ShopifyDuplicateOrderDetector:
             except requests.exceptions.RequestException as e:
                 raise Exception(f"Erro ao buscar pedidos por IP na página {page}: {e}")
         
-        # Agrupa pedidos por IP
+        # === LOG DE DIAGNÓSTICO ATUALIZADO ===
+        print("=== DIAGNÓSTICO DETECTOR DE IP (VERSÃO MELHORADA) ===")
+        print(f"Total de pedidos buscados: {debug_stats['total_orders_fetched']}")
+        print(f"IPs reais encontrados em customer data: {debug_stats['orders_with_real_ip_found']}")
+        print(f"Fallback para browser_ip: {debug_stats['orders_fallback_browser_ip']}")
+        print(f"Sem client_details: {debug_stats['orders_without_client_details']}")
+        print(f"Sem browser_ip: {debug_stats['orders_without_browser_ip']}")
+        print(f"IP vazio: {debug_stats['orders_with_empty_ip']}")
+        print(f"IPs únicos encontrados: {len(debug_stats['unique_ips_found'])}")
+        print(f"Pedidos válidos processados: {len(all_orders)}")
+        
+        # Estatísticas das fontes de IP
+        if debug_stats["ip_extraction_sources"]:
+            print("\n=== FONTES DE EXTRAÇÃO DE IP ===")
+            for source, count in debug_stats["ip_extraction_sources"].items():
+                percentage = (count / len(all_orders)) * 100 if all_orders else 0
+                print(f"{source}: {count} pedidos ({percentage:.1f}%)")
+        
+        if debug_stats["suspicious_ips"]:
+            print("\n=== IPs SUSPEITOS DETECTADOS ===")
+            for ip, count in sorted(debug_stats["suspicious_ips"].items(), key=lambda x: x[1], reverse=True):
+                print(f"{ip}: {count} pedidos (provável servidor/proxy)")
+        
+        # Lista primeiros 10 IPs únicos para debug
+        sample_ips = list(debug_stats["unique_ips_found"])[:10]
+        print(f"\nAmostra de IPs encontrados: {sample_ips}")
+        print("=====================================\n")
+        
+        # Agrupa pedidos por IP (usando o novo campo _customer_ip)
         ip_groups = defaultdict(list)
         for order in all_orders:
-            ip = order["_browser_ip"]
+            ip = order["_customer_ip"]  # Usa o IP real extraído
             ip_groups[ip].append(order)
         
         # Filtra apenas IPs com quantidade mínima de pedidos
@@ -595,8 +834,14 @@ class ShopifyDuplicateOrderDetector:
                         "phone": customer.get("phone", "")
                     },
                     "line_items_count": len(order.get("line_items", [])),
-                    "tags": order.get("tags", "")
+                    "tags": order.get("tags", ""),
+                    "ip_source": order.get("_ip_source", "unknown"),  # Nova informação sobre fonte do IP
+                    "is_ip_suspicious": order.get("_ip_suspicious", False)
                 })
+            
+            # Verifica se é IP suspeito
+            is_suspicious = self._is_suspicious_ip(ip)
+            suspicious_order_count = sum(1 for order in orders if order.get("_ip_suspicious", False))
             
             result_groups.append({
                 "ip": ip,
@@ -608,7 +853,13 @@ class ShopifyDuplicateOrderDetector:
                     "first": orders[0]["created_at"],
                     "last": orders[-1]["created_at"]
                 },
-                "orders": order_data
+                "orders": order_data,
+                "is_suspicious": is_suspicious,
+                "suspicious_flags": {
+                    "detected_as_suspicious": is_suspicious,
+                    "orders_marked_suspicious": suspicious_order_count,
+                    "pattern_match": self._get_suspicious_pattern(ip) if is_suspicious else None
+                }
             })
         
         # Ordena por quantidade de pedidos (decrescente)
@@ -618,5 +869,102 @@ class ShopifyDuplicateOrderDetector:
             "ip_groups": result_groups,
             "total_ips_found": len(result_groups),
             "total_orders_analyzed": len(all_orders),
-            "period_days": days
+            "period_days": days,
+            "debug_stats": {
+                "unique_ips_count": len(debug_stats["unique_ips_found"]),
+                "suspicious_ips_count": len(debug_stats["suspicious_ips"]),
+                "total_fetched": debug_stats["total_orders_fetched"],
+                "valid_processed": len(all_orders),
+                "real_customer_ips_found": debug_stats["orders_with_real_ip_found"],
+                "fallback_browser_ip": debug_stats["orders_fallback_browser_ip"]
+            },
+            "ip_extraction_sources": debug_stats["ip_extraction_sources"]
         }
+    
+    def _is_suspicious_ip(self, ip):
+        """
+        Detecta IPs suspeitos que provavelmente são de servidores/proxies/CDN
+        
+        Args:
+            ip (str): Endereço IP para analisar
+            
+        Returns:
+            bool: True se o IP é suspeito (provável servidor)
+        """
+        if not ip:
+            return True
+            
+        # Lista de padrões suspeitos conhecidos
+        suspicious_patterns = [
+            # IPs comuns de CDN/Proxy do Brasil
+            "177.55.192.",  # IP problemático reportado
+            "177.55.",      # Range suspeito
+            "200.147.",     # Provedores corporativos
+            "189.1.",       # Ranges corporativos
+            "191.36.",      # Infraestrutura
+            
+            # Ranges de servidores conhecidos
+            "127.0.0.1",    # Localhost
+            "10.",          # Rede privada
+            "192.168.",     # Rede privada
+            "172.16.",      # Rede privada
+            
+            # CDNs e proxies conhecidos
+            "104.16.",      # Cloudflare
+            "104.17.",      # Cloudflare
+            "172.64.",      # Cloudflare
+            "198.41.",      # Cloudflare
+            "13.107.",      # Microsoft CDN
+            "52.",          # AWS ranges
+            "54.",          # AWS ranges
+            "3.",           # AWS ranges
+        ]
+        
+        # Verifica padrões suspeitos
+        for pattern in suspicious_patterns:
+            if ip.startswith(pattern):
+                return True
+                
+        # Detecção por padrões de comportamento
+        # IPs que terminam em .1 são frequentemente gateways/servidores
+        if ip.endswith('.1') or ip.endswith('.254'):
+            return True
+            
+        # IPs com muitos zeros podem ser ranges de infraestrutura
+        if '.0.' in ip or '.255.' in ip:
+            return True
+        
+        return False
+    
+    def _get_suspicious_pattern(self, ip):
+        """
+        Retorna o padrão suspeito que foi detectado no IP
+        
+        Args:
+            ip (str): Endereço IP
+            
+        Returns:
+            str: Descrição do padrão suspeito detectado
+        """
+        if not ip:
+            return "IP vazio/inválido"
+            
+        # Verifica padrões específicos
+        if ip.startswith("177.55.192."):
+            return "IP reportado como problemático (proxy/servidor)"
+        elif ip.startswith("177.55."):
+            return "Range suspeito de infraestrutura"
+        elif ip in ["127.0.0.1"]:
+            return "Localhost"
+        elif ip.startswith("10.") or ip.startswith("192.168.") or ip.startswith("172.16."):
+            return "Rede privada"
+        elif ip.startswith("104.16.") or ip.startswith("104.17.") or ip.startswith("172.64."):
+            return "CDN Cloudflare"
+        elif ip.startswith("52.") or ip.startswith("54.") or ip.startswith("3."):
+            return "AWS/Cloud Server"
+        elif ip.endswith('.1') or ip.endswith('.254'):
+            return "Provável gateway/servidor"
+        elif '.0.' in ip or '.255.' in ip:
+            return "Range de infraestrutura"
+        else:
+            return "Padrão suspeito detectado"
