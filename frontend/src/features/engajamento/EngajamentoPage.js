@@ -48,6 +48,7 @@ function EngajamentoPage() {
     // Estados para pedidos
     const [engajamentosSelecionados, setEngajamentosSelecionados] = useState({});
     const [pedidos, setPedidos] = useState([]);
+    const [loadingPedidos, setLoadingPedidos] = useState(false);
 
     // Carregar dados iniciais
     useEffect(() => {
@@ -88,11 +89,16 @@ function EngajamentoPage() {
     };
 
     const carregarPedidos = async () => {
+        setLoadingPedidos(true);
         try {
             const response = await axios.get('/pedidos/');
             setPedidos(response.data);
+            console.log('Pedidos carregados:', response.data);
         } catch (error) {
             console.error('Erro ao carregar pedidos:', error);
+            setNotification({ type: 'error', message: 'Erro ao carregar histórico de pedidos' });
+        } finally {
+            setLoadingPedidos(false);
         }
     };
 
@@ -396,39 +402,62 @@ function EngajamentoPage() {
 
                 <TabsContent value="historico" className="mt-4">
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Histórico de Pedidos</CardTitle>
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-lg">Histórico de Pedidos</CardTitle>
+                                <Button size="sm" onClick={carregarPedidos} disabled={loadingPedidos}>
+                                    {loadingPedidos ? <LoadingSpinner className="h-3 w-3 mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                                    Atualizar
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="overflow-hidden rounded-md border">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Data</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Links</TableHead>
-                                            <TableHead>Engajamentos</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {pedidos.map((pedido) => (
-                                            <TableRow key={pedido.id}>
-                                                <TableCell>{new Date(pedido.data_criacao).toLocaleString()}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant={
-                                                        pedido.status === 'concluido' ? 'default' :
-                                                        pedido.status === 'erro' ? 'destructive' : 'secondary'
-                                                    } className="text-xs">
-                                                        {pedido.status}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>{pedido.total_links}</TableCell>
-                                                <TableCell>{pedido.itens?.length || 0}</TableCell>
+                            {loadingPedidos ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <LoadingSpinner className="h-6 w-6 mr-2" />
+                                    <span className="text-muted-foreground">Carregando histórico...</span>
+                                </div>
+                            ) : pedidos.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                    <p className="text-lg font-medium text-muted-foreground mb-2">Nenhum pedido encontrado</p>
+                                    <p className="text-sm text-muted-foreground mb-4">Seus pedidos aparecerão aqui após serem criados.</p>
+                                    <Button variant="outline" onClick={carregarPedidos}>
+                                        <RefreshCw className="h-4 w-4 mr-2" />
+                                        Verificar novamente
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="overflow-hidden rounded-md border">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Data</TableHead>
+                                                <TableHead>Status</TableHead>
+                                                <TableHead>Links</TableHead>
+                                                <TableHead>Engajamentos</TableHead>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {pedidos.map((pedido) => (
+                                                <TableRow key={pedido.id}>
+                                                    <TableCell>{new Date(pedido.data_criacao).toLocaleString()}</TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={
+                                                            pedido.status === 'concluido' ? 'default' :
+                                                            pedido.status === 'erro' ? 'destructive' : 'secondary'
+                                                        } className="text-xs">
+                                                            {pedido.status}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>{pedido.total_links}</TableCell>
+                                                    <TableCell>{pedido.itens?.length || 0}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
