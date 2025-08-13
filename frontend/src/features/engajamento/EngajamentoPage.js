@@ -19,7 +19,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../../components/ui/pagination';
 import { LoadingSpinner } from '../../components/ui';
 
 function EngajamentoPage() {
@@ -491,59 +490,30 @@ function EngajamentoPage() {
                                     </Table>
                                 </div>
                                 
-                                {/* Componente de Paginação */}
+                                {/* Paginação Simplificada */}
                                 {totalPages > 1 && (
-                                    <div className="mt-4">
-                                        <Pagination>
-                                            <PaginationContent>
-                                                <PaginationItem>
-                                                    <PaginationPrevious 
-                                                        onClick={() => currentPage > 1 && carregarPedidos(currentPage - 1)}
-                                                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                                                    />
-                                                </PaginationItem>
-                                                
-                                                {/* Números das páginas */}
-                                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                                    let pageNumber;
-                                                    if (totalPages <= 5) {
-                                                        pageNumber = i + 1;
-                                                    } else if (currentPage <= 3) {
-                                                        pageNumber = i + 1;
-                                                    } else if (currentPage >= totalPages - 2) {
-                                                        pageNumber = totalPages - 4 + i;
-                                                    } else {
-                                                        pageNumber = currentPage - 2 + i;
-                                                    }
-                                                    
-                                                    return (
-                                                        <PaginationItem key={pageNumber}>
-                                                            <PaginationLink
-                                                                onClick={() => carregarPedidos(pageNumber)}
-                                                                isActive={currentPage === pageNumber}
-                                                                className="cursor-pointer"
-                                                            >
-                                                                {pageNumber}
-                                                            </PaginationLink>
-                                                        </PaginationItem>
-                                                    );
-                                                })}
-                                                
-                                                <PaginationItem>
-                                                    <PaginationNext 
-                                                        onClick={() => currentPage < totalPages && carregarPedidos(currentPage + 1)}
-                                                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                                                    />
-                                                </PaginationItem>
-                                            </PaginationContent>
-                                        </Pagination>
+                                    <div className="mt-4 flex items-center justify-center space-x-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => carregarPedidos(currentPage - 1)}
+                                            disabled={currentPage === 1}
+                                        >
+                                            Anterior
+                                        </Button>
                                         
-                                        {/* Informação da paginação */}
-                                        <div className="mt-2 text-center">
-                                            <p className="text-sm text-muted-foreground">
-                                                Página {currentPage} de {totalPages}
-                                            </p>
-                                        </div>
+                                        <span className="text-sm text-muted-foreground px-4">
+                                            Página {currentPage} de {totalPages}
+                                        </span>
+                                        
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => carregarPedidos(currentPage + 1)}
+                                            disabled={currentPage === totalPages}
+                                        >
+                                            Próximo
+                                        </Button>
                                     </div>
                                 )}
                             )}
