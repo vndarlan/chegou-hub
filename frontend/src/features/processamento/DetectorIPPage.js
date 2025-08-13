@@ -169,12 +169,6 @@ function DetectorIPPage() {
         return 'outline';
     };
 
-    const maskIP = (ip) => {
-        if (!ip) return 'N/A';
-        const parts = ip.split('.');
-        if (parts.length !== 4) return ip;
-        return `${parts[0]}.${parts[1]}.xxx.xxx`;
-    };
 
     if (loading) {
         return (
@@ -416,7 +410,7 @@ function DetectorIPPage() {
                                 <Table className="w-full">
                                     <TableHeader>
                                         <TableRow className="border-border">
-                                            <TableHead className="text-foreground">IP (Mascarado)</TableHead>
+                                            <TableHead className="text-foreground">IP</TableHead>
                                             <TableHead className="text-foreground text-center">Pedidos</TableHead>
                                             <TableHead className="text-foreground text-center">Clientes</TableHead>
                                             <TableHead className="text-foreground text-right">Total</TableHead>
@@ -437,8 +431,7 @@ function DetectorIPPage() {
                                                                 <Globe className="h-4 w-4 text-primary" />
                                                             </div>
                                                             <div>
-                                                                <p className="font-mono text-sm text-foreground">{maskIP(ipGroup.ip)}</p>
-                                                                <p className="text-xs text-muted-foreground">IP mascarado</p>
+                                                                <p className="font-mono text-sm text-foreground">{ipGroup.ip}</p>
                                                             </div>
                                                         </div>
                                                     </TableCell>
@@ -499,7 +492,7 @@ function DetectorIPPage() {
                     <DialogHeader>
                         <DialogTitle className="text-foreground flex items-center gap-2">
                             <Globe className="h-5 w-5" />
-                            Detalhes do IP: {selectedIP ? maskIP(selectedIP.ip) : 'N/A'}
+                            Detalhes do IP: {selectedIP ? selectedIP.ip : 'N/A'}
                         </DialogTitle>
                         <DialogDescription className="text-muted-foreground">
                             Análise completa dos pedidos e clientes deste endereço IP

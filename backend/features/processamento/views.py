@@ -310,13 +310,6 @@ def buscar_pedidos_mesmo_ip(request):
         detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
         ip_data = detector.get_orders_by_ip(days=days, min_orders=min_orders)
         
-        # === APLICAR MASCARAMENTO DE IPs PARA SEGURANÇA ===
-        secured_ip_data, ip_mapping = _secure_ip_data(ip_data)
-        
-        # Salva mapeamento em cache para uso no detalhamento (30 minutos)
-        cache_key = f"ip_mapping_{request.user.id}_{config.id}"
-        cache.set(cache_key, ip_mapping, 1800)
-        
         # === AUDITORIA DE SEGURANÇA ===
         audit_details = {
             'ips_found': ip_data['total_ips_found'],
@@ -353,12 +346,11 @@ def buscar_pedidos_mesmo_ip(request):
             audit_details
         )
         
-        # Cria response com dados mascarados
+        # Cria response com dados completos
         response = Response({
             'success': True,
-            'data': secured_ip_data,
-            'loja_nome': config.nome_loja,
-            'security_notice': 'IPs foram mascarados por segurança'
+            'data': ip_data,
+            'loja_nome': config.nome_loja
         })
         
         # Adiciona headers de segurança
@@ -410,27 +402,11 @@ def detalhar_pedidos_ip(request):
         if not loja_id or not ip:
             return Response({'error': 'ID da loja e IP são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Primeira tentativa: sanitizar como IP normal
+        # Sanitizar IP de entrada
         ip_sanitized = IPSecurityUtils.sanitize_ip_input(ip)
         
-        # Se falhou, pode ser um IP mascarado ou hash - aceita formatos especiais
         if not ip_sanitized:
-            import re
-            ip_input = ip.strip()
-            
-            # Verifica se é formato de IP mascarado IPv4 (ex: 192.168.xxx.xxx)
-            masked_ipv4_pattern = r'^\d{1,3}\.\d{1,3}\.xxx\.xxx$'
-            # Verifica se é formato de IP mascarado IPv6 (ex: 2001:db8:xxxx:xxxx:xxxx:xxxx)  
-            masked_ipv6_pattern = r'^[0-9a-fA-F:]+xxxx:xxxx:xxxx:xxxx$'
-            # Verifica se é um hash SHA256 (64 caracteres hexadecimais)
-            hash_pattern = r'^[0-9a-fA-F]{64}$'
-            
-            if (re.match(masked_ipv4_pattern, ip_input) or 
-                re.match(masked_ipv6_pattern, ip_input) or
-                re.match(hash_pattern, ip_input)):
-                ip_sanitized = ip_input
-            else:
-                return Response({'error': 'Formato de IP inválido'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Formato de IP inválido'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Validação de parâmetros
         try:
@@ -446,46 +422,26 @@ def detalhar_pedidos_ip(request):
         if not config:
             return Response({'error': 'Loja não encontrada ou inativa'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # === RECUPERA MAPEAMENTO DE IPs DO CACHE ===
-        cache_key = f"ip_mapping_{request.user.id}_{config.id}"
-        ip_mapping = cache.get(cache_key, {})
-        
-        # Tenta encontrar IP original através do mapeamento
-        original_ip_to_search = ip_mapping.get(ip_sanitized)
-        
         detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
         
-        # === BUSCA COM IP ORIGINAL ===
+        # === BUSCA DIRETA COM IP ===
         ip_data = detector.get_orders_by_ip(days=days, min_orders=1)
         
         # Encontra o grupo específico do IP
         target_group = None
-        original_ip = None
         
-        # Busca primeiro pelo IP original mapeado
-        if original_ip_to_search:
-            for group in ip_data['ip_groups']:
-                if group['ip'] == original_ip_to_search:
-                    target_group = group
-                    original_ip = group['ip']
-                    break
-        
-        # Se não encontrou pelo mapeamento, tenta busca direta (fallback)
-        if not target_group:
-            for group in ip_data['ip_groups']:
-                if group['ip'] == ip_sanitized or IPSecurityUtils.mask_ip(group['ip']) == ip_sanitized:
-                    target_group = group
-                    original_ip = group['ip']
-                    break
+        # Busca direta pelo IP
+        for group in ip_data['ip_groups']:
+            if group['ip'] == ip_sanitized:
+                target_group = group
+                break
         
         if not target_group:
             # Log detalhado para debug
             debug_info = {
                 'requested_ip': ip,
                 'sanitized_ip': ip_sanitized,
-                'original_ip_to_search': original_ip_to_search,
-                'mapping_exists': bool(ip_mapping),
-                'available_ips': [IPSecurityUtils.mask_ip(group['ip']) for group in ip_data['ip_groups'][:5]],  # Primeiros 5 para debug
+                'available_ips': [group['ip'] for group in ip_data['ip_groups'][:5]],  # Primeiros 5 para debug
                 'days': days
             }
             
@@ -506,8 +462,7 @@ def detalhar_pedidos_ip(request):
         
         # === AUDITORIA CRÍTICA - ACESSO A DETALHES ===
         audit_details = {
-            'ip_hash': IPSecurityUtils.hash_ip(original_ip),
-            'ip_masked': IPSecurityUtils.mask_ip(original_ip),
+            'ip_accessed': target_group['ip'],
             'orders_count': len(target_group['orders']),
             'days': days,
             'user_ip': AuditLogger._get_client_ip(request)
@@ -544,18 +499,15 @@ def detalhar_pedidos_ip(request):
                 order_summary['address_details'] = order_details
             detailed_orders.append(order_summary)
         
-        # === MÁSCARA O IP NO RETORNO ===
+        # === MANTÉM IP ORIGINAL NO RETORNO ===
         target_group['orders'] = detailed_orders
-        target_group['ip'] = IPSecurityUtils.mask_ip(original_ip)
-        target_group['ip_hash'] = IPSecurityUtils.hash_ip(original_ip)
         
         # Cria response
         response = Response({
             'success': True,
-            'ip': IPSecurityUtils.mask_ip(original_ip),
+            'ip': target_group['ip'],
             'data': target_group,
             'loja_nome': config.nome_loja,
-            'security_notice': 'IP foi mascarado por segurança',
             'details_limited': len(target_group['orders']) == max_details
         })
         
@@ -569,7 +521,7 @@ def detalhar_pedidos_ip(request):
             request,
             'ip_detail_error',
             {
-                'requested_ip': IPSecurityUtils.mask_ip(ip) if 'ip' in locals() else 'unknown',
+                'requested_ip': ip if 'ip' in locals() else 'unknown',
                 'error': str(e),
                 'user_ip': AuditLogger._get_client_ip(request)
             }
@@ -613,40 +565,7 @@ def historico_logs(request):
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# === FUNÇÕES DE SEGURANÇA AUXILIARES ===
-
-def _secure_ip_data(ip_data):
-    """
-    Aplica mascaramento de IPs em toda estrutura de dados
-    
-    Args:
-        ip_data: Dados originais com IPs completos
-        
-    Returns:
-        tuple: (dados mascarados, mapeamento de IPs)
-    """
-    secured_data = ip_data.copy()
-    ip_mapping = {}  # Mapeia IP mascarado -> IP original
-    
-    # Mascara IPs em cada grupo
-    for group in secured_data.get('ip_groups', []):
-        original_ip = group['ip']
-        masked_ip = IPSecurityUtils.mask_ip(original_ip)
-        ip_hash = IPSecurityUtils.hash_ip(original_ip)
-        
-        # Cria mapeamento
-        ip_mapping[masked_ip] = original_ip
-        ip_mapping[ip_hash] = original_ip  # Permite busca por hash também
-        
-        group['ip'] = masked_ip
-        group['ip_hash'] = ip_hash
-        group['original_ip_hash'] = ip_hash  # Para referência interna
-        
-        # Remove informações muito específicas que podem identificar localização
-        if 'location_info' in group:
-            del group['location_info']
-    
-    return secured_data, ip_mapping
+# === FUNÇÕES AUXILIARES ===
 
 def _sanitize_order_details(order_details):
     """

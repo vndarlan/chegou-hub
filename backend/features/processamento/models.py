@@ -73,7 +73,7 @@ class IPSecurityAuditLog(models.Model):
     user_ip = models.GenericIPAddressField(help_text="IP do usuário que fez a requisição")
     user_agent = models.TextField(blank=True)
     target_ip_hash = models.CharField(max_length=64, blank=True, help_text="Hash SHA256 do IP consultado")
-    target_ip_masked = models.CharField(max_length=45, blank=True, help_text="IP mascarado para exibição")
+    target_ip_masked = models.CharField(max_length=45, blank=True, help_text="IP consultado completo")
     details = models.JSONField(default=dict, help_text="Detalhes da operação")
     timestamp = models.DateTimeField(auto_now_add=True)
     risk_level = models.CharField(
@@ -122,7 +122,7 @@ class IPSecurityAuditLog(models.Model):
         target_ip_masked = ''
         if target_ip:
             target_ip_hash = IPSecurityUtils.hash_ip(target_ip)
-            target_ip_masked = IPSecurityUtils.mask_ip(target_ip)
+            target_ip_masked = target_ip  # IP completo sem mascaramento
         
         return cls.objects.create(
             user=user,
