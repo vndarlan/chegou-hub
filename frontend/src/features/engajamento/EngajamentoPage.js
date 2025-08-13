@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../../components/ui/pagination';
 import { LoadingSpinner } from '../../components/ui';
 
 function EngajamentoPage() {
@@ -49,6 +50,11 @@ function EngajamentoPage() {
     const [engajamentosSelecionados, setEngajamentosSelecionados] = useState({});
     const [pedidos, setPedidos] = useState([]);
     const [loadingPedidos, setLoadingPedidos] = useState(false);
+    
+    // Estados para paginação
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const itemsPerPage = 10;
 
     // Carregar dados iniciais
     useEffect(() => {
@@ -62,7 +68,7 @@ function EngajamentoPage() {
         initCSRF();
         carregarEngajamentos();
         carregarSaldo();
-        carregarPedidos();
+        carregarPedidos(1); // Carregar primeira página
     }, []);
 
     // Funções de API
@@ -88,11 +94,25 @@ function EngajamentoPage() {
         }
     };
 
-    const carregarPedidos = async () => {
+    const carregarPedidos = async (page = 1) => {
         setLoadingPedidos(true);
         try {
-            const response = await axios.get('/pedidos/');
-            setPedidos(response.data);
+            const response = await axios.get(`/pedidos/?page=${page}&page_size=${itemsPerPage}`);
+            
+            // Se a API retorna dados paginados
+            if (response.data.results) {
+                setPedidos(response.data.results);
+                setTotalPages(Math.ceil(response.data.count / itemsPerPage));
+            } else {
+                // Fallback para paginação manual se a API não pagina
+                const allPedidos = response.data;
+                const startIndex = (page - 1) * itemsPerPage;
+                const endIndex = startIndex + itemsPerPage;
+                setPedidos(allPedidos.slice(startIndex, endIndex));
+                setTotalPages(Math.ceil(allPedidos.length / itemsPerPage));
+            }
+            
+            setCurrentPage(page);
             console.log('Pedidos carregados:', response.data);
         } catch (error) {
             console.error('Erro ao carregar pedidos:', error);
@@ -194,7 +214,7 @@ function EngajamentoPage() {
                 }
             });
             setNotification({ type: 'success', message: 'Pedido criado com sucesso!' });
-            carregarPedidos();
+            carregarPedidos(1); // Voltar para primeira página após criar pedido
             setEngajamentosSelecionados({});
             setUrlsInput('');
         } catch (error) {
@@ -405,7 +425,7 @@ function EngajamentoPage() {
                         <CardHeader className="pb-3">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-lg">Histórico de Pedidos</CardTitle>
-                                <Button size="sm" onClick={carregarPedidos} disabled={loadingPedidos}>
+                                <Button size="sm" onClick={() => carregarPedidos(currentPage)} disabled={loadingPedidos}>
                                     {loadingPedidos ? <LoadingSpinner className="h-3 w-3 mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                                     Atualizar
                                 </Button>
@@ -422,7 +442,7 @@ function EngajamentoPage() {
                                     <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                                     <p className="text-lg font-medium text-muted-foreground mb-2">Nenhum pedido encontrado</p>
                                     <p className="text-sm text-muted-foreground mb-4">Seus pedidos aparecerão aqui após serem criados.</p>
-                                    <Button variant="outline" onClick={carregarPedidos}>
+                                    <Button variant="outline" onClick={() => carregarPedidos(1)}>
                                         <RefreshCw className="h-4 w-4 mr-2" />
                                         Verificar novamente
                                     </Button>
@@ -434,6 +454,7 @@ function EngajamentoPage() {
                                             <TableRow>
                                                 <TableHead>Data</TableHead>
                                                 <TableHead>Status</TableHead>
+                                                <TableHead>Usuário</TableHead>
                                                 <TableHead>Links</TableHead>
                                                 <TableHead>Engajamentos</TableHead>
                                             </TableRow>
@@ -450,6 +471,18 @@ function EngajamentoPage() {
                                                             {pedido.status}
                                                         </Badge>
                                                     </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-medium text-sm">
+                                                                {pedido.criado_por_nome || 'N/A'}
+                                                            </span>
+                                                            {pedido.criado_por_username && (
+                                                                <span className="text-xs text-muted-foreground">
+                                                                    @{pedido.criado_por_username}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
                                                     <TableCell>{pedido.total_links}</TableCell>
                                                     <TableCell>{pedido.itens?.length || 0}</TableCell>
                                                 </TableRow>
@@ -457,6 +490,62 @@ function EngajamentoPage() {
                                         </TableBody>
                                     </Table>
                                 </div>
+                                
+                                {/* Componente de Paginação */}
+                                {totalPages > 1 && (
+                                    <div className="mt-4">
+                                        <Pagination>
+                                            <PaginationContent>
+                                                <PaginationItem>
+                                                    <PaginationPrevious 
+                                                        onClick={() => currentPage > 1 && carregarPedidos(currentPage - 1)}
+                                                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                                                    />
+                                                </PaginationItem>
+                                                
+                                                {/* Números das páginas */}
+                                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                                    let pageNumber;
+                                                    if (totalPages <= 5) {
+                                                        pageNumber = i + 1;
+                                                    } else if (currentPage <= 3) {
+                                                        pageNumber = i + 1;
+                                                    } else if (currentPage >= totalPages - 2) {
+                                                        pageNumber = totalPages - 4 + i;
+                                                    } else {
+                                                        pageNumber = currentPage - 2 + i;
+                                                    }
+                                                    
+                                                    return (
+                                                        <PaginationItem key={pageNumber}>
+                                                            <PaginationLink
+                                                                onClick={() => carregarPedidos(pageNumber)}
+                                                                isActive={currentPage === pageNumber}
+                                                                className="cursor-pointer"
+                                                            >
+                                                                {pageNumber}
+                                                            </PaginationLink>
+                                                        </PaginationItem>
+                                                    );
+                                                })}
+                                                
+                                                <PaginationItem>
+                                                    <PaginationNext 
+                                                        onClick={() => currentPage < totalPages && carregarPedidos(currentPage + 1)}
+                                                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                                                    />
+                                                </PaginationItem>
+                                            </PaginationContent>
+                                        </Pagination>
+                                        
+                                        {/* Informação da paginação */}
+                                        <div className="mt-2 text-center">
+                                            <p className="text-sm text-muted-foreground">
+                                                Página {currentPage} de {totalPages}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             )}
                         </CardContent>
                     </Card>

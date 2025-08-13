@@ -11,6 +11,7 @@ from .models import Engajamento, PedidoEngajamento, ItemPedido
 from .serializers import (
     EngajamentoSerializer, PedidoEngajamentoSerializer, CriarPedidoSerializer
 )
+from .pagination import PedidoEngajamentoPagination
 
 # Configurações da API
 API_KEY = os.getenv('SMMRAJA_API_KEY')
@@ -37,6 +38,7 @@ class EngajamentoViewSet(viewsets.ModelViewSet):
 class PedidoEngajamentoViewSet(viewsets.ModelViewSet):
     serializer_class = PedidoEngajamentoSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = PedidoEngajamentoPagination
     
     def get_queryset(self):
         # Retorna todos os pedidos de todos os usuários ordenados por data de criação

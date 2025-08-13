@@ -365,11 +365,11 @@ def buscar_pedidos_mesmo_ip(request):
                         sanitized_raw_data = _sanitize_raw_order_for_debug(raw_order_details)
                         
                         # Analisa campos de IP encontrados
-                        ip_fields_found = _extract_ip_field_paths(raw_order_details)
+                        ip_analysis = _extract_ip_field_paths(raw_order_details)
                         
                         debug_sample_order = {
                             'raw_order_data': sanitized_raw_data,
-                            'ip_fields_found': ip_fields_found,
+                            'ip_analysis': ip_analysis,
                             'sanitized': True,
                             'order_id': first_order_summary['id'],
                             'order_number': first_order_summary.get('order_number', 'N/A'),
@@ -1017,190 +1017,323 @@ def _analyze_ip_fields(raw_order):
 
 def _sanitize_raw_order_for_debug(raw_order):
     """
-    Sanitiza dados RAW do pedido removendo informações sensíveis mas mantendo estrutura completa
-    para análise de campos de IP no debug
+    Sanitiza dados RAW do pedido mantendo TODOS os campos essenciais para debug
+    Especialmente campos de IP, IDs e estrutura completa
     
     Args:
         raw_order: Dados completos do pedido
         
     Returns:
-        dict: Dados sanitizados mas estruturalmente completos
+        dict: Dados sanitizados mas com estrutura e IDs completos
     """
     if not raw_order:
         return raw_order
     
-    sanitized = raw_order.copy()
+    # Cria cópia profunda para não alterar original
+    import copy
+    sanitized = copy.deepcopy(raw_order)
     
-    # Remove campos completamente sensíveis
+    # === SANITIZAÇÃO MÍNIMA APENAS DE DADOS EXTREMAMENTE SENSÍVEIS ===
+    
+    # Remove APENAS tokens e dados de pagamento sensíveis
     highly_sensitive_keys = [
-        'payment_details', 'payment_gateway_names', 'gateway', 
-        'transactions', 'discount_codes', 'refunds', 'payment_terms',
-        'checkout_id', 'checkout_token', 'cart_token', 'user_id'
+        'payment_details', 'transactions', 'gateway', 'payment_gateway_names',
+        'discount_codes', 'refunds', 'payment_terms', 'checkout_token', 'cart_token'
     ]
     
     for key in highly_sensitive_keys:
         sanitized.pop(key, None)
     
-    # Sanitiza dados do cliente (mantém estrutura mas mascara valores)
+    # === MANTÉM TODOS OS IDs IMPORTANTES ===
+    # ID do pedido, customer ID, address IDs são ESSENCIAIS para debug
+    essential_id_fields = ['id', 'customer_id', 'user_id', 'checkout_id']
+    # Estes IDs NÃO são removidos
+    
+    # === MANTÉM COMPLETAMENTE INTACTOS TODOS OS CAMPOS DE IP ===
+    # TODOS os campos relacionados a IP devem ser preservados sem modificação:
+    # - client_details (TODO o objeto)
+    # - browser_ip, client_ip, customer_ip
+    # - Qualquer campo que contenha "ip" no nome
+    
+    # === SANITIZAÇÃO PARCIAL APENAS DE DADOS PESSOAIS ===
+    # Mascara apenas parcialmente para manter estrutura identificável
+    
     if 'customer' in sanitized and sanitized['customer']:
         customer = sanitized['customer']
         
-        # Mascara email
+        # MANTÉM customer.id - ESSENCIAL
+        
+        # Mascara email mas mantém domínio para debug
         if 'email' in customer and customer['email']:
             email = str(customer['email'])
             if '@' in email:
                 local, domain = email.split('@', 1)
-                customer['email'] = f"{local[:2]}***@{domain}"
+                # Mantém mais caracteres para debug
+                customer['email'] = f"{local[:4]}***@{domain}"
         
-        # Mascara nome
+        # Mascara nome mas mantém iniciais para debug
         for name_field in ['first_name', 'last_name']:
             if name_field in customer and customer[name_field]:
                 name = str(customer[name_field])
-                customer[name_field] = name[:2] + '*' * (len(name) - 2) if len(name) > 2 else '***'
+                customer[name_field] = f"{name[:3]}***{name[-1:]}" if len(name) > 4 else f"{name[:2]}***"
         
-        # Mascara telefone
+        # Mascara telefone mas mantém prefixo para debug  
         if 'phone' in customer and customer['phone']:
             phone = str(customer['phone'])
-            customer['phone'] = phone[:3] + '****' + phone[-2:] if len(phone) > 5 else '***'
+            customer['phone'] = f"{phone[:5]}****{phone[-2:]}" if len(phone) > 7 else f"{phone[:3]}***"
         
-        # Remove notas e dados muito específicos
-        customer.pop('note', None)
-        customer.pop('multipass_identifier', None)
-        customer.pop('tax_exempt', None)
+        # MANTÉM note se contiver informações de debug relevantes
+        # Remove apenas se for muito longo (provavelmente dados sensíveis)
+        if 'note' in customer and customer['note'] and len(str(customer['note'])) > 200:
+            customer['note'] = f"[NOTA_LONGA_MASCARADA - {len(str(customer['note']))} caracteres]"
         
-        # Sanitiza default_address mas mantém TODOS os campos para análise de IP
+        # === MANTÉM default_address COM TODOS OS CAMPOS PARA DEBUG ===
         if 'default_address' in customer and customer['default_address']:
             default_addr = customer['default_address']
             
-            # Mascara nome nos endereços
+            # MANTÉM address.id - ESSENCIAL
+            
+            # Mascara nomes mas mantém estrutura
             for name_field in ['first_name', 'last_name', 'name']:
                 if name_field in default_addr and default_addr[name_field]:
                     name = str(default_addr[name_field])
-                    default_addr[name_field] = name[:2] + '***' if len(name) > 2 else '***'
+                    default_addr[name_field] = f"{name[:3]}***{name[-1:]}" if len(name) > 4 else f"{name[:2]}***"
             
-            # Mascara endereço físico
+            # Mascara endereço mas mantém número/início para debug
             if 'address1' in default_addr and default_addr['address1']:
                 addr = str(default_addr['address1'])
-                default_addr['address1'] = addr[:5] + '***' if len(addr) > 5 else '***'
+                default_addr['address1'] = f"{addr[:8]}***{addr[-3:]}" if len(addr) > 11 else f"{addr[:5]}***"
             
-            if 'address2' in default_addr and default_addr['address2']:
-                addr = str(default_addr['address2'])
-                default_addr['address2'] = addr[:3] + '***' if len(addr) > 3 else '***'
+            # MANTÉM TODOS os campos relacionados a IP sem modificação
+            # MANTÉM city, province, country, zip parcialmente para debug de localização
+            if 'zip' in default_addr and default_addr['zip']:
+                zip_code = str(default_addr['zip'])
+                # Mascara apenas parte do CEP
+                default_addr['zip'] = f"{zip_code[:5]}***" if len(zip_code) > 5 else zip_code
             
-            # Mascara telefone nos endereços
-            if 'phone' in default_addr and default_addr['phone']:
-                phone = str(default_addr['phone'])
-                default_addr['phone'] = phone[:3] + '****' if len(phone) > 3 else '***'
-            
-            # IMPORTANTE: NÃO remove campos de IP - mantém para análise
+            # IMPORTANTE: NÃO remove nem altera campos de IP
     
-    # Sanitiza endereços de shipping e billing (mantém estrutura completa)
+    # === SANITIZA endereços de shipping e billing MANTENDO estrutura ===
     for address_type in ['shipping_address', 'billing_address']:
         if address_type in sanitized and sanitized[address_type]:
             address = sanitized[address_type]
             
-            # Mascara dados pessoais mas mantém estrutura completa
+            # MANTÉM address.id - ESSENCIAL
+            
+            # Mascara dados pessoais mas mantém estrutura identificável
             for name_field in ['first_name', 'last_name', 'name']:
                 if name_field in address and address[name_field]:
                     name = str(address[name_field])
-                    address[name_field] = name[:2] + '***' if len(name) > 2 else '***'
+                    address[name_field] = f"{name[:3]}***{name[-1:]}" if len(name) > 4 else f"{name[:2]}***"
             
-            # Mascara endereço físico
+            # Mascara endereço mas mantém início para debug
             if 'address1' in address and address['address1']:
                 addr = str(address['address1'])
-                address['address1'] = addr[:5] + '***' if len(addr) > 5 else '***'
+                address['address1'] = f"{addr[:8]}***{addr[-3:]}" if len(addr) > 11 else f"{addr[:5]}***"
             
-            # Mascara telefone
+            # Mascara telefone mas mantém estrutura
             if 'phone' in address and address['phone']:
                 phone = str(address['phone'])
-                address['phone'] = phone[:3] + '****' if len(phone) > 3 else '***'
+                address['phone'] = f"{phone[:4]}****{phone[-2:]}" if len(phone) > 6 else f"{phone[:3]}***"
             
-            # Remove coordenadas muito específicas (se existirem)
-            address.pop('latitude', None)
-            address.pop('longitude', None)
+            # MANTÉM coordenadas para debug de localização se existirem
+            # latitude/longitude podem ser úteis para debug
             
-            # IMPORTANTE: NÃO remove campos de IP - mantém para análise
+            # IMPORTANTE: MANTÉM TODOS os campos relacionados a IP
     
-    # Mascara dados de linha de item (produtos) mas mantém estrutura
+    # === MANTÉM client_details COMPLETAMENTE INTACTO ===
+    # Esta é a fonte PRINCIPAL de dados de IP - não pode ser alterada
+    
+    # === MANTÉM browser_ip e customer_ip se existirem ===
+    # Estes campos são CRÍTICOS para debug
+    
+    # === MANTÉM TODOS os campos que contenham "ip" no nome ===
+    def preserve_ip_fields(obj):
+        """Preserva todos os campos relacionados a IP recursivamente"""
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                if 'ip' in key.lower():
+                    # Campo relacionado a IP - NÃO alterar
+                    continue
+                elif isinstance(value, dict):
+                    preserve_ip_fields(value)
+                elif isinstance(value, list):
+                    for item in value:
+                        if isinstance(item, dict):
+                            preserve_ip_fields(item)
+    
+    preserve_ip_fields(sanitized)
+    
+    # === MASCARA line_items minimamente ===
     if 'line_items' in sanitized and sanitized['line_items']:
         for item in sanitized['line_items']:
             if isinstance(item, dict):
-                # Mascara propriedades customizadas que podem conter dados sensíveis
+                # MANTÉM IDs de produtos
+                
+                # Mascara apenas propriedades muito longas
                 if 'properties' in item and item['properties']:
                     for prop in item['properties']:
                         if isinstance(prop, dict) and 'value' in prop:
                             value = str(prop['value'])
-                            if len(value) > 10:  # Só mascara valores longos
-                                prop['value'] = value[:5] + '***'
+                            if len(value) > 50:  # Só mascara valores muito longos
+                                prop['value'] = f"{value[:10]}***[{len(value)} chars]***{value[-5:]}"
     
-    # IMPORTANTE: Mantém client_details COMPLETAMENTE intacto para análise de IP
-    # Esta é a seção mais crítica para o debug dos campos de IP
+    # === MANTÉM metadados importantes para debug ===
+    # user_agent pode ser útil para debug
+    # source_identifier pode ser útil
+    # Só remove se extremamente sensível
     
-    # Remove alguns metadados muito específicos
     metadata_to_remove = [
-        'landing_site_ref', 'referring_site', 'source_identifier',
-        'user_agent', 'session_hash', 'checkout_token'
+        'session_hash'  # Remove apenas este que é muito sensível
     ]
     
     for key in metadata_to_remove:
         sanitized.pop(key, None)
     
-    # Adiciona timestamp de sanitização para rastreamento
-    sanitized['_sanitization_info'] = {
+    # === ADICIONA informações de debug ===
+    sanitized['_debug_info'] = {
         'sanitized_at': datetime.now().isoformat(),
-        'fields_removed': highly_sensitive_keys + metadata_to_remove,
-        'note': 'Dados pessoais mascarados, campos de IP mantidos intactos para análise'
+        'sanitization_level': 'minimal_for_debug',
+        'fields_completely_removed': highly_sensitive_keys + metadata_to_remove,
+        'ip_fields_preserved': 'ALL fields containing "ip" kept intact',
+        'ids_preserved': 'ALL ID fields kept for debugging',
+        'note': 'Sanitização mínima - mantém estrutura completa para debug de IP'
     }
     
     return sanitized
 
 def _extract_ip_field_paths(raw_order):
     """
-    Extrai todos os caminhos de campos que contêm IPs no pedido RAW
+    Extrai todos os caminhos de campos que contêm ou podem conter IPs no pedido RAW
+    Inclui campos mesmo se estiverem vazios - útil para debug
     
     Args:
         raw_order: Dados completos do pedido
         
     Returns:
-        list: Lista de caminhos onde IPs foram encontrados
+        list: Lista completa de caminhos relacionados a IP encontrados
     """
     ip_paths = []
+    all_ip_related_paths = []
     
     def looks_like_ip(value):
-        """Verifica se um valor parece ser um IP"""
-        if not value or not isinstance(value, str):
+        """Verifica se um valor parece ser um IP (IPv4 ou IPv6)"""
+        if not value:
             return False
-        value = value.strip()
-        # Verifica IPv4 básico
-        if '.' in value and len(value.split('.')) == 4:
+        
+        value_str = str(value).strip()
+        if not value_str:
+            return False
+            
+        # IPv4 - mais rigoroso
+        if '.' in value_str and len(value_str.split('.')) == 4:
             try:
-                parts = value.split('.')
-                return all(0 <= int(part) <= 255 for part in parts if part.isdigit())
+                parts = value_str.split('.')
+                # Verifica se todas as partes são números válidos de 0-255
+                if all(part.isdigit() and 0 <= int(part) <= 255 for part in parts):
+                    return True
             except:
-                return False
-        # Verifica IPv6 básico
-        return ':' in value and len(value) > 7 and len(value) < 40
+                pass
+        
+        # IPv6 - básico
+        if ':' in value_str and 7 <= len(value_str) <= 39:
+            # Verifica padrão básico de IPv6
+            if value_str.count(':') >= 2:
+                return True
+        
+        return False
+    
+    def is_ip_related_field(field_name):
+        """Verifica se o nome do campo indica que pode conter IP"""
+        field_lower = field_name.lower()
+        ip_indicators = [
+            'ip', 'browser_ip', 'client_ip', 'customer_ip', 'remote_ip',
+            'forwarded_ip', 'real_ip', 'origin_ip', 'proxy_ip', 'x_forwarded',
+            'x_real_ip', 'cf_connecting_ip', 'true_client_ip'
+        ]
+        
+        return any(indicator in field_lower for indicator in ip_indicators)
     
     def scan_object(obj, path=""):
-        """Escaneia recursivamente um objeto procurando por IPs"""
+        """Escaneia recursivamente um objeto procurando por IPs e campos relacionados"""
         if isinstance(obj, dict):
             for key, value in obj.items():
                 current_path = f"{path}.{key}" if path else key
                 
+                # Verifica se é campo relacionado a IP (mesmo que vazio)
+                if is_ip_related_field(key):
+                    all_ip_related_paths.append({
+                        'path': current_path,
+                        'field_name': key,
+                        'value': value,
+                        'has_ip_value': looks_like_ip(value),
+                        'is_empty': value is None or value == '',
+                        'type': 'ip_field_name'
+                    })
+                
+                # Verifica se o valor parece ser IP
+                if looks_like_ip(value):
+                    ip_paths.append({
+                        'path': current_path,
+                        'field_name': key,
+                        'ip_value': value,
+                        'type': 'ip_value_found'
+                    })
+                
+                # Recursão para objetos aninhados
                 if isinstance(value, (dict, list)):
                     scan_object(value, current_path)
-                elif looks_like_ip(value):
-                    ip_paths.append(current_path)
-                elif 'ip' in key.lower():
-                    # Adiciona mesmo se não parecer IP, pode ser útil para debug
-                    ip_paths.append(current_path)
-        
+                    
         elif isinstance(obj, list):
             for i, item in enumerate(obj):
                 current_path = f"{path}[{i}]"
                 scan_object(item, current_path)
     
-    # Escaneia o pedido inteiro
+    # === ANÁLISE ESPECIAL DE CAMPOS CONHECIDOS ===
+    
+    # 1. client_details - fonte principal
+    if 'client_details' in raw_order:
+        client_details = raw_order['client_details']
+        if isinstance(client_details, dict):
+            all_ip_related_paths.append({
+                'path': 'client_details',
+                'field_name': 'client_details',
+                'value': client_details,
+                'has_ip_value': False,
+                'is_empty': not bool(client_details),
+                'type': 'ip_container_object',
+                'all_fields': list(client_details.keys()) if client_details else []
+            })
+    
+    # 2. Campos diretos no pedido
+    direct_ip_candidates = [
+        'browser_ip', 'client_ip', 'customer_ip', 'remote_ip', 'ip_address'
+    ]
+    
+    for field in direct_ip_candidates:
+        if field in raw_order:
+            all_ip_related_paths.append({
+                'path': field,
+                'field_name': field,
+                'value': raw_order[field],
+                'has_ip_value': looks_like_ip(raw_order[field]),
+                'is_empty': raw_order[field] is None or raw_order[field] == '',
+                'type': 'direct_ip_field'
+            })
+    
+    # 3. Análise completa recursiva
     scan_object(raw_order)
     
-    return ip_paths
+    # === RESULTADO COMPLETO ===
+    result = {
+        'ip_values_found': ip_paths,
+        'ip_related_fields': all_ip_related_paths,
+        'summary': {
+            'total_ip_values': len(ip_paths),
+            'total_ip_fields': len(all_ip_related_paths),
+            'has_client_details': 'client_details' in raw_order,
+            'client_details_fields': list(raw_order.get('client_details', {}).keys()) if raw_order.get('client_details') else []
+        }
+    }
+    
+    return result
