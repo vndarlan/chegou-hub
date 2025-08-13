@@ -662,7 +662,8 @@ function DetectorIPPage() {
                 </Card>
             )}
 
-            {/* Modal de Detalhes do IP */
+            <>
+            {/* Modal de Detalhes do IP */}
             <Dialog open={showIPDetails} onOpenChange={setShowIPDetails}>
                 <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[95vh] bg-background border-border">
                     <DialogHeader>
@@ -844,7 +845,7 @@ function DetectorIPPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Modal de Histórico */}
+            {/* Modal de Historico */}
             <Dialog open={showHistory} onOpenChange={setShowHistory}>
                 <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[95vh] bg-background border-border">
                     <DialogHeader>
@@ -899,6 +900,7 @@ function DetectorIPPage() {
                     </div>
                 </DialogContent>
             </Dialog>
+            </>
         </div>
     );
 }
