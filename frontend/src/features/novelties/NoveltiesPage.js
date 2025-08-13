@@ -53,6 +53,9 @@ function NoveltiesPage() {
     const itemsPerPage = 10;
     const [filterPeriod, setFilterPeriod] = useState('7');
     const [selectedCountry, setSelectedCountry] = useState('all');
+    const [totalExecutions, setTotalExecutions] = useState(0);
+    const [nextPage, setNextPage] = useState(null);
+    const [previousPage, setPreviousPage] = useState(null);
 
     // Verificar permissões
     useEffect(() => {
@@ -86,12 +89,21 @@ function NoveltiesPage() {
 
                 const [statsResponse, recentResponse, trendsResponse] = await Promise.all([
                     axios.get('/novelties/executions/dashboard_stats/', { params: countryParam }),
-                    axios.get('/novelties/recent/', { params: { limit: 10, ...countryParam } }),
+                    axios.get('/novelties/executions/', { 
+                        params: { 
+                            page: currentPage, 
+                            page_size: itemsPerPage, 
+                            ...countryParam 
+                        } 
+                    }),
                     axios.get('/novelties/trends/', { params: { days: filterPeriod, ...countryParam } })
                 ]);
 
                 setDashboardStats(statsResponse.data);
-                setRecentExecutions(recentResponse.data);
+                setRecentExecutions(recentResponse.data.results || []);
+                setTotalExecutions(recentResponse.data.count || 0);
+                setNextPage(recentResponse.data.next);
+                setPreviousPage(recentResponse.data.previous);
                 setTrendsData(trendsResponse.data.daily_data);
 
             } catch (err) {
@@ -102,7 +114,7 @@ function NoveltiesPage() {
         };
 
         fetchData();
-    }, [canView, filterPeriod, selectedCountry]);
+    }, [canView, filterPeriod, selectedCountry, currentPage]);
 
     const handleRefresh = () => {
         window.location.reload();
@@ -216,12 +228,12 @@ function NoveltiesPage() {
         );
     };
 
-    // Configuração do gráfico com cores específicas
+    // Configuração do gráfico com cores específicas e tradução
     const chartConfig = {
         processed: { label: "Processadas", color: "hsl(217, 91%, 60%)" }, // azul
         successful: { label: "Sucessos", color: "hsl(142, 76%, 36%)" }, // verde
-        failed: { label: "Falhas", color: "hsl(0, 84%, 60%)" }, // vermelho
-        partial: { label: "Parciais", color: "hsl(38, 92%, 50%)" }, // laranja
+        failed: { label: "Falha", color: "hsl(0, 84%, 60%)" }, // vermelho
+        partial: { label: "Parcial", color: "hsl(38, 92%, 50%)" }, // laranja
         error: { label: "Erro Crítico", color: "hsl(0, 100%, 50%)" }, // vermelho vibrante
         success: { label: "Sucesso", color: "hsl(142, 76%, 36%)" }, // verde (alias)
     };
@@ -263,33 +275,33 @@ function NoveltiesPage() {
                             <Area
                                 dataKey="error"
                                 type="natural"
-                                fill="hsl(0, 100%, 50%)"
+                                fill="var(--color-error)"
                                 fillOpacity={0.4}
-                                stroke="hsl(0, 100%, 50%)"
+                                stroke="var(--color-error)"
                                 stackId="a"
                             />
                             <Area
                                 dataKey="failed"
                                 type="natural"
-                                fill="hsl(0, 84%, 60%)"
+                                fill="var(--color-failed)"
                                 fillOpacity={0.4}
-                                stroke="hsl(0, 84%, 60%)"
+                                stroke="var(--color-failed)"
                                 stackId="a"
                             />
                             <Area
                                 dataKey="partial"
                                 type="natural"
-                                fill="hsl(38, 92%, 50%)"
+                                fill="var(--color-partial)"
                                 fillOpacity={0.4}
-                                stroke="hsl(38, 92%, 50%)"
+                                stroke="var(--color-partial)"
                                 stackId="a"
                             />
                             <Area
                                 dataKey="success"
                                 type="natural"
-                                fill="hsl(142, 76%, 36%)"
+                                fill="var(--color-success)"
                                 fillOpacity={0.4}
-                                stroke="hsl(142, 76%, 36%)"
+                                stroke="var(--color-success)"
                                 stackId="a"
                             />
                             <ChartLegend content={<ChartLegendContent />} />
@@ -316,12 +328,17 @@ function NoveltiesPage() {
     const StatusDistribution = () => {
         if (!dashboardStats?.status_distribution) return null;
 
+        const statusMapping = {
+            success: 'Sucesso',
+            partial: 'Parcial', 
+            failed: 'Falha',
+            error: 'Erro Crítico'
+        };
+
         const data = Object.entries(dashboardStats.status_distribution).map(([status, count]) => ({
             browser: status,
             visitors: count,
-            fill: status === 'success' ? 'hsl(142, 76%, 36%)' : 
-                  status === 'partial' ? 'hsl(38, 92%, 50%)' : 
-                  status === 'failed' ? 'hsl(0, 84%, 60%)' : 'hsl(0, 100%, 50%)'
+            fill: `var(--color-${status})`
         }));
 
         const statusConfig = {
@@ -355,7 +372,7 @@ function NoveltiesPage() {
                                 tickMargin={10}
                                 axisLine={false}
                                 tickFormatter={(value) =>
-                                    statusConfig[value]?.label || value
+                                    statusConfig[value]?.label || statusMapping[value] || value
                                 }
                             />
                             <XAxis dataKey="visitors" type="number" hide />
@@ -379,7 +396,7 @@ function NoveltiesPage() {
         );
     };
 
-    // Tabela de execuções com paginação
+    // Tabela de execuções com paginação server-side
     const ExecutionsTable = () => {
         if (!recentExecutions.length) {
             return (
@@ -392,11 +409,11 @@ function NoveltiesPage() {
             );
         }
 
-        // Cálculo da paginação
-        const totalPages = Math.ceil(recentExecutions.length / itemsPerPage);
+        // Cálculo da paginação server-side
+        const totalPages = Math.ceil(totalExecutions / itemsPerPage);
         const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        const currentExecutions = recentExecutions.slice(startIndex, endIndex);
+        const endIndex = Math.min(startIndex + itemsPerPage, totalExecutions);
+        const currentExecutions = recentExecutions;
 
         return (
             <Card>
@@ -405,7 +422,7 @@ function NoveltiesPage() {
                         <div>
                             <CardTitle>Histórico de Execuções</CardTitle>
                             <CardDescription>
-                                {recentExecutions.length} execuções encontradas
+                                {totalExecutions} execuções encontradas
                             </CardDescription>
                         </div>
                     </div>
@@ -451,7 +468,7 @@ function NoveltiesPage() {
                 {totalPages > 1 && (
                     <CardFooter className="flex items-center justify-between">
                         <div className="text-sm text-muted-foreground">
-                            Mostrando {startIndex + 1} a {Math.min(endIndex, recentExecutions.length)} de {recentExecutions.length} execuções
+                            Mostrando {startIndex + 1} a {endIndex} de {totalExecutions} execuções
                         </div>
                         <Pagination>
                             <PaginationContent>
@@ -460,9 +477,9 @@ function NoveltiesPage() {
                                         href="#"
                                         onClick={(e) => {
                                             e.preventDefault();
-                                            if (currentPage > 1) setCurrentPage(currentPage - 1);
+                                            if (previousPage) setCurrentPage(currentPage - 1);
                                         }}
-                                        className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                                        className={!previousPage ? "pointer-events-none opacity-50" : ""}
                                     />
                                 </PaginationItem>
                                 
@@ -505,9 +522,9 @@ function NoveltiesPage() {
                                         href="#"
                                         onClick={(e) => {
                                             e.preventDefault();
-                                            if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                                            if (nextPage) setCurrentPage(currentPage + 1);
                                         }}
-                                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                                        className={!nextPage ? "pointer-events-none opacity-50" : ""}
                                     />
                                 </PaginationItem>
                             </PaginationContent>
