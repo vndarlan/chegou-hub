@@ -447,75 +447,77 @@ function EngajamentoPage() {
                                     </Button>
                                 </div>
                             ) : (
-                                <div className="overflow-hidden rounded-md border">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Data</TableHead>
-                                                <TableHead>Status</TableHead>
-                                                <TableHead>Usuário</TableHead>
-                                                <TableHead>Links</TableHead>
-                                                <TableHead>Engajamentos</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {pedidos.map((pedido) => (
-                                                <TableRow key={pedido.id}>
-                                                    <TableCell>{new Date(pedido.data_criacao).toLocaleString()}</TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={
-                                                            pedido.status === 'concluido' ? 'default' :
-                                                            pedido.status === 'erro' ? 'destructive' : 'secondary'
-                                                        } className="text-xs">
-                                                            {pedido.status}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex flex-col">
-                                                            <span className="font-medium text-sm">
-                                                                {pedido.criado_por_nome || 'N/A'}
-                                                            </span>
-                                                            {pedido.criado_por_username && (
-                                                                <span className="text-xs text-muted-foreground">
-                                                                    @{pedido.criado_por_username}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>{pedido.total_links}</TableCell>
-                                                    <TableCell>{pedido.itens?.length || 0}</TableCell>
+                                <>
+                                    <div className="overflow-hidden rounded-md border">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Data</TableHead>
+                                                    <TableHead>Status</TableHead>
+                                                    <TableHead>Usuário</TableHead>
+                                                    <TableHead>Links</TableHead>
+                                                    <TableHead>Engajamentos</TableHead>
                                                 </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                                
-                                {/* Paginação Simplificada */}
-                                {totalPages > 1 && (
-                                    <div className="mt-4 flex items-center justify-center space-x-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => carregarPedidos(currentPage - 1)}
-                                            disabled={currentPage === 1}
-                                        >
-                                            Anterior
-                                        </Button>
-                                        
-                                        <span className="text-sm text-muted-foreground px-4">
-                                            Página {currentPage} de {totalPages}
-                                        </span>
-                                        
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => carregarPedidos(currentPage + 1)}
-                                            disabled={currentPage === totalPages}
-                                        >
-                                            Próximo
-                                        </Button>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {pedidos.map((pedido) => (
+                                                    <TableRow key={pedido.id}>
+                                                        <TableCell>{new Date(pedido.data_criacao).toLocaleString()}</TableCell>
+                                                        <TableCell>
+                                                            <Badge variant={
+                                                                pedido.status === 'concluido' ? 'default' :
+                                                                pedido.status === 'erro' ? 'destructive' : 'secondary'
+                                                            } className="text-xs">
+                                                                {pedido.status}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-medium text-sm">
+                                                                    {pedido.criado_por_nome || 'N/A'}
+                                                                </span>
+                                                                {pedido.criado_por_username && (
+                                                                    <span className="text-xs text-muted-foreground">
+                                                                        @{pedido.criado_por_username}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>{pedido.total_links}</TableCell>
+                                                        <TableCell>{pedido.itens?.length || 0}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
                                     </div>
-                                )}
+                                    
+                                    {/* Paginação Simplificada */}
+                                    {totalPages > 1 && (
+                                        <div className="mt-4 flex items-center justify-center space-x-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => carregarPedidos(currentPage - 1)}
+                                                disabled={currentPage === 1}
+                                            >
+                                                Anterior
+                                            </Button>
+                                            
+                                            <span className="text-sm text-muted-foreground px-4">
+                                                Página {currentPage} de {totalPages}
+                                            </span>
+                                            
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => carregarPedidos(currentPage + 1)}
+                                                disabled={currentPage === totalPages}
+                                            >
+                                                Próximo
+                                            </Button>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </CardContent>
                     </Card>
