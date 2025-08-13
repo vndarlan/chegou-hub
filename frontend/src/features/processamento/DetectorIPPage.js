@@ -33,7 +33,7 @@ function DetectorIPPage() {
     
     // Estado para dados de debug
     const [debugSampleOrder, setDebugSampleOrder] = useState(null);
-    const [debugCollapsed, setDebugCollapsed] = useState(true);
+    const [debugExpanded, setDebugExpanded] = useState(false);
     
     // Estados modais/interface
     const [showInstructions, setShowInstructions] = useState(false);
@@ -94,7 +94,9 @@ function DetectorIPPage() {
 
             if (response.data.success) {
                 setIPGroups(response.data.data.ip_groups || []);
-                setDebugSampleOrder(response.data.data.debug_sample_order || null);
+                if (response.data.data.debug_sample_order) {
+                    setDebugSampleOrder(response.data.data.debug_sample_order);
+                }
                 showNotification(`${response.data.data.total_ips_found || 0} IPs encontrados com múltiplos pedidos`);
             } else {
                 showNotification(response.data.message || 'Erro na busca', 'error');
@@ -556,7 +558,7 @@ function DetectorIPPage() {
             {/* Seção de Debug */}
             {debugSampleOrder && (
                 <Card className="bg-card border-border">
-                    <Collapsible open={!debugCollapsed} onOpenChange={setDebugCollapsed}>
+                    <Collapsible open={debugExpanded} onOpenChange={setDebugExpanded}>
                         <CollapsibleTrigger asChild>
                             <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
                                 <div className="flex items-center justify-between">
@@ -568,9 +570,9 @@ function DetectorIPPage() {
                                         <Badge variant="secondary" className="text-xs">
                                             Pedido de exemplo
                                         </Badge>
-                                        {debugCollapsed ? 
-                                            <ChevronRight className="h-4 w-4 text-muted-foreground" /> : 
-                                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                        {debugExpanded ? 
+                                            <ChevronDown className="h-4 w-4 text-muted-foreground" /> : 
+                                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                         }
                                     </div>
                                 </div>
