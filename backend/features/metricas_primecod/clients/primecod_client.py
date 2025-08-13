@@ -107,7 +107,15 @@ class PrimeCODClient:
             Dict com orders, total_pages, filtros aplicados, etc.
         """
         
-        cache_key = f"primecod_orders_{page}_{date_range}"
+        # Criar chave de cache válida (sem caracteres especiais)
+        import hashlib
+        date_str = ""
+        if date_range:
+            date_str = f"{date_range.get('start', '')}-{date_range.get('end', '')}"
+        
+        # Hash para evitar caracteres especiais e limitar tamanho
+        cache_data = f"primecod_orders_{page}_{date_str}"
+        cache_key = hashlib.md5(cache_data.encode()).hexdigest()[:20]
         cached_result = cache.get(cache_key)
         if cached_result:
             logger.info(f"Retornando dados em cache para página {page}")
