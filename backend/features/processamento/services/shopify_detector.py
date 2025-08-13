@@ -80,7 +80,10 @@ class ShopifyDuplicateOrderDetector:
         """Busca detalhes completos de um pedido incluindo TODOS os dados de endereço"""
         try:
             url = f"{self.base_url}/orders/{order_id}.json"
-            response = requests.get(url, headers=self.headers, timeout=10)
+            params = {
+                "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address"
+            }
+            response = requests.get(url, headers=self.headers, params=params, timeout=10)
             
             if response.status_code == 200:
                 order_data = response.json()["order"]
@@ -169,13 +172,15 @@ class ShopifyDuplicateOrderDetector:
             if page_info:
                 params = {
                     "limit": 250,
-                    "page_info": page_info
+                    "page_info": page_info,
+                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address"
                 }
             else:
                 params = {
                     "limit": 250,
                     "status": "any",
-                    "created_at_min": date_min
+                    "created_at_min": date_min,
+                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address"
                 }
             
             url = f"{self.base_url}/orders.json"
@@ -645,14 +650,16 @@ class ShopifyDuplicateOrderDetector:
             if page_info:
                 params = {
                     "limit": 250,
-                    "page_info": page_info
+                    "page_info": page_info,
+                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address"
                 }
             else:
                 params = {
                     "limit": 250,
                     "status": "any",
                     "created_at_min": date_min,
-                    "financial_status": "any"  # Inclui todos os status financeiros
+                    "financial_status": "any",  # Inclui todos os status financeiros
+                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address"
                 }
             
             url = f"{self.base_url}/orders.json"
@@ -968,3 +975,112 @@ class ShopifyDuplicateOrderDetector:
             return "Range de infraestrutura"
         else:
             return "Padrão suspeito detectado"
+
+    def debug_ip_fields(self, order_limit=5):
+        """
+        Método específico para debugar campos de IP dos pedidos Shopify
+        
+        Args:
+            order_limit (int): Quantos pedidos buscar para análise
+            
+        Returns:
+            dict: Análise detalhada dos campos de IP encontrados
+        """
+        print("=== INÍCIO DEBUG CAMPOS IP SHOPIFY ===")
+        
+        try:
+            # Busca pedidos recentes com TODOS os campos explícitos
+            params = {
+                "limit": order_limit,
+                "status": "any",
+                "fields": "id,order_number,created_at,browser_ip,client_details,shipping_address,billing_address,customer"
+            }
+            
+            url = f"{self.base_url}/orders.json"
+            response = requests.get(url, headers=self.headers, params=params, timeout=30)
+            response.raise_for_status()
+            
+            orders = response.json()["orders"]
+            
+            debug_results = {
+                "total_orders_analyzed": len(orders),
+                "orders_with_browser_ip": 0,
+                "orders_with_client_details": 0,
+                "orders_with_client_details_browser_ip": 0,
+                "unique_browser_ips": set(),
+                "unique_client_detail_ips": set(),
+                "sample_data": []
+            }
+            
+            for order in orders:
+                order_debug = {
+                    "order_id": order["id"],
+                    "order_number": order["order_number"],
+                    "created_at": order["created_at"],
+                    "browser_ip_present": False,
+                    "browser_ip_value": None,
+                    "client_details_present": False,
+                    "client_details_browser_ip_present": False,
+                    "client_details_browser_ip_value": None,
+                    "client_details_full": None
+                }
+                
+                # Verifica browser_ip no nível raiz
+                browser_ip = order.get("browser_ip")
+                if browser_ip:
+                    debug_results["orders_with_browser_ip"] += 1
+                    debug_results["unique_browser_ips"].add(str(browser_ip))
+                    order_debug["browser_ip_present"] = True
+                    order_debug["browser_ip_value"] = browser_ip
+                
+                # Verifica client_details
+                client_details = order.get("client_details")
+                if client_details and isinstance(client_details, dict):
+                    debug_results["orders_with_client_details"] += 1
+                    order_debug["client_details_present"] = True
+                    order_debug["client_details_full"] = client_details
+                    
+                    # Verifica browser_ip dentro de client_details
+                    client_browser_ip = client_details.get("browser_ip")
+                    if client_browser_ip:
+                        debug_results["orders_with_client_details_browser_ip"] += 1
+                        debug_results["unique_client_detail_ips"].add(str(client_browser_ip))
+                        order_debug["client_details_browser_ip_present"] = True
+                        order_debug["client_details_browser_ip_value"] = client_browser_ip
+                
+                debug_results["sample_data"].append(order_debug)
+            
+            # Converte sets para listas para serialização
+            debug_results["unique_browser_ips"] = list(debug_results["unique_browser_ips"])
+            debug_results["unique_client_detail_ips"] = list(debug_results["unique_client_detail_ips"])
+            
+            # Log detalhado
+            print(f"Total de pedidos analisados: {debug_results['total_orders_analyzed']}")
+            print(f"Pedidos com browser_ip (raiz): {debug_results['orders_with_browser_ip']}")
+            print(f"Pedidos com client_details: {debug_results['orders_with_client_details']}")
+            print(f"Pedidos com client_details.browser_ip: {debug_results['orders_with_client_details_browser_ip']}")
+            print(f"IPs únicos em browser_ip: {len(debug_results['unique_browser_ips'])}")
+            print(f"IPs únicos em client_details.browser_ip: {len(debug_results['unique_client_detail_ips'])}")
+            
+            # Amostra dos primeiros 3 pedidos
+            print("\n=== AMOSTRA DETALHADA ===")
+            for i, sample in enumerate(debug_results["sample_data"][:3], 1):
+                print(f"\nPedido {i} (ID: {sample['order_id']}):")
+                print(f"  - browser_ip presente: {sample['browser_ip_present']}")
+                if sample['browser_ip_present']:
+                    print(f"  - browser_ip valor: {sample['browser_ip_value']}")
+                print(f"  - client_details presente: {sample['client_details_present']}")
+                if sample['client_details_present']:
+                    print(f"  - client_details.browser_ip presente: {sample['client_details_browser_ip_present']}")
+                    if sample['client_details_browser_ip_present']:
+                        print(f"  - client_details.browser_ip valor: {sample['client_details_browser_ip_value']}")
+                    print(f"  - client_details completo: {sample['client_details_full']}")
+            
+            print("=== FIM DEBUG CAMPOS IP SHOPIFY ===\n")
+            
+            return debug_results
+            
+        except Exception as e:
+            error_msg = f"Erro durante debug de campos IP: {str(e)}"
+            print(error_msg)
+            return {"error": error_msg}
