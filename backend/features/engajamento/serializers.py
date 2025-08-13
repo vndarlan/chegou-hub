@@ -23,11 +23,12 @@ class ItemPedidoSerializer(serializers.ModelSerializer):
 class PedidoEngajamentoSerializer(serializers.ModelSerializer):
     itens = ItemPedidoSerializer(source='itempedido_set', many=True, read_only=True)
     criado_por_nome = serializers.CharField(source='criado_por.get_full_name', read_only=True)
+    criado_por_username = serializers.CharField(source='criado_por.username', read_only=True)
     
     class Meta:
         model = PedidoEngajamento
         fields = ['id', 'urls', 'status', 'total_links', 'resultado_api', 
-                 'data_criacao', 'criado_por_nome', 'itens']
+                 'data_criacao', 'criado_por', 'criado_por_nome', 'criado_por_username', 'itens']
         read_only_fields = ['data_criacao', 'criado_por', 'resultado_api', 'total_links']
 
 class CriarPedidoSerializer(serializers.Serializer):

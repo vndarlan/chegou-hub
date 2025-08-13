@@ -1,0 +1,7 @@
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal de Histórico */}
+            <Dialog open={showHistory} onOpenChange={setShowHistory}>
+                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[95vh] bg-background border-border">

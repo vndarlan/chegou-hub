@@ -39,7 +39,8 @@ class PedidoEngajamentoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return PedidoEngajamento.objects.filter(criado_por=self.request.user)
+        # Retorna todos os pedidos de todos os usuários ordenados por data de criação
+        return PedidoEngajamento.objects.all().order_by('-data_criacao')
 
 def consultar_saldo_api():
     """Consulta saldo na API"""
