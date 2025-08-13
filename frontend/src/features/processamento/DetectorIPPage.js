@@ -244,7 +244,7 @@ function DetectorIPPage() {
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
                                                 <h4 className="font-semibold text-sm text-foreground">2. Configurar Filtros</h4>
-                                                <p className="text-sm text-muted-foreground">Período (até 90 dias) e mínimo de pedidos por IP</p>
+                                                <p className="text-sm text-muted-foreground">Período (até 365 dias) e mínimo de pedidos por IP</p>
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
                                                 <h4 className="font-semibold text-sm text-foreground">3. Analisar Resultados</h4>
@@ -260,7 +260,7 @@ function DetectorIPPage() {
                                                     <strong className="text-foreground">Múltiplos Pedidos:</strong>
                                                     <ul className="ml-4 space-y-1">
                                                         <li>• Pedidos do mesmo IP (browser_ip do Shopify)</li>
-                                                        <li>• Período configurável (padrão: 30 dias)</li>
+                                                        <li>• Período configurável (até 365 dias, padrão: 30 dias)</li>
                                                         <li>• Mínimo de pedidos configurável (padrão: 2)</li>
                                                     </ul>
                                                 </div>
@@ -320,7 +320,7 @@ function DetectorIPPage() {
                         Configuração da Busca
                     </CardTitle>
                     <CardDescription className="text-muted-foreground">
-                        Configure o período e critérios para análise de IPs
+                        Configure o período (até 365 dias) e critérios para análise de IPs
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -338,6 +338,8 @@ function DetectorIPPage() {
                                     <SelectItem value="30">30 dias</SelectItem>
                                     <SelectItem value="60">60 dias</SelectItem>
                                     <SelectItem value="90">90 dias</SelectItem>
+                                    <SelectItem value="180">180 dias</SelectItem>
+                                    <SelectItem value="365">365 dias (1 ano)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -717,7 +719,7 @@ function DetectorIPPage() {
                                                     <span>📊 Analisados: {log.pedidos_encontrados}</span>
                                                 )}
                                                 {log.detalhes && (
-                                                    <span>🔍 {log.detalhes}</span>
+                                                    <span>🔍 {typeof log.detalhes === 'object' ? JSON.stringify(log.detalhes) : log.detalhes}</span>
                                                 )}
                                             </div>
                                         </div>
