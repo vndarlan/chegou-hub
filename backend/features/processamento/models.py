@@ -27,6 +27,7 @@ class ProcessamentoLog(models.Model):
         ('busca_ip', 'Busca por IP'),
         ('cancelamento', 'Cancelamento Individual'),
         ('cancelamento_lote', 'Cancelamento em Lote'),
+        ('debug', 'Debug de Dados'),
         ('erro', 'Erro'),
     ]
     
@@ -66,6 +67,8 @@ class IPSecurityAuditLog(models.Model):
         ('ip_not_found', 'IP Não Encontrado'),
         ('ip_search_error', 'Erro na Busca IP'),
         ('ip_detail_error', 'Erro no Detalhamento IP'),
+        ('debug_shopify_raw_data', 'Debug de Dados RAW Shopify'),
+        ('debug_shopify_error', 'Erro no Debug Shopify'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE)

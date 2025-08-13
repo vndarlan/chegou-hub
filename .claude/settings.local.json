@@ -58,7 +58,11 @@
       "Bash(del test_primecod_simple.py)",
       "Bash(npm ls:*)",
       "Bash(set CI=true)",
-      "Bash(set DJANGO_SETTINGS_MODULE=config.settings)"
+      "Bash(set DJANGO_SETTINGS_MODULE=config.settings)",
+      "Bash(del test_ip_fix_simple.py test_endpoint_fix.py)",
+      "Bash(del featuresprocessamentotest_ip_fix.py)",
+      "Bash(git rm:*)",
+      "Bash(del:*)"
     ],
     "deny": []
   }

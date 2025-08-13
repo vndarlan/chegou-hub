@@ -13,4 +13,6 @@ urlpatterns = [
     path('cancelar-pedido/', views.cancelar_pedido, name='cancelar_pedido'),
     path('cancelar-lote/', views.cancelar_lote, name='cancelar_lote'),
     path('historico-logs/', views.historico_logs, name='historico_logs'),
+    # Endpoint temporário de debug
+    path('debug-shopify-data/', views.debug_shopify_data, name='debug_shopify_data'),
 ]

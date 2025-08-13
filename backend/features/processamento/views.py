@@ -10,6 +10,7 @@ from django.http import JsonResponse
 from django.core.cache import cache
 import json
 import logging
+import requests
 from datetime import datetime, timedelta
 
 from .models import ShopifyConfig, ProcessamentoLog
@@ -565,6 +566,147 @@ def historico_logs(request):
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@never_cache
+def debug_shopify_data(request):
+    """
+    FERRAMENTA TEMPORÁRIA DE DEBUG
+    
+    Busca 1 pedido recente da API Shopify e retorna os dados RAW
+    para análise dos campos de IP disponíveis.
+    
+    ATENÇÃO: Esta é uma ferramenta de debug temporária que deve ser 
+    removida após a análise ser concluída.
+    """
+    try:
+        # Validação de entrada
+        loja_id = request.data.get('loja_id')
+        if not loja_id:
+            return Response({'error': 'ID da loja é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verifica loja
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+        if not config:
+            return Response({'error': 'Loja não encontrada ou inativa'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Auditoria de acesso
+        AuditLogger.log_ip_access(
+            request.user,
+            request,
+            'debug_shopify_raw_data',
+            {
+                'loja_id': loja_id,
+                'loja_nome': config.nome_loja,
+                'user_ip': AuditLogger._get_client_ip(request),
+                'action': 'Busca de dados RAW do Shopify para debug'
+            }
+        )
+        
+        # Busca 1 pedido recente da API Shopify
+        url = f"https://{config.shop_url}/admin/api/{config.api_version}/orders.json"
+        headers = {
+            "Content-Type": "application/json",
+            "X-Shopify-Access-Token": config.access_token
+        }
+        params = {
+            "limit": 1,
+            "status": "any",
+            "created_at_min": (datetime.now() - timedelta(days=7)).isoformat()  # Últimos 7 dias
+        }
+        
+        response = requests.get(url, headers=headers, params=params, timeout=30)
+        response.raise_for_status()
+        
+        orders_data = response.json()
+        orders = orders_data.get("orders", [])
+        
+        if not orders:
+            return Response({
+                'error': 'Nenhum pedido encontrado nos últimos 7 dias',
+                'debug_info': {
+                    'loja': config.nome_loja,
+                    'api_version': config.api_version,
+                    'response_keys': list(orders_data.keys())
+                }
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Pega o primeiro (mais recente) pedido
+        raw_order = orders[0]
+        
+        # Remove dados muito sensíveis (mantém estrutura para debug)
+        sanitized_order = _sanitize_debug_data(raw_order)
+        
+        # Log da busca de debug
+        ProcessamentoLog.objects.create(
+            user=request.user,
+            config=config,
+            tipo='debug',
+            status='sucesso',
+            pedidos_encontrados=1,
+            detalhes={
+                'action': 'debug_raw_data',
+                'order_id': sanitized_order.get('id'),
+                'order_number': sanitized_order.get('order_number'),
+                'data_fields_found': list(sanitized_order.keys())
+            }
+        )
+        
+        # Analisa campos de IP disponíveis
+        ip_analysis = _analyze_ip_fields(raw_order)
+        
+        # Resposta com dados RAW sanitizados
+        response = Response({
+            'success': True,
+            'debug_info': {
+                'loja_nome': config.nome_loja,
+                'api_version': config.api_version,
+                'order_id': sanitized_order.get('id'),
+                'order_number': sanitized_order.get('order_number'),
+                'timestamp': datetime.now().isoformat()
+            },
+            'ip_analysis': ip_analysis,
+            'raw_order_data': sanitized_order,
+            'warning': 'Esta é uma ferramenta temporária de debug. Dados sensíveis foram removidos.'
+        })
+        
+        return SecurityHeadersManager.add_security_headers(response)
+        
+    except requests.exceptions.RequestException as e:
+        error_msg = f"Erro ao conectar com API Shopify: {str(e)}"
+        logger.error(f"Debug Shopify Data - Erro de conexão - User: {request.user.username}, Error: {error_msg}")
+        
+        # Log do erro
+        if 'config' in locals():
+            ProcessamentoLog.objects.create(
+                user=request.user,
+                config=config,
+                tipo='debug',
+                status='erro',
+                erro_mensagem=error_msg
+            )
+        
+        return Response({'error': error_msg}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    except Exception as e:
+        error_msg = f"Erro interno: {str(e)}"
+        logger.error(f"Debug Shopify Data - Erro geral - User: {request.user.username}, Error: {error_msg}")
+        
+        # Auditoria do erro
+        AuditLogger.log_ip_access(
+            request.user,
+            request,
+            'debug_shopify_error',
+            {
+                'loja_id': loja_id if 'loja_id' in locals() else 'unknown',
+                'error': error_msg,
+                'user_ip': AuditLogger._get_client_ip(request)
+            }
+        )
+        
+        return Response({'error': 'Erro interno do servidor'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # === FUNÇÕES AUXILIARES ===
 
 def _sanitize_order_details(order_details):
@@ -604,3 +746,232 @@ def _sanitize_order_details(order_details):
         customer.pop('multipass_identifier', None)
     
     return sanitized
+
+def _sanitize_debug_data(raw_order):
+    """
+    Remove dados muito sensíveis dos dados RAW do pedido, mantendo estrutura para debug
+    
+    Args:
+        raw_order: Dados brutos do pedido do Shopify
+        
+    Returns:
+        dict: Dados sanitizados mas completos para debug de campos de IP
+    """
+    if not raw_order:
+        return raw_order
+    
+    sanitized = raw_order.copy()
+    
+    # Remove tokens e chaves sensíveis
+    sensitive_keys = [
+        'payment_details', 'payment_gateway_names', 'gateway', 
+        'transactions', 'discount_codes', 'refunds'
+    ]
+    
+    for key in sensitive_keys:
+        sanitized.pop(key, None)
+    
+    # Sanitiza dados do cliente (mantém estrutura mas remove dados muito específicos)
+    if 'customer' in sanitized and sanitized['customer']:
+        customer = sanitized['customer']
+        
+        # Mantém campos importantes para debug mas sanitiza alguns valores
+        if 'email' in customer:
+            email = customer['email']
+            if '@' in email:
+                local, domain = email.split('@', 1)
+                customer['email'] = f"{local[:3]}***@{domain}"
+        
+        # Sanitiza telefone parcialmente
+        if 'phone' in customer and customer['phone']:
+            phone = str(customer['phone'])
+            if len(phone) > 4:
+                customer['phone'] = phone[:4] + '****' + phone[-2:] if len(phone) > 6 else phone[:4] + '****'
+    
+    # Sanitiza endereços (mantém estrutura para análise de IP)
+    for address_key in ['shipping_address', 'billing_address']:
+        if address_key in sanitized and sanitized[address_key]:
+            address = sanitized[address_key]
+            
+            # Sanitiza nome mas mantém estrutura
+            for name_field in ['first_name', 'last_name', 'name']:
+                if name_field in address and address[name_field]:
+                    name = str(address[name_field])
+                    address[name_field] = name[:2] + '***' if len(name) > 2 else '***'
+            
+            # Sanitiza endereço físico mas mantém estrutura
+            if 'address1' in address and address['address1']:
+                addr = str(address['address1'])
+                address['address1'] = addr[:5] + '***' if len(addr) > 5 else '***'
+            
+            # Sanitiza telefone
+            if 'phone' in address and address['phone']:
+                phone = str(address['phone'])
+                address['phone'] = phone[:4] + '****' if len(phone) > 4 else '****'
+    
+    # IMPORTANTE: Mantém client_details completamente para análise de IP
+    # (não remove nem sanitiza campos de IP aqui - essa é a parte importante para debug)
+    
+    return sanitized
+
+def _analyze_ip_fields(raw_order):
+    """
+    Analisa todos os campos relacionados a IP no pedido RAW do Shopify
+    
+    Args:
+        raw_order: Dados brutos do pedido do Shopify
+        
+    Returns:
+        dict: Análise completa dos campos de IP encontrados
+    """
+    ip_analysis = {
+        'ips_found': [],
+        'ip_fields_structure': {},
+        'potential_ip_sources': [],
+        'client_details_analysis': {},
+        'address_analysis': {},
+        'customer_analysis': {},
+        'order_level_analysis': {}
+    }
+    
+    # Função auxiliar para verificar se um valor parece ser IP
+    def looks_like_ip(value):
+        if not value or not isinstance(value, str):
+            return False
+        value = value.strip()
+        # Verifica padrão básico de IP
+        return ('.' in value and len(value.split('.')) == 4) or (':' in value and len(value) > 7)
+    
+    # Função auxiliar para analisar objeto recursivamente
+    def analyze_object(obj, path=""):
+        for key, value in obj.items():
+            current_path = f"{path}.{key}" if path else key
+            
+            if isinstance(value, dict):
+                # Recursão em objetos
+                analyze_object(value, current_path)
+            elif looks_like_ip(value):
+                # Encontrou possível IP
+                ip_analysis['ips_found'].append({
+                    'ip': value,
+                    'source_path': current_path,
+                    'source_description': current_path
+                })
+                ip_analysis['potential_ip_sources'].append(current_path)
+            elif 'ip' in key.lower():
+                # Campo relacionado a IP (mesmo que vazio)
+                ip_analysis['ip_fields_structure'][current_path] = {
+                    'value': value,
+                    'type': type(value).__name__,
+                    'is_ip_like': looks_like_ip(value)
+                }
+    
+    # 1. ANÁLISE DO CLIENT_DETAILS (principal fonte atual)
+    client_details = raw_order.get('client_details', {})
+    if client_details:
+        ip_analysis['client_details_analysis'] = {
+            'exists': True,
+            'all_fields': list(client_details.keys()),
+            'ip_related_fields': {}
+        }
+        
+        for key, value in client_details.items():
+            if 'ip' in key.lower() or looks_like_ip(value):
+                ip_analysis['client_details_analysis']['ip_related_fields'][key] = {
+                    'value': value,
+                    'looks_like_ip': looks_like_ip(value)
+                }
+        
+        analyze_object(client_details, 'client_details')
+    else:
+        ip_analysis['client_details_analysis'] = {'exists': False}
+    
+    # 2. ANÁLISE DOS ENDEREÇOS
+    for address_type in ['shipping_address', 'billing_address']:
+        address = raw_order.get(address_type, {})
+        if address:
+            address_analysis = {
+                'exists': True,
+                'all_fields': list(address.keys()),
+                'ip_related_fields': {}
+            }
+            
+            for key, value in address.items():
+                if 'ip' in key.lower() or looks_like_ip(value):
+                    address_analysis['ip_related_fields'][key] = {
+                        'value': value,
+                        'looks_like_ip': looks_like_ip(value)
+                    }
+            
+            ip_analysis['address_analysis'][address_type] = address_analysis
+            analyze_object(address, address_type)
+        else:
+            ip_analysis['address_analysis'][address_type] = {'exists': False}
+    
+    # 3. ANÁLISE DO CUSTOMER
+    customer = raw_order.get('customer', {})
+    if customer:
+        ip_analysis['customer_analysis'] = {
+            'exists': True,
+            'all_fields': list(customer.keys()),
+            'ip_related_fields': {}
+        }
+        
+        # Analisa customer principal
+        for key, value in customer.items():
+            if 'ip' in key.lower() or looks_like_ip(value):
+                ip_analysis['customer_analysis']['ip_related_fields'][key] = {
+                    'value': value,
+                    'looks_like_ip': looks_like_ip(value)
+                }
+        
+        # Analisa default_address do customer (fonte prioritária na nova lógica)
+        default_address = customer.get('default_address', {})
+        if default_address:
+            ip_analysis['customer_analysis']['default_address'] = {
+                'exists': True,
+                'all_fields': list(default_address.keys()),
+                'ip_related_fields': {}
+            }
+            
+            for key, value in default_address.items():
+                if 'ip' in key.lower() or looks_like_ip(value):
+                    ip_analysis['customer_analysis']['default_address']['ip_related_fields'][key] = {
+                        'value': value,
+                        'looks_like_ip': looks_like_ip(value)
+                    }
+            
+            analyze_object(default_address, 'customer.default_address')
+        else:
+            ip_analysis['customer_analysis']['default_address'] = {'exists': False}
+        
+        analyze_object(customer, 'customer')
+    else:
+        ip_analysis['customer_analysis'] = {'exists': False}
+    
+    # 4. ANÁLISE DO NÍVEL DO PEDIDO
+    order_ip_fields = {}
+    for key, value in raw_order.items():
+        if 'ip' in key.lower() or looks_like_ip(value):
+            order_ip_fields[key] = {
+                'value': value,
+                'looks_like_ip': looks_like_ip(value)
+            }
+    
+    ip_analysis['order_level_analysis'] = {
+        'ip_related_fields': order_ip_fields,
+        'total_root_fields': len(raw_order.keys())
+    }
+    
+    # 5. RESUMO FINAL
+    ip_analysis['summary'] = {
+        'total_ips_found': len(ip_analysis['ips_found']),
+        'total_ip_fields': len(ip_analysis['ip_fields_structure']),
+        'has_client_details': bool(client_details),
+        'has_shipping_address': bool(raw_order.get('shipping_address')),
+        'has_billing_address': bool(raw_order.get('billing_address')),
+        'has_customer_data': bool(customer),
+        'has_customer_default_address': bool(customer.get('default_address')) if customer else False
+    }
+    
+    return ip_analysis
