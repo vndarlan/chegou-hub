@@ -97,25 +97,33 @@ function EngajamentoPage() {
         setLoadingPedidos(true);
         try {
             const response = await axios.get(`/pedidos/?page=${page}&page_size=${itemsPerPage}`);
+            console.log('Resposta completa da API:', response.data);
             
             // Se a API retorna dados paginados
-            if (response.data.results) {
+            if (response.data.results && Array.isArray(response.data.results)) {
                 setPedidos(response.data.results);
-                setTotalPages(Math.ceil(response.data.count / itemsPerPage));
-            } else {
+                setTotalPages(response.data.total_pages || Math.ceil(response.data.count / itemsPerPage));
+            } else if (Array.isArray(response.data)) {
                 // Fallback para paginação manual se a API não pagina
                 const allPedidos = response.data;
                 const startIndex = (page - 1) * itemsPerPage;
                 const endIndex = startIndex + itemsPerPage;
                 setPedidos(allPedidos.slice(startIndex, endIndex));
                 setTotalPages(Math.ceil(allPedidos.length / itemsPerPage));
+            } else {
+                // Se não é nem paginado nem array, definir como array vazio
+                console.error('Resposta da API não é array nem objeto paginado:', response.data);
+                setPedidos([]);
+                setTotalPages(1);
             }
             
             setCurrentPage(page);
-            console.log('Pedidos carregados:', response.data);
+            console.log('Pedidos definidos:', pedidos);
         } catch (error) {
             console.error('Erro ao carregar pedidos:', error);
             setNotification({ type: 'error', message: 'Erro ao carregar histórico de pedidos' });
+            setPedidos([]); // Garantir que pedidos seja sempre um array
+            setTotalPages(1);
         } finally {
             setLoadingPedidos(false);
         }
@@ -436,7 +444,7 @@ function EngajamentoPage() {
                                     <LoadingSpinner className="h-6 w-6 mr-2" />
                                     <span className="text-muted-foreground">Carregando histórico...</span>
                                 </div>
-                            ) : pedidos.length === 0 ? (
+                            ) : !Array.isArray(pedidos) || pedidos.length === 0 ? (
                                 <div className="text-center py-8">
                                     <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                                     <p className="text-lg font-medium text-muted-foreground mb-2">Nenhum pedido encontrado</p>
@@ -460,7 +468,7 @@ function EngajamentoPage() {
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {pedidos.map((pedido) => (
+                                                {Array.isArray(pedidos) && pedidos.map((pedido) => (
                                                     <TableRow key={pedido.id}>
                                                         <TableCell>{new Date(pedido.data_criacao).toLocaleString()}</TableCell>
                                                         <TableCell>
