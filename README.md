@@ -1,6 +1,6 @@
 # Chegou Hub - Plataforma de Gestão Empresarial
 
-**Versão Atual: v1.0.0** | [📋 Changelog](CHANGELOG.md) | [📌 Boas Práticas](docs/boaspraticas.md)
+**Versão Atual: v1.0.0** | [📋 Changelog](CHANGELOG.md)
 
 ## 📋 Sobre o Projeto
 
@@ -31,25 +31,6 @@ A documentação foi completamente reestruturada para fornecer **contexto estrat
 ### 📖 **Guias do Usuário**
 - **[📁 User Guides](docs/user-guides/)** - Tutoriais passo a passo para usuários finais
 
-## 🤖 Features Principais
-
-### **Inteligência Artificial**
-- **Dashboard IA**: Gestão de ROI de projetos de automação (25+ projetos ativos)
-- **OpenAI Analytics**: Monitoramento de custos e uso de APIs de IA
-- **Chatbot Claude**: Assistente interno com conhecimento da documentação
-
-### **Métricas & Análises**
-- **PRIMECOD**: Integração direta via API para métricas de tráfego
-- **ECOMHUB**: Web scraping automatizado via Selenium Grid
-- **DROPI MX**: Sistema de tokens para métricas de dropshipping
-- **Mapa Geográfico**: Visualização de cobertura e performance por região
-
-### **Operacional**
-- **Sistema de Feedback**: Canal direto usuário-desenvolvedor com screenshots
-- **Agenda Corporativa**: Sincronização bidirecional com Google Calendar
-- **Background Jobs**: Processamento assíncrono via Django-RQ
-- **Monitoramento**: Logs estruturados e métricas em tempo real
-
 ## 📊 Arquitetura
 
 ### Monorepo Full-Stack
@@ -64,25 +45,3 @@ A documentação foi completamente reestruturada para fornecer **contexto estrat
 ├── 🐳 .dockerignore     # Arquivos ignorados no build Docker
 └── 📋 CHANGELOG.md      # Histórico de versões
 ```
-
-## 🎯 Como Briefar IA para Este Projeto
-
-### Contexto Rápido
-> "Sistema Django+React no Railway com dashboard IA para ROI de projetos, integra OpenAI/PRIMECOD/ECOMHUB, usa PostgreSQL+Redis, background jobs Django-RQ, chatbot Claude interno, web scraping via Selenium Grid."
-
-### Para Desenvolvimento
-Leia primeiro: [Stack Tecnológico](docs/stack-tecnologico.md) + [Features Principais](docs/features-principais.md)
-
-### Para Modificações
-Consulte: [Documentação Contextual Completa](docs/README.md)
-
-## 🔗 Links Importantes
-
-- **Produção**: https://chegouhub.com.br
-- **Documentação**: [docs/README.md](docs/README.md)
-- **Stack Completo**: [docs/stack-tecnologico.md](docs/stack-tecnologico.md)
-- **Deploy Info**: [docs/railway-producao.md](docs/railway-producao.md)
-
----
-
-**🤖 Sistema otimizado para automação, IA e análises empresariais data-driven**
