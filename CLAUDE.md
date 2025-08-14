@@ -15,6 +15,7 @@ Claude deve sempre se comunicar em português brasileiro (PT-BR) ao trabalhar ne
 - `"security, ..."` → Security Agent
 - `"tech docs, ..."` → Tech Docs Agent
 - `"user guide, ..."` → User Guide Agent
+- `"changelog, ..."` → Changelog Agent
 
 ## **WORKFLOWS AUTOMÁTICOS**
 **IMPORTANTE**: Obrigatório análisar se deve passar por um workflow automático, se precisar passar, avise ao usuário por qual vai seguir.
@@ -34,15 +35,19 @@ Claude deve sempre se comunicar em português brasileiro (PT-BR) ao trabalhar ne
 ### Documentação
 Tech Docs Agent + User Guide Agent (paralelo)
 
+### Release Oficial (após validação)
+Changelog Agent → Deploy Agent (versão oficial)
+
 ## **EQUIPE DE AGENTES DISPONÍVEIS**
 1. 🎯 **Coordinator** - Líder técnico que orquestra toda a equipe
 2. 🔧 **Backend** - Master da pasta backend/ (Django + APIs)
 3. 🎨 **Frontend** - Master da pasta frontend/ (React + shadcn/ui)
-4. 🚀 **Deploy** - Git commits + deploy automático Railway
+4. 🚀 **Deploy** - Git commits + deploy automático Railway (com versionamento)
 5. 🔍 **Review** - Quality assurance e code review
-6. 🛡️ **Security** - Especialista em segurança.
+6. 🛡️ **Security** - Especialista em segurança
 7. 📖 **Tech Docs** - Especialista em documentação contextual estratégica (PT-BR)
 8. 📋 **User Guide** - Guias de uso para usuários (PT-BR)
+9. 📋 **Changelog** - Gerencia releases oficiais e versionamento semântico
 
 ## **Comandos Básicos**
 ```bash

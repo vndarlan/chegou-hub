@@ -63,8 +63,15 @@
       "Bash(del featuresprocessamentotest_ip_fix.py)",
       "Bash(git rm:*)",
       "Bash(del:*)",
-      "Bash(npx babel:*)"
+      "Bash(npx babel:*)",
+      "WebSearch",
+      "WebFetch(domain:shopify.dev)",
+      "WebFetch(domain:www.highviewapps.com)",
+      "Bash(true)",
+      "WebFetch(domain:ipinfo.io)",
+      "WebFetch(domain:www.abstractapi.com)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }

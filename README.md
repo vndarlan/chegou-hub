@@ -1,5 +1,7 @@
 # 🚀 Chegou Hub - Plataforma de Gestão Empresarial com IA
 
+**Versão Atual: v1.0.0** | [📋 Changelog](CHANGELOG.md) | [📌 Boas Práticas](docs/boaspraticas.md)
+
 ## 📋 Sobre o Projeto
 
 O Chegou Hub é uma plataforma full-stack moderna que centraliza automações de IA, métricas empresariais e ferramentas de produtividade. Desenvolvido com Django + React, integra múltiplas APIs e oferece dashboards inteligentes para tomada de decisões.
@@ -23,7 +25,6 @@ A documentação foi completamente reestruturada para fornecer **contexto estrat
 - **[🛠️ Stack Tecnológico](docs/stack-tecnologico.md)** - Tecnologias, bibliotecas e decisões arquiteturais
 - **[⚙️ Configurações de Ambiente](docs/configuracoes-ambiente.md)** - Variáveis, segurança e Railway
 - **[🚀 Railway & Produção](docs/railway-producao.md)** - Deploy, infraestrutura e monitoramento
-- **[📊 Features Principais](docs/features-principais.md)** - Visão estratégica das funcionalidades
 - **[🔗 Integrações Externas](docs/integracoes-externas.md)** - APIs, web scraping e serviços
 - **[📈 Monitoramento & Logs](docs/monitoramento-logs.md)** - Observabilidade e troubleshooting
 

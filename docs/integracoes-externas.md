@@ -9,141 +9,220 @@ O Chegou Hub funciona como um hub de integração que conecta múltiplas platafo
 ### OpenAI GPT Platform
 
 #### Propósito Estratégico
-Fornecedor principal de modelos de linguagem para automações, chatbots e análises inteligentes. Usado extensivamente em projetos de IA internos.
+Usado EXCLUSIVAMENTE para monitoramento de custos e gastos de API. Verificar quanto está sendo gasto nas APIs da OpenAI.
 
 #### Integração Técnica
-- **SDK**: OpenAI Python Library v1.x
-- **Modelos utilizados**: GPT-4, GPT-4-turbo, GPT-3.5-turbo
-- **Rate limiting**: Controlado por projeto e usuário
-- **Cost tracking**: Monitoramento automático via Usage API
+- **Localização**: `frontend/src/features/ia/OpenAIAnalytics.js`
+- **Propósito único**: Monitoramento de custos de API
+- **Usage API**: Coleta dados de gasto via OpenAI Usage API
+- **Dashboard**: Interface para análise de gastos por período
 
 #### Configuração
 ```python
-# Variáveis obrigatórias
-OPENAI_API_KEY = "sk-proj-..."          # API key padrão
-OPENAI_ADMIN_API_KEY = "sk-..."         # Key com permissões org
-
-# Uso típico
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
-response = client.chat.completions.create(
-    model="gpt-4",
-    messages=[{"role": "user", "content": "..."}]
-)
+# Apenas para monitoramento de custos
+OPENAI_ADMIN_API_KEY = "sk-..."         # Key com permissões org para Usage API
 ```
 
-#### Features que Usam
-- **Dashboard IA**: Análises e insights automáticos
-- **Chatbot interno**: Conversas inteligentes com documentação
-- **Automações**: Processamento de linguagem natural
-- **OpenAI Analytics**: Monitoramento de custos e uso
+#### Funcionalidade Atual
+- **OpenAI Analytics**: Monitoramento de custos e uso das API keys
+- **Validação de API Keys**: Verificação de permissões
+- **Exportação de dados**: CSV e JSON dos gastos
+- **Sincronização de dados**: Coleta automática de métricas de uso
 
 ### Anthropic Claude
 
 #### Propósito Estratégico
-Modelo de IA alternativo focado em segurança e helpfulness, usado principalmente para o chatbot interno devido à sua capacidade superior de seguir instruções.
+API do Claude Sonnet usada como assistente de IA interno da empresa. Funciona como chatbot corporativo para suporte aos colaboradores.
 
 #### Integração Técnica
 - **SDK**: Anthropic Python SDK
-- **Modelo**: claude-3-5-sonnet-20241022
-- **Context window**: 200K tokens (documentação extensa)
-- **Safety**: Filtros nativos de conteúdo sensível
+- **Modelo**: claude-sonnet (versão atual)
+- **Uso**: Assistente interno da empresa
+- **Context window**: Suporte a documentação extensa
 
 #### Configuração
 ```python
 ANTHROPIC_API_KEY = "sk-ant-api03-..."
 
-# Client setup
+# Uso como assistente interno
 client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 response = client.messages.create(
-    model="claude-3-5-sonnet-20241022",
+    model="claude-sonnet",
     max_tokens=2000,
     messages=[{"role": "user", "content": "..."}]
 )
 ```
 
-#### Vantagens sobre OpenAI
-- **Maior context window**: Processa documentação completa
-- **Melhor instruction following**: Segue guidelines rigorosamente  
-- **Safety focused**: Menos propenso a respostas inadequadas
-- **Document understanding**: Excelente para Q&A sobre docs
+#### Funcionalidade
+- **Chatbot Assistente**: Suporte interno aos colaboradores
+- **Documentação**: Consulta guias e procedimentos
+- **Referência**: Ver `docs/user-guides/como-usar-chatbot-assistente.md`
 
 ## 📊 Plataformas de Métricas
 
 ### PRIMECOD Integration
 
 #### Propósito do Negócio
-Plataforma de análise de performance de tráfego pago e orgânico. Fornece métricas essenciais para otimização de campanhas.
+API para coleta de métricas de pedidos. Integração focada em dados de performance comercial.
 
 #### Integração Técnica
 - **Método**: REST API direta
 - **Autenticação**: API Token via headers
-- **Frequência**: Coleta diária automática via background jobs
-- **Dados coletados**: CTR, conversões, ROI por campanha
+- **Dados coletados**: Métricas de pedidos e vendas
 
 #### Configuração
 ```python
 PRIMECOD_API_TOKEN = "token-primecod-analytics"
 
-# API calls
+# API calls para métricas de pedidos
 headers = {"Authorization": f"Bearer {settings.PRIMECOD_API_TOKEN}"}
-response = requests.get("https://api.primecod.com/v1/metrics", headers=headers)
+response = requests.get("https://api.primecod.com/v1/orders", headers=headers)
 ```
 
-#### Métricas Principais
-- **Traffic metrics**: Impressões, cliques, CTR
-- **Conversion data**: Leads, vendas, ROI
-- **Campaign performance**: Performance por campanha
-- **Attribution**: Tracking de conversões multi-touch
+#### Métricas Coletadas
+- **Pedidos**: Volume e status de pedidos
+- **Performance**: Métricas básicas de vendas
 
 ### ECOMHUB Integration
 
 #### Propósito do Negócio
-Plataforma de e-commerce com métricas de vendas, produtos e performance de lojas. Crítica para análise de performance comercial.
+API para coleta de métricas de pedidos. Foco em dados básicos de performance comercial.
 
 #### Integração Técnica
-**Método**: REST API direta
-**Autenticação**: API Token via headers
-**Frequência**: Coleta automática via background jobs
+- **Método**: REST API direta
+- **Autenticação**: API Token via headers
+- **Dados coletados**: Métricas de pedidos
 
 #### Configuração da API
 ```python
 ECOMHUB_API_TOKEN = "token-ecomhub-api"
 
-# API calls
+# API calls para métricas de pedidos
 headers = {"Authorization": f"Bearer {settings.ECOMHUB_API_TOKEN}"}
-response = requests.get("https://api.ecomhub.com/v1/metrics", headers=headers)
+response = requests.get("https://api.ecomhub.com/v1/orders", headers=headers)
 ```
 
 #### Dados Coletados
-- **Sales data**: Vendas por período, produto, região
-- **Product metrics**: Performance de produtos individuais
-- **Customer insights**: Comportamento e padrões de compra
-- **Financial reports**: Receita, margem, custos
+- **Métricas de pedidos**: Volume e performance básica de vendas
 
-### DROPI MX Integration
+### DROPI Integration
 
 #### Propósito do Negócio
-Plataforma de dropshipping mexicana. Métricas de produtos, fornecedores e performance de vendas para o mercado mexicano.
+API para coleta de métricas de pedidos do mercado mexicano. Dados básicos de performance comercial.
 
 #### Integração Técnica
-**Método**: REST API direta
-**Autenticação**: API Token com sistema de refresh
-**Rate limiting**: Controlado automaticamente
+- **Método**: REST API direta
+- **Autenticação**: API Token
+- **Dados coletados**: Métricas de pedidos
 
 #### Configuração
 ```python
 DROPI_API_TOKEN = "dropi-mx-api-key"
 
-# API calls diretas
+# API calls para métricas de pedidos
 headers = {"Authorization": f"Bearer {settings.DROPI_API_TOKEN}"}
-response = requests.get("https://api.dropi.mx/v1/products", headers=headers)
+response = requests.get("https://api.dropi.mx/v1/orders", headers=headers)
 ```
 
-#### Dados Críticos
-- **Product performance**: Top products no mercado mexicano
-- **Supplier metrics**: Performance de fornecedores
-- **Market trends**: Tendências de categoria e preços
-- **Competition analysis**: Análise competitiva automatizada
+#### Dados Coletados
+- **Métricas de pedidos**: Performance básica de vendas no mercado mexicano
+
+## 🛒 Plataformas de E-commerce
+
+### Shopify Integration
+
+#### Propósito Estratégico
+Integração com lojas Shopify para processamento de pedidos e detecção de padrões. Usado em duas funcionalidades principais do sistema.
+
+#### Integração Técnica
+- **Localização**: 
+  - `frontend/src/features/processamento/ProcessamentoPage.js`
+  - `frontend/src/features/processamento/DetectorIPPage.js`
+- **Método**: REST API do Shopify
+- **Autenticação**: Access Token por loja
+- **Permissões**: read_orders, write_orders, read_customers
+
+#### Funcionalidades Implementadas
+
+##### Processamento de Pedidos Duplicados
+- **Detecção automática**: Identifica pedidos duplicados por cliente/produto
+- **Critérios de detecção**: Mesmo telefone + mesmo SKU/produto + tags de processamento
+- **Cancelamento**: Cancela pedidos duplicados não processados
+- **Análise temporal**: Hierarquia por data e status de processamento
+
+##### Detector de IP
+- **Análise por endereço IP**: Identifica múltiplos pedidos do mesmo IP
+- **Detecção de padrões**: Suspeita de fraude ou uso de proxies/servidores
+- **Métricas detalhadas**: Total de pedidos, clientes únicos, valor total por IP
+- **Configuração flexível**: Período ajustável (até 365 dias) e mínimo de pedidos
+
+#### Configuração
+```python
+# Configuração por loja
+SHOPIFY_STORES = {
+    "loja1": {
+        "shop_url": "minha-loja.myshopify.com",
+        "access_token": "shpat_..."
+    }
+}
+```
+
+### SMMRAJA API
+
+#### Propósito Estratégico
+API usada para compra de engajamento em anúncios do Facebook. Permite automatizar campanhas de marketing social.
+
+#### Integração Técnica
+- **Localização**: `frontend/src/features/engajamento/EngajamentoPage.js`
+- **Método**: REST API
+- **Funcionalidades**: Compra de likes, reações e engajamento para posts do Facebook
+
+#### Tipos de Engajamento
+- **Like**: Curtidas em posts
+- **Amei**: Reações "amei"
+- **Uau**: Reações "uau"
+- **Configuração flexível**: Quantidade por tipo de engajamento
+
+#### Configuração
+```python
+SMMRAJA_API_KEY = "smmraja-api-token"
+
+# Envio de pedidos de engajamento
+response = requests.post(
+    "https://api.smmraja.com/v1/orders",
+    headers={"Authorization": f"Bearer {settings.SMMRAJA_API_KEY}"},
+    data={"service_id": service_id, "link": fb_url, "quantity": quantity}
+)
+```
+
+### Novelties API
+
+#### Propósito Estratégico
+API para processamento e análise de dados de novelties (novidades/tendências). Sistema de monitoramento automatizado.
+
+#### Integração Técnica
+- **Localização**: `frontend/src/features/novelties/NoveltiesPage.js`
+- **Dashboard**: Interface completa com métricas e tendências
+- **Países suportados**: Chile e México
+- **Monitoramento**: Execuções automáticas com tracking de performance
+
+#### Funcionalidades
+- **Dashboard de métricas**: Total de execuções, taxa de sucesso, tempo economizado
+- **Análise por país**: Filtros por Chile, México ou todos os países
+- **Histórico detalhado**: Lista de execuções com status e performance
+- **Gráficos de tendência**: Visualização temporal dos dados
+
+#### Configuração
+```python
+NOVELTIES_API_KEY = "novelties-api-token"
+
+# Coleta de dados automatizada
+response = requests.get(
+    "https://api.novelties.com/v1/executions",
+    headers={"Authorization": f"Bearer {settings.NOVELTIES_API_KEY}"},
+    params={"country": "chile", "days": 7}
+)
+```
 
 ## 📅 Google Calendar Integration
 
@@ -185,45 +264,30 @@ CALENDAR_TIME_ZONE = "America/Sao_Paulo"
 DEFAULT_EVENT_DURATION = 60  # minutes
 ```
 
-
-## 📧 Email & Notifications
-
-### SMTP Integration
-```python
-# Email settings para notificações
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-```
-
-### Tipos de Notificações
-- **Error alerts**: Falhas críticas em integrações
-- **Data anomalies**: Métricas fora do padrão normal
-- **System health**: Status de integrações e APIs
-- **Reports**: Relatórios automáticos semanais/mensais
-
 ## 🔒 Segurança das Integrações
 
 ### API Key Management
 ```python
 # Hierarquia de secrets
 production_secrets = {
-    "OPENAI_API_KEY": "Produção + staging",
-    "ANTHROPIC_API_KEY": "Produção apenas", 
-    "PRIMECOD_API_TOKEN": "Rotacionado mensalmente",
-    "DROPI_API_TOKEN": "Sistema de refresh automático"
+    "OPENAI_ADMIN_API_KEY": "Monitoramento de custos",
+    "ANTHROPIC_API_KEY": "Assistente interno", 
+    "SHOPIFY_ACCESS_TOKENS": "Por loja configurada",
+    "SMMRAJA_API_KEY": "Engajamento Facebook",
+    "NOVELTIES_API_KEY": "Sistema de monitoramento",
+    "PRIMECOD_API_TOKEN": "Métricas de pedidos",
+    "ECOMHUB_API_TOKEN": "Métricas de pedidos",
+    "DROPI_API_TOKEN": "Métricas de pedidos"
 }
 ```
 
 ### Rate Limiting Strategy
-- **OpenAI**: 3500 requests/min (enterprise)
-- **Anthropic**: 1000 requests/min (pro plan)
-- **PRIMECOD**: 1000 requests/hour
-- **ECOMHUB**: 10 requests/min (via scraping)
-- **DROPI**: 500 requests/hour via token service
+- **OpenAI**: Apenas para Usage API (monitoramento de custos)
+- **Anthropic**: Para assistente interno (uso moderado)
+- **Shopify**: Por loja configurada (padrão Shopify)
+- **SMMRAJA**: Para compra de engajamento
+- **Novelties**: Para coleta de dados automatizada
+- **PRIMECOD/ECOMHUB/DROPI**: APIs de métricas de pedidos
 
 ### Error Handling & Resilience
 ```python
@@ -243,10 +307,14 @@ def api_call_with_retry(url, headers):
 ```python
 # /health/ endpoint verifica todas as integrações
 health_status = {
-    "openai": check_openai_api(),
-    "anthropic": check_anthropic_api(), 
+    "openai_analytics": check_openai_usage_api(),
+    "anthropic_assistant": check_anthropic_api(), 
+    "shopify_stores": check_shopify_integrations(),
+    "smmraja": check_smmraja_api(),
+    "novelties": check_novelties_api(),
     "primecod": check_primecod_api(),
-    "google_calendar": check_google_calendar(),
+    "ecomhub": check_ecomhub_api(),
+    "dropi": check_dropi_api(),
 }
 ```
 
@@ -268,11 +336,13 @@ health_status = {
 ```python
 # Cache por integração
 cache_settings = {
-    "primecod_metrics": 300,      # 5 minutos
-    "ecomhub_data": 900,          # 15 minutos  
-    "dropi_products": 1800,       # 30 minutos
-    "google_calendar": 120,       # 2 minutos
-    "openai_responses": 0         # Sem cache (sempre fresh)
+    "openai_analytics": 0,         # Sem cache (dados financeiros)
+    "shopify_orders": 300,         # 5 minutos
+    "smmraja_balance": 600,        # 10 minutos
+    "novelties_metrics": 900,      # 15 minutos
+    "primecod_orders": 300,        # 5 minutos
+    "ecomhub_orders": 300,         # 5 minutos  
+    "dropi_orders": 300,           # 5 minutos
 }
 ```
 
@@ -283,11 +353,34 @@ cache_settings = {
 - **Queue monitoring**: Dead letter queue para jobs falhados
 
 ### Cost Optimization
-- **OpenAI**: Usar modelos menores quando possível
-- **API calls**: Batch requests quando APIs suportam
-- **Caching**: Evitar calls desnecessários
+- **OpenAI**: Monitoramento rigoroso de custos via Usage API
+- **Anthropic**: Uso controlado para assistente interno
+- **Shopify**: Otimização de consultas por loja
+- **SMMRAJA**: Controle de gastos em engajamento
+- **Caching**: Evitar calls desnecessários para APIs de métricas
 - **Rate limiting**: Respeitar limites para evitar custos extras
 
 ---
 
-**As integrações externas do Chegou Hub foram arquitetadas para máxima confiabilidade, performance e segurança, fornecendo dados críticos para o negócio de forma automatizada e escalável.**
+---
+
+## 📈 Resumo das Integrações
+
+### Por Categoria
+
+**🤖 Inteligência Artificial**
+- **OpenAI**: Monitoramento de custos de API exclusivamente
+- **Anthropic Claude**: Assistente interno da empresa
+
+**🛒 E-commerce e Processamento**
+- **Shopify**: Processamento de pedidos e detecção de duplicatas/IPs
+- **SMMRAJA**: Compra de engajamento para anúncios do Facebook
+- **Novelties**: Sistema de monitoramento automatizado
+
+**📉 Métricas de Pedidos**
+- **PRIMECOD**: Coleta de métricas de pedidos
+- **ECOMHUB**: Coleta de métricas de pedidos
+- **DROPI**: Coleta de métricas de pedidos (mercado mexicano)
+
+### Status Atual
+Todas as integrações estão ativas e operacionais, com propósitos bem definidos e implementações específicas no frontend. O sistema foi arquitetado para máxima confiabilidade e performance, fornecendo dados críticos de forma automatizada.

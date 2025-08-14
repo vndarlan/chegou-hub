@@ -10,13 +10,17 @@ A documentação do Chegou Hub foi completamente reestruturada para fornecer **c
 - [🛠️ Stack Tecnológico](stack-tecnologico.md) - Tecnologias, bibliotecas e arquitetura
 - [⚙️ Configurações de Ambiente](configuracoes-ambiente.md) - Variáveis, segurança e Railway
 - [🚀 Railway & Produção](railway-producao.md) - Deploy, infraestrutura e monitoramento
-- [📊 Features Principais](features-principais.md) - Visão estratégica das funcionalidades
 - [🔗 Integrações Externas](integracoes-externas.md) - APIs, web scraping e serviços
 - [📈 Monitoramento & Logs](monitoramento-logs.md) - Observabilidade e troubleshooting
 
 ### 📖 **Guias do Usuário (Mantidos)**
 - [📁 User Guides](user-guides/) - Tutoriais passo a passo para usuários finais
 - Mantidos pelo **User Guide Agent** - foco na experiência prática
+
+### 📋 **Versionamento & Releases**
+- [📌 Boas Práticas](boaspraticas.md) - Fluxo de atualização e versionamento
+- [📋 Changelog](../CHANGELOG.md) - Histórico de versões oficiais
+- **Versão Atual**: v1.0.0 - Sistema unificado com múltiplas features
 
 
 ## 🎯 O que Mudou

@@ -21,26 +21,6 @@ Railway é nossa plataforma de deploy em nuvem que oferece infraestrutura gerenc
 
 ## Arquitetura de Deploy
 
-### Multi-Stage Build Process
-
-#### Stage 1: Frontend Build (Node.js 18)
-```dockerfile
-FROM node:18-alpine AS frontend-build
-WORKDIR /app/frontend
-COPY frontend/package*.json ./
-RUN npm ci --only=production
-COPY frontend/ ./
-ENV CI=false DISABLE_ESLINT_PLUGIN=true GENERATE_SOURCEMAP=false
-RUN npm run build
-```
-
-#### Stage 2: Backend + Frontend Integrado (Python 3.11)
-```dockerfile
-FROM python:3.11-slim
-# ... configurações Python + Django ...
-COPY --from=frontend-build /app/frontend/build ./staticfiles/frontend/
-```
-
 ### Processo de Deploy Automático
 1. **Git Push**: Push para branch `main` dispara build
 2. **Frontend Compilation**: React build otimizado para produção
@@ -119,46 +99,6 @@ A @ ip-do-railway (fornecido pelo Railway)
 dig chegouhub.com.br
 nslookup www.chegouhub.com.br
 ```
-
-## Variáveis de Ambiente em Produção
-
-### ⚙️ Configuração Django
-```bash
-DJANGO_SECRET_KEY=production-secret-key-50-chars-minimum
-DEBUG=False
-ALLOWED_HOSTS=chegouhub.com.br,www.chegouhub.com.br
-DATABASE_URL=postgresql://... (auto-gerada)
-REDIS_URL=redis://... (auto-gerada)
-RAILWAY_ENVIRONMENT_NAME=production
-```
-
-### 🤖 APIs de IA (Obrigatórias)
-```bash
-OPENAI_API_KEY=sk-proj-your-openai-key-here
-OPENAI_ADMIN_API_KEY=sk-your-admin-key-with-org-permissions
-ANTHROPIC_API_KEY=sk-ant-api03-your-claude-key-here
-```
-
-### 🔗 Integrações Empresariais
-```bash
-DROPI_API_TOKEN=dropi-mx-token-for-metrics
-ECOMHUB_API_TOKEN=ecomhub-integration-token
-PRIMECOD_API_TOKEN=primecod-analytics-token
-```
-
-### 📊 Serviços Externos (Opcionais)
-```bash
-# Selenium Grid para web scraping
-ECOMHUB_SELENIUM_SERVER=https://ecomhub-selenium-production.up.railway.app
-DROPI_EXTRACTOR_SERVER=https://dropi-extractor.railway.app
-DROPI_TOKEN_SERVICE_URL=https://dropi-tokens.railway.app
-
-# Cloudinary para uploads (recomendado)
-CLOUDINARY_CLOUD_NAME=your-cloud-name
-CLOUDINARY_API_KEY=123456789123456
-CLOUDINARY_API_SECRET=your-secret-key
-```
-
 ## Monitoramento e Observabilidade
 
 ### Métricas Automáticas
@@ -308,24 +248,6 @@ railway run python manage.py check_db
 - **Static files**: Otimização de imagens e assets
 - **Background tasks**: Otimizar workers RQ para uso eficiente
 
-## Troubleshooting Produção
-
-### Problemas Comuns
-
-#### 🚨 Application Error (500)
-```bash
-# 1. Verificar logs
-railway logs --tail --filter=ERROR
-
-# 2. Verificar health check
-curl https://chegouhub.com.br/health/
-
-# 3. Verificar variáveis de ambiente
-railway variables list
-
-# 4. Restart se necessário
-railway redeploy
-```
 
 #### 🗄️ Database Connection Error
 ```bash
@@ -365,16 +287,6 @@ railway variables set MAINTENANCE_MODE=True
 # Verificar saúde geral
 railway status && railway metrics
 ```
-
-## Próximos Passos de Infraestrutura
-
-### Melhorias Planejadas
-1. **CDN Integration**: CloudFlare para assets estáticos
-2. **Multi-region**: Deploy em US + EU para latência
-3. **Monitoring avançado**: Datadog ou New Relic
-4. **Backup external**: S3 para backups long-term
-5. **CI/CD Pipeline**: GitHub Actions para testes pré-deploy
-
 ---
 
 **O Railway oferece uma infraestrutura robusta e escalável que permite foco total no desenvolvimento de features, sem preocupações operacionais complexas.**

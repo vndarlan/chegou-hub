@@ -92,18 +92,6 @@ O sistema detecta automaticamente se está rodando no Railway através da variá
 - **Usado em**: Django-RQ (tarefas assíncronas), cache
 - **Local**: `redis://localhost:6379/0` (padrão)
 
-### 📧 Notificações (Opcionais)
-
-#### Configurações de Email
-```
-EMAIL_HOST=smtp.gmail.com
-EMAIL_HOST_USER=seu-email@empresa.com
-EMAIL_HOST_PASSWORD=senha-de-app
-EMAIL_PORT=587
-```
-- **Propósito**: Notificações automáticas de erros críticos
-- **Usado em**: Alerts do sistema, relatórios
-
 ## Configurações de Segurança
 
 ### CORS (Cross-Origin Resource Sharing)

@@ -159,10 +159,11 @@ class SecurityAuditMiddleware(MiddlewareMixin):
     def process_request(self, request):
         """Monitora requests suspeitas"""
         
-        # Detecta tentativas de SQL injection nos parâmetros
+        # Detecta tentativas de SQL injection nos parâmetros (ajustado para reduzir falsos positivos)
         suspicious_patterns = [
             'union select', 'drop table', 'delete from', 
-            'update set', 'insert into', '--', ';',
+            'update set', 'insert into', '--', 
+            # Removido ';' pois pode aparecer em dados legítimos como timestamps ou URLs
             '<script>', 'javascript:', 'eval(',
             '../', '..\\', '/etc/passwd'
         ]
