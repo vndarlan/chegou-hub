@@ -41,49 +41,7 @@ changelog, criar release oficial
 **Nova Feature Completa:**
 Backend → Security (se sensível) → Frontend → Review → Tech Docs → User Guide → Deploy
 
-**Bug Fix:**
-[Agent responsável] → Review → Deploy
-
-**Release Oficial:**
-Changelog → Deploy (versão oficial)
-
-## ⚙️ Comandos Básicos
-```bash
-# Backend
-cd backend && python manage.py runserver
-cd backend && python manage.py migrate
-
-# Frontend  
-cd frontend && npm start
-cd frontend && npm run build
-
-# Deploy
-git add . && git commit -m "feat: nova funcionalidade"
-git push origin main
-```
-
-## 🛠️ Stack do Projeto
-- **Backend**: Django 5.2 + PostgreSQL + Redis
-- **Frontend**: React 19.1 + shadcn/ui + Tailwind
-- **Deploy**: Railway com versionamento automático
-- **Estrutura**: `backend/features/[nome]/` e `frontend/src/features/[nome]/`
-
-## 🎯 Padrões Importantes
-```
-# Git Commits
-feat: nova funcionalidade
-fix: correção de bug
-
-# Components (PascalCase)
-PrimecodPage.js
-
-# API Endpoints (snake_case)
-/metricas/primecod/buscar-orders/
-```
-
 ## 📝 Regras de Ouro
 - **Sempre use agentes especializados**
 - **Review é obrigatório antes de deploy**
 - **Documente tudo (tech docs + user guides)**
-- **Testes são importantes (npm run lint)**
-- **Deploy inteligente com versionamento**
