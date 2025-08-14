@@ -9,6 +9,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ### ✨ Novidades
 - **[Interface]** Migração completa de Material UI para shadcn/ui
+- **[Interface]** Modo escuro implementado (antes só tinha modo claro)
 - **[Sistema]** Reestruturação completa do código para maior clareza e alinhamento
 - **[Admin]** Sistema administrativo para monitoramento completo do site
 - **[Autenticação]** Sistema de login e barra de navegação implementados

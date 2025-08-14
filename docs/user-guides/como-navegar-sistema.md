@@ -18,10 +18,10 @@ Navegar entre todas as páginas e funcionalidades do Chegou Hub através do menu
 
 ### Principais páginas disponíveis
 - **HOME:** Agenda, Mapa
-- **IA & Automações:** Projetos, Relatórios, Logs, Nicochat
-- **Métricas:** PRIMECOD, ECOMHUB, DROPI
-- **Operacional:** Engajamento, Novelties
-- **Suporte:** Processamento
+- **Times/IA & Automações:** Projetos, Relatórios, Logs, Nicochat, OpenAI Analytics
+- **Métricas/Efetividade:** PRIMECOD, ECOMHUB, DROPI
+- **Times/Operacional:** Engajamento, Novelties
+- **Times/Suporte:** Processamento, Detector IP
 
 ### Logout
 **Como usar:**
