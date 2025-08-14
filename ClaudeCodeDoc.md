@@ -1,4 +1,4 @@
-# Claude Code - Macetes do Chegou Hub
+# Claude Code - Macetes para contrução no Chegou Hub
 
 ## 🧠 Comandos para Pensamento Profundo
 - `"Think more"` - Raciocínio estendido
