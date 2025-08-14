@@ -1,49 +1,49 @@
 # Como usar Logs IA
 
 ## Para que serve
-A página de Logs IA é uma central de monitoramento de erros e falhas críticas dos sistemas de inteligência artificial da empresa, especialmente o Nicochat e N8N. Permite visualizar, filtrar, analisar e resolver problemas técnicos em tempo real.
+A página de Monitoramento de Erros é uma central de acompanhamento de falhas críticas dos sistemas de inteligência artificial da empresa, especialmente o Nicochat e N8N. Permite visualizar, filtrar, analisar e resolver problemas técnicos em tempo real.
 
 ## Como acessar
 1. Faça login no Chegou Hub  
 2. No menu lateral esquerdo, clique na seção "IA & Automações"
 3. Clique em "🔍 Logs" 
-4. A página vai abrir mostrando estatísticas de erros e a central de logs
+4. A página "Monitoramento de Erros" vai abrir mostrando estatísticas e a central de logs
 
 ## Funcionalidades principais
 
 ### Visualizar estatísticas de erros
 **Para que serve:** Ter uma visão geral da saúde do sistema IA
 **Como usar:**
-1. **Cards no topo** mostram métricas principais:
-   - **Total de Erros (7d):** Quantidade de erros nos últimos 7 dias
-   - **Não Resolvidos:** Erros que ainda precisam de atenção
-   - **Críticos (7d):** Erros graves dos últimos 7 dias
-2. **Cores indicativas:**
-   - 🔴 Vermelho: Erros críticos e totais
-   - 🟠 Laranja: Erros não resolvidos
-3. Use essas métricas para avaliar estabilidade geral
+1. **3 cards no canto superior direito** mostram métricas principais:
+   - **Total:** Quantidade total de erros (cor vermelha)
+   - **Pendentes:** Erros que ainda precisam de atenção (cor laranja)
+   - **Críticos:** Erros graves (cor vermelha)
+2. **Botão "Atualizar"** permite recarregar as estatísticas
+3. Use essas métricas para avaliar estabilidade geral do sistema
 
 ### Analisar erros por ferramenta
 **Para que serve:** Identificar qual sistema tem mais problemas
 **Como usar:**
-1. **Seção "Erros por Ferramenta"** mostra breakdown por sistema:
-   - **🤖 Nicochat:** Erros do chatbot
-   - **⚙️ N8N:** Erros do sistema de automação
-2. **Cards mostram:** Quantidade de erros e não resolvidos
-3. **Identifique padrões:** Qual ferramenta precisa mais atenção
+1. **Seção "Erros por Ferramenta"** aparece abaixo dos cards principais
+2. Mostra breakdown por sistema:
+   - **🤖 Nicochat:** Erros do chatbot (ícone de robô)
+   - **⚙️ N8N:** Erros do sistema de automação (ícone de engrenagem)
+3. Para cada ferramenta mostra um **badge vermelho** com quantidade de erros
+4. Use para identificar qual ferramenta precisa mais atenção
 
 ### Filtrar logs de erro
 **Para que serve:** Encontrar erros específicos ou por critérios
 **Como usar:**
-1. **🔧 Ferramenta:** Selecione Nicochat, N8N ou "Todas"
-2. **⚠️ Gravidade:** 
+1. **Ferramenta:** Menu suspenso para escolher "Todas", "Nicochat" ou "N8N"
+2. **Gravidade:** 
    - "Todos os erros" (padrão)
    - "Apenas Error" (problemas comuns)
    - "Apenas Critical" (problemas graves)
-3. **🌍 País:** Para Nicochat, filtre por país específico
-4. **✅ Status:** "Pendentes", "Resolvidos" ou "Todos"
-5. **📅 Período:** 1h, 6h, 24h, 7d ou 30d
-6. **🔍 Buscar Erro:** Digite palavras-chave da mensagem
+3. **País:** Menu suspenso com opções como Colômbia, Chile, México, Polônia, etc.
+4. **Status:** Escolha "Todos", "Pendentes" ou "Resolvidos"
+5. **Período:** "Última hora", "Últimas 6h", "Últimas 24h", "Últimos 7 dias" ou "Últimos 30 dias"
+6. **Buscar:** Campo de texto para procurar palavras na mensagem de erro
+7. Os filtros se aplicam automaticamente quando você faz uma seleção
 
 ### Examinar detalhes dos erros
 **Para que serve:** Entender exatamente o que aconteceu
@@ -75,10 +75,13 @@ A página de Logs IA é uma central de monitoramento de erros e falhas críticas
 ### Navegar pela paginação
 **Para que serve:** Ver todos os erros quando há muitos registros
 **Como usar:**
-1. **Rodapé da tabela** mostra paginação
-2. **Navegue pelas páginas** usando setas ou números
+1. **Abaixo da tabela** aparecem os controles de paginação
+2. **Navegue usando:**
+   - Botões "Anterior" e "Próximo" (setas)
+   - Números das páginas (1, 2, 3, 4, 5)
 3. **Informações mostradas:** "Página X de Y (Z erros no total)"
-4. **10 erros por página** - sistema divide automaticamente
+4. **10 erros por página** - o sistema divide automaticamente
+5. A página atual fica destacada em azul
 
 ### Atualizar dados em tempo real
 **Para que serve:** Ver erros mais recentes

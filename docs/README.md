@@ -18,30 +18,15 @@ A documentação do Chegou Hub foi completamente reestruturada para fornecer **c
 - Mantidos pelo **User Guide Agent** - foco na experiência prática
 
 ### 📋 **Versionamento & Releases**
-- [📌 Boas Práticas](boaspraticas.md) - Fluxo de atualização e versionamento
+- [📌 Boas Práticas](boaspraticas-deploy.md) - Fluxo de atualização e versionamento
 - [📋 Changelog](../CHANGELOG.md) - Histórico de versões oficiais
-- **Versão Atual**: v1.0.0 - Sistema unificado com múltiplas features
 
-
-## 🎯 O que Mudou
-
-### ❌ **ANTES (Documentação Técnica)**
-```
-📁 docs/backend/features/
-├── chatbot-ia.md      # 400+ linhas de código Python
-├── ia.md              # Endpoints, modelos, queries SQL  
-├── feedback.md        # Implementação detalhada Django
-└── [12+ arquivos técnicos similares]
-```
-**Problemas**: Muito código, difícil extrair contexto, foco em "como implementar"
-
-### ✅ **DEPOIS (Documentação Contextual)**
+## ✅ Documentação Contextual
 ```
 📁 docs/
 ├── stack-tecnologico.md      # QUE tecnologias e POR QUE
 ├── configuracoes-ambiente.md # QUAIS variáveis e PARA QUE
 ├── railway-producao.md       # COMO está no Railway
-├── features-principais.md    # O QUE fazem as features
 ├── integracoes-externas.md   # COM QUE se integra
 └── monitoramento-logs.md     # COMO monitorar
 ```
@@ -58,25 +43,6 @@ A documentação do Chegou Hub foi completamente reestruturada para fornecer **c
 ### Exemplo de Brief Contextual:
 > "O Chegou Hub é um sistema Django+React no Railway com dashboard de IA que monitora ROI de projetos, integra com APIs OpenAI/PRIMECOD/ECOMHUB via web scraping, usa background jobs Django-RQ, e tem chatbot Claude interno. Stack: PostgreSQL, Redis, Selenium Grid para scraping."
 
-## 📊 Features do Sistema
-
-### 🤖 **Inteligência Artificial**
-- **Dashboard IA**: Gestão de ROI de projetos de automação
-- **OpenAI Analytics**: Monitoramento de custos de APIs de IA  
-- **Chatbot Claude**: Assistente interno com documentação
-
-### 📈 **Métricas & Análises**
-- **PRIMECOD**: API direta para métricas de tráfego
-- **ECOMHUB**: Web scraping via Selenium Grid
-- **DROPI MX**: Sistema de tokens para dropshipping
-- **Mapa Geográfico**: Visualização de cobertura regional
-
-### 🛠️ **Operacional**
-- **Sistema Feedback**: Canal usuário-desenvolvedor
-- **Agenda Corporativa**: Sync com Google Calendar
-- **Background Jobs**: Django-RQ para tarefas pesadas
-- **Monitoramento**: Logs estruturados + métricas Railway
-
 ## 🔧 Stack Resumido
 
 ```
@@ -91,7 +57,7 @@ Cache:     Redis + Django cache framework
 ## 🚀 Como Usar Esta Documentação
 
 ### **Para Entendimento Geral**
-Leia na ordem: Stack → Features → Integrações → Railway
+Leia na ordem: Stack → Integrações → Railway
 
 ### **Para Troubleshooting**
 Vá direto para: [Monitoramento & Logs](monitoramento-logs.md)

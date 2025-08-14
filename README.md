@@ -1,4 +1,4 @@
-# 🚀 Chegou Hub - Plataforma de Gestão Empresarial com IA
+# Chegou Hub - Plataforma de Gestão Empresarial
 
 **Versão Atual: v1.0.0** | [📋 Changelog](CHANGELOG.md) | [📌 Boas Práticas](docs/boaspraticas.md)
 
@@ -50,56 +50,6 @@ A documentação foi completamente reestruturada para fornecer **contexto estrat
 - **Background Jobs**: Processamento assíncrono via Django-RQ
 - **Monitoramento**: Logs estruturados e métricas em tempo real
 
-## ⚡ Quick Start
-
-### Desenvolvimento Local
-```bash
-# Backend
-cd backend
-python manage.py runserver
-
-# Frontend
-cd frontend
-npm start
-
-# Workers (opcional)
-cd backend
-python manage.py rqworker
-```
-
-### Deploy Automático
-```bash
-# Push para main dispara deploy automático no Railway
-git add .
-git commit -m "feat: nova funcionalidade"
-git push origin main
-```
-
-## 🔧 Configurações Essenciais
-
-### Variáveis de Ambiente (Produção)
-```bash
-# Django Core
-DJANGO_SECRET_KEY=sua-chave-super-secreta
-DEBUG=False
-
-# APIs de IA (obrigatórias)
-OPENAI_API_KEY=sk-proj-sua-chave-openai
-ANTHROPIC_API_KEY=sk-ant-api03-sua-chave-claude
-
-# Integrações Empresariais
-PRIMECOD_API_TOKEN=token-primecod
-ECOMHUB_API_TOKEN=token-ecomhub
-DROPI_API_TOKEN=token-dropi-mx
-```
-
-### Railway (Auto-configurado)
-```bash
-DATABASE_URL=postgresql://... (auto-gerado)
-REDIS_URL=redis://... (auto-gerado)
-RAILWAY_ENVIRONMENT_NAME=production
-```
-
 ## 📊 Arquitetura
 
 ### Monorepo Full-Stack
@@ -108,27 +58,11 @@ RAILWAY_ENVIRONMENT_NAME=production
 ├── 🔧 backend/          # Django REST API + Background Jobs
 ├── 🎨 frontend/         # React SPA com shadcn/ui
 ├── 📚 docs/             # Documentação contextual
-└── 🚀 Dockerfile        # Multi-stage build (Node.js + Python)
-```
-
-### Deploy Pipeline
-```
-Git Push → Railway Build → Multi-stage Docker → 
-Frontend Build (Node.js) → Backend + Static Files → 
-Database Migration → Health Check → Live
-```
-
-## 🌐 Integrações
-
-### APIs Externas
-- **OpenAI GPT-4**: Automações e análises inteligentes
-- **Anthropic Claude**: Chatbot interno e suporte
-- **Google Calendar**: Sincronização de agenda corporativa
-- **PRIMECOD/ECOMHUB/DROPI**: Métricas empresariais via API + scraping
-
-### Selenium Grid Architecture
-```
-Chegou Hub → Selenium Grid (Railway) → Target Websites → Data Extraction
+├── 🚀 Dockerfile        # Multi-stage build (Node.js + Python)
+├── ⚙️ railway.toml      # Configuração Railway (deploy + healthcheck)
+├── 🚫 .gitignore        # Arquivos ignorados pelo Git
+├── 🐳 .dockerignore     # Arquivos ignorados no build Docker
+└── 📋 CHANGELOG.md      # Histórico de versões
 ```
 
 ## 🎯 Como Briefar IA para Este Projeto
@@ -142,36 +76,12 @@ Leia primeiro: [Stack Tecnológico](docs/stack-tecnologico.md) + [Features Princ
 ### Para Modificações
 Consulte: [Documentação Contextual Completa](docs/README.md)
 
-## 📈 Status do Projeto
-
-- ✅ **Produção**: Ativo no Railway
-- ✅ **Features**: 8 funcionalidades principais operacionais
-- ✅ **Integrações**: 6+ APIs externas integradas
-- ✅ **Monitoramento**: Logs estruturados + métricas Railway
-- ✅ **Documentação**: 100% contextual para IA
-
 ## 🔗 Links Importantes
 
 - **Produção**: https://chegouhub.com.br
 - **Documentação**: [docs/README.md](docs/README.md)
 - **Stack Completo**: [docs/stack-tecnologico.md](docs/stack-tecnologico.md)
 - **Deploy Info**: [docs/railway-producao.md](docs/railway-producao.md)
-
----
-
-# Auxilios para o meu dia a dia
-
-## Comandos para ativar Pensamento Profundo
-"Think more" - Extended reasoning
-"Think a lot"- Comprehensive reasoning
-"Think longer" - Extended time reasoning
-"Ultrathink" - Maximum reasoning capability
-
-## Documentações do Claude Code
-- https://github.com/coleam00/context-engineering-intro/tree/main/claude-code-full-guide
-- https://docs.anthropic.com/en/docs/claude-code/devcontainer
-- https://www.anthropic.com/engineering/claude-code-best-practices
-- https://www.aitmpl.com/
 
 ---
 

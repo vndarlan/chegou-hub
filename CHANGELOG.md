@@ -8,30 +8,37 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ## [v1.0.0] - 14/08/2025
 
 ### ✨ Novidades
-- **[Sistema]** Lançamento oficial do Chegou Hub
-- **[Dashboard IA]** Gestão de ROI de 25+ projetos de automação
-- **[Novelties]** Dashboard com métricas de execução Chile/México
-- **[Processamento]** Detecção automática de pedidos duplicados Shopify
-- **[OpenAI Analytics]** Monitoramento de custos de APIs de IA
-- **[Chatbot Claude]** Assistente interno com conhecimento da documentação
-- **[PRIMECOD]** Integração via API para métricas de tráfego
-- **[ECOMHUB]** Web scraping automatizado via Selenium Grid
-- **[DROPI MX]** Sistema de tokens para métricas de dropshipping
-- **[Mapa Geográfico]** Visualização de cobertura e performance por região
-- **[Sistema Feedback]** Canal direto usuário-desenvolvedor com screenshots
-- **[Agenda Corporativa]** Sincronização bidirecional com Google Calendar
+- **[Interface]** Migração completa de Material UI para shadcn/ui
+- **[Sistema]** Reestruturação completa do código para maior clareza e alinhamento
+- **[Admin]** Sistema administrativo para monitoramento completo do site
+- **[Autenticação]** Sistema de login e barra de navegação implementados
+- **[Agenda]** Página corporativa com acesso a todas as agendas da empresa
+- **[EFETIVIDADE/ECOMHUB]** Página de métricas de efetividade integrada com API oficial do fornecedor
+- **[Dashboard IA]** Página para visualizar projetos do time de IA
+- **[Relatórios IA]** Página dedicada aos relatórios dos projetos de IA
+- **[Engajamento]** Página de compra sincronizada com SMMRAJA via API
+- **[Mapa]** Visualização geográfica de todos os países de atuação
+- **[Feedback]** Sistema completo para reportar bugs e sugestões de melhorias
+- **[Novelties]** Dashboard para monitorar agentes automáticos do fornecedor Dropi
+
+### 🚧 Em Desenvolvimento
+- **[Chatbot]** Assistente inteligente em fase de implementação
+- **[Detector IP]** Sistema de detecção e análise de IPs
+- **[EFETIVIDADE/PRIMECOD]** Página de métricas de efetividade integrada com API oficial do fornecedor
+- **[EFETIVIDADE/DROPI]** Página de métricas de efetividade integrada com API oficial do fornecedor
+- **[NicoChat]** Página dedicada em desenvolvimento
+- **[OpenAI Analytics]** Dashboard de análise de custos de IA
 
 ### 🔧 Melhorias
-- Sistema de cache Redis para performance otimizada
-- Background jobs via Django-RQ para processamento assíncrono
-- Deploy automático no Railway via Git push
-- Logs estruturados para troubleshooting eficiente
-- Interface responsiva com shadcn/ui e Tailwind CSS
+- Interface completamente renovada com shadcn/ui e Tailwind CSS
+- Código reestruturado para melhor manutenibilidade
+- Sistema de componentes modernos e responsivos
+- Arquitetura de features organizada e escalável
 
 ### ⚠️ Importante
-- Requer configuração de variáveis de ambiente (OpenAI, Anthropic, etc)
-- PostgreSQL e Redis são provisionados automaticamente no Railway
-- Sistema otimizado para automação e análises empresariais data-driven
+- Esta é a primeira versão oficial do Chegou Hub renovado
+- Múltiplas features ainda em desenvolvimento ativo
+- Sistema preparado para expansão e novas integrações
 
 ---
 

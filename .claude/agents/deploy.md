@@ -114,7 +114,6 @@ Changelog Agent → Deploy 4: v1.2.0 (versão oficial)
 
 ### REGRA CRÍTICA DE VERSIONAMENTO
 - **Deploy Agent**: Apenas deploys de desenvolvimento (sufixo `-dev.N`)
-- **Changelog Agent**: Apenas releases oficiais (sem sufixo)
 - **NUNCA fazer release oficial** sem aprovação e comando do Changelog Agent
 - **NUNCA fazer deploy** sem aprovação do Code Reviewer Agent
 - **SEMPRE ser o último** agente chamado no workflow

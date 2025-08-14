@@ -32,9 +32,9 @@ A página de Engajamento permite comprar engajamentos (likes, amei, uau) para po
 **Para que serve:** Criar um novo tipo de engajamento para usar nas compras
 **Como usar:**
 1. Na aba "Gerenciar", clique no botão "Adicionar" (+)
-2. Preencha as informações:
+2. Uma janela "Novo Engajamento" vai abrir com os campos:
    - **Nome:** Identificação clara (ex: "Like Padrão")
-   - **ID:** Código numérico único (ex: "101")
+   - **ID:** Código único (ex: "101")
    - **Tipo:** Escolha entre 👍 Like, ❤️ Amei ou 😮 Uau
    - **Ativo:** Marque se este engajamento está funcionando
 3. Clique em "Salvar"
@@ -44,9 +44,11 @@ A página de Engajamento permite comprar engajamentos (likes, amei, uau) para po
 **Para que serve:** Remover tipos de engajamento que não usa mais
 **Como usar:**
 1. Na tabela de engajamentos, encontre o que quer excluir
-2. Clique no ícone da lixeira (🗑️) na linha correspondente
-3. Confirme a exclusão clicando "OK" na mensagem que aparecer
-4. O engajamento será removido da lista
+2. Clique no ícone da lixeira (🗑️) na coluna "Ações"
+3. Confirme a exclusão na mensagem de confirmação
+4. O engajamento será removido da lista imediatamente
+
+**Observação importante:** Não é possível editar engajamentos existentes, apenas adicionar novos ou excluir os antigos.
 
 ### Comprar engajamentos para posts
 **Para que serve:** Fazer pedidos de likes, amei ou uau para posts do Facebook
@@ -66,12 +68,14 @@ A página de Engajamento permite comprar engajamentos (likes, amei, uau) para po
 **Para que serve:** Acompanhar todos os pedidos que você já fez
 **Como usar:**
 1. Clique na aba "Histórico"
-2. Verá uma tabela com todos os pedidos realizados
-3. Para cada pedido vê:
-   - Data e hora que foi criado
-   - Status atual (concluído, em andamento, erro)
-   - Quantos links foram processados
-   - Quantos tipos de engajamento foram aplicados
+2. A tabela mostra todos os pedidos com as colunas:
+   - **Data:** Data e hora que o pedido foi criado
+   - **Status:** concluido (verde), erro (vermelho) ou em andamento (cinza)
+   - **Usuário:** Nome e username de quem criou o pedido
+   - **Links:** Quantidade total de URLs processadas
+   - **Engajamentos:** Quantos tipos diferentes foram aplicados
+3. Use o botão "Atualizar" para ver pedidos mais recentes
+4. A paginação aparece automaticamente se houver muitos pedidos
 
 ## Casos práticos
 

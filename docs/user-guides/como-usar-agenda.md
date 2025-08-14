@@ -16,9 +16,9 @@ A página de Agenda permite compartilhar e visualizar calendários do Google Cal
 **Para que serve:** Visualizar os calendários compartilhados pelos membros da equipe
 **Como usar:**
 1. Clique na aba "Visualizar"
-2. No dropdown "Selecione um calendário", escolha qual agenda quer ver
+2. No dropdown "Selecione um calendário para visualizar", escolha qual agenda quer ver
 3. O calendário aparecerá na tela principal
-4. Use o ícone 🔗 no canto superior direito para abrir no Google Calendar
+4. Use o botão com ícone de link externo no canto superior direito para abrir no Google Calendar
 5. Aguarde o carregamento se aparecer "Carregando calendário..."
 
 ### Adicionar sua agenda
@@ -26,10 +26,10 @@ A página de Agenda permite compartilhar e visualizar calendários do Google Cal
 **Como usar:**
 1. Clique na aba "Gerenciar"
 2. Preencha os campos:
-   - **Nome:** Seu nome ou identificação (ex: "João Silva")
-   - **Código Iframe:** Cole o código do Google Calendar (veja instruções)
+   - **Nome (Identificação):** Seu nome ou identificação (ex: "João Silva")
+   - **Código Iframe do Google Calendar:** Cole o código do Google Calendar (veja instruções)
 3. Clique em "Conectar Minha Agenda"
-4. Sua agenda aparecerá na lista de calendários cadastrados
+4. Sua agenda aparecerá na lista "Calendários Cadastrados"
 
 ### Ver calendários cadastrados
 **Para que serve:** Gerenciar e organizar todos os calendários da equipe

@@ -1,8 +1,8 @@
-# Como usar IA Dashboard
+# Como usar Projetos IA
 
 ## Para que serve
 
-O IA Dashboard permite criar, gerenciar e acompanhar projetos de inteligência artificial da empresa. Com ele você pode cadastrar novos projetos, acompanhar orçamentos, definir prioridades e visualizar métricas de desempenho dos projetos de IA.
+O Projetos IA permite criar, gerenciar e acompanhar projetos de inteligência artificial da empresa. Com ele você pode cadastrar novos projetos, acompanhar orçamentos, definir prioridades e visualizar métricas de desempenho dos projetos de IA.
 
 ## Como acessar
 
@@ -18,13 +18,14 @@ O IA Dashboard permite criar, gerenciar e acompanhar projetos de inteligência a
 **Como usar:**
 1. A página principal mostra cards com todos os projetos
 2. Cada card exibe:
-   - Nome do projeto
-   - Status (Ativo, Arquivado, Manutenção)
-   - Prioridade (Alta, Média, Baixa)
-   - Valor investido (se tiver permissão)
-   - Progresso atual
-   - Departamentos envolvidos
-3. Use os filtros para encontrar projetos específicos
+   - **Nome do projeto** no cabeçalho
+   - **Status:** Ativo (verde), Arquivado (cinza), Manutenção (amarelo)
+   - **Prioridade:** Alta (vermelho), Média (amarelo), Baixa (azul)
+   - **Tipo:** Como "chatbot", "automacao", "analise_preditiva"
+   - **Departamentos:** Badges com nomes dos departamentos
+   - **Horas Investidas:** Total de horas trabalhadas
+   - **Usuários Impactados:** Número de pessoas que usam
+3. Dados financeiros aparecem apenas se você tiver permissão
 
 ### Criar novo projeto
 **Para que serve:** Cadastrar um novo projeto de IA no sistema
