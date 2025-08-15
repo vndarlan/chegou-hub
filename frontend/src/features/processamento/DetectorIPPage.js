@@ -225,13 +225,13 @@ function DetectorIPPage() {
                                 <DialogDescription className="text-muted-foreground">Como funciona a análise por endereços IP</DialogDescription>
                             </DialogHeader>
                             <ScrollArea className="max-h-[70vh] pr-4">
-                                <Tabs defaultValue="usage">
-                                    <TabsList className="grid w-full grid-cols-2 bg-muted">
-                                        <TabsTrigger value="usage" className="text-foreground">Como Usar</TabsTrigger>
-                                        <TabsTrigger value="logic" className="text-foreground">Lógica de Análise</TabsTrigger>
-                                    </TabsList>
-                                    <TabsContent value="usage" className="space-y-4">
-                                        <div className="space-y-3">
+                                <div className="space-y-6">
+                                    {/* Como Usar */}
+                                    <Card className="bg-card border-border">
+                                        <CardHeader>
+                                            <CardTitle className="text-sm text-foreground">Como Usar</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-3">
                                             <div className="p-3 bg-muted rounded-lg">
                                                 <h4 className="font-semibold text-sm text-foreground">1. Selecionar Loja</h4>
                                                 <p className="text-sm text-muted-foreground">Escolha a loja configurada para análise de pedidos</p>
@@ -244,58 +244,65 @@ function DetectorIPPage() {
                                                 <h4 className="font-semibold text-sm text-foreground">3. Analisar Resultados</h4>
                                                 <p className="text-sm text-muted-foreground">Clique em "Ver Detalhes" para investigar IPs específicos</p>
                                             </div>
-                                        </div>
-                                    </TabsContent>
-                                    <TabsContent value="logic" className="space-y-4">
-                                        <div>
-                                            <h4 className="font-semibold text-green-600 dark:text-green-400 mb-2">✅ O que é detectado:</h4>
-                                            <div className="space-y-3 text-sm text-muted-foreground ml-4">
-                                                <div>
-                                                    <strong className="text-foreground">Múltiplos Pedidos:</strong>
-                                                    <ul className="ml-4 space-y-1">
-                                                        <li>• Pedidos do mesmo IP (browser_ip do Shopify)</li>
-                                                        <li>• Período configurável (até 365 dias, padrão: 30 dias)</li>
-                                                        <li>• Mínimo de pedidos configurável (padrão: 2)</li>
-                                                    </ul>
-                                                </div>
-                                                
-                                                <div>
-                                                    <strong className="text-foreground">Informações Coletadas:</strong>
-                                                    <ul className="ml-4 space-y-1">
-                                                        <li>• Quantidade total de pedidos por IP</li>
-                                                        <li>• Número de clientes únicos</li>
-                                                        <li>• Valor total das vendas</li>
-                                                        <li>• Intervalo de datas (primeiro/último pedido)</li>
-                                                    </ul>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Lógica de Análise */}
+                                    <Card className="bg-card border-border">
+                                        <CardHeader>
+                                            <CardTitle className="text-sm text-foreground">Lógica de Análise</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-4">
+                                            <div>
+                                                <h4 className="font-semibold text-green-600 dark:text-green-400 mb-2">✅ O que é detectado:</h4>
+                                                <div className="space-y-3 text-sm text-muted-foreground ml-4">
+                                                    <div>
+                                                        <strong className="text-foreground">Múltiplos Pedidos:</strong>
+                                                        <ul className="ml-4 space-y-1">
+                                                            <li>• Pedidos do mesmo IP (browser_ip do Shopify)</li>
+                                                            <li>• Período configurável (até 365 dias, padrão: 30 dias)</li>
+                                                            <li>• Mínimo de pedidos configurável (padrão: 2)</li>
+                                                        </ul>
+                                                    </div>
+                                                    
+                                                    <div>
+                                                        <strong className="text-foreground">Informações Coletadas:</strong>
+                                                        <ul className="ml-4 space-y-1">
+                                                            <li>• Quantidade total de pedidos por IP</li>
+                                                            <li>• Número de clientes únicos</li>
+                                                            <li>• Valor total das vendas</li>
+                                                            <li>• Intervalo de datas (primeiro/último pedido)</li>
+                                                        </ul>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        
-                                        <Separator />
-                                        
-                                        <div>
-                                            <h4 className="font-semibold text-blue-600 dark:text-blue-400 mb-2">🎯 Casos de Uso:</h4>
-                                            <ul className="text-sm text-muted-foreground space-y-1 ml-4">
-                                                <li>• <span className="font-medium text-foreground">Detecção de Fraude:</span> Múltiplas compras suspeitas</li>
-                                                <li>• <span className="font-medium text-foreground">Análise Comportamental:</span> Padrões de compra por região</li>
-                                                <li>• <span className="font-medium text-foreground">Marketing:</span> Concentração de clientes por local</li>
-                                                <li>• <span className="font-medium text-foreground">Auditoria:</span> Compliance e investigações</li>
-                                            </ul>
-                                        </div>
-                                        
-                                        <Separator />
-                                        
-                                        <div>
-                                            <h4 className="font-semibold text-amber-600 dark:text-amber-400 mb-2">⚠️ Limitações:</h4>
-                                            <ul className="text-sm text-muted-foreground space-y-1 ml-4">
-                                                <li>• Depende do Shopify registrar o browser_ip</li>
-                                                <li>• IPs dinâmicos podem gerar falsos positivos</li>
-                                                <li>• VPNs/proxies podem mascarar origem real</li>
-                                                <li>• Não detecta fraudes cross-IP</li>
-                                            </ul>
-                                        </div>
-                                    </TabsContent>
-                                </Tabs>
+                                            
+                                            <Separator />
+                                            
+                                            <div>
+                                                <h4 className="font-semibold text-blue-600 dark:text-blue-400 mb-2">🎯 Casos de Uso:</h4>
+                                                <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                                                    <li>• <span className="font-medium text-foreground">Detecção de Fraude:</span> Múltiplas compras suspeitas</li>
+                                                    <li>• <span className="font-medium text-foreground">Análise Comportamental:</span> Padrões de compra por região</li>
+                                                    <li>• <span className="font-medium text-foreground">Marketing:</span> Concentração de clientes por local</li>
+                                                    <li>• <span className="font-medium text-foreground">Auditoria:</span> Compliance e investigações</li>
+                                                </ul>
+                                            </div>
+                                            
+                                            <Separator />
+                                            
+                                            <div>
+                                                <h4 className="font-semibold text-amber-600 dark:text-amber-400 mb-2">⚠️ Limitações:</h4>
+                                                <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                                                    <li>• Depende do Shopify registrar o browser_ip</li>
+                                                    <li>• IPs dinâmicos podem gerar falsos positivos</li>
+                                                    <li>• VPNs/proxies podem mascarar origem real</li>
+                                                    <li>• Não detecta fraudes cross-IP</li>
+                                                </ul>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
                             </ScrollArea>
                         </DialogContent>
                     </Dialog>
