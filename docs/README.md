@@ -13,7 +13,7 @@ A documentação do Chegou Hub foi completamente reestruturada para fornecer **c
 - [🔗 Integrações Externas](integracoes-externas.md) - APIs, web scraping e serviços
 - [📈 Monitoramento & Logs](monitoramento-logs.md) - Observabilidade e troubleshooting
 
-### 📖 **Guias do Usuário (Mantidos)**
+### 📖 **Guias do Usuário**
 - [📁 User Guides](user-guides/) - Tutoriais passo a passo para usuários finais
 - Mantidos pelo **User Guide Agent** - foco na experiência prática
 
@@ -39,9 +39,6 @@ A documentação do Chegou Hub foi completamente reestruturada para fornecer **c
 2. **[Features Principais](features-principais.md)** - "O sistema tem Dashboard IA que calcula ROI..."
 3. **[Integrações](integracoes-externas.md)** - "Integramos com OpenAI, PRIMECOD, ECOMHUB via..."
 4. **[Railway](railway-producao.md)** - "Deploy automático, PostgreSQL provisionado..."
-
-### Exemplo de Brief Contextual:
-> "O Chegou Hub é um sistema Django+React no Railway com dashboard de IA que monitora ROI de projetos, integra com APIs OpenAI/PRIMECOD/ECOMHUB via web scraping, usa background jobs Django-RQ, e tem chatbot Claude interno. Stack: PostgreSQL, Redis, Selenium Grid para scraping."
 
 ## 🔧 Stack Resumido
 
@@ -88,5 +85,3 @@ Use: [📁 User Guides](user-guides/) (mantido pelo User Guide Agent)
 ---
 
 **📍 Documentação contextual otimizada para briefings de IA e entendimento estratégico do sistema**
-
-*🤖 Reestruturada pela equipe de Agentes de Documentação*

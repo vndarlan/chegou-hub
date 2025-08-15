@@ -42,17 +42,16 @@ O Chegou Hub é uma aplicação web full-stack moderna que utiliza tecnologias d
 ## Inteligência Artificial & APIs
 
 ### Fornecedores de IA
-- **OpenAI GPT-4**: Modelos de linguagem para automações e chatbots
+- **OpenAI**: Modelos de linguagem para automações e chatbots
 - **Anthropic Claude**: Assistente IA interno para suporte aos usuários
 - **Monitoramento de custos**: Tracking automático de gastos com APIs de IA
 
 ### Integrações Empresariais
 - **Google Calendar API**: Sincronização de calendários corporativos
 - **APIs Proprietárias**: 
-  - PRIMECOD (métricas de performance)
-  - ECOMHUB (dados de e-commerce)
-  - DROPI MX (dropshipping metrics)
-
+  - PRIMECOD 
+  - ECOMHUB 
+  - DROPI 
 ## Infraestrutura & Deploy
 
 ### Railway - Plataforma de Deploy
@@ -96,14 +95,6 @@ O Chegou Hub é uma aplicação web full-stack moderna que utiliza tecnologias d
 - **Feature-based**: Cada funcionalidade como Django app separada
 - **Componentes React**: Organizados por feature no frontend
 - **API endpoints**: Padronizados com versionamento
-
-### Features Principais
-1. **Dashboard IA**: Gestão de projetos e ROI de automações
-2. **Sistema de Métricas**: Integração com múltiplas plataformas
-3. **Chatbot Inteligente**: Suporte interno com Claude IA
-4. **Agenda Corporativa**: Sincronização com Google Calendar
-5. **Mapa de Cobertura**: Visualização geográfica de dados
-6. **Sistema de Feedback**: Canal direto com usuários
 
 ## Bibliotecas & Dependências Críticas
 

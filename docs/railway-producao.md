@@ -30,28 +30,6 @@ Railway é nossa plataforma de deploy em nuvem que oferece infraestrutura gerenc
 6. **Health Check**: Verificação em `/health/` endpoint
 7. **Traffic Switch**: Deploy zero-downtime
 
-## Configurações Railway
-
-### railway.toml (Configuração Principal)
-```toml
-[build]
-builder = "dockerfile"
-dockerfilePath = "Dockerfile"
-
-[deploy]
-startCommand = "sh -c 'python manage.py migrate && mkdir -p staticfiles/media && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --log-level info --timeout 120 --workers 2'"
-healthcheckPath = "/health/"
-healthcheckTimeout = 30
-restartPolicyType = "on_failure"
-restartPolicyMaxRetries = 3
-
-[variables]
-NODE_ENV = "production"
-CI = "false"
-DISABLE_ESLINT_PLUGIN = "true"
-GENERATE_SOURCEMAP = "false"
-```
-
 ### Configurações de Produção
 - **Workers**: 2 processos Gunicorn (otimizado para Railway)
 - **Timeout**: 120 segundos para requisições longas
@@ -118,12 +96,6 @@ railway logs --since=1h --filter=ERROR
 railway logs --service=postgres
 railway logs --service=redis
 ```
-
-### Alertas Configurados
-- **High CPU** (> 80% por 5 minutos)
-- **High Memory** (> 90% da RAM alocada)
-- **Database Connections** (> 80 conexões simultâneas)
-- **Error Rate Spike** (> 5% em 10 minutos)
 
 ## Health Checks e Uptime
 
@@ -233,16 +205,7 @@ railway db restore backup-id
 railway run python manage.py check_db
 ```
 
-## Custos e Otimização
-
-### Estrutura de Custos Railway
-- **Base Plan**: $5/mês + uso de recursos
-- **PostgreSQL**: Incluído (até 1GB, depois $0.10/GB)
-- **Redis**: Incluído (até 100MB, depois $0.50/GB)
-- **Compute**: $0.000463/GB-hour RAM + $0.000231/vCPU-hour
-- **Network**: 100GB incluídos, $0.10/GB adicional
-
-### Otimizações de Custo
+## Otimizações de Custo
 - **Right-sizing**: Monitorar CPU/RAM usage regularmente
 - **Database cleanup**: Rotina de limpeza de dados antigos
 - **Static files**: Otimização de imagens e assets

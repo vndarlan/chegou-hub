@@ -181,39 +181,6 @@ logs/
 - **Verifica**: Banco de dados, Redis, APIs críticas
 - **Usado por**: Railway health checks
 
-### Comandos de Verificação
-```bash
-# Verificar todas as configurações
-python manage.py check
-
-# Testar conexão com banco
-python manage.py migrate --dry-run
-
-# Status das filas Redis
-python manage.py rq_status
-
-# Coletar arquivos estáticos
-python manage.py collectstatic --dry-run
-```
-
-## Troubleshooting Comum
-
-### ❌ "SECRET_KEY não configurada"
-- **Solução**: Definir `DJANGO_SECRET_KEY` nas variáveis de ambiente
-- **Comando**: No Railway, adicionar via dashboard
-
-### ❌ "CORS policy error"
-- **Causa**: Frontend rodando em porta não liberada
-- **Solução**: Verificar se `localhost:3000` está em `CORS_ALLOWED_ORIGINS`
-
-### ❌ "API key inválida"
-- **OpenAI**: Verificar se key começa com `sk-` e tem permissões
-- **Anthropic**: Verificar se key começa com `sk-ant-api03-`
-
-### ❌ "Redis connection failed"
-- **Local**: Instalar e iniciar Redis (`redis-server`)
-- **Produção**: Verificar se `REDIS_URL` foi provisionada
-
 ## Boas Práticas
 
 ### Segurança

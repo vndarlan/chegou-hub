@@ -42,10 +42,6 @@ Fazer commits bem estruturados e push para GitHub, que automaticamente triggam o
 tipo(escopo): descrição
 
 Descrição mais detalhada se necessário.
-
-🤖 Generated with Claude Code (https://claude.ai/code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 ### Tipos de Commit
@@ -67,10 +63,6 @@ git commit -m "deploy: v1.2.0-dev.1 - adiciona filtro por mês no calendário
 - Implementa seletor de mês na interface
 - Adiciona endpoint de filtro na API
 - Deploy de teste para validação
-
-🤖 Generated with Claude Code (https://claude.ai/code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
 #### Release Oficial (apenas Changelog Agent)
@@ -81,10 +73,6 @@ Consolida funcionalidades testadas em v1.2.0-dev.1, v1.2.0-dev.2 e v1.2.0-dev.3:
 - Filtro por mês no calendário
 - Correções de bugs identificados
 - Melhorias de performance
-
-🤖 Generated with Claude Code (https://claude.ai/code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
 ## Fluxo de Versionamento

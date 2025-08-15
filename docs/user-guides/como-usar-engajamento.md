@@ -17,7 +17,7 @@ A página de Engajamento permite comprar engajamentos (likes, amei, uau) para po
 **Para que serve:** Verificar quanto dinheiro você tem para comprar engajamentos
 **Como usar:**
 1. Olhe no canto superior direito da tela
-2. Verá o saldo atual em reais (R$)
+2. Verá o saldo atual em dollar ($)
 3. Clique no ícone de atualização (🔄) para atualizar o valor
 4. O saldo é descontado automaticamente quando você faz pedidos
 

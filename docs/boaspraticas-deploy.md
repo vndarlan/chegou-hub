@@ -92,11 +92,4 @@
   - Formato: `vX.Y.Z`
   - Exemplo: `v1.2.0`
   - Sempre documentadas no changelog
-  - Sempre após validação completa
-
-  ## 🚀 Implementação
-
-  Para ativar este workflow, configure:
-  1. Deploy Agent para usar sufixo `-dev.N` em deploys de teste
-  2. Changelog Agent com acesso ao histórico de commits
-  3. Processo de validação antes de releases oficiais
+  - Sempre após validação completa  
