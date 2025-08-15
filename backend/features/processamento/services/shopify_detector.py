@@ -81,7 +81,7 @@ class ShopifyDuplicateOrderDetector:
         try:
             url = f"{self.base_url}/orders/{order_id}.json"
             params = {
-                "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address"
+                "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address,note_attributes,custom_attributes,properties"
             }
             response = requests.get(url, headers=self.headers, params=params, timeout=10)
             
@@ -173,14 +173,14 @@ class ShopifyDuplicateOrderDetector:
                 params = {
                     "limit": 250,
                     "page_info": page_info,
-                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address"
+                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address,note_attributes,custom_attributes,properties"
                 }
             else:
                 params = {
                     "limit": 250,
                     "status": "any",
                     "created_at_min": date_min,
-                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address"
+                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address,note_attributes,custom_attributes,properties"
                 }
             
             url = f"{self.base_url}/orders.json"
@@ -930,7 +930,7 @@ class ShopifyDuplicateOrderDetector:
                 params = {
                     "limit": 250,
                     "page_info": page_info,
-                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address"
+                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address,note_attributes,custom_attributes,properties"
                 }
             else:
                 params = {
@@ -938,7 +938,7 @@ class ShopifyDuplicateOrderDetector:
                     "status": "any",
                     "created_at_min": date_min,
                     "financial_status": "any",  # Inclui todos os status financeiros
-                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address"
+                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address,note_attributes,custom_attributes,properties"
                 }
             
             url = f"{self.base_url}/orders.json"
