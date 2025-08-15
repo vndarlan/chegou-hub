@@ -420,6 +420,96 @@ class ShopifyDuplicateOrderDetector:
         
         return duplicate_candidates
     
+    def get_orders_for_specific_ip(self, target_ip, days=30, max_orders=20):
+        """
+        Busca pedidos para um IP específico - MÉTODO ULTRA RÁPIDO
+        
+        Args:
+            target_ip (str): IP específico para buscar
+            days (int): Período em dias (máximo 30)
+            max_orders (int): Máximo de pedidos para buscar
+            
+        Returns:
+            list: Lista de pedidos do IP específico
+        """
+        print(f"=== BUSCA RÁPIDA PARA IP ESPECÍFICO: {target_ip} ===")
+        
+        # Circuit breaker
+        if days > 30:
+            raise Exception(f"Período de {days} dias muito grande para busca específica")
+        
+        date_min = (datetime.now() - timedelta(days=days)).isoformat()
+        found_orders = []
+        page_info = None
+        page = 1
+        max_pages = 5  # Limite baixo para busca específica
+        
+        while page <= max_pages and len(found_orders) < max_orders:
+            if page_info:
+                params = {
+                    "limit": 50,  # Limite baixo para rapidez
+                    "page_info": page_info,
+                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,client_details"
+                }
+            else:
+                params = {
+                    "limit": 50,
+                    "status": "any",
+                    "created_at_min": date_min,
+                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,client_details"
+                }
+            
+            url = f"{self.base_url}/orders.json"
+            
+            try:
+                response = requests.get(url, headers=self.headers, params=params, timeout=10)
+                response.raise_for_status()
+                orders = response.json()["orders"]
+                
+                if not orders:
+                    break
+                
+                # Processa apenas os pedidos relevantes
+                for order in orders:
+                    try:
+                        # Extrai IP real do cliente
+                        real_customer_ip, ip_source = self._extract_real_customer_ip(order)
+                        
+                        if real_customer_ip == target_ip:
+                            # Adiciona dados processados
+                            order["_customer_ip"] = real_customer_ip
+                            order["_ip_source"] = ip_source
+                            order["_is_cancelled"] = order.get("cancelled_at") is not None
+                            order["_cancelled_at"] = order.get("cancelled_at")
+                            
+                            found_orders.append(order)
+                            
+                            # Break antecipado se encontramos o suficiente
+                            if len(found_orders) >= max_orders:
+                                print(f"Encontrados {len(found_orders)} pedidos para IP {target_ip} - break antecipado")
+                                return found_orders
+                        
+                    except Exception as e:
+                        print(f"Erro ao processar pedido {order.get('id', 'unknown')}: {e}")
+                        continue
+                
+                # Próxima página
+                link_header = response.headers.get('Link')
+                page_info = self.extract_page_info_from_link_header(link_header)
+                
+                if not page_info:
+                    break
+                
+                page += 1
+                print(f"Página {page-1}: {len(found_orders)} pedidos encontrados para IP {target_ip}")
+                
+            except Exception as e:
+                print(f"Erro na busca específica página {page}: {e}")
+                break
+        
+        print(f"Busca específica concluída: {len(found_orders)} pedidos para IP {target_ip}")
+        return found_orders
+    
     def cancel_order(self, order_id, reason="duplicate"):
         """Cancela um pedido"""
         url = f"{self.base_url}/orders/{order_id}/cancel.json"
@@ -893,18 +983,32 @@ class ShopifyDuplicateOrderDetector:
         
         return False
     
-    def get_orders_by_ip(self, days=30, min_orders=2):
+    def get_orders_by_ip(self, days=30, min_orders=2, target_ip=None, early_break_threshold=None):
         """
-        Agrupa pedidos por IP dos últimos X dias - VERSÃO OTIMIZADA
+        Agrupa pedidos por IP dos últimos X dias - VERSÃO ULTRA OTIMIZADA
         
         Args:
-            days (int): Dias para buscar pedidos (sem limite artificial)
+            days (int): Dias para buscar pedidos
             min_orders (int): Mínimo de pedidos por IP para incluir no resultado
+            target_ip (str): IP específico para buscar (otimização)
+            early_break_threshold (int): Limite de pedidos para break antecipado
             
         Returns:
             dict: Pedidos agrupados por IP com estatísticas
         """
-        # Remove limitação artificial - deixa para o views.py decidir
+        # === CIRCUIT BREAKER PARA PERÍODOS GRANDES ===
+        if days > 30:
+            raise Exception(f"Período de {days} dias muito grande. Máximo permitido: 30 dias para evitar timeout.")
+        
+        # === EARLY BREAK THRESHOLD AUTOMÁTICO ===
+        if early_break_threshold is None:
+            # Define threshold baseado no período para otimizar
+            if days <= 7:
+                early_break_threshold = 1000  # 1k pedidos para 7 dias
+            elif days <= 14:
+                early_break_threshold = 1500  # 1.5k pedidos para 14 dias
+            else:
+                early_break_threshold = 2000  # 2k pedidos para 30 dias
         
         date_min = (datetime.now() - timedelta(days=days)).isoformat()
         all_orders = []
@@ -928,7 +1032,7 @@ class ShopifyDuplicateOrderDetector:
         
         while True:
             # Reduz tamanho da página para períodos grandes para melhorar performance
-            page_limit = 100 if days > 60 else 250
+            page_limit = 50 if days >= 30 else 100 if days > 14 else 250
             
             if page_info:
                 params = {
@@ -951,8 +1055,8 @@ class ShopifyDuplicateOrderDetector:
             retry_count = 0
             while retry_count <= max_retries:
                 try:
-                    # Timeout adaptativo baseado no período
-                    timeout = 30 if days <= 30 else 60 if days <= 90 else 90
+                    # Timeout adaptativo baseado no período (ultra otimizado)
+                    timeout = 10 if days <= 7 else 15 if days <= 14 else 20
                     
                     response = requests.get(url, headers=self.headers, params=params, timeout=timeout)
                     response.raise_for_status()
@@ -1051,13 +1155,26 @@ class ShopifyDuplicateOrderDetector:
                         print(f"Erro ao processar pedido {order.get('id', 'unknown')}: {e}")
                         continue
                 
+                # === EARLY BREAK PARA OTIMIZAÇÃO (MOVIDO PARA CÁ) ===
+                if len(all_orders) >= early_break_threshold:
+                    print(f"Early break ativado: {len(all_orders)} pedidos coletados (threshold: {early_break_threshold})")
+                    break
+                
+                # === EARLY BREAK PARA IP ESPECÍFICO (MOVIDO PARA CÁ) ===
+                if target_ip:
+                    # Se estamos buscando IP específico, conta quantos pedidos já temos dele
+                    target_ip_count = sum(1 for order in all_orders if order.get("_customer_ip") == target_ip)
+                    if target_ip_count >= 10:  # Suficiente para análise de IP específico
+                        print(f"Early break para IP específico {target_ip}: {target_ip_count} pedidos encontrados")
+                        break
+                
                 # === OTIMIZAÇÕES DE MEMÓRIA ENTRE BATCHES ===
                 
                 # Log de progresso detalhado
                 print(f"Página {page} processada: {len(orders)} pedidos brutos, {len(all_orders)} válidos acumulados")
                 
-                # Liberação de memória para períodos grandes
-                if days > 60 and page % 10 == 0:  # A cada 10 páginas para períodos grandes
+                # Liberação de memória para períodos grandes (mais agressiva)
+                if days >= 30 and page % 5 == 0:  # A cada 5 páginas para períodos >= 30 dias
                     print(f"Executando garbage collection na página {page} (período: {days} dias)")
                     import gc
                     gc.collect()
@@ -1071,16 +1188,19 @@ class ShopifyDuplicateOrderDetector:
                 
                 page += 1
                 
-                # Limite de páginas adaptativo baseado no período
-                max_pages = 30 if days <= 30 else 50 if days <= 90 else 100
+                # Limite de páginas adaptativo baseado no período (mais restritivo)
+                max_pages = 15 if days <= 7 else 20 if days <= 14 else 25 if days <= 30 else 35
                 if page > max_pages:
                     print(f"Limite de {max_pages} páginas atingido para período de {days} dias")
                     break
                 
-                # Pausa adaptativa entre páginas para não sobrecarregar API
-                if days > 60:
+                # Pausa adaptativa entre páginas para não sobrecarregar API (otimizada)
+                if days >= 30:
                     import time
-                    time.sleep(0.2)  # 200ms de pausa para períodos grandes
+                    time.sleep(0.1)  # 100ms de pausa para períodos >= 30 dias
+                elif days > 14:
+                    import time
+                    time.sleep(0.05)  # 50ms de pausa para períodos > 14 dias
         
         # === LOG DE DIAGNÓSTICO ATUALIZADO ===
         print("=== DIAGNÓSTICO DETECTOR DE IP (VERSÃO CORRIGIDA - SEM FALLBACK) ===")

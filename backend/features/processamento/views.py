@@ -23,6 +23,7 @@ from .services.alternative_ip_capture import AlternativeIPCaptureService
 from .services.geolocation_api_service import get_geolocation_service, GeolocationConfig
 from .services.enhanced_ip_detector import get_enhanced_ip_detector
 from .services.structured_logging_service import get_structured_logging_service
+from .cache_manager import get_cache_manager
 from .utils.security_utils import (
     IPSecurityUtils, 
     RateLimitManager, 
@@ -574,6 +575,20 @@ def detalhar_pedidos_ip(request):
             logger.error(f"Erro de validação de parâmetros: {str(param_error)}")
             return Response({'error': 'Parâmetros inválidos'}, status=status.HTTP_400_BAD_REQUEST)
         
+        # === VERIFICAÇÃO DE CACHE ESTRATÉGICO ===
+        cache_manager = get_cache_manager()
+        cached_result = cache_manager.get_ip_details(loja_id, ip, days)
+        
+        if cached_result:
+            logger.info(f"Cache HIT para IP {ip} (loja: {loja_id}, days: {days}) - retornando dados em cache")
+            return Response({
+                'success': True,
+                'data': cached_result.get('data', {}),
+                'cached': True,
+                'cache_timestamp': cached_result.get('timestamp', ''),
+                'message': 'Dados retornados do cache para otimizar performance'
+            })
+        
         # Busca configuração da loja
         try:
             config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
@@ -613,25 +628,18 @@ def detalhar_pedidos_ip(request):
                 'action_required': 'check_connectivity'
             }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         
-        # === BUSCA DADOS REAIS DO SHOPIFY ===
+        # === BUSCA DADOS REAIS DO SHOPIFY - MÉTODO ULTRA RÁPIDO ===
         try:
-            logger.info(f"Buscando detalhes para IP {ip} - days: {days}")
+            logger.info(f"Buscando detalhes para IP {ip} - days: {days} (MÉTODO OTIMIZADO)")
             
-            # Busca todos os pedidos agrupados por IP
-            ip_data = detector.get_orders_by_ip(days=days, min_orders=1)  # min_orders=1 para pegar todos
+            # Usa método específico para IP único - muito mais rápido!
+            specific_orders = detector.get_orders_for_specific_ip(
+                target_ip=ip,
+                days=days,
+                max_orders=50  # Limite para evitar timeout
+            )
             
-            # Filtra apenas o IP específico solicitado
-            target_ip_data = None
-            ip_groups = ip_data.get('ip_groups', [])
-            logger.info(f"Total de grupos de IP encontrados: {len(ip_groups)}")
-            
-            for ip_group in ip_groups:
-                if ip_group.get('ip') == ip:
-                    target_ip_data = ip_group
-                    logger.info(f"Grupo encontrado para IP {ip} com {ip_group.get('order_count', 0)} pedidos")
-                    break
-            
-            if not target_ip_data:
+            if not specific_orders:
                 logger.info(f"Nenhum pedido encontrado para IP {ip}")
                 return Response({
                     'success': True,
@@ -646,15 +654,16 @@ def detalhar_pedidos_ip(request):
                     'message': f'Nenhum pedido encontrado para o IP {ip} nos últimos {days} dias'
                 })
             
+            logger.info(f"Encontrados {len(specific_orders)} pedidos para IP {ip}")
+            
             # Processa os dados para o formato esperado pelo frontend
             client_details = []
             active_orders = 0
             cancelled_orders = 0
             
-            orders_in_group = target_ip_data.get('orders', [])
-            logger.info(f"Processando {len(orders_in_group)} pedidos do grupo")
+            logger.info(f"Processando {len(specific_orders)} pedidos do grupo")
             
-            for order in orders_in_group:
+            for order in specific_orders:
                 try:
                     # Extrai dados do cliente
                     customer = order.get('customer', {})
@@ -711,21 +720,51 @@ def detalhar_pedidos_ip(request):
             
             logger.info(f"Processamento concluído: {len(client_details)} pedidos processados, {active_orders} ativos, {cancelled_orders} cancelados")
             
+            # Calcula estatísticas dos pedidos encontrados
+            total_sales = sum(float(order.get('total_price', 0)) for order in specific_orders)
+            unique_customers = set()
+            currencies = set()
+            first_order_date = None
+            last_order_date = None
+            
+            for order in specific_orders:
+                customer = order.get('customer', {})
+                if customer.get('email'):
+                    unique_customers.add(customer['email'])
+                elif customer.get('phone'):
+                    unique_customers.add(customer['phone'])
+                
+                currency = order.get('currency', 'BRL')
+                currencies.add(currency)
+                
+                order_date = order.get('created_at')
+                if order_date:
+                    if not first_order_date or order_date < first_order_date:
+                        first_order_date = order_date
+                    if not last_order_date or order_date > last_order_date:
+                        last_order_date = order_date
+            
+            main_currency = list(currencies)[0] if currencies else 'BRL'
+            ip_source = specific_orders[0].get('_ip_source', 'unknown') if specific_orders else 'unknown'
+            
             # Monta resposta com dados reais
             response_data = {
                 'success': True,
                 'data': {
                     'ip': ip,
-                    'total_orders': target_ip_data.get('order_count', len(client_details)),
+                    'total_orders': len(specific_orders),
                     'client_details': client_details,
                     'active_orders': active_orders,
                     'cancelled_orders': cancelled_orders,
-                    'unique_customers': target_ip_data.get('unique_customers', 1),
-                    'total_sales': target_ip_data.get('total_sales', '0.00'),
-                    'currency': target_ip_data.get('currency', 'BRL'),
-                    'date_range': target_ip_data.get('date_range', {}),
-                    'is_suspicious': target_ip_data.get('is_suspicious', False),
-                    'ip_source': target_ip_data.get('orders', [{}])[0].get('ip_source', 'unknown') if target_ip_data.get('orders') else 'unknown'
+                    'unique_customers': len(unique_customers),
+                    'total_sales': f"{total_sales:.2f}",
+                    'currency': main_currency,
+                    'date_range': {
+                        'first': first_order_date,
+                        'last': last_order_date
+                    },
+                    'is_suspicious': False,  # Calculado posteriormente se necessário
+                    'ip_source': ip_source
                 },
                 'loja_nome': config.nome_loja,
                 'period_days': days
@@ -749,6 +788,13 @@ def detalhar_pedidos_ip(request):
                 logger.info(f"Detalhamento IP concluído com sucesso - User: {getattr(request.user, 'username', 'Anonymous')}")
             except Exception as log_error:
                 logger.error(f"Erro ao salvar log (não crítico): {str(log_error)}")
+            
+            # === ARMAZENA NO CACHE PARA OTIMIZAÇÃO ===
+            try:
+                cache_manager.cache_ip_details(loja_id, ip, days, response_data['data'])
+                logger.info(f"Dados do IP {ip} armazenados em cache para otimização futura")
+            except Exception as cache_error:
+                logger.warning(f"Erro ao armazenar em cache (não crítico): {str(cache_error)}")
             
             return Response(response_data)
             
