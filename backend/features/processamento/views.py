@@ -13,6 +13,7 @@ import json
 import logging
 import requests
 from datetime import datetime, timedelta
+from collections import defaultdict
 from requests.exceptions import ConnectionError, Timeout, HTTPError, RequestException
 
 from .models import ShopifyConfig, ProcessamentoLog
@@ -299,16 +300,18 @@ def buscar_pedidos_mesmo_ip(request):
         # Sanitização e validação de inputs
         try:
             loja_id = int(loja_id)
-            days = min(int(days), 30)  # REDUZIDO PARA 30 DIAS MÁXIMO por segurança
+            days = int(days)  # Remove limite artificial
             min_orders = max(int(min_orders), 2)
         except (ValueError, TypeError) as param_error:
             logger.error(f"Erro de validação de parâmetros: {str(param_error)}")
             return Response({'error': 'Parâmetros inválidos'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Validação de range de dias mais restritiva
-        if days > 30:
+        # Implementa limite dinâmico - será calculado após obter configuração da loja
+        # Validação temporária para evitar abuso
+        if days > 365:
             return Response({
-                'error': 'Período máximo permitido é 30 dias por motivos de segurança'
+                'error': 'Período máximo absoluto é 365 dias',
+                'details': 'Use um período menor para melhor performance'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         if days < 1:
@@ -324,6 +327,20 @@ def buscar_pedidos_mesmo_ip(request):
                     'details': 'Configure uma loja Shopify válida antes de usar esta funcionalidade',
                     'action_required': 'add_shopify_store'
                 }, status=status.HTTP_404_NOT_FOUND)
+                
+            # IMPLEMENTA LIMITE DINÂMICO baseado no volume da loja
+            max_days_allowed = _calculate_dynamic_limit_for_store(config)
+            if days > max_days_allowed:
+                logger.warning(f"Período {days} dias excede limite dinâmico {max_days_allowed} para loja {config.nome_loja}")
+                return Response({
+                    'error': f'Período máximo permitido é {max_days_allowed} dias para a loja "{config.nome_loja}"',
+                    'details': f'Limite baseado no volume de pedidos e capacidade de processamento da loja',
+                    'suggested_period': min(days, max_days_allowed),
+                    'loja_volume_category': _get_store_volume_category(config),
+                    'current_limit': max_days_allowed,
+                    'requested_period': days
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
         except Exception as db_error:
             logger.error(f"Erro de banco de dados ao buscar loja {loja_id}: {str(db_error)}")
             return Response({'error': 'Erro de banco de dados'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -353,10 +370,18 @@ def buscar_pedidos_mesmo_ip(request):
                 'action_required': 'check_connectivity'
             }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         
-        # Buscar dados de IP com tratamento de erro melhorado
+        # Buscar dados de IP com tratamento de erro melhorado e otimizações de timeout
         try:
             logger.info(f"Buscando pedidos por IP - days: {days}, min_orders: {min_orders}")
-            ip_data = detector.get_orders_by_ip(days=days, min_orders=min_orders)
+            
+            # APLICA OTIMIZAÇÕES PARA PREVENÇÃO DE TIMEOUT
+            if days > 30:
+                logger.info(f"Aplicando otimizações de timeout para período de {days} dias")
+                ip_data = _apply_timeout_prevention_optimizations(detector, days, min_orders)
+            else:
+                # Período pequeno - usa método normal
+                ip_data = detector.get_orders_by_ip(days=days, min_orders=min_orders)
+            
             logger.info(f"Busca por IP concluída - IPs encontrados: {ip_data.get('total_ips_found', 0)}")
             
         except HTTPError as http_error:
@@ -368,30 +393,63 @@ def buscar_pedidos_mesmo_ip(request):
                 exc_info=True
             )
             
-            # Tratamento específico por código HTTP
+            # Tratamento específico por código HTTP MELHORADO
             if hasattr(http_error, 'response') and hasattr(http_error.response, 'status_code'):
-                if http_error.response.status_code == 401:
+                status_code = http_error.response.status_code
+                
+                if status_code == 401:
                     return Response({
                         'error': 'Erro de autenticação com Shopify. Verifique o token de acesso da loja.',
-                        'details': 'Token de acesso inválido ou expirado'
+                        'details': 'Token de acesso inválido ou expirado',
+                        'error_code': 'SHOPIFY_AUTH_ERROR'
                     }, status=status.HTTP_401_UNAUTHORIZED)
-                elif http_error.response.status_code == 403:
+                elif status_code == 403:
                     return Response({
                         'error': 'Acesso negado pela API do Shopify. Verifique as permissões do token.',
-                        'details': 'Token não possui permissões necessárias para acessar pedidos'
+                        'details': 'Token não possui permissões necessárias para acessar pedidos',
+                        'error_code': 'SHOPIFY_PERMISSION_ERROR'
                     }, status=status.HTTP_403_FORBIDDEN)
+                elif status_code == 429:
+                    # Rate limit específico
+                    return Response({
+                        'error': 'Limite de requisições do Shopify atingido',
+                        'details': 'Aguarde alguns minutos antes de tentar novamente',
+                        'error_code': 'SHOPIFY_RATE_LIMIT',
+                        'retry_after_seconds': 60
+                    }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+                elif status_code == 504 or status_code == 502:
+                    # Gateway timeout ou bad gateway
+                    return Response({
+                        'error': 'Timeout na API do Shopify',
+                        'details': 'A requisição demorou muito para ser processada. Tente com um período menor.',
+                        'error_code': 'SHOPIFY_TIMEOUT',
+                        'suggested_action': 'reduce_period'
+                    }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             
             return Response({
                 'error': 'Erro ao buscar dados de IP no Shopify',
-                'details': 'Entre em contato com o suporte técnico'
+                'details': 'Entre em contato com o suporte técnico',
+                'error_code': 'SHOPIFY_API_ERROR'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         except (ConnectionError, Timeout) as conn_error:
             logger.error(f"Erro de conectividade na busca por IP: {str(conn_error)}", exc_info=True)
-            return Response({
-                'error': 'Problema de conectividade',
-                'details': 'Problemas de conectividade com a API'
-            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            
+            # Determina se é timeout ou erro de conexão
+            if 'timeout' in str(conn_error).lower() or isinstance(conn_error, Timeout):
+                return Response({
+                    'error': 'Timeout na busca por IPs',
+                    'details': f'A busca por {days} dias demorou muito para ser processada. Tente com um período menor.',
+                    'error_code': 'REQUEST_TIMEOUT',
+                    'suggested_period': min(days // 2, 30),
+                    'current_period': days
+                }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            else:
+                return Response({
+                    'error': 'Problema de conectividade com Shopify',
+                    'details': 'Verifique sua conexão de internet e tente novamente',
+                    'error_code': 'CONNECTION_ERROR'
+                }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         
         except RequestException as req_error:
             logger.error(f"Erro de requisição na busca por IP: {str(req_error)}", exc_info=True)
@@ -2181,3 +2239,237 @@ def get_system_diagnostics(request):
         return Response({
             'error': 'Erro interno do servidor'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ===== FUNÇÕES AUXILIARES PARA LIMITE DINÂMICO =====
+
+def _calculate_dynamic_limit_for_store(config):
+    """
+    Calcula limite dinâmico de dias baseado no volume histórico da loja
+    
+    Args:
+        config: Configuração da loja ShopifyConfig
+        
+    Returns:
+        int: Número máximo de dias permitido para esta loja
+    """
+    if not config:
+        return 30  # Fallback conservador
+    
+    try:
+        # Tenta obter histórico de logs para estimar volume
+        recent_logs = ProcessamentoLog.objects.filter(
+            config=config,
+            tipo__in=['busca_ip', 'busca'],
+            status='sucesso'
+        ).order_by('-data_execucao')[:10]
+        
+        if recent_logs.exists():
+            avg_orders = sum(log.pedidos_encontrados or 0 for log in recent_logs) / len(recent_logs)
+            
+            # Categoriza volume da loja baseado em análise de performance
+            if avg_orders >= 1000:
+                return 7  # Loja de alto volume - limite baixo para performance
+            elif avg_orders >= 500:
+                return 14  # Loja de médio volume
+            elif avg_orders >= 100:
+                return 30  # Loja de volume moderado
+            else:
+                return 90  # Loja pequena - pode buscar mais dias
+        else:
+            # Sem histórico - usa limite conservador mas não artificial
+            return 60  # Permite mais que 30 dias para lojas novas
+            
+    except Exception as e:
+        logger.error(f"Erro ao calcular limite dinâmico: {e}")
+        return 60  # Fallback mais generoso em caso de erro
+
+
+def _get_store_volume_category(config):
+    """
+    Determina categoria de volume da loja
+    
+    Args:
+        config: Configuração da loja ShopifyConfig
+        
+    Returns:
+        str: Categoria de volume ('small', 'medium', 'large', 'enterprise')
+    """
+    if not config:
+        return 'unknown'
+    
+    try:
+        recent_logs = ProcessamentoLog.objects.filter(
+            config=config,
+            tipo__in=['busca_ip', 'busca'],
+            status='sucesso'
+        ).order_by('-data_execucao')[:10]
+        
+        if recent_logs.exists():
+            avg_orders = sum(log.pedidos_encontrados or 0 for log in recent_logs) / len(recent_logs)
+            
+            if avg_orders >= 1000:
+                return 'enterprise'
+            elif avg_orders >= 500:
+                return 'large'
+            elif avg_orders >= 100:
+                return 'medium'
+            else:
+                return 'small'
+        else:
+            return 'small'  # Default para lojas sem histórico
+            
+    except Exception:
+        return 'unknown'
+
+
+def _apply_timeout_prevention_optimizations(detector, days, min_orders):
+    """
+    Implementa otimizações para prevenir timeout baseado no período solicitado
+    
+    Args:
+        detector: Instância do ShopifyDuplicateOrderDetector
+        days: Número de dias solicitado
+        min_orders: Mínimo de pedidos por IP
+        
+    Returns:
+        dict: Resultado otimizado da busca por IP
+    """
+    try:
+        logger.info(f"Aplicando otimizações para período de {days} dias")
+        
+        # Para períodos maiores que 30 dias, implementa estratégias específicas
+        if days > 30:
+            # Estratégia 1: Paginação em chunks menores
+            return _process_large_period_with_chunking(detector, days, min_orders)
+        else:
+            # Período pequeno - usa método normal com timeout aumentado
+            return detector.get_orders_by_ip(days=days, min_orders=min_orders)
+            
+    except Exception as e:
+        logger.error(f"Erro na otimização com prevenção de timeout: {e}")
+        # Fallback para método normal
+        return detector.get_orders_by_ip(days=days, min_orders=min_orders)
+
+
+def _process_large_period_with_chunking(detector, days, min_orders):
+    """
+    Processa períodos grandes usando estratégia de chunking para evitar timeout
+    
+    Args:
+        detector: Instância do ShopifyDuplicateOrderDetector
+        days: Número de dias solicitado
+        min_orders: Mínimo de pedidos por IP
+        
+    Returns:
+        dict: Resultado consolidado
+    """
+    try:
+        chunk_size = 20  # Chunks de 20 dias para reduzir carga
+        all_ip_groups = {}
+        total_orders_analyzed = 0
+        
+        logger.info(f"Processando {days} dias em chunks de {chunk_size} dias")
+        
+        # Processa em chunks sequenciais
+        for start_day in range(0, days, chunk_size):
+            end_day = min(start_day + chunk_size, days)
+            chunk_days = end_day - start_day
+            
+            logger.info(f"Processando chunk: dias {start_day}-{end_day} ({chunk_days} dias)")
+            
+            try:
+                # Busca chunk com timeout menor e min_orders=1 para capturar tudo
+                chunk_result = detector.get_orders_by_ip(days=chunk_days, min_orders=1)
+                
+                if chunk_result and chunk_result.get('ip_groups'):
+                    # Consolida resultados do chunk
+                    for ip_group in chunk_result['ip_groups']:
+                        ip = ip_group.get('ip')
+                        if ip:
+                            if ip not in all_ip_groups:
+                                all_ip_groups[ip] = {
+                                    'ip': ip,
+                                    'orders': [],
+                                    'order_count': 0,
+                                    'total_sales': 0.0,
+                                    'unique_customers': set(),
+                                    'cancelled_orders': 0,
+                                    'active_orders': 0
+                                }
+                            
+                            # Adiciona pedidos evitando duplicatas
+                            existing_order_ids = {order.get('id') for order in all_ip_groups[ip]['orders']}
+                            new_orders = [
+                                order for order in ip_group.get('orders', [])
+                                if order.get('id') not in existing_order_ids
+                            ]
+                            
+                            all_ip_groups[ip]['orders'].extend(new_orders)
+                
+                if chunk_result:
+                    total_orders_analyzed += chunk_result.get('total_orders_analyzed', 0)
+                
+                # Pequena pausa entre chunks para não sobrecarregar API
+                import time
+                time.sleep(0.3)
+                
+            except Exception as chunk_error:
+                logger.error(f"Erro ao processar chunk {start_day}-{end_day}: {chunk_error}")
+                continue  # Continua com próximo chunk
+        
+        # Filtra por min_orders e calcula estatísticas finais
+        final_groups = []
+        for ip, group_data in all_ip_groups.items():
+            orders = group_data['orders']
+            
+            if len(orders) >= min_orders:
+                # Recalcula estatísticas
+                total_sales = sum(float(order.get('total_price', 0)) for order in orders)
+                cancelled_count = sum(1 for order in orders if order.get('is_cancelled', False))
+                active_count = len(orders) - cancelled_count
+                
+                # Conta clientes únicos
+                unique_customers = set()
+                for order in orders:
+                    customer = order.get('customer', {})
+                    email = customer.get('email')
+                    if email:
+                        unique_customers.add(email)
+                
+                final_groups.append({
+                    'ip': ip,
+                    'order_count': len(orders),
+                    'cancelled_orders': cancelled_count,
+                    'active_orders': active_count,
+                    'unique_customers': len(unique_customers),
+                    'total_sales': f"{total_sales:.2f}",
+                    'currency': orders[0].get('currency', 'BRL') if orders else 'BRL',
+                    'orders': orders,
+                    'processed_with_chunking': True,
+                    'date_range': {
+                        'first': min(order.get('created_at', '') for order in orders) if orders else '',
+                        'last': max(order.get('created_at', '') for order in orders) if orders else ''
+                    }
+                })
+        
+        # Ordena por quantidade de pedidos
+        final_groups.sort(key=lambda x: x['order_count'], reverse=True)
+        
+        return {
+            'ip_groups': final_groups,
+            'total_ips_found': len(final_groups),
+            'total_orders_analyzed': total_orders_analyzed,
+            'period_days': days,
+            'processing_method': 'chunked_for_large_period',
+            'chunk_size_used': chunk_size,
+            'debug_stats': {
+                'chunked_processing': True,
+                'total_chunks_processed': (days // chunk_size) + (1 if days % chunk_size else 0)
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro no processamento com chunking: {e}")
+        # Fallback para método normal
+        return detector.get_orders_by_ip(days=min(days, 30), min_orders=min_orders)

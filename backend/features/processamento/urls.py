@@ -1,6 +1,7 @@
 # backend/features/processamento/urls.py
 from django.urls import path
 from . import views
+from . import views_cached
 
 app_name = 'processamento'
 
@@ -30,4 +31,20 @@ urlpatterns = [
     path('buscar-ips-duplicados-enhanced/', views.buscar_pedidos_mesmo_ip_enhanced, name='buscar_pedidos_mesmo_ip_enhanced'),
     path('analyze-single-order-ip/', views.analyze_single_order_ip_enhanced, name='analyze_single_order_ip_enhanced'),
     path('system-diagnostics/', views.get_system_diagnostics, name='get_system_diagnostics'),
+    
+    # === 🚀 ENDPOINTS OTIMIZADOS COM CACHE REDIS ===
+    # Novos endpoints principais com cache (substituem os antigos para melhor performance)
+    path('buscar-ips-duplicados-cached/', views_cached.buscar_ips_duplicados_cached, name='buscar_ips_duplicados_cached'),
+    path('detalhar-ip-cached/', views_cached.detalhar_ip_cached, name='detalhar_ip_cached'),
+    
+    # Endpoints de gestão de cache
+    path('cache/stats/', views_cached.cache_stats, name='cache_stats'),
+    path('cache/invalidate-store/', views_cached.invalidate_cache_by_store, name='invalidate_cache_by_store'),
+    path('cache/clear-all/', views_cached.clear_all_cache, name='clear_all_cache'),
+    path('cache/warmup-store/', views_cached.warmup_cache_for_store, name='warmup_cache_for_store'),
+    path('cache/health-check/', views_cached.cache_health_check, name='cache_health_check'),
+    
+    # Endpoints de fallback (compatibilidade)
+    path('buscar-ips-duplicados-fallback/', views_cached.buscar_pedidos_mesmo_ip_fallback, name='buscar_pedidos_mesmo_ip_fallback'),
+    path('detalhar-ip-fallback/', views_cached.detalhar_pedidos_ip_fallback, name='detalhar_pedidos_ip_fallback'),
 ]

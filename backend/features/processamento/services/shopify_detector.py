@@ -895,18 +895,16 @@ class ShopifyDuplicateOrderDetector:
     
     def get_orders_by_ip(self, days=30, min_orders=2):
         """
-        Agrupa pedidos por IP dos últimos X dias
+        Agrupa pedidos por IP dos últimos X dias - VERSÃO OTIMIZADA
         
         Args:
-            days (int): Dias para buscar pedidos (máximo 90)
+            days (int): Dias para buscar pedidos (sem limite artificial)
             min_orders (int): Mínimo de pedidos por IP para incluir no resultado
             
         Returns:
             dict: Pedidos agrupados por IP com estatísticas
         """
-        # Limita período máximo para performance
-        if days > 90:
-            days = 90
+        # Remove limitação artificial - deixa para o views.py decidir
         
         date_min = (datetime.now() - timedelta(days=days)).isoformat()
         all_orders = []
@@ -924,17 +922,23 @@ class ShopifyDuplicateOrderDetector:
             "ip_extraction_sources": {}  # Fonte -> contagem (para debug)
         }
         
-        # Busca todos os pedidos do período
+        # Busca todos os pedidos do período COM OTIMIZAÇÕES
+        max_retries = 3
+        base_delay = 1.0
+        
         while True:
+            # Reduz tamanho da página para períodos grandes para melhorar performance
+            page_limit = 100 if days > 60 else 250
+            
             if page_info:
                 params = {
-                    "limit": 250,
+                    "limit": page_limit,
                     "page_info": page_info,
                     "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address,note_attributes,custom_attributes,properties"
                 }
             else:
                 params = {
-                    "limit": 250,
+                    "limit": page_limit,
                     "status": "any",
                     "created_at_min": date_min,
                     "financial_status": "any",  # Inclui todos os status financeiros
@@ -943,13 +947,51 @@ class ShopifyDuplicateOrderDetector:
             
             url = f"{self.base_url}/orders.json"
             
-            try:
-                response = requests.get(url, headers=self.headers, params=params, timeout=30)
-                response.raise_for_status()
-                orders = response.json()["orders"]
-                
-                if not orders:
-                    break
+            # IMPLEMENTA RETRY LOGIC COM EXPONENTIAL BACKOFF
+            retry_count = 0
+            while retry_count <= max_retries:
+                try:
+                    # Timeout adaptativo baseado no período
+                    timeout = 30 if days <= 30 else 60 if days <= 90 else 90
+                    
+                    response = requests.get(url, headers=self.headers, params=params, timeout=timeout)
+                    response.raise_for_status()
+                    orders = response.json()["orders"]
+                    break  # Sucesso - sai do loop de retry
+                    
+                except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+                    retry_count += 1
+                    if retry_count > max_retries:
+                        raise Exception(f"Falha após {max_retries} tentativas na página {page}: {e}")
+                    
+                    # Exponential backoff
+                    delay = base_delay * (2 ** (retry_count - 1))
+                    print(f"Tentativa {retry_count}/{max_retries} falhou, aguardando {delay}s: {e}")
+                    
+                    import time
+                    time.sleep(delay)
+                    continue
+                    
+                except requests.exceptions.HTTPError as e:
+                    if e.response.status_code == 429:  # Rate limit
+                        retry_count += 1
+                        if retry_count > max_retries:
+                            raise Exception(f"Rate limit após {max_retries} tentativas na página {page}")
+                        
+                        # Rate limit - espera mais tempo
+                        delay = base_delay * (3 ** retry_count)  # Delay maior para rate limit
+                        print(f"Rate limit detectado, aguardando {delay}s (tentativa {retry_count}/{max_retries})")
+                        
+                        import time
+                        time.sleep(delay)
+                        continue
+                    else:
+                        # Outros erros HTTP - não tenta novamente
+                        raise e
+            
+            # Se chegou aqui, teve sucesso na requisição
+            if not orders:
+                break
                 
                 # Filtra apenas pedidos válidos (INCLUINDO CANCELADOS)
                 for order in orders:
@@ -1009,6 +1051,17 @@ class ShopifyDuplicateOrderDetector:
                         print(f"Erro ao processar pedido {order.get('id', 'unknown')}: {e}")
                         continue
                 
+                # === OTIMIZAÇÕES DE MEMÓRIA ENTRE BATCHES ===
+                
+                # Log de progresso detalhado
+                print(f"Página {page} processada: {len(orders)} pedidos brutos, {len(all_orders)} válidos acumulados")
+                
+                # Liberação de memória para períodos grandes
+                if days > 60 and page % 10 == 0:  # A cada 10 páginas para períodos grandes
+                    print(f"Executando garbage collection na página {page} (período: {days} dias)")
+                    import gc
+                    gc.collect()
+                
                 # Próxima página
                 link_header = response.headers.get('Link')
                 page_info = self.extract_page_info_from_link_header(link_header)
@@ -1017,11 +1070,17 @@ class ShopifyDuplicateOrderDetector:
                     break
                 
                 page += 1
-                if page > 50:  # Segurança
+                
+                # Limite de páginas adaptativo baseado no período
+                max_pages = 30 if days <= 30 else 50 if days <= 90 else 100
+                if page > max_pages:
+                    print(f"Limite de {max_pages} páginas atingido para período de {days} dias")
                     break
-                    
-            except requests.exceptions.RequestException as e:
-                raise Exception(f"Erro ao buscar pedidos por IP na página {page}: {e}")
+                
+                # Pausa adaptativa entre páginas para não sobrecarregar API
+                if days > 60:
+                    import time
+                    time.sleep(0.2)  # 200ms de pausa para períodos grandes
         
         # === LOG DE DIAGNÓSTICO ATUALIZADO ===
         print("=== DIAGNÓSTICO DETECTOR DE IP (VERSÃO CORRIGIDA - SEM FALLBACK) ===")
