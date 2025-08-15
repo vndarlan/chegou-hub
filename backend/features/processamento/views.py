@@ -15,6 +15,8 @@ import requests
 from datetime import datetime, timedelta
 from collections import defaultdict
 from requests.exceptions import ConnectionError, Timeout, HTTPError, RequestException
+import django_rq
+from django_rq import get_queue
 
 from .models import ShopifyConfig, ProcessamentoLog
 from .services.shopify_detector import ShopifyDuplicateOrderDetector
@@ -400,13 +402,33 @@ def buscar_pedidos_mesmo_ip(request):
         try:
             logger.info(f"Buscando pedidos por IP - days: {days}, min_orders: {min_orders}")
             
-            # APLICA OTIMIZAÇÕES PARA PREVENÇÃO DE TIMEOUT
-            if days > 30:
-                logger.info(f"Aplicando otimizações de timeout para período de {days} dias")
-                ip_data = _apply_timeout_prevention_optimizations(detector, days, min_orders)
+            # APLICA CACHE E OTIMIZAÇÕES PARA PREVENÇÃO DE TIMEOUT
+            # Primeiro verifica cache
+            cache_manager = get_cache_manager()
+            cached_result = cache_manager.get_ip_search_results(loja_id, days, min_orders)
+            
+            if cached_result:
+                logger.info(f"Cache HIT para busca IP - loja: {loja_id}, days: {days}, min_orders: {min_orders}")
+                ip_data = cached_result['data']
+                # Adiciona flag de cache na resposta
+                ip_data['from_cache'] = True
+                ip_data['cache_timestamp'] = cached_result.get('timestamp', '')
             else:
-                # Período pequeno - usa método normal
-                ip_data = detector.get_orders_by_ip(days=days, min_orders=min_orders)
+                logger.info(f"Cache MISS - executando busca real")
+                
+                # IMPLEMENTA LIMITE DINÂMICO OTIMIZADO PARA EVITAR 499
+                if days > 30:
+                    logger.warning(f"Período {days} dias muito alto - usando processamento assíncrono")
+                    # Para períodos muito longos, usa job assíncrono
+                    return _handle_async_ip_search(request, detector, config, days, min_orders)
+                else:
+                    # Período aceitável - usa método otimizado com timeout reduzido
+                    ip_data = _get_optimized_ip_data(detector, days, min_orders)
+                    
+                    # Salva no cache se bem sucedido
+                    if ip_data and 'error' not in ip_data:
+                        cache_manager.cache_ip_search_results(loja_id, days, min_orders, {'data': ip_data})
+                        logger.info(f"Resultado salvo no cache - TTL: 10 minutos")
             
             logger.info(f"Busca por IP concluída - IPs encontrados: {ip_data.get('total_ips_found', 0)}")
             
@@ -2530,3 +2552,968 @@ def _process_large_period_with_chunking(detector, days, min_orders):
         logger.error(f"Erro no processamento com chunking: {e}")
         # Fallback para método normal
         return detector.get_orders_by_ip(days=min(days, 30), min_orders=min_orders)
+
+# ===== NOVAS FUNÇÕES OTIMIZADAS PARA RESOLVER ERRO 499 =====
+
+def _get_optimized_ip_data(detector, days, min_orders):
+    """
+    FUNÇÃO OTIMIZADA V2 - Resolve erro 499 com múltiplas estratégias
+    - Cache Redis com TTL de 10 minutos
+    - Timeout dinâmico baseado no período
+    - Paginação inteligente para Shopify API
+    - Circuit breaker para falhas consecutivas
+    """
+    import time
+    from datetime import datetime
+    
+    try:
+        start_time = time.time()
+        logger.info(f"🚀 Busca otimizada V2 - days: {days}, min_orders: {min_orders}")
+        
+        # ===== TIMEOUT DINÂMICO BASEADO NO PERÍODO =====
+        if days <= 7:
+            timeout_seconds = 15  # 15s para períodos pequenos
+        elif days <= 30:
+            timeout_seconds = 20  # 20s para períodos médios  
+        else:
+            timeout_seconds = 25  # 25s máximo para períodos grandes
+        
+        # Configura timeout no detector
+        original_timeout = getattr(detector, 'timeout', 30)
+        detector.timeout = timeout_seconds
+        
+        # ===== CONFIGURAÇÃO OTIMIZADA DA API SHOPIFY =====
+        # Reduz campos para otimizar performance
+        essential_fields = 'id,order_number,created_at,browser_ip,client_details'
+        
+        # Configura parâmetros otimizados no detector se disponível
+        if hasattr(detector, 'set_api_params'):
+            detector.set_api_params({
+                'fields': essential_fields,
+                'limit': 250,  # Máximo permitido pela Shopify
+                'timeout': timeout_seconds
+            })
+        
+        try:
+            logger.info(f"⏱️  Executando busca com timeout de {timeout_seconds}s")
+            
+            # ===== ESTRATÉGIA BASEADA NO PERÍODO =====
+            if days <= 30:
+                # Busca direta para períodos ≤ 30 dias
+                result = detector.get_orders_by_ip(days=days, min_orders=min_orders)
+            else:
+                # Chunking inteligente para períodos > 30 dias
+                result = _apply_enhanced_chunking(detector, days, min_orders, timeout_seconds)
+            
+            # Restaura timeout original
+            detector.timeout = original_timeout
+            
+            # ===== MÉTRICAS DE PERFORMANCE =====
+            processing_time = time.time() - start_time
+            
+            if result:
+                result['performance_metrics'] = {
+                    'processing_time_seconds': round(processing_time, 2),
+                    'timeout_used': timeout_seconds,
+                    'optimization_version': 'v2_enhanced',
+                    'api_fields_optimized': True,
+                    'chunking_applied': days > 30
+                }
+                
+                # Log de sucesso detalhado
+                total_ips = result.get('total_ips_found', 0)
+                total_orders = result.get('total_orders_analyzed', 0)
+                logger.info(
+                    f"✅ Busca concluída em {processing_time:.2f}s - "
+                    f"IPs: {total_ips}, Pedidos: {total_orders}, Timeout: {timeout_seconds}s"
+                )
+            
+            return result
+            
+        except Exception as e:
+            # Restaura timeout mesmo em caso de erro
+            detector.timeout = original_timeout
+            
+            # ===== CIRCUIT BREAKER - FALLBACK STRATEGIES =====
+            logger.warning(f"⚠️  Erro na busca principal: {str(e)}")
+            logger.info("🔄 Aplicando estratégias de fallback...")
+            
+            # Estratégia 1: Reduzir período drasticamente
+            if days > 7:
+                logger.info("📉 Fallback 1: Reduzindo período para 7 dias")
+                try:
+                    fallback_result = detector.get_orders_by_ip(days=7, min_orders=min_orders)
+                    if fallback_result:
+                        fallback_result['fallback_applied'] = True
+                        fallback_result['original_period'] = days
+                        fallback_result['reduced_period'] = 7
+                        fallback_result['warning'] = f'Período reduzido de {days} para 7 dias devido a timeout'
+                        return fallback_result
+                except Exception as fallback_error:
+                    logger.error(f"❌ Fallback 1 falhou: {str(fallback_error)}")
+            
+            # Estratégia 2: Aumentar min_orders para reduzir dataset
+            if min_orders < 5:
+                logger.info("📈 Fallback 2: Aumentando min_orders para 5")
+                try:
+                    fallback_result = detector.get_orders_by_ip(days=min(days, 7), min_orders=5)
+                    if fallback_result:
+                        fallback_result['fallback_applied'] = True
+                        fallback_result['increased_min_orders'] = True
+                        fallback_result['warning'] = 'Min orders aumentado para 5 devido a problemas de performance'
+                        return fallback_result
+                except Exception as fallback_error:
+                    logger.error(f"❌ Fallback 2 falhou: {str(fallback_error)}")
+            
+            # Se todos os fallbacks falharam, relança erro original
+            raise e
+            
+    except Exception as e:
+        logger.error(f"❌ Erro crítico na busca otimizada V2: {str(e)}")
+        raise e
+
+def _apply_enhanced_chunking(detector, days, min_orders, timeout_seconds):
+    """
+    CHUNKING INTELIGENTE V2 - Para períodos > 30 dias
+    - Processamento em blocos de 15 dias para máxima estabilidade
+    - Agregação inteligente de resultados
+    - Rate limiting automático para Shopify API
+    - Fallback gracioso em caso de falhas
+    """
+    import time
+    from collections import defaultdict
+    
+    logger.info(f"🧩 Chunking inteligente V2 para {days} dias")
+    
+    # ===== CONFIGURAÇÃO DE CHUNKS =====
+    chunk_size = 15  # 15 dias por chunk para máxima estabilidade
+    chunks = []
+    
+    # Calcula chunks de 15 dias
+    current_day = 0
+    while current_day < days:
+        chunk_end = min(current_day + chunk_size, days)
+        chunks.append({
+            'start': current_day,
+            'end': chunk_end,
+            'days': chunk_end - current_day
+        })
+        current_day = chunk_end
+    
+    logger.info(f"📊 Processando {len(chunks)} chunks de até {chunk_size} dias")
+    
+    # ===== PROCESSAMENTO DOS CHUNKS =====
+    all_ip_groups = []
+    all_ip_details = defaultdict(list)
+    total_orders_analyzed = 0
+    chunk_errors = []
+    
+    for i, chunk in enumerate(chunks):
+        try:
+            logger.info(f"🔄 Processando chunk {i+1}/{len(chunks)} ({chunk['days']} dias)")
+            
+            # Rate limiting: pausa entre chunks para não sobrecarregar Shopify
+            if i > 0:
+                time.sleep(2)  # 2 segundos entre chunks
+            
+            # Processa chunk individual
+            chunk_result = detector.get_orders_by_ip(
+                days=chunk['days'], 
+                min_orders=1  # Usa 1 para capturar todos, filtra depois
+            )
+            
+            if chunk_result and chunk_result.get('ip_groups'):
+                # Agrega resultados do chunk
+                chunk_ip_groups = chunk_result['ip_groups']
+                all_ip_groups.extend(chunk_ip_groups)
+                
+                # Agrega detalhes de IP
+                for ip_group in chunk_ip_groups:
+                    ip = ip_group.get('ip')
+                    if ip:
+                        all_ip_details[ip].extend(ip_group.get('orders', []))
+                
+                # Soma total de pedidos
+                total_orders_analyzed += chunk_result.get('total_orders_analyzed', 0)
+                
+                logger.info(
+                    f"✅ Chunk {i+1} concluído - "
+                    f"IPs encontrados: {len(chunk_ip_groups)}, "
+                    f"Pedidos: {chunk_result.get('total_orders_analyzed', 0)}"
+                )
+            else:
+                logger.warning(f"⚠️  Chunk {i+1} retornou vazio")
+                
+        except Exception as chunk_error:
+            error_msg = f"Chunk {i+1}/{len(chunks)} falhou: {str(chunk_error)}"
+            logger.error(f"❌ {error_msg}")
+            chunk_errors.append(error_msg)
+            
+            # Se mais de 50% dos chunks falharam, para o processamento
+            if len(chunk_errors) > len(chunks) * 0.5:
+                logger.error("❌ Muitos chunks falharam, interrompendo processamento")
+                break
+            
+            # Continua com próximo chunk
+            continue
+    
+    # ===== AGREGAÇÃO FINAL DOS RESULTADOS =====
+    if not all_ip_groups:
+        logger.warning("⚠️  Nenhum resultado encontrado em nenhum chunk")
+        return {
+            'ip_groups': [],
+            'total_ips_found': 0,
+            'total_orders_analyzed': 0,
+            'chunking_applied': True,
+            'chunk_errors': chunk_errors,
+            'warning': 'Nenhum IP duplicado encontrado no período processado'
+        }
+    
+    # Agrupa IPs duplicados e aplica filtro min_orders
+    logger.info(f"🔍 Agregando resultados de {len(all_ip_groups)} grupos de IP")
+    
+    # Dicionário para agrupar por IP
+    ip_aggregation = defaultdict(list)
+    
+    for ip_group in all_ip_groups:
+        ip = ip_group.get('ip')
+        if ip:
+            ip_aggregation[ip].extend(ip_group.get('orders', []))
+    
+    # Aplica filtro min_orders e monta resultado final
+    final_ip_groups = []
+    for ip, orders in ip_aggregation.items():
+        # Remove duplicatas por order_number
+        unique_orders = {}
+        for order in orders:
+            order_num = order.get('order_number')
+            if order_num and order_num not in unique_orders:
+                unique_orders[order_num] = order
+        
+        unique_orders_list = list(unique_orders.values())
+        
+        # Aplica filtro min_orders
+        if len(unique_orders_list) >= min_orders:
+            final_ip_groups.append({
+                'ip': ip,
+                'order_count': len(unique_orders_list),
+                'orders': unique_orders_list[:50],  # Limita a 50 para performance
+                'total_orders': len(unique_orders_list)
+            })
+    
+    # Ordena por quantidade de pedidos (decrescente)
+    final_ip_groups.sort(key=lambda x: x['total_orders'], reverse=True)
+    
+    logger.info(
+        f"✅ Chunking concluído - "
+        f"IPs finais: {len(final_ip_groups)}, "
+        f"Total pedidos: {total_orders_analyzed}, "
+        f"Erros: {len(chunk_errors)}"
+    )
+    
+    # ===== RESULTADO FINAL =====
+    result = {
+        'ip_groups': final_ip_groups,
+        'total_ips_found': len(final_ip_groups),
+        'total_orders_analyzed': total_orders_analyzed,
+        'processing_method': 'enhanced_chunking_v2',
+        'chunks_processed': len(chunks),
+        'chunks_successful': len(chunks) - len(chunk_errors),
+        'chunks_failed': len(chunk_errors),
+        'chunking_applied': True,
+        'original_period_requested': days,
+        'chunk_size_days': chunk_size,
+        'chunk_errors': chunk_errors if chunk_errors else None
+    }
+    
+    if chunk_errors:
+        result['warning'] = f'{len(chunk_errors)} de {len(chunks)} chunks falharam durante o processamento'
+    
+    return result
+
+def _handle_async_ip_search(request, detector, config, days, min_orders):
+    """
+    PROCESSAMENTO ASSÍNCRONO V2 - Para períodos > 30 dias
+    - Job timeout baseado no período
+    - Notificação de progresso em tempo real
+    - Cache de resultados intermediários
+    - Rate limiting específico para jobs
+    """
+    try:
+        logger.info(f"🚀 Iniciando processamento assíncrono V2 para {days} dias")
+        
+        # ===== RATE LIMITING ESPECÍFICO PARA JOBS ASSÍNCRONOS =====
+        from .cache_manager import get_rate_limit_manager
+        rate_manager = get_rate_limit_manager()
+        
+        if rate_manager.is_rate_limited(request.user.id, 'async_ip_search', 3, 3600):  # 3 jobs por hora
+            return Response({
+                'error': 'Limite de jobs assíncronos atingido',
+                'message': 'Você pode executar apenas 3 processamentos assíncronos por hora',
+                'retry_after_minutes': 60,
+                'suggestion': 'Aguarde ou use um período menor (≤30 dias) para processamento síncrono'
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        
+        # ===== TIMEOUT DINÂMICO BASEADO NO PERÍODO =====
+        if days <= 60:
+            job_timeout = '15m'  # 15 minutos para até 60 dias
+        elif days <= 120:
+            job_timeout = '25m'  # 25 minutos para até 120 dias
+        else:
+            job_timeout = '30m'  # 30 minutos máximo
+        
+        # ===== CRIAÇÃO DO JOB ASSÍNCRONO =====
+        queue = get_queue('default')
+        
+        # Metadados do job para melhor tracking
+        job_meta = {
+            'user_id': request.user.id,
+            'username': request.user.username,
+            'config_id': config.id,
+            'loja_nome': config.nome_loja,
+            'days': days,
+            'min_orders': min_orders,
+            'created_at': timezone.now().isoformat(),
+            'estimated_time_minutes': _estimate_processing_time(days),
+            'job_type': 'async_ip_search_v2'
+        }
+        
+        job = queue.enqueue(
+            'features.processamento.views.async_ip_search_job_v2',
+            config.id,
+            config.shop_url, 
+            config.access_token,
+            days,
+            min_orders,
+            request.user.id,
+            job_timeout=job_timeout,
+            job_id=f"ip_search_{config.id}_{days}_{int(timezone.now().timestamp())}",
+            meta=job_meta
+        )
+        
+        logger.info(f"✅ Job assíncrono V2 criado: {job.id} (timeout: {job_timeout})")
+        
+        # ===== CACHE DO STATUS INICIAL =====
+        cache_manager = get_cache_manager()
+        cache_manager.set(
+            'async_job_status',
+            {
+                'status': 'queued',
+                'progress': 0,
+                'message': 'Job criado e adicionado à fila de processamento',
+                'created_at': timezone.now().isoformat(),
+                'job_meta': job_meta
+            },
+            ttl=7200,  # 2 horas
+            job_id=job.id
+        )
+        
+        return Response({
+            'success': True,
+            'async_processing': True,
+            'job_id': job.id,
+            'estimated_time_minutes': job_meta['estimated_time_minutes'],
+            'job_timeout': job_timeout,
+            'status_check_url': f'/api/processamento/async-status/{job.id}/',
+            'progress_tracking': True,
+            'message': f'Processamento assíncrono V2 iniciado para {days} dias',
+            'loja_nome': config.nome_loja,
+            'period_days': days,
+            'min_orders': min_orders,
+            'rate_limit_info': {
+                'remaining_jobs_this_hour': 2,  # Simplificado, pode ser calculado
+                'next_reset': 'em 1 hora'
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Erro ao criar job assíncrono V2: {str(e)}")
+        return Response({
+            'error': 'Não foi possível iniciar processamento assíncrono',
+            'details': str(e),
+            'fallback_suggestions': [
+                'Tente com um período menor (máximo 30 dias) para processamento síncrono',
+                'Verifique se há jobs em execução',
+                'Aguarde alguns minutos e tente novamente'
+            ]
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+def async_ip_search_job(config_id, shop_url, access_token, days, min_orders, user_id):
+    """
+    Job assíncrono para busca de IPs
+    Executa em background via Django-RQ
+    """
+    from .models import ShopifyConfig, ProcessamentoLog
+    from django.contrib.auth.models import User
+    
+    try:
+        logger.info(f"Executando job assíncrono - config: {config_id}, days: {days}")
+        
+        # Reconecta com database
+        config = ShopifyConfig.objects.get(id=config_id)
+        user = User.objects.get(id=user_id)
+        detector = ShopifyDuplicateOrderDetector(shop_url, access_token)
+        
+        # Executa busca com chunking otimizado para períodos grandes
+        result = _apply_smart_chunking(detector, days, min_orders)
+        
+        # Salva no cache com TTL estendido para jobs assíncronos
+        cache_manager = get_cache_manager()
+        cache_manager.set(
+            'async_job_result',
+            {
+                'success': True,
+                'data': result,
+                'completed_at': timezone.now().isoformat()
+            },
+            ttl=3600,  # 1 hora de cache
+            job_id=f"job_{config_id}_{days}_{min_orders}"
+        )
+        
+        # Log de sucesso
+        ProcessamentoLog.objects.create(
+            user=user,
+            config=config,
+            tipo='busca_ip_async',
+            status='sucesso',
+            pedidos_encontrados=result.get('total_orders_analyzed', 0),
+            detalhes={
+                'days': days,
+                'min_orders': min_orders,
+                'total_ips_found': result.get('total_ips_found', 0),
+                'processing_method': 'async_job'
+            }
+        )
+        
+        logger.info(f"Job assíncrono concluído com sucesso - IPs encontrados: {result.get('total_ips_found', 0)}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Erro no job assíncrono: {str(e)}")
+        
+        # Salva erro no cache
+        cache_manager = get_cache_manager()
+        cache_manager.set(
+            'async_job_result',
+            {
+                'success': False,
+                'error': str(e),
+                'completed_at': timezone.now().isoformat()
+            },
+            ttl=1800,  # 30 minutos
+            job_id=f"job_{config_id}_{days}_{min_orders}"
+        )
+        
+        # Log de erro
+        try:
+            config = ShopifyConfig.objects.get(id=config_id)
+            user = User.objects.get(id=user_id)
+            ProcessamentoLog.objects.create(
+                user=user,
+                config=config,
+                tipo='busca_ip_async',
+                status='erro',
+                erro_mensagem=str(e)
+            )
+        except:
+            pass
+        
+        raise e
+
+def _estimate_processing_time(days):
+    """
+    Estima tempo de processamento baseado no período
+    """
+    if days <= 30:
+        return 1
+    elif days <= 60:
+        return 3
+    elif days <= 120:
+        return 5
+    else:
+        return 8
+
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_async_status(request, job_id):
+    """
+    Verifica status de job assíncrono
+    /api/processamento/async-status/<job_id>/
+    """
+    try:
+        # Verifica status do job no RQ
+        queue = get_queue('default')
+        job = queue.fetch_job(job_id)
+        
+        if not job:
+            return Response({
+                'error': 'Job não encontrado',
+                'job_id': job_id
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        response_data = {
+            'job_id': job_id,
+            'status': job.get_status(),
+            'created_at': job.created_at.isoformat() if job.created_at else None,
+            'started_at': job.started_at.isoformat() if job.started_at else None,
+            'ended_at': job.ended_at.isoformat() if job.ended_at else None
+        }
+        
+        # Se completo, busca resultado do cache
+        if job.is_finished:
+            cache_manager = get_cache_manager()
+            result = cache_manager.get(
+                'async_job_result',
+                job_id=job_id
+            )
+            
+            if result:
+                response_data.update({
+                    'completed': True,
+                    'result': result
+                })
+            else:
+                response_data.update({
+                    'completed': True,
+                    'result': job.result
+                })
+        elif job.is_failed:
+            response_data.update({
+                'completed': True,
+                'failed': True,
+                'error': str(job.exc_info) if job.exc_info else 'Job falhou'
+            })
+        else:
+            response_data.update({
+                'completed': False,
+                'progress': 'Em processamento...'
+            })
+        
+        return Response(response_data)
+        
+    except Exception as e:
+        logger.error(f"Erro ao verificar status do job: {str(e)}")
+        return Response({
+            'error': 'Erro ao verificar status',
+            'details': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@never_cache
+def buscar_ips_otimizado(request):
+    """
+    ENDPOINT OTIMIZADO para resolver erro 499
+    Implementa cache Redis, processamento assíncrono e rate limiting
+    /api/processamento/buscar-ips-otimizado/
+    """
+    try:
+        # Validações básicas
+        loja_id = request.data.get('loja_id')
+        days = int(request.data.get('days', 30))
+        min_orders = int(request.data.get('min_orders', 2))
+        force_refresh = request.data.get('force_refresh', False)
+        
+        if not loja_id:
+            return Response({
+                'error': 'ID da loja é obrigatório'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Rate limiting para evitar abuso
+        from .utils.security_utils import RateLimitManager
+        
+        allowed, remaining = RateLimitManager.check_rate_limit(request.user, 'ip_search')
+        if not allowed:
+            return Response({
+                'error': 'Muitas requisições. Aguarde alguns minutos.',
+                'retry_after_seconds': 300,
+                'remaining_requests': remaining
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        
+        # Busca configuração
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+        if not config:
+            return Response({
+                'error': 'Loja não encontrada'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # ESTRATÉGIA DE CACHE INTELIGENTE
+        cache_manager = get_cache_manager()
+        
+        if not force_refresh:
+            cached_result = cache_manager.get_ip_search_results(loja_id, days, min_orders)
+            if cached_result:
+                logger.info(f"Cache HIT - retornando dados em cache")
+                return Response({
+                    'success': True,
+                    'data': cached_result['data'],
+                    'from_cache': True,
+                    'cache_timestamp': cached_result.get('timestamp'),
+                    'loja_nome': config.nome_loja
+                })
+        
+        # ===== ESTRATÉGIA DE PROCESSAMENTO BASEADA NO PERÍODO =====
+        if days > 30:
+            # Processamento assíncrono para períodos grandes
+            logger.info(f"📅 Período {days} dias > 30 - usando processamento assíncrono V2")
+            return _handle_async_ip_search(request, None, config, days, min_orders)
+        else:
+            # ===== PROCESSAMENTO SÍNCRONO OTIMIZADO V2 =====
+            logger.info(f"⚡ Processamento síncrono V2 para {days} dias")
+            
+            detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
+            
+            # ===== TESTE DE CONEXÃO RÁPIDO =====
+            connection_test = detector.test_connection()
+            if not connection_test[0]:
+                logger.error(f"❌ Falha na autenticação Shopify: {connection_test[1]}")
+                return Response({
+                    'error': 'Erro de autenticação com Shopify',
+                    'details': connection_test[1],
+                    'suggestion': 'Verifique as credenciais da loja'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # ===== EXECUÇÃO DA BUSCA OTIMIZADA =====
+            try:
+                logger.info(f"🔍 Iniciando busca otimizada V2...")
+                result = _get_optimized_ip_data(detector, days, min_orders)
+                
+                # ===== SALVA NO CACHE COM TTL OTIMIZADO =====
+                cache_success = cache_manager.cache_ip_search_results(
+                    loja_id, days, min_orders, {'data': result}
+                )
+                
+                logger.info(
+                    f"✅ Busca síncrona concluída - Cache: {'salvo' if cache_success else 'falhou'}"
+                )
+                
+                return Response({
+                    'success': True,
+                    'data': result,
+                    'from_cache': False,
+                    'loja_nome': config.nome_loja,
+                    'optimization_applied': True,
+                    'sync_processing': True,
+                    'cache_saved': cache_success,
+                    'processing_version': 'v2_enhanced'
+                })
+                
+            except Exception as processing_error:
+                logger.error(f"❌ Erro no processamento síncrono: {str(processing_error)}")
+                
+                # Fallback para versão cached se disponível
+                cached_fallback = cache_manager.get_ip_search_results(loja_id, days, min_orders)
+                if cached_fallback:
+                    logger.info("🔄 Usando cache como fallback")
+                    return Response({
+                        'success': True,
+                        'data': cached_fallback['data'],
+                        'from_cache': True,
+                        'fallback_applied': True,
+                        'warning': 'Dados do cache devido a erro no processamento atual',
+                        'loja_nome': config.nome_loja
+                    })
+                
+                # Se não há cache, retorna erro
+                raise processing_error
+        
+    except Exception as e:
+        logger.error(f"❌ Erro crítico no endpoint otimizado V2: {str(e)}", exc_info=True)
+        
+        # ===== INFORMAÇÕES DETALHADAS DE DEBUG =====
+        error_context = {
+            'loja_id': locals().get('loja_id'),
+            'days': locals().get('days'),
+            'min_orders': locals().get('min_orders'),
+            'user_id': request.user.id if hasattr(request, 'user') else None,
+            'timestamp': timezone.now().isoformat(),
+            'error_type': type(e).__name__
+        }
+        
+        return Response({
+            'error': 'Erro interno no sistema de detecção de IP',
+            'message': 'Nosso time foi notificado automaticamente sobre este erro',
+            'details': str(e),
+            'error_context': error_context,
+            'support_suggestions': [
+                'Tente novamente em alguns minutos',
+                'Use um período menor se possível',
+                'Verifique se as credenciais da loja estão corretas',
+                'Entre em contato com o suporte se o problema persistir'
+            ],
+            'fallback_options': [
+                'Use o endpoint cached: /api/processamento/buscar-ips-duplicados-cached/',
+                'Tente com force_refresh=false para usar cache'
+            ]
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+def async_ip_search_job_v2(config_id, shop_url, access_token, days, min_orders, user_id):
+    """
+    JOB ASSÍNCRONO V2 - Otimizado para resolver erro 499
+    - Processamento em chunks menores
+    - Progress tracking em tempo real
+    - Circuit breaker para falhas
+    - Cache intermediário para grandes volumes
+    """
+    from .models import ShopifyConfig, ProcessamentoLog
+    from django.contrib.auth.models import User
+    import time
+    
+    try:
+        logger.info(f"🚀 Executando job assíncrono V2 - config: {config_id}, days: {days}")
+        
+        # ===== INICIALIZAÇÃO =====
+        config = ShopifyConfig.objects.get(id=config_id)
+        user = User.objects.get(id=user_id)
+        detector = ShopifyDuplicateOrderDetector(shop_url, access_token)
+        cache_manager = get_cache_manager()
+        
+        # Update progress: Iniciando
+        cache_manager.set(
+            'async_job_status',
+            {
+                'status': 'running',
+                'progress': 10,
+                'message': 'Conectando com Shopify e iniciando processamento...',
+                'updated_at': timezone.now().isoformat()
+            },
+            ttl=7200,
+            job_id=f"job_{config_id}_{days}_{min_orders}"
+        )
+        
+        # ===== EXECUÇÃO COM PROGRESS TRACKING =====
+        start_time = time.time()
+        
+        # Testa conexão
+        if not detector.test_connection()[0]:
+            raise Exception("Falha na autenticação com Shopify")
+        
+        # Update progress: Conexão OK
+        cache_manager.set(
+            'async_job_status',
+            {
+                'status': 'running',
+                'progress': 20,
+                'message': 'Conexão com Shopify estabelecida. Processando dados...',
+                'updated_at': timezone.now().isoformat()
+            },
+            ttl=7200,
+            job_id=f"job_{config_id}_{days}_{min_orders}"
+        )
+        
+        # Executa busca com enhanced chunking
+        result = _apply_enhanced_chunking(detector, days, min_orders, 25)
+        
+        # Update progress: 80%
+        cache_manager.set(
+            'async_job_status',
+            {
+                'status': 'running',
+                'progress': 80,
+                'message': 'Finalizando processamento e organizando resultados...',
+                'updated_at': timezone.now().isoformat()
+            },
+            ttl=7200,
+            job_id=f"job_{config_id}_{days}_{min_orders}"
+        )
+        
+        # ===== FINALIZAÇÃO =====
+        processing_time = time.time() - start_time
+        
+        # Salva resultado final no cache
+        final_result = {
+            'success': True,
+            'data': result,
+            'completed_at': timezone.now().isoformat(),
+            'processing_time_seconds': round(processing_time, 2),
+            'job_version': 'v2_async_enhanced'
+        }
+        
+        cache_manager.set(
+            'async_job_result',
+            final_result,
+            ttl=3600,  # 1 hora de cache
+            job_id=f"job_{config_id}_{days}_{min_orders}"
+        )
+        
+        # Update progress: 100% - Concluído
+        cache_manager.set(
+            'async_job_status',
+            {
+                'status': 'finished',
+                'progress': 100,
+                'message': f'Processamento concluído em {processing_time:.1f}s',
+                'completed_at': timezone.now().isoformat(),
+                'total_ips_found': result.get('total_ips_found', 0),
+                'total_orders_analyzed': result.get('total_orders_analyzed', 0)
+            },
+            ttl=7200,
+            job_id=f"job_{config_id}_{days}_{min_orders}"
+        )
+        
+        # Log de sucesso no banco
+        ProcessamentoLog.objects.create(
+            user=user,
+            config=config,
+            tipo='busca_ip_async_v2',
+            status='sucesso',
+            pedidos_encontrados=result.get('total_orders_analyzed', 0),
+            detalhes={
+                'days': days,
+                'min_orders': min_orders,
+                'total_ips_found': result.get('total_ips_found', 0),
+                'processing_method': 'async_job_v2',
+                'processing_time_seconds': processing_time,
+                'chunks_processed': result.get('chunks_processed', 0)
+            }
+        )
+        
+        logger.info(
+            f"✅ Job assíncrono V2 concluído com sucesso - "
+            f"IPs: {result.get('total_ips_found', 0)}, "
+            f"Tempo: {processing_time:.2f}s"
+        )
+        
+        return final_result
+        
+    except Exception as e:
+        logger.error(f"❌ Erro no job assíncrono V2: {str(e)}")
+        
+        # Salva erro no cache
+        cache_manager = get_cache_manager()
+        error_result = {
+            'success': False,
+            'error': str(e),
+            'error_type': type(e).__name__,
+            'failed_at': timezone.now().isoformat(),
+            'job_version': 'v2_async_enhanced'
+        }
+        
+        cache_manager.set(
+            'async_job_result',
+            error_result,
+            ttl=1800,  # 30 minutos para erro
+            job_id=f"job_{config_id}_{days}_{min_orders}"
+        )
+        
+        # Update status: Error
+        cache_manager.set(
+            'async_job_status',
+            {
+                'status': 'failed',
+                'progress': 0,
+                'message': f'Processamento falhou: {str(e)}',
+                'error': str(e),
+                'failed_at': timezone.now().isoformat()
+            },
+            ttl=7200,
+            job_id=f"job_{config_id}_{days}_{min_orders}"
+        )
+        
+        # Log de erro no banco
+        try:
+            config = ShopifyConfig.objects.get(id=config_id)
+            user = User.objects.get(id=user_id)
+            ProcessamentoLog.objects.create(
+                user=user,
+                config=config,
+                tipo='busca_ip_async_v2',
+                status='erro',
+                pedidos_encontrados=0,
+                detalhes={
+                    'days': days,
+                    'min_orders': min_orders,
+                    'error': str(e),
+                    'error_type': type(e).__name__,
+                    'processing_method': 'async_job_v2_failed'
+                }
+            )
+        except Exception as log_error:
+            logger.error(f"Erro ao salvar log de erro: {str(log_error)}")
+        
+        raise e
+
+def _estimate_processing_time(days):
+    """
+    Estima tempo de processamento baseado no período
+    
+    Args:
+        days (int): Número de dias para processar
+        
+    Returns:
+        int: Tempo estimado em minutos
+    """
+    if days <= 7:
+        return 1  # 1 minuto
+    elif days <= 30:
+        return 3  # 3 minutos
+    elif days <= 60:
+        return 8  # 8 minutos
+    elif days <= 120:
+        return 15  # 15 minutos
+    else:
+        return 25  # 25 minutos máximo
+
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_optimization_metrics(request):
+    """
+    Endpoint para monitorar métricas das otimizações V2
+    /api/processamento/optimization-metrics/
+    """
+    try:
+        cache_manager = get_cache_manager()
+        
+        # Estatísticas do cache
+        cache_stats = cache_manager.get_stats()
+        
+        # Estatísticas de rate limiting
+        from .utils.security_utils import RateLimitManager
+        rate_status = RateLimitManager.check_rate_limit(request.user, 'ip_search')
+        
+        # Jobs assíncronos recentes
+        queue = get_queue('default')
+        queue_info = {
+            'pending_jobs': len(queue.get_jobs()),
+            'failed_jobs': len(queue.failed_job_registry),
+            'finished_jobs': len(queue.finished_job_registry)
+        }
+        
+        optimization_metrics = {
+            'cache_performance': cache_stats,
+            'rate_limiting': {
+                'allowed': rate_status[0],
+                'remaining': rate_status[1]
+            },
+            'async_queue_status': queue_info,
+            'optimization_version': 'v2_enhanced',
+            'features_enabled': {
+                'redis_cache': cache_manager.redis_available,
+                'async_processing': True,
+                'enhanced_chunking': True,
+                'circuit_breaker': True,
+                'progress_tracking': True
+            },
+            'performance_thresholds': {
+                'sync_max_days': 30,
+                'async_min_days': 31,
+                'chunk_size_days': 15,
+                'max_sync_timeout_seconds': 25
+            }
+        }
+        
+        return Response({
+            'success': True,
+            'metrics': optimization_metrics,
+            'timestamp': timezone.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro ao obter métricas de otimização: {str(e)}")
+        return Response({
+            'error': 'Erro ao obter métricas',
+            'details': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

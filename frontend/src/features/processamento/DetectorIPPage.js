@@ -30,6 +30,13 @@ function DetectorIPPage() {
         days: 30
     });
     
+    // Estados para jobs assíncronos
+    const [currentJobId, setCurrentJobId] = useState(null);
+    const [jobStatus, setJobStatus] = useState(null);
+    const [isAsyncOperation, setIsAsyncOperation] = useState(false);
+    const [pollingInterval, setPollingInterval] = useState(null);
+    const [canCancelJob, setCanCancelJob] = useState(false);
+    
     // Estados para retry e loading melhorado
     const [retryAttempt, setRetryAttempt] = useState(0);
     const [operationStartTime, setOperationStartTime] = useState(null);
@@ -63,14 +70,17 @@ function DetectorIPPage() {
         loadLojas();
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
     
-    // Cleanup timer on unmount
+    // Cleanup timers on unmount
     useEffect(() => {
         return () => {
             if (progressTimer) {
                 clearInterval(progressTimer);
             }
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
         };
-    }, [progressTimer]);
+    }, [progressTimer, pollingInterval]);
 
     const showNotification = (message, type = 'success') => {
         // Manter compatibilidade com notificações visuais existentes
@@ -96,6 +106,148 @@ function DetectorIPPage() {
         if (days <= 30) return 15; // 15 segundos
         if (days <= 90) return 30; // 30 segundos
         return 60; // 1 minuto para períodos maiores
+    };
+    
+    // Função para cancelar job assíncrono
+    const cancelAsyncJob = async () => {
+        if (!currentJobId) return;
+        
+        try {
+            await axios.post(`/processamento/cancel-job/${currentJobId}/`, {}, {
+                headers: {
+                    'X-CSRFToken': getCSRFToken()
+                },
+                timeout: 10000
+            });
+            
+            // Limpar polling
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                setPollingInterval(null);
+            }
+            
+            setCurrentJobId(null);
+            setJobStatus(null);
+            setIsAsyncOperation(false);
+            setCanCancelJob(false);
+            setSearchingIPs(false);
+            
+            toast({
+                title: 'Job Cancelado',
+                description: 'A operação foi cancelada com sucesso.',
+            });
+        } catch (error) {
+            console.error('Erro ao cancelar job:', error);
+            toast({
+                title: 'Erro ao Cancelar',
+                description: 'Não foi possível cancelar o job. Ele pode ter terminado.',
+                variant: 'destructive'
+            });
+        }
+    };
+    
+    // Função para polling do status do job
+    const pollJobStatus = async (jobId) => {
+        try {
+            const response = await axios.get(`/processamento/async-status/${jobId}/`, {
+                timeout: 10000
+            });
+            
+            const status = response.data;
+            setJobStatus(status);
+            
+            // Atualizar progresso baseado no status
+            if (status.progress !== undefined) {
+                setProgressValue(status.progress);
+            }
+            
+            // Verificar se o job terminou
+            if (status.status === 'completed') {
+                // Limpar polling
+                if (pollingInterval) {
+                    clearInterval(pollingInterval);
+                    setPollingInterval(null);
+                }
+                
+                // Processar resultado
+                if (status.result && status.result.success) {
+                    setIPGroups(status.result.data.ip_groups || []);
+                    const totalFound = status.result.data.total_ips_found || 0;
+                    const timeElapsed = Math.round((Date.now() - operationStartTime) / 1000);
+                    
+                    const successMessage = `${totalFound} IPs encontrados com múltiplos pedidos`;
+                    showNotification(`${successMessage} (${timeElapsed}s)`);
+                    
+                    if (totalFound > 0) {
+                        const suspiciousCount = status.result.data.ip_groups?.filter(ip => ip.is_suspicious)?.length || 0;
+                        toast({
+                            title: '✅ Busca Concluída (Assíncrona)',
+                            description: `${totalFound} IPs encontrados${suspiciousCount > 0 ? `, ${suspiciousCount} suspeitos` : ''}. Tempo: ${timeElapsed}s`,
+                        });
+                    } else {
+                        toast({
+                            title: '🔍 Busca Concluída (Assíncrona)',
+                            description: `Nenhum IP encontrado com múltiplos pedidos nos últimos ${searchParams.days} dias.`,
+                        });
+                    }
+                } else {
+                    showNotification(status.result?.message || 'Erro na busca assíncrona', 'error');
+                }
+                
+                // Reset estados
+                setCurrentJobId(null);
+                setJobStatus(null);
+                setIsAsyncOperation(false);
+                setCanCancelJob(false);
+                setSearchingIPs(false);
+                setProgressValue(100);
+                
+            } else if (status.status === 'failed') {
+                // Limpar polling
+                if (pollingInterval) {
+                    clearInterval(pollingInterval);
+                    setPollingInterval(null);
+                }
+                
+                const errorMsg = status.error || 'Job falhou';
+                showNotification(`Busca assíncrona falhou: ${errorMsg}`, 'error');
+                
+                // Reset estados
+                setCurrentJobId(null);
+                setJobStatus(null);
+                setIsAsyncOperation(false);
+                setCanCancelJob(false);
+                setSearchingIPs(false);
+                
+            } else if (status.status === 'cancelled') {
+                // Job foi cancelado
+                setCurrentJobId(null);
+                setJobStatus(null);
+                setIsAsyncOperation(false);
+                setCanCancelJob(false);
+                setSearchingIPs(false);
+                
+                showNotification('Operação cancelada', 'error');
+            }
+            // Para status 'pending' ou 'running', continue polling
+            
+        } catch (error) {
+            console.error('Erro no polling do job:', error);
+            
+            // Se der erro no polling, parar e resetar
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                setPollingInterval(null);
+            }
+            
+            setCurrentJobId(null);
+            setJobStatus(null);
+            setIsAsyncOperation(false);
+            setCanCancelJob(false);
+            setSearchingIPs(false);
+            
+            showNotification('Erro ao verificar status da operação', 'error');
+        }
     };
 
     // Função para retry com exponential backoff
@@ -149,8 +301,15 @@ function DetectorIPPage() {
                 suggestion = 'O servidor está processando muitos dados. Tente novamente em alguns minutos ou reduza o período de busca.';
                 break;
             case 429:
-                errorMessage = 'Muitas requisições simultâneas';
-                suggestion = 'Aguarde alguns segundos antes de tentar novamente.';
+                errorMessage = 'Limite de requisições excedido';
+                suggestion = 'O servidor está limitando requisições. Aguarde alguns segundos antes de tentar novamente.';
+                break;
+            case 202:
+                // Job assíncrono iniciado - não é erro
+                return 'Operação assíncrona iniciada';
+            case 410:
+                errorMessage = 'Job não encontrado ou expirado';
+                suggestion = 'O job pode ter expirado. Inicie uma nova busca.';
                 break;
             case 500:
                 errorMessage = 'Erro interno do servidor';
@@ -233,7 +392,8 @@ function DetectorIPPage() {
 
         try {
             const searchOperation = async () => {
-                return await axios.post('/processamento/buscar-ips-duplicados/', {
+                // Usar API otimizada
+                return await axios.post('/processamento/buscar-ips-otimizado/', {
                     loja_id: lojaSelecionada,
                     days: searchParams.days,
                     min_orders: 2
@@ -241,13 +401,35 @@ function DetectorIPPage() {
                     headers: {
                         'X-CSRFToken': getCSRFToken()
                     },
-                    timeout: Math.max(30000, searchParams.days * 1000) // Timeout dinâmico
+                    timeout: searchParams.days > 30 ? 30000 : 30000 // Timeout consistente para síncrono
                 });
             };
 
             const response = await retryWithBackoff(searchOperation);
 
-            if (response.data.success) {
+            if (response.status === 202) {
+                // Operação assíncrona iniciada
+                const jobId = response.data.job_id;
+                setCurrentJobId(jobId);
+                setIsAsyncOperation(true);
+                setCanCancelJob(true);
+                
+                toast({
+                    title: '🔄 Operação Assíncrona Iniciada',
+                    description: `Processamento em background iniciado. Job ID: ${jobId}`,
+                });
+                
+                // Iniciar polling do status
+                const interval = setInterval(() => {
+                    pollJobStatus(jobId);
+                }, 2000); // Poll a cada 2 segundos
+                setPollingInterval(interval);
+                
+                // Primeiro poll imediato
+                setTimeout(() => pollJobStatus(jobId), 500);
+                
+            } else if (response.data.success) {
+                // Operação síncrona concluída
                 setIPGroups(response.data.data.ip_groups || []);
                 const totalFound = response.data.data.total_ips_found || 0;
                 const timeElapsed = Math.round((Date.now() - operationStartTime) / 1000);
@@ -259,12 +441,12 @@ function DetectorIPPage() {
                 if (totalFound > 0) {
                     const suspiciousCount = response.data.data.ip_groups?.filter(ip => ip.is_suspicious)?.length || 0;
                     toast({
-                        title: '✅ Busca Concluída',
+                        title: '✅ Busca Concluída (Síncrona)',
                         description: `${totalFound} IPs encontrados${suspiciousCount > 0 ? `, ${suspiciousCount} suspeitos` : ''}. Tempo: ${timeElapsed}s`,
                     });
                 } else {
                     toast({
-                        title: '🔍 Busca Concluída',
+                        title: '🔍 Busca Concluída (Síncrona)',
                         description: `Nenhum IP encontrado com múltiplos pedidos nos últimos ${searchParams.days} dias.`,
                     });
                 }
@@ -282,19 +464,22 @@ function DetectorIPPage() {
             
             showNotification(errorMessage, 'error');
         } finally {
-            setSearchingIPs(false);
-            setOperationStartTime(null);
-            setEstimatedTime(null);
-            setProgressValue(100);
-            
-            // Limpar timer
-            if (progressTimer) {
-                clearInterval(progressTimer);
-                setProgressTimer(null);
+            // Só resetar se não for operação assíncrona
+            if (!isAsyncOperation) {
+                setSearchingIPs(false);
+                setOperationStartTime(null);
+                setEstimatedTime(null);
+                setProgressValue(100);
+                
+                // Limpar timer
+                if (progressTimer) {
+                    clearInterval(progressTimer);
+                    setProgressTimer(null);
+                }
+                
+                // Reset progress após um tempo
+                setTimeout(() => setProgressValue(0), 1000);
             }
-            
-            // Reset progress após um tempo
-            setTimeout(() => setProgressValue(0), 1000);
         }
     };
 
@@ -623,38 +808,83 @@ function DetectorIPPage() {
                                 <div className="flex items-center gap-2">
                                     {isRetrying ? (
                                         <RotateCcw className="h-4 w-4 animate-spin text-orange-500" />
+                                    ) : isAsyncOperation ? (
+                                        <Server className="h-4 w-4 animate-pulse text-blue-500" />
                                     ) : (
                                         <Loader2 className="h-4 w-4 animate-spin text-primary" />
                                     )}
                                     <p className="text-sm text-muted-foreground">
                                         {isRetrying 
                                             ? `Tentativa ${retryAttempt + 1} - Reconectando...`
-                                            : 'Analisando pedidos por endereço IP...'}
+                                            : isAsyncOperation
+                                                ? 'Processamento assíncrono em andamento...'
+                                                : 'Analisando pedidos por endereço IP...'}
                                     </p>
+                                    {isAsyncOperation && currentJobId && (
+                                        <Badge variant="outline" className="text-xs font-mono">
+                                            Job: {currentJobId.slice(-8)}
+                                        </Badge>
+                                    )}
                                 </div>
-                                {estimatedTime && operationStartTime && (
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <Clock className="h-3 w-3" />
-                                        <span>
-                                            {(() => {
-                                                const elapsed = Math.round((Date.now() - operationStartTime) / 1000);
-                                                const remaining = Math.max(0, estimatedTime - elapsed);
-                                                return remaining > 0 ? `~${remaining}s restantes` : 'Finalizando...';
-                                            })()} 
-                                        </span>
-                                    </div>
-                                )}
+                                <div className="flex items-center gap-4">
+                                    {/* Tempo estimado para operações síncronas */}
+                                    {!isAsyncOperation && estimatedTime && operationStartTime && (
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <Clock className="h-3 w-3" />
+                                            <span>
+                                                {(() => {
+                                                    const elapsed = Math.round((Date.now() - operationStartTime) / 1000);
+                                                    const remaining = Math.max(0, estimatedTime - elapsed);
+                                                    return remaining > 0 ? `~${remaining}s restantes` : 'Finalizando...';
+                                                })()} 
+                                            </span>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Status do job assíncrono */}
+                                    {isAsyncOperation && jobStatus && (
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <div className="flex items-center gap-1">
+                                                <span className="capitalize">{jobStatus.status}</span>
+                                                {jobStatus.progress !== undefined && (
+                                                    <span>({jobStatus.progress}%)</span>
+                                                )}
+                                            </div>
+                                            {jobStatus.estimated_remaining && (
+                                                <div className="flex items-center gap-1">
+                                                    <Clock className="h-3 w-3" />
+                                                    <span>~{jobStatus.estimated_remaining}s</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    
+                                    {/* Botão cancelar para jobs assíncronos */}
+                                    {canCancelJob && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={cancelAsyncJob}
+                                            className="text-xs h-6 px-2"
+                                        >
+                                            <X className="h-3 w-3 mr-1" />
+                                            Cancelar
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                             <div className="space-y-2">
                                 <Progress 
                                     value={isRetrying ? 100 : Math.max(progressValue, 5)} 
                                     className={`w-full transition-all duration-500 ${
-                                        isRetrying ? 'animate-pulse' : ''
+                                        isRetrying ? 'animate-pulse' : isAsyncOperation ? 'animate-pulse' : ''
                                     }`} 
                                 />
                                 <div className="flex justify-between items-center text-xs text-muted-foreground">
                                     <span>
-                                        {isRetrying ? 'Reconectando...' : 
+                                        {isRetrying ? 'Reconectando...' :
+                                         isAsyncOperation && jobStatus ?
+                                            `${jobStatus.status} - ${jobStatus.progress || 0}%` :
                                          progressValue > 0 && progressValue < 90 ? `${Math.round(progressValue)}% concluído` :
                                          progressValue >= 90 ? 'Finalizando...' : 'Iniciando...'}
                                     </span>
@@ -666,22 +896,35 @@ function DetectorIPPage() {
                                 </div>
                             </div>
                             {searchParams.days > 30 && (
-                                <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/10">
+                                <Alert className={`${isAsyncOperation ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/10' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/10'}`}>
                                     <div className="flex items-center gap-2">
-                                        {searchParams.days > 90 ? (
+                                        {isAsyncOperation ? (
+                                            <Server className="h-4 w-4 text-blue-600" />
+                                        ) : searchParams.days > 90 ? (
                                             <Server className="h-4 w-4 text-amber-600" />
                                         ) : (
                                             <Clock className="h-4 w-4 text-amber-600" />
                                         )}
                                     </div>
-                                    <AlertDescription className="text-xs text-amber-800 dark:text-amber-200">
+                                    <AlertDescription className={`text-xs ${isAsyncOperation ? 'text-blue-800 dark:text-blue-200' : 'text-amber-800 dark:text-amber-200'}`}>
                                         <div className="space-y-1">
-                                            <p>
-                                                <strong>Período longo ({searchParams.days} dias):</strong> Esta operação pode demorar 
-                                                {searchParams.days > 180 ? '1-2 minutos' : '30-60 segundos'}.
-                                            </p>
-                                            <p>• O sistema foi otimizado para processar grandes volumes</p>
-                                            <p>• Em caso de timeout, um botão de retry aparecerá</p>
+                                            {isAsyncOperation ? (
+                                                <>
+                                                    <p><strong>Processamento Assíncrono:</strong> Operação está rodando em background.</p>
+                                                    <p>• Você pode acompanhar o progresso em tempo real</p>
+                                                    <p>• Use o botão "Cancelar" se necessário</p>
+                                                    <p>• Resultado aparecerá automaticamente quando pronto</p>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <p>
+                                                        <strong>Período longo ({searchParams.days} dias):</strong> Operação pode ser {searchParams.days > 30 ? 'assíncrona' : 'síncrona'}.
+                                                    </p>
+                                                    <p>• Sistema otimizado com jobs assíncronos para grandes volumes</p>
+                                                    <p>• Períodos > 30 dias usam processamento em background</p>
+                                                    <p>• Progresso em tempo real disponível</p>
+                                                </>
+                                            )}
                                         </div>
                                     </AlertDescription>
                                 </Alert>

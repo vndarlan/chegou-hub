@@ -47,4 +47,9 @@ urlpatterns = [
     # Endpoints de fallback (compatibilidade)
     path('buscar-ips-duplicados-fallback/', views_cached.buscar_pedidos_mesmo_ip_fallback, name='buscar_pedidos_mesmo_ip_fallback'),
     path('detalhar-ip-fallback/', views_cached.detalhar_pedidos_ip_fallback, name='detalhar_pedidos_ip_fallback'),
+    
+    # === 🔥 NOVOS ENDPOINTS OTIMIZADOS PARA RESOLVER ERRO 499 ===
+    path('buscar-ips-otimizado/', views.buscar_ips_otimizado, name='buscar_ips_otimizado'),
+    path('async-status/<str:job_id>/', views.check_async_status, name='check_async_status'),
+    path('optimization-metrics/', views.get_optimization_metrics, name='optimization_metrics'),
 ]
