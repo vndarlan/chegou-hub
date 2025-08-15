@@ -16,6 +16,7 @@ urlpatterns = [
     path('cancelar-pedido/', views.cancelar_pedido, name='cancelar_pedido'),
     path('cancelar-lote/', views.cancelar_lote, name='cancelar_lote'),
     path('historico-logs/', views.historico_logs, name='historico_logs'),
+    path('status-lojas/', views.status_lojas_shopify, name='status_lojas_shopify'),
     
     # Novos endpoints para métodos alternativos de captura de IP
     path('analyze-ip-alternative/', views.analyze_order_ip_alternative, name='analyze_order_ip_alternative'),

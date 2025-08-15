@@ -312,9 +312,31 @@ def buscar_pedidos_mesmo_ip(request):
         
         config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
         if not config:
-            return Response({'error': 'Loja não encontrada ou inativa'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'error': 'Loja não encontrada ou inativa',
+                'details': 'Configure uma loja Shopify válida antes de usar esta funcionalidade',
+                'action_required': 'add_shopify_store'
+            }, status=status.HTTP_404_NOT_FOUND)
         
+        # Testa conexão com Shopify antes de prosseguir
         detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
+        try:
+            connection_ok, test_message = detector.test_connection()
+            if not connection_ok:
+                logger.error(f"Falha na conexão Shopify para loja {config.nome_loja}: {test_message}")
+                return Response({
+                    'error': 'Erro de autenticação com Shopify',
+                    'details': f'A conexão com a loja "{config.nome_loja}" falhou: {test_message}',
+                    'action_required': 'update_shopify_credentials',
+                    'loja_nome': config.nome_loja
+                }, status=status.HTTP_401_UNAUTHORIZED)
+        except Exception as connection_error:
+            logger.error(f"Erro ao testar conexão Shopify: {str(connection_error)}")
+            return Response({
+                'error': 'Erro de conectividade com Shopify',
+                'details': 'Não foi possível conectar com a API do Shopify. Verifique sua conexão de internet e configurações.',
+                'action_required': 'check_connectivity'
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         
         # Buscar dados de IP com tratamento de erro melhorado
         try:
@@ -509,7 +531,31 @@ def detalhar_pedidos_ip(request):
             return Response({'error': 'Erro de banco de dados'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         if not config:
-            return Response({'error': 'Configuração da loja não encontrada'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({
+                'error': 'Loja não encontrada ou inativa',
+                'details': 'Configure uma loja Shopify válida antes de usar esta funcionalidade',
+                'action_required': 'add_shopify_store'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Testa conexão com Shopify antes de prosseguir
+        detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
+        try:
+            connection_ok, test_message = detector.test_connection()
+            if not connection_ok:
+                logger.error(f"Falha na conexão Shopify para loja {config.nome_loja}: {test_message}")
+                return Response({
+                    'error': 'Erro de autenticação com Shopify',
+                    'details': f'A conexão com a loja "{config.nome_loja}" falhou: {test_message}',
+                    'action_required': 'update_shopify_credentials',
+                    'loja_nome': config.nome_loja
+                }, status=status.HTTP_401_UNAUTHORIZED)
+        except Exception as connection_error:
+            logger.error(f"Erro ao testar conexão Shopify: {str(connection_error)}")
+            return Response({
+                'error': 'Erro de conectividade com Shopify',
+                'details': 'Não foi possível conectar com a API do Shopify. Verifique sua conexão de internet e configurações.',
+                'action_required': 'check_connectivity'
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         
         # === BUSCA DADOS REAIS DO SHOPIFY ===
         try:
@@ -718,6 +764,101 @@ def test_detalhar_ip(request):
     except Exception as e:
         logger.error(f"Erro no teste detalhar IP: {str(e)}")
         return Response({'error': f'Erro: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def status_lojas_shopify(request):
+    """Retorna status de conectividade de todas as lojas Shopify configuradas"""
+    try:
+        configs = ShopifyConfig.objects.filter(ativo=True)
+        
+        if not configs.exists():
+            return Response({
+                'success': False,
+                'message': 'Nenhuma loja Shopify configurada',
+                'lojas_status': [],
+                'action_required': 'add_shopify_store',
+                'setup_guide': {
+                    'title': 'Como configurar uma loja Shopify',
+                    'steps': [
+                        '1. Acesse o Admin da sua loja Shopify',
+                        '2. Vá em Settings > Apps and sales channels',
+                        '3. Clique em "Develop apps"',
+                        '4. Crie um novo app privado',
+                        '5. Configure permissões: read_orders, write_orders, read_customers',
+                        '6. Instale o app e copie o Access Token',
+                        '7. Use POST /api/processamento/lojas-config/ para adicionar'
+                    ]
+                }
+            })
+        
+        lojas_status = []
+        total_funcionais = 0
+        
+        for config in configs:
+            detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
+            
+            try:
+                connection_ok, message = detector.test_connection()
+                
+                status_info = {
+                    'id': config.id,
+                    'nome_loja': config.nome_loja,
+                    'shop_url': config.shop_url,
+                    'data_criacao': config.data_criacao.isoformat(),
+                    'conectado': connection_ok,
+                    'message': message,
+                    'status': 'funcional' if connection_ok else 'erro',
+                    'token_length': len(config.access_token) if config.access_token else 0,
+                    'api_version': config.api_version
+                }
+                
+                if connection_ok:
+                    total_funcionais += 1
+                
+                lojas_status.append(status_info)
+                
+            except Exception as e:
+                lojas_status.append({
+                    'id': config.id,
+                    'nome_loja': config.nome_loja,
+                    'shop_url': config.shop_url,
+                    'data_criacao': config.data_criacao.isoformat(),
+                    'conectado': False,
+                    'message': f'Erro de conexão: {str(e)}',
+                    'status': 'erro_critico',
+                    'token_length': len(config.access_token) if config.access_token else 0,
+                    'api_version': config.api_version
+                })
+        
+        # Determina status geral
+        if total_funcionais == 0:
+            status_geral = 'todas_com_erro'
+            message_geral = 'Todas as lojas apresentam problemas de conectividade'
+        elif total_funcionais == len(lojas_status):
+            status_geral = 'todas_funcionais'
+            message_geral = 'Todas as lojas estão funcionando corretamente'
+        else:
+            status_geral = 'parcialmente_funcional'
+            message_geral = f'{total_funcionais} de {len(lojas_status)} lojas funcionais'
+        
+        return Response({
+            'success': True,
+            'status_geral': status_geral,
+            'message': message_geral,
+            'total_lojas': len(lojas_status),
+            'lojas_funcionais': total_funcionais,
+            'lojas_com_erro': len(lojas_status) - total_funcionais,
+            'lojas_status': lojas_status,
+            'timestamp': timezone.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro ao verificar status das lojas Shopify: {str(e)}")
+        return Response({
+            'error': 'Erro interno ao verificar status das lojas'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
 @api_view(['GET'])
