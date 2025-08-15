@@ -25,8 +25,10 @@ class ProcessamentoLog(models.Model):
     TIPO_CHOICES = [
         ('busca', 'Busca de Duplicatas'),
         ('busca_ip', 'Busca por IP'),
+        ('detalhamento_ip', 'Detalhamento de IP'),
         ('cancelamento', 'Cancelamento Individual'),
         ('cancelamento_lote', 'Cancelamento em Lote'),
+        ('analise_pedido', 'Análise de Pedido'),
         ('debug', 'Debug de Dados'),
         ('erro', 'Erro'),
     ]

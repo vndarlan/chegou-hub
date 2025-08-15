@@ -484,16 +484,24 @@ def buscar_pedidos_mesmo_ip(request):
 @permission_classes([IsAuthenticated])
 @never_cache
 def detalhar_pedidos_ip(request):
-    """Retorna dados detalhados dos clientes de um IP específico (versão MUITO simplificada para debug)"""
+    """Retorna dados detalhados dos clientes de um IP específico usando dados reais do Shopify"""
     try:
         # === VALIDAÇÕES BÁSICAS ===
         loja_id = request.data.get('loja_id')
         ip = request.data.get('ip')
+        days = request.data.get('days', 30)  # Permite configurar período
         
         if not loja_id or not ip:
             return Response({'error': 'ID da loja e IP são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Busca configuração sem imports complexos
+        # Sanitização de parâmetros
+        try:
+            loja_id = int(loja_id)
+            days = min(int(days), 30)  # Máximo 30 dias
+        except (ValueError, TypeError):
+            return Response({'error': 'Parâmetros inválidos'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Busca configuração da loja
         try:
             config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
         except Exception as db_error:
@@ -503,63 +511,159 @@ def detalhar_pedidos_ip(request):
         if not config:
             return Response({'error': 'Configuração da loja não encontrada'}, status=status.HTTP_404_NOT_FOUND)
         
-        # Resposta de MOCK para testar se o endpoint básico funciona
-        response_data = {
-            'success': True,
-            'data': {
-                'ip': ip,
-                'total_orders': 3,
-                'client_details': [
-                    {
-                        'order_id': 'mock-123',
-                        'order_number': 'MOCK123',
-                        'created_at': '2024-08-15T10:00:00Z',
-                        'cancelled_at': None,
-                        'status': 'active',
-                        'total_price': '99.90',
-                        'currency': 'BRL',
-                        'customer_name': 'Cliente Teste Mock',
-                        'customer_email': 'mock@teste.com',
-                        'customer_phone': '+55 11 99999-9999',
-                        'shipping_city': 'São Paulo',
-                        'shipping_state': 'SP'
+        # === BUSCA DADOS REAIS DO SHOPIFY ===
+        try:
+            # Cria detector para buscar dados reais
+            detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
+            
+            # Busca todos os pedidos agrupados por IP
+            ip_data = detector.get_orders_by_ip(days=days, min_orders=1)  # min_orders=1 para pegar todos
+            
+            # Filtra apenas o IP específico solicitado
+            target_ip_data = None
+            for ip_group in ip_data.get('ip_groups', []):
+                if ip_group.get('ip') == ip:
+                    target_ip_data = ip_group
+                    break
+            
+            if not target_ip_data:
+                return Response({
+                    'success': True,
+                    'data': {
+                        'ip': ip,
+                        'total_orders': 0,
+                        'client_details': [],
+                        'active_orders': 0,
+                        'cancelled_orders': 0
                     },
-                    {
-                        'order_id': 'mock-124',
-                        'order_number': 'MOCK124',
-                        'created_at': '2024-08-14T14:30:00Z',
-                        'cancelled_at': '2024-08-15T09:00:00Z',
-                        'status': 'cancelled',
-                        'total_price': '149.90',
-                        'currency': 'BRL',
-                        'customer_name': 'Cliente Teste Mock 2',
-                        'customer_email': 'mock2@teste.com',
-                        'customer_phone': '+55 11 88888-8888',
-                        'shipping_city': 'Rio de Janeiro',
-                        'shipping_state': 'RJ'
-                    }
-                ],
-                'active_orders': 1,
-                'cancelled_orders': 1
-            },
-            'loja_nome': config.nome_loja,
-            'debug_info': {
-                'endpoint_version': 'mock_debug_v1',
-                'config_found': True,
-                'config_id': config.id,
-                'ip_received': ip,
-                'loja_id_received': loja_id
+                    'loja_nome': config.nome_loja,
+                    'message': f'Nenhum pedido encontrado para o IP {ip} nos últimos {days} dias'
+                })
+            
+            # Processa os dados para o formato esperado pelo frontend
+            client_details = []
+            active_orders = 0
+            cancelled_orders = 0
+            
+            for order in target_ip_data.get('orders', []):
+                # Extrai dados do cliente
+                customer = order.get('customer', {})
+                customer_name = f"{customer.get('first_name', '')} {customer.get('last_name', '')}".strip()
+                if not customer_name:
+                    customer_name = 'Cliente não informado'
+                
+                # Busca detalhes de endereço do pedido
+                order_details = detector.get_order_details(order['id'])
+                shipping_city = ''
+                shipping_state = ''
+                
+                if order_details:
+                    shipping_address = order_details.get('shipping_address', {})
+                    shipping_city = shipping_address.get('city', '')
+                    shipping_state = shipping_address.get('province', '')
+                
+                # Determina status do pedido
+                is_cancelled = order.get('is_cancelled', False)
+                status = 'cancelled' if is_cancelled else 'active'
+                
+                if is_cancelled:
+                    cancelled_orders += 1
+                else:
+                    active_orders += 1
+                
+                # Formata data de criação
+                created_at = order.get('created_at', '')
+                cancelled_at = order.get('cancelled_at')
+                
+                client_details.append({
+                    'order_id': str(order['id']),
+                    'order_number': order.get('order_number', ''),
+                    'created_at': created_at,
+                    'cancelled_at': cancelled_at,
+                    'status': status,
+                    'total_price': order.get('total_price', '0.00'),
+                    'currency': order.get('currency', 'BRL'),
+                    'customer_name': customer_name,
+                    'customer_email': customer.get('email', ''),
+                    'customer_phone': customer.get('phone', ''),
+                    'shipping_city': shipping_city,
+                    'shipping_state': shipping_state
+                })
+            
+            # Monta resposta com dados reais
+            response_data = {
+                'success': True,
+                'data': {
+                    'ip': ip,
+                    'total_orders': target_ip_data.get('order_count', 0),
+                    'client_details': client_details,
+                    'active_orders': active_orders,
+                    'cancelled_orders': cancelled_orders,
+                    'unique_customers': target_ip_data.get('unique_customers', 1),
+                    'total_sales': target_ip_data.get('total_sales', '0.00'),
+                    'currency': target_ip_data.get('currency', 'BRL'),
+                    'date_range': target_ip_data.get('date_range', {}),
+                    'is_suspicious': target_ip_data.get('is_suspicious', False),
+                    'ip_source': target_ip_data.get('orders', [{}])[0].get('ip_source', 'unknown') if target_ip_data.get('orders') else 'unknown'
+                },
+                'loja_nome': config.nome_loja,
+                'period_days': days
             }
-        }
-        
-        return Response(response_data)
-        
+            
+            # Log da busca bem-sucedida
+            ProcessamentoLog.objects.create(
+                user=request.user,
+                config=config,
+                tipo='detalhamento_ip',
+                status='sucesso',
+                pedidos_encontrados=len(client_details),
+                detalhes={
+                    'ip_consultado': ip,
+                    'period_days': days,
+                    'active_orders': active_orders,
+                    'cancelled_orders': cancelled_orders
+                }
+            )
+            
+            return Response(response_data)
+            
+        except HTTPError as http_error:
+            # Log de erro HTTP específico
+            logger.error(f"Erro HTTP na busca por detalhes do IP: {http_error}")
+            return Response({
+                'error': 'Erro ao acessar dados do Shopify',
+                'details': 'Verifique a configuração da loja e token de acesso'
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            
+        except (ConnectionError, Timeout) as conn_error:
+            # Log de erro de conexão
+            logger.error(f"Erro de conectividade na busca por detalhes do IP: {conn_error}")
+            return Response({
+                'error': 'Problema de conectividade com o Shopify',
+                'details': 'Tente novamente em alguns instantes'
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            
     except Exception as e:
-        logger.error(f"ERRO CRÍTICO no detalhamento IP: {str(e)}, Type: {type(e).__name__}")
+        # Log de erro genérico
+        logger.error(f"Erro no detalhamento IP: {str(e)}, Type: {type(e).__name__}")
+        
+        # Log do erro no banco
+        if 'config' in locals():
+            ProcessamentoLog.objects.create(
+                user=request.user,
+                config=config,
+                tipo='detalhamento_ip',
+                status='erro',
+                erro_mensagem=str(e),
+                detalhes={
+                    'ip_consultado': ip if 'ip' in locals() else 'unknown',
+                    'error_type': type(e).__name__
+                }
+            )
+        
         return Response({
             'error': 'Erro interno do servidor',
-            'debug_error': str(e),
-            'error_type': type(e).__name__
+            'message': 'Entre em contato com o suporte técnico'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
