@@ -467,17 +467,37 @@ def detalhar_pedidos_ip(request):
         if not config:
             return Response({'error': 'Loja não encontrada ou inativa'}, status=status.HTTP_400_BAD_REQUEST)
         
-        detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
+        # Verifica se a configuração tem dados válidos
+        if not config.shop_url or not config.access_token:
+            return Response({'error': 'Configuração da loja inválida'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Cria o detector dentro de um try-catch para capturar erros de inicialização
+        try:
+            detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
+        except Exception as detector_error:
+            logger.error(f"Erro ao criar detector Shopify - User: {request.user.username}, Error: {str(detector_error)}")
+            return Response({'error': 'Erro na configuração do detector Shopify'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         # === BUSCA DIRETA COM IP ===
-        ip_data = detector.get_orders_by_ip(days=days, min_orders=1)
+        try:
+            ip_data = detector.get_orders_by_ip(days=days, min_orders=1)
+        except Exception as search_error:
+            logger.error(f"Erro na busca por IP - User: {request.user.username}, IP: {ip_sanitized}, Error: {str(search_error)}")
+            return Response({'error': 'Erro ao buscar dados de IP na loja'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Verifica se a busca retornou dados válidos
+        if not ip_data or not isinstance(ip_data, dict):
+            return Response({'error': 'Erro ao buscar dados de IP'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        if 'ip_groups' not in ip_data or not ip_data['ip_groups']:
+            return Response({'error': 'Nenhum grupo de IP encontrado'}, status=status.HTTP_404_NOT_FOUND)
         
         # Encontra o grupo específico do IP
         target_group = None
         
         # Busca direta pelo IP
         for group in ip_data['ip_groups']:
-            if group['ip'] == ip_sanitized:
+            if group and 'ip' in group and group['ip'] == ip_sanitized:
                 target_group = group
                 break
         
@@ -536,24 +556,43 @@ def detalhar_pedidos_ip(request):
         for i, order_summary in enumerate(target_group['orders']):
             if i >= max_details:
                 break
+            
+            # Verifica se order_summary é válido
+            if not order_summary or not isinstance(order_summary, dict):
+                continue
                 
-            order_details = detector.get_order_details(order_summary['id'])
-            if order_details:
-                # Remove dados muito sensíveis dos detalhes
-                order_details = _sanitize_order_details(order_details)
-                order_summary['address_details'] = order_details
+            if 'id' not in order_summary:
+                continue
+                
+            try:
+                order_details = detector.get_order_details(order_summary['id'])
+                if order_details:
+                    # Remove dados muito sensíveis dos detalhes
+                    order_details = _sanitize_order_details(order_details)
+                    order_summary['address_details'] = order_details
+            except Exception as detail_error:
+                logger.warning(f"Erro ao buscar detalhes do pedido {order_summary.get('id', 'unknown')}: {str(detail_error)}")
+                order_summary['address_details'] = None
+                
             detailed_orders.append(order_summary)
         
         # === MANTÉM IP ORIGINAL NO RETORNO ===
+        # Verifica se target_group tem estrutura válida
+        if not target_group or not isinstance(target_group, dict):
+            return Response({'error': 'Dados do grupo de IP inválidos'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        if 'orders' not in target_group:
+            target_group['orders'] = []
+            
         target_group['orders'] = detailed_orders
         
         # Cria response com estrutura consistente com outros endpoints
         response = Response({
             'success': True,
             'data': {
-                'ip': target_group['ip'],
+                'ip': target_group.get('ip', ip_sanitized),
                 'ip_group': target_group,
-                'details_limited': len(target_group['orders']) == max_details,
+                'details_limited': len(detailed_orders) == max_details,
                 'total_orders': len(detailed_orders),
                 'max_details_applied': max_details
             },
@@ -564,20 +603,34 @@ def detalhar_pedidos_ip(request):
         return SecurityHeadersManager.add_security_headers(response)
         
     except Exception as e:
-        # Log de erro com auditoria
+        # Log de erro com auditoria e contexto detalhado
+        error_context = {
+            'requested_ip': ip if 'ip' in locals() else 'unknown',
+            'sanitized_ip': ip_sanitized if 'ip_sanitized' in locals() else 'unknown',
+            'loja_id': loja_id if 'loja_id' in locals() else 'unknown',
+            'days': days if 'days' in locals() else 'unknown',
+            'error': str(e),
+            'error_type': type(e).__name__,
+            'user_ip': AuditLogger._get_client_ip(request),
+            'config_found': 'config' in locals() and config is not None,
+            'config_valid': 'config' in locals() and config is not None and hasattr(config, 'shop_url') and config.shop_url,
+            'detector_created': 'detector' in locals() and detector is not None,
+            'ip_data_fetched': 'ip_data' in locals() and ip_data is not None,
+            'target_group_found': 'target_group' in locals() and target_group is not None
+        }
+        
         AuditLogger.log_ip_access(
             request.user,
             request,
             'ip_detail_error',
-            {
-                'requested_ip': ip if 'ip' in locals() else 'unknown',
-                'error': str(e),
-                'user_ip': AuditLogger._get_client_ip(request)
-            }
+            error_context
         )
         
-        logger.error(f"Erro no detalhamento IP - User: {request.user.username}, Error: {str(e)}")
-        return Response({'error': 'Erro interno do servidor'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        logger.error(f"Erro no detalhamento IP - User: {request.user.username}, Error: {str(e)}, Context: {error_context}")
+        return Response({
+            'error': 'Erro interno do servidor',
+            'debug_info': error_context if request.user.is_staff else None
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
 @api_view(['GET'])
