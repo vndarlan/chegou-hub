@@ -282,7 +282,7 @@ def buscar_pedidos_mesmo_ip(request):
     try:
         # === LOG INICIAL PARA DEBUG ===
         logger.info(f"=== INÍCIO buscar_pedidos_mesmo_ip ===")
-        logger.info(f"User: {request.user.username}")
+        logger.info(f"User: {getattr(request.user, 'username', 'Anonymous')}")
         logger.info(f"Request data: {request.data}")
         
         # === VALIDAÇÕES DE SEGURANÇA ===
@@ -412,7 +412,7 @@ def buscar_pedidos_mesmo_ip(request):
         except HTTPError as http_error:
             # Log seguro com informações técnicas detalhadas
             logger.error(
-                f"Erro HTTP na busca por IP - User: {request.user.username}, "
+                f"Erro HTTP na busca por IP - User: {getattr(request.user, 'username', 'Anonymous')}, "
                 f"Status: {getattr(http_error.response, 'status_code', 'N/A')}, "
                 f"Error: {str(http_error)}",
                 exc_info=True
@@ -486,7 +486,7 @@ def buscar_pedidos_mesmo_ip(request):
         except Exception as search_error:
             # Log de erro genérico com informações técnicas detalhadas
             logger.error(
-                f"Erro inesperado na busca por IP - User: {request.user.username}, "
+                f"Erro inesperado na busca por IP - User: {getattr(request.user, 'username', 'Anonymous')}, "
                 f"Type: {type(search_error).__name__}, Error: {str(search_error)}",
                 exc_info=True
             )
@@ -514,7 +514,7 @@ def buscar_pedidos_mesmo_ip(request):
                 detalhes=audit_details
             )
             
-            logger.info(f"Busca por IP concluída com sucesso - User: {request.user.username}")
+            logger.info(f"Busca por IP concluída com sucesso - User: {getattr(request.user, 'username', 'Anonymous')}")
             
         except Exception as audit_error:
             logger.error(f"Erro na auditoria (não crítico): {str(audit_error)}")
@@ -530,7 +530,7 @@ def buscar_pedidos_mesmo_ip(request):
         
     except Exception as e:
         # === LOG DE ERRO COM STACK TRACE COMPLETO ===
-        logger.error(f"ERRO CRÍTICO em buscar_pedidos_mesmo_ip - User: {request.user.username if hasattr(request, 'user') else 'Unknown'}, Error: {str(e)}", exc_info=True)
+        logger.error(f"ERRO CRÍTICO em buscar_pedidos_mesmo_ip - User: {getattr(request.user, 'username', 'Anonymous') if hasattr(request, 'user') else 'Unknown'}, Error: {str(e)}", exc_info=True)
         
         # Log padrão do erro
         try:
@@ -561,7 +561,7 @@ def detalhar_pedidos_ip(request):
         ip = request.data.get('ip')
         days = request.data.get('days', 30)  # Permite configurar período
         
-        logger.info(f"detalhar_pedidos_ip chamado - User: {request.user.username}, loja_id: {loja_id}, ip: {ip}, days: {days}")
+        logger.info(f"detalhar_pedidos_ip chamado - User: {getattr(request.user, 'username', 'Anonymous')}, loja_id: {loja_id}, ip: {ip}, days: {days}")
         
         if not loja_id or not ip:
             return Response({'error': 'ID da loja e IP são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
@@ -746,7 +746,7 @@ def detalhar_pedidos_ip(request):
                         'cancelled_orders': cancelled_orders
                     }
                 )
-                logger.info(f"Detalhamento IP concluído com sucesso - User: {request.user.username}")
+                logger.info(f"Detalhamento IP concluído com sucesso - User: {getattr(request.user, 'username', 'Anonymous')}")
             except Exception as log_error:
                 logger.error(f"Erro ao salvar log (não crítico): {str(log_error)}")
             
@@ -778,7 +778,7 @@ def detalhar_pedidos_ip(request):
             
     except Exception as e:
         # Log de erro genérico
-        logger.error(f"ERRO CRÍTICO em detalhar_pedidos_ip - User: {request.user.username if hasattr(request, 'user') else 'Unknown'}, Error: {str(e)}", exc_info=True)
+        logger.error(f"ERRO CRÍTICO em detalhar_pedidos_ip - User: {getattr(request.user, 'username', 'Anonymous') if hasattr(request, 'user') else 'Unknown'}, Error: {str(e)}", exc_info=True)
         
         # Log do erro no banco
         try:
@@ -2065,7 +2065,7 @@ def buscar_pedidos_mesmo_ip_enhanced(request):
                 detalhes=error_details
             )
         
-        logger.error(f"Erro na busca aprimorada por IP - User: {request.user.username}, Error: {str(e)}")
+        logger.error(f"Erro na busca aprimorada por IP - User: {getattr(request.user, 'username', 'Anonymous')}, Error: {str(e)}")
         return Response({'error': 'Erro interno do servidor'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt

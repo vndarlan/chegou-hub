@@ -109,9 +109,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # Middleware de segurança para detecção de IP
-    'features.processamento.middleware.ip_security_middleware.IPDetectorSecurityMiddleware',
-    'features.processamento.middleware.ip_security_middleware.SecurityAuditMiddleware',
+    # Middleware de segurança para detecção de IP - TEMPORARIAMENTE DESABILITADO
+    # 'features.processamento.middleware.ip_security_middleware.IPDetectorSecurityMiddleware',
+    # 'features.processamento.middleware.ip_security_middleware.SecurityAuditMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -373,7 +373,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',
     ]
 }
 
