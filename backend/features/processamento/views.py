@@ -484,220 +484,96 @@ def buscar_pedidos_mesmo_ip(request):
 @permission_classes([IsAuthenticated])
 @never_cache
 def detalhar_pedidos_ip(request):
-    """Retorna dados detalhados dos clientes de um IP específico (versão simplificada)"""
+    """Retorna dados detalhados dos clientes de um IP específico (versão MUITO simplificada para debug)"""
     try:
         # === VALIDAÇÕES BÁSICAS ===
         loja_id = request.data.get('loja_id')
         ip = request.data.get('ip')
-        days = request.data.get('days', 30)
         
         if not loja_id or not ip:
             return Response({'error': 'ID da loja e IP são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Sanitizar IP
-        ip_sanitized = IPSecurityUtils.sanitize_ip_input(ip)
-        if not ip_sanitized:
-            return Response({'error': 'Formato de IP inválido'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Validação de parâmetros
+        # Busca configuração sem imports complexos
         try:
-            loja_id = int(loja_id)
-            days = min(int(days), 30)
-        except (ValueError, TypeError):
-            return Response({'error': 'Parâmetros inválidos'}, status=status.HTTP_400_BAD_REQUEST)
+            config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+        except Exception as db_error:
+            logger.error(f"Erro de banco de dados: {str(db_error)}")
+            return Response({'error': 'Erro de banco de dados'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        # Busca configuração
-        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
-        if not config or not config.shop_url or not config.access_token:
-            return Response({'error': 'Configuração da loja inválida'}, status=status.HTTP_400_BAD_REQUEST)
+        if not config:
+            return Response({'error': 'Configuração da loja não encontrada'}, status=status.HTTP_404_NOT_FOUND)
         
-        # Cria detector
-        try:
-            detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
-        except Exception as detector_error:
-            logger.error(f"Erro ao criar detector - User: {request.user.username}, Error: {str(detector_error)}")
-            return Response({'error': 'Erro na configuração do detector'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        # Busca dados do IP
-        try:
-            ip_data = detector.get_orders_by_ip(days=days, min_orders=1)
-        except HTTPError as http_error:
-            # Log seguro com informações técnicas detalhadas
-            logger.error(
-                f"Erro HTTP na busca detalhada de IP - User: {request.user.username}, "
-                f"Status: {getattr(http_error.response, 'status_code', 'N/A')}, "
-                f"URL: {getattr(http_error.response, 'url', 'N/A')}",
-                extra={
-                    'user_id': request.user.id,
-                    'loja_id': loja_id,
-                    'ip': ip,
-                    'operation': 'detalhar_pedidos_ip',
-                    'error_type': 'HTTPError',
-                    'status_code': getattr(http_error.response, 'status_code', None)
-                }
-            )
-            
-            # Tratamento específico por código HTTP
-            if hasattr(http_error, 'response') and http_error.response.status_code == 401:
-                return Response({
-                    'error': 'Erro de autenticação com Shopify. Verifique o token de acesso da loja.',
-                    'details': 'Token de acesso inválido ou expirado'
-                }, status=status.HTTP_401_UNAUTHORIZED)
-            elif hasattr(http_error, 'response') and http_error.response.status_code == 403:
-                return Response({
-                    'error': 'Acesso negado pela API do Shopify. Verifique as permissões do token.',
-                    'details': 'Token não possui permissões necessárias para acessar pedidos'
-                }, status=status.HTTP_403_FORBIDDEN)
-            else:
-                return Response({
-                    'error': 'Erro ao buscar dados de IP no Shopify',
-                    'details': 'Entre em contato com o suporte técnico'
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        except (ConnectionError, Timeout) as conn_error:
-            logger.warning(
-                f"Problema de conectividade na busca detalhada de IP - User: {request.user.username}",
-                extra={
-                    'user_id': request.user.id,
-                    'loja_id': loja_id,
-                    'ip': ip,
-                    'operation': 'detalhar_pedidos_ip',
-                    'error_type': type(conn_error).__name__
-                }
-            )
-            return Response({
-                'error': 'Problema de conectividade',
-                'details': 'Problemas de conectividade com a API'
-            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-        
-        except RequestException as req_error:
-            logger.error(
-                f"Erro de requisição na busca detalhada de IP - User: {request.user.username}",
-                extra={
-                    'user_id': request.user.id,
-                    'loja_id': loja_id,
-                    'ip': ip,
-                    'operation': 'detalhar_pedidos_ip',
-                    'error_type': 'RequestException'
-                }
-            )
-            return Response({
-                'error': 'Erro ao buscar dados de IP no Shopify',
-                'details': 'Entre em contato com o suporte técnico'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        except Exception as search_error:
-            # Log de erro genérico com informações técnicas detalhadas
-            logger.error(
-                f"Erro inesperado na busca detalhada de IP - User: {request.user.username}, "
-                f"Type: {type(search_error).__name__}",
-                extra={
-                    'user_id': request.user.id,
-                    'loja_id': loja_id,
-                    'ip': ip,
-                    'operation': 'detalhar_pedidos_ip',
-                    'error_type': type(search_error).__name__,
-                    'error_details': str(search_error)[:200]
-                }
-            )
-            return Response({
-                'error': 'Erro interno no processamento',
-                'details': 'Entre em contato com o suporte técnico'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        # Validação dos dados retornados
-        if not ip_data or not isinstance(ip_data, dict) or 'ip_groups' not in ip_data:
-            return Response({'error': 'Dados de IP inválidos'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        if not ip_data['ip_groups']:
-            return Response({'error': 'Nenhum IP encontrado'}, status=status.HTTP_404_NOT_FOUND)
-        
-        # Encontra o grupo do IP específico
-        target_group = None
-        for group in ip_data['ip_groups']:
-            if group and isinstance(group, dict) and group.get('ip') == ip_sanitized:
-                target_group = group
-                break
-        
-        # Verifica se encontrou o grupo
-        if not target_group or not isinstance(target_group, dict):
-            return Response({
-                'error': 'IP não encontrado nos dados. Tente atualizar a busca.'
-            }, status=status.HTTP_404_NOT_FOUND)
-        
-        # Log de auditoria simplificado
-        AuditLogger.log_ip_access(
-            request.user,
-            request,
-            'ip_detail_access',
-            {
-                'ip_accessed': ip_sanitized,
-                'orders_count': len(target_group.get('orders', [])),
-                'days': days
-            }
-        )
-        
-        # Extrai apenas dados essenciais dos clientes
-        client_details = []
-        orders = target_group.get('orders', [])
-        
-        for order in orders[:20]:  # Limita a 20 pedidos por segurança
-            if not order or not isinstance(order, dict):
-                continue
-            
-            # Coleta apenas dados essenciais do cliente
-            client_info = {
-                'order_id': order.get('id'),
-                'order_number': order.get('order_number'),
-                'created_at': order.get('created_at'),
-                'cancelled_at': order.get('cancelled_at'),
-                'status': 'cancelled' if order.get('cancelled_at') else 'active',
-                'total_price': order.get('total_price'),
-                'currency': order.get('currency', 'BRL'),
-                'customer_name': None,
-                'customer_email': None,
-                'customer_phone': None,
-                'shipping_city': None,
-                'shipping_state': None
-            }
-            
-            # Extrai dados do cliente se disponível
-            if 'customer' in order and order['customer']:
-                customer = order['customer']
-                client_info.update({
-                    'customer_name': customer.get('first_name', '') + ' ' + customer.get('last_name', ''),
-                    'customer_email': customer.get('email'),
-                    'customer_phone': customer.get('phone')
-                })
-            
-            # Extrai dados de endereço de entrega se disponível
-            if 'shipping_address' in order and order['shipping_address']:
-                shipping = order['shipping_address']
-                client_info.update({
-                    'shipping_city': shipping.get('city'),
-                    'shipping_state': shipping.get('province')
-                })
-            
-            client_details.append(client_info)
-        
-        # Resposta simplificada focada nos dados do cliente
-        response = Response({
+        # Resposta de MOCK para testar se o endpoint básico funciona
+        response_data = {
             'success': True,
             'data': {
-                'ip': ip_sanitized,
-                'total_orders': len(orders),
-                'client_details': client_details,
-                'active_orders': sum(1 for o in orders if not o.get('cancelled_at')),
-                'cancelled_orders': sum(1 for o in orders if o.get('cancelled_at'))
+                'ip': ip,
+                'total_orders': 3,
+                'client_details': [
+                    {
+                        'order_id': 'mock-123',
+                        'order_number': 'MOCK123',
+                        'created_at': '2024-08-15T10:00:00Z',
+                        'cancelled_at': None,
+                        'status': 'active',
+                        'total_price': '99.90',
+                        'currency': 'BRL',
+                        'customer_name': 'Cliente Teste Mock',
+                        'customer_email': 'mock@teste.com',
+                        'customer_phone': '+55 11 99999-9999',
+                        'shipping_city': 'São Paulo',
+                        'shipping_state': 'SP'
+                    },
+                    {
+                        'order_id': 'mock-124',
+                        'order_number': 'MOCK124',
+                        'created_at': '2024-08-14T14:30:00Z',
+                        'cancelled_at': '2024-08-15T09:00:00Z',
+                        'status': 'cancelled',
+                        'total_price': '149.90',
+                        'currency': 'BRL',
+                        'customer_name': 'Cliente Teste Mock 2',
+                        'customer_email': 'mock2@teste.com',
+                        'customer_phone': '+55 11 88888-8888',
+                        'shipping_city': 'Rio de Janeiro',
+                        'shipping_state': 'RJ'
+                    }
+                ],
+                'active_orders': 1,
+                'cancelled_orders': 1
             },
-            'loja_nome': config.nome_loja
-        })
+            'loja_nome': config.nome_loja,
+            'debug_info': {
+                'endpoint_version': 'mock_debug_v1',
+                'config_found': True,
+                'config_id': config.id,
+                'ip_received': ip,
+                'loja_id_received': loja_id
+            }
+        }
         
-        return SecurityHeadersManager.add_security_headers(response)
+        return Response(response_data)
         
     except Exception as e:
-        logger.error(f"Erro no detalhamento IP - User: {request.user.username}, IP: {ip if 'ip' in locals() else 'N/A'}, Error: {str(e)}")
-        return Response({'error': 'Erro interno do servidor'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        logger.error(f"ERRO CRÍTICO no detalhamento IP: {str(e)}, Type: {type(e).__name__}")
+        return Response({
+            'error': 'Erro interno do servidor',
+            'debug_error': str(e),
+            'error_type': type(e).__name__
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@csrf_exempt
+@api_view(['POST'])
+def test_simple_endpoint(request):
+    """Endpoint de teste super simples para verificar se o problema são as dependências"""
+    try:
+        return Response({
+            'success': True,
+            'message': 'Endpoint simples funcionando',
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return Response({'error': f'Erro: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
 @api_view(['POST'])
