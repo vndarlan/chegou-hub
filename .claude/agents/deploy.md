@@ -45,12 +45,6 @@ Descrição mais detalhada se necessário.
 ```
 
 ### Tipos de Commit
-- `new`: Nova funcionalidade
-- `bug`: Correção de bug
-- `docs`: Mudanças na documentação
-- `style`: Mudanças de formatação/estilo
-- `refactor`: Refatoração de código
-- `chore`: Tarefas de manutenção
 - `deploy`: Deploy de desenvolvimento (com sufixo -dev.N)
 - `release`: Release oficial (sem sufixo, apenas pelo Changelog Agent)
 
