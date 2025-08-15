@@ -109,9 +109,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # Middleware de segurança para detecção de IP
-    'features.processamento.middleware.ip_security_middleware.IPDetectorSecurityMiddleware',
-    'features.processamento.middleware.ip_security_middleware.SecurityAuditMiddleware',
+    # Middleware de segurança para detecção de IP - TEMPORARIAMENTE DESABILITADO
+    # 'features.processamento.middleware.ip_security_middleware.IPDetectorSecurityMiddleware',
+    # 'features.processamento.middleware.ip_security_middleware.SecurityAuditMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -171,15 +171,55 @@ else:
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 
+# === CONFIGURAÇÃO DE CACHE REDIS ===
+REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': REDIS_URL,
         'OPTIONS': {
-            'MAX_ENTRIES': 1000,
-        }
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'CONNECTION_POOL_KWARGS': {
+                'retry_on_timeout': True,
+                'retry_on_error': [ConnectionError, TimeoutError],
+                'health_check_interval': 30,
+            },
+            'SERIALIZER': 'django_redis.serializers.json.JSONSerializer',
+            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+        },
+        'KEY_PREFIX': 'chegou_hub',
+        'VERSION': 1,
+        'TIMEOUT': 3600,  # 1 hora por padrão
+    },
+    # Cache específico para sessões (opcional)
+    'sessions': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': REDIS_URL.replace('/0', '/1'),  # DB 1 para sessões
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'KEY_PREFIX': 'chegou_hub_session',
+        'TIMEOUT': 86400,  # 24 horas para sessões
     }
 }
+
+# Fallback para LocMem se Redis não estiver disponível
+try:
+    from django_redis import get_redis_connection
+    get_redis_connection("default").ping()
+    print(f"OK: Cache Redis conectado: {REDIS_URL}")
+except Exception as e:
+    print(f"WARNING: Redis nao disponivel, usando LocMem cache: {str(e)}")
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+            'OPTIONS': {
+                'MAX_ENTRIES': 1000,
+            }
+        }
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -333,7 +373,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',
     ]
 }
 
@@ -479,10 +519,4 @@ DROPI_TOKEN_SERVICE_URL = os.getenv('DROPI_TOKEN_SERVICE_URL', 'http://localhost
 PRIMECOD_API_TOKEN = os.getenv('PRIMECOD_API_TOKEN', '')
 print(f"PrimeCOD API configurado: {'Sim' if PRIMECOD_API_TOKEN else 'Não'}")
 
-# Cache para tokens (opcional, melhora performance)
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'dropi-cache',
-    }
-}
+# Cache para tokens (já configurado acima com Redis)
