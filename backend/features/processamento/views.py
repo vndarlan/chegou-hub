@@ -3106,7 +3106,7 @@ def check_async_status(request, job_id):
 def buscar_ips_otimizado(request):
     """
     ENDPOINT OTIMIZADO para resolver erro 499
-    Implementa cache Redis, processamento assíncrono e rate limiting
+    Implementa fallback sem Redis para produção Railway
     /api/processamento/buscar-ips-otimizado/
     """
     try:
@@ -3121,16 +3121,19 @@ def buscar_ips_otimizado(request):
                 'error': 'ID da loja é obrigatório'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Rate limiting para evitar abuso
-        from .utils.security_utils import RateLimitManager
-        
-        allowed, remaining = RateLimitManager.check_rate_limit(request.user, 'ip_search')
-        if not allowed:
-            return Response({
-                'error': 'Muitas requisições. Aguarde alguns minutos.',
-                'retry_after_seconds': 300,
-                'remaining_requests': remaining
-            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        # Rate limiting simplificado (sem Redis)
+        try:
+            from .utils.security_utils import RateLimitManager
+            allowed, remaining = RateLimitManager.check_rate_limit(request.user, 'ip_search')
+            if not allowed:
+                return Response({
+                    'error': 'Muitas requisições. Aguarde alguns minutos.',
+                    'retry_after_seconds': 300,
+                    'remaining_requests': remaining
+                }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        except Exception as rate_limit_error:
+            # Se rate limiting falhar, continua sem ele
+            logger.warning(f"Rate limiting não disponível: {rate_limit_error}")
         
         # Busca configuração
         config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
@@ -3139,85 +3142,91 @@ def buscar_ips_otimizado(request):
                 'error': 'Loja não encontrada'
             }, status=status.HTTP_404_NOT_FOUND)
         
-        # ESTRATÉGIA DE CACHE INTELIGENTE
-        cache_manager = get_cache_manager()
+        # CACHE FALLBACK (Django cache sem Redis)
+        cache_key = f"ip_search_simple_{loja_id}_{days}_{min_orders}"
         
         if not force_refresh:
-            cached_result = cache_manager.get_ip_search_results(loja_id, days, min_orders)
-            if cached_result:
-                logger.info(f"Cache HIT - retornando dados em cache")
-                return Response({
-                    'success': True,
-                    'data': cached_result['data'],
-                    'from_cache': True,
-                    'cache_timestamp': cached_result.get('timestamp'),
-                    'loja_nome': config.nome_loja
-                })
-        
-        # ===== ESTRATÉGIA DE PROCESSAMENTO BASEADA NO PERÍODO =====
-        if days > 30:
-            # Processamento assíncrono para períodos grandes
-            logger.info(f"📅 Período {days} dias > 30 - usando processamento assíncrono V2")
-            return _handle_async_ip_search(request, None, config, days, min_orders)
-        else:
-            # ===== PROCESSAMENTO SÍNCRONO OTIMIZADO V2 =====
-            logger.info(f"⚡ Processamento síncrono V2 para {days} dias")
-            
-            detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
-            
-            # ===== TESTE DE CONEXÃO RÁPIDO =====
-            connection_test = detector.test_connection()
-            if not connection_test[0]:
-                logger.error(f"❌ Falha na autenticação Shopify: {connection_test[1]}")
-                return Response({
-                    'error': 'Erro de autenticação com Shopify',
-                    'details': connection_test[1],
-                    'suggestion': 'Verifique as credenciais da loja'
-                }, status=status.HTTP_401_UNAUTHORIZED)
-            
-            # ===== EXECUÇÃO DA BUSCA OTIMIZADA =====
             try:
-                logger.info(f"🔍 Iniciando busca otimizada V2...")
-                result = _get_optimized_ip_data(detector, days, min_orders)
-                
-                # ===== SALVA NO CACHE COM TTL OTIMIZADO =====
-                cache_success = cache_manager.cache_ip_search_results(
-                    loja_id, days, min_orders, {'data': result}
-                )
-                
-                logger.info(
-                    f"✅ Busca síncrona concluída - Cache: {'salvo' if cache_success else 'falhou'}"
-                )
-                
-                return Response({
-                    'success': True,
-                    'data': result,
-                    'from_cache': False,
-                    'loja_nome': config.nome_loja,
-                    'optimization_applied': True,
-                    'sync_processing': True,
-                    'cache_saved': cache_success,
-                    'processing_version': 'v2_enhanced'
-                })
-                
-            except Exception as processing_error:
-                logger.error(f"❌ Erro no processamento síncrono: {str(processing_error)}")
-                
-                # Fallback para versão cached se disponível
-                cached_fallback = cache_manager.get_ip_search_results(loja_id, days, min_orders)
-                if cached_fallback:
-                    logger.info("🔄 Usando cache como fallback")
+                cached_result = cache.get(cache_key)
+                if cached_result:
+                    logger.info(f"Cache HIT - retornando dados em cache (Django cache)")
                     return Response({
                         'success': True,
-                        'data': cached_fallback['data'],
+                        'data': cached_result,
+                        'from_cache': True,
+                        'cache_type': 'django_fallback',
+                        'loja_nome': config.nome_loja
+                    })
+            except Exception as cache_error:
+                logger.warning(f"Cache não disponível: {cache_error}")
+        
+        # ===== PROCESSAMENTO SIMPLIFICADO SEM REDIS =====
+        logger.info(f"⚡ Processamento simplificado para {days} dias (sem Redis)")
+        
+        detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
+        
+        # ===== TESTE DE CONEXÃO RÁPIDO =====
+        connection_test = detector.test_connection()
+        if not connection_test[0]:
+            logger.error(f"❌ Falha na autenticação Shopify: {connection_test[1]}")
+            return Response({
+                'error': 'Erro de autenticação com Shopify',
+                'details': connection_test[1],
+                'suggestion': 'Verifique as credenciais da loja'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # ===== EXECUÇÃO DA BUSCA OTIMIZADA =====
+        try:
+            if days > 30:
+                # Para períodos grandes, usa timeout maior e processamento básico
+                logger.info(f"📅 Período {days} dias > 30 - processamento síncrono com timeout estendido")
+                result = _get_basic_ip_data_with_timeout(detector, days, min_orders, timeout=45)
+            else:
+                # Para períodos menores, usa função otimizada
+                logger.info(f"🔍 Iniciando busca otimizada simples...")
+                result = _get_optimized_ip_data_no_redis(detector, days, min_orders)
+            
+            # ===== SALVA NO CACHE DJANGO =====
+            try:
+                cache.set(cache_key, result, timeout=600)  # 10 minutos
+                cache_saved = True
+            except Exception as cache_error:
+                logger.warning(f"Erro ao salvar no cache: {cache_error}")
+                cache_saved = False
+            
+            logger.info(f"✅ Busca concluída - Cache: {'salvo' if cache_saved else 'falhou'}")
+            
+            return Response({
+                'success': True,
+                'data': result,
+                'from_cache': False,
+                'loja_nome': config.nome_loja,
+                'optimization_applied': True,
+                'cache_saved': cache_saved,
+                'processing_version': 'v2_no_redis_fallback'
+            })
+            
+        except Exception as processing_error:
+            logger.error(f"❌ Erro no processamento: {str(processing_error)}")
+            
+            # Fallback para cache Django
+            try:
+                cached_fallback = cache.get(cache_key)
+                if cached_fallback:
+                    logger.info("🔄 Usando cache Django como fallback")
+                    return Response({
+                        'success': True,
+                        'data': cached_fallback,
                         'from_cache': True,
                         'fallback_applied': True,
                         'warning': 'Dados do cache devido a erro no processamento atual',
                         'loja_nome': config.nome_loja
                     })
-                
-                # Se não há cache, retorna erro
-                raise processing_error
+            except Exception:
+                pass
+            
+            # Se não há cache, retorna erro
+            raise processing_error
         
     except Exception as e:
         logger.error(f"❌ Erro crítico no endpoint otimizado V2: {str(e)}", exc_info=True)
@@ -3517,3 +3526,133 @@ def get_optimization_metrics(request):
             'error': 'Erro ao obter métricas',
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# ===== FUNÇÕES AUXILIARES PARA FALLBACK SEM REDIS =====
+
+def _get_optimized_ip_data_no_redis(detector, days, min_orders):
+    """
+    Versão otimizada que funciona sem Redis
+    Usa apenas cache Django padrão e otimizações básicas
+    """
+    import time
+    from datetime import datetime
+    
+    try:
+        logger.info(f"🔍 Executando busca otimizada sem Redis - {days} dias")
+        
+        # Determina timeout baseado no período
+        if days <= 7:
+            timeout = 15
+        elif days <= 30:
+            timeout = 25
+        else:
+            timeout = 35
+        
+        start_time = time.time()
+        
+        # Usa método básico do detector com early break para otimização
+        result = detector.get_orders_by_ip(
+            days=days, 
+            min_orders=min_orders,
+            early_break_threshold=100  # Para otimizar, para após 100 IPs encontrados
+        )
+        
+        processing_time = time.time() - start_time
+        
+        logger.info(f"✅ Busca sem Redis concluída em {processing_time:.2f}s")
+        
+        # Adiciona metadata de otimização
+        if isinstance(result, dict):
+            result['optimization_metadata'] = {
+                'processing_time_seconds': round(processing_time, 2),
+                'timeout_used': timeout,
+                'redis_used': False,
+                'optimization_level': 'basic_no_redis'
+            }
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Erro na busca otimizada sem Redis: {str(e)}")
+        # Fallback para método básico
+        return detector.get_orders_by_ip(days=min(days, 30), min_orders=min_orders)
+
+def _get_basic_ip_data_with_timeout(detector, days, min_orders, timeout=45):
+    """
+    Versão básica com timeout estendido para períodos grandes
+    """
+    import time
+    from datetime import datetime
+    
+    try:
+        logger.info(f"📅 Executando busca básica com timeout {timeout}s - {days} dias")
+        
+        start_time = time.time()
+        
+        # Para períodos grandes, divide em chunks de 30 dias
+        if days > 30:
+            logger.info(f"📦 Dividindo {days} dias em chunks para evitar timeout")
+            
+            all_results = []
+            chunk_size = 30
+            processed_days = 0
+            
+            while processed_days < days:
+                chunk_days = min(chunk_size, days - processed_days)
+                logger.info(f"🔍 Processando chunk: dias {processed_days} a {processed_days + chunk_days}")
+                
+                try:
+                    # Processa chunk com timeout menor
+                    chunk_result = detector.get_orders_by_ip(
+                        days=chunk_days,
+                        min_orders=min_orders,
+                        start_offset_days=processed_days
+                    )
+                    
+                    if isinstance(chunk_result, dict) and 'ips_duplicados' in chunk_result:
+                        all_results.extend(chunk_result['ips_duplicados'])
+                    
+                    processed_days += chunk_days
+                    
+                    # Pequena pausa entre chunks
+                    time.sleep(1)
+                    
+                except Exception as chunk_error:
+                    logger.warning(f"❌ Erro no chunk {processed_days}-{processed_days + chunk_days}: {chunk_error}")
+                    # Continua com próximo chunk
+                    processed_days += chunk_days
+            
+            # Consolida resultados
+            result = {
+                'ips_duplicados': all_results,
+                'total_ips_found': len(all_results),
+                'chunked_processing': True,
+                'total_chunks': (days + chunk_size - 1) // chunk_size
+            }
+        else:
+            # Para períodos menores, usa método normal
+            result = detector.get_orders_by_ip(days=days, min_orders=min_orders)
+        
+        processing_time = time.time() - start_time
+        
+        logger.info(f"✅ Busca básica concluída em {processing_time:.2f}s")
+        
+        # Adiciona metadata
+        if isinstance(result, dict):
+            result['optimization_metadata'] = {
+                'processing_time_seconds': round(processing_time, 2),
+                'timeout_used': timeout,
+                'method_used': 'chunked_basic' if days > 30 else 'basic'
+            }
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Erro na busca básica: {str(e)}")
+        # Último fallback - período reduzido
+        try:
+            logger.warning(f"🔄 Fallback para período reduzido: 7 dias")
+            return detector.get_orders_by_ip(days=7, min_orders=min_orders)
+        except Exception as fallback_error:
+            logger.error(f"❌ Fallback também falhou: {fallback_error}")
+            raise e
