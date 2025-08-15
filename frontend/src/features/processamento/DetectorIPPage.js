@@ -369,27 +369,27 @@ function DetectorIPPage() {
                                     ? `${ipGroups.length} endereços IP com múltiplos pedidos encontrados`
                                     : 'Execute uma busca para analisar pedidos por IP'
                                 }
-                                {ipGroups.length > 0 && (
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                        {(() => {
-                                            const suspiciousCount = ipGroups.filter(ip => ip.is_suspicious).length;
-                                            const legitimateCount = ipGroups.length - suspiciousCount;
-                                            return (
-                                                <>
-                                                    <Badge variant="default" className="text-xs">
-                                                        {legitimateCount} IPs legítimos
-                                                    </Badge>
-                                                    {suspiciousCount > 0 && (
-                                                        <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                                                            {suspiciousCount} IPs suspeitos (possível servidor/proxy)
-                                                        </Badge>
-                                                    )}
-                                                </>
-                                            );
-                                        })()}
-                                    </div>
-                                )}
                             </CardDescription>
+                            {ipGroups.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {(() => {
+                                        const suspiciousCount = ipGroups.filter(ip => ip.is_suspicious).length;
+                                        const legitimateCount = ipGroups.length - suspiciousCount;
+                                        return (
+                                            <>
+                                                <Badge variant="default" className="text-xs">
+                                                    {legitimateCount} IPs legítimos
+                                                </Badge>
+                                                {suspiciousCount > 0 && (
+                                                    <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                                                        {suspiciousCount} IPs suspeitos (possível servidor/proxy)
+                                                    </Badge>
+                                                )}
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </CardHeader>
