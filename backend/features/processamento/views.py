@@ -547,13 +547,17 @@ def detalhar_pedidos_ip(request):
         # === MANTÉM IP ORIGINAL NO RETORNO ===
         target_group['orders'] = detailed_orders
         
-        # Cria response
+        # Cria response com estrutura consistente com outros endpoints
         response = Response({
             'success': True,
-            'ip': target_group['ip'],
-            'data': target_group,
-            'loja_nome': config.nome_loja,
-            'details_limited': len(target_group['orders']) == max_details
+            'data': {
+                'ip': target_group['ip'],
+                'ip_group': target_group,
+                'details_limited': len(target_group['orders']) == max_details,
+                'total_orders': len(detailed_orders),
+                'max_details_applied': max_details
+            },
+            'loja_nome': config.nome_loja
         })
         
         # Adiciona headers de segurança

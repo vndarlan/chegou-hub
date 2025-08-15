@@ -12,11 +12,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Separator } from '../../components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../components/ui/collapsible';
 import {
     Shield, Globe, Eye, Users, ShoppingBag, AlertCircle, Check, X, RefreshCw,
-    Settings, History, Building, Search, Target, Loader2, Calendar, ChevronDown, ChevronRight, Code, Copy, XCircle
+    Settings, History, Building, Search, Target, Loader2, Calendar
 } from 'lucide-react';
 import { getCSRFToken } from '../../utils/csrf';
 
@@ -27,13 +25,9 @@ function DetectorIPPage() {
     const [ipGroups, setIPGroups] = useState([]);
     const [searchingIPs, setSearchingIPs] = useState(false);
     const [searchParams, setSearchParams] = useState({
-        days: 30,
-        min_orders: 2
+        days: 30
     });
     
-    // Estado para dados de debug
-    const [debugSampleOrder, setDebugSampleOrder] = useState(null);
-    const [debugExpanded, setDebugExpanded] = useState(false);
     
     // Estados modais/interface
     const [showInstructions, setShowInstructions] = useState(false);
@@ -85,7 +79,7 @@ function DetectorIPPage() {
             const response = await axios.post('/processamento/buscar-ips-duplicados/', {
                 loja_id: lojaSelecionada,
                 days: searchParams.days,
-                min_orders: searchParams.min_orders
+                min_orders: 2
             }, {
                 headers: {
                     'X-CSRFToken': getCSRFToken()
@@ -94,9 +88,6 @@ function DetectorIPPage() {
 
             if (response.data.success) {
                 setIPGroups(response.data.data.ip_groups || []);
-                if (response.data.data.debug_sample_order) {
-                    setDebugSampleOrder(response.data.data.debug_sample_order);
-                }
                 showNotification(`${response.data.data.total_ips_found || 0} IPs encontrados com múltiplos pedidos`);
             } else {
                 showNotification(response.data.message || 'Erro na busca', 'error');
@@ -177,32 +168,6 @@ function DetectorIPPage() {
         return 'outline';
     };
     
-    const copyToClipboard = (text) => {
-        navigator.clipboard.writeText(text).then(() => {
-            showNotification('Copiado para a área de transferência!');
-        }).catch(() => {
-            showNotification('Erro ao copiar', 'error');
-        });
-    };
-    
-    const extractIPFields = (orderData) => {
-        const ipFields = [];
-        
-        const searchForIPs = (obj, path = '') => {
-            for (const [key, value] of Object.entries(obj || {})) {
-                const currentPath = path ? `${path}.${key}` : key;
-                
-                if (key.toLowerCase().includes('ip') && typeof value === 'string') {
-                    ipFields.push({ field: currentPath, value });
-                } else if (typeof value === 'object' && value !== null) {
-                    searchForIPs(value, currentPath);
-                }
-            }
-        };
-        
-        searchForIPs(orderData);
-        return ipFields;
-    };
 
 
     if (loading) {
@@ -349,7 +314,7 @@ function DetectorIPPage() {
                         Configuração da Busca
                     </CardTitle>
                     <CardDescription className="text-muted-foreground">
-                        Configure o período (até 365 dias) e critérios para análise de IPs
+                        Configure o período para análise de IPs (mínimo fixo: 2 pedidos por IP)
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -373,22 +338,6 @@ function DetectorIPPage() {
                             </Select>
                         </div>
                         
-                        <div className="flex-1">
-                            <Label htmlFor="min_orders" className="text-foreground">Mínimo de pedidos</Label>
-                            <Select value={searchParams.min_orders.toString()} onValueChange={(value) => setSearchParams(prev => ({ ...prev, min_orders: parseInt(value) }))}>
-                                <SelectTrigger className="bg-background border-input text-foreground">
-                                    <ShoppingBag className="h-4 w-4 mr-2" />
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="2">2 pedidos</SelectItem>
-                                    <SelectItem value="3">3 pedidos</SelectItem>
-                                    <SelectItem value="4">4 pedidos</SelectItem>
-                                    <SelectItem value="5">5 pedidos</SelectItem>
-                                    <SelectItem value="10">10 pedidos</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
                         
                         <Button
                             onClick={searchIPDuplicates}
@@ -575,114 +524,6 @@ function DetectorIPPage() {
                 </CardContent>
             </Card>
             
-            {/* Seção de Debug */}
-            {debugSampleOrder && (
-                <Card className="bg-card border-border">
-                    <Collapsible open={debugExpanded} onOpenChange={setDebugExpanded}>
-                        <CollapsibleTrigger asChild>
-                            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Code className="h-5 w-5 text-primary" />
-                                        <CardTitle className="text-foreground">🔍 Debug: Dados RAW do Shopify</CardTitle>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Badge variant="secondary" className="text-xs">
-                                            Pedido de exemplo
-                                        </Badge>
-                                        {debugExpanded ? 
-                                            <ChevronDown className="h-4 w-4 text-muted-foreground" /> : 
-                                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                        }
-                                    </div>
-                                </div>
-                                <CardDescription className="text-muted-foreground">
-                                    Visualizar estrutura completa dos dados retornados pelo Shopify e campos de IP identificados
-                                </CardDescription>
-                            </CardHeader>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                            <CardContent>
-                                <Tabs defaultValue="ips" className="w-full">
-                                    <TabsList className="grid w-full grid-cols-2 bg-muted">
-                                        <TabsTrigger value="ips" className="text-foreground">IPs Encontrados</TabsTrigger>
-                                        <TabsTrigger value="raw" className="text-foreground">Dados Completos</TabsTrigger>
-                                    </TabsList>
-                                    
-                                    <TabsContent value="ips" className="space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <h4 className="text-sm font-semibold text-foreground">Campos de IP Identificados</h4>
-                                            <Button 
-                                                variant="outline" 
-                                                size="sm"
-                                                onClick={() => copyToClipboard(JSON.stringify(extractIPFields(debugSampleOrder), null, 2))}
-                                            >
-                                                <Copy className="h-4 w-4 mr-2" />
-                                                Copiar IPs
-                                            </Button>
-                                        </div>
-                                        
-                                        <ScrollArea className="h-64 w-full">
-                                            <div className="space-y-2">
-                                                {extractIPFields(debugSampleOrder).map((ipField, index) => (
-                                                    <div key={index} className="p-3 bg-muted/30 rounded-lg border border-border">
-                                                        <div className="flex items-center justify-between">
-                                                            <div>
-                                                                <Badge variant="outline" className="text-xs mb-2">
-                                                                    {ipField.field}
-                                                                </Badge>
-                                                                <p className="font-mono text-sm text-foreground">
-                                                                    {ipField.value}
-                                                                </p>
-                                                            </div>
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="sm"
-                                                                onClick={() => copyToClipboard(ipField.value)}
-                                                            >
-                                                                <Copy className="h-4 w-4" />
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                                
-                                                {extractIPFields(debugSampleOrder).length === 0 && (
-                                                    <div className="text-center py-8 text-muted-foreground">
-                                                        <Target className="h-8 w-8 mx-auto mb-2" />
-                                                        <p>Nenhum campo de IP encontrado nos dados</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </ScrollArea>
-                                    </TabsContent>
-                                    
-                                    <TabsContent value="raw" className="space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <h4 className="text-sm font-semibold text-foreground">Estrutura JSON Completa</h4>
-                                            <Button 
-                                                variant="outline" 
-                                                size="sm"
-                                                onClick={() => copyToClipboard(JSON.stringify(debugSampleOrder, null, 2))}
-                                            >
-                                                <Copy className="h-4 w-4 mr-2" />
-                                                Copiar JSON
-                                            </Button>
-                                        </div>
-                                        
-                                        <ScrollArea className="h-96 w-full">
-                                            <pre className="bg-muted/20 p-4 rounded-lg border border-border text-xs overflow-x-auto">
-                                                <code className="text-foreground">
-                                                    {JSON.stringify(debugSampleOrder, null, 2)}
-                                                </code>
-                                            </pre>
-                                        </ScrollArea>
-                                    </TabsContent>
-                                </Tabs>
-                            </CardContent>
-                        </CollapsibleContent>
-                    </Collapsible>
-                </Card>
-            )}
 
             <>
             {/* Modal de Detalhes do IP */}
