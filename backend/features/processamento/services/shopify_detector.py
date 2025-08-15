@@ -161,7 +161,7 @@ class ShopifyDuplicateOrderDetector:
             return None
     
     def get_all_orders(self, days_back=60):
-        """Busca pedidos dos últimos X dias usando cursor-based pagination"""
+        """Busca pedidos dos últimos X dias usando cursor-based pagination (INCLUINDO CANCELADOS)"""
         all_orders = []
         page_info = None
         page = 1
@@ -193,14 +193,17 @@ class ShopifyDuplicateOrderDetector:
                 if not orders:
                     break
                 
-                # Filtra apenas pedidos não cancelados com cliente válido
+                # Filtra pedidos com cliente válido (INCLUINDO CANCELADOS)
                 valid_orders = []
                 for order in orders:
                     is_cancelled = order.get("cancelled_at") is not None
                     has_customer = order.get("customer") and order["customer"].get("phone")
                     
-                    if not is_cancelled and has_customer:
+                    # MUDANÇA: Agora inclui pedidos cancelados também
+                    if has_customer:
                         order["_normalized_phone"] = self.normalize_phone(order["customer"]["phone"])
+                        order["_is_cancelled"] = is_cancelled  # Adiciona flag de cancelamento
+                        order["_cancelled_at"] = order.get("cancelled_at")  # Data de cancelamento
                         if order["_normalized_phone"]:
                             valid_orders.append(order)
                 
@@ -918,6 +921,7 @@ class ShopifyDuplicateOrderDetector:
             "orders_with_empty_ip": 0,
             "orders_with_real_ip_found": 0,
             "orders_fallback_browser_ip": 0,
+            "cancelled_orders_included": 0,  # Novo contador para cancelados
             "unique_ips_found": set(),
             "suspicious_ips": {},  # IP -> contagem para detectar padrões suspeitos
             "ip_extraction_sources": {}  # Fonte -> contagem (para debug)
@@ -950,14 +954,14 @@ class ShopifyDuplicateOrderDetector:
                 if not orders:
                     break
                 
-                # Filtra apenas pedidos válidos
+                # Filtra apenas pedidos válidos (INCLUINDO CANCELADOS)
                 for order in orders:
                     try:
                         debug_stats["total_orders_fetched"] += 1
                         
-                        # Ignora pedidos cancelados
-                        if order.get("cancelled_at"):
-                            continue
+                        # Determina se o pedido está cancelado (mas NÃO ignora mais)
+                        is_cancelled = order.get("cancelled_at") is not None
+                        cancelled_at = order.get("cancelled_at")
                         
                         # === NOVA LÓGICA: EXTRAÇÃO DO IP REAL DO CLIENTE ===
                         
@@ -1010,6 +1014,13 @@ class ShopifyDuplicateOrderDetector:
                             
                         debug_stats["unique_ips_found"].add(customer_ip)
                         order["_customer_ip"] = customer_ip  # Nome mais descritivo
+                        order["_is_cancelled"] = is_cancelled  # Status de cancelamento
+                        order["_cancelled_at"] = cancelled_at  # Data de cancelamento
+                        
+                        # Conta pedidos cancelados incluídos
+                        if is_cancelled:
+                            debug_stats["cancelled_orders_included"] += 1
+                        
                         all_orders.append(order)
                         
                     except Exception as e:
@@ -1032,8 +1043,9 @@ class ShopifyDuplicateOrderDetector:
                 raise Exception(f"Erro ao buscar pedidos por IP na página {page}: {e}")
         
         # === LOG DE DIAGNÓSTICO ATUALIZADO ===
-        print("=== DIAGNÓSTICO DETECTOR DE IP (VERSÃO MELHORADA) ===")
+        print("=== DIAGNÓSTICO DETECTOR DE IP (VERSÃO MELHORADA COM CANCELADOS) ===")
         print(f"Total de pedidos buscados: {debug_stats['total_orders_fetched']}")
+        print(f"Pedidos cancelados incluídos: {debug_stats['cancelled_orders_included']}")
         print(f"IPs reais encontrados em customer data: {debug_stats['orders_with_real_ip_found']}")
         print(f"Fallback para browser_ip: {debug_stats['orders_fallback_browser_ip']}")
         print(f"Sem client_details: {debug_stats['orders_without_client_details']}")
@@ -1077,10 +1089,12 @@ class ShopifyDuplicateOrderDetector:
             # Ordena pedidos por data
             orders.sort(key=lambda x: x["created_at"])
             
-            # Calcula estatísticas
+            # Calcula estatísticas (incluindo dados de cancelamento)
             total_sales = sum(float(order.get("total_price", 0)) for order in orders)
             unique_customers = set()
             currencies = set()
+            cancelled_count = sum(1 for order in orders if order.get("_is_cancelled", False))
+            active_count = len(orders) - cancelled_count
             
             for order in orders:
                 # Cliente único por email ou phone
@@ -1108,6 +1122,8 @@ class ShopifyDuplicateOrderDetector:
                     "id": order["id"],
                     "order_number": order["order_number"],
                     "created_at": order["created_at"],
+                    "cancelled_at": order.get("_cancelled_at"),  # Data de cancelamento
+                    "is_cancelled": order.get("_is_cancelled", False),  # Status de cancelamento
                     "total_price": order["total_price"],
                     "currency": order.get("currency", "BRL"),
                     "financial_status": order["financial_status"],
@@ -1131,6 +1147,8 @@ class ShopifyDuplicateOrderDetector:
             result_groups.append({
                 "ip": ip,
                 "order_count": len(orders),
+                "cancelled_orders": cancelled_count,  # Quantidade de pedidos cancelados
+                "active_orders": active_count,  # Quantidade de pedidos ativos
                 "unique_customers": len(unique_customers),
                 "total_sales": f"{total_sales:.2f}",
                 "currency": main_currency,
@@ -1160,6 +1178,7 @@ class ShopifyDuplicateOrderDetector:
                 "suspicious_ips_count": len(debug_stats["suspicious_ips"]),
                 "total_fetched": debug_stats["total_orders_fetched"],
                 "valid_processed": len(all_orders),
+                "cancelled_orders_included": debug_stats["cancelled_orders_included"],  # Novo campo
                 "real_customer_ips_found": debug_stats["orders_with_real_ip_found"],
                 "fallback_browser_ip": debug_stats["orders_fallback_browser_ip"]
             },

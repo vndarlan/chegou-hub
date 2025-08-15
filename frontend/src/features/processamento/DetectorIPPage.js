@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../components/ui/collapsible';
 import {
     Shield, Globe, Eye, Users, ShoppingBag, AlertCircle, Check, X, RefreshCw,
-    Settings, History, Building, Search, Target, Loader2, Calendar, ChevronDown, ChevronRight, Code, Copy
+    Settings, History, Building, Search, Target, Loader2, Calendar, ChevronDown, ChevronRight, Code, Copy, XCircle
 } from 'lucide-react';
 import { getCSRFToken } from '../../utils/csrf';
 
@@ -467,6 +467,7 @@ function DetectorIPPage() {
                                         <TableRow className="border-border">
                                             <TableHead className="text-foreground">IP</TableHead>
                                             <TableHead className="text-foreground text-center">Pedidos</TableHead>
+                                            <TableHead className="text-foreground text-center">Status</TableHead>
                                             <TableHead className="text-foreground text-center">Clientes</TableHead>
                                             <TableHead className="text-foreground text-right">Total</TableHead>
                                             <TableHead className="text-foreground">Período</TableHead>
@@ -508,6 +509,25 @@ function DetectorIPPage() {
                                                         <Badge variant="secondary" className="font-mono">
                                                             {ipGroup.order_count}
                                                         </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <div className="flex flex-col gap-1">
+                                                            {ipGroup.active_orders > 0 && (
+                                                                <Badge variant="default" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                                                    {ipGroup.active_orders} ativo{ipGroup.active_orders > 1 ? 's' : ''}
+                                                                </Badge>
+                                                            )}
+                                                            {ipGroup.cancelled_orders > 0 && (
+                                                                <Badge variant="secondary" className="text-xs bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                                                                    {ipGroup.cancelled_orders} cancelado{ipGroup.cancelled_orders > 1 ? 's' : ''}
+                                                                </Badge>
+                                                            )}
+                                                            {!ipGroup.active_orders && !ipGroup.cancelled_orders && (
+                                                                <Badge variant="outline" className="text-xs">
+                                                                    {ipGroup.order_count} total
+                                                                </Badge>
+                                                            )}
+                                                        </div>
                                                     </TableCell>
                                                     <TableCell className="text-center">
                                                         <div className="flex items-center justify-center space-x-1">
@@ -694,6 +714,20 @@ function DetectorIPPage() {
                                                 <div>
                                                     <p className="text-xs text-muted-foreground">Total de Pedidos</p>
                                                     <p className="text-2xl font-bold text-foreground">{ipDetails.order_count}</p>
+                                                    {(ipDetails.active_orders || ipDetails.cancelled_orders) && (
+                                                        <div className="flex gap-1 mt-1">
+                                                            {ipDetails.active_orders > 0 && (
+                                                                <Badge variant="default" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                                                    {ipDetails.active_orders} ativo{ipDetails.active_orders > 1 ? 's' : ''}
+                                                                </Badge>
+                                                            )}
+                                                            {ipDetails.cancelled_orders > 0 && (
+                                                                <Badge variant="secondary" className="text-xs bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                                                                    {ipDetails.cancelled_orders} cancelado{ipDetails.cancelled_orders > 1 ? 's' : ''}
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <ShoppingBag className="h-8 w-8 text-primary/60" />
                                             </div>
@@ -774,7 +808,16 @@ function DetectorIPPage() {
                                                                 </div>
                                                                 <div>
                                                                     <Label className="text-xs text-muted-foreground">Status</Label>
-                                                                    <div className="flex gap-1">
+                                                                    <div className="flex gap-1 flex-wrap">
+                                                                        {order.is_cancelled ? (
+                                                                            <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                                                                                Cancelado
+                                                                            </Badge>
+                                                                        ) : (
+                                                                            <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                                                                Ativo
+                                                                            </Badge>
+                                                                        )}
                                                                         <Badge variant="outline">{order.financial_status}</Badge>
                                                                         <Badge variant="secondary">{order.fulfillment_status || 'N/A'}</Badge>
                                                                     </div>
