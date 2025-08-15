@@ -157,17 +157,26 @@ class RateLimitManager:
         config = cls.LIMITS[endpoint]
         cache_key = f"{config['key_prefix']}_{user.id}"
         
-        current_count = cache.get(cache_key, 0)
-        
-        if current_count >= config['requests']:
-            logger.warning(f"Rate limit exceeded for user {user.username} on {endpoint}")
-            return False, 0
-        
-        # Incrementa contador
-        cache.set(cache_key, current_count + 1, config['window'])
-        remaining = config['requests'] - current_count - 1
-        
-        return True, remaining
+        try:
+            current_count = cache.get(cache_key, 0)
+            
+            if current_count >= config['requests']:
+                logger.warning(f"Rate limit exceeded for user {user.username} on {endpoint}")
+                return False, 0
+            
+            # Incrementa contador
+            cache.set(cache_key, current_count + 1, config['window'])
+            remaining = config['requests'] - current_count - 1
+            
+            return True, remaining
+            
+        except Exception as e:
+            # Fallback: se cache Redis falhar, permite requisição mas loga
+            logger.warning(f"Cache Redis indisponível para rate limit: {e}")
+            logger.info(f"Permitindo requisição de {user.username} em {endpoint} (fallback mode)")
+            
+            # Retorna permitido com limite padrão em fallback
+            return True, config['requests'] - 1
     
     @classmethod
     def get_rate_limit_response(cls, endpoint):
@@ -222,8 +231,12 @@ class AuditLogger:
         
         # Para casos críticos, também salva em cache para alertas
         if action in ['massive_search', 'suspicious_activity']:
-            cache_key = f"security_alert_{user.id}_{action}"
-            cache.set(cache_key, audit_data, 3600)  # 1 hora
+            try:
+                cache_key = f"security_alert_{user.id}_{action}"
+                cache.set(cache_key, audit_data, 3600)  # 1 hora
+            except Exception as e:
+                logger.warning(f"Falha ao salvar alerta de segurança no cache: {e}")
+                # Continua execução sem falhar
     
     @staticmethod
     def _get_client_ip(request):
@@ -248,13 +261,17 @@ class AuditLogger:
             bool: True se atividade for suspeita
         """
         # Verifica se usuário está fazendo muitas consultas
-        cache_key = f"user_activity_{user.id}"
-        activity_count = cache.get(cache_key, 0)
-        
-        if activity_count > 100:  # Mais de 100 operações em 1 hora
-            return True
-        
-        cache.set(cache_key, activity_count + 1, 3600)
+        try:
+            cache_key = f"user_activity_{user.id}"
+            activity_count = cache.get(cache_key, 0)
+            
+            if activity_count > 100:  # Mais de 100 operações em 1 hora
+                return True
+            
+            cache.set(cache_key, activity_count + 1, 3600)
+        except Exception as e:
+            logger.warning(f"Cache Redis indisponível para verificação de atividade suspeita: {e}")
+            # Fallback: não considera suspeito se cache falhar
         
         # Verifica horário suspeito (fora do horário comercial)
         from datetime import datetime
