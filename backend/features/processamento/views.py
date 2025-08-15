@@ -12,6 +12,7 @@ import json
 import logging
 import requests
 from datetime import datetime, timedelta
+from requests.exceptions import ConnectionError, Timeout, HTTPError, RequestException
 
 from .models import ShopifyConfig, ProcessamentoLog
 from .services.shopify_detector import ShopifyDuplicateOrderDetector
@@ -314,7 +315,89 @@ def buscar_pedidos_mesmo_ip(request):
             return Response({'error': 'Loja não encontrada ou inativa'}, status=status.HTTP_400_BAD_REQUEST)
         
         detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
-        ip_data = detector.get_orders_by_ip(days=days, min_orders=min_orders)
+        
+        # Buscar dados de IP com tratamento de erro melhorado
+        try:
+            ip_data = detector.get_orders_by_ip(days=days, min_orders=min_orders)
+        except HTTPError as http_error:
+            # Log seguro com informações técnicas detalhadas
+            logger.error(
+                f"Erro HTTP na busca por IP - User: {request.user.username}, "
+                f"Status: {getattr(http_error.response, 'status_code', 'N/A')}, "
+                f"URL: {getattr(http_error.response, 'url', 'N/A')}",
+                extra={
+                    'user_id': request.user.id,
+                    'loja_id': loja_id,
+                    'operation': 'buscar_pedidos_mesmo_ip',
+                    'error_type': 'HTTPError',
+                    'status_code': getattr(http_error.response, 'status_code', None)
+                }
+            )
+            
+            # Tratamento específico por código HTTP
+            if hasattr(http_error, 'response') and http_error.response.status_code == 401:
+                return Response({
+                    'error': 'Erro de autenticação com Shopify. Verifique o token de acesso da loja.',
+                    'details': 'Token de acesso inválido ou expirado'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            elif hasattr(http_error, 'response') and http_error.response.status_code == 403:
+                return Response({
+                    'error': 'Acesso negado pela API do Shopify. Verifique as permissões do token.',
+                    'details': 'Token não possui permissões necessárias para acessar pedidos'
+                }, status=status.HTTP_403_FORBIDDEN)
+            else:
+                return Response({
+                    'error': 'Erro ao buscar dados de IP no Shopify',
+                    'details': 'Entre em contato com o suporte técnico'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        except (ConnectionError, Timeout) as conn_error:
+            logger.warning(
+                f"Problema de conectividade na busca por IP - User: {request.user.username}",
+                extra={
+                    'user_id': request.user.id,
+                    'loja_id': loja_id,
+                    'operation': 'buscar_pedidos_mesmo_ip',
+                    'error_type': type(conn_error).__name__
+                }
+            )
+            return Response({
+                'error': 'Problema de conectividade',
+                'details': 'Problemas de conectividade com a API'
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        
+        except RequestException as req_error:
+            logger.error(
+                f"Erro de requisição na busca por IP - User: {request.user.username}",
+                extra={
+                    'user_id': request.user.id,
+                    'loja_id': loja_id,
+                    'operation': 'buscar_pedidos_mesmo_ip',
+                    'error_type': 'RequestException'
+                }
+            )
+            return Response({
+                'error': 'Erro ao buscar dados de IP no Shopify',
+                'details': 'Entre em contato com o suporte técnico'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        except Exception as search_error:
+            # Log de erro genérico com informações técnicas detalhadas
+            logger.error(
+                f"Erro inesperado na busca por IP - User: {request.user.username}, "
+                f"Type: {type(search_error).__name__}",
+                extra={
+                    'user_id': request.user.id,
+                    'loja_id': loja_id,
+                    'operation': 'buscar_pedidos_mesmo_ip',
+                    'error_type': type(search_error).__name__,
+                    'error_details': str(search_error)[:200]
+                }
+            )
+            return Response({
+                'error': 'Erro interno no processamento',
+                'details': 'Entre em contato com o suporte técnico'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         # === AUDITORIA DE SEGURANÇA ===
         audit_details = {
@@ -352,44 +435,8 @@ def buscar_pedidos_mesmo_ip(request):
             audit_details
         )
         
-        # === ADICIONANDO DADOS RAW DE EXEMPLO ===
-        debug_sample_order = None
-        ip_fields_found = []
-        
-        # Pega o primeiro pedido encontrado para usar como exemplo RAW
-        if ip_data['ip_groups'] and len(ip_data['ip_groups']) > 0:
-            first_group = ip_data['ip_groups'][0]
-            if first_group['orders'] and len(first_group['orders']) > 0:
-                first_order_summary = first_group['orders'][0]
-                
-                # Busca os dados RAW completos do primeiro pedido
-                try:
-                    raw_order_details = detector.get_order_details(first_order_summary['id'])
-                    if raw_order_details:
-                        # Sanitiza os dados RAW
-                        sanitized_raw_data = _sanitize_raw_order_for_debug(raw_order_details)
-                        
-                        # Analisa campos de IP encontrados
-                        ip_analysis = _extract_ip_field_paths(raw_order_details)
-                        
-                        debug_sample_order = {
-                            'raw_order_data': sanitized_raw_data,
-                            'ip_analysis': ip_analysis,
-                            'sanitized': True,
-                            'order_id': first_order_summary['id'],
-                            'order_number': first_order_summary.get('order_number', 'N/A'),
-                            'sample_from_ip': first_group['ip']
-                        }
-                except Exception as e:
-                    logger.warning(f"Erro ao buscar dados RAW para debug: {str(e)}")
-                    debug_sample_order = {
-                        'error': 'Não foi possível obter dados RAW do pedido de exemplo',
-                        'sanitized': True
-                    }
-        
-        # Modifica ip_data para incluir o debug_sample_order
+        # Prepara dados de resposta
         enhanced_ip_data = ip_data.copy()
-        enhanced_ip_data['debug_sample_order'] = debug_sample_order
 
         # Cria response com dados completos incluindo exemplo RAW
         response = Response({
@@ -474,9 +521,89 @@ def detalhar_pedidos_ip(request):
         # Busca dados do IP
         try:
             ip_data = detector.get_orders_by_ip(days=days, min_orders=1)
+        except HTTPError as http_error:
+            # Log seguro com informações técnicas detalhadas
+            logger.error(
+                f"Erro HTTP na busca detalhada de IP - User: {request.user.username}, "
+                f"Status: {getattr(http_error.response, 'status_code', 'N/A')}, "
+                f"URL: {getattr(http_error.response, 'url', 'N/A')}",
+                extra={
+                    'user_id': request.user.id,
+                    'loja_id': loja_id,
+                    'ip': ip,
+                    'operation': 'detalhar_pedidos_ip',
+                    'error_type': 'HTTPError',
+                    'status_code': getattr(http_error.response, 'status_code', None)
+                }
+            )
+            
+            # Tratamento específico por código HTTP
+            if hasattr(http_error, 'response') and http_error.response.status_code == 401:
+                return Response({
+                    'error': 'Erro de autenticação com Shopify. Verifique o token de acesso da loja.',
+                    'details': 'Token de acesso inválido ou expirado'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            elif hasattr(http_error, 'response') and http_error.response.status_code == 403:
+                return Response({
+                    'error': 'Acesso negado pela API do Shopify. Verifique as permissões do token.',
+                    'details': 'Token não possui permissões necessárias para acessar pedidos'
+                }, status=status.HTTP_403_FORBIDDEN)
+            else:
+                return Response({
+                    'error': 'Erro ao buscar dados de IP no Shopify',
+                    'details': 'Entre em contato com o suporte técnico'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        except (ConnectionError, Timeout) as conn_error:
+            logger.warning(
+                f"Problema de conectividade na busca detalhada de IP - User: {request.user.username}",
+                extra={
+                    'user_id': request.user.id,
+                    'loja_id': loja_id,
+                    'ip': ip,
+                    'operation': 'detalhar_pedidos_ip',
+                    'error_type': type(conn_error).__name__
+                }
+            )
+            return Response({
+                'error': 'Problema de conectividade',
+                'details': 'Problemas de conectividade com a API'
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        
+        except RequestException as req_error:
+            logger.error(
+                f"Erro de requisição na busca detalhada de IP - User: {request.user.username}",
+                extra={
+                    'user_id': request.user.id,
+                    'loja_id': loja_id,
+                    'ip': ip,
+                    'operation': 'detalhar_pedidos_ip',
+                    'error_type': 'RequestException'
+                }
+            )
+            return Response({
+                'error': 'Erro ao buscar dados de IP no Shopify',
+                'details': 'Entre em contato com o suporte técnico'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
         except Exception as search_error:
-            logger.error(f"Erro na busca por IP - User: {request.user.username}, Error: {str(search_error)}")
-            return Response({'error': 'Erro ao buscar dados de IP'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            # Log de erro genérico com informações técnicas detalhadas
+            logger.error(
+                f"Erro inesperado na busca detalhada de IP - User: {request.user.username}, "
+                f"Type: {type(search_error).__name__}",
+                extra={
+                    'user_id': request.user.id,
+                    'loja_id': loja_id,
+                    'ip': ip,
+                    'operation': 'detalhar_pedidos_ip',
+                    'error_type': type(search_error).__name__,
+                    'error_details': str(search_error)[:200]
+                }
+            )
+            return Response({
+                'error': 'Erro interno no processamento',
+                'details': 'Entre em contato com o suporte técnico'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         # Validação dos dados retornados
         if not ip_data or not isinstance(ip_data, dict) or 'ip_groups' not in ip_data:
@@ -650,143 +777,6 @@ def historico_logs(request):
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-@never_cache
-def debug_shopify_data(request):
-    """
-    FERRAMENTA TEMPORÁRIA DE DEBUG
-    
-    Busca 1 pedido recente da API Shopify e retorna os dados RAW
-    para análise dos campos de IP disponíveis.
-    
-    ATENÇÃO: Esta é uma ferramenta de debug temporária que deve ser 
-    removida após a análise ser concluída.
-    """
-    try:
-        # Validação de entrada
-        loja_id = request.data.get('loja_id')
-        if not loja_id:
-            return Response({'error': 'ID da loja é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Verifica loja
-        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
-        if not config:
-            return Response({'error': 'Loja não encontrada ou inativa'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Auditoria de acesso
-        AuditLogger.log_ip_access(
-            request.user,
-            request,
-            'debug_shopify_raw_data',
-            {
-                'loja_id': loja_id,
-                'loja_nome': config.nome_loja,
-                'user_ip': AuditLogger._get_client_ip(request),
-                'action': 'Busca de dados RAW do Shopify para debug'
-            }
-        )
-        
-        # Busca 1 pedido recente da API Shopify
-        url = f"https://{config.shop_url}/admin/api/{config.api_version}/orders.json"
-        headers = {
-            "Content-Type": "application/json",
-            "X-Shopify-Access-Token": config.access_token
-        }
-        params = {
-            "limit": 1,
-            "status": "any",
-            "created_at_min": (datetime.now() - timedelta(days=7)).isoformat()  # Últimos 7 dias
-        }
-        
-        response = requests.get(url, headers=headers, params=params, timeout=30)
-        response.raise_for_status()
-        
-        orders_data = response.json()
-        orders = orders_data.get("orders", [])
-        
-        if not orders:
-            return Response({
-                'error': 'Nenhum pedido encontrado nos últimos 7 dias',
-                'debug_info': {
-                    'loja': config.nome_loja,
-                    'api_version': config.api_version,
-                    'response_keys': list(orders_data.keys())
-                }
-            }, status=status.HTTP_404_NOT_FOUND)
-        
-        # Pega o primeiro (mais recente) pedido
-        raw_order = orders[0]
-        
-        # Remove dados muito sensíveis (mantém estrutura para debug)
-        sanitized_order = _sanitize_debug_data(raw_order)
-        
-        # Log da busca de debug
-        ProcessamentoLog.objects.create(
-            user=request.user,
-            config=config,
-            tipo='debug',
-            status='sucesso',
-            pedidos_encontrados=1,
-            detalhes={
-                'action': 'debug_raw_data',
-                'order_id': sanitized_order.get('id'),
-                'order_number': sanitized_order.get('order_number'),
-                'data_fields_found': list(sanitized_order.keys())
-            }
-        )
-        
-        # Analisa campos de IP disponíveis (usando lógica do detector)
-        ip_analysis = _analyze_ip_fields_improved(raw_order)
-        
-        # Resposta com dados RAW sanitizados
-        response = Response({
-            'success': True,
-            'debug_info': {
-                'loja_nome': config.nome_loja,
-                'api_version': config.api_version,
-                'order_id': sanitized_order.get('id'),
-                'order_number': sanitized_order.get('order_number'),
-                'timestamp': datetime.now().isoformat()
-            },
-            'ip_analysis': ip_analysis,
-            'raw_order_data': sanitized_order,
-            'warning': 'Esta é uma ferramenta temporária de debug. Dados sensíveis foram removidos.'
-        })
-        
-        return SecurityHeadersManager.add_security_headers(response)
-        
-    except requests.exceptions.RequestException as e:
-        error_msg = f"Erro ao conectar com API Shopify: {str(e)}"
-        logger.error(f"Debug Shopify Data - Erro de conexão - User: {request.user.username}, Error: {error_msg}")
-        
-        # Log do erro
-        if 'config' in locals():
-            ProcessamentoLog.objects.create(
-                user=request.user,
-                config=config,
-                tipo='debug',
-                status='erro',
-                erro_mensagem=error_msg
-            )
-        
-        return Response({'error': error_msg}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-    except Exception as e:
-        error_msg = f"Erro interno: {str(e)}"
-        logger.error(f"Debug Shopify Data - Erro geral - User: {request.user.username}, Error: {error_msg}")
-        
-        # Auditoria do erro
-        AuditLogger.log_ip_access(
-            request.user,
-            request,
-            'debug_shopify_error',
-            {
-                'loja_id': loja_id if 'loja_id' in locals() else 'unknown',
-                'error': error_msg,
-                'user_ip': AuditLogger._get_client_ip(request)
-            }
-        )
-        
-        return Response({'error': 'Erro interno do servidor'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # === FUNÇÕES AUXILIARES ===
 
@@ -828,72 +818,6 @@ def _sanitize_order_details(order_details):
     
     return sanitized
 
-def _sanitize_debug_data(raw_order):
-    """
-    Remove dados muito sensíveis dos dados RAW do pedido, mantendo estrutura para debug
-    
-    Args:
-        raw_order: Dados brutos do pedido do Shopify
-        
-    Returns:
-        dict: Dados sanitizados mas completos para debug de campos de IP
-    """
-    if not raw_order:
-        return raw_order
-    
-    sanitized = raw_order.copy()
-    
-    # Remove tokens e chaves sensíveis
-    sensitive_keys = [
-        'payment_details', 'payment_gateway_names', 'gateway', 
-        'transactions', 'discount_codes', 'refunds'
-    ]
-    
-    for key in sensitive_keys:
-        sanitized.pop(key, None)
-    
-    # Sanitiza dados do cliente (mantém estrutura mas remove dados muito específicos)
-    if 'customer' in sanitized and sanitized['customer']:
-        customer = sanitized['customer']
-        
-        # Mantém campos importantes para debug mas sanitiza alguns valores
-        if 'email' in customer:
-            email = customer['email']
-            if '@' in email:
-                local, domain = email.split('@', 1)
-                customer['email'] = f"{local[:3]}***@{domain}"
-        
-        # Sanitiza telefone parcialmente
-        if 'phone' in customer and customer['phone']:
-            phone = str(customer['phone'])
-            if len(phone) > 4:
-                customer['phone'] = phone[:4] + '****' + phone[-2:] if len(phone) > 6 else phone[:4] + '****'
-    
-    # Sanitiza endereços (mantém estrutura para análise de IP)
-    for address_key in ['shipping_address', 'billing_address']:
-        if address_key in sanitized and sanitized[address_key]:
-            address = sanitized[address_key]
-            
-            # Sanitiza nome mas mantém estrutura
-            for name_field in ['first_name', 'last_name', 'name']:
-                if name_field in address and address[name_field]:
-                    name = str(address[name_field])
-                    address[name_field] = name[:2] + '***' if len(name) > 2 else '***'
-            
-            # Sanitiza endereço físico mas mantém estrutura
-            if 'address1' in address and address['address1']:
-                addr = str(address['address1'])
-                address['address1'] = addr[:5] + '***' if len(addr) > 5 else '***'
-            
-            # Sanitiza telefone
-            if 'phone' in address and address['phone']:
-                phone = str(address['phone'])
-                address['phone'] = phone[:4] + '****' if len(phone) > 4 else '****'
-    
-    # IMPORTANTE: Mantém client_details completamente para análise de IP
-    # (não remove nem sanitiza campos de IP aqui - essa é a parte importante para debug)
-    
-    return sanitized
 
 def _analyze_ip_fields(raw_order):
     """
@@ -1188,192 +1112,6 @@ def _get_hierarchy_position(ip_source):
     
     return 99  # Desconhecido
 
-def _sanitize_raw_order_for_debug(raw_order):
-    """
-    Sanitiza dados RAW do pedido mantendo TODOS os campos essenciais para debug
-    Especialmente campos de IP, IDs e estrutura completa
-    
-    Args:
-        raw_order: Dados completos do pedido
-        
-    Returns:
-        dict: Dados sanitizados mas com estrutura e IDs completos
-    """
-    if not raw_order:
-        return raw_order
-    
-    # Cria cópia profunda para não alterar original
-    import copy
-    sanitized = copy.deepcopy(raw_order)
-    
-    # === SANITIZAÇÃO MÍNIMA APENAS DE DADOS EXTREMAMENTE SENSÍVEIS ===
-    
-    # Remove APENAS tokens e dados de pagamento sensíveis
-    highly_sensitive_keys = [
-        'payment_details', 'transactions', 'gateway', 'payment_gateway_names',
-        'discount_codes', 'refunds', 'payment_terms', 'checkout_token', 'cart_token'
-    ]
-    
-    for key in highly_sensitive_keys:
-        sanitized.pop(key, None)
-    
-    # === MANTÉM TODOS OS IDs IMPORTANTES ===
-    # ID do pedido, customer ID, address IDs são ESSENCIAIS para debug
-    essential_id_fields = ['id', 'customer_id', 'user_id', 'checkout_id']
-    # Estes IDs NÃO são removidos
-    
-    # === MANTÉM COMPLETAMENTE INTACTOS TODOS OS CAMPOS DE IP ===
-    # TODOS os campos relacionados a IP devem ser preservados sem modificação:
-    # - client_details (TODO o objeto)
-    # - browser_ip, client_ip, customer_ip
-    # - Qualquer campo que contenha "ip" no nome
-    
-    # === SANITIZAÇÃO PARCIAL APENAS DE DADOS PESSOAIS ===
-    # Mascara apenas parcialmente para manter estrutura identificável
-    
-    if 'customer' in sanitized and sanitized['customer']:
-        customer = sanitized['customer']
-        
-        # MANTÉM customer.id - ESSENCIAL
-        
-        # Mascara email mas mantém domínio para debug
-        if 'email' in customer and customer['email']:
-            email = str(customer['email'])
-            if '@' in email:
-                local, domain = email.split('@', 1)
-                # Mantém mais caracteres para debug
-                customer['email'] = f"{local[:4]}***@{domain}"
-        
-        # Mascara nome mas mantém iniciais para debug
-        for name_field in ['first_name', 'last_name']:
-            if name_field in customer and customer[name_field]:
-                name = str(customer[name_field])
-                customer[name_field] = f"{name[:3]}***{name[-1:]}" if len(name) > 4 else f"{name[:2]}***"
-        
-        # Mascara telefone mas mantém prefixo para debug  
-        if 'phone' in customer and customer['phone']:
-            phone = str(customer['phone'])
-            customer['phone'] = f"{phone[:5]}****{phone[-2:]}" if len(phone) > 7 else f"{phone[:3]}***"
-        
-        # MANTÉM note se contiver informações de debug relevantes
-        # Remove apenas se for muito longo (provavelmente dados sensíveis)
-        if 'note' in customer and customer['note'] and len(str(customer['note'])) > 200:
-            customer['note'] = f"[NOTA_LONGA_MASCARADA - {len(str(customer['note']))} caracteres]"
-        
-        # === MANTÉM default_address COM TODOS OS CAMPOS PARA DEBUG ===
-        if 'default_address' in customer and customer['default_address']:
-            default_addr = customer['default_address']
-            
-            # MANTÉM address.id - ESSENCIAL
-            
-            # Mascara nomes mas mantém estrutura
-            for name_field in ['first_name', 'last_name', 'name']:
-                if name_field in default_addr and default_addr[name_field]:
-                    name = str(default_addr[name_field])
-                    default_addr[name_field] = f"{name[:3]}***{name[-1:]}" if len(name) > 4 else f"{name[:2]}***"
-            
-            # Mascara endereço mas mantém número/início para debug
-            if 'address1' in default_addr and default_addr['address1']:
-                addr = str(default_addr['address1'])
-                default_addr['address1'] = f"{addr[:8]}***{addr[-3:]}" if len(addr) > 11 else f"{addr[:5]}***"
-            
-            # MANTÉM TODOS os campos relacionados a IP sem modificação
-            # MANTÉM city, province, country, zip parcialmente para debug de localização
-            if 'zip' in default_addr and default_addr['zip']:
-                zip_code = str(default_addr['zip'])
-                # Mascara apenas parte do CEP
-                default_addr['zip'] = f"{zip_code[:5]}***" if len(zip_code) > 5 else zip_code
-            
-            # IMPORTANTE: NÃO remove nem altera campos de IP
-    
-    # === SANITIZA endereços de shipping e billing MANTENDO estrutura ===
-    for address_type in ['shipping_address', 'billing_address']:
-        if address_type in sanitized and sanitized[address_type]:
-            address = sanitized[address_type]
-            
-            # MANTÉM address.id - ESSENCIAL
-            
-            # Mascara dados pessoais mas mantém estrutura identificável
-            for name_field in ['first_name', 'last_name', 'name']:
-                if name_field in address and address[name_field]:
-                    name = str(address[name_field])
-                    address[name_field] = f"{name[:3]}***{name[-1:]}" if len(name) > 4 else f"{name[:2]}***"
-            
-            # Mascara endereço mas mantém início para debug
-            if 'address1' in address and address['address1']:
-                addr = str(address['address1'])
-                address['address1'] = f"{addr[:8]}***{addr[-3:]}" if len(addr) > 11 else f"{addr[:5]}***"
-            
-            # Mascara telefone mas mantém estrutura
-            if 'phone' in address and address['phone']:
-                phone = str(address['phone'])
-                address['phone'] = f"{phone[:4]}****{phone[-2:]}" if len(phone) > 6 else f"{phone[:3]}***"
-            
-            # MANTÉM coordenadas para debug de localização se existirem
-            # latitude/longitude podem ser úteis para debug
-            
-            # IMPORTANTE: MANTÉM TODOS os campos relacionados a IP
-    
-    # === MANTÉM client_details COMPLETAMENTE INTACTO ===
-    # Esta é a fonte PRINCIPAL de dados de IP - não pode ser alterada
-    
-    # === MANTÉM browser_ip e customer_ip se existirem ===
-    # Estes campos são CRÍTICOS para debug
-    
-    # === MANTÉM TODOS os campos que contenham "ip" no nome ===
-    def preserve_ip_fields(obj):
-        """Preserva todos os campos relacionados a IP recursivamente"""
-        if isinstance(obj, dict):
-            for key, value in obj.items():
-                if 'ip' in key.lower():
-                    # Campo relacionado a IP - NÃO alterar
-                    continue
-                elif isinstance(value, dict):
-                    preserve_ip_fields(value)
-                elif isinstance(value, list):
-                    for item in value:
-                        if isinstance(item, dict):
-                            preserve_ip_fields(item)
-    
-    preserve_ip_fields(sanitized)
-    
-    # === MASCARA line_items minimamente ===
-    if 'line_items' in sanitized and sanitized['line_items']:
-        for item in sanitized['line_items']:
-            if isinstance(item, dict):
-                # MANTÉM IDs de produtos
-                
-                # Mascara apenas propriedades muito longas
-                if 'properties' in item and item['properties']:
-                    for prop in item['properties']:
-                        if isinstance(prop, dict) and 'value' in prop:
-                            value = str(prop['value'])
-                            if len(value) > 50:  # Só mascara valores muito longos
-                                prop['value'] = f"{value[:10]}***[{len(value)} chars]***{value[-5:]}"
-    
-    # === MANTÉM metadados importantes para debug ===
-    # user_agent pode ser útil para debug
-    # source_identifier pode ser útil
-    # Só remove se extremamente sensível
-    
-    metadata_to_remove = [
-        'session_hash'  # Remove apenas este que é muito sensível
-    ]
-    
-    for key in metadata_to_remove:
-        sanitized.pop(key, None)
-    
-    # === ADICIONA informações de debug ===
-    sanitized['_debug_info'] = {
-        'sanitized_at': datetime.now().isoformat(),
-        'sanitization_level': 'minimal_for_debug',
-        'fields_completely_removed': highly_sensitive_keys + metadata_to_remove,
-        'ip_fields_preserved': 'ALL fields containing "ip" kept intact',
-        'ids_preserved': 'ALL ID fields kept for debugging',
-        'note': 'Sanitização mínima - mantém estrutura completa para debug de IP'
-    }
-    
-    return sanitized
 
 def _extract_ip_field_paths(raw_order):
     """
@@ -2015,17 +1753,7 @@ def buscar_pedidos_mesmo_ip_enhanced(request):
             }
         }
         
-        # Adiciona informações de debug se usuário for staff
-        if request.user.is_staff and enable_detailed_logging:
-            performance_metadata = enhanced_result.get('performance_metadata', {})
-            session_stats = performance_metadata.get('session_statistics', {})
-            
-            response_data['debug_info'] = {
-                'session_statistics': session_stats,
-                'performance_category': performance_metadata.get('performance_category', 'unknown'),
-                'logs_generated': session_stats.get('total_processed', 0),
-                'success_rate': session_stats.get('success_rate', 0)
-            }
+        # Dados de resposta finalizados
         
         # Cria response com dados completos
         response = Response(response_data)
@@ -2138,7 +1866,7 @@ def analyze_single_order_ip_enhanced(request):
         ProcessamentoLog.objects.create(
             user=request.user,
             config=config,
-            tipo='debug',
+            tipo='analise_pedido',
             status='sucesso' if analysis_result.get('detection_successful') else 'erro',
             pedidos_encontrados=1,
             detalhes=audit_details
@@ -2166,7 +1894,7 @@ def analyze_single_order_ip_enhanced(request):
             ProcessamentoLog.objects.create(
                 user=request.user,
                 config=config,
-                tipo='debug',
+                tipo='analise_pedido',
                 status='erro',
                 erro_mensagem=str(e),
                 detalhes={
@@ -2180,164 +1908,6 @@ def analyze_single_order_ip_enhanced(request):
             'error': 'Erro interno do servidor'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@csrf_exempt
-@api_view(['POST'])  
-@permission_classes([IsAuthenticated])
-def debug_detalhar_pedidos_ip(request):
-    """DEBUG TEMPORÁRIO - Remove após identificar problema do erro 500"""
-    
-    # Log TUDO que está chegando
-    logger.info(f"DEBUG - Request data completo: {request.data}")
-    logger.info(f"DEBUG - Request method: {request.method}")
-    logger.info(f"DEBUG - Request user: {request.user}")
-    
-    try:
-        # 1. LOG DOS PARÂMETROS RECEBIDOS
-        loja_id = request.data.get('loja_id')
-        ip = request.data.get('ip') 
-        days = request.data.get('days', 30)
-        
-        logger.info(f"DEBUG - Parâmetros parsed:")
-        logger.info(f"DEBUG - loja_id={loja_id} (type: {type(loja_id)})")
-        logger.info(f"DEBUG - ip={ip} (type: {type(ip)})")
-        logger.info(f"DEBUG - days={days} (type: {type(days)})")
-        
-        # 2. VALIDAÇÃO BÁSICA (SEM SANITIZAÇÃO POR ENQUANTO)
-        if not loja_id:
-            logger.error(f"DEBUG - ERRO: loja_id não fornecido")
-            return Response({
-                'error': 'ID da loja é obrigatório',
-                'debug': 'loja_id missing'
-            }, status=status.HTTP_400_BAD_REQUEST)
-            
-        if not ip:
-            logger.error(f"DEBUG - ERRO: ip não fornecido")
-            return Response({
-                'error': 'IP é obrigatório',
-                'debug': 'ip missing'  
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # 3. LOG DA BUSCA DA CONFIGURAÇÃO
-        logger.info(f"DEBUG - Buscando configuração para loja_id: {loja_id}")
-        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
-        
-        if not config:
-            logger.error(f"DEBUG - ERRO: Configuração não encontrada para loja_id: {loja_id}")
-            return Response({
-                'error': 'Loja não encontrada',
-                'debug': f'config not found for loja_id: {loja_id}'
-            }, status=status.HTTP_400_BAD_REQUEST)
-            
-        logger.info(f"DEBUG - Configuração encontrada: {config.nome_loja} ({config.shop_url})")
-        
-        # 4. LOG DA CRIAÇÃO DO DETECTOR
-        logger.info(f"DEBUG - Criando detector Shopify...")
-        try:
-            detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
-            logger.info(f"DEBUG - Detector criado com sucesso")
-        except Exception as detector_error:
-            logger.error(f"DEBUG - ERRO ao criar detector: {str(detector_error)}")
-            return Response({
-                'error': 'Erro ao criar detector',
-                'debug': f'detector error: {str(detector_error)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        # 5. LOG DA BUSCA DOS DADOS DE IP
-        logger.info(f"DEBUG - Buscando dados de IP com days={days}...")
-        try:
-            ip_data = detector.get_orders_by_ip(days=days, min_orders=1)
-            logger.info(f"DEBUG - get_orders_by_ip retornou: type={type(ip_data)}")
-            if ip_data:
-                logger.info(f"DEBUG - ip_data keys: {list(ip_data.keys()) if isinstance(ip_data, dict) else 'não é dict'}")
-                if isinstance(ip_data, dict) and 'ip_groups' in ip_data:
-                    logger.info(f"DEBUG - Encontrados {len(ip_data['ip_groups'])} grupos de IP")
-                    # Log dos primeiros 3 IPs encontrados
-                    for i, group in enumerate(ip_data['ip_groups'][:3]):
-                        if isinstance(group, dict) and 'ip' in group:
-                            logger.info(f"DEBUG - Grupo {i}: IP={group['ip']}, orders={len(group.get('orders', []))}")
-                else:
-                    logger.warning(f"DEBUG - ip_data não tem estrutura esperada")
-            else:
-                logger.warning(f"DEBUG - ip_data é None ou vazio")
-        except Exception as search_error:
-            logger.error(f"DEBUG - ERRO na busca por IP: {str(search_error)}")
-            return Response({
-                'error': 'Erro na busca por IP',
-                'debug': f'search error: {str(search_error)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        # 6. LOG DA BUSCA DO IP ESPECÍFICO
-        logger.info(f"DEBUG - Procurando IP específico: '{ip}' nos grupos encontrados...")
-        target_group = None
-        
-        if ip_data and isinstance(ip_data, dict) and 'ip_groups' in ip_data:
-            for i, group in enumerate(ip_data['ip_groups']):
-                if isinstance(group, dict) and 'ip' in group:
-                    group_ip = group['ip']
-                    logger.info(f"DEBUG - Comparando: '{ip}' == '{group_ip}' ? {ip == group_ip}")
-                    if group_ip == ip:
-                        target_group = group
-                        logger.info(f"DEBUG - IP encontrado no grupo {i}!")
-                        break
-                else:
-                    logger.warning(f"DEBUG - Grupo {i} inválido: {group}")
-        else:
-            logger.error(f"DEBUG - ip_data não tem ip_groups válidos")
-        
-        if not target_group:
-            logger.warning(f"DEBUG - IP '{ip}' não encontrado nos grupos")
-            available_ips = []
-            if ip_data and isinstance(ip_data, dict) and 'ip_groups' in ip_data:
-                available_ips = [group.get('ip', 'no-ip') for group in ip_data['ip_groups'][:5]]
-            
-            logger.info(f"DEBUG - IPs disponíveis (primeiros 5): {available_ips}")
-            
-            return Response({
-                'error': 'IP não encontrado',
-                'debug': {
-                    'requested_ip': ip,
-                    'available_ips': available_ips,
-                    'total_groups': len(ip_data.get('ip_groups', [])) if ip_data else 0
-                }
-            }, status=status.HTTP_404_NOT_FOUND)
-        
-        # 7. LOG DOS DADOS ENCONTRADOS
-        logger.info(f"DEBUG - Target group encontrado:")
-        logger.info(f"DEBUG - IP: {target_group.get('ip')}")
-        logger.info(f"DEBUG - Número de pedidos: {len(target_group.get('orders', []))}")
-        
-        # 8. RETORNO BÁSICO (SEM BUSCAR DETALHES INDIVIDUAIS)
-        logger.info(f"DEBUG - Retornando dados básicos...")
-        
-        return Response({
-            'success': True,
-            'debug': 'Endpoint debug funcionando até aqui',
-            'data': {
-                'ip': target_group.get('ip'),
-                'orders_count': len(target_group.get('orders', [])),
-                'loja_nome': config.nome_loja,
-                'orders_summary': target_group.get('orders', [])[:2]  # Primeiros 2 pedidos apenas
-            }
-        })
-        
-    except Exception as e:
-        # LOG DETALHADO DO ERRO FINAL
-        logger.error(f"DEBUG - ERRO GERAL capturado:")
-        logger.error(f"DEBUG - Error type: {type(e).__name__}")
-        logger.error(f"DEBUG - Error message: {str(e)}")
-        logger.error(f"DEBUG - Error args: {e.args}")
-        
-        import traceback
-        logger.error(f"DEBUG - Traceback completo: {traceback.format_exc()}")
-        
-        return Response({
-            'error': 'Erro interno capturado pelo debug',
-            'debug': {
-                'error_type': type(e).__name__,
-                'error_message': str(e),
-                'error_args': str(e.args)
-            }
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
 @api_view(['GET'])
