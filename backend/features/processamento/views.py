@@ -437,9 +437,9 @@ def buscar_pedidos_mesmo_ip(request):
 @permission_classes([IsAuthenticated])
 @never_cache
 def detalhar_pedidos_ip(request):
-    """Retorna detalhes completos dos pedidos de um IP específico com segurança"""
+    """Retorna dados detalhados dos clientes de um IP específico (versão simplificada)"""
     try:
-        # === VALIDAÇÕES DE SEGURANÇA RIGOROSAS ===
+        # === VALIDAÇÕES BÁSICAS ===
         loja_id = request.data.get('loja_id')
         ip = request.data.get('ip')
         days = request.data.get('days', 30)
@@ -447,190 +447,130 @@ def detalhar_pedidos_ip(request):
         if not loja_id or not ip:
             return Response({'error': 'ID da loja e IP são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Sanitizar IP de entrada
+        # Sanitizar IP
         ip_sanitized = IPSecurityUtils.sanitize_ip_input(ip)
-        
         if not ip_sanitized:
             return Response({'error': 'Formato de IP inválido'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Validação de parâmetros
         try:
             loja_id = int(loja_id)
-            days = min(int(days), 30)  # MÁXIMO 30 DIAS por segurança
+            days = min(int(days), 30)
         except (ValueError, TypeError):
             return Response({'error': 'Parâmetros inválidos'}, status=status.HTTP_400_BAD_REQUEST)
         
-        if days > 30:
-            days = 30
-        
+        # Busca configuração
         config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
-        if not config:
-            return Response({'error': 'Loja não encontrada ou inativa'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Verifica se a configuração tem dados válidos
-        if not config.shop_url or not config.access_token:
+        if not config or not config.shop_url or not config.access_token:
             return Response({'error': 'Configuração da loja inválida'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Cria o detector dentro de um try-catch para capturar erros de inicialização
+        # Cria detector
         try:
             detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
         except Exception as detector_error:
-            logger.error(f"Erro ao criar detector Shopify - User: {request.user.username}, Error: {str(detector_error)}")
-            return Response({'error': 'Erro na configuração do detector Shopify'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error(f"Erro ao criar detector - User: {request.user.username}, Error: {str(detector_error)}")
+            return Response({'error': 'Erro na configuração do detector'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        # === BUSCA DIRETA COM IP ===
+        # Busca dados do IP
         try:
             ip_data = detector.get_orders_by_ip(days=days, min_orders=1)
         except Exception as search_error:
-            logger.error(f"Erro na busca por IP - User: {request.user.username}, IP: {ip_sanitized}, Error: {str(search_error)}")
-            return Response({'error': 'Erro ao buscar dados de IP na loja'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        # Verifica se a busca retornou dados válidos
-        if not ip_data or not isinstance(ip_data, dict):
+            logger.error(f"Erro na busca por IP - User: {request.user.username}, Error: {str(search_error)}")
             return Response({'error': 'Erro ao buscar dados de IP'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        if 'ip_groups' not in ip_data or not ip_data['ip_groups']:
-            return Response({'error': 'Nenhum grupo de IP encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        # Validação dos dados retornados
+        if not ip_data or not isinstance(ip_data, dict) or 'ip_groups' not in ip_data:
+            return Response({'error': 'Dados de IP inválidos'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        # Encontra o grupo específico do IP
+        if not ip_data['ip_groups']:
+            return Response({'error': 'Nenhum IP encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Encontra o grupo do IP específico
         target_group = None
-        
-        # Busca direta pelo IP
         for group in ip_data['ip_groups']:
-            if group and 'ip' in group and group['ip'] == ip_sanitized:
+            if group and isinstance(group, dict) and group.get('ip') == ip_sanitized:
                 target_group = group
                 break
         
-        if not target_group:
-            # Log detalhado para debug
-            debug_info = {
-                'requested_ip': ip,
-                'sanitized_ip': ip_sanitized,
-                'available_ips': [group['ip'] for group in ip_data['ip_groups'][:5]],  # Primeiros 5 para debug
-                'days': days
-            }
-            
-            logger.warning(f"IP não encontrado para detalhamento - User: {request.user.username}, Debug: {debug_info}")
-            
-            # Log tentativa de acesso a IP inexistente
-            AuditLogger.log_ip_access(
-                request.user,
-                request,
-                'ip_not_found',
-                debug_info
-            )
-            
+        # Verifica se encontrou o grupo
+        if not target_group or not isinstance(target_group, dict):
             return Response({
-                'error': 'IP não encontrado nos dados. Tente atualizar a busca.',
-                'debug_info': debug_info if request.user.is_staff else None
+                'error': 'IP não encontrado nos dados. Tente atualizar a busca.'
             }, status=status.HTTP_404_NOT_FOUND)
         
-        # === AUDITORIA CRÍTICA - ACESSO A DETALHES ===
-        audit_details = {
-            'ip_accessed': target_group['ip'],
-            'orders_count': len(target_group['orders']),
-            'days': days,
-            'user_ip': AuditLogger._get_client_ip(request)
-        }
-        
+        # Log de auditoria simplificado
         AuditLogger.log_ip_access(
             request.user,
             request,
             'ip_detail_access',
-            audit_details
+            {
+                'ip_accessed': ip_sanitized,
+                'orders_count': len(target_group.get('orders', [])),
+                'days': days
+            }
         )
         
-        # Verifica se acesso é suspeito (muitos pedidos)
-        if len(target_group['orders']) > 20:
-            AuditLogger.log_ip_access(
-                request.user,
-                request,
-                'suspicious_ip_detail',
-                audit_details
-            )
+        # Extrai apenas dados essenciais dos clientes
+        client_details = []
+        orders = target_group.get('orders', [])
         
-        # === BUSCA DETALHES COM CONTROLE DE PERFORMANCE ===
-        detailed_orders = []
-        max_details = 50  # Limita detalhes para evitar sobrecarga
-        
-        for i, order_summary in enumerate(target_group['orders']):
-            if i >= max_details:
-                break
-            
-            # Verifica se order_summary é válido
-            if not order_summary or not isinstance(order_summary, dict):
+        for order in orders[:20]:  # Limita a 20 pedidos por segurança
+            if not order or not isinstance(order, dict):
                 continue
-                
-            if 'id' not in order_summary:
-                continue
-                
-            try:
-                order_details = detector.get_order_details(order_summary['id'])
-                if order_details:
-                    # Remove dados muito sensíveis dos detalhes
-                    order_details = _sanitize_order_details(order_details)
-                    order_summary['address_details'] = order_details
-            except Exception as detail_error:
-                logger.warning(f"Erro ao buscar detalhes do pedido {order_summary.get('id', 'unknown')}: {str(detail_error)}")
-                order_summary['address_details'] = None
-                
-            detailed_orders.append(order_summary)
-        
-        # === MANTÉM IP ORIGINAL NO RETORNO ===
-        # Verifica se target_group tem estrutura válida
-        if not target_group or not isinstance(target_group, dict):
-            return Response({'error': 'Dados do grupo de IP inválidos'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        if 'orders' not in target_group:
-            target_group['orders'] = []
             
-        target_group['orders'] = detailed_orders
+            # Coleta apenas dados essenciais do cliente
+            client_info = {
+                'order_id': order.get('id'),
+                'order_number': order.get('order_number'),
+                'created_at': order.get('created_at'),
+                'cancelled_at': order.get('cancelled_at'),
+                'status': 'cancelled' if order.get('cancelled_at') else 'active',
+                'total_price': order.get('total_price'),
+                'currency': order.get('currency', 'BRL'),
+                'customer_name': None,
+                'customer_email': None,
+                'customer_phone': None,
+                'shipping_city': None,
+                'shipping_state': None
+            }
+            
+            # Extrai dados do cliente se disponível
+            if 'customer' in order and order['customer']:
+                customer = order['customer']
+                client_info.update({
+                    'customer_name': customer.get('first_name', '') + ' ' + customer.get('last_name', ''),
+                    'customer_email': customer.get('email'),
+                    'customer_phone': customer.get('phone')
+                })
+            
+            # Extrai dados de endereço de entrega se disponível
+            if 'shipping_address' in order and order['shipping_address']:
+                shipping = order['shipping_address']
+                client_info.update({
+                    'shipping_city': shipping.get('city'),
+                    'shipping_state': shipping.get('province')
+                })
+            
+            client_details.append(client_info)
         
-        # Cria response com estrutura consistente com outros endpoints
+        # Resposta simplificada focada nos dados do cliente
         response = Response({
             'success': True,
             'data': {
-                'ip': target_group.get('ip', ip_sanitized),
-                'ip_group': target_group,
-                'details_limited': len(detailed_orders) == max_details,
-                'total_orders': len(detailed_orders),
-                'max_details_applied': max_details
+                'ip': ip_sanitized,
+                'total_orders': len(orders),
+                'client_details': client_details,
+                'active_orders': sum(1 for o in orders if not o.get('cancelled_at')),
+                'cancelled_orders': sum(1 for o in orders if o.get('cancelled_at'))
             },
             'loja_nome': config.nome_loja
         })
         
-        # Adiciona headers de segurança
         return SecurityHeadersManager.add_security_headers(response)
         
     except Exception as e:
-        # Log de erro com auditoria e contexto detalhado
-        error_context = {
-            'requested_ip': ip if 'ip' in locals() else 'unknown',
-            'sanitized_ip': ip_sanitized if 'ip_sanitized' in locals() else 'unknown',
-            'loja_id': loja_id if 'loja_id' in locals() else 'unknown',
-            'days': days if 'days' in locals() else 'unknown',
-            'error': str(e),
-            'error_type': type(e).__name__,
-            'user_ip': AuditLogger._get_client_ip(request),
-            'config_found': 'config' in locals() and config is not None,
-            'config_valid': 'config' in locals() and config is not None and hasattr(config, 'shop_url') and config.shop_url,
-            'detector_created': 'detector' in locals() and detector is not None,
-            'ip_data_fetched': 'ip_data' in locals() and ip_data is not None,
-            'target_group_found': 'target_group' in locals() and target_group is not None
-        }
-        
-        AuditLogger.log_ip_access(
-            request.user,
-            request,
-            'ip_detail_error',
-            error_context
-        )
-        
-        logger.error(f"Erro no detalhamento IP - User: {request.user.username}, Error: {str(e)}, Context: {error_context}")
-        return Response({
-            'error': 'Erro interno do servidor',
-            'debug_info': error_context if request.user.is_staff else None
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        logger.error(f"Erro no detalhamento IP - User: {request.user.username}, IP: {ip if 'ip' in locals() else 'N/A'}, Error: {str(e)}")
+        return Response({'error': 'Erro interno do servidor'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
 @api_view(['GET'])
@@ -2198,6 +2138,165 @@ def analyze_single_order_ip_enhanced(request):
         
         return Response({
             'error': 'Erro interno do servidor'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@csrf_exempt
+@api_view(['POST'])  
+@permission_classes([IsAuthenticated])
+def debug_detalhar_pedidos_ip(request):
+    """DEBUG TEMPORÁRIO - Remove após identificar problema do erro 500"""
+    
+    # Log TUDO que está chegando
+    logger.info(f"DEBUG - Request data completo: {request.data}")
+    logger.info(f"DEBUG - Request method: {request.method}")
+    logger.info(f"DEBUG - Request user: {request.user}")
+    
+    try:
+        # 1. LOG DOS PARÂMETROS RECEBIDOS
+        loja_id = request.data.get('loja_id')
+        ip = request.data.get('ip') 
+        days = request.data.get('days', 30)
+        
+        logger.info(f"DEBUG - Parâmetros parsed:")
+        logger.info(f"DEBUG - loja_id={loja_id} (type: {type(loja_id)})")
+        logger.info(f"DEBUG - ip={ip} (type: {type(ip)})")
+        logger.info(f"DEBUG - days={days} (type: {type(days)})")
+        
+        # 2. VALIDAÇÃO BÁSICA (SEM SANITIZAÇÃO POR ENQUANTO)
+        if not loja_id:
+            logger.error(f"DEBUG - ERRO: loja_id não fornecido")
+            return Response({
+                'error': 'ID da loja é obrigatório',
+                'debug': 'loja_id missing'
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        if not ip:
+            logger.error(f"DEBUG - ERRO: ip não fornecido")
+            return Response({
+                'error': 'IP é obrigatório',
+                'debug': 'ip missing'  
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 3. LOG DA BUSCA DA CONFIGURAÇÃO
+        logger.info(f"DEBUG - Buscando configuração para loja_id: {loja_id}")
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+        
+        if not config:
+            logger.error(f"DEBUG - ERRO: Configuração não encontrada para loja_id: {loja_id}")
+            return Response({
+                'error': 'Loja não encontrada',
+                'debug': f'config not found for loja_id: {loja_id}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        logger.info(f"DEBUG - Configuração encontrada: {config.nome_loja} ({config.shop_url})")
+        
+        # 4. LOG DA CRIAÇÃO DO DETECTOR
+        logger.info(f"DEBUG - Criando detector Shopify...")
+        try:
+            detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
+            logger.info(f"DEBUG - Detector criado com sucesso")
+        except Exception as detector_error:
+            logger.error(f"DEBUG - ERRO ao criar detector: {str(detector_error)}")
+            return Response({
+                'error': 'Erro ao criar detector',
+                'debug': f'detector error: {str(detector_error)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # 5. LOG DA BUSCA DOS DADOS DE IP
+        logger.info(f"DEBUG - Buscando dados de IP com days={days}...")
+        try:
+            ip_data = detector.get_orders_by_ip(days=days, min_orders=1)
+            logger.info(f"DEBUG - get_orders_by_ip retornou: type={type(ip_data)}")
+            if ip_data:
+                logger.info(f"DEBUG - ip_data keys: {list(ip_data.keys()) if isinstance(ip_data, dict) else 'não é dict'}")
+                if isinstance(ip_data, dict) and 'ip_groups' in ip_data:
+                    logger.info(f"DEBUG - Encontrados {len(ip_data['ip_groups'])} grupos de IP")
+                    # Log dos primeiros 3 IPs encontrados
+                    for i, group in enumerate(ip_data['ip_groups'][:3]):
+                        if isinstance(group, dict) and 'ip' in group:
+                            logger.info(f"DEBUG - Grupo {i}: IP={group['ip']}, orders={len(group.get('orders', []))}")
+                else:
+                    logger.warning(f"DEBUG - ip_data não tem estrutura esperada")
+            else:
+                logger.warning(f"DEBUG - ip_data é None ou vazio")
+        except Exception as search_error:
+            logger.error(f"DEBUG - ERRO na busca por IP: {str(search_error)}")
+            return Response({
+                'error': 'Erro na busca por IP',
+                'debug': f'search error: {str(search_error)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # 6. LOG DA BUSCA DO IP ESPECÍFICO
+        logger.info(f"DEBUG - Procurando IP específico: '{ip}' nos grupos encontrados...")
+        target_group = None
+        
+        if ip_data and isinstance(ip_data, dict) and 'ip_groups' in ip_data:
+            for i, group in enumerate(ip_data['ip_groups']):
+                if isinstance(group, dict) and 'ip' in group:
+                    group_ip = group['ip']
+                    logger.info(f"DEBUG - Comparando: '{ip}' == '{group_ip}' ? {ip == group_ip}")
+                    if group_ip == ip:
+                        target_group = group
+                        logger.info(f"DEBUG - IP encontrado no grupo {i}!")
+                        break
+                else:
+                    logger.warning(f"DEBUG - Grupo {i} inválido: {group}")
+        else:
+            logger.error(f"DEBUG - ip_data não tem ip_groups válidos")
+        
+        if not target_group:
+            logger.warning(f"DEBUG - IP '{ip}' não encontrado nos grupos")
+            available_ips = []
+            if ip_data and isinstance(ip_data, dict) and 'ip_groups' in ip_data:
+                available_ips = [group.get('ip', 'no-ip') for group in ip_data['ip_groups'][:5]]
+            
+            logger.info(f"DEBUG - IPs disponíveis (primeiros 5): {available_ips}")
+            
+            return Response({
+                'error': 'IP não encontrado',
+                'debug': {
+                    'requested_ip': ip,
+                    'available_ips': available_ips,
+                    'total_groups': len(ip_data.get('ip_groups', [])) if ip_data else 0
+                }
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # 7. LOG DOS DADOS ENCONTRADOS
+        logger.info(f"DEBUG - Target group encontrado:")
+        logger.info(f"DEBUG - IP: {target_group.get('ip')}")
+        logger.info(f"DEBUG - Número de pedidos: {len(target_group.get('orders', []))}")
+        
+        # 8. RETORNO BÁSICO (SEM BUSCAR DETALHES INDIVIDUAIS)
+        logger.info(f"DEBUG - Retornando dados básicos...")
+        
+        return Response({
+            'success': True,
+            'debug': 'Endpoint debug funcionando até aqui',
+            'data': {
+                'ip': target_group.get('ip'),
+                'orders_count': len(target_group.get('orders', [])),
+                'loja_nome': config.nome_loja,
+                'orders_summary': target_group.get('orders', [])[:2]  # Primeiros 2 pedidos apenas
+            }
+        })
+        
+    except Exception as e:
+        # LOG DETALHADO DO ERRO FINAL
+        logger.error(f"DEBUG - ERRO GERAL capturado:")
+        logger.error(f"DEBUG - Error type: {type(e).__name__}")
+        logger.error(f"DEBUG - Error message: {str(e)}")
+        logger.error(f"DEBUG - Error args: {e.args}")
+        
+        import traceback
+        logger.error(f"DEBUG - Traceback completo: {traceback.format_exc()}")
+        
+        return Response({
+            'error': 'Erro interno capturado pelo debug',
+            'debug': {
+                'error_type': type(e).__name__,
+                'error_message': str(e),
+                'error_args': str(e.args)
+            }
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt

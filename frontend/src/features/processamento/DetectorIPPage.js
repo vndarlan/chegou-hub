@@ -555,27 +555,25 @@ function DetectorIPPage() {
                         <ScrollArea className="max-h-[75vh] pr-4">
                             <div className="space-y-6">
                                 {/* Resumo do IP */}
-                                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <Card className="bg-primary/5 border-primary/20">
                                         <CardContent className="p-4">
                                             <div className="flex items-center justify-between">
                                                 <div>
                                                     <p className="text-xs text-muted-foreground">Total de Pedidos</p>
-                                                    <p className="text-2xl font-bold text-foreground">{ipDetails.order_count}</p>
-                                                    {(ipDetails.active_orders || ipDetails.cancelled_orders) && (
-                                                        <div className="flex gap-1 mt-1">
-                                                            {ipDetails.active_orders > 0 && (
-                                                                <Badge variant="default" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                                                    {ipDetails.active_orders} ativo{ipDetails.active_orders > 1 ? 's' : ''}
-                                                                </Badge>
-                                                            )}
-                                                            {ipDetails.cancelled_orders > 0 && (
-                                                                <Badge variant="secondary" className="text-xs bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                                                                    {ipDetails.cancelled_orders} cancelado{ipDetails.cancelled_orders > 1 ? 's' : ''}
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                    )}
+                                                    <p className="text-2xl font-bold text-foreground">{ipDetails.total_orders}</p>
+                                                    <div className="flex gap-1 mt-1">
+                                                        {ipDetails.active_orders > 0 && (
+                                                            <Badge variant="default" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                                                {ipDetails.active_orders} ativo{ipDetails.active_orders > 1 ? 's' : ''}
+                                                            </Badge>
+                                                        )}
+                                                        {ipDetails.cancelled_orders > 0 && (
+                                                            <Badge variant="secondary" className="text-xs bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                                                                {ipDetails.cancelled_orders} cancelado{ipDetails.cancelled_orders > 1 ? 's' : ''}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <ShoppingBag className="h-8 w-8 text-primary/60" />
                                             </div>
@@ -586,24 +584,10 @@ function DetectorIPPage() {
                                         <CardContent className="p-4">
                                             <div className="flex items-center justify-between">
                                                 <div>
-                                                    <p className="text-xs text-muted-foreground">Clientes Únicos</p>
-                                                    <p className="text-2xl font-bold text-foreground">{ipDetails.unique_customers}</p>
+                                                    <p className="text-xs text-muted-foreground">IP Analisado</p>
+                                                    <p className="text-lg font-bold text-foreground font-mono">{ipDetails.ip}</p>
                                                 </div>
-                                                <Users className="h-8 w-8 text-blue-500/60" />
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                    
-                                    <Card className="bg-green-500/5 border-green-500/20">
-                                        <CardContent className="p-4">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-xs text-muted-foreground">Total Vendas</p>
-                                                    <p className="text-lg font-bold text-foreground">
-                                                        {formatCurrency(ipDetails.total_sales, ipDetails.currency)}
-                                                    </p>
-                                                </div>
-                                                <div className="text-green-500/60 text-2xl font-bold">R$</div>
+                                                <Globe className="h-8 w-8 text-blue-500/60" />
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -612,15 +596,10 @@ function DetectorIPPage() {
                                         <CardContent className="p-4">
                                             <div className="flex items-center justify-between">
                                                 <div>
-                                                    <p className="text-xs text-muted-foreground">Período</p>
-                                                    <p className="text-sm font-bold text-foreground">
-                                                        {ipDetails.date_range ? 
-                                                            `${formatDate(ipDetails.date_range.first)} a ${formatDate(ipDetails.date_range.last)}` : 
-                                                            'N/A'
-                                                        }
-                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">Clientes</p>
+                                                    <p className="text-2xl font-bold text-foreground">{ipDetails.client_details?.length || 0}</p>
                                                 </div>
-                                                <Calendar className="h-8 w-8 text-amber-500/60" />
+                                                <Users className="h-8 w-8 text-amber-500/60" />
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -628,104 +607,82 @@ function DetectorIPPage() {
 
                                 <Separator />
 
-                                {/* Lista de Pedidos */}
+                                {/* Lista de Clientes */}
                                 <div>
-                                    <h3 className="text-lg font-semibold text-foreground mb-4">Pedidos Deste IP</h3>
+                                    <h3 className="text-lg font-semibold text-foreground mb-4">Dados dos Clientes</h3>
                                     <div className="space-y-3">
-                                        {ipDetails.orders?.map((order, index) => (
-                                            <Card key={`${order.id}-${index}`} className="bg-muted/20">
+                                        {ipDetails.client_details?.map((client, index) => (
+                                            <Card key={`${client.order_id}-${index}`} className="bg-muted/20">
                                                 <CardContent className="p-4">
                                                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                                                         {/* Dados do Pedido */}
                                                         <div>
-                                                            <h4 className="font-semibold text-sm text-foreground mb-2">Informações do Pedido</h4>
-                                                            <div className="space-y-2 text-sm">
-                                                                <div>
-                                                                    <Label className="text-xs text-muted-foreground">Número</Label>
-                                                                    <p className="text-foreground">#{order.order_number}</p>
-                                                                </div>
+                                                            <h4 className="font-semibold text-sm text-foreground mb-2 flex items-center gap-2">
+                                                                Pedido #{client.order_number}
+                                                                <Badge variant={client.status === 'cancelled' ? 'secondary' : 'default'} className="text-xs">
+                                                                    {client.status === 'cancelled' ? 'Cancelado' : 'Ativo'}
+                                                                </Badge>
+                                                            </h4>
+                                                            <div className="space-y-1 text-sm">
                                                                 <div>
                                                                     <Label className="text-xs text-muted-foreground">Data</Label>
-                                                                    <p className="text-foreground">{formatDate(order.created_at)}</p>
+                                                                    <p className="text-foreground">{client.created_at ? formatDate(client.created_at) : 'N/A'}</p>
                                                                 </div>
                                                                 <div>
                                                                     <Label className="text-xs text-muted-foreground">Valor</Label>
-                                                                    <p className="font-semibold text-foreground">
-                                                                        {formatCurrency(order.total_price, order.currency)}
-                                                                    </p>
+                                                                    <p className="text-foreground">{formatCurrency(client.total_price, client.currency)}</p>
                                                                 </div>
-                                                                <div>
-                                                                    <Label className="text-xs text-muted-foreground">Status</Label>
-                                                                    <div className="flex gap-1 flex-wrap">
-                                                                        {order.is_cancelled ? (
-                                                                            <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                                                                                Cancelado
-                                                                            </Badge>
-                                                                        ) : (
-                                                                            <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                                                                Ativo
-                                                                            </Badge>
-                                                                        )}
-                                                                        <Badge variant="outline">{order.financial_status}</Badge>
-                                                                        <Badge variant="secondary">{order.fulfillment_status || 'N/A'}</Badge>
+                                                                {client.cancelled_at && (
+                                                                    <div>
+                                                                        <Label className="text-xs text-muted-foreground">Cancelado em</Label>
+                                                                        <p className="text-foreground text-xs">{formatDate(client.cancelled_at)}</p>
                                                                     </div>
-                                                                </div>
+                                                                )}
                                                             </div>
                                                         </div>
-
+                                                        
                                                         {/* Dados do Cliente */}
                                                         <div>
                                                             <h4 className="font-semibold text-sm text-foreground mb-2">Cliente</h4>
-                                                            <div className="space-y-2 text-sm">
-                                                                {order.customer && (
-                                                                    <>
-                                                                        <div>
-                                                                            <Label className="text-xs text-muted-foreground">Nome</Label>
-                                                                            <p className="text-foreground">
-                                                                                {order.customer.first_name} {order.customer.last_name}
-                                                                            </p>
-                                                                        </div>
-                                                                        <div>
-                                                                            <Label className="text-xs text-muted-foreground">Email</Label>
-                                                                            <p className="text-foreground">{order.customer.email}</p>
-                                                                        </div>
-                                                                        <div>
-                                                                            <Label className="text-xs text-muted-foreground">Telefone</Label>
-                                                                            <p className="text-foreground">{order.customer.phone || 'N/A'}</p>
-                                                                        </div>
-                                                                    </>
-                                                                )}
+                                                            <div className="space-y-1 text-sm">
+                                                                <div>
+                                                                    <Label className="text-xs text-muted-foreground">Nome</Label>
+                                                                    <p className="text-foreground">{client.customer_name?.trim() || 'N/A'}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <Label className="text-xs text-muted-foreground">Email</Label>
+                                                                    <p className="text-foreground">{client.customer_email || 'N/A'}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <Label className="text-xs text-muted-foreground">Telefone</Label>
+                                                                    <p className="text-foreground">{client.customer_phone || 'N/A'}</p>
+                                                                </div>
                                                             </div>
                                                         </div>
-
-                                                        {/* Endereço (se disponível) */}
+                                                        
+                                                        {/* Dados de Entrega */}
                                                         <div>
-                                                            <h4 className="font-semibold text-sm text-foreground mb-2">Detalhes</h4>
-                                                            <div className="space-y-2 text-sm">
+                                                            <h4 className="font-semibold text-sm text-foreground mb-2">Endereço</h4>
+                                                            <div className="space-y-1 text-sm">
                                                                 <div>
-                                                                    <Label className="text-xs text-muted-foreground">Items</Label>
-                                                                    <p className="text-foreground">{order.line_items_count} item(s)</p>
+                                                                    <Label className="text-xs text-muted-foreground">Cidade</Label>
+                                                                    <p className="text-foreground">{client.shipping_city || 'N/A'}</p>
                                                                 </div>
-                                                                {order.tags && (
-                                                                    <div>
-                                                                        <Label className="text-xs text-muted-foreground">Tags</Label>
-                                                                        <p className="text-foreground text-xs">{order.tags}</p>
-                                                                    </div>
-                                                                )}
-                                                                {order.address_details?.shipping_address && (
-                                                                    <div>
-                                                                        <Label className="text-xs text-muted-foreground">Cidade</Label>
-                                                                        <p className="text-foreground">
-                                                                            {order.address_details.shipping_address.city}, {order.address_details.shipping_address.province}
-                                                                        </p>
-                                                                    </div>
-                                                                )}
+                                                                <div>
+                                                                    <Label className="text-xs text-muted-foreground">Estado</Label>
+                                                                    <p className="text-foreground">{client.shipping_state || 'N/A'}</p>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </CardContent>
                                             </Card>
                                         ))}
+                                        {(!ipDetails.client_details || ipDetails.client_details.length === 0) && (
+                                            <div className="text-center py-8">
+                                                <p className="text-muted-foreground">Nenhum dado de cliente disponível</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
