@@ -916,11 +916,8 @@ class ShopifyDuplicateOrderDetector:
         # Contador de diagnóstico
         debug_stats = {
             "total_orders_fetched": 0,
-            "orders_without_client_details": 0,
-            "orders_without_browser_ip": 0,
-            "orders_with_empty_ip": 0,
             "orders_with_real_ip_found": 0,
-            "orders_fallback_browser_ip": 0,
+            "orders_without_any_ip": 0,
             "cancelled_orders_included": 0,  # Novo contador para cancelados
             "unique_ips_found": set(),
             "suspicious_ips": {},  # IP -> contagem para detectar padrões suspeitos
@@ -969,30 +966,14 @@ class ShopifyDuplicateOrderDetector:
                         real_customer_ip, ip_source = self._extract_real_customer_ip(order)
                         
                         if real_customer_ip:
-                            # IP real encontrado em customer/address data
+                            # IP real encontrado através do método _extract_real_customer_ip
                             customer_ip = real_customer_ip
                             debug_stats["orders_with_real_ip_found"] += 1
                             order["_ip_source"] = ip_source  # Fonte detalhada
                         else:
-                            # Fallback para browser_ip (lógica anterior)
-                            client_details = order.get("client_details")
-                            if not client_details or not isinstance(client_details, dict):
-                                debug_stats["orders_without_client_details"] += 1
-                                continue
-                                
-                            browser_ip = client_details.get("browser_ip")
-                            if not browser_ip or not isinstance(browser_ip, str):
-                                debug_stats["orders_without_browser_ip"] += 1
-                                continue
-                                
-                            browser_ip = browser_ip.strip()
-                            if not browser_ip:
-                                debug_stats["orders_with_empty_ip"] += 1
-                                continue
-                            
-                            customer_ip = browser_ip
-                            debug_stats["orders_fallback_browser_ip"] += 1
-                            order["_ip_source"] = "browser_ip_fallback"
+                            # Nenhum IP válido encontrado em qualquer fonte
+                            debug_stats["orders_without_any_ip"] += 1
+                            continue
                         
                         # Registra fonte para estatísticas
                         source = order["_ip_source"]
@@ -1043,14 +1024,11 @@ class ShopifyDuplicateOrderDetector:
                 raise Exception(f"Erro ao buscar pedidos por IP na página {page}: {e}")
         
         # === LOG DE DIAGNÓSTICO ATUALIZADO ===
-        print("=== DIAGNÓSTICO DETECTOR DE IP (VERSÃO MELHORADA COM CANCELADOS) ===")
+        print("=== DIAGNÓSTICO DETECTOR DE IP (VERSÃO CORRIGIDA - SEM FALLBACK) ===")
         print(f"Total de pedidos buscados: {debug_stats['total_orders_fetched']}")
         print(f"Pedidos cancelados incluídos: {debug_stats['cancelled_orders_included']}")
-        print(f"IPs reais encontrados em customer data: {debug_stats['orders_with_real_ip_found']}")
-        print(f"Fallback para browser_ip: {debug_stats['orders_fallback_browser_ip']}")
-        print(f"Sem client_details: {debug_stats['orders_without_client_details']}")
-        print(f"Sem browser_ip: {debug_stats['orders_without_browser_ip']}")
-        print(f"IP vazio: {debug_stats['orders_with_empty_ip']}")
+        print(f"IPs encontrados via _extract_real_customer_ip: {debug_stats['orders_with_real_ip_found']}")
+        print(f"Pedidos sem qualquer IP válido: {debug_stats['orders_without_any_ip']}")
         print(f"IPs únicos encontrados: {len(debug_stats['unique_ips_found'])}")
         print(f"Pedidos válidos processados: {len(all_orders)}")
         
@@ -1178,9 +1156,9 @@ class ShopifyDuplicateOrderDetector:
                 "suspicious_ips_count": len(debug_stats["suspicious_ips"]),
                 "total_fetched": debug_stats["total_orders_fetched"],
                 "valid_processed": len(all_orders),
-                "cancelled_orders_included": debug_stats["cancelled_orders_included"],  # Novo campo
+                "cancelled_orders_included": debug_stats["cancelled_orders_included"],
                 "real_customer_ips_found": debug_stats["orders_with_real_ip_found"],
-                "fallback_browser_ip": debug_stats["orders_fallback_browser_ip"]
+                "orders_without_any_ip": debug_stats["orders_without_any_ip"]
             },
             "ip_extraction_sources": debug_stats["ip_extraction_sources"]
         }
