@@ -34,7 +34,6 @@ logger = logging.getLogger(__name__)
 
 @csrf_exempt
 @api_view(['GET', 'POST', 'DELETE'])
-@permission_classes([IsAuthenticated])
 def lojas_config(request):
     """Gerencia múltiplas configurações do Shopify"""
     if request.method == 'GET':
@@ -117,7 +116,6 @@ def lojas_config(request):
 
 @csrf_exempt
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def test_connection(request):
     """Testa conexão com Shopify"""
     try:
@@ -142,7 +140,6 @@ def test_connection(request):
 
 @csrf_exempt
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def buscar_duplicatas(request):
     """Busca pedidos duplicados de uma loja específica"""
     try:
@@ -188,7 +185,6 @@ def buscar_duplicatas(request):
 
 @csrf_exempt
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def cancelar_pedido(request):
     """Cancela um pedido específico"""
     try:
@@ -228,7 +224,6 @@ def cancelar_pedido(request):
 
 @csrf_exempt
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def cancelar_lote(request):
     """Cancela múltiplos pedidos"""
     try:
@@ -281,20 +276,25 @@ def cancelar_lote(request):
 
 @csrf_exempt
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 @never_cache
 def buscar_pedidos_mesmo_ip(request):
     """Busca pedidos agrupados pelo mesmo IP com medidas de segurança - VERSÃO CORRIGIDA"""
     try:
+        # === LOG INICIAL PARA DEBUG ===
+        logger.info(f"=== INÍCIO buscar_pedidos_mesmo_ip ===")
+        logger.info(f"User: {request.user.username}")
+        logger.info(f"Request data: {request.data}")
+        
         # === VALIDAÇÕES DE SEGURANÇA ===
         loja_id = request.data.get('loja_id')
         days = request.data.get('days', 30)
         min_orders = request.data.get('min_orders', 2)
         
-        logger.info(f"buscar_pedidos_mesmo_ip chamado - User: {request.user.username}, loja_id: {loja_id}, days: {days}")
+        logger.info(f"Parâmetros recebidos - loja_id: {loja_id}, days: {days}, min_orders: {min_orders}")
         
         # Validação obrigatória de parâmetros
         if not loja_id:
+            logger.error("loja_id não fornecido")
             return Response({'error': 'ID da loja é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Sanitização e validação de inputs
@@ -302,6 +302,7 @@ def buscar_pedidos_mesmo_ip(request):
             loja_id = int(loja_id)
             days = int(days)  # Remove limite artificial
             min_orders = max(int(min_orders), 2)
+            logger.info(f"Parâmetros validados - loja_id: {loja_id}, days: {days}, min_orders: {min_orders}")
         except (ValueError, TypeError) as param_error:
             logger.error(f"Erro de validação de parâmetros: {str(param_error)}")
             return Response({'error': 'Parâmetros inválidos'}, status=status.HTTP_400_BAD_REQUEST)
@@ -309,6 +310,7 @@ def buscar_pedidos_mesmo_ip(request):
         # Implementa limite dinâmico - será calculado após obter configuração da loja
         # Validação temporária para evitar abuso
         if days > 365:
+            logger.warning(f"Período muito alto solicitado: {days} dias")
             return Response({
                 'error': 'Período máximo absoluto é 365 dias',
                 'details': 'Use um período menor para melhor performance'
@@ -316,41 +318,64 @@ def buscar_pedidos_mesmo_ip(request):
         
         if days < 1:
             days = 1
+            logger.info(f"Período ajustado para minimum: {days}")
         
         # Busca configuração da loja
         try:
+            logger.info(f"Buscando configuração da loja {loja_id}")
             config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
             if not config:
                 logger.warning(f"Loja {loja_id} não encontrada ou inativa")
+                # Lista lojas disponíveis para debug
+                all_configs = ShopifyConfig.objects.all()
+                logger.warning(f"Lojas no banco: {[(c.id, c.nome_loja, c.ativo) for c in all_configs]}")
                 return Response({
                     'error': 'Loja não encontrada ou inativa',
                     'details': 'Configure uma loja Shopify válida antes de usar esta funcionalidade',
                     'action_required': 'add_shopify_store'
                 }, status=status.HTTP_404_NOT_FOUND)
                 
+            logger.info(f"Loja encontrada: {config.nome_loja}")
+            
             # IMPLEMENTA LIMITE DINÂMICO baseado no volume da loja
-            max_days_allowed = _calculate_dynamic_limit_for_store(config)
-            if days > max_days_allowed:
-                logger.warning(f"Período {days} dias excede limite dinâmico {max_days_allowed} para loja {config.nome_loja}")
-                return Response({
-                    'error': f'Período máximo permitido é {max_days_allowed} dias para a loja "{config.nome_loja}"',
-                    'details': f'Limite baseado no volume de pedidos e capacidade de processamento da loja',
-                    'suggested_period': min(days, max_days_allowed),
-                    'loja_volume_category': _get_store_volume_category(config),
-                    'current_limit': max_days_allowed,
-                    'requested_period': days
-                }, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                logger.info("Calculando limite dinâmico...")
+                max_days_allowed = _calculate_dynamic_limit_for_store(config)
+                logger.info(f"Limite dinâmico calculado: {max_days_allowed} dias")
+                
+                if days > max_days_allowed:
+                    logger.warning(f"Período {days} dias excede limite dinâmico {max_days_allowed} para loja {config.nome_loja}")
+                    return Response({
+                        'error': f'Período máximo permitido é {max_days_allowed} dias para a loja "{config.nome_loja}"',
+                        'details': f'Limite baseado no volume de pedidos e capacidade de processamento da loja',
+                        'suggested_period': min(days, max_days_allowed),
+                        'loja_volume_category': _get_store_volume_category(config),
+                        'current_limit': max_days_allowed,
+                        'requested_period': days
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as limit_error:
+                logger.error(f"Erro ao calcular limite dinâmico: {str(limit_error)}", exc_info=True)
+                # Usar limite padrão se falhar
+                max_days_allowed = 30
+                if days > max_days_allowed:
+                    return Response({
+                        'error': f'Período máximo permitido é {max_days_allowed} dias (limite padrão)',
+                        'details': 'Erro na avaliação de limite dinâmico'
+                    }, status=status.HTTP_400_BAD_REQUEST)
                 
         except Exception as db_error:
-            logger.error(f"Erro de banco de dados ao buscar loja {loja_id}: {str(db_error)}")
+            logger.error(f"Erro de banco de dados ao buscar loja {loja_id}: {str(db_error)}", exc_info=True)
             return Response({'error': 'Erro de banco de dados'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         # Testa conexão com Shopify antes de prosseguir
         try:
+            logger.info("Criando detector Shopify...")
             detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
-            logger.info(f"Testando conexão Shopify para loja {config.nome_loja}")
+            logger.info(f"Detector criado. Testando conexão Shopify para loja {config.nome_loja}")
             
             connection_ok, test_message = detector.test_connection()
+            logger.info(f"Resultado do teste de conexão: {connection_ok}, mensagem: {test_message}")
+            
             if not connection_ok:
                 logger.error(f"Falha na conexão Shopify para loja {config.nome_loja}: {test_message}")
                 return Response({
@@ -363,10 +388,10 @@ def buscar_pedidos_mesmo_ip(request):
             logger.info(f"Conexão Shopify OK para loja {config.nome_loja}")
             
         except Exception as connection_error:
-            logger.error(f"Erro ao testar conexão Shopify: {str(connection_error)}", exc_info=True)
+            logger.error(f"ERRO CRÍTICO ao testar conexão Shopify: {str(connection_error)}", exc_info=True)
             return Response({
                 'error': 'Erro de conectividade com Shopify',
-                'details': 'Não foi possível conectar com a API do Shopify. Verifique sua conexão de internet e configurações.',
+                'details': f'Não foi possível conectar com a API do Shopify: {str(connection_error)}',
                 'action_required': 'check_connectivity'
             }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         
@@ -527,7 +552,6 @@ def buscar_pedidos_mesmo_ip(request):
 
 @csrf_exempt
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 @never_cache
 def detalhar_pedidos_ip(request):
     """Retorna dados detalhados dos clientes de um IP específico usando dados reais do Shopify - VERSÃO CORRIGIDA"""
@@ -793,7 +817,6 @@ def test_simple_endpoint(request):
 
 @csrf_exempt
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def debug_detector_ip(request):
     """Endpoint para debugar problemas no detector de IP"""
     try:
@@ -867,7 +890,6 @@ def debug_detector_ip(request):
 
 @csrf_exempt
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 @never_cache
 def test_detalhar_ip(request):
     """Endpoint de teste simplificado para diagnosticar o erro 500"""
@@ -907,7 +929,6 @@ def test_detalhar_ip(request):
 
 @csrf_exempt
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def status_lojas_shopify(request):
     """Retorna status de conectividade de todas as lojas Shopify configuradas"""
     try:
@@ -1002,7 +1023,6 @@ def status_lojas_shopify(request):
 
 @csrf_exempt
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def historico_logs(request):
     """Retorna histórico de operações (opcionalmente filtrado por loja)"""
     try:
@@ -1037,7 +1057,6 @@ def historico_logs(request):
 
 @csrf_exempt
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 
 # === FUNÇÕES AUXILIARES ===
 
@@ -1514,7 +1533,6 @@ def _extract_ip_field_paths(raw_order):
 
 @csrf_exempt
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 @never_cache
 def analyze_order_ip_alternative(request):
     """
@@ -1634,7 +1652,6 @@ def analyze_order_ip_alternative(request):
 
 @csrf_exempt
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 @never_cache
 def batch_analyze_ips(request):
     """
@@ -1734,7 +1751,6 @@ def batch_analyze_ips(request):
 
 @csrf_exempt
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 @never_cache
 def analyze_ip_quality(request):
     """
@@ -1809,7 +1825,6 @@ def analyze_ip_quality(request):
 
 @csrf_exempt
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def get_geolocation_status(request):
     """
     Retorna status dos serviços de geolocalização configurados
@@ -1846,7 +1861,6 @@ def get_geolocation_status(request):
 
 @csrf_exempt
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 @never_cache
 def test_geolocation_api(request):
     """
@@ -1905,7 +1919,6 @@ def test_geolocation_api(request):
 
 @csrf_exempt
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 @never_cache
 def buscar_pedidos_mesmo_ip_enhanced(request):
     """
@@ -2057,7 +2070,6 @@ def buscar_pedidos_mesmo_ip_enhanced(request):
 
 @csrf_exempt
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 @never_cache
 def analyze_single_order_ip_enhanced(request):
     """
@@ -2172,7 +2184,6 @@ def analyze_single_order_ip_enhanced(request):
 
 @csrf_exempt
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 @never_cache
 def get_system_diagnostics(request):
     """
