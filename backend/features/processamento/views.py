@@ -8,6 +8,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.http import JsonResponse
 from django.core.cache import cache
+from django.utils import timezone
 import json
 import logging
 import requests
@@ -282,12 +283,14 @@ def cancelar_lote(request):
 @permission_classes([IsAuthenticated])
 @never_cache
 def buscar_pedidos_mesmo_ip(request):
-    """Busca pedidos agrupados pelo mesmo IP com medidas de segurança"""
+    """Busca pedidos agrupados pelo mesmo IP com medidas de segurança - VERSÃO CORRIGIDA"""
     try:
         # === VALIDAÇÕES DE SEGURANÇA ===
         loja_id = request.data.get('loja_id')
         days = request.data.get('days', 30)
         min_orders = request.data.get('min_orders', 2)
+        
+        logger.info(f"buscar_pedidos_mesmo_ip chamado - User: {request.user.username}, loja_id: {loja_id}, days: {days}")
         
         # Validação obrigatória de parâmetros
         if not loja_id:
@@ -298,7 +301,8 @@ def buscar_pedidos_mesmo_ip(request):
             loja_id = int(loja_id)
             days = min(int(days), 30)  # REDUZIDO PARA 30 DIAS MÁXIMO por segurança
             min_orders = max(int(min_orders), 2)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as param_error:
+            logger.error(f"Erro de validação de parâmetros: {str(param_error)}")
             return Response({'error': 'Parâmetros inválidos'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Validação de range de dias mais restritiva
@@ -310,17 +314,25 @@ def buscar_pedidos_mesmo_ip(request):
         if days < 1:
             days = 1
         
-        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
-        if not config:
-            return Response({
-                'error': 'Loja não encontrada ou inativa',
-                'details': 'Configure uma loja Shopify válida antes de usar esta funcionalidade',
-                'action_required': 'add_shopify_store'
-            }, status=status.HTTP_404_NOT_FOUND)
+        # Busca configuração da loja
+        try:
+            config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+            if not config:
+                logger.warning(f"Loja {loja_id} não encontrada ou inativa")
+                return Response({
+                    'error': 'Loja não encontrada ou inativa',
+                    'details': 'Configure uma loja Shopify válida antes de usar esta funcionalidade',
+                    'action_required': 'add_shopify_store'
+                }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as db_error:
+            logger.error(f"Erro de banco de dados ao buscar loja {loja_id}: {str(db_error)}")
+            return Response({'error': 'Erro de banco de dados'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         # Testa conexão com Shopify antes de prosseguir
-        detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
         try:
+            detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
+            logger.info(f"Testando conexão Shopify para loja {config.nome_loja}")
+            
             connection_ok, test_message = detector.test_connection()
             if not connection_ok:
                 logger.error(f"Falha na conexão Shopify para loja {config.nome_loja}: {test_message}")
@@ -330,8 +342,11 @@ def buscar_pedidos_mesmo_ip(request):
                     'action_required': 'update_shopify_credentials',
                     'loja_nome': config.nome_loja
                 }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            logger.info(f"Conexão Shopify OK para loja {config.nome_loja}")
+            
         except Exception as connection_error:
-            logger.error(f"Erro ao testar conexão Shopify: {str(connection_error)}")
+            logger.error(f"Erro ao testar conexão Shopify: {str(connection_error)}", exc_info=True)
             return Response({
                 'error': 'Erro de conectividade com Shopify',
                 'details': 'Não foi possível conectar com a API do Shopify. Verifique sua conexão de internet e configurações.',
@@ -340,64 +355,46 @@ def buscar_pedidos_mesmo_ip(request):
         
         # Buscar dados de IP com tratamento de erro melhorado
         try:
+            logger.info(f"Buscando pedidos por IP - days: {days}, min_orders: {min_orders}")
             ip_data = detector.get_orders_by_ip(days=days, min_orders=min_orders)
+            logger.info(f"Busca por IP concluída - IPs encontrados: {ip_data.get('total_ips_found', 0)}")
+            
         except HTTPError as http_error:
             # Log seguro com informações técnicas detalhadas
             logger.error(
                 f"Erro HTTP na busca por IP - User: {request.user.username}, "
                 f"Status: {getattr(http_error.response, 'status_code', 'N/A')}, "
-                f"URL: {getattr(http_error.response, 'url', 'N/A')}",
-                extra={
-                    'user_id': request.user.id,
-                    'loja_id': loja_id,
-                    'operation': 'buscar_pedidos_mesmo_ip',
-                    'error_type': 'HTTPError',
-                    'status_code': getattr(http_error.response, 'status_code', None)
-                }
+                f"Error: {str(http_error)}",
+                exc_info=True
             )
             
             # Tratamento específico por código HTTP
-            if hasattr(http_error, 'response') and http_error.response.status_code == 401:
-                return Response({
-                    'error': 'Erro de autenticação com Shopify. Verifique o token de acesso da loja.',
-                    'details': 'Token de acesso inválido ou expirado'
-                }, status=status.HTTP_401_UNAUTHORIZED)
-            elif hasattr(http_error, 'response') and http_error.response.status_code == 403:
-                return Response({
-                    'error': 'Acesso negado pela API do Shopify. Verifique as permissões do token.',
-                    'details': 'Token não possui permissões necessárias para acessar pedidos'
-                }, status=status.HTTP_403_FORBIDDEN)
-            else:
-                return Response({
-                    'error': 'Erro ao buscar dados de IP no Shopify',
-                    'details': 'Entre em contato com o suporte técnico'
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            if hasattr(http_error, 'response') and hasattr(http_error.response, 'status_code'):
+                if http_error.response.status_code == 401:
+                    return Response({
+                        'error': 'Erro de autenticação com Shopify. Verifique o token de acesso da loja.',
+                        'details': 'Token de acesso inválido ou expirado'
+                    }, status=status.HTTP_401_UNAUTHORIZED)
+                elif http_error.response.status_code == 403:
+                    return Response({
+                        'error': 'Acesso negado pela API do Shopify. Verifique as permissões do token.',
+                        'details': 'Token não possui permissões necessárias para acessar pedidos'
+                    }, status=status.HTTP_403_FORBIDDEN)
+            
+            return Response({
+                'error': 'Erro ao buscar dados de IP no Shopify',
+                'details': 'Entre em contato com o suporte técnico'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         except (ConnectionError, Timeout) as conn_error:
-            logger.warning(
-                f"Problema de conectividade na busca por IP - User: {request.user.username}",
-                extra={
-                    'user_id': request.user.id,
-                    'loja_id': loja_id,
-                    'operation': 'buscar_pedidos_mesmo_ip',
-                    'error_type': type(conn_error).__name__
-                }
-            )
+            logger.error(f"Erro de conectividade na busca por IP: {str(conn_error)}", exc_info=True)
             return Response({
                 'error': 'Problema de conectividade',
                 'details': 'Problemas de conectividade com a API'
             }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         
         except RequestException as req_error:
-            logger.error(
-                f"Erro de requisição na busca por IP - User: {request.user.username}",
-                extra={
-                    'user_id': request.user.id,
-                    'loja_id': loja_id,
-                    'operation': 'buscar_pedidos_mesmo_ip',
-                    'error_type': 'RequestException'
-                }
-            )
+            logger.error(f"Erro de requisição na busca por IP: {str(req_error)}", exc_info=True)
             return Response({
                 'error': 'Erro ao buscar dados de IP no Shopify',
                 'details': 'Entre em contato com o suporte técnico'
@@ -407,111 +404,82 @@ def buscar_pedidos_mesmo_ip(request):
             # Log de erro genérico com informações técnicas detalhadas
             logger.error(
                 f"Erro inesperado na busca por IP - User: {request.user.username}, "
-                f"Type: {type(search_error).__name__}",
-                extra={
-                    'user_id': request.user.id,
-                    'loja_id': loja_id,
-                    'operation': 'buscar_pedidos_mesmo_ip',
-                    'error_type': type(search_error).__name__,
-                    'error_details': str(search_error)[:200]
-                }
+                f"Type: {type(search_error).__name__}, Error: {str(search_error)}",
+                exc_info=True
             )
             return Response({
                 'error': 'Erro interno no processamento',
-                'details': 'Entre em contato com o suporte técnico'
+                'details': f'Erro específico: {str(search_error)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         # === AUDITORIA DE SEGURANÇA ===
-        audit_details = {
-            'ips_found': ip_data['total_ips_found'],
-            'period_days': days,
-            'min_orders': min_orders,
-            'user_ip': AuditLogger._get_client_ip(request),
-            'total_orders': ip_data['total_orders_analyzed']
-        }
-        
-        # Verifica se é consulta massiva (suspeita)
-        if ip_data['total_ips_found'] > 20:
-            AuditLogger.log_ip_access(
-                request.user,
-                request,
-                'massive_ip_search',
-                audit_details
-            )
-        
-        # Log padrão da busca
-        ProcessamentoLog.objects.create(
-            user=request.user,
-            config=config,
-            tipo='busca_ip',
-            status='sucesso',
-            pedidos_encontrados=ip_data['total_orders_analyzed'],
-            detalhes=audit_details
-        )
-        
-        # Log de auditoria
-        AuditLogger.log_ip_access(
-            request.user,
-            request,
-            'ip_search',
-            audit_details
-        )
-        
-        # Prepara dados de resposta
-        enhanced_ip_data = ip_data.copy()
-
-        # Cria response com dados completos incluindo exemplo RAW
-        response = Response({
-            'success': True,
-            'data': enhanced_ip_data,
-            'loja_nome': config.nome_loja
-        })
-        
-        # Adiciona headers de segurança
-        return SecurityHeadersManager.add_security_headers(response)
-        
-    except Exception as e:
-        # === LOG DE ERRO COM AUDITORIA ===
-        error_details = {
-            'days': days if 'days' in locals() else 30,
-            'min_orders': min_orders if 'min_orders' in locals() else 2,
-            'user_ip': AuditLogger._get_client_ip(request),
-            'error': str(e)
-        }
-        
-        # Log de auditoria do erro
-        AuditLogger.log_ip_access(
-            request.user,
-            request,
-            'ip_search_error',
-            error_details
-        )
-        
-        # Log padrão do erro
-        if 'config' in locals():
+        try:
+            audit_details = {
+                'ips_found': ip_data.get('total_ips_found', 0),
+                'period_days': days,
+                'min_orders': min_orders,
+                'total_orders': ip_data.get('total_orders_analyzed', 0)
+            }
+            
+            # Log padrão da busca
             ProcessamentoLog.objects.create(
                 user=request.user,
                 config=config,
                 tipo='busca_ip',
-                status='erro',
-                erro_mensagem=str(e),
-                detalhes=error_details
+                status='sucesso',
+                pedidos_encontrados=ip_data.get('total_orders_analyzed', 0),
+                detalhes=audit_details
             )
+            
+            logger.info(f"Busca por IP concluída com sucesso - User: {request.user.username}")
+            
+        except Exception as audit_error:
+            logger.error(f"Erro na auditoria (não crítico): {str(audit_error)}")
         
-        logger.error(f"Erro na busca por IP - User: {request.user.username}, Error: {str(e)}")
-        return Response({'error': 'Erro interno do servidor'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # Prepara dados de resposta
+        response = Response({
+            'success': True,
+            'data': ip_data,
+            'loja_nome': config.nome_loja
+        })
+        
+        return response
+        
+    except Exception as e:
+        # === LOG DE ERRO COM STACK TRACE COMPLETO ===
+        logger.error(f"ERRO CRÍTICO em buscar_pedidos_mesmo_ip - User: {request.user.username if hasattr(request, 'user') else 'Unknown'}, Error: {str(e)}", exc_info=True)
+        
+        # Log padrão do erro
+        try:
+            if 'config' in locals():
+                ProcessamentoLog.objects.create(
+                    user=request.user,
+                    config=config,
+                    tipo='busca_ip',
+                    status='erro',
+                    erro_mensagem=str(e)
+                )
+        except Exception as log_error:
+            logger.error(f"Erro ao salvar log de erro: {str(log_error)}")
+        
+        return Response({
+            'error': 'Erro interno do servidor', 
+            'details': f'Erro específico: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 @never_cache
 def detalhar_pedidos_ip(request):
-    """Retorna dados detalhados dos clientes de um IP específico usando dados reais do Shopify"""
+    """Retorna dados detalhados dos clientes de um IP específico usando dados reais do Shopify - VERSÃO CORRIGIDA"""
     try:
         # === VALIDAÇÕES BÁSICAS ===
         loja_id = request.data.get('loja_id')
         ip = request.data.get('ip')
         days = request.data.get('days', 30)  # Permite configurar período
+        
+        logger.info(f"detalhar_pedidos_ip chamado - User: {request.user.username}, loja_id: {loja_id}, ip: {ip}, days: {days}")
         
         if not loja_id or not ip:
             return Response({'error': 'ID da loja e IP são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
@@ -520,26 +488,29 @@ def detalhar_pedidos_ip(request):
         try:
             loja_id = int(loja_id)
             days = min(int(days), 30)  # Máximo 30 dias
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as param_error:
+            logger.error(f"Erro de validação de parâmetros: {str(param_error)}")
             return Response({'error': 'Parâmetros inválidos'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Busca configuração da loja
         try:
             config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+            if not config:
+                logger.warning(f"Loja {loja_id} não encontrada ou inativa")
+                return Response({
+                    'error': 'Loja não encontrada ou inativa',
+                    'details': 'Configure uma loja Shopify válida antes de usar esta funcionalidade',
+                    'action_required': 'add_shopify_store'
+                }, status=status.HTTP_404_NOT_FOUND)
         except Exception as db_error:
-            logger.error(f"Erro de banco de dados: {str(db_error)}")
+            logger.error(f"Erro de banco de dados ao buscar loja {loja_id}: {str(db_error)}")
             return Response({'error': 'Erro de banco de dados'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        if not config:
-            return Response({
-                'error': 'Loja não encontrada ou inativa',
-                'details': 'Configure uma loja Shopify válida antes de usar esta funcionalidade',
-                'action_required': 'add_shopify_store'
-            }, status=status.HTTP_404_NOT_FOUND)
-        
         # Testa conexão com Shopify antes de prosseguir
-        detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
         try:
+            detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
+            logger.info(f"Testando conexão Shopify para loja {config.nome_loja}")
+            
             connection_ok, test_message = detector.test_connection()
             if not connection_ok:
                 logger.error(f"Falha na conexão Shopify para loja {config.nome_loja}: {test_message}")
@@ -549,8 +520,11 @@ def detalhar_pedidos_ip(request):
                     'action_required': 'update_shopify_credentials',
                     'loja_nome': config.nome_loja
                 }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            logger.info(f"Conexão Shopify OK para loja {config.nome_loja}")
+            
         except Exception as connection_error:
-            logger.error(f"Erro ao testar conexão Shopify: {str(connection_error)}")
+            logger.error(f"Erro ao testar conexão Shopify: {str(connection_error)}", exc_info=True)
             return Response({
                 'error': 'Erro de conectividade com Shopify',
                 'details': 'Não foi possível conectar com a API do Shopify. Verifique sua conexão de internet e configurações.',
@@ -559,20 +533,24 @@ def detalhar_pedidos_ip(request):
         
         # === BUSCA DADOS REAIS DO SHOPIFY ===
         try:
-            # Cria detector para buscar dados reais
-            detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
+            logger.info(f"Buscando detalhes para IP {ip} - days: {days}")
             
             # Busca todos os pedidos agrupados por IP
             ip_data = detector.get_orders_by_ip(days=days, min_orders=1)  # min_orders=1 para pegar todos
             
             # Filtra apenas o IP específico solicitado
             target_ip_data = None
-            for ip_group in ip_data.get('ip_groups', []):
+            ip_groups = ip_data.get('ip_groups', [])
+            logger.info(f"Total de grupos de IP encontrados: {len(ip_groups)}")
+            
+            for ip_group in ip_groups:
                 if ip_group.get('ip') == ip:
                     target_ip_data = ip_group
+                    logger.info(f"Grupo encontrado para IP {ip} com {ip_group.get('order_count', 0)} pedidos")
                     break
             
             if not target_ip_data:
+                logger.info(f"Nenhum pedido encontrado para IP {ip}")
                 return Response({
                     'success': True,
                     'data': {
@@ -591,57 +569,72 @@ def detalhar_pedidos_ip(request):
             active_orders = 0
             cancelled_orders = 0
             
-            for order in target_ip_data.get('orders', []):
-                # Extrai dados do cliente
-                customer = order.get('customer', {})
-                customer_name = f"{customer.get('first_name', '')} {customer.get('last_name', '')}".strip()
-                if not customer_name:
-                    customer_name = 'Cliente não informado'
-                
-                # Busca detalhes de endereço do pedido
-                order_details = detector.get_order_details(order['id'])
-                shipping_city = ''
-                shipping_state = ''
-                
-                if order_details:
-                    shipping_address = order_details.get('shipping_address', {})
-                    shipping_city = shipping_address.get('city', '')
-                    shipping_state = shipping_address.get('province', '')
-                
-                # Determina status do pedido
-                is_cancelled = order.get('is_cancelled', False)
-                status = 'cancelled' if is_cancelled else 'active'
-                
-                if is_cancelled:
-                    cancelled_orders += 1
-                else:
-                    active_orders += 1
-                
-                # Formata data de criação
-                created_at = order.get('created_at', '')
-                cancelled_at = order.get('cancelled_at')
-                
-                client_details.append({
-                    'order_id': str(order['id']),
-                    'order_number': order.get('order_number', ''),
-                    'created_at': created_at,
-                    'cancelled_at': cancelled_at,
-                    'status': status,
-                    'total_price': order.get('total_price', '0.00'),
-                    'currency': order.get('currency', 'BRL'),
-                    'customer_name': customer_name,
-                    'customer_email': customer.get('email', ''),
-                    'customer_phone': customer.get('phone', ''),
-                    'shipping_city': shipping_city,
-                    'shipping_state': shipping_state
-                })
+            orders_in_group = target_ip_data.get('orders', [])
+            logger.info(f"Processando {len(orders_in_group)} pedidos do grupo")
+            
+            for order in orders_in_group:
+                try:
+                    # Extrai dados do cliente
+                    customer = order.get('customer', {})
+                    customer_name = f"{customer.get('first_name', '')} {customer.get('last_name', '')}".strip()
+                    if not customer_name:
+                        customer_name = 'Cliente não informado'
+                    
+                    # Busca detalhes de endereço do pedido (PROTEGIDO COM TRY/CATCH)
+                    shipping_city = ''
+                    shipping_state = ''
+                    
+                    try:
+                        order_details = detector.get_order_details(order['id'])
+                        if order_details:
+                            shipping_address = order_details.get('shipping_address', {})
+                            shipping_city = shipping_address.get('city', '')
+                            shipping_state = shipping_address.get('province', '')
+                    except Exception as order_detail_error:
+                        logger.warning(f"Erro ao buscar detalhes do pedido {order['id']}: {str(order_detail_error)}")
+                        # Continua sem os detalhes de endereço
+                    
+                    # Determina status do pedido (CORRIGIDO)
+                    is_cancelled = order.get('is_cancelled', False)
+                    status = 'cancelled' if is_cancelled else 'active'
+                    
+                    if is_cancelled:
+                        cancelled_orders += 1
+                    else:
+                        active_orders += 1
+                    
+                    # Formata data de criação
+                    created_at = order.get('created_at', '')
+                    cancelled_at = order.get('cancelled_at')
+                    
+                    client_details.append({
+                        'order_id': str(order['id']),
+                        'order_number': order.get('order_number', ''),
+                        'created_at': created_at,
+                        'cancelled_at': cancelled_at,
+                        'status': status,
+                        'total_price': order.get('total_price', '0.00'),
+                        'currency': order.get('currency', 'BRL'),
+                        'customer_name': customer_name,
+                        'customer_email': customer.get('email', ''),
+                        'customer_phone': customer.get('phone', ''),
+                        'shipping_city': shipping_city,
+                        'shipping_state': shipping_state
+                    })
+                    
+                except Exception as order_process_error:
+                    logger.error(f"Erro ao processar pedido {order.get('id', 'unknown')}: {str(order_process_error)}")
+                    # Continua processando outros pedidos
+                    continue
+            
+            logger.info(f"Processamento concluído: {len(client_details)} pedidos processados, {active_orders} ativos, {cancelled_orders} cancelados")
             
             # Monta resposta com dados reais
             response_data = {
                 'success': True,
                 'data': {
                     'ip': ip,
-                    'total_orders': target_ip_data.get('order_count', 0),
+                    'total_orders': target_ip_data.get('order_count', len(client_details)),
                     'client_details': client_details,
                     'active_orders': active_orders,
                     'cancelled_orders': cancelled_orders,
@@ -657,25 +650,29 @@ def detalhar_pedidos_ip(request):
             }
             
             # Log da busca bem-sucedida
-            ProcessamentoLog.objects.create(
-                user=request.user,
-                config=config,
-                tipo='detalhamento_ip',
-                status='sucesso',
-                pedidos_encontrados=len(client_details),
-                detalhes={
-                    'ip_consultado': ip,
-                    'period_days': days,
-                    'active_orders': active_orders,
-                    'cancelled_orders': cancelled_orders
-                }
-            )
+            try:
+                ProcessamentoLog.objects.create(
+                    user=request.user,
+                    config=config,
+                    tipo='detalhamento_ip',
+                    status='sucesso',
+                    pedidos_encontrados=len(client_details),
+                    detalhes={
+                        'ip_consultado': ip,
+                        'period_days': days,
+                        'active_orders': active_orders,
+                        'cancelled_orders': cancelled_orders
+                    }
+                )
+                logger.info(f"Detalhamento IP concluído com sucesso - User: {request.user.username}")
+            except Exception as log_error:
+                logger.error(f"Erro ao salvar log (não crítico): {str(log_error)}")
             
             return Response(response_data)
             
         except HTTPError as http_error:
             # Log de erro HTTP específico
-            logger.error(f"Erro HTTP na busca por detalhes do IP: {http_error}")
+            logger.error(f"Erro HTTP na busca por detalhes do IP: {str(http_error)}", exc_info=True)
             return Response({
                 'error': 'Erro ao acessar dados do Shopify',
                 'details': 'Verifique a configuração da loja e token de acesso'
@@ -683,33 +680,44 @@ def detalhar_pedidos_ip(request):
             
         except (ConnectionError, Timeout) as conn_error:
             # Log de erro de conexão
-            logger.error(f"Erro de conectividade na busca por detalhes do IP: {conn_error}")
+            logger.error(f"Erro de conectividade na busca por detalhes do IP: {str(conn_error)}", exc_info=True)
             return Response({
                 'error': 'Problema de conectividade com o Shopify',
                 'details': 'Tente novamente em alguns instantes'
             }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             
+        except Exception as shopify_error:
+            # Log de erro genérico do Shopify
+            logger.error(f"Erro genérico na busca do Shopify: {str(shopify_error)}", exc_info=True)
+            return Response({
+                'error': 'Erro ao processar dados do Shopify',
+                'details': f'Erro específico: {str(shopify_error)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
     except Exception as e:
         # Log de erro genérico
-        logger.error(f"Erro no detalhamento IP: {str(e)}, Type: {type(e).__name__}")
+        logger.error(f"ERRO CRÍTICO em detalhar_pedidos_ip - User: {request.user.username if hasattr(request, 'user') else 'Unknown'}, Error: {str(e)}", exc_info=True)
         
         # Log do erro no banco
-        if 'config' in locals():
-            ProcessamentoLog.objects.create(
-                user=request.user,
-                config=config,
-                tipo='detalhamento_ip',
-                status='erro',
-                erro_mensagem=str(e),
-                detalhes={
-                    'ip_consultado': ip if 'ip' in locals() else 'unknown',
-                    'error_type': type(e).__name__
-                }
-            )
+        try:
+            if 'config' in locals():
+                ProcessamentoLog.objects.create(
+                    user=request.user,
+                    config=config,
+                    tipo='detalhamento_ip',
+                    status='erro',
+                    erro_mensagem=str(e),
+                    detalhes={
+                        'ip_consultado': ip if 'ip' in locals() else 'unknown',
+                        'error_type': type(e).__name__
+                    }
+                )
+        except Exception as log_error:
+            logger.error(f"Erro ao salvar log de erro: {str(log_error)}")
         
         return Response({
             'error': 'Erro interno do servidor',
-            'message': 'Entre em contato com o suporte técnico'
+            'details': f'Erro específico: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
@@ -724,6 +732,80 @@ def test_simple_endpoint(request):
         })
     except Exception as e:
         return Response({'error': f'Erro: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def debug_detector_ip(request):
+    """Endpoint para debugar problemas no detector de IP"""
+    try:
+        loja_id = request.data.get('loja_id')
+        if not loja_id:
+            return Response({'error': 'ID da loja é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        logger.info(f"DEBUG: Iniciando debug do detector para loja {loja_id}")
+        
+        # Busca configuração
+        try:
+            config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+            if not config:
+                return Response({'error': 'Loja não encontrada'}, status=status.HTTP_404_NOT_FOUND)
+            
+            logger.info(f"DEBUG: Loja encontrada - {config.nome_loja}")
+        except Exception as config_error:
+            logger.error(f"DEBUG: Erro ao buscar configuração: {str(config_error)}")
+            return Response({'error': f'Erro de configuração: {str(config_error)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Testa detector
+        try:
+            detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
+            logger.info(f"DEBUG: Detector criado com sucesso")
+            
+            # Testa conexão
+            connection_ok, test_message = detector.test_connection()
+            logger.info(f"DEBUG: Teste de conexão - OK: {connection_ok}, Message: {test_message}")
+            
+            if not connection_ok:
+                return Response({
+                    'error': 'Falha na conexão',
+                    'details': test_message
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
+        except Exception as detector_error:
+            logger.error(f"DEBUG: Erro ao criar/testar detector: {str(detector_error)}", exc_info=True)
+            return Response({'error': f'Erro no detector: {str(detector_error)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Testa busca de IPs (versão minimalista)
+        try:
+            logger.info(f"DEBUG: Iniciando busca por IPs (1 dia, min 1 pedido)")
+            ip_data = detector.get_orders_by_ip(days=1, min_orders=1)
+            logger.info(f"DEBUG: Busca concluída - Total IPs: {ip_data.get('total_ips_found', 0)}")
+            
+            return Response({
+                'success': True,
+                'message': 'Debug concluído com sucesso',
+                'loja_nome': config.nome_loja,
+                'connection_status': 'OK',
+                'ip_search_result': {
+                    'total_ips_found': ip_data.get('total_ips_found', 0),
+                    'total_orders': ip_data.get('total_orders_analyzed', 0),
+                    'debug_stats': ip_data.get('debug_stats', {})
+                },
+                'timestamp': timezone.now().isoformat()
+            })
+            
+        except Exception as search_error:
+            logger.error(f"DEBUG: Erro na busca por IPs: {str(search_error)}", exc_info=True)
+            return Response({
+                'error': f'Erro na busca: {str(search_error)}',
+                'loja_nome': config.nome_loja,
+                'connection_status': 'OK',
+                'search_status': 'FAILED'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    except Exception as e:
+        logger.error(f"DEBUG: Erro geral no debug: {str(e)}", exc_info=True)
+        return Response({'error': f'Erro geral: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
 @api_view(['POST'])

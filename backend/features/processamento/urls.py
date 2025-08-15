@@ -13,6 +13,7 @@ urlpatterns = [
     path('detalhar-ip/', views.detalhar_pedidos_ip, name='detalhar_pedidos_ip'),
     path('test-detalhar-ip/', views.test_detalhar_ip, name='test_detalhar_ip'),
     path('test-simple/', views.test_simple_endpoint, name='test_simple_endpoint'),
+    path('debug-detector/', views.debug_detector_ip, name='debug_detector_ip'),
     path('cancelar-pedido/', views.cancelar_pedido, name='cancelar_pedido'),
     path('cancelar-lote/', views.cancelar_lote, name='cancelar_lote'),
     path('historico-logs/', views.historico_logs, name='historico_logs'),
