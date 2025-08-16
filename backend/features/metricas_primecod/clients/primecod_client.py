@@ -242,38 +242,55 @@ class PrimeCODClient:
     
     def _filter_orders_by_date(self, orders: List[Dict], date_range: Dict[str, str]) -> List[Dict]:
         """Filtra orders por data localmente"""
+        logger.error(f"📅 Filtro de data chamado: {date_range}")
+        
         if not date_range.get('start') or not date_range.get('end'):
+            logger.error("📅 Sem filtro de data, retornando todos os orders")
             return orders
         
         try:
             start_date = datetime.strptime(date_range['start'], '%Y-%m-%d').date()
             end_date = datetime.strptime(date_range['end'], '%Y-%m-%d').date()
             
+            logger.error(f"📅 Período: {start_date} até {end_date}")
+            
             filtered_orders = []
             for order in orders:
                 # Tentar diferentes campos de data
                 order_date_str = order.get('created_at') or order.get('date') or order.get('order_date')
+                logger.error(f"📅 Order {order.get('id')}: data_str={order_date_str}")
+                
                 if not order_date_str:
+                    logger.error(f"📅 Order {order.get('id')}: SEM DATA, pulando")
                     continue
                 
                 try:
                     # Tentar diferentes formatos de data
+                    order_date = None
                     for date_format in ['%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%d/%m/%Y']:
                         try:
                             order_date = datetime.strptime(order_date_str[:10], '%Y-%m-%d').date()
                             break
                         except ValueError:
                             continue
-                    else:
-                        continue  # Não conseguiu parsear a data
+                    
+                    if not order_date:
+                        logger.error(f"📅 Order {order.get('id')}: NÃO conseguiu parsear data {order_date_str}")
+                        continue
+                    
+                    logger.error(f"📅 Order {order.get('id')}: data_parseada={order_date}")
                     
                     if start_date <= order_date <= end_date:
+                        logger.error(f"📅 Order {order.get('id')}: ✅ INCLUÍDO no filtro")
                         filtered_orders.append(order)
+                    else:
+                        logger.error(f"📅 Order {order.get('id')}: ❌ EXCLUÍDO (fora do período)")
                         
-                except (ValueError, TypeError):
+                except (ValueError, TypeError) as e:
+                    logger.error(f"📅 Order {order.get('id')}: ERRO ao processar data: {e}")
                     continue
             
-            logger.info(f"Filtro de data aplicado: {len(orders)} -> {len(filtered_orders)} orders")
+            logger.error(f"📅 Filtro de data aplicado: {len(orders)} -> {len(filtered_orders)} orders")
             return filtered_orders
             
         except ValueError as e:
