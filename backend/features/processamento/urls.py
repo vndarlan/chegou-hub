@@ -3,6 +3,8 @@ from django.urls import path
 from . import views
 from . import views_cached
 
+# Forçar recarregamento para resolver problema da URL buscar-ips-duplicados-simples
+
 app_name = 'processamento'
 
 urlpatterns = [
@@ -11,7 +13,6 @@ urlpatterns = [
     path('test-connection/', views.test_connection, name='test_connection'),
     path('buscar-duplicatas/', views.buscar_duplicatas, name='buscar_duplicatas'),
     path('buscar-duplicatas-simples/', views.buscar_duplicatas, name='buscar_duplicatas_simples'),
-    path('buscar-ips-duplicados-simples/', views.buscar_ips_duplicados_simples, name='buscar_ips_duplicados_simples'),
     path('buscar-ips-duplicados/', views.buscar_pedidos_mesmo_ip, name='buscar_pedidos_mesmo_ip'),
     path('detalhar-ip/', views.detalhar_pedidos_ip, name='detalhar_pedidos_ip'),
     path('test-detalhar-ip/', views.test_detalhar_ip, name='test_detalhar_ip'),
@@ -54,4 +55,7 @@ urlpatterns = [
     path('buscar-ips-otimizado/', views.buscar_ips_otimizado, name='buscar_ips_otimizado'),
     path('async-status/<str:job_id>/', views.check_async_status, name='check_async_status'),
     path('optimization-metrics/', views.get_optimization_metrics, name='optimization_metrics'),
+    
+    # ENDPOINT MOVIDO PARA FINAL PARA DEBUG
+    path('buscar-ips-duplicados-simples/', views.buscar_ips_duplicados_simples, name='buscar_ips_duplicados_simples'),
 ]
