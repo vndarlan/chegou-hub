@@ -871,15 +871,95 @@ def detalhar_pedidos_ip(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
-@api_view(['POST'])
+@api_view(['GET', 'POST'])
 def test_simple_endpoint(request):
-    """Endpoint de teste super simples para verificar se o problema são as dependências"""
+    """Endpoint de teste que agora busca IPs duplicados - versão simples"""
     try:
+        logger.info(f"Method recebido: {request.method}")
+        logger.info(f"Data recebida: {request.data}")
+        
+        if request.method == 'GET':
+            return Response({
+                'success': True,
+                'message': 'VERSÃO NOVA - Endpoint simples funcionando - GET',
+                'timestamp': datetime.now().isoformat()
+            })
+        
+        # POST = Busca IPs duplicados
+        loja_id = request.data.get('loja_id')
+        days = request.data.get('days', 30)
+        
+        if not loja_id:
+            return Response({'error': 'ID da loja é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+        if not config:
+            return Response({'error': 'Loja não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Inicializa conexão Shopify
+        import shopify
+        shop_url = config.shop_url
+        if not shop_url.startswith('https://'):
+            shop_url = f"https://{shop_url}"
+        
+        session = shopify.Session(shop_url, "2023-10", config.access_token)
+        shopify.ShopifyResource.activate_session(session)
+        
+        # Busca pedidos dos últimos X dias
+        data_inicial = timezone.now() - timedelta(days=days)
+        
+        orders = shopify.Order.find(
+            status='any',
+            created_at_min=data_inicial.isoformat(),
+            limit=250,
+            fields='id,name,created_at,browser_ip,customer'
+        )
+        
+        # Agrupa pedidos por IP
+        ip_groups = {}
+        
+        for order in orders:
+            browser_ip = getattr(order, 'browser_ip', None)
+            
+            if browser_ip and browser_ip.strip():
+                if browser_ip not in ip_groups:
+                    ip_groups[browser_ip] = []
+                
+                ip_groups[browser_ip].append({
+                    'id': order.id,
+                    'number': order.name,
+                    'created_at': order.created_at,
+                    'customer_name': getattr(order.customer, 'first_name', '') + ' ' + getattr(order.customer, 'last_name', '') if order.customer else 'N/A'
+                })
+        
+        # Filtra apenas IPs com 2+ pedidos
+        ips_duplicados = []
+        for ip, pedidos in ip_groups.items():
+            if len(pedidos) >= 2:
+                # Ordena por data
+                pedidos_ordenados = sorted(pedidos, key=lambda x: x['created_at'])
+                
+                ips_duplicados.append({
+                    'browser_ip': ip,
+                    'total_pedidos': len(pedidos),
+                    'pedidos': pedidos_ordenados,
+                    'primeiro_pedido': pedidos_ordenados[0]['created_at'],
+                    'ultimo_pedido': pedidos_ordenados[-1]['created_at']
+                })
+        
+        # Ordena por quantidade de pedidos (mais pedidos primeiro)
+        ips_duplicados.sort(key=lambda x: x['total_pedidos'], reverse=True)
+        
         return Response({
             'success': True,
-            'message': 'Endpoint simples funcionando',
-            'timestamp': datetime.now().isoformat()
+            'ips_duplicados': ips_duplicados,
+            'total_ips': len(ips_duplicados),
+            'total_pedidos': sum(ip['total_pedidos'] for ip in ips_duplicados),
+            'days_searched': days,
+            'loja_nome': config.nome_loja,
+            'message': f'Busca de IPs realizada com sucesso! {len(ips_duplicados)} IPs com múltiplos pedidos encontrados.'
         })
+        
     except Exception as e:
         return Response({'error': f'Erro: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -3656,3 +3736,107 @@ def _get_basic_ip_data_with_timeout(detector, days, min_orders, timeout=45):
         except Exception as fallback_error:
             logger.error(f"❌ Fallback também falhou: {fallback_error}")
             raise e
+
+
+@csrf_exempt
+@api_view(['POST'])
+def buscar_ips_duplicados_simples(request):
+    """Busca IPs com múltiplos pedidos - versão simples como buscar_duplicatas"""
+    try:
+        loja_id = request.data.get('loja_id')
+        days = request.data.get('days', 30)  # Padrão 30 dias
+        
+        if not loja_id:
+            return Response({'error': 'ID da loja é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+        if not config:
+            return Response({'error': 'Loja não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Inicializa conexão Shopify
+        import shopify
+        shop_url = config.shop_url
+        if not shop_url.startswith('https://'):
+            shop_url = f"https://{shop_url}"
+        
+        session = shopify.Session(shop_url, "2023-10", config.access_token)
+        shopify.ShopifyResource.activate_session(session)
+        
+        # Busca pedidos dos últimos X dias
+        data_inicial = timezone.now() - timedelta(days=days)
+        
+        orders = shopify.Order.find(
+            status='any',
+            created_at_min=data_inicial.isoformat(),
+            limit=250,
+            fields='id,name,created_at,browser_ip,customer'
+        )
+        
+        # Agrupa pedidos por IP
+        ip_groups = {}
+        
+        for order in orders:
+            browser_ip = getattr(order, 'browser_ip', None)
+            
+            if browser_ip and browser_ip.strip():
+                if browser_ip not in ip_groups:
+                    ip_groups[browser_ip] = []
+                
+                ip_groups[browser_ip].append({
+                    'id': order.id,
+                    'number': order.name,
+                    'created_at': order.created_at,
+                    'customer_name': getattr(order.customer, 'first_name', '') + ' ' + getattr(order.customer, 'last_name', '') if order.customer else 'N/A'
+                })
+        
+        # Filtra apenas IPs com 2+ pedidos
+        ips_duplicados = []
+        for ip, pedidos in ip_groups.items():
+            if len(pedidos) >= 2:
+                # Ordena por data
+                pedidos_ordenados = sorted(pedidos, key=lambda x: x['created_at'])
+                
+                ips_duplicados.append({
+                    'browser_ip': ip,
+                    'total_pedidos': len(pedidos),
+                    'pedidos': pedidos_ordenados,
+                    'primeiro_pedido': pedidos_ordenados[0]['created_at'],
+                    'ultimo_pedido': pedidos_ordenados[-1]['created_at']
+                })
+        
+        # Ordena por quantidade de pedidos (mais pedidos primeiro)
+        ips_duplicados.sort(key=lambda x: x['total_pedidos'], reverse=True)
+        
+        # Log da busca
+        ProcessamentoLog.objects.create(
+            user=request.user,
+            config=config,
+            tipo='busca_ips_simples',
+            status='sucesso',
+            pedidos_encontrados=sum(ip['total_pedidos'] for ip in ips_duplicados),
+            detalhes={
+                'ips_encontrados': len(ips_duplicados),
+                'days_searched': days
+            }
+        )
+        
+        return Response({
+            'ips_duplicados': ips_duplicados,
+            'total_ips': len(ips_duplicados),
+            'total_pedidos': sum(ip['total_pedidos'] for ip in ips_duplicados),
+            'days_searched': days,
+            'loja_nome': config.nome_loja
+        })
+        
+    except Exception as e:
+        # Log do erro
+        if 'config' in locals():
+            ProcessamentoLog.objects.create(
+                user=request.user,
+                config=config,
+                tipo='busca_ips_simples',
+                status='erro',
+                erro_mensagem=str(e)
+            )
+        
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -6,7 +6,6 @@ import { Label } from '../../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Badge } from '../../components/ui/badge';
-import { Progress } from '../../components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -14,8 +13,7 @@ import { ScrollArea } from '../../components/ui/scroll-area';
 import { Separator } from '../../components/ui/separator';
 import {
     Shield, Globe, Eye, Users, ShoppingBag, AlertCircle, Check, X, RefreshCw,
-    Settings, History, Building, Search, Target, Loader2, Calendar, Clock, RotateCcw,
-    WifiOff, Server, Zap
+    Settings, History, Building, Search, Target, Loader2, Calendar
 } from 'lucide-react';
 import { getCSRFToken } from '../../utils/csrf';
 import { useToast } from '../../components/ui/use-toast';
@@ -30,24 +28,6 @@ function DetectorIPPage() {
         days: 30
     });
     
-    // Estados para jobs assíncronos
-    const [currentJobId, setCurrentJobId] = useState(null);
-    const [jobStatus, setJobStatus] = useState(null);
-    const [isAsyncOperation, setIsAsyncOperation] = useState(false);
-    const [pollingInterval, setPollingInterval] = useState(null);
-    const [canCancelJob, setCanCancelJob] = useState(false);
-    
-    // Estados para retry e loading melhorado
-    const [retryAttempt, setRetryAttempt] = useState(0);
-    const [operationStartTime, setOperationStartTime] = useState(null);
-    const [estimatedTime, setEstimatedTime] = useState(null);
-    const [isRetrying, setIsRetrying] = useState(false);
-    const [showRetryDialog, setShowRetryDialog] = useState(false);
-    const [lastError, setLastError] = useState(null);
-    const [progressValue, setProgressValue] = useState(0);
-    
-    // Timer para progresso visual
-    const [progressTimer, setProgressTimer] = useState(null);
     
     
     // Estados modais/interface
@@ -70,17 +50,6 @@ function DetectorIPPage() {
         loadLojas();
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
     
-    // Cleanup timers on unmount
-    useEffect(() => {
-        return () => {
-            if (progressTimer) {
-                clearInterval(progressTimer);
-            }
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-            }
-        };
-    }, [progressTimer, pollingInterval]);
 
     const showNotification = (message, type = 'success') => {
         // Manter compatibilidade com notificações visuais existentes
@@ -100,255 +69,6 @@ function DetectorIPPage() {
         toast(toastConfig);
     };
 
-    // Função para calcular tempo estimado baseado no período
-    const calculateEstimatedTime = (days) => {
-        if (days <= 7) return 5; // 5 segundos
-        if (days <= 30) return 15; // 15 segundos
-        if (days <= 90) return 30; // 30 segundos
-        return 60; // 1 minuto para períodos maiores
-    };
-    
-    // Função para cancelar job assíncrono
-    const cancelAsyncJob = async () => {
-        if (!currentJobId) return;
-        
-        try {
-            await axios.post(`/processamento/cancel-job/${currentJobId}/`, {}, {
-                headers: {
-                    'X-CSRFToken': getCSRFToken()
-                },
-                timeout: 10000
-            });
-            
-            // Limpar polling
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-                setPollingInterval(null);
-            }
-            
-            setCurrentJobId(null);
-            setJobStatus(null);
-            setIsAsyncOperation(false);
-            setCanCancelJob(false);
-            setSearchingIPs(false);
-            
-            toast({
-                title: 'Job Cancelado',
-                description: 'A operação foi cancelada com sucesso.',
-            });
-        } catch (error) {
-            console.error('Erro ao cancelar job:', error);
-            toast({
-                title: 'Erro ao Cancelar',
-                description: 'Não foi possível cancelar o job. Ele pode ter terminado.',
-                variant: 'destructive'
-            });
-        }
-    };
-    
-    // Função para polling do status do job
-    const pollJobStatus = async (jobId) => {
-        try {
-            const response = await axios.get(`/processamento/async-status/${jobId}/`, {
-                timeout: 10000
-            });
-            
-            const status = response.data;
-            setJobStatus(status);
-            
-            // Atualizar progresso baseado no status
-            if (status.progress !== undefined) {
-                setProgressValue(status.progress);
-            }
-            
-            // Verificar se o job terminou
-            if (status.status === 'completed') {
-                // Limpar polling
-                if (pollingInterval) {
-                    clearInterval(pollingInterval);
-                    setPollingInterval(null);
-                }
-                
-                // Processar resultado
-                if (status.result && status.result.success) {
-                    setIPGroups(status.result.data.ip_groups || []);
-                    const totalFound = status.result.data.total_ips_found || 0;
-                    const timeElapsed = Math.round((Date.now() - operationStartTime) / 1000);
-                    
-                    const successMessage = `${totalFound} IPs encontrados com múltiplos pedidos`;
-                    showNotification(`${successMessage} (${timeElapsed}s)`);
-                    
-                    if (totalFound > 0) {
-                        const suspiciousCount = status.result.data.ip_groups?.filter(ip => ip.is_suspicious)?.length || 0;
-                        toast({
-                            title: '✅ Busca Concluída (Assíncrona)',
-                            description: `${totalFound} IPs encontrados${suspiciousCount > 0 ? `, ${suspiciousCount} suspeitos` : ''}. Tempo: ${timeElapsed}s`,
-                        });
-                    } else {
-                        toast({
-                            title: '🔍 Busca Concluída (Assíncrona)',
-                            description: `Nenhum IP encontrado com múltiplos pedidos nos últimos ${searchParams.days} dias.`,
-                        });
-                    }
-                } else {
-                    showNotification(status.result?.message || 'Erro na busca assíncrona', 'error');
-                }
-                
-                // Reset estados
-                setCurrentJobId(null);
-                setJobStatus(null);
-                setIsAsyncOperation(false);
-                setCanCancelJob(false);
-                setSearchingIPs(false);
-                setProgressValue(100);
-                
-            } else if (status.status === 'failed') {
-                // Limpar polling
-                if (pollingInterval) {
-                    clearInterval(pollingInterval);
-                    setPollingInterval(null);
-                }
-                
-                const errorMsg = status.error || 'Job falhou';
-                showNotification(`Busca assíncrona falhou: ${errorMsg}`, 'error');
-                
-                // Reset estados
-                setCurrentJobId(null);
-                setJobStatus(null);
-                setIsAsyncOperation(false);
-                setCanCancelJob(false);
-                setSearchingIPs(false);
-                
-            } else if (status.status === 'cancelled') {
-                // Job foi cancelado
-                setCurrentJobId(null);
-                setJobStatus(null);
-                setIsAsyncOperation(false);
-                setCanCancelJob(false);
-                setSearchingIPs(false);
-                
-                showNotification('Operação cancelada', 'error');
-            }
-            // Para status 'pending' ou 'running', continue polling
-            
-        } catch (error) {
-            console.error('Erro no polling do job:', error);
-            
-            // Se der erro no polling, parar e resetar
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-                setPollingInterval(null);
-            }
-            
-            setCurrentJobId(null);
-            setJobStatus(null);
-            setIsAsyncOperation(false);
-            setCanCancelJob(false);
-            setSearchingIPs(false);
-            
-            showNotification('Erro ao verificar status da operação', 'error');
-        }
-    };
-
-    // Função para retry com exponential backoff
-    const retryWithBackoff = async (operation, maxRetries = 3) => {
-        let lastError;
-        
-        for (let attempt = 0; attempt <= maxRetries; attempt++) {
-            try {
-                setRetryAttempt(attempt);
-                if (attempt > 0) {
-                    setIsRetrying(true);
-                    const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // Max 10s
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                }
-                
-                const result = await operation();
-                setIsRetrying(false);
-                setRetryAttempt(0);
-                return result;
-            } catch (error) {
-                lastError = error;
-                setIsRetrying(false);
-                
-                // Não fazer retry para alguns tipos de erro
-                if (error.response?.status === 400 || error.response?.status === 401) {
-                    throw error;
-                }
-                
-                if (attempt === maxRetries) {
-                    throw error;
-                }
-            }
-        }
-        
-        throw lastError;
-    };
-
-    // Função para tratamento específico de erros
-    const handleAPIError = (error, operation = 'operação') => {
-        const status = error.response?.status;
-        const message = error.response?.data?.error || error.message;
-        
-        setLastError({ status, message, operation });
-        
-        let errorMessage;
-        let suggestion = '';
-        
-        switch (status) {
-            case 503:
-                errorMessage = `Timeout na ${operation}`;
-                suggestion = 'O servidor está processando muitos dados. Tente novamente em alguns minutos ou reduza o período de busca.';
-                break;
-            case 429:
-                errorMessage = 'Limite de requisições excedido';
-                suggestion = 'O servidor está limitando requisições. Aguarde alguns segundos antes de tentar novamente.';
-                break;
-            case 202:
-                // Job assíncrono iniciado - não é erro
-                return 'Operação assíncrona iniciada';
-            case 410:
-                errorMessage = 'Job não encontrado ou expirado';
-                suggestion = 'O job pode ter expirado. Inicie uma nova busca.';
-                break;
-            case 500:
-                errorMessage = 'Erro interno do servidor';
-                suggestion = 'Tente com um período menor ou contate o suporte se o problema persistir.';
-                break;
-            case 400:
-                errorMessage = message || `Dados inválidos para a ${operation}`;
-                break;
-            default:
-                if (error.code === 'ECONNABORTED') {
-                    errorMessage = `Timeout na ${operation}`;
-                    suggestion = 'A operação demorou mais que o esperado. Tente com um período menor.';
-                } else if (error.code === 'ERR_NETWORK') {
-                    errorMessage = 'Erro de conexão';
-                    suggestion = 'Verifique sua conexão com a internet.';
-                } else {
-                    errorMessage = `Erro na ${operation}: ${message}`;
-                }
-        }
-        
-        // Toast com mais detalhes para erros críticos
-        if (status === 503 || status === 500 || error.code === 'ECONNABORTED') {
-            toast({
-                title: 'Operação Falhou',
-                description: suggestion || errorMessage,
-                variant: 'destructive',
-                action: suggestion ? undefined : {
-                    altText: 'Tentar novamente',
-                    onClick: () => {
-                        if (operation === 'busca de IPs') {
-                            searchIPDuplicates();
-                        }
-                    }
-                }
-            });
-        }
-        
-        return suggestion ? `${errorMessage}. ${suggestion}` : errorMessage;
-    };
 
     const loadLojas = async () => {
         try {
@@ -373,113 +93,30 @@ function DetectorIPPage() {
 
         setSearchingIPs(true);
         setIPGroups([]);
-        setOperationStartTime(Date.now());
-        setEstimatedTime(calculateEstimatedTime(searchParams.days));
-        setLastError(null);
-        setProgressValue(0);
-        
-        // Iniciar progresso visual
-        const startTime = Date.now();
-        const timer = setInterval(() => {
-            setProgressValue(prev => {
-                const elapsed = (Date.now() - startTime) / 1000;
-                const estimated = calculateEstimatedTime(searchParams.days);
-                const newProgress = Math.min((elapsed / estimated) * 90, 90); // Max 90% até completar
-                return newProgress;
-            });
-        }, 500);
-        setProgressTimer(timer);
 
         try {
-            const searchOperation = async () => {
-                // Usar API otimizada
-                return await axios.post('/processamento/buscar-ips-otimizado/', {
-                    loja_id: lojaSelecionada,
-                    days: searchParams.days,
-                    min_orders: 2
-                }, {
-                    headers: {
-                        'X-CSRFToken': getCSRFToken()
-                    },
-                    timeout: searchParams.days > 30 ? 30000 : 30000 // Timeout consistente para síncrono
-                });
-            };
+            const response = await axios.post('/processamento/buscar-ips-duplicados-simples/', {
+                loja_id: lojaSelecionada,
+                days: searchParams.days
+            }, {
+                headers: {
+                    'X-CSRFToken': getCSRFToken()
+                },
+                timeout: 30000
+            });
 
-            const response = await retryWithBackoff(searchOperation);
-
-            if (response.status === 202) {
-                // Operação assíncrona iniciada
-                const jobId = response.data.job_id;
-                setCurrentJobId(jobId);
-                setIsAsyncOperation(true);
-                setCanCancelJob(true);
-                
-                toast({
-                    title: '🔄 Operação Assíncrona Iniciada',
-                    description: `Processamento em background iniciado. Job ID: ${jobId}`,
-                });
-                
-                // Iniciar polling do status
-                const interval = setInterval(() => {
-                    pollJobStatus(jobId);
-                }, 2000); // Poll a cada 2 segundos
-                setPollingInterval(interval);
-                
-                // Primeiro poll imediato
-                setTimeout(() => pollJobStatus(jobId), 500);
-                
-            } else if (response.data.success) {
-                // Operação síncrona concluída
-                setIPGroups(response.data.data.ip_groups || []);
-                const totalFound = response.data.data.total_ips_found || 0;
-                const timeElapsed = Math.round((Date.now() - operationStartTime) / 1000);
-                
-                const successMessage = `${totalFound} IPs encontrados com múltiplos pedidos`;
-                showNotification(`${successMessage} (${timeElapsed}s)`);
-                
-                // Toast adicional com mais detalhes
-                if (totalFound > 0) {
-                    const suspiciousCount = response.data.data.ip_groups?.filter(ip => ip.is_suspicious)?.length || 0;
-                    toast({
-                        title: '✅ Busca Concluída (Síncrona)',
-                        description: `${totalFound} IPs encontrados${suspiciousCount > 0 ? `, ${suspiciousCount} suspeitos` : ''}. Tempo: ${timeElapsed}s`,
-                    });
-                } else {
-                    toast({
-                        title: '🔍 Busca Concluída (Síncrona)',
-                        description: `Nenhum IP encontrado com múltiplos pedidos nos últimos ${searchParams.days} dias.`,
-                    });
-                }
+            if (response.data.ips_duplicados) {
+                setIPGroups(response.data.ips_duplicados || []);
+                const totalFound = response.data.ips_duplicados?.length || 0;
+                showNotification(`${totalFound} IPs encontrados com múltiplos pedidos`);
             } else {
                 showNotification(response.data.message || 'Erro na busca', 'error');
             }
         } catch (error) {
             console.error('Erro na busca de IPs:', error);
-            const errorMessage = handleAPIError(error, 'busca de IPs');
-            
-            // Para timeouts e erros de servidor, mostrar opção de retry
-            if (error.response?.status === 503 || error.code === 'ECONNABORTED') {
-                setShowRetryDialog(true);
-            }
-            
-            showNotification(errorMessage, 'error');
+            showNotification(error.response?.data?.error || 'Erro na busca', 'error');
         } finally {
-            // Só resetar se não for operação assíncrona
-            if (!isAsyncOperation) {
-                setSearchingIPs(false);
-                setOperationStartTime(null);
-                setEstimatedTime(null);
-                setProgressValue(100);
-                
-                // Limpar timer
-                if (progressTimer) {
-                    clearInterval(progressTimer);
-                    setProgressTimer(null);
-                }
-                
-                // Reset progress após um tempo
-                setTimeout(() => setProgressValue(0), 1000);
-            }
+            setSearchingIPs(false);
         }
     };
 
@@ -493,45 +130,29 @@ function DetectorIPPage() {
         setShowIPDetails(true);
         setLoadingDetails(true);
         setIPDetails(null);
-        setOperationStartTime(Date.now());
-        setLastError(null);
 
         try {
-            const detailsOperation = async () => {
-                return await axios.post('/processamento/detalhar-ip/', {
-                    loja_id: lojaSelecionada,
-                    ip: ipGroup.ip,
-                    days: searchParams.days
-                }, {
-                    headers: {
-                        'X-CSRFToken': getCSRFToken()
-                    },
-                    timeout: Math.max(20000, searchParams.days * 500) // Timeout dinâmico menor para detalhes
-                });
-            };
-
-            const response = await retryWithBackoff(detailsOperation);
+            const response = await axios.post('/processamento/detalhar-ip/', {
+                loja_id: lojaSelecionada,
+                ip: ipGroup.ip,
+                days: searchParams.days
+            }, {
+                headers: {
+                    'X-CSRFToken': getCSRFToken()
+                },
+                timeout: 30000
+            });
 
             if (response.data.success) {
                 setIPDetails(response.data.data);
-                const timeElapsed = Math.round((Date.now() - operationStartTime) / 1000);
-                
-                if (timeElapsed > 10) {
-                    toast({
-                        title: 'Detalhes Carregados',
-                        description: `Dados do IP ${ipGroup.ip} carregados em ${timeElapsed}s`,
-                    });
-                }
             } else {
                 showNotification(response.data.message || 'Erro ao carregar detalhes', 'error');
             }
         } catch (error) {
             console.error('Erro ao carregar detalhes do IP:', error);
-            const errorMessage = handleAPIError(error, 'carregamento de detalhes');
-            showNotification(errorMessage, 'error');
+            showNotification(error.response?.data?.error || 'Erro ao carregar detalhes', 'error');
         } finally {
             setLoadingDetails(false);
-            setOperationStartTime(null);
         }
     };
 
@@ -803,132 +424,11 @@ function DetectorIPPage() {
                     )}
 
                     {searchingIPs && (
-                        <div className="space-y-3 mb-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    {isRetrying ? (
-                                        <RotateCcw className="h-4 w-4 animate-spin text-orange-500" />
-                                    ) : isAsyncOperation ? (
-                                        <Server className="h-4 w-4 animate-pulse text-blue-500" />
-                                    ) : (
-                                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                                    )}
-                                    <p className="text-sm text-muted-foreground">
-                                        {isRetrying 
-                                            ? `Tentativa ${retryAttempt + 1} - Reconectando...`
-                                            : isAsyncOperation
-                                                ? 'Processamento assíncrono em andamento...'
-                                                : 'Analisando pedidos por endereço IP...'}
-                                    </p>
-                                    {isAsyncOperation && currentJobId && (
-                                        <Badge variant="outline" className="text-xs font-mono">
-                                            Job: {currentJobId.slice(-8)}
-                                        </Badge>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    {/* Tempo estimado para operações síncronas */}
-                                    {!isAsyncOperation && estimatedTime && operationStartTime && (
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                            <Clock className="h-3 w-3" />
-                                            <span>
-                                                {(() => {
-                                                    const elapsed = Math.round((Date.now() - operationStartTime) / 1000);
-                                                    const remaining = Math.max(0, estimatedTime - elapsed);
-                                                    return remaining > 0 ? `~${remaining}s restantes` : 'Finalizando...';
-                                                })()} 
-                                            </span>
-                                        </div>
-                                    )}
-                                    
-                                    {/* Status do job assíncrono */}
-                                    {isAsyncOperation && jobStatus && (
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                            <div className="flex items-center gap-1">
-                                                <span className="capitalize">{jobStatus.status}</span>
-                                                {jobStatus.progress !== undefined && (
-                                                    <span>({jobStatus.progress}%)</span>
-                                                )}
-                                            </div>
-                                            {jobStatus.estimated_remaining && (
-                                                <div className="flex items-center gap-1">
-                                                    <Clock className="h-3 w-3" />
-                                                    <span>~{jobStatus.estimated_remaining}s</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                    
-                                    {/* Botão cancelar para jobs assíncronos */}
-                                    {canCancelJob && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={cancelAsyncJob}
-                                            className="text-xs h-6 px-2"
-                                        >
-                                            <X className="h-3 w-3 mr-1" />
-                                            Cancelar
-                                        </Button>
-                                    )}
-                                </div>
+                        <div className="flex items-center justify-center py-8 space-y-3">
+                            <div className="flex items-center gap-2">
+                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                <span className="text-muted-foreground">Analisando pedidos por endereço IP...</span>
                             </div>
-                            <div className="space-y-2">
-                                <Progress 
-                                    value={isRetrying ? 100 : Math.max(progressValue, 5)} 
-                                    className={`w-full transition-all duration-500 ${
-                                        isRetrying ? 'animate-pulse' : isAsyncOperation ? 'animate-pulse' : ''
-                                    }`} 
-                                />
-                                <div className="flex justify-between items-center text-xs text-muted-foreground">
-                                    <span>
-                                        {isRetrying ? 'Reconectando...' :
-                                         isAsyncOperation && jobStatus ?
-                                            `${jobStatus.status} - ${jobStatus.progress || 0}%` :
-                                         progressValue > 0 && progressValue < 90 ? `${Math.round(progressValue)}% concluído` :
-                                         progressValue >= 90 ? 'Finalizando...' : 'Iniciando...'}
-                                    </span>
-                                    {operationStartTime && (
-                                        <span>
-                                            {Math.round((Date.now() - operationStartTime) / 1000)}s
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                            {searchParams.days > 30 && (
-                                <Alert className={`${isAsyncOperation ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/10' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/10'}`}>
-                                    <div className="flex items-center gap-2">
-                                        {isAsyncOperation ? (
-                                            <Server className="h-4 w-4 text-blue-600" />
-                                        ) : searchParams.days > 90 ? (
-                                            <Server className="h-4 w-4 text-amber-600" />
-                                        ) : (
-                                            <Clock className="h-4 w-4 text-amber-600" />
-                                        )}
-                                    </div>
-                                    <AlertDescription className={`text-xs ${isAsyncOperation ? 'text-blue-800 dark:text-blue-200' : 'text-amber-800 dark:text-amber-200'}`}>
-                                        <div className="space-y-1">
-                                            {isAsyncOperation ? (
-                                                <>
-                                                    <p><strong>Processamento Assíncrono:</strong> Operação está rodando em background.</p>
-                                                    <p>• Você pode acompanhar o progresso em tempo real</p>
-                                                    <p>• Use o botão "Cancelar" se necessário</p>
-                                                    <p>• Resultado aparecerá automaticamente quando pronto</p>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <p>
-                                                        <strong>Período longo ({searchParams.days} dias):</strong> Operação pode ser {searchParams.days > 30 ? 'assíncrona' : 'síncrona'}.
-                                                    </p>
-                                                    <p>• Sistema otimizado com jobs assíncronos para grandes volumes</p>
-                                                    <p>• Períodos > 30 dias usam processamento em background</p>
-                                                    <p>• Progresso em tempo real disponível</p>
-                                                </>
-                                            )}
-                                        </div>
-                                    </AlertDescription>
-                                </Alert>
-                            )}
                         </div>
                     )}
 
@@ -1075,25 +575,11 @@ function DetectorIPPage() {
                     </DialogHeader>
                     
                     {loadingDetails ? (
-                        <div className="flex flex-col items-center justify-center py-8 space-y-3">
+                        <div className="flex items-center justify-center py-8">
                             <div className="flex items-center gap-2">
-                                {isRetrying ? (
-                                    <RotateCcw className="h-8 w-8 animate-spin text-orange-500" />
-                                ) : (
-                                    <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-                                )}
-                                <span className="text-muted-foreground">
-                                    {isRetrying 
-                                        ? `Tentativa ${retryAttempt + 1} - Reconectando...`
-                                        : 'Carregando detalhes...'}
-                                </span>
+                                <Loader2 className="h-6 w-6 animate-spin text-foreground" />
+                                <span className="text-muted-foreground">Carregando detalhes...</span>
                             </div>
-                            {operationStartTime && (
-                                <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    {Math.round((Date.now() - operationStartTime) / 1000)}s decorridos
-                                </div>
-                            )}
                         </div>
                     ) : ipDetails ? (
                         <ScrollArea className="max-h-[75vh] pr-4">
@@ -1295,90 +781,6 @@ function DetectorIPPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Modal de Retry para Timeouts */}
-            <Dialog open={showRetryDialog} onOpenChange={setShowRetryDialog}>
-                <DialogContent className="max-w-md bg-background border-border">
-                    <DialogHeader>
-                        <DialogTitle className="text-foreground flex items-center gap-2">
-                            <AlertCircle className="h-5 w-5 text-orange-500" />
-                            Operação Demorou Muito
-                        </DialogTitle>
-                        <DialogDescription className="text-muted-foreground">
-                            A busca por IPs demorou mais que o esperado. Isso pode acontecer com períodos longos ou muitos dados.
-                        </DialogDescription>
-                    </DialogHeader>
-                    
-                    <div className="space-y-4">
-                        {lastError && (
-                            <Alert variant="destructive">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertDescription className="text-sm">
-                                    <strong>Erro {lastError.status}:</strong> {lastError.message}
-                                </AlertDescription>
-                            </Alert>
-                        )}
-                        
-                        <div className="space-y-3">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                                <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                                    <Zap className="h-4 w-4 text-blue-600" />
-                                    <div>
-                                        <p className="font-medium text-blue-900 dark:text-blue-100">Rápido (7-15 dias)</p>
-                                        <p className="text-blue-700 dark:text-blue-300">~5-10s</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20">
-                                    <Clock className="h-4 w-4 text-amber-600" />
-                                    <div>
-                                        <p className="font-medium text-amber-900 dark:text-amber-100">Médio (30-60 dias)</p>
-                                        <p className="text-amber-700 dark:text-amber-300">~15-30s</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2 p-2 rounded-lg bg-red-50 dark:bg-red-900/20">
-                                    <Server className="h-4 w-4 text-red-600" />
-                                    <div>
-                                        <p className="font-medium text-red-900 dark:text-red-100">Longo (90+ dias)</p>
-                                        <p className="text-red-700 dark:text-red-300">~1-2min</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div className="space-y-2 text-sm text-muted-foreground">
-                                <p>• Período atual: <strong>{searchParams.days} dias</strong></p>
-                                <p>• O sistema possui otimizações para grandes volumes</p>
-                                <p>• Timeouts são normais com muitos dados - use o retry</p>
-                            </div>
-                        </div>
-                        
-                        <div className="flex gap-2">
-                            <Button 
-                                variant="outline" 
-                                onClick={() => setShowRetryDialog(false)}
-                                className="flex-1"
-                            >
-                                Cancelar
-                            </Button>
-                            <Button 
-                                onClick={() => {
-                                    setShowRetryDialog(false);
-                                    // Sugerir período menor se for muito longo
-                                    if (searchParams.days > 180) {
-                                        toast({
-                                            title: 'Dica',
-                                            description: 'Considere usar um período menor (30-90 dias) para resultados mais rápidos.',
-                                        });
-                                    }
-                                    searchIPDuplicates();
-                                }}
-                                className="flex-1"
-                            >
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                                Tentar Novamente
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
             </>
         </div>
     );
