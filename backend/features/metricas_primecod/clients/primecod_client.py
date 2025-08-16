@@ -37,19 +37,23 @@ class PrimeCODClient:
         self.last_request_time = 0
         self.min_request_interval = 0.5  # 500ms entre requests
         
-        # Status mapping para padronização
+        # Status mapping para padronização (IDs numéricos da API real)
         self.status_mapping = {
-            'Delivered': 'Entregue',
-            'Canceled': 'Cancelado', 
-            'Confirmed': 'Confirmado',
-            'Pending': 'Pendente',
-            'Refunded': 'Reembolsado',
-            'Processing': 'Processando',
-            'Shipped': 'Enviado',
-            'Returned': 'Devolvido',
-            'Failed': 'Falhou',
-            'Duplicate': 'Duplicado',
-            'Invalid': 'Inválido',
+            1: 'Placed',
+            2: 'Packed', 
+            4: 'Shipped',
+            6: 'Out for delivery',
+            7: 'Delivered',
+            8: 'Refused',
+            10: 'Returned',
+            12: 'Cancelled',
+            # Strings para compatibilidade
+            'Delivered': 'Delivered',
+            'Canceled': 'Cancelled', 
+            'Confirmed': 'Placed',
+            'Pending': 'Placed',
+            'Shipped': 'Shipped',
+            'Returned': 'Returned',
         }
     
     def _rate_limit(self):
@@ -308,9 +312,17 @@ class PrimeCODClient:
         status_encontrados = set()
         
         for order in orders:
-            produto = order.get('product_name', 'Produto Desconhecido')
-            pais = order.get('country', 'País Desconhecido')  
-            status_original = order.get('status', 'Status Desconhecido')
+            # Extrair nome do produto dos produtos aninhados
+            produto = 'Produto Desconhecido'
+            if order.get('products') and len(order['products']) > 0:
+                produto = order['products'][0].get('name', 'Produto Desconhecido')
+            
+            # Extrair país (é um objeto, não string)
+            pais_obj = order.get('country', {})
+            pais = pais_obj.get('name', 'País Desconhecido') if isinstance(pais_obj, dict) else str(pais_obj)
+            
+            # Status de shipping  
+            status_original = order.get('shipping_status', 'Status Desconhecido')
             
             # Aplicar filtro de país se especificado
             if pais_filtro and pais.lower() != pais_filtro.lower():

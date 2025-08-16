@@ -268,7 +268,7 @@ def buscar_orders_primecod(request):
             
             # Processar os dados dos orders
             orders_processados = client.process_orders_data(
-                orders=resultado['orders'],
+                orders=resultado['orders'],  # resultado já contém os orders processados
                 pais_filtro=pais_filtro
             )
             
