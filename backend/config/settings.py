@@ -69,7 +69,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
-    'django_rq',
     
     # Core (apenas autenticação)
     'core.apps.CoreConfig',
@@ -98,6 +97,9 @@ INSTALLED_APPS = [
     'cloudinary_storage',
     'cloudinary',
 ]
+
+# Adicionar django_rq apenas se Redis estiver disponível (será definido mais abaixo)
+# Esta verificação será feita depois da configuração do REDIS_AVAILABLE
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -204,13 +206,22 @@ CACHES = {
     }
 }
 
-# Fallback para LocMem se Redis não estiver disponível
-try:
-    from django_redis import get_redis_connection
-    get_redis_connection("default").ping()
-    print(f"OK: Cache Redis conectado: {REDIS_URL}")
-except Exception as e:
-    print(f"WARNING: Redis nao disponivel, usando LocMem cache: {str(e)}")
+# Usar LocMem cache sempre que não estivermos no Railway com Redis configurado
+REDIS_AVAILABLE = False
+if IS_RAILWAY_DEPLOYMENT:
+    # No Railway, verificar se Redis está disponível
+    try:
+        from django_redis import get_redis_connection
+        get_redis_connection("default").ping()
+        print(f"OK: Cache Redis conectado: {REDIS_URL}")
+        REDIS_AVAILABLE = True
+    except Exception as e:
+        print(f"WARNING: Redis nao disponivel no Railway, usando LocMem cache: {str(e)}")
+        REDIS_AVAILABLE = False
+else:
+    print("Desenvolvimento local: Usando LocMem cache")
+
+if not REDIS_AVAILABLE:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -220,6 +231,13 @@ except Exception as e:
             }
         }
     }
+
+# Adicionar django_rq aos INSTALLED_APPS apenas se Redis estiver disponível
+if REDIS_AVAILABLE:
+    INSTALLED_APPS.append('django_rq')
+    print("django_rq adicionado aos INSTALLED_APPS")
+else:
+    print("django_rq NÃO adicionado: Redis não disponível")
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -390,34 +408,39 @@ import os
 # Configuração Redis para Django-RQ
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 
-# Para desenvolvimento local
-if not IS_RAILWAY_DEPLOYMENT:
-    RQ_QUEUES = {
-        'default': {
-            'HOST': 'localhost',
-            'PORT': 6379,
-            'DB': 0,
-            'PASSWORD': '',
-            'DEFAULT_TIMEOUT': 3600,  # 1 hora
-            'CONNECTION_KWARGS': {
-                'health_check_interval': 30,
-            },
+# Configurar RQ apenas se Redis estiver disponível
+if REDIS_AVAILABLE:
+    if not IS_RAILWAY_DEPLOYMENT:
+        RQ_QUEUES = {
+            'default': {
+                'HOST': 'localhost',
+                'PORT': 6379,
+                'DB': 0,
+                'PASSWORD': '',
+                'DEFAULT_TIMEOUT': 3600,  # 1 hora
+                'CONNECTION_KWARGS': {
+                    'health_check_interval': 30,
+                },
+            }
         }
-    }
-else:
-    # Para produção (Railway, Heroku, etc)
-    import redis
+    else:
+        # Para produção (Railway, Heroku, etc)
+        import redis
 
-    REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+        REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 
-    RQ_QUEUES = {
-        'default': {
-            'CONNECTION': redis.from_url(REDIS_URL),
-            'DEFAULT_TIMEOUT': 3600,
+        RQ_QUEUES = {
+            'default': {
+                'CONNECTION': redis.from_url(REDIS_URL),
+                'DEFAULT_TIMEOUT': 3600,
+            }
         }
-    }
 
     print(f"RQ configurado com Redis: {REDIS_URL}")
+else:
+    # Desabilitar RQ quando Redis não estiver disponível
+    RQ_QUEUES = {}
+    print("RQ desabilitado: Redis não disponível")
 
 # Criar diretório de logs se não existir
 LOG_DIR = BASE_DIR / 'logs'

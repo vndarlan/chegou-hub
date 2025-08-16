@@ -107,19 +107,26 @@ class PrimeCODClient:
             Dict com orders, total_pages, filtros aplicados, etc.
         """
         
-        # Criar chave de cache válida (sem caracteres especiais)
-        import hashlib
-        date_str = ""
-        if date_range:
-            date_str = f"{date_range.get('start', '')}-{date_range.get('end', '')}"
-        
-        # Hash para evitar caracteres especiais e limitar tamanho
-        cache_data = f"primecod_orders_{page}_{date_str}"
-        cache_key = hashlib.md5(cache_data.encode()).hexdigest()[:20]
-        cached_result = cache.get(cache_key)
-        if cached_result:
-            logger.info(f"Retornando dados em cache para página {page}")
-            return cached_result
+        # Tentar usar cache se disponível
+        cached_result = None
+        cache_key = None
+        try:
+            # Criar chave de cache válida (sem caracteres especiais)
+            import hashlib
+            date_str = ""
+            if date_range:
+                date_str = f"{date_range.get('start', '')}-{date_range.get('end', '')}"
+            
+            # Hash para evitar caracteres especiais e limitar tamanho
+            cache_data = f"primecod_orders_{page}_{date_str}"
+            cache_key = hashlib.md5(cache_data.encode()).hexdigest()[:20]
+            cached_result = cache.get(cache_key)
+            if cached_result:
+                logger.info(f"Retornando dados em cache para página {page}")
+                return cached_result
+        except Exception as e:
+            logger.warning(f"Cache não disponível, prosseguindo sem cache: {str(e)}")
+            cached_result = None
         
         url = f"{self.base_url}/orders"
         
@@ -178,8 +185,13 @@ class PrimeCODClient:
                 'status': 'success'
             }
             
-            # Cache por 5 minutos
-            cache.set(cache_key, result, 300)
+            # Tentar salvar no cache se disponível
+            if cache_key:
+                try:
+                    cache.set(cache_key, result, 300)  # Cache por 5 minutos
+                    logger.info(f"Resultado salvo no cache")
+                except Exception as e:
+                    logger.warning(f"Falha ao salvar no cache: {str(e)}")
             
             logger.info(f"Busca finalizada: {len(all_orders)} orders em {pages_processed} páginas")
             return result
