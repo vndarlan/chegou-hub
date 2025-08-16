@@ -3741,7 +3741,7 @@ def _get_basic_ip_data_with_timeout(detector, days, min_orders, timeout=45):
 @csrf_exempt
 @api_view(['POST'])
 def buscar_ips_duplicados_simples(request):
-    """Busca IPs com múltiplos pedidos - versão simples como buscar_duplicatas"""
+    """Busca IPs com múltiplos pedidos - versão melhorada com múltiplas fontes"""
     try:
         loja_id = request.data.get('loja_id')
         days = request.data.get('days', 30)  # Padrão 30 dias
@@ -3759,34 +3759,127 @@ def buscar_ips_duplicados_simples(request):
         if not shop_url.startswith('https://'):
             shop_url = f"https://{shop_url}"
         
-        session = shopify.Session(shop_url, "2023-10", config.access_token)
+        session = shopify.Session(shop_url, "2024-07", config.access_token)
         shopify.ShopifyResource.activate_session(session)
         
-        # Busca pedidos dos últimos X dias
+        # Busca pedidos dos últimos X dias - SEM LIMITAÇÃO DE CAMPOS para pegar mais dados
         data_inicial = timezone.now() - timedelta(days=days)
         
         orders = shopify.Order.find(
             status='any',
             created_at_min=data_inicial.isoformat(),
-            limit=250,
-            fields='id,name,created_at,browser_ip,customer'
+            limit=250
+            # Removido 'fields' para pegar todos os dados do pedido
         )
         
-        # Agrupa pedidos por IP
+        def extract_ip_from_order(order_dict):
+            """Extrai IP usando múltiplas fontes hierárquicas"""
+            
+            # Método 1: browser_ip direto (mais confiável)
+            browser_ip = order_dict.get('browser_ip')
+            if browser_ip and str(browser_ip).strip() and str(browser_ip).strip() != 'None':
+                return str(browser_ip).strip(), 'browser_ip', 0.95
+            
+            # Método 2: client_details.browser_ip
+            client_details = order_dict.get('client_details', {})
+            if isinstance(client_details, dict):
+                client_browser_ip = client_details.get('browser_ip')
+                if client_browser_ip and str(client_browser_ip).strip():
+                    return str(client_browser_ip).strip(), 'client_details', 0.90
+            
+            # Método 3: Coordenadas geográficas como "fingerprint" único
+            def get_geo_fingerprint(address, prefix):
+                if not isinstance(address, dict):
+                    return None, None, 0
+                    
+                lat = address.get('latitude')
+                lng = address.get('longitude')
+                if lat and lng:
+                    # Cria fingerprint baseado em coordenadas
+                    geo_fingerprint = f"geo_{lat}_{lng}"
+                    return geo_fingerprint, f'{prefix}_coordinates', 0.75
+                return None, None, 0
+            
+            # Tenta billing_address primeiro
+            billing_address = order_dict.get('billing_address', {})
+            ip, method, confidence = get_geo_fingerprint(billing_address, 'billing')
+            if ip:
+                return ip, method, confidence
+            
+            # Tenta shipping_address
+            shipping_address = order_dict.get('shipping_address', {})
+            ip, method, confidence = get_geo_fingerprint(shipping_address, 'shipping')
+            if ip:
+                return ip, method, confidence
+            
+            # Tenta customer default_address
+            customer = order_dict.get('customer', {})
+            if isinstance(customer, dict):
+                default_address = customer.get('default_address', {})
+                ip, method, confidence = get_geo_fingerprint(default_address, 'customer')
+                if ip:
+                    return ip, method, confidence
+            
+            return None, 'none', 0.0
+        
+        def should_exclude_order(order_dict):
+            """Verifica se um pedido deve ser excluído"""
+            financial_status = order_dict.get('financial_status', '').lower()
+            cancelled_at = order_dict.get('cancelled_at')
+            
+            # Exclui pedidos cancelados
+            if cancelled_at:
+                return True
+            
+            # Exclui pedidos com status financeiro problemático
+            if financial_status in ['refunded', 'voided']:
+                return True
+            
+            return False
+        
+        # Agrupa pedidos por IP usando múltiplas fontes
         ip_groups = {}
+        total_processed = 0
+        excluded_count = 0
+        methods_used = {}
         
         for order in orders:
-            browser_ip = getattr(order, 'browser_ip', None)
+            total_processed += 1
+            order_dict = order.to_dict()
             
-            if browser_ip and browser_ip.strip():
-                if browser_ip not in ip_groups:
-                    ip_groups[browser_ip] = []
+            # Verifica se deve excluir o pedido
+            if should_exclude_order(order_dict):
+                excluded_count += 1
+                continue
+            
+            # Extrai IP usando múltiplos métodos
+            ip_found, method_used, confidence = extract_ip_from_order(order_dict)
+            
+            # Conta métodos usados para estatísticas
+            methods_used[method_used] = methods_used.get(method_used, 0) + 1
+            
+            if ip_found:
+                if ip_found not in ip_groups:
+                    ip_groups[ip_found] = []
                 
-                ip_groups[browser_ip].append({
+                # Nome do cliente com tratamento de encoding
+                customer_name = 'N/A'
+                customer = order_dict.get('customer', {})
+                if isinstance(customer, dict):
+                    first_name = customer.get('first_name', '') or ''
+                    last_name = customer.get('last_name', '') or ''
+                    customer_name = f"{first_name} {last_name}".strip()
+                    if not customer_name:
+                        customer_name = 'N/A'
+                
+                ip_groups[ip_found].append({
                     'id': order.id,
                     'number': order.name,
                     'created_at': order.created_at,
-                    'customer_name': getattr(order.customer, 'first_name', '') + ' ' + getattr(order.customer, 'last_name', '') if order.customer else 'N/A'
+                    'customer_name': customer_name,
+                    'method_used': method_used,
+                    'confidence': confidence,
+                    'financial_status': order_dict.get('financial_status', '')
                 })
         
         # Filtra apenas IPs com 2+ pedidos
@@ -3801,13 +3894,15 @@ def buscar_ips_duplicados_simples(request):
                     'total_pedidos': len(pedidos),
                     'pedidos': pedidos_ordenados,
                     'primeiro_pedido': pedidos_ordenados[0]['created_at'],
-                    'ultimo_pedido': pedidos_ordenados[-1]['created_at']
+                    'ultimo_pedido': pedidos_ordenados[-1]['created_at'],
+                    'method_used': pedidos_ordenados[0]['method_used'],
+                    'confidence': round(pedidos_ordenados[0]['confidence'], 2)
                 })
         
         # Ordena por quantidade de pedidos (mais pedidos primeiro)
         ips_duplicados.sort(key=lambda x: x['total_pedidos'], reverse=True)
         
-        # Log da busca
+        # Log da busca melhorado
         ProcessamentoLog.objects.create(
             user=request.user,
             config=config,
@@ -3816,7 +3911,12 @@ def buscar_ips_duplicados_simples(request):
             pedidos_encontrados=sum(ip['total_pedidos'] for ip in ips_duplicados),
             detalhes={
                 'ips_encontrados': len(ips_duplicados),
-                'days_searched': days
+                'days_searched': days,
+                'total_processed': total_processed,
+                'excluded_count': excluded_count,
+                'unique_ips': len(ip_groups),
+                'methods_used': methods_used,
+                'version': 'improved_v2'
             }
         )
         
@@ -3825,7 +3925,14 @@ def buscar_ips_duplicados_simples(request):
             'total_ips': len(ips_duplicados),
             'total_pedidos': sum(ip['total_pedidos'] for ip in ips_duplicados),
             'days_searched': days,
-            'loja_nome': config.nome_loja
+            'loja_nome': config.nome_loja,
+            'statistics': {
+                'total_processed': total_processed,
+                'excluded_count': excluded_count,
+                'unique_ips_found': len(ip_groups),
+                'methods_used': methods_used,
+                'success_rate': len(ip_groups) / max(total_processed - excluded_count, 1) * 100
+            }
         })
         
     except Exception as e:
