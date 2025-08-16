@@ -666,9 +666,9 @@ def detalhar_pedidos_ip(request):
                 'message': 'Dados retornados do cache para otimizar performance'
             })
         
-        # Busca configuração da loja (apenas do usuário autenticado)
+        # Busca configuração da loja (qualquer loja ativa no sistema)
         try:
-            config = ShopifyConfig.objects.filter(id=loja_id, ativo=True, user=request.user).first()
+            config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
             if not config:
                 logger.warning(f"Loja {loja_id} não encontrada ou inativa")
                 return Response({
@@ -3816,7 +3816,7 @@ def buscar_ips_duplicados_simples(request):
         if not loja_id:
             return Response({'error': 'ID da loja é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
         
-        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True, user=request.user).first()
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
         if not config:
             return Response({'error': 'Loja não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
         
