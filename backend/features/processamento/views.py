@@ -932,16 +932,25 @@ def test_simple_endpoint(request):
                     'customer_name': getattr(order.customer, 'first_name', '') + ' ' + getattr(order.customer, 'last_name', '') if order.customer else 'N/A'
                 })
         
-        # Filtra apenas IPs com 2+ pedidos
+        # ⚡ CORREÇÃO: Filtra TODOS os IPs com 2+ pedidos (independente do cliente)
         ips_duplicados = []
         for ip, pedidos in ip_groups.items():
-            if len(pedidos) >= 2:
+            if len(pedidos) >= 2:  # QUALQUER IP com 2+ pedidos
                 # Ordena por data
                 pedidos_ordenados = sorted(pedidos, key=lambda x: x['created_at'])
+                
+                # Conta clientes únicos para análise
+                clientes_unicos = set()
+                for pedido in pedidos:
+                    cliente = pedido.get('customer_name', 'N/A')
+                    if cliente and cliente != 'N/A':
+                        clientes_unicos.add(cliente)
                 
                 ips_duplicados.append({
                     'browser_ip': ip,
                     'total_pedidos': len(pedidos),
+                    'clientes_unicos': len(clientes_unicos),
+                    'clientes_diferentes': len(clientes_unicos) > 1,  # Para análise no frontend
                     'pedidos': pedidos_ordenados,
                     'primeiro_pedido': pedidos_ordenados[0]['created_at'],
                     'ultimo_pedido': pedidos_ordenados[-1]['created_at']
@@ -3891,16 +3900,25 @@ def buscar_ips_duplicados_simples(request):
                     'financial_status': order_dict.get('financial_status', '')
                 })
         
-        # Filtra apenas IPs com 2+ pedidos
+        # ⚡ CORREÇÃO: Filtra TODOS os IPs com 2+ pedidos (independente do cliente)
         ips_duplicados = []
         for ip, pedidos in ip_groups.items():
-            if len(pedidos) >= 2:
+            if len(pedidos) >= 2:  # QUALQUER IP com 2+ pedidos
                 # Ordena por data
                 pedidos_ordenados = sorted(pedidos, key=lambda x: x['created_at'])
+                
+                # Conta clientes únicos para análise
+                clientes_unicos = set()
+                for pedido in pedidos:
+                    cliente = pedido.get('customer_name', 'N/A')
+                    if cliente and cliente != 'N/A':
+                        clientes_unicos.add(cliente)
                 
                 ips_duplicados.append({
                     'browser_ip': ip,
                     'total_pedidos': len(pedidos),
+                    'clientes_unicos': len(clientes_unicos),
+                    'clientes_diferentes': len(clientes_unicos) > 1,  # Para análise no frontend
                     'pedidos': pedidos_ordenados,
                     'primeiro_pedido': pedidos_ordenados[0]['created_at'],
                     'ultimo_pedido': pedidos_ordenados[-1]['created_at'],

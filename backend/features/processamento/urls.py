@@ -15,6 +15,7 @@ urlpatterns = [
     path('buscar-duplicatas-simples/', views.buscar_duplicatas, name='buscar_duplicatas_simples'),
     path('buscar-ips-duplicados/', views.buscar_pedidos_mesmo_ip, name='buscar_pedidos_mesmo_ip'),
     path('detalhar-ip/', views.detalhar_pedidos_ip, name='detalhar_pedidos_ip'),
+    path('detalhar-pedidos-ip/', views.detalhar_pedidos_ip, name='detalhar_pedidos_ip_new'),
     path('test-detalhar-ip/', views.test_detalhar_ip, name='test_detalhar_ip'),
     path('test-simple/', views.test_simple_endpoint, name='test_simple_endpoint'),
     path('debug-detector/', views.debug_detector_ip, name='debug_detector_ip'),

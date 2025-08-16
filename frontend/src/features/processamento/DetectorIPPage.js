@@ -186,7 +186,7 @@ function DetectorIPPage() {
         setIPDetails(null);
 
         try {
-            const response = await axios.post('/processamento/detalhar-ip/', {
+            const response = await axios.post('/processamento/detalhar-pedidos-ip/', {
                 loja_id: lojaSelecionada,
                 ip: ipGroup.ip,
                 days: searchParams.days
@@ -197,10 +197,10 @@ function DetectorIPPage() {
                 timeout: 30000
             });
 
-            if (response.data.success) {
+            if (response.data.success && response.data.data) {
                 setIPDetails(response.data.data);
             } else {
-                showNotification(response.data.message || 'Erro ao carregar detalhes', 'error');
+                showNotification(response.data.message || response.data.error || 'Erro ao carregar detalhes', 'error');
             }
         } catch (error) {
             console.error('Erro ao carregar detalhes do IP:', error);
