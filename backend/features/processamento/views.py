@@ -3840,16 +3840,19 @@ def buscar_ips_duplicados_simples(request):
         )
         
         def extract_ip_from_order(order_dict):
-            """Extrai IP usando múltiplas fontes hierárquicas"""
+            """Extrai IP usando múltiplas fontes hierárquicas - CORRIGIDO"""
             
             # MÉTODO 1: note_attributes - IP address (PRIORIDADE MÁXIMA!)
             note_attributes = order_dict.get('note_attributes', [])
             if isinstance(note_attributes, list):
                 for note in note_attributes:
                     if isinstance(note, dict) and note.get('name') == 'IP address':
-                        ip_address = note.get('value')
-                        if ip_address and str(ip_address).strip() and str(ip_address).strip() != 'None':
-                            return str(ip_address).strip(), 'note_attributes', 0.98
+                        ip_address = str(note.get('value', '')).strip()
+                        if ip_address and ip_address != 'None' and ip_address != '':
+                            # Debug temporário para IP específico
+                            if ip_address == "31.217.1.48":
+                                print(f"DEBUG: IP 31.217.1.48 encontrado no pedido #{order_dict.get('name', 'unknown')} via note_attributes")
+                            return ip_address, 'note_attributes', 0.98
             
             # MÉTODO 2: browser_ip direto
             browser_ip = order_dict.get('browser_ip')
@@ -3860,7 +3863,7 @@ def buscar_ips_duplicados_simples(request):
             client_details = order_dict.get('client_details', {})
             if isinstance(client_details, dict):
                 client_browser_ip = client_details.get('browser_ip')
-                if client_browser_ip and str(client_browser_ip).strip():
+                if client_browser_ip and str(client_browser_ip).strip() != 'None':
                     return str(client_browser_ip).strip(), 'client_details', 0.90
             
             # MÉTODO 4: Coordenadas geográficas como "fingerprint" único
@@ -3899,16 +3902,17 @@ def buscar_ips_duplicados_simples(request):
             return None, 'none', 0.0
         
         def should_exclude_order(order_dict):
-            """Verifica se um pedido deve ser excluído"""
-            financial_status = order_dict.get('financial_status', '').lower()
-            cancelled_at = order_dict.get('cancelled_at')
+            """Determina se um pedido deve ser excluído da análise - CORRIGIDO"""
             
-            # Exclui pedidos cancelados
+            # Exclui pedidos completamente cancelados há muito tempo
+            cancelled_at = order_dict.get('cancelled_at')
             if cancelled_at:
                 return True
             
-            # Exclui pedidos com status financeiro problemático
-            if financial_status in ['refunded', 'voided']:
+            # Permitir pedidos voided (ainda são válidos para análise de IP)
+            # financial_status voided ainda mostra compras válidas
+            financial_status = order_dict.get('financial_status', '').lower()
+            if financial_status in ['refunded']:  # Removido 'voided' da exclusão
                 return True
             
             return False
@@ -3930,6 +3934,10 @@ def buscar_ips_duplicados_simples(request):
             
             # Extrai IP usando múltiplos métodos
             ip_found, method_used, confidence = extract_ip_from_order(order_dict)
+            
+            # Debug adicional para IP específico
+            if ip_found == "31.217.1.48":
+                print(f"DEBUG: IP 31.217.1.48 processado com sucesso via {method_used} no pedido #{order_dict.get('name', 'unknown')}")
             
             # Conta métodos usados para estatísticas
             methods_used[method_used] = methods_used.get(method_used, 0) + 1
