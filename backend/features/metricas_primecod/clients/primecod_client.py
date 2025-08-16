@@ -135,13 +135,19 @@ class PrimeCODClient:
         if date_range:
             payload['date_range'] = date_range
         
+        logger.error(f"🚀 URL: {url}")
+        logger.error(f"🚀 Payload: {payload}")
+        logger.error(f"🚀 Iniciando loop de páginas...")
+        
         all_orders = []
         current_page = page
         total_pages = None
         pages_processed = 0
         
         try:
+            logger.error(f"🚀 Entrando no try...")
             while current_page <= max_pages:
+                logger.error(f"🚀 Loop página {current_page}")
                 if pages_processed >= max_pages:
                     logger.warning(f"Limite de {max_pages} páginas atingido")
                     break
