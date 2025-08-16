@@ -3775,19 +3775,28 @@ def buscar_ips_duplicados_simples(request):
         def extract_ip_from_order(order_dict):
             """Extrai IP usando múltiplas fontes hierárquicas"""
             
-            # Método 1: browser_ip direto (mais confiável)
+            # MÉTODO 1: note_attributes - IP address (PRIORIDADE MÁXIMA!)
+            note_attributes = order_dict.get('note_attributes', [])
+            if isinstance(note_attributes, list):
+                for note in note_attributes:
+                    if isinstance(note, dict) and note.get('name') == 'IP address':
+                        ip_address = note.get('value')
+                        if ip_address and str(ip_address).strip() and str(ip_address).strip() != 'None':
+                            return str(ip_address).strip(), 'note_attributes', 0.98
+            
+            # MÉTODO 2: browser_ip direto
             browser_ip = order_dict.get('browser_ip')
             if browser_ip and str(browser_ip).strip() and str(browser_ip).strip() != 'None':
                 return str(browser_ip).strip(), 'browser_ip', 0.95
             
-            # Método 2: client_details.browser_ip
+            # MÉTODO 3: client_details.browser_ip
             client_details = order_dict.get('client_details', {})
             if isinstance(client_details, dict):
                 client_browser_ip = client_details.get('browser_ip')
                 if client_browser_ip and str(client_browser_ip).strip():
                     return str(client_browser_ip).strip(), 'client_details', 0.90
             
-            # Método 3: Coordenadas geográficas como "fingerprint" único
+            # MÉTODO 4: Coordenadas geográficas como "fingerprint" único
             def get_geo_fingerprint(address, prefix):
                 if not isinstance(address, dict):
                     return None, None, 0
