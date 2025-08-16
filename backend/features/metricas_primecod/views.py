@@ -187,16 +187,21 @@ def buscar_orders_primecod(request):
     Substitui chamadas diretas do frontend para a API externa
     """
     try:
+        logger.info("=== INÍCIO DA BUSCA PRIMECOD ===")
+        
         # Extrair parâmetros da requisição
         data_inicio = request.data.get('data_inicio')
         data_fim = request.data.get('data_fim')
         pais_filtro = request.data.get('pais_filtro')
         max_paginas = request.data.get('max_paginas', 50)  # Limite padrão menor
         
-        logger.info(f"Usuário {request.user.username} iniciou busca PrimeCOD: {data_inicio} a {data_fim}")
+        logger.info(f"Usuário: {request.user.username}")
+        logger.info(f"Parâmetros recebidos: data_inicio={data_inicio}, data_fim={data_fim}, pais_filtro={pais_filtro}")
+        logger.info(f"Request data completo: {request.data}")
         
         # Validar parâmetros
         if not data_inicio or not data_fim:
+            logger.error("Parâmetros obrigatórios ausentes")
             return Response({
                 'status': 'error',
                 'message': 'Parâmetros data_inicio e data_fim são obrigatórios'
@@ -205,6 +210,9 @@ def buscar_orders_primecod(request):
         # Verificar configuração do token antes de inicializar cliente
         from django.conf import settings
         token = getattr(settings, 'PRIMECOD_API_TOKEN', None)
+        
+        logger.info(f"Token configurado: {'Sim' if token else 'Não'}")
+        logger.info(f"Token length: {len(token) if token else 0}")
         
         if not token or token == 'your_primecod_api_token_here':
             logger.warning("PRIMECOD_API_TOKEN não configurado no ambiente")
@@ -215,8 +223,10 @@ def buscar_orders_primecod(request):
             }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         
         # Inicializar cliente PrimeCOD
+        logger.info("Inicializando cliente PrimeCOD...")
         try:
             client = PrimeCODClient()
+            logger.info("Cliente PrimeCOD inicializado com sucesso")
         except PrimeCODAPIError as e:
             logger.error(f"Erro ao inicializar cliente PrimeCOD: {str(e)}")
             return Response({
@@ -230,13 +240,18 @@ def buscar_orders_primecod(request):
             'end': data_fim
         }
         
+        logger.info(f"Date range preparado: {date_range}")
+        
         # Buscar orders com paginação progressiva
+        logger.info("Iniciando busca de orders via API...")
         try:
             resultado = client.get_orders(
                 page=1,
                 date_range=date_range,
                 max_pages=max_paginas
             )
+            logger.info(f"Busca concluída. Resultado: {type(resultado)}")
+            logger.info(f"Keys do resultado: {list(resultado.keys()) if isinstance(resultado, dict) else 'Não é dict'}")
             
             # Processar os dados dos orders
             orders_processados = client.process_orders_data(
