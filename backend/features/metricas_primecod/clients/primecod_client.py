@@ -183,7 +183,7 @@ class PrimeCODClient:
                 
                 # Extrair dados da resposta
                 logger.error(f"🔄 Extraindo orders...")
-                orders = data.get('orders', [])
+                orders = data.get('data', [])  # CORREÇÃO: API usa 'data' não 'orders'
                 logger.error(f"🔄 Orders extraídos: {len(orders)}")
                 logger.info(f"Orders encontrados na página {current_page}: {len(orders)}")
                 
@@ -203,7 +203,7 @@ class PrimeCODClient:
                 
                 # Obter informações de paginação
                 if total_pages is None:
-                    total_pages = data.get('total_pages', current_page)
+                    total_pages = data.get('last_page', current_page)
                 
                 current_page += 1
                 pages_processed += 1
