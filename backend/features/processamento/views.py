@@ -35,6 +35,29 @@ from .utils.security_utils import (
 
 logger = logging.getLogger(__name__)
 
+def create_safe_log(user, config, tipo, status, dados=None):
+    """
+    Cria log de forma segura, verificando se o usuário está autenticado
+    """
+    try:
+        # Verifica se o usuário é válido e autenticado
+        if hasattr(user, 'is_authenticated') and user.is_authenticated:
+            log_user = user
+        else:
+            # Se não há usuário autenticado, usa None (pode ser um request anônimo)
+            log_user = None
+        
+        ProcessamentoLog.objects.create(
+            user=log_user,
+            config=config,
+            tipo=tipo,
+            status=status,
+            dados=dados or {}
+        )
+    except Exception as e:
+        # Log do erro mas não interrompe a execução principal
+        logger.error(f"Erro ao criar log: {str(e)}")
+
 @csrf_exempt
 @api_view(['GET', 'POST', 'DELETE'])
 def lojas_config(request):
@@ -158,13 +181,15 @@ def buscar_duplicatas(request):
         duplicates = detector.get_detailed_duplicates()
         
         # Log da busca
-        ProcessamentoLog.objects.create(
+        create_safe_log(
             user=request.user,
             config=config,
             tipo='busca',
             status='sucesso',
-            pedidos_encontrados=len(duplicates),
-            detalhes={'duplicates_count': len(duplicates)}
+            dados={
+                'duplicates_count': len(duplicates),
+                'pedidos_encontrados': len(duplicates)
+            }
         )
         
         return Response({
@@ -3930,20 +3955,20 @@ def buscar_ips_duplicados_simples(request):
         ips_duplicados.sort(key=lambda x: x['total_pedidos'], reverse=True)
         
         # Log da busca melhorado
-        ProcessamentoLog.objects.create(
+        create_safe_log(
             user=request.user,
             config=config,
             tipo='busca_ips_simples',
             status='sucesso',
-            pedidos_encontrados=sum(ip['total_pedidos'] for ip in ips_duplicados),
-            detalhes={
+            dados={
                 'ips_encontrados': len(ips_duplicados),
                 'days_searched': days,
                 'total_processed': total_processed,
                 'excluded_count': excluded_count,
                 'unique_ips': len(ip_groups),
                 'methods_used': methods_used,
-                'version': 'improved_v2'
+                'version': 'improved_v2',
+                'pedidos_encontrados': sum(ip['total_pedidos'] for ip in ips_duplicados)
             }
         )
         
@@ -3965,12 +3990,128 @@ def buscar_ips_duplicados_simples(request):
     except Exception as e:
         # Log do erro
         if 'config' in locals():
-            ProcessamentoLog.objects.create(
+            create_safe_log(
                 user=request.user,
                 config=config,
                 tipo='busca_ips_simples',
                 status='erro',
-                erro_mensagem=str(e)
+                dados={'erro_mensagem': str(e)}
+            )
+        
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@csrf_exempt
+@api_view(['POST'])
+def debug_buscar_ip_especifico(request):
+    """Debug específico para encontrar um IP em TODOS os pedidos"""
+    try:
+        loja_id = request.data.get('loja_id')
+        ip_procurado = request.data.get('ip')
+        days = request.data.get('days', 365)  # 1 ano por padrão
+        
+        if not loja_id or not ip_procurado:
+            return Response({'error': 'loja_id e ip são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+        if not config:
+            return Response({'error': 'Loja não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Inicializa conexão Shopify
+        import shopify
+        shop_url = config.shop_url
+        if not shop_url.startswith('https://'):
+            shop_url = f"https://{shop_url}"
+        
+        session = shopify.Session(shop_url, "2024-07", config.access_token)
+        shopify.ShopifyResource.activate_session(session)
+        
+        # Busca pedidos dos últimos X dias SEM FILTRO DE STATUS
+        data_inicial = timezone.now() - timedelta(days=days)
+        
+        orders = shopify.Order.find(
+            status='any',  # TODOS os status
+            created_at_min=data_inicial.isoformat(),
+            limit=250
+        )
+        
+        pedidos_encontrados = []
+        total_analisados = 0
+        
+        for order in orders:
+            total_analisados += 1
+            order_dict = order.to_dict()
+            
+            # Busca o IP em TODOS os campos possíveis
+            ips_encontrados = []
+            
+            # note_attributes
+            note_attributes = order_dict.get('note_attributes', [])
+            if isinstance(note_attributes, list):
+                for note in note_attributes:
+                    if isinstance(note, dict) and note.get('name') == 'IP address':
+                        ip_value = note.get('value')
+                        if ip_value and str(ip_value).strip() == ip_procurado:
+                            ips_encontrados.append(('note_attributes', ip_value))
+            
+            # browser_ip direto
+            browser_ip = order_dict.get('browser_ip')
+            if browser_ip and str(browser_ip).strip() == ip_procurado:
+                ips_encontrados.append(('browser_ip', browser_ip))
+            
+            # client_details.browser_ip
+            client_details = order_dict.get('client_details', {})
+            if isinstance(client_details, dict):
+                client_browser_ip = client_details.get('browser_ip')
+                if client_browser_ip and str(client_browser_ip).strip() == ip_procurado:
+                    ips_encontrados.append(('client_details.browser_ip', client_browser_ip))
+            
+            # Se encontrou o IP em qualquer campo
+            if ips_encontrados:
+                customer = order_dict.get('customer', {})
+                pedidos_encontrados.append({
+                    'id': order_dict.get('id'),
+                    'number': order_dict.get('number'),
+                    'created_at': order_dict.get('created_at'),
+                    'financial_status': order_dict.get('financial_status'),
+                    'fulfillment_status': order_dict.get('fulfillment_status'),
+                    'cancelled_at': order_dict.get('cancelled_at'),
+                    'customer_name': f"{customer.get('first_name', '')} {customer.get('last_name', '')}".strip(),
+                    'customer_email': customer.get('email'),
+                    'ips_encontrados': ips_encontrados,
+                    'total_price': order_dict.get('total_price'),
+                })
+        
+        # Log da busca debug
+        create_safe_log(
+            user=request.user,
+            config=config,
+            tipo='debug',
+            status='sucesso',
+            dados={
+                'ip_procurado': ip_procurado,
+                'pedidos_encontrados': len(pedidos_encontrados),
+                'total_analisados': total_analisados,
+                'days_searched': days
+            }
+        )
+        
+        return Response({
+            'ip_procurado': ip_procurado,
+            'pedidos_encontrados': pedidos_encontrados,
+            'total_encontrados': len(pedidos_encontrados),
+            'total_analisados': total_analisados,
+            'days_searched': days,
+            'loja_nome': config.nome_loja
+        })
+        
+    except Exception as e:
+        if 'config' in locals():
+            create_safe_log(
+                user=request.user,
+                config=config,
+                tipo='debug',
+                status='erro',
+                dados={'erro_mensagem': str(e), 'ip_procurado': ip_procurado if 'ip_procurado' in locals() else 'unknown'}
             )
         
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

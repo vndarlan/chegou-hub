@@ -31,6 +31,9 @@ class ProcessamentoLog(models.Model):
         ('analise_pedido', 'Análise de Pedido'),
         ('debug', 'Debug de Dados'),
         ('erro', 'Erro'),
+        ('busca_ips_simples', 'Busca IPs Simples'),
+        ('busca_ip_async', 'Busca IP Assíncrona'),
+        ('busca_ip_async_v2', 'Busca IP Assíncrona v2'),
     ]
     
     STATUS_CHOICES = [
@@ -39,9 +42,9 @@ class ProcessamentoLog(models.Model):
         ('parcial', 'Parcial'),
     ]
     
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     config = models.ForeignKey(ShopifyConfig, on_delete=models.CASCADE)
-    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
+    tipo = models.CharField(max_length=30, choices=TIPO_CHOICES)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES)
     detalhes = models.JSONField(default=dict)
     pedidos_encontrados = models.IntegerField(default=0)
