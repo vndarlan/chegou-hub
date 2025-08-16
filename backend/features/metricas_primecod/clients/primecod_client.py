@@ -110,192 +110,292 @@ class PrimeCODClient:
     def get_orders(self, 
                    page: int = 1, 
                    date_range: Optional[Dict[str, str]] = None,
-                   max_pages: int = 400) -> Dict:
+                   max_pages: int = 400,
+                   country_filter: Optional[str] = None) -> Dict:
         """
-        Busca orders da API PrimeCOD com paginação
+        Busca TODOS os orders da API PrimeCOD coletando todas as páginas
+        e aplicando filtros de data e país localmente após coleta completa.
+        
+        IMPLEMENTAÇÃO CRÍTICA:
+        - API PrimeCOD NÃO suporta filtros de data nem país
+        - Deve buscar TODAS as páginas (10 pedidos por página) até página vazia
+        - Filtros são aplicados APÓS coletar todos os dados
         
         Args:
-            page: Página inicial
-            date_range: {'start': 'YYYY-MM-DD', 'end': 'YYYY-MM-DD'}
-            max_pages: Máximo de páginas para buscar
+            page: Página inicial (sempre 1 para coleta completa)
+            date_range: {'start': 'YYYY-MM-DD', 'end': 'YYYY-MM-DD'} - aplicado localmente
+            max_pages: Máximo de páginas para buscar (proteção contra loop infinito)
+            country_filter: País para filtrar localmente
             
         Returns:
-            Dict com orders, total_pages, filtros aplicados, etc.
+            Dict com orders filtrados, total_pages, filtros aplicados, etc.
         """
         
-        # Tentar usar cache se disponível
+        # Cache baseado apenas em coleta completa (sem filtros na API)
         cached_result = None
         cache_key = None
         try:
-            # Criar chave de cache válida (sem caracteres especiais)
             import hashlib
-            date_str = ""
-            if date_range:
-                date_str = f"{date_range.get('start', '')}-{date_range.get('end', '')}"
-            
-            # Hash para evitar caracteres especiais e limitar tamanho
-            cache_data = f"primecod_orders_{page}_{date_str}"
+            # Cache para coleta completa - não inclui filtros pois são aplicados localmente
+            cache_data = "primecod_orders_complete_collection"
             cache_key = hashlib.md5(cache_data.encode()).hexdigest()[:20]
             cached_result = cache.get(cache_key)
             if cached_result:
-                logger.info(f"Retornando dados em cache para página {page}")
-                return cached_result
+                logger.info("🎯 Usando dados completos em cache, aplicando filtros localmente")
+                # Aplicar filtros nos dados em cache
+                all_orders = cached_result.get('all_orders_raw', [])
+                filtered_orders = self._apply_local_filters(all_orders, date_range, country_filter)
+                
+                return {
+                    'orders': filtered_orders,
+                    'total_orders': len(filtered_orders),
+                    'total_orders_raw': len(all_orders),
+                    'pages_processed': cached_result.get('pages_processed', 0),
+                    'total_pages': cached_result.get('total_pages', 0),
+                    'date_range_applied': date_range,
+                    'country_filter_applied': country_filter,
+                    'status': 'success',
+                    'data_source': 'cache'
+                }
         except Exception as e:
-            logger.warning(f"Cache não disponível, prosseguindo sem cache: {str(e)}")
+            logger.warning(f"Cache não disponível, prosseguindo com coleta completa: {str(e)}")
             cached_result = None
         
         url = f"{self.base_url}/orders"
         
-        # Construir payload da requisição
+        # CRÍTICO: Payload VAZIO - sem filtros para API
         payload = {}
-        if date_range:
-            payload['date_range'] = date_range
         
-        logger.error(f"🚀 URL: {url}")
-        logger.error(f"🚀 Payload: {payload}")
-        logger.error(f"🚀 Iniciando loop de páginas...")
+        logger.info(f"🚀 Iniciando coleta COMPLETA de orders PrimeCOD")
+        logger.info(f"🚀 URL base: {url}")
+        logger.info(f"🚀 Payload (sem filtros): {payload}")
+        logger.info(f"🚀 Filtros serão aplicados LOCALMENTE após coleta")
         
         all_orders = []
-        current_page = page
+        current_page = 1  # SEMPRE começar da página 1
         total_pages = None
         pages_processed = 0
         
         try:
-            logger.error(f"🚀 Entrando no try...")
+            logger.info(f"🚀 Iniciando loop para coletar TODAS as páginas...")
+            
             while current_page <= max_pages:
-                logger.error(f"🚀 Loop página {current_page}")
+                logger.info(f"📄 Processando página {current_page}")
+                
+                # Proteção contra loop infinito
                 if pages_processed >= max_pages:
-                    logger.warning(f"Limite de {max_pages} páginas atingido")
+                    logger.warning(f"⚠️ Limite de {max_pages} páginas atingido - interrompendo coleta")
                     break
                 
-                # Fazer requisição para página atual
+                # Fazer requisição para página atual SEM FILTROS
                 page_url = f"{url}?page={current_page}"
-                logger.info(f"Buscando página {current_page} de orders PrimeCOD")
-                logger.info(f"URL: {page_url}")
-                logger.info(f"Payload: {payload}")
+                logger.info(f"🌐 Requisição: {page_url}")
                 
-                logger.error(f"🔄 Fazendo _make_request...")
                 response = self._make_request('POST', page_url, json=payload)
-                logger.error(f"🔄 Response recebido, processando...")
-                logger.info(f"Response status: {response.status_code}")
-                logger.info(f"Response headers: {dict(response.headers)}")
+                logger.info(f"✅ Response recebido - Status: {response.status_code}")
                 
-                logger.error(f"🔄 Fazendo response.json()...")
                 data = response.json()
-                logger.error(f"🔄 JSON parseado com sucesso!")
-                logger.info(f"Response data keys: {list(data.keys()) if isinstance(data, dict) else type(data)}")
+                logger.info(f"📊 Estrutura da resposta: {list(data.keys()) if isinstance(data, dict) else type(data)}")
                 
-                # Extrair dados da resposta
-                logger.error(f"🔄 Extraindo orders...")
-                orders = data.get('data', [])  # CORREÇÃO: API usa 'data' não 'orders'
-                logger.error(f"🔄 Orders extraídos: {len(orders)}")
-                logger.info(f"Orders encontrados na página {current_page}: {len(orders)}")
+                # Extrair orders da resposta
+                orders = data.get('data', [])
+                logger.info(f"📦 Orders na página {current_page}: {len(orders)}")
                 
-                if isinstance(data, dict):
-                    logger.error(f"🔄 Dados completos da resposta: {data}")
-                
-                if not orders:
-                    logger.error(f"🔄 Nenhum order encontrado, finalizando...")
-                    logger.info(f"Nenhum order encontrado na página {current_page}, finalizando busca")
+                # CONDIÇÃO DE PARADA: página vazia ou menos de 10 orders
+                if not orders or len(orders) < 10:
+                    logger.info(f"🏁 Página {current_page} vazia ou incompleta ({len(orders)} orders) - finalizando coleta")
+                    if orders:  # Se tem alguns orders, incluir na coleta
+                        all_orders.extend(orders)
                     break
                 
-                # Filtrar por data localmente (já que API não funciona direito)
-                if date_range:
-                    orders = self._filter_orders_by_date(orders, date_range)
-                
+                # Adicionar todos os orders desta página (SEM filtros)
                 all_orders.extend(orders)
                 
-                # Obter informações de paginação
+                # Obter informações de paginação da resposta
                 if total_pages is None:
                     total_pages = data.get('last_page', current_page)
                 
                 current_page += 1
                 pages_processed += 1
                 
-                # Log de progresso
+                # Log de progresso a cada 10 páginas
                 if pages_processed % 10 == 0:
-                    logger.info(f"Processadas {pages_processed} páginas, {len(all_orders)} orders encontrados")
+                    logger.info(f"📊 Progresso: {pages_processed} páginas processadas, {len(all_orders)} orders coletados")
+            
+            logger.info(f"🎯 Coleta completa finalizada:")
+            logger.info(f"📊 Total de páginas processadas: {pages_processed}")
+            logger.info(f"📦 Total de orders coletados: {len(all_orders)}")
+            
+            # Salvar dados completos no cache ANTES de aplicar filtros
+            if cache_key:
+                try:
+                    cache_data = {
+                        'all_orders_raw': all_orders,
+                        'pages_processed': pages_processed,
+                        'total_pages': total_pages,
+                        'collected_at': datetime.now().isoformat()
+                    }
+                    cache.set(cache_key, cache_data, 600)  # Cache por 10 minutos
+                    logger.info(f"💾 Dados completos salvos no cache")
+                except Exception as e:
+                    logger.warning(f"⚠️ Falha ao salvar no cache: {str(e)}")
+            
+            # AGORA aplicar filtros localmente
+            logger.info(f"🔍 Aplicando filtros localmente aos {len(all_orders)} orders coletados")
+            filtered_orders = self._apply_local_filters(all_orders, date_range, country_filter)
             
             result = {
-                'orders': all_orders,
-                'total_orders': len(all_orders),
+                'orders': filtered_orders,
+                'total_orders': len(filtered_orders),
+                'total_orders_raw': len(all_orders),
                 'pages_processed': pages_processed,
                 'total_pages': total_pages,
                 'date_range_applied': date_range,
-                'status': 'success'
+                'country_filter_applied': country_filter,
+                'status': 'success',
+                'data_source': 'api'
             }
             
-            # Tentar salvar no cache se disponível
-            if cache_key:
-                try:
-                    cache.set(cache_key, result, 300)  # Cache por 5 minutos
-                    logger.info(f"Resultado salvo no cache")
-                except Exception as e:
-                    logger.warning(f"Falha ao salvar no cache: {str(e)}")
+            logger.info(f"✅ Busca finalizada:")
+            logger.info(f"📦 Orders coletados: {len(all_orders)}")
+            logger.info(f"🔍 Orders após filtros: {len(filtered_orders)}")
+            logger.info(f"📄 Páginas processadas: {pages_processed}")
             
-            logger.info(f"Busca finalizada: {len(all_orders)} orders em {pages_processed} páginas")
             return result
             
         except Exception as e:
-            logger.error(f"Erro ao buscar orders PrimeCOD: {str(e)}")
+            logger.error(f"❌ Erro ao buscar orders PrimeCOD: {str(e)}")
             raise PrimeCODAPIError(f"Erro na busca de orders: {str(e)}")
+    
+    def _apply_local_filters(self, orders: List[Dict], date_range: Optional[Dict[str, str]] = None, country_filter: Optional[str] = None) -> List[Dict]:
+        """
+        Aplica todos os filtros localmente aos orders coletados
+        
+        Args:
+            orders: Lista completa de orders da API
+            date_range: Filtro de data {'start': 'YYYY-MM-DD', 'end': 'YYYY-MM-DD'}
+            country_filter: Nome do país para filtrar
+            
+        Returns:
+            Lista de orders filtrados
+        """
+        if not orders:
+            logger.info("🔍 Nenhum order para filtrar")
+            return orders
+        
+        filtered_orders = orders.copy()
+        logger.info(f"🔍 Iniciando filtros locais: {len(filtered_orders)} orders")
+        
+        # Aplicar filtro de data se especificado
+        if date_range and date_range.get('start') and date_range.get('end'):
+            logger.info(f"📅 Aplicando filtro de data: {date_range['start']} até {date_range['end']}")
+            filtered_orders = self._filter_orders_by_date(filtered_orders, date_range)
+            logger.info(f"📅 Após filtro de data: {len(filtered_orders)} orders")
+        
+        # Aplicar filtro de país se especificado
+        if country_filter:
+            logger.info(f"🌍 Aplicando filtro de país: {country_filter}")
+            filtered_orders = self._filter_orders_by_country(filtered_orders, country_filter)
+            logger.info(f"🌍 Após filtro de país: {len(filtered_orders)} orders")
+        
+        logger.info(f"✅ Filtros aplicados: {len(orders)} -> {len(filtered_orders)} orders")
+        return filtered_orders
     
     def _filter_orders_by_date(self, orders: List[Dict], date_range: Dict[str, str]) -> List[Dict]:
         """Filtra orders por data localmente"""
-        logger.error(f"📅 Filtro de data chamado: {date_range}")
+        logger.info(f"📅 Aplicando filtro de data: {date_range}")
         
         if not date_range.get('start') or not date_range.get('end'):
-            logger.error("📅 Sem filtro de data, retornando todos os orders")
+            logger.info("📅 Filtro de data incompleto, retornando todos os orders")
             return orders
         
         try:
             start_date = datetime.strptime(date_range['start'], '%Y-%m-%d').date()
             end_date = datetime.strptime(date_range['end'], '%Y-%m-%d').date()
             
-            logger.error(f"📅 Período: {start_date} até {end_date}")
+            logger.info(f"📅 Período de filtro: {start_date} até {end_date}")
             
             filtered_orders = []
+            orders_without_date = 0
+            
             for order in orders:
                 # Tentar diferentes campos de data
                 order_date_str = order.get('created_at') or order.get('date') or order.get('order_date')
-                logger.error(f"📅 Order {order.get('id')}: data_str={order_date_str}")
                 
                 if not order_date_str:
-                    logger.error(f"📅 Order {order.get('id')}: SEM DATA, pulando")
+                    orders_without_date += 1
                     continue
                 
                 try:
                     # Tentar diferentes formatos de data
                     order_date = None
-                    for date_format in ['%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%d/%m/%Y']:
+                    # Extrair apenas a parte da data (primeiros 10 caracteres)
+                    date_part = str(order_date_str)[:10]
+                    
+                    for date_format in ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y']:
                         try:
-                            order_date = datetime.strptime(order_date_str[:10], '%Y-%m-%d').date()
+                            order_date = datetime.strptime(date_part, date_format).date()
                             break
                         except ValueError:
                             continue
                     
                     if not order_date:
-                        logger.error(f"📅 Order {order.get('id')}: NÃO conseguiu parsear data {order_date_str}")
+                        orders_without_date += 1
                         continue
                     
-                    logger.error(f"📅 Order {order.get('id')}: data_parseada={order_date}")
-                    
+                    # Verificar se a data está no período especificado
                     if start_date <= order_date <= end_date:
-                        logger.error(f"📅 Order {order.get('id')}: ✅ INCLUÍDO no filtro")
                         filtered_orders.append(order)
-                    else:
-                        logger.error(f"📅 Order {order.get('id')}: ❌ EXCLUÍDO (fora do período)")
                         
                 except (ValueError, TypeError) as e:
-                    logger.error(f"📅 Order {order.get('id')}: ERRO ao processar data: {e}")
+                    orders_without_date += 1
                     continue
             
-            logger.error(f"📅 Filtro de data aplicado: {len(orders)} -> {len(filtered_orders)} orders")
+            logger.info(f"📅 Resultado do filtro de data:")
+            logger.info(f"   - Orders no período: {len(filtered_orders)}")
+            logger.info(f"   - Orders sem data válida: {orders_without_date}")
+            logger.info(f"   - Total processados: {len(orders)}")
+            
             return filtered_orders
             
         except ValueError as e:
-            logger.error(f"Erro no filtro de data: {str(e)}")
+            logger.error(f"❌ Erro no filtro de data: {str(e)}")
             return orders
+    
+    def _filter_orders_by_country(self, orders: List[Dict], country_filter: str) -> List[Dict]:
+        """Filtra orders por país localmente"""
+        logger.info(f"🌍 Aplicando filtro de país: {country_filter}")
+        
+        if not country_filter:
+            return orders
+        
+        filtered_orders = []
+        country_filter_lower = country_filter.lower().strip()
+        orders_without_country = 0
+        
+        for order in orders:
+            # Extrair país (pode ser objeto ou string)
+            country_obj = order.get('country', {})
+            
+            if isinstance(country_obj, dict):
+                country_name = country_obj.get('name', '')
+            else:
+                country_name = str(country_obj)
+            
+            if not country_name:
+                orders_without_country += 1
+                continue
+            
+            # Comparação case-insensitive
+            if country_name.lower().strip() == country_filter_lower:
+                filtered_orders.append(order)
+        
+        logger.info(f"🌍 Resultado do filtro de país:")
+        logger.info(f"   - Orders do país '{country_filter}': {len(filtered_orders)}")
+        logger.info(f"   - Orders sem país válido: {orders_without_country}")
+        logger.info(f"   - Total processados: {len(orders)}")
+        
+        return filtered_orders
     
     def process_orders_data(self, orders: List[Dict], pais_filtro: Optional[str] = None) -> Dict:
         """

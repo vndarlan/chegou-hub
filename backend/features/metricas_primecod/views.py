@@ -261,29 +261,33 @@ def buscar_orders_primecod(request):
             resultado = client.get_orders(
                 page=1,
                 date_range=date_range,
-                max_pages=max_paginas
+                max_pages=max_paginas,
+                country_filter=pais_filtro  # Aplicar filtro de país no cliente
             )
             logger.info(f"Busca concluída. Resultado: {type(resultado)}")
             logger.info(f"Keys do resultado: {list(resultado.keys()) if isinstance(resultado, dict) else 'Não é dict'}")
             
-            # Processar os dados dos orders
+            # Processar os dados dos orders (filtros já aplicados)
             orders_processados = client.process_orders_data(
-                orders=resultado['orders'],  # resultado já contém os orders processados
-                pais_filtro=pais_filtro
+                orders=resultado['orders'],  # resultado já contém os orders filtrados
+                pais_filtro=None  # Não reaplicar filtro de país aqui
             )
             
             # Combinar resultados
             resposta = {
                 'status': 'success',
                 'dados_brutos': {
-                    'total_orders': resultado['total_orders'],
+                    'total_orders_raw': resultado.get('total_orders_raw', resultado['total_orders']),
+                    'total_orders_filtered': resultado['total_orders'],
                     'pages_processed': resultado['pages_processed'],
-                    'date_range_applied': resultado['date_range_applied']
+                    'date_range_applied': resultado['date_range_applied'],
+                    'country_filter_applied': resultado.get('country_filter_applied'),
+                    'data_source': resultado.get('data_source', 'api')
                 },
                 'dados_processados': orders_processados['dados_processados'],
                 'estatisticas': orders_processados['estatisticas'],
                 'status_nao_mapeados': orders_processados['status_nao_mapeados'],
-                'message': f"Busca concluída: {resultado['total_orders']} orders encontrados"
+                'message': f"Busca concluída: {resultado.get('total_orders_raw', resultado['total_orders'])} orders coletados, {resultado['total_orders']} após filtros"
             }
             
             logger.info(f"Busca PrimeCOD concluída para {request.user.username}: {resultado['total_orders']} orders")
