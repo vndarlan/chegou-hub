@@ -180,12 +180,25 @@ class StatusMappingPrimeCODViewSet(viewsets.ModelViewSet):
 # ===== ENDPOINTS PROXY PARA API PRIMECOD =====
 
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
 def buscar_orders_primecod(request):
     """
     Proxy para buscar orders da API PrimeCOD de forma segura
     Substitui chamadas diretas do frontend para a API externa
     """
+    print("🔥 PRIMECOD VIEW CHAMADA! 🔥")
+    logger.error("🔥 PRIMECOD VIEW CHAMADA! 🔥")
+    
+    # Verificar autenticação manualmente
+    logger.error(f"User authenticated: {request.user.is_authenticated}")
+    logger.error(f"User: {request.user}")
+    
+    if not request.user.is_authenticated:
+        logger.error("❌ Usuário não autenticado!")
+        return Response({
+            'status': 'error',
+            'message': 'Usuário não autenticado'
+        }, status=status.HTTP_401_UNAUTHORIZED)
+    
     try:
         logger.info("=== INÍCIO DA BUSCA PRIMECOD ===")
         
