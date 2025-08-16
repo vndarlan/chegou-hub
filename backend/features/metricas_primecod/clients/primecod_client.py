@@ -149,12 +149,23 @@ class PrimeCODClient:
                 # Fazer requisição para página atual
                 page_url = f"{url}?page={current_page}"
                 logger.info(f"Buscando página {current_page} de orders PrimeCOD")
+                logger.info(f"URL: {page_url}")
+                logger.info(f"Payload: {payload}")
                 
                 response = self._make_request('POST', page_url, json=payload)
+                logger.info(f"Response status: {response.status_code}")
+                logger.info(f"Response headers: {dict(response.headers)}")
+                
                 data = response.json()
+                logger.info(f"Response data keys: {list(data.keys()) if isinstance(data, dict) else type(data)}")
                 
                 # Extrair dados da resposta
                 orders = data.get('orders', [])
+                logger.info(f"Orders encontrados na página {current_page}: {len(orders)}")
+                
+                if isinstance(data, dict):
+                    logger.info(f"Dados completos da resposta: {data}")
+                
                 if not orders:
                     logger.info(f"Nenhum order encontrado na página {current_page}, finalizando busca")
                     break
