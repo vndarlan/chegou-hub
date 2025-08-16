@@ -106,8 +106,62 @@ function DetectorIPPage() {
             });
 
             if (response.data.ips_duplicados) {
-                setIPGroups(response.data.ips_duplicados || []);
-                const totalFound = response.data.ips_duplicados?.length || 0;
+                // Debug: Log dos dados recebidos do backend
+                console.log('Dados do backend:', response.data.ips_duplicados[0]);
+                
+                // Mapear dados do backend para formato esperado pelo frontend
+                const mappedIPs = response.data.ips_duplicados.map(ip => {
+                    // Calcula valores derivados a partir dos pedidos
+                    const pedidos = ip.pedidos || [];
+                    const uniqueCustomers = new Set(pedidos.map(p => p.customer_name)).size;
+                    const totalSales = 0; // TODO: Implementar cálculo de vendas se necessário
+                    
+                    // Conta pedidos ativos vs cancelados
+                    const activePedidos = pedidos.filter(p => p.financial_status !== 'cancelled').length;
+                    const cancelledPedidos = pedidos.filter(p => p.financial_status === 'cancelled').length;
+                    
+                    // Cria período de datas se disponível
+                    let dateRange = null;
+                    if (ip.primeiro_pedido && ip.ultimo_pedido) {
+                        dateRange = {
+                            first: ip.primeiro_pedido,
+                            last: ip.ultimo_pedido
+                        };
+                    }
+                    
+                    return {
+                        // Campos obrigatórios para funcionalidade
+                        ip: ip.browser_ip,                    // Campo IP para exibição e ações
+                        order_count: ip.total_pedidos,        // Total de pedidos
+                        total_sales: totalSales,              // Valor total (calculado)
+                        unique_customers: uniqueCustomers,    // Clientes únicos (calculado)
+                        currency: 'BRL',                      // Moeda padrão
+                        
+                        // Status dos pedidos (calculado)
+                        active_orders: activePedidos,
+                        cancelled_orders: cancelledPedidos,
+                        
+                        // Análise de segurança (TODO: implementar no backend se necessário)
+                        is_suspicious: false,
+                        suspicious_flags: {},
+                        
+                        // Período dos pedidos
+                        date_range: dateRange,
+                        
+                        // Método usado para capturar IP
+                        method_used: ip.method_used || 'browser_ip',
+                        confidence: ip.confidence || 0.95,
+                        
+                        // Dados originais preservados para compatibilidade
+                        ...ip
+                    };
+                });
+                
+                // Debug: Log dos dados mapeados
+                console.log('Dados mapeados:', mappedIPs[0]);
+                
+                setIPGroups(mappedIPs);
+                const totalFound = mappedIPs.length;
                 showNotification(`${totalFound} IPs encontrados com múltiplos pedidos`);
             } else {
                 showNotification(response.data.message || 'Erro na busca', 'error');
