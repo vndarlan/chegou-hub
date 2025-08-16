@@ -94,6 +94,17 @@ function DetectorIPPage() {
         setSearchingIPs(true);
         setIPGroups([]);
 
+        // DEBUG: Log detalhado antes da requisição
+        console.log('🔍 DEBUG DetectorIP - Iniciando busca...');
+        console.log('📋 Dados que serão enviados:', {
+            loja_id: lojaSelecionada,
+            days: searchParams.days,
+            lojaSelecionada_type: typeof lojaSelecionada,
+            days_type: typeof searchParams.days
+        });
+        console.log('🏪 Lojas disponíveis:', lojas);
+        console.log('🔑 CSRF Token:', getCSRFToken());
+
         try {
             const response = await axios.post('/processamento/buscar-ips-duplicados-simples/', {
                 loja_id: lojaSelecionada,
@@ -167,7 +178,18 @@ function DetectorIPPage() {
                 showNotification(response.data.message || 'Erro na busca', 'error');
             }
         } catch (error) {
-            console.error('Erro na busca de IPs:', error);
+            console.error('🚨 Erro na busca de IPs:', error);
+            console.error('📋 Detalhes do erro:', {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                headers: error.response?.headers,
+                config: {
+                    url: error.config?.url,
+                    method: error.config?.method,
+                    data: error.config?.data
+                }
+            });
             showNotification(error.response?.data?.error || 'Erro na busca', 'error');
         } finally {
             setSearchingIPs(false);

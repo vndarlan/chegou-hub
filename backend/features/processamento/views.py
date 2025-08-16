@@ -4169,3 +4169,66 @@ def debug_buscar_ip_especifico(request):
             )
         
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def debug_detector_ip_user_data(request):
+    """Endpoint temporário para debug - verifica dados do usuário e lojas"""
+    try:
+        # Dados do usuário
+        user_data = {
+            'user_id': request.user.id,
+            'username': request.user.username,
+            'is_authenticated': request.user.is_authenticated,
+            'is_staff': request.user.is_staff,
+        }
+        
+        # Lojas do usuário atual
+        user_lojas = ShopifyConfig.objects.filter(user=request.user, ativo=True)
+        user_lojas_data = [
+            {
+                'id': loja.id,
+                'nome_loja': loja.nome_loja,
+                'shop_url': loja.shop_url,
+                'ativo': loja.ativo,
+                'created_at': loja.created_at,
+                'user_id': loja.user.id if loja.user else None
+            }
+            for loja in user_lojas
+        ]
+        
+        # Todas as lojas (para debug)
+        all_lojas = ShopifyConfig.objects.filter(ativo=True)
+        all_lojas_data = [
+            {
+                'id': loja.id,
+                'nome_loja': loja.nome_loja,
+                'shop_url': loja.shop_url,
+                'user_id': loja.user.id if loja.user else None,
+                'user_username': loja.user.username if loja.user else None
+            }
+            for loja in all_lojas
+        ]
+        
+        return Response({
+            'success': True,
+            'user_data': user_data,
+            'user_lojas_count': len(user_lojas_data),
+            'user_lojas': user_lojas_data,
+            'all_lojas_count': len(all_lojas_data),
+            'all_lojas': all_lojas_data,
+            'debug_info': {
+                'endpoint_url': '/api/processamento/debug-detector-ip-user-data/',
+                'timestamp': timezone.now().isoformat(),
+                'purpose': 'Diagnosticar erro 400 no detector de IP'
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro no debug endpoint: {str(e)}")
+        return Response({
+            'success': False,
+            'error': str(e),
+            'debug_info': 'Erro interno no endpoint de debug'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

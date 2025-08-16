@@ -62,4 +62,7 @@ urlpatterns = [
     
     # Endpoint de debug para IP específico
     path('debug-ip-especifico/', views.debug_buscar_ip_especifico, name='debug_buscar_ip_especifico'),
+    
+    # Endpoint de debug temporário para diagnosticar erro 400 no detector de IP
+    path('debug-detector-ip-user-data/', views.debug_detector_ip_user_data, name='debug_detector_ip_user_data'),
 ]
