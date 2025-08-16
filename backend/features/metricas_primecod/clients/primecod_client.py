@@ -170,21 +170,28 @@ class PrimeCODClient:
                 logger.info(f"URL: {page_url}")
                 logger.info(f"Payload: {payload}")
                 
+                logger.error(f"🔄 Fazendo _make_request...")
                 response = self._make_request('POST', page_url, json=payload)
+                logger.error(f"🔄 Response recebido, processando...")
                 logger.info(f"Response status: {response.status_code}")
                 logger.info(f"Response headers: {dict(response.headers)}")
                 
+                logger.error(f"🔄 Fazendo response.json()...")
                 data = response.json()
+                logger.error(f"🔄 JSON parseado com sucesso!")
                 logger.info(f"Response data keys: {list(data.keys()) if isinstance(data, dict) else type(data)}")
                 
                 # Extrair dados da resposta
+                logger.error(f"🔄 Extraindo orders...")
                 orders = data.get('orders', [])
+                logger.error(f"🔄 Orders extraídos: {len(orders)}")
                 logger.info(f"Orders encontrados na página {current_page}: {len(orders)}")
                 
                 if isinstance(data, dict):
-                    logger.info(f"Dados completos da resposta: {data}")
+                    logger.error(f"🔄 Dados completos da resposta: {data}")
                 
                 if not orders:
+                    logger.error(f"🔄 Nenhum order encontrado, finalizando...")
                     logger.info(f"Nenhum order encontrado na página {current_page}, finalizando busca")
                     break
                 
