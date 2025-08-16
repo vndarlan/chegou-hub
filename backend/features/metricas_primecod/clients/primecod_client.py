@@ -65,9 +65,15 @@ class PrimeCODClient:
     
     def _make_request(self, method: str, url: str, **kwargs) -> requests.Response:
         """Faz requisição HTTP com tratamento de erros e rate limiting"""
+        logger.error(f"🌐 _make_request chamado: {method} {url}")
+        logger.error(f"🌐 Headers: {self.headers}")
+        logger.error(f"🌐 Kwargs: {kwargs}")
+        
         self._rate_limit()
+        logger.error(f"🌐 Rate limit OK, fazendo requisição...")
         
         try:
+            logger.error(f"🌐 Fazendo requests.request...")
             response = requests.request(
                 method=method,
                 url=url,
@@ -75,6 +81,7 @@ class PrimeCODClient:
                 timeout=30,
                 **kwargs
             )
+            logger.error(f"🌐 Response recebido: {response.status_code}")
             
             logger.info(f"PrimeCOD API {method} {url} - Status: {response.status_code}")
             
@@ -88,8 +95,13 @@ class PrimeCODClient:
             return response
             
         except requests.RequestException as e:
-            logger.error(f"Erro na requisição para PrimeCOD: {str(e)}")
+            logger.error(f"🌐 ❌ RequestException: {str(e)}")
+            logger.error(f"🌐 ❌ Erro na requisição para PrimeCOD: {str(e)}")
             raise PrimeCODAPIError(f"Erro de conectividade: {str(e)}")
+        except Exception as e:
+            logger.error(f"🌐 ❌ Exception geral: {str(e)}")
+            logger.error(f"🌐 ❌ Tipo: {type(e)}")
+            raise PrimeCODAPIError(f"Erro inesperado: {str(e)}")
     
     def get_orders(self, 
                    page: int = 1, 
