@@ -420,7 +420,7 @@ class ShopifyDuplicateOrderDetector:
         
         return duplicate_candidates
     
-    def get_orders_for_specific_ip(self, target_ip, days=30, max_orders=20):
+    def get_orders_for_specific_ip(self, target_ip, days=30, max_orders=200):
         """
         Busca pedidos para um IP específico - MÉTODO ULTRA RÁPIDO
         
@@ -442,7 +442,7 @@ class ShopifyDuplicateOrderDetector:
         found_orders = []
         page_info = None
         page = 1
-        max_pages = 5  # Limite baixo para busca específica
+        max_pages = 10  # Aumentado para buscar mais pedidos do IP específico
         
         while page <= max_pages and len(found_orders) < max_orders:
             if page_info:

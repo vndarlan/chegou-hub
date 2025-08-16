@@ -59,4 +59,7 @@ urlpatterns = [
     
     # ENDPOINT MOVIDO PARA FINAL PARA DEBUG
     path('buscar-ips-duplicados-simples/', views.buscar_ips_duplicados_simples, name='buscar_ips_duplicados_simples'),
+    
+    # Endpoint de debug para IP específico
+    path('debug-ip-especifico/', views.debug_buscar_ip_especifico, name='debug_buscar_ip_especifico'),
 ]

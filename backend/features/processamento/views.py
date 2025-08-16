@@ -17,6 +17,8 @@ from collections import defaultdict
 from requests.exceptions import ConnectionError, Timeout, HTTPError, RequestException
 import django_rq
 from django_rq import get_queue
+import ipaddress
+import re
 
 from .models import ShopifyConfig, ProcessamentoLog
 from .services.shopify_detector import ShopifyDuplicateOrderDetector
@@ -34,6 +36,17 @@ from .utils.security_utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+def validate_ip_address(ip):
+    """Valida formato de endereço IP"""
+    try:
+        # Remove caracteres não permitidos
+        ip_clean = re.sub(r'[^0-9.:a-fA-F]', '', str(ip))
+        # Valida formato
+        ipaddress.ip_address(ip_clean)
+        return ip_clean
+    except (ValueError, TypeError):
+        raise ValueError('Formato de IP inválido')
 
 def create_safe_log(user, config, tipo, status, dados=None):
     """
@@ -164,16 +177,20 @@ def test_connection(request):
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@csrf_exempt
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def buscar_duplicatas(request):
     """Busca pedidos duplicados de uma loja específica"""
     try:
         loja_id = request.data.get('loja_id')
+        
+        # Log de auditoria
+        logger.info(f"Busca de duplicatas - Usuário: {request.user.username} (ID: {request.user.id}), Loja: {loja_id}")
+        
         if not loja_id:
             return Response({'error': 'ID da loja é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
         
-        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True, user=request.user).first()
         if not config:
             return Response({'error': 'Loja não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -211,8 +228,8 @@ def buscar_duplicatas(request):
         
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@csrf_exempt
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def cancelar_pedido(request):
     """Cancela um pedido específico"""
     try:
@@ -220,10 +237,13 @@ def cancelar_pedido(request):
         order_id = request.data.get('order_id')
         order_number = request.data.get('order_number', 'N/A')
         
+        # Log de auditoria
+        logger.info(f"Cancelamento de pedido {order_id} - Usuário: {request.user.username} (ID: {request.user.id}), Loja: {loja_id}")
+        
         if not loja_id or not order_id:
             return Response({'error': 'ID da loja e do pedido são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
         
-        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True, user=request.user).first()
         if not config:
             return Response({'error': 'Loja não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -250,18 +270,21 @@ def cancelar_pedido(request):
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@csrf_exempt
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def cancelar_lote(request):
     """Cancela múltiplos pedidos"""
     try:
         loja_id = request.data.get('loja_id')
         order_ids = request.data.get('order_ids', [])
         
+        # Log de auditoria
+        logger.info(f"Cancelamento em lote de {len(order_ids)} pedidos - Usuário: {request.user.username} (ID: {request.user.id}), Loja: {loja_id}")
+        
         if not loja_id or not order_ids:
             return Response({'error': 'ID da loja e lista de pedidos são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
         
-        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True, user=request.user).first()
         if not config:
             return Response({'error': 'Loja não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -302,8 +325,8 @@ def cancelar_lote(request):
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@csrf_exempt
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 @never_cache
 def buscar_pedidos_mesmo_ip(request):
     """Busca pedidos agrupados pelo mesmo IP com medidas de segurança - VERSÃO CORRIGIDA"""
@@ -348,10 +371,10 @@ def buscar_pedidos_mesmo_ip(request):
             days = 1
             logger.info(f"Período ajustado para minimum: {days}")
         
-        # Busca configuração da loja
+        # Busca configuração da loja (apenas do usuário autenticado)
         try:
-            logger.info(f"Buscando configuração da loja {loja_id}")
-            config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+            logger.info(f"Buscando configuração da loja {loja_id} para usuário {request.user.username}")
+            config = ShopifyConfig.objects.filter(id=loja_id, ativo=True, user=request.user).first()
             if not config:
                 logger.warning(f"Loja {loja_id} não encontrada ou inativa")
                 # Lista lojas disponíveis para debug
@@ -598,8 +621,8 @@ def buscar_pedidos_mesmo_ip(request):
             'details': f'Erro específico: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@csrf_exempt
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 @never_cache
 def detalhar_pedidos_ip(request):
     """Retorna dados detalhados dos clientes de um IP específico usando dados reais do Shopify - VERSÃO CORRIGIDA"""
@@ -609,7 +632,14 @@ def detalhar_pedidos_ip(request):
         ip = request.data.get('ip')
         days = request.data.get('days', 30)  # Permite configurar período
         
-        logger.info(f"detalhar_pedidos_ip chamado - User: {getattr(request.user, 'username', 'Anonymous')}, loja_id: {loja_id}, ip: {ip}, days: {days}")
+        # Validação de IP
+        try:
+            ip = validate_ip_address(ip) if ip else None
+        except ValueError:
+            return Response({'error': 'Formato de IP inválido'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Log de auditoria
+        logger.info(f"Acesso a dados de IP {ip} por usuário {request.user.username} (ID: {request.user.id})")
         
         if not loja_id or not ip:
             return Response({'error': 'ID da loja e IP são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
@@ -636,9 +666,9 @@ def detalhar_pedidos_ip(request):
                 'message': 'Dados retornados do cache para otimizar performance'
             })
         
-        # Busca configuração da loja
+        # Busca configuração da loja (apenas do usuário autenticado)
         try:
-            config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+            config = ShopifyConfig.objects.filter(id=loja_id, ativo=True, user=request.user).first()
             if not config:
                 logger.warning(f"Loja {loja_id} não encontrada ou inativa")
                 return Response({
@@ -679,11 +709,11 @@ def detalhar_pedidos_ip(request):
         try:
             logger.info(f"Buscando detalhes para IP {ip} - days: {days} (MÉTODO OTIMIZADO)")
             
-            # Usa método específico para IP único - muito mais rápido!
+            # Usa método específico para IP único - busca TODOS os pedidos do IP
             specific_orders = detector.get_orders_for_specific_ip(
                 target_ip=ip,
                 days=days,
-                max_orders=50  # Limite para evitar timeout
+                max_orders=200  # Aumentado para garantir que pega TODOS os pedidos do IP
             )
             
             if not specific_orders:
@@ -2099,8 +2129,8 @@ def test_geolocation_api(request):
 
 # ===== ENDPOINTS APRIMORADOS COM LOGGING ESTRUTURADO =====
 
-@csrf_exempt
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 @never_cache
 def buscar_pedidos_mesmo_ip_enhanced(request):
     """
@@ -2142,7 +2172,7 @@ def buscar_pedidos_mesmo_ip_enhanced(request):
         if days < 1:
             days = 1
         
-        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True, user=request.user).first()
         if not config:
             return Response({'error': 'Loja não encontrada ou inativa'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -2275,7 +2305,7 @@ def analyze_single_order_ip_enhanced(request):
         except (ValueError, TypeError):
             return Response({'error': 'ID da loja inválido'}, status=status.HTTP_400_BAD_REQUEST)
         
-        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True, user=request.user).first()
         if not config:
             return Response({'error': 'Loja não encontrada ou inativa'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -3772,18 +3802,21 @@ def _get_basic_ip_data_with_timeout(detector, days, min_orders, timeout=45):
             raise e
 
 
-@csrf_exempt
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def buscar_ips_duplicados_simples(request):
     """Busca IPs com múltiplos pedidos - versão melhorada com múltiplas fontes"""
     try:
         loja_id = request.data.get('loja_id')
         days = request.data.get('days', 30)  # Padrão 30 dias
         
+        # Log de auditoria
+        logger.info(f"Busca de IPs duplicados - Usuário: {request.user.username} (ID: {request.user.id}), Loja: {loja_id}")
+        
         if not loja_id:
             return Response({'error': 'ID da loja é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
         
-        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True, user=request.user).first()
         if not config:
             return Response({'error': 'Loja não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -3915,14 +3948,35 @@ def buscar_ips_duplicados_simples(request):
                     if not customer_name:
                         customer_name = 'N/A'
                 
+                # Extrai dados completos do cliente para compatibilidade com frontend
+                customer_email = customer.get('email', '') if isinstance(customer, dict) else ''
+                customer_phone = customer.get('phone', '') if isinstance(customer, dict) else ''
+                
+                # Tenta obter dados de endereço (com fallback para evitar erro)
+                shipping_city = ''
+                shipping_state = ''
+                try:
+                    shipping_address = order_dict.get('shipping_address', {})
+                    if isinstance(shipping_address, dict):
+                        shipping_city = shipping_address.get('city', '')
+                        shipping_state = shipping_address.get('province', '')
+                except Exception:
+                    pass  # Continua sem dados de endereço se houver erro
+                
                 ip_groups[ip_found].append({
-                    'id': order.id,
-                    'number': order.name,
-                    'created_at': order.created_at,
+                    'order_id': str(order.id),
+                    'order_number': order.name or '',
                     'customer_name': customer_name,
+                    'customer_email': customer_email,
+                    'customer_phone': customer_phone,
+                    'total_price': str(order_dict.get('total_price', '0.00')),
+                    'currency': order_dict.get('currency', 'BRL'),
+                    'created_at': order.created_at.isoformat() if hasattr(order.created_at, 'isoformat') else str(order.created_at),
+                    'financial_status': order_dict.get('financial_status', ''),
+                    'shipping_city': shipping_city,
+                    'shipping_state': shipping_state,
                     'method_used': method_used,
-                    'confidence': confidence,
-                    'financial_status': order_dict.get('financial_status', '')
+                    'confidence': confidence
                 })
         
         # ⚡ CORREÇÃO: Filtra TODOS os IPs com 2+ pedidos (independente do cliente)

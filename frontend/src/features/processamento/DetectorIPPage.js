@@ -322,31 +322,33 @@ function DetectorIPPage() {
                                         </CardContent>
                                     </Card>
 
-                                    {/* Lógica de Análise */}
+                                    {/* Análise por Endereço IP */}
                                     <Card className="bg-card border-border">
                                         <CardHeader>
-                                            <CardTitle className="text-sm text-foreground">Lógica de Análise</CardTitle>
+                                            <CardTitle className="text-sm text-foreground">Análise por Endereço IP</CardTitle>
                                         </CardHeader>
                                         <CardContent className="space-y-4">
                                             <div>
-                                                <h4 className="font-semibold text-green-600 dark:text-green-400 mb-2">✅ O que é detectado:</h4>
+                                                <h4 className="font-semibold text-blue-600 dark:text-blue-400 mb-2">🎯 O que esta ferramenta faz:</h4>
                                                 <div className="space-y-3 text-sm text-muted-foreground ml-4">
                                                     <div>
-                                                        <strong className="text-foreground">Múltiplos Pedidos:</strong>
+                                                        <strong className="text-foreground">Busca por Múltiplos Pedidos:</strong>
                                                         <ul className="ml-4 space-y-1">
-                                                            <li>• Pedidos do mesmo IP (browser_ip do Shopify)</li>
-                                                            <li>• Período configurável (até 365 dias, padrão: 30 dias)</li>
-                                                            <li>• Mínimo de pedidos configurável (padrão: 2)</li>
+                                                            <li>• Identifica pedidos feitos do mesmo endereço IP (browser_ip)</li>
+                                                            <li>• Agrupa pedidos por IP para análise de padrões</li>
+                                                            <li>• Período configurável (7 a 365 dias)</li>
+                                                            <li>• Mínimo fixo de 2 pedidos por IP</li>
                                                         </ul>
                                                     </div>
                                                     
                                                     <div>
-                                                        <strong className="text-foreground">Informações Coletadas:</strong>
+                                                        <strong className="text-foreground">Dados Analisados:</strong>
                                                         <ul className="ml-4 space-y-1">
-                                                            <li>• Quantidade total de pedidos por IP</li>
-                                                            <li>• Número de clientes únicos</li>
-                                                            <li>• Valor total das vendas</li>
-                                                            <li>• Intervalo de datas (primeiro/último pedido)</li>
+                                                            <li>• Número total de pedidos por IP</li>
+                                                            <li>• Quantidade de clientes únicos</li>
+                                                            <li>• Valores totais por IP</li>
+                                                            <li>• Período de atividade (primeiro/último pedido)</li>
+                                                            <li>• Status dos pedidos (ativos vs cancelados)</li>
                                                         </ul>
                                                     </div>
                                                 </div>
@@ -355,24 +357,36 @@ function DetectorIPPage() {
                                             <Separator />
                                             
                                             <div>
-                                                <h4 className="font-semibold text-blue-600 dark:text-blue-400 mb-2">🎯 Casos de Uso:</h4>
+                                                <h4 className="font-semibold text-green-600 dark:text-green-400 mb-2">✅ Casos de Uso:</h4>
                                                 <ul className="text-sm text-muted-foreground space-y-1 ml-4">
-                                                    <li>• <span className="font-medium text-foreground">Detecção de Fraude:</span> Múltiplas compras suspeitas</li>
-                                                    <li>• <span className="font-medium text-foreground">Análise Comportamental:</span> Padrões de compra por região</li>
-                                                    <li>• <span className="font-medium text-foreground">Marketing:</span> Concentração de clientes por local</li>
-                                                    <li>• <span className="font-medium text-foreground">Auditoria:</span> Compliance e investigações</li>
+                                                    <li>• <span className="font-medium text-foreground">Análise Geográfica:</span> Concentração de vendas por região</li>
+                                                    <li>• <span className="font-medium text-foreground">Detecção de Padrões:</span> Comportamento de compra repetitivo</li>
+                                                    <li>• <span className="font-medium text-foreground">Investigação de Fraudes:</span> Múltiplas compras suspeitas do mesmo IP</li>
+                                                    <li>• <span className="font-medium text-foreground">Auditoria de Pedidos:</span> Verificação de legitimidade</li>
+                                                    <li>• <span className="font-medium text-foreground">Análise de Marketing:</span> Efetividade por localização</li>
                                                 </ul>
                                             </div>
                                             
                                             <Separator />
                                             
                                             <div>
-                                                <h4 className="font-semibold text-amber-600 dark:text-amber-400 mb-2">⚠️ Limitações:</h4>
+                                                <h4 className="font-semibold text-orange-600 dark:text-orange-400 mb-2">📊 Fonte de Dados:</h4>
+                                                <div className="text-sm text-muted-foreground ml-4 space-y-1">
+                                                    <p>• <strong className="text-foreground">browser_ip:</strong> IP capturado pelo Shopify durante o checkout</p>
+                                                    <p>• <strong className="text-foreground">Dados dos pedidos:</strong> Informações completas de cliente, produto e entrega</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <Separator />
+                                            
+                                            <div>
+                                                <h4 className="font-semibold text-amber-600 dark:text-amber-400 mb-2">⚠️ Limitações Importantes:</h4>
                                                 <ul className="text-sm text-muted-foreground space-y-1 ml-4">
-                                                    <li>• Depende do Shopify registrar o browser_ip</li>
-                                                    <li>• IPs dinâmicos podem gerar falsos positivos</li>
-                                                    <li>• VPNs/proxies podem mascarar origem real</li>
-                                                    <li>• Não detecta fraudes cross-IP</li>
+                                                    <li>• <strong className="text-foreground">IPs Dinâmicos:</strong> Provedores que alteram IPs podem gerar falsos positivos</li>
+                                                    <li>• <strong className="text-foreground">VPNs e Proxies:</strong> Podem mascarar a origem real dos pedidos</li>
+                                                    <li>• <strong className="text-foreground">Redes Corporativas:</strong> Múltiplos usuários podem compartilhar o mesmo IP</li>
+                                                    <li>• <strong className="text-foreground">Dependência do Shopify:</strong> Requer que o browser_ip seja registrado corretamente</li>
+                                                    <li>• <strong className="text-foreground">Escopo Limitado:</strong> Não detecta fraudes que usam IPs diferentes</li>
                                                 </ul>
                                             </div>
                                         </CardContent>
@@ -622,9 +636,10 @@ function DetectorIPPage() {
                         <DialogTitle className="text-foreground flex items-center gap-2">
                             <Globe className="h-5 w-5" />
                             Detalhes do IP: {selectedIP ? selectedIP.ip : 'N/A'}
+                            {ipDetails && ` - ${ipDetails.client_details?.length || 0} pedidos encontrados`}
                         </DialogTitle>
                         <DialogDescription className="text-muted-foreground">
-                            Análise completa dos pedidos e clientes deste endereço IP
+                            Lista completa de todos os pedidos feitos deste endereço IP
                         </DialogDescription>
                     </DialogHeader>
                     
@@ -691,80 +706,122 @@ function DetectorIPPage() {
 
                                 <Separator />
 
-                                {/* Lista de Clientes */}
+                                {/* Lista de Pedidos Individuais */}
                                 <div>
-                                    <h3 className="text-lg font-semibold text-foreground mb-4">Dados dos Clientes</h3>
-                                    <div className="space-y-3">
-                                        {ipDetails.client_details?.map((client, index) => (
-                                            <Card key={`${client.order_id}-${index}`} className="bg-muted/20">
-                                                <CardContent className="p-4">
-                                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                                                        {/* Dados do Pedido */}
-                                                        <div>
-                                                            <h4 className="font-semibold text-sm text-foreground mb-2 flex items-center gap-2">
-                                                                Pedido #{client.order_number}
-                                                                <Badge variant={client.status === 'cancelled' ? 'secondary' : 'default'} className="text-xs">
-                                                                    {client.status === 'cancelled' ? 'Cancelado' : 'Ativo'}
+                                    <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                                        <ShoppingBag className="h-5 w-5" />
+                                        Pedidos Individuais ({ipDetails.client_details?.length || 0})
+                                    </h3>
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                        {ipDetails.client_details?.map((pedido, index) => {
+                                            // Determinar status do pedido
+                                            const isActive = pedido.financial_status !== 'cancelled';
+                                            const statusVariant = isActive ? 'default' : 'secondary';
+                                            const statusText = isActive ? 'Ativo' : 'Cancelado';
+                                            const cardBorder = isActive ? 'border-green-200 dark:border-green-800' : 'border-red-200 dark:border-red-800';
+                                            const cardBg = isActive ? 'bg-green-50/30 dark:bg-green-950/10' : 'bg-red-50/30 dark:bg-red-950/10';
+                                            
+                                            return (
+                                                <Card key={`${pedido.order_id}-${index}`} className={`${cardBg} ${cardBorder} hover:shadow-md transition-shadow`}>
+                                                    <CardHeader className="pb-3">
+                                                        <div className="flex items-center justify-between">
+                                                            <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                                                                Pedido {pedido.order_number || `#${pedido.order_id}`}
+                                                                <Badge variant={statusVariant} className="text-xs">
+                                                                    {statusText}
                                                                 </Badge>
-                                                            </h4>
-                                                            <div className="space-y-1 text-sm">
+                                                            </CardTitle>
+                                                            <Badge variant="outline" className="text-xs bg-background">
+                                                                {pedido.financial_status || 'N/A'}
+                                                            </Badge>
+                                                        </div>
+                                                    </CardHeader>
+                                                    <CardContent className="space-y-4">
+                                                        {/* Informações do Pedido */}
+                                                        <div className="space-y-2">
+                                                            <h5 className="font-medium text-sm text-foreground flex items-center gap-1">
+                                                                <Calendar className="h-4 w-4" />
+                                                                Dados do Pedido
+                                                            </h5>
+                                                            <div className="grid grid-cols-2 gap-3 text-sm">
                                                                 <div>
                                                                     <Label className="text-xs text-muted-foreground">Data</Label>
-                                                                    <p className="text-foreground">{client.created_at ? formatDate(client.created_at) : 'N/A'}</p>
+                                                                    <p className="text-foreground font-medium">{pedido.created_at ? formatDate(pedido.created_at) : 'N/A'}</p>
                                                                 </div>
                                                                 <div>
                                                                     <Label className="text-xs text-muted-foreground">Valor</Label>
-                                                                    <p className="text-foreground">{formatCurrency(client.total_price, client.currency)}</p>
+                                                                    <p className="text-foreground font-semibold">{formatCurrency(pedido.total_price, pedido.currency || 'BRL')}</p>
                                                                 </div>
-                                                                {client.cancelled_at && (
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <Separator />
+                                                        
+                                                        {/* Informações do Cliente */}
+                                                        <div className="space-y-2">
+                                                            <h5 className="font-medium text-sm text-foreground flex items-center gap-1">
+                                                                <Users className="h-4 w-4" />
+                                                                Cliente
+                                                            </h5>
+                                                            <div className="space-y-2 text-sm">
+                                                                <div>
+                                                                    <Label className="text-xs text-muted-foreground">Nome</Label>
+                                                                    <p className="text-foreground">{pedido.customer_name?.trim() || 'N/A'}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <Label className="text-xs text-muted-foreground">Email</Label>
+                                                                    <p className="text-foreground text-xs break-all">{pedido.customer_email || 'N/A'}</p>
+                                                                </div>
+                                                                {pedido.customer_phone && (
                                                                     <div>
-                                                                        <Label className="text-xs text-muted-foreground">Cancelado em</Label>
-                                                                        <p className="text-foreground text-xs">{formatDate(client.cancelled_at)}</p>
+                                                                        <Label className="text-xs text-muted-foreground">Telefone</Label>
+                                                                        <p className="text-foreground">{pedido.customer_phone}</p>
                                                                     </div>
                                                                 )}
                                                             </div>
                                                         </div>
                                                         
-                                                        {/* Dados do Cliente */}
-                                                        <div>
-                                                            <h4 className="font-semibold text-sm text-foreground mb-2">Cliente</h4>
-                                                            <div className="space-y-1 text-sm">
+                                                        <Separator />
+                                                        
+                                                        {/* Endereço de Entrega */}
+                                                        <div className="space-y-2">
+                                                            <h5 className="font-medium text-sm text-foreground flex items-center gap-1">
+                                                                <Globe className="h-4 w-4" />
+                                                                Endereço
+                                                            </h5>
+                                                            <div className="grid grid-cols-2 gap-3 text-sm">
                                                                 <div>
-                                                                    <Label className="text-xs text-muted-foreground">Nome</Label>
-                                                                    <p className="text-foreground">{client.customer_name?.trim() || 'N/A'}</p>
+                                                                    <Label className="text-xs text-muted-foreground">Cidade</Label>
+                                                                    <p className="text-foreground">{pedido.shipping_city || 'N/A'}</p>
                                                                 </div>
                                                                 <div>
-                                                                    <Label className="text-xs text-muted-foreground">Email</Label>
-                                                                    <p className="text-foreground">{client.customer_email || 'N/A'}</p>
-                                                                </div>
-                                                                <div>
-                                                                    <Label className="text-xs text-muted-foreground">Telefone</Label>
-                                                                    <p className="text-foreground">{client.customer_phone || 'N/A'}</p>
+                                                                    <Label className="text-xs text-muted-foreground">Estado</Label>
+                                                                    <p className="text-foreground">{pedido.shipping_state || 'N/A'}</p>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                         
-                                                        {/* Dados de Entrega */}
-                                                        <div>
-                                                            <h4 className="font-semibold text-sm text-foreground mb-2">Endereço</h4>
-                                                            <div className="space-y-1 text-sm">
-                                                                <div>
-                                                                    <Label className="text-xs text-muted-foreground">Cidade</Label>
-                                                                    <p className="text-foreground">{client.shipping_city || 'N/A'}</p>
+                                                        {/* Data de Cancelamento (se aplicável) */}
+                                                        {pedido.cancelled_at && (
+                                                            <>
+                                                                <Separator />
+                                                                <div className="bg-red-50 dark:bg-red-950/20 p-2 rounded border border-red-200 dark:border-red-800">
+                                                                    <Label className="text-xs text-red-600 dark:text-red-400">Cancelado em</Label>
+                                                                    <p className="text-red-700 dark:text-red-300 text-sm font-medium">{formatDate(pedido.cancelled_at)}</p>
                                                                 </div>
-                                                                <div>
-                                                                    <Label className="text-xs text-muted-foreground">Estado</Label>
-                                                                    <p className="text-foreground">{client.shipping_state || 'N/A'}</p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        ))}
+                                                            </>
+                                                        )}
+                                                    </CardContent>
+                                                </Card>
+                                            );
+                                        })}
                                         {(!ipDetails.client_details || ipDetails.client_details.length === 0) && (
-                                            <div className="text-center py-8">
-                                                <p className="text-muted-foreground">Nenhum dado de cliente disponível</p>
+                                            <div className="col-span-full text-center py-8">
+                                                <div className="bg-muted/30 rounded-lg p-6">
+                                                    <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                                                    <p className="text-muted-foreground font-medium">Nenhum pedido encontrado</p>
+                                                    <p className="text-xs text-muted-foreground mt-1">Não há dados de pedidos disponíveis para este IP</p>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
