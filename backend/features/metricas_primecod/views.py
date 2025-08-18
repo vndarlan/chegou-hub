@@ -211,7 +211,7 @@ def buscar_orders_primecod(request):
         logger.info(f"Usuário: {request.user.username}")
         logger.info(f"Parâmetros recebidos: data_inicio={data_inicio}, data_fim={data_fim}, pais_filtro={pais_filtro}")
         logger.info(f"⚡ SEM LIMITES: max_paginas={max_paginas} - coletará TUDO até não haver mais dados")
-        logger.info(f"⚡ OTIMIZAÇÃO: Rate limit reduzido para 200ms = coleta 60% mais rápida!")
+        logger.info(f"⚡ ULTRA-OTIMIZAÇÃO: Rate limit 50ms (4x mais rápido) + Heartbeat logs!")
         logger.info(f"Request data completo: {request.data}")
         
         # Validar parâmetros
@@ -486,12 +486,12 @@ def iniciar_coleta_async_primecod(request):
         data_inicio = request.data.get('data_inicio')
         data_fim = request.data.get('data_fim')
         pais_filtro = request.data.get('pais_filtro')
-        max_paginas = request.data.get('max_paginas', 200)  # Sem limite restritivo para async
+        max_paginas = request.data.get('max_paginas', 1000)  # ⚡ ULTRA-OTIMIZADO: 1000+ páginas sem timeout
         nome_analise = request.data.get('nome_analise')
         
         logger.info(f"Iniciando coleta assíncrona PrimeCOD para {request.user.username}")
         logger.info(f"Parâmetros: data_inicio={data_inicio}, data_fim={data_fim}, pais_filtro={pais_filtro}")
-        logger.info(f"Max páginas: {max_paginas} (sem limitação para processamento assíncrono)")
+        logger.info(f"⚡ ULTRA-OTIMIZADO: {max_paginas} páginas com rate limit 50ms + heartbeat logs")
         
         # Validar parâmetros obrigatórios
         if not data_inicio or not data_fim:

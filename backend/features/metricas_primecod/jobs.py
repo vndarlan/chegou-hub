@@ -16,7 +16,7 @@ def coletar_orders_primecod_async(
     data_inicio: str,
     data_fim: str,
     pais_filtro: Optional[str] = None,
-    max_paginas: int = 100,
+    max_paginas: int = 1000,  # ⚡ ULTRA-OTIMIZADO: Suporte completo a 1000+ páginas
     nome_analise: Optional[str] = None,
     job_id: Optional[str] = None
 ) -> Dict:
