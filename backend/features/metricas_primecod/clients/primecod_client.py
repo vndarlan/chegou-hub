@@ -201,11 +201,9 @@ class PrimeCODClient:
                 orders = data.get('data', [])
                 logger.info(f"📦 Orders na página {current_page}: {len(orders)}")
                 
-                # CONDIÇÃO DE PARADA: página vazia ou menos de 10 orders
-                if not orders or len(orders) < 10:
-                    logger.info(f"🏁 Página {current_page} vazia ou incompleta ({len(orders)} orders) - finalizando coleta")
-                    if orders:  # Se tem alguns orders, incluir na coleta
-                        all_orders.extend(orders)
+                # CONDIÇÃO DE PARADA: página completamente vazia (0 orders)
+                if not orders or len(orders) == 0:
+                    logger.info(f"🏁 Página {current_page} completamente vazia (0 orders) - finalizando coleta")
                     break
                 
                 # Adicionar todos os orders desta página (SEM filtros)
@@ -214,17 +212,30 @@ class PrimeCODClient:
                 # Obter informações de paginação da resposta
                 if total_pages is None:
                     total_pages = data.get('last_page', current_page)
+                    logger.info(f"📊 Total de páginas detectado: {total_pages}")
                 
                 current_page += 1
                 pages_processed += 1
                 
-                # Log de progresso a cada 10 páginas
-                if pages_processed % 10 == 0:
+                # Log de progresso a cada 5 páginas para melhor visibilidade
+                if pages_processed % 5 == 0:
                     logger.info(f"📊 Progresso: {pages_processed} páginas processadas, {len(all_orders)} orders coletados")
+                
+                # Log mais frequente quando próximo do total esperado
+                if total_pages and current_page > total_pages - 5:
+                    logger.info(f"🔍 Próximo do fim: página {current_page}/{total_pages}, orders: {len(orders)}")
             
             logger.info(f"🎯 Coleta completa finalizada:")
             logger.info(f"📊 Total de páginas processadas: {pages_processed}")
             logger.info(f"📦 Total de orders coletados: {len(all_orders)}")
+            logger.info(f"📄 Última página processada: {current_page - 1}")
+            logger.info(f"📊 Total de páginas disponíveis detectado: {total_pages}")
+            
+            # Verificar se parou porque atingiu o máximo ou porque encontrou página vazia
+            if pages_processed >= max_pages:
+                logger.warning(f"⚠️ Coleta interrompida: atingiu limite máximo de {max_pages} páginas")
+            else:
+                logger.info(f"✅ Coleta finalizada normalmente: encontrou página vazia na página {current_page}")
             
             # Salvar dados completos no cache ANTES de aplicar filtros
             if cache_key:
@@ -256,10 +267,12 @@ class PrimeCODClient:
                 'data_source': 'api'
             }
             
-            logger.info(f"✅ Busca finalizada:")
-            logger.info(f"📦 Orders coletados: {len(all_orders)}")
-            logger.info(f"🔍 Orders após filtros: {len(filtered_orders)}")
+            logger.info(f"✅ Busca finalizada com sucesso:")
+            logger.info(f"📦 Orders coletados (bruto): {len(all_orders)}")
+            logger.info(f"🔍 Orders após filtros aplicados: {len(filtered_orders)}")
             logger.info(f"📄 Páginas processadas: {pages_processed}")
+            logger.info(f"📅 Filtro de data aplicado: {'Sim' if date_range else 'Não'}")
+            logger.info(f"🌍 Filtro de país aplicado: {'Não (Todos os países)' if not country_filter or country_filter.lower().strip() in ['todos', 'todos os países', 'all', 'all countries'] else f'Sim ({country_filter})'}")
             
             return result
             
@@ -292,11 +305,13 @@ class PrimeCODClient:
             filtered_orders = self._filter_orders_by_date(filtered_orders, date_range)
             logger.info(f"📅 Após filtro de data: {len(filtered_orders)} orders")
         
-        # Aplicar filtro de país se especificado
-        if country_filter:
+        # Aplicar filtro de país se especificado E se não for "todos"
+        if country_filter and country_filter.lower().strip() not in ['todos', 'todos os países', 'all', 'all countries']:
             logger.info(f"🌍 Aplicando filtro de país: {country_filter}")
             filtered_orders = self._filter_orders_by_country(filtered_orders, country_filter)
             logger.info(f"🌍 Após filtro de país: {len(filtered_orders)} orders")
+        elif country_filter:
+            logger.info(f"🌍 Filtro de país '{country_filter}' detectado como 'TODOS' - pulando filtro de país")
         
         logger.info(f"✅ Filtros aplicados: {len(orders)} -> {len(filtered_orders)} orders")
         return filtered_orders
@@ -367,6 +382,12 @@ class PrimeCODClient:
         logger.info(f"🌍 Aplicando filtro de país: {country_filter}")
         
         if not country_filter:
+            logger.info(f"🌍 Country filter vazio - retornando todos os orders")
+            return orders
+        
+        # Se o filtro for "todos" em qualquer variação, retornar todos
+        if country_filter.lower().strip() in ['todos', 'todos os países', 'all', 'all countries']:
+            logger.info(f"🌍 Country filter '{country_filter}' detectado como 'TODOS' - retornando todos os orders")
             return orders
         
         filtered_orders = []

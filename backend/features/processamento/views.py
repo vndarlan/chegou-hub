@@ -3842,23 +3842,13 @@ def buscar_ips_duplicados_simples(request):
         def extract_ip_from_order(order_dict):
             """Extrai IP usando múltiplas fontes hierárquicas - CORRIGIDO"""
             
-            # DEBUG: Log do pedido sendo processado
-            order_name = order_dict.get('name', 'unknown')
-            print(f"DEBUG: Processando pedido #{order_name}")
-            
             # MÉTODO 1: note_attributes - IP address (PRIORIDADE MÁXIMA!)
             note_attributes = order_dict.get('note_attributes', [])
-            print(f"DEBUG: note_attributes para pedido #{order_name}: {note_attributes}")
-            
             if isinstance(note_attributes, list):
                 for note in note_attributes:
                     if isinstance(note, dict) and note.get('name') == 'IP address':
                         ip_address = str(note.get('value', '')).strip()
-                        print(f"DEBUG: Encontrado IP '{ip_address}' no pedido #{order_name}")
                         if ip_address and ip_address != 'None' and ip_address != '':
-                            # Debug temporário para IP específico
-                            if ip_address == "31.217.1.48":
-                                print(f"DEBUG: ⭐ IP 31.217.1.48 encontrado no pedido #{order_name} via note_attributes")
                             return ip_address, 'note_attributes', 0.98
             
             # MÉTODO 2: browser_ip direto
@@ -3909,24 +3899,17 @@ def buscar_ips_duplicados_simples(request):
             return None, 'none', 0.0
         
         def should_exclude_order(order_dict):
-            """Determina se um pedido deve ser excluído da análise - CORRIGIDO"""
+            """Determina se um pedido deve ser excluído da análise - INCLUINDO CANCELADOS"""
             
-            order_name = order_dict.get('name', 'unknown')
-            
-            # Exclui pedidos completamente cancelados há muito tempo
-            cancelled_at = order_dict.get('cancelled_at')
-            if cancelled_at:
-                print(f"DEBUG: Excluindo pedido #{order_name} - cancelado em {cancelled_at}")
-                return True
+            # Não excluir mais pedidos cancelados - incluir TODOS os pedidos
+            # cancelled_at removido da exclusão para incluir pedidos cancelados
             
             # Permitir pedidos voided (ainda são válidos para análise de IP)
             # financial_status voided ainda mostra compras válidas
             financial_status = order_dict.get('financial_status', '').lower()
-            if financial_status in ['refunded']:  # Removido 'voided' da exclusão
-                print(f"DEBUG: Excluindo pedido #{order_name} - status {financial_status}")
+            if financial_status in ['refunded']:  # Mantém apenas exclusão de refunded
                 return True
             
-            print(f"DEBUG: Incluindo pedido #{order_name} - status {financial_status}")
             return False
         
         # Agrupa pedidos por IP usando múltiplas fontes
@@ -3946,10 +3929,6 @@ def buscar_ips_duplicados_simples(request):
             
             # Extrai IP usando múltiplos métodos
             ip_found, method_used, confidence = extract_ip_from_order(order_dict)
-            
-            # Debug adicional para IP específico
-            if ip_found == "31.217.1.48":
-                print(f"DEBUG: IP 31.217.1.48 processado com sucesso via {method_used} no pedido #{order_dict.get('name', 'unknown')}")
             
             # Conta métodos usados para estatísticas
             methods_used[method_used] = methods_used.get(method_used, 0) + 1
@@ -3999,15 +3978,6 @@ def buscar_ips_duplicados_simples(request):
                     'confidence': confidence
                 })
         
-        # DEBUG: Estatísticas dos IPs encontrados
-        print(f"DEBUG: Total de IPs únicos encontrados: {len(ip_groups)}")
-        print(f"DEBUG: IPs com seus pedidos:")
-        for ip, pedidos in ip_groups.items():
-            print(f"  - IP {ip}: {len(pedidos)} pedidos")
-            if ip == "31.217.1.48":
-                print(f"    ⭐ IP ALVO encontrado com {len(pedidos)} pedidos!")
-                for pedido in pedidos:
-                    print(f"      - Pedido #{pedido['order_number']} - {pedido['customer_name']}")
         
         # ⚡ CORREÇÃO: Filtra TODOS os IPs com 2+ pedidos (independente do cliente)
         ips_duplicados = []
@@ -4038,12 +4008,6 @@ def buscar_ips_duplicados_simples(request):
         # Ordena por quantidade de pedidos (mais pedidos primeiro)
         ips_duplicados.sort(key=lambda x: x['total_pedidos'], reverse=True)
         
-        # DEBUG: Resultado final
-        print(f"DEBUG: IPs duplicados filtrados (2+ pedidos): {len(ips_duplicados)}")
-        for ip_data in ips_duplicados:
-            print(f"  - {ip_data['browser_ip']}: {ip_data['total_pedidos']} pedidos")
-            if ip_data['browser_ip'] == "31.217.1.48":
-                print(f"    ⭐ IP ALVO incluído no resultado final!")
         
         # Log da busca melhorado
         create_safe_log(
