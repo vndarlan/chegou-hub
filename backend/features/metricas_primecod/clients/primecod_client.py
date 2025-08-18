@@ -173,9 +173,15 @@ class PrimeCODClient:
         
         # Aplicar filtro de data no payload JSON se fornecido
         if date_range and date_range.get('start') and date_range.get('end'):
-            payload["start_date"] = date_range['start']
-            payload["end_date"] = date_range['end']
-            logger.info(f"🔥 USANDO FILTROS de data no payload JSON: {date_range['start']} até {date_range['end']}")
+            # CORREÇÃO CRÍTICA: Usar formato correto da API PrimeCod
+            start_iso = f"{date_range['start']}T03:00:00.000Z"
+            end_iso = f"{date_range['end']}T23:59:59.999Z"
+            payload["creationDatesRange"] = {
+                "startDate": start_iso,
+                "endDate": end_iso
+            }
+            logger.info(f"🔥 USANDO FILTROS CORRETOS de data no payload JSON: {start_iso} até {end_iso}")
+            logger.info(f"⚡ CORREÇÃO APLICADA: creationDatesRange em vez de start_date/end_date")
         
         # RESULTADO ESPERADO: Payload JSON correto para API PrimeCOD!
         
@@ -376,9 +382,15 @@ class PrimeCODClient:
         
         # Aplicar filtro de data no payload JSON se fornecido
         if date_range and date_range.get('start') and date_range.get('end'):
-            payload["start_date"] = date_range['start']
-            payload["end_date"] = date_range['end']
-            logger.info(f"🔥 USANDO FILTROS de data no payload JSON: {date_range['start']} até {date_range['end']}")
+            # CORREÇÃO CRÍTICA: Usar formato correto da API PrimeCod
+            start_iso = f"{date_range['start']}T03:00:00.000Z"
+            end_iso = f"{date_range['end']}T23:59:59.999Z"
+            payload["creationDatesRange"] = {
+                "startDate": start_iso,
+                "endDate": end_iso
+            }
+            logger.info(f"🔥 USANDO FILTROS CORRETOS de data no payload JSON: {start_iso} até {end_iso}")
+            logger.info(f"⚡ CORREÇÃO APLICADA: creationDatesRange em vez de start_date/end_date")
         
         # RESULTADO ESPERADO: Payload JSON correto para API PrimeCOD!
         
@@ -412,7 +424,7 @@ class PrimeCODClient:
                     break
                 
                 # ⚡ CORREÇÃO CRÍTICA: Usar POST com payload JSON
-                params["page"] = current_page
+                payload["page"] = current_page
                 logger.info(f"🌐 Requisição ASSÍNCRONA POST: {url} com payload page={current_page}")
                 
                 response = self._make_request('POST', url, json=payload)
