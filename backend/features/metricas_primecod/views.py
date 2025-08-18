@@ -206,19 +206,13 @@ def buscar_orders_primecod(request):
         data_inicio = request.data.get('data_inicio')
         data_fim = request.data.get('data_fim')
         pais_filtro = request.data.get('pais_filtro')
-        max_paginas = request.data.get('max_paginas', 100)  # REALISTA! Com 10 orders/página, 100 páginas = 1000 orders
+        max_paginas = request.data.get('max_paginas', 99999)  # SEM LIMITES! Coletar TUDO
         
         logger.info(f"Usuário: {request.user.username}")
         logger.info(f"Parâmetros recebidos: data_inicio={data_inicio}, data_fim={data_fim}, pais_filtro={pais_filtro}")
-        logger.info(f"⚡ Max páginas REALISTA: {max_paginas} (Com 10 orders/página = até {max_paginas * 10} orders!)")
+        logger.info(f"⚡ SEM LIMITES: max_paginas={max_paginas} - coletará TUDO até não haver mais dados")
         logger.info(f"⚡ OTIMIZAÇÃO: Rate limit reduzido para 200ms = coleta 60% mais rápida!")
         logger.info(f"Request data completo: {request.data}")
-        
-        # LOG INFORMATIVO: Não limitar max_paginas - coletar tudo o que o usuário solicitou
-        if max_paginas > 500:  # Apenas aviso informativo para valores muito altos
-            logger.info(f"INFO: max_paginas={max_paginas} - coleta completa sem limites de tempo")
-            logger.info(f"Estimativa: {max_paginas} páginas x 10 orders = até {max_paginas * 10} orders")
-        # NÃO forçar limite - deixar o usuário decidir
         
         # Validar parâmetros
         if not data_inicio or not data_fim:
