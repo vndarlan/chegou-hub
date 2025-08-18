@@ -110,7 +110,7 @@ class PrimeCODClient:
     def get_orders(self, 
                    page: int = 1, 
                    date_range: Optional[Dict[str, str]] = None,
-                   max_pages: int = 400,
+                   max_pages: int = 200,  # LIMITE SEGURO para evitar worker timeout
                    country_filter: Optional[str] = None) -> Dict:
         """
         Busca TODOS os orders da API PrimeCOD coletando todas as páginas
@@ -177,12 +177,31 @@ class PrimeCODClient:
         pages_processed = 0
         
         try:
-            logger.info(f"🚀 Iniciando loop para coletar TODAS as páginas...")
+            logger.info(f"🚀 Iniciando loop para coletar até {max_pages} páginas (proteção contra timeout)...")
+            
+            # PROTEÇÃO CRÍTICA: Timeout por tempo decorrido
+            import time
+            loop_start_time = time.time()
+            max_loop_duration = 25  # Máximo 25 segundos para evitar timeout de 30s do worker
+            timeout_warning_sent = False
             
             while current_page <= max_pages:
-                logger.info(f"📄 Processando página {current_page}")
+                # PROTEÇÃO CRÍTICA: Verificar timeout por tempo
+                loop_duration = time.time() - loop_start_time
                 
-                # Proteção contra loop infinito
+                if loop_duration > max_loop_duration:
+                    logger.error(f"🚨 TIMEOUT PREVENTIVO: Coleta interrompida após {loop_duration:.1f}s para evitar worker timeout!")
+                    logger.error(f"🚨 Páginas processadas: {pages_processed}, Última página: {current_page - 1}")
+                    break
+                
+                # Aviso quando próximo do timeout
+                if loop_duration > 20 and not timeout_warning_sent:
+                    logger.warning(f"⚠️ ALERTA: Coleta há {loop_duration:.1f}s - próximo do timeout!")
+                    timeout_warning_sent = True
+                
+                logger.info(f"📄 Processando página {current_page} (tempo: {loop_duration:.1f}s)")
+                
+                # Proteção contra loop infinito por número de páginas
                 if pages_processed >= max_pages:
                     logger.warning(f"⚠️ Limite de {max_pages} páginas atingido - interrompendo coleta")
                     break
@@ -206,6 +225,10 @@ class PrimeCODClient:
                     logger.info(f"🏁 Página {current_page} completamente vazia (0 orders) - finalizando coleta")
                     break
                 
+                # PROTEÇÃO ADICIONAL: Se orders é muito pequeno, pode indicar fim da coleta
+                if len(orders) < 5:  # API normalmente retorna 10 por página
+                    logger.info(f"🔍 Página {current_page} com poucos orders ({len(orders)}) - possível fim da coleta")
+                
                 # Adicionar todos os orders desta página (SEM filtros)
                 all_orders.extend(orders)
                 
@@ -217,22 +240,28 @@ class PrimeCODClient:
                 current_page += 1
                 pages_processed += 1
                 
-                # Log de progresso a cada 5 páginas para melhor visibilidade
-                if pages_processed % 5 == 0:
-                    logger.info(f"📊 Progresso: {pages_processed} páginas processadas, {len(all_orders)} orders coletados")
+                # Log de progresso frequente com tempo para detectar problemas
+                if pages_processed % 3 == 0 or loop_duration > 15:  # Log mais frequente quando demorado
+                    logger.info(f"📊 Progresso: {pages_processed} páginas, {len(all_orders)} orders, tempo: {loop_duration:.1f}s")
                 
-                # Log mais frequente quando próximo do total esperado
-                if total_pages and current_page > total_pages - 5:
-                    logger.info(f"🔍 Próximo do fim: página {current_page}/{total_pages}, orders: {len(orders)}")
+                # Log mais frequente quando próximo do total esperado OU próximo do timeout
+                if (total_pages and current_page > total_pages - 5) or loop_duration > 18:
+                    logger.info(f"🔍 Status: página {current_page}/{total_pages or '?'}, orders desta página: {len(orders)}, tempo: {loop_duration:.1f}s")
+            
+            # Análise do motivo da parada
+            final_duration = time.time() - loop_start_time
             
             logger.info(f"🎯 Coleta completa finalizada:")
+            logger.info(f"⏱️ Duração total: {final_duration:.1f} segundos")
             logger.info(f"📊 Total de páginas processadas: {pages_processed}")
             logger.info(f"📦 Total de orders coletados: {len(all_orders)}")
             logger.info(f"📄 Última página processada: {current_page - 1}")
             logger.info(f"📊 Total de páginas disponíveis detectado: {total_pages}")
             
-            # Verificar se parou porque atingiu o máximo ou porque encontrou página vazia
-            if pages_processed >= max_pages:
+            if final_duration > max_loop_duration:
+                logger.warning(f"⚠️ Coleta interrompida: TIMEOUT PREVENTIVO após {final_duration:.1f}s")
+                logger.warning(f"⚠️ Para coletar mais dados, use processamento assíncrono ou aumente timeout")
+            elif pages_processed >= max_pages:
                 logger.warning(f"⚠️ Coleta interrompida: atingiu limite máximo de {max_pages} páginas")
                 logger.warning(f"⚠️ Se você esperava mais dados, aumente o parâmetro max_pages ou remova o limite")
             else:

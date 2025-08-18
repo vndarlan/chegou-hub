@@ -206,12 +206,18 @@ def buscar_orders_primecod(request):
         data_inicio = request.data.get('data_inicio')
         data_fim = request.data.get('data_fim')
         pais_filtro = request.data.get('pais_filtro')
-        max_paginas = request.data.get('max_paginas', 9999)  # Remover limite artificial - coletar TODAS as páginas
+        max_paginas = request.data.get('max_paginas', 200)  # LIMITE SEGURO - evitar timeout do worker
         
         logger.info(f"Usuário: {request.user.username}")
         logger.info(f"Parâmetros recebidos: data_inicio={data_inicio}, data_fim={data_fim}, pais_filtro={pais_filtro}")
-        logger.info(f"Max páginas configurado: {max_paginas} (9999 = sem limite artificial)")
+        logger.info(f"Max páginas configurado: {max_paginas} (LIMITE SEGURO PARA EVITAR TIMEOUT)")
         logger.info(f"Request data completo: {request.data}")
+        
+        # PROTEÇÃO CRÍTICA: Se usuário enviou valor muito alto, forçar limite seguro
+        if max_paginas > 500:
+            logger.warning(f"ALERTA: max_paginas={max_paginas} é muito alto e pode causar timeout!")
+            logger.warning(f"Forçando limite seguro de 300 páginas para evitar worker timeout")
+            max_paginas = 300
         
         # Validar parâmetros
         if not data_inicio or not data_fim:
@@ -259,12 +265,27 @@ def buscar_orders_primecod(request):
         # Buscar orders com paginação progressiva
         logger.info("Iniciando busca de orders via API...")
         try:
+            # LOG CRÍTICO: Monitorar se está próximo de timeout
+            import time
+            start_time = time.time()
+            logger.info(f"⏱️ INICIANDO COLETA - Hora de início: {start_time}")
+            
             resultado = client.get_orders(
                 page=1,
                 date_range=date_range,
                 max_pages=max_paginas,
                 country_filter=pais_filtro  # Aplicar filtro de país no cliente
             )
+            
+            # LOG CRÍTICO: Tempo total gasto
+            end_time = time.time()
+            duration = end_time - start_time
+            logger.info(f"⏱️ COLETA FINALIZADA - Duração total: {duration:.2f} segundos")
+            
+            # ALERTA se demorou muito (próximo do timeout típico de 30s)
+            if duration > 20:
+                logger.warning(f"⚠️ ALERTA: Coleta demorou {duration:.2f}s - próximo do timeout do worker!")
+                logger.warning(f"⚠️ Considere reduzir max_paginas ou implementar processamento assíncrono")
             logger.info(f"Busca concluída. Resultado: {type(resultado)}")
             logger.info(f"Keys do resultado: {list(resultado.keys()) if isinstance(resultado, dict) else 'Não é dict'}")
             
@@ -292,7 +313,7 @@ def buscar_orders_primecod(request):
                 'dados_processados': orders_processados['dados_processados'],
                 'estatisticas': orders_processados['estatisticas'],
                 'status_nao_mapeados': orders_processados['status_nao_mapeados'],
-                'message': f"Busca concluída: {resultado.get('total_orders_raw', resultado['total_orders'])} orders coletados, {resultado['total_orders']} após filtros"
+                'message': f"Busca concluída em {duration:.1f}s: {resultado.get('total_orders_raw', resultado['total_orders'])} orders coletados, {resultado['total_orders']} após filtros"
             }
             
             logger.info(f"Busca PrimeCOD concluída para {request.user.username}: {resultado['total_orders']} orders")
