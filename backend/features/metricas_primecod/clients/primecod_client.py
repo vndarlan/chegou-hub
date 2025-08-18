@@ -164,28 +164,28 @@ class PrimeCODClient:
         
         url = f"{self.base_url}/orders"
         
-        # ⚡ CORREÇÃO CRÍTICA: Usar endpoint GET correto que retorna 50 orders/página!
-        # URL: https://api.primecod.app/api/orders (GET)
-        # Query params em vez de JSON payload
-        params = {
+        # ⚡ CORREÇÃO CRÍTICA: Usar endpoint POST correto com payload JSON!
+        # URL: https://api.primecod.app/api/orders (POST)
+        # JSON payload com filtros e paginação
+        payload = {
             "page": 1,  # Será atualizado no loop
         }
         
-        # Aplicar filtro de data como query params se fornecido
+        # Aplicar filtro de data no payload JSON se fornecido
         if date_range and date_range.get('start') and date_range.get('end'):
-            params["start_date"] = date_range['start']
-            params["end_date"] = date_range['end']
-            logger.info(f"🔥 USANDO FILTROS de data como query params: {date_range['start']} até {date_range['end']}")
+            payload["start_date"] = date_range['start']
+            payload["end_date"] = date_range['end']
+            logger.info(f"🔥 USANDO FILTROS de data no payload JSON: {date_range['start']} até {date_range['end']}")
         
-        # RESULTADO ESPERADO: 50 orders/página em vez de 10 = 5x mais rápido!
+        # RESULTADO ESPERADO: Payload JSON correto para API PrimeCOD!
         
         logger.info(f"🚀 Iniciando coleta COMPLETA de orders PrimeCOD - OTIMIZADA!")
         logger.info(f"🚀 URL base: {url}")
-        logger.info(f"⚡ Query Params: {params}")
-        logger.info(f"🔥 CORREÇÃO CRÍTICA: Usando endpoint GET que retorna 50 orders/página!")
-        logger.info(f"⚡ CORREÇÃO: Usando endpoint GET correto que retorna 50 orders/página!")
+        logger.info(f"⚡ JSON Payload: {payload}")
+        logger.info(f"🔥 CORREÇÃO CRÍTICA: Usando endpoint POST com payload JSON!")
+        logger.info(f"⚡ CORREÇÃO: Usando endpoint POST correto com payload JSON!")
         logger.info(f"⚡ Performance 5x mais rápida: ~78 páginas em vez de 388!")
-        logger.info(f"🚀 Filtros de data aplicados via query params nativos")
+        logger.info(f"🚀 Filtros de data aplicados via payload JSON")
         
         all_orders = []
         current_page = 1  # SEMPRE começar da página 1
@@ -210,11 +210,11 @@ class PrimeCODClient:
                     logger.warning(f"⚠️ Limite de {max_pages} páginas atingido - interrompendo coleta")
                     break
                 
-                # ⚡ CORREÇÃO CRÍTICA: Usar GET com query params
-                params["page"] = current_page
-                logger.info(f"🌐 Requisição GET: {url} com params page={current_page}")
+                # ⚡ CORREÇÃO CRÍTICA: Usar POST com payload JSON
+                payload["page"] = current_page
+                logger.info(f"🌐 Requisição POST: {url} com payload page={current_page}")
                 
-                response = self._make_request('GET', url, params=params)
+                response = self._make_request('POST', url, json=payload)
                 logger.info(f"✅ Response recebido - Status: {response.status_code}")
                 
                 data = response.json()
@@ -230,7 +230,7 @@ class PrimeCODClient:
                     break
                 
                 # PROTEÇÃO ADICIONAL: Se orders é muito pequeno, pode indicar fim da coleta
-                if len(orders) < 50:   # API GET retorna até 50 por página, menos que 50 indica fim ou última página
+                if len(orders) < 50:   # API POST retorna variável orders por página, menos orders indica fim ou última página
                     logger.info(f"🔍 Página {current_page} com {len(orders)} orders - possível fim da coleta (esperado: 50/página)")
                 
                 # Adicionar todos os orders desta página (SEM filtros)
@@ -261,7 +261,7 @@ class PrimeCODClient:
             logger.info(f"📊 Média REAL de orders/página: {len(all_orders)/pages_processed if pages_processed > 0 else 0:.1f}")
             logger.info(f"📄 Última página processada: {current_page - 1}")
             logger.info(f"📊 Total de páginas disponíveis detectado: {total_pages}")
-            logger.info(f"🔥 CORREÇÃO APLICADA: Endpoint GET correto com 50 orders/página!")
+            logger.info(f"🔥 CORREÇÃO APLICADA: Endpoint POST correto com payload JSON!")
             
             if pages_processed >= max_pages:
                 logger.warning(f"⚠️ Coleta interrompida: atingiu limite máximo de {max_pages} páginas")
@@ -283,9 +283,9 @@ class PrimeCODClient:
                 except Exception as e:
                     logger.warning(f"⚠️ Falha ao salvar no cache: {str(e)}")
             
-            # ⚡ FILTROS: Data via query params, país localmente
-            logger.info(f"🔍 Aplicando filtro de PAÍS localmente aos {len(all_orders)} orders (data via query params)")
-            # Se data foi aplicada via query params, não aplicar novamente localmente
+            # ⚡ FILTROS: Data via payload JSON, país localmente
+            logger.info(f"🔍 Aplicando filtro de PAÍS localmente aos {len(all_orders)} orders (data via payload JSON)")
+            # Se data foi aplicada via payload JSON, não aplicar novamente localmente
             date_range_local = None if (date_range and date_range.get('start') and date_range.get('end')) else date_range
             filtered_orders = self._apply_local_filters(all_orders, date_range_local, country_filter)
             
@@ -299,14 +299,14 @@ class PrimeCODClient:
                 'country_filter_applied': country_filter,
                 'status': 'success',
                 'data_source': 'api_optimized',
-                'filtros_query_params_aplicados': bool(date_range and date_range.get('start') and date_range.get('end'))
+                'filtros_payload_json_aplicados': bool(date_range and date_range.get('start') and date_range.get('end'))
             }
             
             logger.info(f"✅ Busca OTIMIZADA finalizada com sucesso:")
             logger.info(f"📦 Orders coletados (bruto): {len(all_orders)}")
             logger.info(f"🔍 Orders após filtros aplicados: {len(filtered_orders)}")
             logger.info(f"📄 Páginas processadas: {pages_processed}")
-            logger.info(f"🔥 Filtro de data aplicado via QUERY PARAMS: {'Sim' if date_range and date_range.get('start') else 'Não'}")
+            logger.info(f"🔥 Filtro de data aplicado via PAYLOAD JSON: {'Sim' if date_range and date_range.get('start') else 'Não'}")
             logger.info(f"🌍 Filtro de país aplicado localmente: {'Não (Todos os países)' if not country_filter or country_filter.lower().strip() in ['todos', 'todos os países', 'all', 'all countries'] else f'Sim ({country_filter})'}")
             
             return result
@@ -367,27 +367,27 @@ class PrimeCODClient:
         
         url = f"{self.base_url}/orders"
         
-        # ⚡ CORREÇÃO CRÍTICA: Usar endpoint GET correto que retorna 50 orders/página!
-        # URL: https://api.primecod.app/api/orders (GET)
-        # Query params em vez de JSON payload  
-        params = {
+        # ⚡ CORREÇÃO CRÍTICA: Usar endpoint POST correto com payload JSON!
+        # URL: https://api.primecod.app/api/orders (POST)
+        # JSON payload com filtros e paginação  
+        payload = {
             "page": 1,  # Será atualizado no loop
         }
         
-        # Aplicar filtro de data como query params se fornecido
+        # Aplicar filtro de data no payload JSON se fornecido
         if date_range and date_range.get('start') and date_range.get('end'):
-            params["start_date"] = date_range['start']
-            params["end_date"] = date_range['end']
-            logger.info(f"🔥 USANDO FILTROS de data como query params: {date_range['start']} até {date_range['end']}")
+            payload["start_date"] = date_range['start']
+            payload["end_date"] = date_range['end']
+            logger.info(f"🔥 USANDO FILTROS de data no payload JSON: {date_range['start']} até {date_range['end']}")
         
-        # RESULTADO ESPERADO: 50 orders/página em vez de 10 = 5x mais rápido!
+        # RESULTADO ESPERADO: Payload JSON correto para API PrimeCOD!
         
         logger.info(f"🚀 Iniciando coleta ASSÍNCRONA de orders PrimeCOD!")
         logger.info(f"🚀 URL base: {url}")
-        logger.info(f"⚡ Query Params: {params}")
-        logger.info(f"🔥 CORREÇÃO ASSÍNCRONA: Usando endpoint GET que retorna 50 orders/página!")
-        logger.info(f"⚡ CORREÇÃO: Performance 5x mais rápida: ~78 páginas em vez de 388!")
-        logger.info(f"🚀 Filtros de data via query params, país localmente")
+        logger.info(f"⚡ JSON Payload: {payload}")
+        logger.info(f"🔥 CORREÇÃO ASSÍNCRONA: Usando endpoint POST com payload JSON!")
+        logger.info(f"⚡ CORREÇÃO: Usando payload JSON correto para API PrimeCOD!")
+        logger.info(f"🚀 Filtros de data via payload JSON, país localmente")
         
         all_orders = []
         current_page = 1  # SEMPRE começar da página 1
@@ -411,11 +411,11 @@ class PrimeCODClient:
                     logger.warning(f"⚠️ Limite de {max_pages} páginas atingido - interrompendo coleta")
                     break
                 
-                # ⚡ CORREÇÃO CRÍTICA: Usar GET com query params
+                # ⚡ CORREÇÃO CRÍTICA: Usar POST com payload JSON
                 params["page"] = current_page
-                logger.info(f"🌐 Requisição ASSÍNCRONA GET: {url} com params page={current_page}")
+                logger.info(f"🌐 Requisição ASSÍNCRONA POST: {url} com payload page={current_page}")
                 
-                response = self._make_request('GET', url, params=params)
+                response = self._make_request('POST', url, json=payload)
                 logger.info(f"✅ Response recebido - Status: {response.status_code}")
                 
                 data = response.json()
@@ -430,7 +430,7 @@ class PrimeCODClient:
                     break
                 
                 # PROTEÇÃO ADICIONAL: Se orders é muito pequeno, pode indicar fim da coleta
-                if len(orders) < 50:   # API GET retorna até 50 por página, menos que 50 indica fim ou última página
+                if len(orders) < 50:   # API POST retorna variável orders por página, menos orders indica fim ou última página
                     logger.info(f"🔍 Página {current_page} com {len(orders)} orders - possível fim da coleta (esperado: 50/página)")
                 
                 # Adicionar todos os orders desta página (SEM filtros)
@@ -485,9 +485,9 @@ class PrimeCODClient:
                 except Exception as e:
                     logger.warning(f"⚠️ Falha ao salvar no cache: {str(e)}")
             
-            # ⚡ FILTROS ASSÍNCRONOS: Data via query params, país localmente
-            logger.info(f"🔍 Aplicando filtro de PAÍS localmente aos {len(all_orders)} orders ASSÍNCRONOS (data via query params)")
-            # Se data foi aplicada via query params, não aplicar novamente localmente
+            # ⚡ FILTROS ASSÍNCRONOS: Data via payload JSON, país localmente
+            logger.info(f"🔍 Aplicando filtro de PAÍS localmente aos {len(all_orders)} orders ASSÍNCRONOS (data via payload JSON)")
+            # Se data foi aplicada via payload JSON, não aplicar novamente localmente
             date_range_local = None if (date_range and date_range.get('start') and date_range.get('end')) else date_range
             filtered_orders = self._apply_local_filters(all_orders, date_range_local, country_filter)
             
@@ -501,14 +501,14 @@ class PrimeCODClient:
                 'country_filter_applied': country_filter,
                 'status': 'success',
                 'data_source': 'async_api_optimized',
-                'filtros_query_params_aplicados': bool(date_range and date_range.get('start') and date_range.get('end'))
+                'filtros_payload_json_aplicados': bool(date_range and date_range.get('start') and date_range.get('end'))
             }
             
             logger.info(f"✅ Busca ASSÍNCRONA OTIMIZADA finalizada com sucesso:")
             logger.info(f"📦 Orders coletados (bruto): {len(all_orders)}")
             logger.info(f"🔍 Orders após filtros aplicados: {len(filtered_orders)}")
             logger.info(f"📄 Páginas processadas: {pages_processed}")
-            logger.info(f"🔥 Filtro de data aplicado via QUERY PARAMS: {'Sim' if date_range and date_range.get('start') else 'Não'}")
+            logger.info(f"🔥 Filtro de data aplicado via PAYLOAD JSON: {'Sim' if date_range and date_range.get('start') else 'Não'}")
             logger.info(f"🌍 Filtro de país aplicado localmente: {'Não (Todos os países)' if not country_filter or country_filter.lower().strip() in ['todos', 'todos os países', 'all', 'all countries'] else f'Sim ({country_filter})'}")
             
             return result
@@ -792,8 +792,8 @@ class PrimeCODClient:
         """Testa conectividade com API PrimeCOD"""
         try:
             # Testar com um endpoint que sabemos que existe (orders página 1)
-            # Usar método GET correto
-            response = self._make_request('GET', f"{self.base_url}/orders", params={"page": 1})
+            # Usar método POST correto
+            response = self._make_request('POST', f"{self.base_url}/orders", json={"page": 1})
             data = response.json()
             
             # Extrair informações úteis da resposta
