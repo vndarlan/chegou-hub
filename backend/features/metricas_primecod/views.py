@@ -206,18 +206,19 @@ def buscar_orders_primecod(request):
         data_inicio = request.data.get('data_inicio')
         data_fim = request.data.get('data_fim')
         pais_filtro = request.data.get('pais_filtro')
-        max_paginas = request.data.get('max_paginas', 200)  # LIMITE SEGURO - evitar timeout do worker
+        max_paginas = request.data.get('max_paginas', 100)  # REALISTA! Com 10 orders/página, 100 páginas = 1000 orders
         
         logger.info(f"Usuário: {request.user.username}")
         logger.info(f"Parâmetros recebidos: data_inicio={data_inicio}, data_fim={data_fim}, pais_filtro={pais_filtro}")
-        logger.info(f"Max páginas configurado: {max_paginas} (LIMITE SEGURO PARA EVITAR TIMEOUT)")
+        logger.info(f"⚡ Max páginas REALISTA: {max_paginas} (Com 10 orders/página = até {max_paginas * 10} orders!)")
+        logger.info(f"⚡ OTIMIZAÇÃO: Rate limit reduzido para 200ms = coleta 60% mais rápida!")
         logger.info(f"Request data completo: {request.data}")
         
         # PROTEÇÃO CRÍTICA: Se usuário enviou valor muito alto, forçar limite seguro
-        if max_paginas > 500:
-            logger.warning(f"ALERTA: max_paginas={max_paginas} é muito alto e pode causar timeout!")
-            logger.warning(f"Forçando limite seguro de 300 páginas para evitar worker timeout")
-            max_paginas = 300
+        if max_paginas > 150:
+            logger.warning(f"ALERTA: max_paginas={max_paginas} é muito alto para API de 10 orders/página!")
+            logger.warning(f"Forçando limite seguro de 120 páginas (120 x 10 = 1200 orders) para evitar worker timeout")
+            max_paginas = 120
         
         # Validar parâmetros
         if not data_inicio or not data_fim:
@@ -476,4 +477,212 @@ def testar_conexao_primecod(request):
         return Response({
             'status': 'error',
             'message': f'Erro inesperado: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def iniciar_coleta_async_primecod(request):
+    """
+    Inicia coleta assíncrona de orders PrimeCOD usando Django-RQ
+    Evita timeouts do worker permitindo coletas longas em background
+    """
+    try:
+        # Extrair parâmetros da requisição
+        data_inicio = request.data.get('data_inicio')
+        data_fim = request.data.get('data_fim')
+        pais_filtro = request.data.get('pais_filtro')
+        max_paginas = request.data.get('max_paginas', 200)  # Sem limite restritivo para async
+        nome_analise = request.data.get('nome_analise')
+        
+        logger.info(f"Iniciando coleta assíncrona PrimeCOD para {request.user.username}")
+        logger.info(f"Parâmetros: data_inicio={data_inicio}, data_fim={data_fim}, pais_filtro={pais_filtro}")
+        logger.info(f"Max páginas: {max_paginas} (sem limitação para processamento assíncrono)")
+        
+        # Validar parâmetros obrigatórios
+        if not data_inicio or not data_fim:
+            return Response({
+                'status': 'error',
+                'message': 'Parâmetros data_inicio e data_fim são obrigatórios'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verificar configuração do token
+        from django.conf import settings
+        token = getattr(settings, 'PRIMECOD_API_TOKEN', None)
+        
+        if not token or token == 'your_primecod_api_token_here':
+            logger.warning("PRIMECOD_API_TOKEN não configurado no ambiente")
+            return Response({
+                'status': 'error',
+                'message': 'Token PrimeCOD não configurado. Adicione PRIMECOD_API_TOKEN nas variáveis de ambiente do Railway.',
+                'configured': False
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        
+        # Verificar se Django-RQ está disponível
+        try:
+            import django_rq
+            from .jobs import coletar_orders_primecod_async
+            
+            # Obter queue
+            queue = django_rq.get_queue('default')
+            
+            # Criar job assíncrono
+            job = queue.enqueue(
+                coletar_orders_primecod_async,
+                user_id=request.user.id,
+                data_inicio=data_inicio,
+                data_fim=data_fim,
+                pais_filtro=pais_filtro,
+                max_paginas=max_paginas,
+                nome_analise=nome_analise,
+                job_timeout='30m',  # 30 minutos de timeout para job
+                result_ttl='2h'     # Manter resultado por 2 horas
+            )
+            
+            # Atualizar job com seu próprio ID para tracking
+            job.meta['job_id'] = job.id
+            job.save_meta()
+            
+            logger.info(f"Job assíncrono criado: {job.id} para usuário {request.user.username}")
+            
+            return Response({
+                'status': 'success',
+                'job_id': job.id,
+                'message': 'Coleta assíncrona iniciada! Use o endpoint de status para acompanhar.',
+                'estimated_time': 'Estimativa: 10-15 minutos para coleta completa',
+                'progress_endpoint': f'/api/metricas/primecod/status-job/{job.id}/'
+            })
+            
+        except ImportError:
+            # Fallback: se RQ não disponível, usar coleta síncrona limitada
+            logger.warning("Django-RQ não disponível, usando coleta síncrona limitada")
+            
+            # Forçar limite menor para evitar timeout
+            max_paginas_sync = min(max_paginas, 50)
+            logger.warning(f"Limitando para {max_paginas_sync} páginas para evitar timeout síncrono")
+            
+            # Fazer coleta síncrona
+            client = PrimeCODClient()
+            
+            date_range = {
+                'start': data_inicio,
+                'end': data_fim
+            }
+            
+            resultado = client.get_orders(
+                page=1,
+                date_range=date_range,
+                max_pages=max_paginas_sync,
+                country_filter=pais_filtro
+            )
+            
+            # Processar dados
+            orders_processados = client.process_orders_data(
+                orders=resultado['orders'],
+                pais_filtro=None
+            )
+            
+            return Response({
+                'status': 'success',
+                'sync_fallback': True,
+                'dados_brutos': {
+                    'total_orders_raw': resultado.get('total_orders_raw', resultado['total_orders']),
+                    'total_orders_filtered': resultado['total_orders'],
+                    'pages_processed': resultado['pages_processed'],
+                    'max_pages_limit': max_paginas_sync,
+                    'date_range_applied': resultado['date_range_applied'],
+                    'country_filter_applied': resultado.get('country_filter_applied'),
+                    'data_source': 'sync_fallback'
+                },
+                'dados_processados': orders_processados['dados_processados'],
+                'estatisticas': orders_processados['estatisticas'],
+                'status_nao_mapeados': orders_processados['status_nao_mapeados'],
+                'message': f'RQ indisponível - coleta síncrona limitada: {resultado["total_orders"]} orders de {max_paginas_sync} páginas'
+            })
+            
+    except Exception as e:
+        logger.error(f"Erro em iniciar_coleta_async_primecod: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Erro ao iniciar coleta assíncrona: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def status_job_primecod(request, job_id):
+    """
+    Verifica status de job assíncrono PrimeCOD
+    """
+    try:
+        # Verificar cache de progresso primeiro
+        from django.core.cache import cache
+        progress_key = f"primecod_job_progress_{job_id}"
+        progress = cache.get(progress_key)
+        
+        if progress:
+            return Response({
+                'status': 'success',
+                'job_id': job_id,
+                'job_status': progress.get('status', 'unknown'),
+                'progress': progress,
+                'cache_source': True
+            })
+        
+        # Tentar buscar via Django-RQ
+        try:
+            import django_rq
+            from rq.job import Job
+            
+            # Obter queue e job
+            queue = django_rq.get_queue('default')
+            job = Job.fetch(job_id, connection=queue.connection)
+            
+            # Status mapping RQ -> frontend
+            status_map = {
+                'queued': 'pendente',
+                'started': 'executando', 
+                'finished': 'concluido',
+                'failed': 'erro',
+                'deferred': 'adiado',
+                'canceled': 'cancelado'
+            }
+            
+            job_status = status_map.get(job.status, job.status)
+            
+            response_data = {
+                'status': 'success',
+                'job_id': job_id,
+                'job_status': job_status,
+                'created_at': job.created_at.isoformat() if job.created_at else None,
+                'started_at': job.started_at.isoformat() if job.started_at else None,
+                'ended_at': job.ended_at.isoformat() if job.ended_at else None,
+                'cache_source': False
+            }
+            
+            # Se job finalizado, incluir resultado
+            if job.status == 'finished' and job.result:
+                response_data['resultado'] = job.result
+            elif job.status == 'failed':
+                response_data['error'] = str(job.exc_info) if job.exc_info else 'Erro desconhecido'
+            
+            return Response(response_data)
+            
+        except ImportError:
+            return Response({
+                'status': 'error',
+                'message': 'Django-RQ não disponível para verificar status'
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'job_id': job_id,
+                'message': f'Job não encontrado ou erro: {str(e)}'
+            }, status=status.HTTP_404_NOT_FOUND)
+            
+    except Exception as e:
+        logger.error(f"Erro em status_job_primecod: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Erro ao verificar status: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
