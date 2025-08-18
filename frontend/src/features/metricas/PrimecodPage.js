@@ -72,10 +72,6 @@ const buscarDadosPrimeCOD = async (dataInicio, dataFim, paisSelecionado) => {
     return response.data;
 };
 
-const testarConexaoPrimeCOD = async () => {
-    const response = await axios.get('/metricas/primecod/testar-conexao/');
-    return response.data;
-};
 
 function PrimecodPage() {
     // Estados principais
@@ -104,8 +100,6 @@ function PrimecodPage() {
     const [notification, setNotification] = useState(null);
     const [progressoAtual, setProgressoAtual] = useState(null);
     
-    // Estado para verificação de conectividade backend
-    const [statusBackend, setStatusBackend] = useState({ conectado: false, verificando: true });
 
     // Estados para ordenação
     const [sortBy, setSortBy] = useState(null);
@@ -145,10 +139,6 @@ function PrimecodPage() {
             return;
         }
 
-        if (!statusBackend.conectado) {
-            showNotification('error', 'Backend PrimeCOD não está disponível');
-            return;
-        }
 
         setLoadingProcessar(true);
         setProgressoAtual({ etapa: 'Conectando com PrimeCOD...', porcentagem: 0 });
@@ -352,25 +342,6 @@ function PrimecodPage() {
             </div>
             
             <div className="flex items-center gap-3">
-                {/* Indicador de Status Backend */}
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border">
-                    {statusBackend.verificando ? (
-                        <>
-                            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-                            <span className="text-sm text-yellow-600 font-medium">Verificando...</span>
-                        </>
-                    ) : statusBackend.conectado ? (
-                        <>
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <span className="text-sm text-green-600 font-medium">Backend Ativo</span>
-                        </>
-                    ) : (
-                        <>
-                            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                            <span className="text-sm text-red-600 font-medium">Backend Offline</span>
-                        </>
-                    )}
-                </div>
                 
                 <Button
                     variant="outline"
@@ -434,7 +405,7 @@ function PrimecodPage() {
                         
                         <Button
                             onClick={processarDados}
-                            disabled={!dateRange?.from || !dateRange?.to || loadingProcessar || !statusBackend.conectado}
+                            disabled={!dateRange?.from || !dateRange?.to || loadingProcessar}
                             size="lg"
                             className="min-w-36 bg-primary text-primary-foreground hover:bg-primary/90"
                         >
@@ -709,39 +680,9 @@ function PrimecodPage() {
 
     // ======================== EFEITOS ========================
 
-    const verificarBackend = async () => {
-        try {
-            const result = await testarConexaoPrimeCOD();
-            if (result.status === 'success') {
-                setStatusBackend({ conectado: true, verificando: false });
-                console.log('✅ Backend PrimeCOD conectado');
-                return true;
-            } else {
-                setStatusBackend({ conectado: false, verificando: false });
-                showNotification('error', 'Backend PrimeCOD não está respondendo');
-                return false;
-            }
-        } catch (error) {
-            console.error('❌ Erro ao verificar backend:', error);
-            
-            // Tratamento específico para token não configurado
-            if (error.response?.status === 503) {
-                setStatusBackend({ conectado: false, verificando: false, status: 'token_nao_configurado' });
-                showNotification('error', 'Token PrimeCOD não configurado. Adicione PRIMECOD_API_TOKEN nas variáveis de ambiente do Railway.');
-            } else {
-                setStatusBackend({ conectado: false, verificando: false });
-                showNotification('error', 'Erro ao conectar com o backend PrimeCOD');
-            }
-            return false;
-        }
-    };
-
     useEffect(() => {
         const inicializar = async () => {
-            // Verificar conexão com backend
-            const backendOk = await verificarBackend();
-            
-            // Buscar análises independente do status do backend
+            // Buscar análises
             fetchAnalises();
             
             // Definir período padrão (última semana)
@@ -808,42 +749,6 @@ function PrimecodPage() {
                     </DialogHeader>
                     
                     <div className="space-y-6">
-                        {/* Status de Configuração */}
-                        <div>
-                            <h4 className="text-lg font-semibold mb-3">🔧 Status do Sistema</h4>
-                            <Card className={`border-2 ${
-                                statusBackend.verificando ? 'border-yellow-200 bg-yellow-50' :
-                                statusBackend.conectado ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
-                            }`}>
-                                <CardContent className="p-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-3 h-3 rounded-full ${
-                                            statusBackend.verificando ? 'bg-yellow-500 animate-pulse' :
-                                            statusBackend.conectado ? 'bg-green-500' : 'bg-red-500 animate-pulse'
-                                        }`}></div>
-                                        <div>
-                                            <p className={`font-medium ${
-                                                statusBackend.verificando ? 'text-yellow-700' :
-                                                statusBackend.conectado ? 'text-green-700' : 'text-red-700'
-                                            }`}>
-                                                {statusBackend.verificando ? 'Verificando Backend...' :
-                                                 statusBackend.conectado ? 'Backend PrimeCOD Ativo' : 'Backend Indisponível'}
-                                            </p>
-                                            <p className={`text-sm ${
-                                                statusBackend.verificando ? 'text-yellow-600' :
-                                                statusBackend.conectado ? 'text-green-600' : 'text-red-600'
-                                            }`}>
-                                                {statusBackend.verificando ? 'Testando conectividade com PrimeCOD...' :
-                                                 statusBackend.conectado ? 'Proxy backend funcionando normalmente' : 
-                                                 'Verifique se o backend está rodando'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        <Separator className="bg-border" />
 
                         <div>
                             <h4 className="text-lg font-semibold text-green-600 mb-3">🔗 Integração via Backend</h4>

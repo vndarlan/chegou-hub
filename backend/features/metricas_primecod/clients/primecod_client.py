@@ -37,23 +37,41 @@ class PrimeCODClient:
         self.last_request_time = 0
         self.min_request_interval = 0.2  # 200ms entre requests (OTIMIZADO de 500ms!)
         
-        # Status mapping para padronização (IDs numéricos da API real)
+        # Status mapping completo para português (15 status PrimeCOD)
         self.status_mapping = {
-            1: 'Placed',
-            2: 'Packed', 
-            4: 'Shipped',
-            6: 'Out for delivery',
-            7: 'Delivered',
-            8: 'Refused',
-            10: 'Returned',
-            12: 'Cancelled',
-            # Strings para compatibilidade
-            'Delivered': 'Delivered',
-            'Canceled': 'Cancelled', 
-            'Confirmed': 'Placed',
-            'Pending': 'Placed',
-            'Shipped': 'Shipped',
-            'Returned': 'Returned',
+            1: 'Pedido Realizado',      # Placed
+            2: 'Embalado',              # Packed  
+            3: 'Despachado',            # Dispatched
+            4: 'Enviado',               # Shipped
+            5: 'Chegada ao Destino',    # Chegada ao Destino (já em português)
+            6: 'Saiu para Entrega',     # Out for delivery
+            7: 'Entregue',              # Delivered
+            8: 'Recusado',              # Refused
+            9: 'Retornando',            # Returning
+            10: 'Devolvido',            # Returned
+            11: 'Fora de Estoque',      # Out of stock
+            12: 'Cancelado',            # Cancelled
+            13: 'Erro',                 # Error
+            15: 'Erro de Fulfillment',  # Fulfilment Error
+            16: 'Incidente',            # Incident
+            # Strings para compatibilidade (todos em português)
+            'Delivered': 'Entregue',
+            'Canceled': 'Cancelado', 
+            'Cancelled': 'Cancelado',
+            'Confirmed': 'Pedido Realizado',
+            'Pending': 'Pedido Realizado',
+            'Shipped': 'Enviado',
+            'Returned': 'Devolvido',
+            'Placed': 'Pedido Realizado',
+            'Packed': 'Embalado',
+            'Dispatched': 'Despachado',
+            'Out for delivery': 'Saiu para Entrega',
+            'Refused': 'Recusado',
+            'Returning': 'Retornando',
+            'Out of stock': 'Fora de Estoque',
+            'Error': 'Erro',
+            'Fulfilment Error': 'Erro de Fulfillment',
+            'Incident': 'Incidente',
         }
     
     def _rate_limit(self):
