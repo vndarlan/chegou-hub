@@ -206,10 +206,11 @@ def buscar_orders_primecod(request):
         data_inicio = request.data.get('data_inicio')
         data_fim = request.data.get('data_fim')
         pais_filtro = request.data.get('pais_filtro')
-        max_paginas = request.data.get('max_paginas', 50)  # Limite padrão menor
+        max_paginas = request.data.get('max_paginas', 9999)  # Remover limite artificial - coletar TODAS as páginas
         
         logger.info(f"Usuário: {request.user.username}")
         logger.info(f"Parâmetros recebidos: data_inicio={data_inicio}, data_fim={data_fim}, pais_filtro={pais_filtro}")
+        logger.info(f"Max páginas configurado: {max_paginas} (9999 = sem limite artificial)")
         logger.info(f"Request data completo: {request.data}")
         
         # Validar parâmetros

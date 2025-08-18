@@ -234,6 +234,7 @@ class PrimeCODClient:
             # Verificar se parou porque atingiu o máximo ou porque encontrou página vazia
             if pages_processed >= max_pages:
                 logger.warning(f"⚠️ Coleta interrompida: atingiu limite máximo de {max_pages} páginas")
+                logger.warning(f"⚠️ Se você esperava mais dados, aumente o parâmetro max_pages ou remova o limite")
             else:
                 logger.info(f"✅ Coleta finalizada normalmente: encontrou página vazia na página {current_page}")
             
