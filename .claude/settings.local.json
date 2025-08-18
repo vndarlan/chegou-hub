@@ -69,7 +69,10 @@
       "WebFetch(domain:www.highviewapps.com)",
       "Bash(true)",
       "WebFetch(domain:ipinfo.io)",
-      "WebFetch(domain:www.abstractapi.com)"
+      "WebFetch(domain:www.abstractapi.com)",
+      "Bash(powershell:*)",
+      "Bash(ping:*)",
+      "Bash(git tag:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

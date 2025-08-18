@@ -214,11 +214,11 @@ def buscar_orders_primecod(request):
         logger.info(f"⚡ OTIMIZAÇÃO: Rate limit reduzido para 200ms = coleta 60% mais rápida!")
         logger.info(f"Request data completo: {request.data}")
         
-        # PROTEÇÃO CRÍTICA: Se usuário enviou valor muito alto, forçar limite seguro
-        if max_paginas > 150:
-            logger.warning(f"ALERTA: max_paginas={max_paginas} é muito alto para API de 10 orders/página!")
-            logger.warning(f"Forçando limite seguro de 120 páginas (120 x 10 = 1200 orders) para evitar worker timeout")
-            max_paginas = 120
+        # LOG INFORMATIVO: Não limitar max_paginas - coletar tudo o que o usuário solicitou
+        if max_paginas > 500:  # Apenas aviso informativo para valores muito altos
+            logger.info(f"INFO: max_paginas={max_paginas} - coleta completa sem limites de tempo")
+            logger.info(f"Estimativa: {max_paginas} páginas x 10 orders = até {max_paginas * 10} orders")
+        # NÃO forçar limite - deixar o usuário decidir
         
         # Validar parâmetros
         if not data_inicio or not data_fim:
@@ -283,10 +283,10 @@ def buscar_orders_primecod(request):
             duration = end_time - start_time
             logger.info(f"⏱️ COLETA FINALIZADA - Duração total: {duration:.2f} segundos")
             
-            # ALERTA se demorou muito (próximo do timeout típico de 30s)
-            if duration > 20:
-                logger.warning(f"⚠️ ALERTA: Coleta demorou {duration:.2f}s - próximo do timeout do worker!")
-                logger.warning(f"⚠️ Considere reduzir max_paginas ou implementar processamento assíncrono")
+            # LOG INFORMATIVO: Apenas registrar duração (sem alertas de timeout)
+            logger.info(f"✅ Coleta finalizada em {duration:.2f}s - sucesso!")
+            if duration > 60:  # Apenas informativo para coletas longas
+                logger.info(f"📈 Coleta longa ({duration:.1f}s) - consideração: usar processamento assíncrono para UX")
             logger.info(f"Busca concluída. Resultado: {type(resultado)}")
             logger.info(f"Keys do resultado: {list(resultado.keys()) if isinstance(resultado, dict) else 'Não é dict'}")
             
@@ -557,9 +557,9 @@ def iniciar_coleta_async_primecod(request):
             # Fallback: se RQ não disponível, usar coleta síncrona limitada
             logger.warning("Django-RQ não disponível, usando coleta síncrona limitada")
             
-            # Forçar limite menor para evitar timeout
-            max_paginas_sync = min(max_paginas, 50)
-            logger.warning(f"Limitando para {max_paginas_sync} páginas para evitar timeout síncrono")
+            # Manter limite do usuário mesmo no fallback síncrono
+            max_paginas_sync = max_paginas
+            logger.info(f"Fallback síncrono: coletando {max_paginas_sync} páginas conforme solicitado")
             
             # Fazer coleta síncrona
             client = PrimeCODClient()
