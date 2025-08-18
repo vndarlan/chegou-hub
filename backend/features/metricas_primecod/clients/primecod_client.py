@@ -459,9 +459,9 @@ class PrimeCODClient:
             
             if chave not in agrupamento:
                 agrupamento[chave] = {
-                    'Produto': produto,
-                    'País': pais,
-                    'Total': 0
+                    'produto': produto,
+                    'pais': pais,
+                    'total': 0
                 }
             
             # Incrementar contador do status
@@ -469,11 +469,34 @@ class PrimeCODClient:
                 agrupamento[chave][status] = 0
             
             agrupamento[chave][status] += 1
-            agrupamento[chave]['Total'] += 1
+            agrupamento[chave]['total'] += 1
         
         # Converter para lista e ordenar
         dados_processados = list(agrupamento.values())
-        dados_processados.sort(key=lambda x: (x['Produto'], x['País']))
+        dados_processados.sort(key=lambda x: (x['produto'], x['pais']))
+        
+        # Criar linha de TOTAL agregado
+        if dados_processados:
+            # Coletar todos os status únicos dos dados
+            status_unicos = set()
+            for item in dados_processados:
+                for key in item.keys():
+                    if key not in ['produto', 'pais', 'total']:
+                        status_unicos.add(key)
+            
+            # Calcular totais por status
+            total_row = {
+                'produto': 'TOTAL',
+                'pais': 'Todos',
+                'total': sum(item['total'] for item in dados_processados)
+            }
+            
+            # Somar todos os status
+            for status in status_unicos:
+                total_row[status] = sum(item.get(status, 0) for item in dados_processados)
+            
+            # Adicionar linha TOTAL ao final
+            dados_processados.append(total_row)
         
         # Calcular estatísticas
         estatisticas = {
@@ -481,10 +504,24 @@ class PrimeCODClient:
             'produtos_unicos': len(produtos),
             'paises_unicos': len(paises),
             'status_unicos': len(status_encontrados),
-            'orders_processados': sum(item['Total'] for item in dados_processados)
+            'orders_processados': sum(item['total'] for item in dados_processados)
         }
         
         logger.info(f"Processamento concluído: {estatisticas['total_orders']} orders -> {len(dados_processados)} linhas agrupadas")
+        
+        # DEBUG: Log da estrutura dos dados processados
+        logger.info(f"🔍 DEBUG: Primeiros 3 items dos dados processados:")
+        for i, item in enumerate(dados_processados[:3]):
+            logger.info(f"   [{i}] {item}")
+        if len(dados_processados) > 3:
+            logger.info(f"   ... e mais {len(dados_processados) - 3} items")
+        
+        # DEBUG: Log da linha TOTAL se existir
+        total_row = next((item for item in dados_processados if item.get('produto') == 'TOTAL'), None)
+        if total_row:
+            logger.info(f"🔍 DEBUG: Linha TOTAL encontrada: {total_row}")
+        else:
+            logger.info(f"🔍 DEBUG: Nenhuma linha TOTAL encontrada")
         
         return {
             'dados_processados': dados_processados,

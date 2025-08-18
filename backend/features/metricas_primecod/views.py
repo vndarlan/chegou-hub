@@ -268,10 +268,14 @@ def buscar_orders_primecod(request):
             logger.info(f"Keys do resultado: {list(resultado.keys()) if isinstance(resultado, dict) else 'Não é dict'}")
             
             # Processar os dados dos orders (filtros já aplicados)
+            logger.info(f"🔍 DEBUG VIEW: Processando {len(resultado['orders'])} orders")
             orders_processados = client.process_orders_data(
                 orders=resultado['orders'],  # resultado já contém os orders filtrados
                 pais_filtro=None  # Não reaplicar filtro de país aqui
             )
+            
+            logger.info(f"🔍 DEBUG VIEW: Dados processados - {len(orders_processados['dados_processados'])} linhas")
+            logger.info(f"🔍 DEBUG VIEW: Primeira linha: {orders_processados['dados_processados'][0] if orders_processados['dados_processados'] else 'Nenhuma'}")
             
             # Combinar resultados
             resposta = {
