@@ -188,11 +188,23 @@ def buscar_duplicatas(request):
         logger.info(f"Busca de duplicatas - Usuário: {request.user.username} (ID: {request.user.id}), Loja: {loja_id}")
         
         if not loja_id:
+            logger.warning(f"❌ ID da loja não fornecido")
             return Response({'error': 'ID da loja é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Debug: Verificar lojas disponíveis para o usuário
+        available_configs = ShopifyConfig.objects.filter(user=request.user, ativo=True)
+        logger.info(f"📊 Lojas disponíveis para {request.user.username}: {[(c.id, c.nome_loja) for c in available_configs]}")
         
         config = ShopifyConfig.objects.filter(id=loja_id, ativo=True, user=request.user).first()
         if not config:
-            return Response({'error': 'Loja não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
+            logger.warning(f"❌ Loja {loja_id} não encontrada para usuário {request.user.username}")
+            return Response({'error': 'Loja não encontrada', 'debug_info': {
+                'requested_loja_id': loja_id,
+                'available_lojas': [(c.id, c.nome_loja) for c in available_configs],
+                'user_id': request.user.id
+            }}, status=status.HTTP_400_BAD_REQUEST)
+        
+        logger.info(f"✅ Loja encontrada: {config.nome_loja} (ID: {config.id})")
         
         detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
         duplicates = detector.get_detailed_duplicates()
@@ -216,7 +228,11 @@ def buscar_duplicatas(request):
         })
         
     except Exception as e:
-        # Log do erro
+        # Log do erro com mais detalhes
+        logger.error(f"❌ Erro na busca de duplicatas: {str(e)}", exc_info=True)
+        logger.error(f"📋 Request data: {request.data}")
+        logger.error(f"👤 User: {request.user}")
+        
         if 'config' in locals():
             ProcessamentoLog.objects.create(
                 user=request.user,
@@ -226,7 +242,11 @@ def buscar_duplicatas(request):
                 erro_mensagem=str(e)
             )
         
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': str(e), 'debug_info': {
+            'loja_id': request.data.get('loja_id'),
+            'user_id': request.user.id,
+            'user_username': request.user.username
+        }}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
