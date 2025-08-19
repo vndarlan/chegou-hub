@@ -3959,6 +3959,7 @@ def buscar_ips_duplicados_simples(request):
                     'total_price': str(order_dict.get('total_price', '0.00')),
                     'currency': order_dict.get('currency', 'BRL'),
                     'created_at': order.created_at.isoformat() if hasattr(order.created_at, 'isoformat') else str(order.created_at),
+                    'cancelled_at': order_dict.get('cancelled_at'),  # Campo crucial para verificar cancelamento
                     'financial_status': order_dict.get('financial_status', ''),
                     'shipping_city': shipping_city,
                     'shipping_state': shipping_state,
@@ -3967,10 +3968,10 @@ def buscar_ips_duplicados_simples(request):
                 })
         
         
-        # ⚡ CORREÇÃO: Filtra TODOS os IPs com 2+ pedidos (independente do cliente)
+        # ⚡ CORREÇÃO: Filtra APENAS IPs com CLIENTES DIFERENTES (não pelo mesmo cliente)
         ips_duplicados = []
         for ip, pedidos in ip_groups.items():
-            if len(pedidos) >= 2:  # QUALQUER IP com 2+ pedidos
+            if len(pedidos) >= 2:  # IP com 2+ pedidos
                 # Ordena por data
                 pedidos_ordenados = sorted(pedidos, key=lambda x: x['created_at'])
                 
@@ -3981,17 +3982,19 @@ def buscar_ips_duplicados_simples(request):
                     if cliente and cliente != 'N/A':
                         clientes_unicos.add(cliente)
                 
-                ips_duplicados.append({
-                    'browser_ip': ip,
-                    'total_pedidos': len(pedidos),
-                    'clientes_unicos': len(clientes_unicos),
-                    'clientes_diferentes': len(clientes_unicos) > 1,  # Para análise no frontend
-                    'pedidos': pedidos_ordenados,
-                    'primeiro_pedido': pedidos_ordenados[0]['created_at'],
-                    'ultimo_pedido': pedidos_ordenados[-1]['created_at'],
-                    'method_used': pedidos_ordenados[0]['method_used'],
-                    'confidence': round(pedidos_ordenados[0]['confidence'], 2)
-                })
+                # NOVA LÓGICA: SÓ INCLUI se há CLIENTES DIFERENTES no mesmo IP
+                if len(clientes_unicos) > 1:  # Mais de 1 cliente único = suspeito
+                    ips_duplicados.append({
+                        'browser_ip': ip,
+                        'total_pedidos': len(pedidos),
+                        'clientes_unicos': len(clientes_unicos),
+                        'clientes_diferentes': True,  # Sempre True agora (condição de inclusão)
+                        'pedidos': pedidos_ordenados,
+                        'primeiro_pedido': pedidos_ordenados[0]['created_at'],
+                        'ultimo_pedido': pedidos_ordenados[-1]['created_at'],
+                        'method_used': pedidos_ordenados[0]['method_used'],
+                        'confidence': round(pedidos_ordenados[0]['confidence'], 2)
+                    })
         
         # Ordena por quantidade de pedidos (mais pedidos primeiro)
         ips_duplicados.sort(key=lambda x: x['total_pedidos'], reverse=True)

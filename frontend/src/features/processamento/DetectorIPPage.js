@@ -127,9 +127,9 @@ function DetectorIPPage() {
                     const uniqueCustomers = new Set(pedidos.map(p => p.customer_name)).size;
                     const totalSales = 0; // TODO: Implementar cálculo de vendas se necessário
                     
-                    // Conta pedidos ativos vs cancelados
-                    const activePedidos = pedidos.filter(p => p.financial_status !== 'cancelled').length;
-                    const cancelledPedidos = pedidos.filter(p => p.financial_status === 'cancelled').length;
+                    // Conta pedidos ativos vs cancelados (Shopify usa cancelled_at)
+                    const cancelledPedidos = pedidos.filter(p => p.cancelled_at != null).length;
+                    const activePedidos = pedidos.length - cancelledPedidos;
                     
                     // Cria período de datas se disponível
                     let dateRange = null;
@@ -292,7 +292,7 @@ function DetectorIPPage() {
                         <Shield className="h-6 w-6 text-primary" />
                         Detector de IP
                     </h1>
-                    <p className="text-muted-foreground">Análise de pedidos por endereço IP - Detecção de fraudes e padrões</p>
+                    <p className="text-muted-foreground">Detecta IPs com CLIENTES DIFERENTES - Ferramenta anti-fraude otimizada</p>
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-2">
@@ -354,23 +354,23 @@ function DetectorIPPage() {
                                                 <h4 className="font-semibold text-blue-600 dark:text-blue-400 mb-2">🎯 O que esta ferramenta faz:</h4>
                                                 <div className="space-y-3 text-sm text-muted-foreground ml-4">
                                                     <div>
-                                                        <strong className="text-foreground">Busca por Múltiplos Pedidos:</strong>
+                                                        <strong className="text-foreground">Detecção de IPs com Clientes Diferentes:</strong>
                                                         <ul className="ml-4 space-y-1">
-                                                            <li>• Identifica pedidos feitos do mesmo endereço IP (browser_ip)</li>
-                                                            <li>• Agrupa pedidos por IP para análise de padrões</li>
+                                                            <li>• Identifica APENAS IPs onde há CLIENTES DIFERENTES fazendo pedidos</li>
+                                                            <li>• Se o mesmo cliente faz múltiplos pedidos, é considerado comportamento normal</li>
+                                                            <li>• Foco na detecção de fraudes e compartilhamento de IP suspeito</li>
                                                             <li>• Período configurável (7 a 365 dias)</li>
-                                                            <li>• Mínimo fixo de 2 pedidos por IP</li>
                                                         </ul>
                                                     </div>
                                                     
                                                     <div>
                                                         <strong className="text-foreground">Dados Analisados:</strong>
                                                         <ul className="ml-4 space-y-1">
-                                                            <li>• Número total de pedidos por IP</li>
-                                                            <li>• Quantidade de clientes únicos</li>
+                                                            <li>• Número total de pedidos por IP suspeito</li>
+                                                            <li>• Quantidade de clientes únicos (sempre > 1)</li>
                                                             <li>• Valores totais por IP</li>
                                                             <li>• Período de atividade (primeiro/último pedido)</li>
-                                                            <li>• Status dos pedidos (ativos vs cancelados)</li>
+                                                            <li>• Status correto: ativos vs cancelados (via cancelled_at)</li>
                                                         </ul>
                                                     </div>
                                                 </div>
@@ -379,36 +379,37 @@ function DetectorIPPage() {
                                             <Separator />
                                             
                                             <div>
-                                                <h4 className="font-semibold text-green-600 dark:text-green-400 mb-2">✅ Casos de Uso:</h4>
+                                                <h4 className="font-semibold text-green-600 dark:text-green-400 mb-2">✅ Casos de Uso Principais:</h4>
                                                 <ul className="text-sm text-muted-foreground space-y-1 ml-4">
-                                                    <li>• <span className="font-medium text-foreground">Análise Geográfica:</span> Concentração de vendas por região</li>
-                                                    <li>• <span className="font-medium text-foreground">Detecção de Padrões:</span> Comportamento de compra repetitivo</li>
-                                                    <li>• <span className="font-medium text-foreground">Investigação de Fraudes:</span> Múltiplas compras suspeitas do mesmo IP</li>
-                                                    <li>• <span className="font-medium text-foreground">Auditoria de Pedidos:</span> Verificação de legitimidade</li>
-                                                    <li>• <span className="font-medium text-foreground">Análise de Marketing:</span> Efetividade por localização</li>
+                                                    <li>• <span className="font-medium text-foreground">Detecção de Fraudes:</span> Clientes diferentes usando o mesmo IP (suspeito)</li>
+                                                    <li>• <span className="font-medium text-foreground">IPs Compartilhados:</span> Escritórios, lan houses, redes públicas</li>
+                                                    <li>• <span className="font-medium text-foreground">Investigação de Cartões:</span> Cartões diferentes no mesmo IP</li>
+                                                    <li>• <span className="font-medium text-foreground">Auditoria de Risco:</span> Verificação de padrões suspeitos</li>
+                                                    <li>• <span className="font-medium text-foreground">Análise de Comportamento:</span> Múltiplos compradores no mesmo local</li>
                                                 </ul>
                                             </div>
                                             
                                             <Separator />
                                             
                                             <div>
-                                                <h4 className="font-semibold text-orange-600 dark:text-orange-400 mb-2">📊 Fonte de Dados:</h4>
+                                                <h4 className="font-semibold text-orange-600 dark:text-orange-400 mb-2">📊 Fonte de Dados (Otimizada):</h4>
                                                 <div className="text-sm text-muted-foreground ml-4 space-y-1">
-                                                    <p>• <strong className="text-foreground">browser_ip:</strong> IP capturado pelo Shopify durante o checkout</p>
-                                                    <p>• <strong className="text-foreground">Dados dos pedidos:</strong> Informações completas de cliente, produto e entrega</p>
+                                                    <p>• <strong className="text-foreground">note_attributes "IP address":</strong> IP mais confiável capturado pelo sistema</p>
+                                                    <p>• <strong className="text-foreground">Fallback geográfico:</strong> Coordenadas de entrega quando IP não disponível</p>
+                                                    <p>• <strong className="text-foreground">Dados completos:</strong> Status real via cancelled_at (não financial_status)</p>
                                                 </div>
                                             </div>
                                             
                                             <Separator />
                                             
                                             <div>
-                                                <h4 className="font-semibold text-amber-600 dark:text-amber-400 mb-2">⚠️ Limitações Importantes:</h4>
+                                                <h4 className="font-semibold text-amber-600 dark:text-amber-400 mb-2">⚠️ Limitações e Considerações:</h4>
                                                 <ul className="text-sm text-muted-foreground space-y-1 ml-4">
-                                                    <li>• <strong className="text-foreground">IPs Dinâmicos:</strong> Provedores que alteram IPs podem gerar falsos positivos</li>
-                                                    <li>• <strong className="text-foreground">VPNs e Proxies:</strong> Podem mascarar a origem real dos pedidos</li>
-                                                    <li>• <strong className="text-foreground">Redes Corporativas:</strong> Múltiplos usuários podem compartilhar o mesmo IP</li>
-                                                    <li>• <strong className="text-foreground">Dependência do Shopify:</strong> Requer que o browser_ip seja registrado corretamente</li>
-                                                    <li>• <strong className="text-foreground">Escopo Limitado:</strong> Não detecta fraudes que usam IPs diferentes</li>
+                                                    <li>• <strong className="text-foreground">Redes Legítimas:</strong> Escritórios e famílias podem ter múltiplos compradores legítimos</li>
+                                                    <li>• <strong className="text-foreground">VPNs e Proxies:</strong> Podem mascarar IPs reais e gerar alertas falsos</li>
+                                                    <li>• <strong className="text-foreground">IPs Dinâmicos:</strong> Provedores que reutilizam IPs entre clientes diferentes</li>
+                                                    <li>• <strong className="text-foreground">Dependência de Dados:</strong> Requer note_attributes "IP address" configurado</li>
+                                                    <li>• <strong className="text-foreground">Análise Contextual:</strong> Sempre investigar manualmente os casos encontrados</li>
                                                 </ul>
                                             </div>
                                         </CardContent>
@@ -432,7 +433,7 @@ function DetectorIPPage() {
                         Configuração da Busca
                     </CardTitle>
                     <CardDescription className="text-muted-foreground">
-                        Configure o período para análise de IPs (mínimo fixo: 2 pedidos por IP)
+                        Configure o período para buscar IPs com CLIENTES DIFERENTES (foco anti-fraude)
                     </CardDescription>
                 </CardHeader>
                 <CardContent>

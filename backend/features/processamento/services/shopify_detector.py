@@ -449,14 +449,14 @@ class ShopifyDuplicateOrderDetector:
                 params = {
                     "limit": 50,  # Limite baixo para rapidez
                     "page_info": page_info,
-                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,client_details"
+                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,client_details,note_attributes"
                 }
             else:
                 params = {
                     "limit": 50,
                     "status": "any",
                     "created_at_min": date_min,
-                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,client_details"
+                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,client_details,note_attributes"
                 }
             
             url = f"{self.base_url}/orders.json"
