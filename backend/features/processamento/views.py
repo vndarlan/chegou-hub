@@ -65,7 +65,7 @@ def create_safe_log(user, config, tipo, status, dados=None):
             config=config,
             tipo=tipo,
             status=status,
-            dados=dados or {}
+            detalhes=dados or {}
         )
     except Exception as e:
         # Log do erro mas não interrompe a execução principal
@@ -3840,9 +3840,9 @@ def buscar_ips_duplicados_simples(request):
         )
         
         def extract_ip_from_order(order_dict):
-            """Extrai IP usando múltiplas fontes hierárquicas - CORRIGIDO"""
+            """Extrai IP usando note_attributes como fonte principal - OTIMIZADO"""
             
-            # MÉTODO 1: note_attributes - IP address (PRIORIDADE MÁXIMA!)
+            # MÉTODO 1: note_attributes - IP address (ÚNICO MÉTODO CONFIÁVEL!)
             note_attributes = order_dict.get('note_attributes', [])
             if isinstance(note_attributes, list):
                 for note in note_attributes:
@@ -3851,19 +3851,7 @@ def buscar_ips_duplicados_simples(request):
                         if ip_address and ip_address != 'None' and ip_address != '':
                             return ip_address, 'note_attributes', 0.98
             
-            # MÉTODO 2: browser_ip direto
-            browser_ip = order_dict.get('browser_ip')
-            if browser_ip and str(browser_ip).strip() and str(browser_ip).strip() != 'None':
-                return str(browser_ip).strip(), 'browser_ip', 0.95
-            
-            # MÉTODO 3: client_details.browser_ip
-            client_details = order_dict.get('client_details', {})
-            if isinstance(client_details, dict):
-                client_browser_ip = client_details.get('browser_ip')
-                if client_browser_ip and str(client_browser_ip).strip() != 'None':
-                    return str(client_browser_ip).strip(), 'client_details', 0.90
-            
-            # MÉTODO 4: Coordenadas geográficas como "fingerprint" único
+            # MÉTODO 2: Coordenadas geográficas como "fingerprint" único
             def get_geo_fingerprint(address, prefix):
                 if not isinstance(address, dict):
                     return None, None, 0

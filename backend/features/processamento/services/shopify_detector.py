@@ -581,7 +581,27 @@ class ShopifyDuplicateOrderDetector:
             "validation_failures": []
         }
         
-        # 1. CLIENT_DETAILS.BROWSER_IP (PRIORIDADE MÁXIMA - FONTE OFICIAL SHOPIFY)
+        # 1. NOTE_ATTRIBUTES "IP address" (PRIORIDADE MÁXIMA - ÚNICO MÉTODO CONFIÁVEL)
+        note_attributes = order.get("note_attributes", [])
+        if note_attributes:
+            debug_info["fields_checked"].append("note_attributes")
+            
+            # Busca exata por "IP address" (caso específico das lojas)
+            for attr in note_attributes:
+                if isinstance(attr, dict):
+                    name = attr.get("name", "")
+                    value = attr.get("value", "")
+                    
+                    if name == "IP address" and value and isinstance(value, str):
+                        value = value.strip()
+                        if value and value != 'None':
+                            source = f"note_attributes.{name}"
+                            debug_info["ips_found"].append((source, value))
+                            if self._is_valid_ip(value) and self._is_likely_real_customer_ip(value):
+                                return value, source
+                            debug_info["validation_failures"].append((source, value, "invalid_or_suspicious"))
+        
+        # 2. CLIENT_DETAILS.BROWSER_IP (FONTE OFICIAL SHOPIFY - mas sempre null)
         client_details = order.get("client_details", {})
         if client_details and isinstance(client_details, dict):
             browser_ip = client_details.get("browser_ip")
@@ -650,28 +670,7 @@ class ShopifyDuplicateOrderDetector:
                                     return value, source
                                 debug_info["validation_failures"].append((source, value, "invalid_or_suspicious"))
         
-        # 4. NOTE_ATTRIBUTES (atributos de nota do pedido)
-        note_attributes = order.get("note_attributes", [])
-        if note_attributes:
-            debug_info["fields_checked"].append("note_attributes")
-            for attr in note_attributes:
-                if isinstance(attr, dict):
-                    name = attr.get("name", "").lower()
-                    value = attr.get("value", "")
-                    
-                    # Busca por nomes relacionados a IP
-                    ip_related_names = ["ip", "customer_ip", "client_ip", "user_ip", "real_ip",
-                                      "browser_ip", "origin_ip", "visitor_ip", "session_ip"]
-                    
-                    if any(ip_name in name for ip_name in ip_related_names):
-                        if value and isinstance(value, str):
-                            value = value.strip()
-                            if value:
-                                source = f"note_attributes.{name}"
-                                debug_info["ips_found"].append((source, value))
-                                if self._is_valid_ip(value) and self._is_likely_real_customer_ip(value):
-                                    return value, source
-                                debug_info["validation_failures"].append((source, value, "invalid_or_suspicious"))
+        # 4. NOTE_ATTRIBUTES genérica (busca secundária caso "IP address" não seja encontrado)
         
         # 5. PROPERTIES (propriedades do pedido)
         properties = order.get("properties", [])
