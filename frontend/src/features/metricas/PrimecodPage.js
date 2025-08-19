@@ -642,6 +642,13 @@ function PrimecodPage() {
             const statusColumns = Object.values(STATUS_MAPPING);
             colunas = ['produto', 'pais', ...statusColumns, 'total'];
         }
+            
+        // Debug temporário para verificar os dados
+        if (dadosParaExibir.length > 0) {
+            console.log('Primeira linha de dados:', dadosParaExibir[0]);
+            console.log('Tipo de visualização:', tipoVisualizacao);
+            console.log('Colunas:', colunas);
+        }
 
         return (
             <Card className="mb-6 border-border bg-card">
@@ -764,7 +771,7 @@ function PrimecodPage() {
                                                         }}
                                                     >
                                                         <div className="truncate" title={row[col]}>
-                                                            {typeof row[col] === 'number' ? row[col].toLocaleString() : (row[col] || '-')}
+                                                            {typeof row[col] === 'number' ? row[col].toLocaleString() : (row[col] || 0)}
                                                         </div>
                                                     </td>
                                                 );
