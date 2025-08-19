@@ -536,29 +536,11 @@ function PrimecodPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    {/* Container com scroll horizontal SEMPRE visível */}
-                    <div 
-                        className="border-t bg-background"
-                        style={{
-                            width: '100%',
-                            maxWidth: '100%',
-                            overflowX: 'scroll',
-                            overflowY: 'hidden',
-                            maxHeight: '70vh',
-                            scrollbarWidth: 'auto',
-                            msOverflowStyle: 'scrollbar'
-                        }}
-                    >
-                        {/* Container interno com altura controlada para scroll vertical */}
-                        <div 
-                            style={{
-                                minWidth: 'calc(350px + ' + statusColumns.length + ' * 120px)', // Largura mínima calculada
-                                height: '100%',
-                                maxHeight: '70vh',
-                                overflowY: 'auto'
-                            }}
-                        >
-                            <table className="w-full text-sm border-collapse">
+                    {/* Container principal com scroll horizontal responsivo */}
+                    <div className="border-t bg-background w-full overflow-x-auto overflow-y-hidden relative scroll-smooth scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800">
+                        {/* Container interno com scroll vertical e largura mínima calculada */}
+                        <div className="max-h-[70vh] sm:max-h-[60vh] md:max-h-[70vh] overflow-y-auto min-w-max">
+                            <table className="w-full text-sm border-collapse table-fixed">
                                 <thead className="bg-muted/50 sticky top-0 z-10">
                                     <tr className="border-b border-border">
                                         {colunas.map(col => {
@@ -568,11 +550,11 @@ function PrimecodPage() {
                                             let headerClasses = 'px-3 py-2 text-left text-xs font-medium text-muted-foreground border-r border-border last:border-r-0';
                                             
                                             if (isProduto) {
-                                                headerClasses += ' sticky left-0 bg-muted/50 z-20 min-w-[200px] w-[200px]';
+                                                headerClasses += ' sticky left-0 bg-muted/50 z-20 min-w-[150px] sm:min-w-[200px] w-[150px] sm:w-[200px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]';
                                             } else if (isPais) {
-                                                headerClasses += ' sticky left-[200px] bg-muted/50 z-20 min-w-[150px] w-[150px]';
+                                                headerClasses += ' sticky left-[150px] sm:left-[200px] bg-muted/50 z-20 min-w-[120px] sm:min-w-[150px] w-[120px] sm:w-[150px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]';
                                             } else {
-                                                headerClasses += ' min-w-[120px] w-[120px] text-center';
+                                                headerClasses += ' min-w-[100px] sm:min-w-[120px] w-[100px] sm:w-[120px] text-center';
                                             }
                                             
                                             return (
@@ -612,11 +594,11 @@ function PrimecodPage() {
                                                 let cellClasses = 'px-3 py-2 text-xs border-r border-border last:border-r-0';
                                                 
                                                 if (isProduto) {
-                                                    cellClasses += ' sticky left-0 bg-background z-10 min-w-[200px] w-[200px]';
+                                                    cellClasses += ' sticky left-0 bg-background z-10 min-w-[150px] sm:min-w-[200px] w-[150px] sm:w-[200px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]';
                                                 } else if (isPais) {
-                                                    cellClasses += ' sticky left-[200px] bg-background z-10 min-w-[150px] w-[150px]';
+                                                    cellClasses += ' sticky left-[150px] sm:left-[200px] bg-background z-10 min-w-[120px] sm:min-w-[150px] w-[120px] sm:w-[150px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]';
                                                 } else {
-                                                    cellClasses += ' min-w-[120px] w-[120px] text-center';
+                                                    cellClasses += ' min-w-[100px] sm:min-w-[120px] w-[100px] sm:w-[120px] text-center';
                                                 }
                                                 
                                                 return (
