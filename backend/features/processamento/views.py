@@ -647,7 +647,8 @@ def detalhar_pedidos_ip(request):
         # Sanitização de parâmetros
         try:
             loja_id = int(loja_id)
-            days = min(int(days), 30)  # Máximo 30 dias
+            # ⚡ CORREÇÃO CRÍTICA: Usa mesmo limite que buscar_ips_duplicados_simples (90 dias)
+            days = min(int(days), 90)  # Máximo 90 dias (consistente com busca principal)
         except (ValueError, TypeError) as param_error:
             logger.error(f"Erro de validação de parâmetros: {str(param_error)}")
             return Response({'error': 'Parâmetros inválidos'}, status=status.HTTP_400_BAD_REQUEST)
@@ -743,6 +744,9 @@ def detalhar_pedidos_ip(request):
                 customer_name = f"{customer.get('first_name', '')} {customer.get('last_name', '')}".strip()
                 if customer_name:
                     clientes_unicos.add(customer_name)
+            
+            # DEBUG: Log detalhado para comparar com busca_simples
+            logger.info(f"[VER_DETALHES] IP {ip}: {len(specific_orders)} pedidos, {len(clientes_unicos)} clientes únicos")
             
             # Se há apenas 1 cliente único, não deveria estar na lista (erro de lógica)
             if len(clientes_unicos) <= 1:
@@ -3878,29 +3882,30 @@ def buscar_ips_duplicados_simples(request):
         # Busca pedidos dos últimos X dias - SEM LIMITAÇÃO DE CAMPOS para pegar mais dados
         data_inicial = timezone.now() - timedelta(days=days)
         
-        # ⚡ CORREÇÃO CRÍTICA: Usa limit otimizado com fallback
-        # Tenta com limit=500, se falhar usa limit=250 como fallback
+        # ⚡ CORREÇÃO CRÍTICA: Usa MESMOS CAMPOS que get_orders_for_specific_ip para garantir consistência
         orders = None
         limit_usado = 500
         
         try:
+            # CORREÇÃO: Usa mesmos fields que get_orders_for_specific_ip()
             orders = shopify.Order.find(
                 status='any',
                 created_at_min=data_inicial.isoformat(),
-                limit=500  # Limite otimizado para evitar timeout da API
-                # Removido 'fields' para pegar todos os dados do pedido
+                limit=500,  # Limite otimizado para evitar timeout da API
+                fields='id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,client_details,note_attributes'
             )
-            logger.info(f"Busca bem-sucedida com limit=500")
+            logger.info(f"Busca bem-sucedida com limit=500 e fields específicos (compatibilidade com get_orders_for_specific_ip)")
         except Exception as e:
             logger.warning(f"Erro com limit=500, tentando com limit=250: {str(e)}")
             try:
                 orders = shopify.Order.find(
                     status='any',
                     created_at_min=data_inicial.isoformat(),
-                    limit=250  # Fallback para limite menor
+                    limit=250,  # Fallback para limite menor
+                    fields='id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,client_details,note_attributes'
                 )
                 limit_usado = 250
-                logger.info(f"Busca bem-sucedida com limit=250 (fallback)")
+                logger.info(f"Busca bem-sucedida com limit=250 (fallback) e fields específicos")
             except Exception as e2:
                 logger.error(f"Erro mesmo com limit=250: {str(e2)}")
                 return Response({
@@ -3910,18 +3915,35 @@ def buscar_ips_duplicados_simples(request):
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         def extract_ip_from_order(order_dict):
-            """Extrai IP usando note_attributes como fonte principal - OTIMIZADO"""
+            """
+            ⚡ CORREÇÃO CRÍTICA: Usa exatamente a mesma lógica que _extract_real_customer_ip() 
+            para garantir consistência entre tabela principal e Ver Detalhes
+            """
             
-            # MÉTODO 1: note_attributes - IP address (ÚNICO MÉTODO CONFIÁVEL!)
-            note_attributes = order_dict.get('note_attributes', [])
-            if isinstance(note_attributes, list):
-                for note in note_attributes:
-                    if isinstance(note, dict) and note.get('name') == 'IP address':
-                        ip_address = str(note.get('value', '')).strip()
-                        if ip_address and ip_address != 'None' and ip_address != '':
-                            return ip_address, 'note_attributes', 0.98
+            # MÉTODO 1: note_attributes "IP address" (PRIORIDADE MÁXIMA - ÚNICO MÉTODO CONFIÁVEL)
+            note_attributes = order_dict.get("note_attributes", [])
+            if note_attributes:
+                # Busca exata por "IP address" (caso específico das lojas)
+                for attr in note_attributes:
+                    if isinstance(attr, dict):
+                        name = attr.get("name", "")
+                        value = attr.get("value", "")
+                        
+                        if name == "IP address" and value and isinstance(value, str):
+                            value = value.strip()
+                            if value and value != 'None':
+                                return value, 'note_attributes.IP_address', 0.98
             
-            # MÉTODO 2: Coordenadas geográficas como "fingerprint" único
+            # MÉTODO 2: client_details.browser_ip (FONTE PRIMÁRIA SHOPIFY)
+            client_details = order_dict.get("client_details", {})
+            if isinstance(client_details, dict):
+                browser_ip = client_details.get("browser_ip")
+                if browser_ip and isinstance(browser_ip, str):
+                    browser_ip = browser_ip.strip()
+                    if browser_ip and browser_ip != 'None':
+                        return browser_ip, 'client_details.browser_ip', 0.95
+            
+            # MÉTODO 3: Coordenadas geográficas como "fingerprint" único
             def get_geo_fingerprint(address, prefix):
                 if not isinstance(address, dict):
                     return None, None, 0
@@ -3957,16 +3979,21 @@ def buscar_ips_duplicados_simples(request):
             return None, 'none', 0.0
         
         def should_exclude_order(order_dict):
-            """Determina se um pedido deve ser excluído da análise - INCLUINDO CANCELADOS"""
+            """
+            ⚡ CORREÇÃO CRÍTICA: Aplica MESMOS CRITÉRIOS de exclusão que get_orders_for_specific_ip
+            para garantir consistência total entre tabela principal e Ver Detalhes
+            """
             
-            # Não excluir mais pedidos cancelados - incluir TODOS os pedidos
-            # cancelled_at removido da exclusão para incluir pedidos cancelados
+            # CRITÉRIO 1: Não excluir pedidos cancelados - incluir TODOS para análise de IP
+            # (get_orders_for_specific_ip também inclui cancelados)
             
-            # Permitir pedidos voided (ainda são válidos para análise de IP)
-            # financial_status voided ainda mostra compras válidas
+            # CRITÉRIO 2: Excluir apenas pedidos totalmente reembolsados
             financial_status = order_dict.get('financial_status', '').lower()
-            if financial_status in ['refunded']:  # Mantém apenas exclusão de refunded
+            if financial_status in ['refunded']:
                 return True
+            
+            # CRITÉRIO 3: Não excluir por status de fulfillment
+            # (get_orders_for_specific_ip não filtra por fulfillment_status)
             
             return False
         
@@ -4072,6 +4099,9 @@ def buscar_ips_duplicados_simples(request):
                     cliente = pedido.get('customer_name', 'N/A')
                     if cliente and cliente != 'N/A':
                         clientes_unicos.add(cliente)
+                
+                # DEBUG: Log detalhado para identificar diferenças
+                logger.info(f"[BUSCA_SIMPLES] IP {ip}: {len(pedidos)} pedidos, {len(clientes_unicos)} clientes únicos")
                 
                 # NOVA LÓGICA: SÓ INCLUI se há CLIENTES DIFERENTES no mesmo IP
                 if len(clientes_unicos) > 1:  # Mais de 1 cliente único = suspeito
