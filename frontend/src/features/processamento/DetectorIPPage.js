@@ -425,50 +425,37 @@ function DetectorIPPage() {
                 </div>
             </div>
 
-            {/* Filtros */}
-            <Card className="bg-card border-border">
-                <CardHeader>
-                    <CardTitle className="text-foreground flex items-center gap-2">
-                        <Search className="h-5 w-5" />
-                        Configuração da Busca
-                    </CardTitle>
-                    <CardDescription className="text-muted-foreground">
-                        Configure o período para buscar IPs com CLIENTES DIFERENTES (foco anti-fraude)
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-col sm:flex-row gap-4 items-end">
-                        <div className="flex-1">
-                            <Label htmlFor="days" className="text-foreground">Período (dias)</Label>
-                            <Select value={searchParams.days.toString()} onValueChange={(value) => setSearchParams(prev => ({ ...prev, days: parseInt(value) }))}>
-                                <SelectTrigger className="bg-background border-input text-foreground">
-                                    <Calendar className="h-4 w-4 mr-2" />
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="7">7 dias</SelectItem>
-                                    <SelectItem value="15">15 dias</SelectItem>
-                                    <SelectItem value="30">30 dias</SelectItem>
-                                    <SelectItem value="60">60 dias</SelectItem>
-                                    <SelectItem value="90">90 dias</SelectItem>
-                                    <SelectItem value="180">180 dias</SelectItem>
-                                    <SelectItem value="365">365 dias (1 ano)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        
-                        
-                        <Button
-                            onClick={searchIPDuplicates}
-                            disabled={searchingIPs || !lojaSelecionada}
-                            className="min-w-[150px]"
-                        >
-                            {searchingIPs ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Globe className="h-4 w-4 mr-2" />}
-                            Buscar IPs
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
+            {/* Filtros Compactos */}
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between p-4 bg-muted/30 rounded-lg border">
+                <div className="flex items-center gap-2">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-foreground">Período:</span>
+                    <Select value={searchParams.days.toString()} onValueChange={(value) => setSearchParams(prev => ({ ...prev, days: parseInt(value) }))}>
+                        <SelectTrigger className="w-32 h-8 bg-background border-input text-foreground">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="7">7 dias</SelectItem>
+                            <SelectItem value="15">15 dias</SelectItem>
+                            <SelectItem value="30">30 dias</SelectItem>
+                            <SelectItem value="60">60 dias</SelectItem>
+                            <SelectItem value="90">90 dias</SelectItem>
+                            <SelectItem value="180">180 dias</SelectItem>
+                            <SelectItem value="365">365 dias</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                
+                <Button
+                    onClick={searchIPDuplicates}
+                    disabled={searchingIPs || !lojaSelecionada}
+                    size="sm"
+                    className="min-w-[120px]"
+                >
+                    {searchingIPs ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Globe className="h-4 w-4 mr-2" />}
+                    Buscar IPs
+                </Button>
+            </div>
 
             {/* Resultados */}
             <Card className="bg-card border-border">
@@ -539,7 +526,6 @@ function DetectorIPPage() {
                                             <TableHead className="text-foreground text-center">Pedidos</TableHead>
                                             <TableHead className="text-foreground text-center">Status</TableHead>
                                             <TableHead className="text-foreground text-center">Clientes</TableHead>
-                                            <TableHead className="text-foreground text-right">Total</TableHead>
                                             <TableHead className="text-foreground">Período</TableHead>
                                             <TableHead className="text-right text-foreground">Ações</TableHead>
                                         </TableRow>
@@ -604,11 +590,6 @@ function DetectorIPPage() {
                                                             <Users className="h-4 w-4 text-muted-foreground" />
                                                             <span className="text-sm text-foreground">{ipGroup.unique_customers}</span>
                                                         </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <p className="font-semibold text-sm text-foreground">
-                                                            {formatCurrency(ipGroup.total_sales, ipGroup.currency || 'BRL')}
-                                                        </p>
                                                     </TableCell>
                                                     <TableCell>
                                                         <div className="space-y-1">
@@ -737,8 +718,8 @@ function DetectorIPPage() {
                                     </h3>
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                         {ipDetails.client_details?.map((pedido, index) => {
-                                            // Determinar status do pedido
-                                            const isActive = pedido.financial_status !== 'cancelled';
+                                            // Determinar status do pedido (corrigido - usa cancelled_at)
+                                            const isActive = pedido.cancelled_at == null;
                                             const statusVariant = isActive ? 'default' : 'secondary';
                                             const statusText = isActive ? 'Ativo' : 'Cancelado';
                                             const cardBorder = isActive ? 'border-green-200 dark:border-green-800' : 'border-red-200 dark:border-red-800';
@@ -801,26 +782,6 @@ function DetectorIPPage() {
                                                                         <p className="text-foreground">{pedido.customer_phone}</p>
                                                                     </div>
                                                                 )}
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        <Separator />
-                                                        
-                                                        {/* Endereço de Entrega */}
-                                                        <div className="space-y-2">
-                                                            <h5 className="font-medium text-sm text-foreground flex items-center gap-1">
-                                                                <Globe className="h-4 w-4" />
-                                                                Endereço
-                                                            </h5>
-                                                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                                                <div>
-                                                                    <Label className="text-xs text-muted-foreground">Cidade</Label>
-                                                                    <p className="text-foreground">{pedido.shipping_city || 'N/A'}</p>
-                                                                </div>
-                                                                <div>
-                                                                    <Label className="text-xs text-muted-foreground">Estado</Label>
-                                                                    <p className="text-foreground">{pedido.shipping_state || 'N/A'}</p>
-                                                                </div>
                                                             </div>
                                                         </div>
                                                         

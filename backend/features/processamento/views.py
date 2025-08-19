@@ -762,8 +762,8 @@ def detalhar_pedidos_ip(request):
                         logger.warning(f"Erro ao buscar detalhes do pedido {order['id']}: {str(order_detail_error)}")
                         # Continua sem os detalhes de endereço
                     
-                    # Determina status do pedido (CORRIGIDO)
-                    is_cancelled = order.get('is_cancelled', False)
+                    # Determina status do pedido (CORRIGIDO - usa cancelled_at)
+                    is_cancelled = order.get('cancelled_at') is not None
                     status = 'cancelled' if is_cancelled else 'active'
                     
                     if is_cancelled:
