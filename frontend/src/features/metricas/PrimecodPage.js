@@ -537,11 +537,15 @@ function PrimecodPage() {
 
                 <CardContent className="p-0">
                     {/* SOLUÇÃO: Separar overflow do sticky - container externo SEM overflow */}
-                    <div className="relative border-t" style={{ height: '400px', overflow: 'visible' }}>
-                        {/* Container interno COM overflow para scroll */}
+                    <div className="border-t" style={{ overflow: 'visible' }}>
+                        {/* Container interno COM overflow para scroll - altura dinâmica */}
                         <div 
-                            className="absolute inset-0 overflow-auto"
-                            style={{ overflowX: 'auto', overflowY: 'auto' }}
+                            className="overflow-auto"
+                            style={{ 
+                                overflowX: 'auto', 
+                                overflowY: 'auto', 
+                                maxHeight: '400px'
+                            }}
                         >
                             <table className="w-full text-sm border-collapse" style={{ minWidth: `${350 + statusColumns.length * 120}px` }}>
                                 <thead>
