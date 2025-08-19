@@ -45,16 +45,23 @@ const PAISES_PRIMECOD = [
     { value: 'United Kingdom', label: 'United Kingdom' }
 ];
 
-// Status mapping PrimeCOD
+// Status mapping PrimeCOD - COMPLETO com 15 status
 const STATUS_MAPPING = {
-    1: "Placed",
-    2: "Packed", 
-    4: "Shipped",
-    6: "Out for delivery",
-    7: "Delivered",
-    8: "Refused",
-    10: "Returned",
-    12: "Cancelled"
+    1: "Pedido Realizado",      // Placed
+    2: "Embalado",              // Packed  
+    3: "Despachado",            // Dispatched
+    4: "Enviado",               // Shipped
+    5: "Chegada ao Destino",    // Chegada ao Destino
+    6: "Saiu para Entrega",     // Out for delivery
+    7: "Entregue",              // Delivered
+    8: "Recusado",              // Refused
+    9: "Retornando",            // Returning
+    10: "Devolvido",            // Returned
+    11: "Fora de Estoque",      // Out of stock
+    12: "Cancelado",            // Cancelled
+    13: "Erro",                 // Error
+    15: "Erro de Fulfillment",  // Fulfilment Error
+    16: "Incidente"             // Incident
 };
 
 // Cliente Backend Proxy PrimeCOD
@@ -165,14 +172,11 @@ function PrimecodPage() {
                 const dataStr = `${dateRange.from.toLocaleDateString('pt-BR')} - ${dateRange.to.toLocaleDateString('pt-BR')}`;
                 setNomeAnalise(`PrimeCOD ${paisNome} ${dataStr}`);
 
-                // Verificar se todos os valores são zeros (indicando problema de dados)
-                const totalRow = result.dados_processados.find(item => item.produto === 'TOTAL');
-                const allZeros = totalRow && totalRow.total === 0;
-                
-                if (allZeros && result.dados_processados.length <= 1) {
-                    showNotification('warning', 
-                        'Dados processados, mas todos os valores estão zerados. ' +
-                        'Verifique se há dados no período selecionado ou se você está autenticado corretamente.'
+                // Verificar se há dados para exibir
+                if (result.dados_processados.length === 0) {
+                    showNotification('info', 
+                        'Nenhum order encontrado para o período selecionado. ' +
+                        'Tente um período diferente ou verifique se há dados na sua conta PrimeCOD.'
                     );
                 } else {
                     showNotification('success', 

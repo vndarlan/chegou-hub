@@ -272,6 +272,23 @@ def buscar_orders_primecod(request):
                 country_filter=pais_filtro  # Aplicar filtro de país no cliente
             )
             
+            # LOG DE DEBUG: Verificar o que retornou da API
+            logger.info(f"[DEBUG] Resultado da API: {type(resultado)}")
+            logger.info(f"[DEBUG] Keys do resultado: {list(resultado.keys()) if isinstance(resultado, dict) else 'Não é dict'}")
+            if isinstance(resultado, dict):
+                logger.info(f"[DEBUG] Total orders na resposta: {resultado.get('total_orders', 'N/A')}")
+                logger.info(f"[DEBUG] Status da resposta: {resultado.get('status', 'N/A')}")
+                if 'orders' in resultado:
+                    logger.info(f"[DEBUG] Número de orders retornados: {len(resultado['orders'])}")
+                    if resultado['orders']:
+                        first_order = resultado['orders'][0]
+                        logger.info(f"[DEBUG] Primeiro order - ID: {first_order.get('id', 'N/A')}")
+                        logger.info(f"[DEBUG] Primeiro order - shipping_status: {first_order.get('shipping_status', 'N/A')}")
+                        logger.info(f"[DEBUG] Primeiro order - country: {first_order.get('country', 'N/A')}")
+                        logger.info(f"[DEBUG] Primeiro order - produtos: {len(first_order.get('products', []))}")
+                else:
+                    logger.warning(f"[WARNING] Chave 'orders' não encontrada no resultado!")
+            
             # LOG CRÍTICO: Tempo total gasto
             end_time = time.time()
             duration = end_time - start_time
@@ -293,6 +310,31 @@ def buscar_orders_primecod(request):
             
             logger.info(f"[SUCCESS] DEBUG VIEW: Dados processados - {len(orders_processados['dados_processados'])} linhas")
             logger.info(f"[SUCCESS] DEBUG VIEW: Primeira linha: {orders_processados['dados_processados'][0] if orders_processados['dados_processados'] else 'Nenhuma'}")
+            
+            # LOG DE DEBUG: Verificar estatísticas do processamento
+            if 'estatisticas' in orders_processados:
+                stats = orders_processados['estatisticas']
+                logger.info(f"[DEBUG] Estatísticas do processamento:")
+                logger.info(f"   - Total orders: {stats.get('total_orders', 'N/A')}")
+                logger.info(f"   - Produtos únicos: {stats.get('produtos_unicos', 'N/A')}")
+                logger.info(f"   - Países únicos: {stats.get('paises_unicos', 'N/A')}")
+                logger.info(f"   - Status únicos: {stats.get('status_unicos', 'N/A')}")
+                
+            # LOG DE DEBUG: Verificar alguns orders individualmente
+            if resultado['orders']:
+                for i, order in enumerate(resultado['orders'][:3]):  # Primeiros 3 orders
+                    logger.info(f"[DEBUG] Order {i+1}:")
+                    logger.info(f"   - ID: {order.get('id', 'N/A')}")
+                    logger.info(f"   - Status original: {order.get('shipping_status', 'N/A')}")
+                    logger.info(f"   - País: {order.get('country', 'N/A')}")
+                    logger.info(f"   - Produtos: {[p.get('name', 'N/A') for p in order.get('products', [])]}")
+                    
+            # LOG DE DEBUG: Verificar linha TOTAL nos dados processados
+            total_row = next((item for item in orders_processados['dados_processados'] if item.get('produto') == 'TOTAL'), None)
+            if total_row:
+                logger.info(f"[DEBUG] LINHA TOTAL encontrada: {total_row}")
+            else:
+                logger.warning(f"[WARNING] LINHA TOTAL não encontrada nos dados processados!")
             
             # Combinar resultados
             resposta = {

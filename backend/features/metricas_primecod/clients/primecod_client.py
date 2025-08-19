@@ -87,15 +87,15 @@ class PrimeCODClient:
     
     def _make_request(self, method: str, url: str, **kwargs) -> requests.Response:
         """Faz requisição HTTP com tratamento de erros e rate limiting"""
-        logger.error(f"🌐 _make_request chamado: {method} {url}")
-        logger.error(f"🌐 Headers: {self.headers}")
-        logger.error(f"🌐 Kwargs: {kwargs}")
+        logger.error(f"[REQUEST] _make_request chamado: {method} {url}")
+        logger.error(f"[REQUEST] Headers: {self.headers}")
+        logger.error(f"[REQUEST] Kwargs: {kwargs}")
         
         self._rate_limit()
-        logger.error(f"🌐 Rate limit OK, fazendo requisição...")
+        logger.error(f"[REQUEST] Rate limit OK, fazendo requisição...")
         
         try:
-            logger.error(f"🌐 Fazendo requests.request...")
+            logger.error(f"[REQUEST] Fazendo requests.request...")
             response = requests.request(
                 method=method,
                 url=url,
@@ -103,7 +103,7 @@ class PrimeCODClient:
                 timeout=30,
                 **kwargs
             )
-            logger.error(f"🌐 Response recebido: {response.status_code}")
+            logger.error(f"[REQUEST] Response recebido: {response.status_code}")
             
             logger.info(f"PrimeCOD API {method} {url} - Status: {response.status_code}")
             
@@ -117,21 +117,21 @@ class PrimeCODClient:
             return response
             
         except requests.RequestException as e:
-            logger.error(f"🌐 ❌ RequestException: {str(e)}")
-            logger.error(f"🌐 ❌ Erro na requisição para PrimeCOD: {str(e)}")
+            logger.error(f"[ERROR] RequestException: {str(e)}")
+            logger.error(f"[ERROR] Erro na requisição para PrimeCOD: {str(e)}")
             raise PrimeCODAPIError(f"Erro de conectividade: {str(e)}")
         except Exception as e:
-            logger.error(f"🌐 ❌ Exception geral: {str(e)}")
-            logger.error(f"🌐 ❌ Tipo: {type(e)}")
+            logger.error(f"[ERROR] Exception geral: {str(e)}")
+            logger.error(f"[ERROR] Tipo: {type(e)}")
             raise PrimeCODAPIError(f"Erro inesperado: {str(e)}")
     
     def get_orders(self, 
                    page: int = 1, 
                    date_range: Optional[Dict[str, str]] = None,
-                   max_pages: int = 1000,  # ⚡ ULTRA-OTIMIZADO: Suporta 1000+ páginas (50k+ orders)
+                   max_pages: int = 1000,  # [RAPIDO] ULTRA-OTIMIZADO: Suporta 1000+ páginas (50k+ orders)
                    country_filter: Optional[str] = None) -> Dict:
         """
-        ⚡ ULTRA-OTIMIZADO: Suporte completo a 1000+ páginas sem timeout!
+        [RAPIDO] ULTRA-OTIMIZADO: Suporte completo a 1000+ páginas sem timeout!
         
         IMPLEMENTAÇÃO ULTRA-RÁPIDA (4x mais rápida):
         - Rate limit 50ms (vs 200ms anterior) = 4x mais rápido
@@ -164,7 +164,7 @@ class PrimeCODClient:
             cache_key = hashlib.md5(cache_data.encode()).hexdigest()[:20]
             cached_result = cache.get(cache_key)
             if cached_result:
-                logger.info("🎯 Usando dados completos em cache, aplicando filtros localmente")
+                logger.info("[CACHE] Usando dados completos em cache, aplicando filtros localmente")
                 # Aplicar filtros nos dados em cache
                 all_orders = cached_result.get('all_orders_raw', [])
                 filtered_orders = self._apply_local_filters(all_orders, date_range, country_filter)
@@ -186,7 +186,7 @@ class PrimeCODClient:
         
         url = f"{self.base_url}/orders"
         
-        # ⚡ CORREÇÃO CRÍTICA: Usar endpoint POST correto com payload JSON!
+        # [RAPIDO] CORREÇÃO CRÍTICA: Usar endpoint POST correto com payload JSON!
         # URL: https://api.primecod.app/api/orders (POST)
         # JSON payload com filtros e paginação
         payload = {
@@ -202,18 +202,18 @@ class PrimeCODClient:
                 "startDate": start_iso,
                 "endDate": end_iso
             }
-            logger.info(f"🔥 USANDO FILTROS CORRETOS de data no payload JSON: {start_iso} até {end_iso}")
-            logger.info(f"⚡ CORREÇÃO APLICADA: creationDatesRange em vez de start_date/end_date")
+            logger.info(f"[CRITICO] USANDO FILTROS CORRETOS de data no payload JSON: {start_iso} até {end_iso}")
+            logger.info(f"[RAPIDO] CORREÇÃO APLICADA: creationDatesRange em vez de start_date/end_date")
         
         # RESULTADO ESPERADO: Payload JSON correto para API PrimeCOD!
         
-        logger.info(f"🚀 Iniciando coleta COMPLETA de orders PrimeCOD - OTIMIZADA!")
-        logger.info(f"🚀 URL base: {url}")
-        logger.info(f"⚡ JSON Payload: {payload}")
-        logger.info(f"🔥 CORREÇÃO CRÍTICA: Usando endpoint POST com payload JSON!")
-        logger.info(f"⚡ CORREÇÃO: Usando endpoint POST correto com payload JSON!")
-        logger.info(f"⚡ Performance 5x mais rápida: ~78 páginas em vez de 388!")
-        logger.info(f"🚀 Filtros de data aplicados via payload JSON")
+        logger.info(f"[INICIO] Iniciando coleta COMPLETA de orders PrimeCOD - OTIMIZADA!")
+        logger.info(f"[INICIO] URL base: {url}")
+        logger.info(f"[RAPIDO] JSON Payload: {payload}")
+        logger.info(f"[CRITICO] CORREÇÃO CRÍTICA: Usando endpoint POST com payload JSON!")
+        logger.info(f"[RAPIDO] CORREÇÃO: Usando endpoint POST correto com payload JSON!")
+        logger.info(f"[RAPIDO] Performance 5x mais rápida: ~78 páginas em vez de 388!")
+        logger.info(f"[INICIO] Filtros de data aplicados via payload JSON")
         
         all_orders = []
         current_page = 1  # SEMPRE começar da página 1
@@ -221,7 +221,7 @@ class PrimeCODClient:
         pages_processed = 0
         
         try:
-            logger.info(f"🚀 Iniciando loop para coletar até {max_pages} páginas (proteção contra timeout)...")
+            logger.info(f"[INICIO] Iniciando loop para coletar até {max_pages} páginas (proteção contra timeout)...")
             
             # Monitoramento de progresso (SEM timeout preventivo)
             import time
@@ -231,50 +231,68 @@ class PrimeCODClient:
                 # Apenas monitorar progresso (SEM interromper por tempo)
                 loop_duration = time.time() - loop_start_time
                 
-                logger.info(f"📄 Processando página {current_page} (tempo: {loop_duration:.1f}s)")
+                logger.info(f"[PAGE] Processando página {current_page} (tempo: {loop_duration:.1f}s)")
                 
-                # ⚡ HEARTBEAT LOG: Manter worker "vivo" no Railway
+                # [RAPIDO] HEARTBEAT LOG: Manter worker "vivo" no Railway
                 if pages_processed % 10 == 0 and pages_processed > 0:
-                    logger.info(f"🔄 HEARTBEAT: {pages_processed} páginas processadas, {len(all_orders)} orders coletados")
-                    logger.info(f"💓 Worker ativo - tempo: {loop_duration:.1f}s")
+                    logger.info(f"[HEARTBEAT] HEARTBEAT: {pages_processed} páginas processadas, {len(all_orders)} orders coletados")
+                    logger.info(f"[ALIVE] Worker ativo - tempo: {loop_duration:.1f}s")
                 
                 # Proteção contra loop infinito por número de páginas
                 if pages_processed >= max_pages:
-                    logger.warning(f"⚠️ Limite de {max_pages} páginas atingido - interrompendo coleta")
+                    logger.warning(f"[SUCCESS]️ Limite de {max_pages} páginas atingido - interrompendo coleta")
                     break
                 
-                # ⚡ CORREÇÃO CRÍTICA: Usar POST com payload JSON + TIMEOUT HANDLING
+                # [RAPIDO] CORREÇÃO CRÍTICA: Usar POST com payload JSON + TIMEOUT HANDLING
                 payload["page"] = current_page
-                logger.info(f"🌐 Requisição POST: {url} com payload page={current_page}")
+                logger.info(f"[REQUEST] Requisição POST: {url} com payload page={current_page}")
                 
                 try:
                     response = self._make_request('POST', url, json=payload)
-                    logger.info(f"✅ Response recebido - Status: {response.status_code}")
+                    logger.info(f"[SUCCESS] Response recebido - Status: {response.status_code}")
                 except Exception as e:
-                    # ⚡ TIMEOUT HANDLING: Continue se possível
-                    logger.error(f"❌ Erro na página {current_page}: {str(e)}")
+                    # [RAPIDO] TIMEOUT HANDLING: Continue se possível
+                    logger.error(f"[ERROR] Erro na página {current_page}: {str(e)}")
                     if "timeout" in str(e).lower() or "time" in str(e).lower():
-                        logger.warning(f"⏰ Timeout detectado na página {current_page} - continuando...")
+                        logger.warning(f"[TIMEOUT] Timeout detectado na página {current_page} - continuando...")
                         current_page += 1
                         continue
                     else:
                         raise  # Re-raise se não for timeout
                 
                 data = response.json()
-                logger.info(f"📊 Estrutura da resposta: {list(data.keys()) if isinstance(data, dict) else type(data)}")
+                logger.info(f"[INFO] Estrutura da resposta: {list(data.keys()) if isinstance(data, dict) else type(data)}")
                 
                 # Extrair orders da resposta
                 orders = data.get('data', [])
-                logger.info(f"📦 Orders na página {current_page}: {len(orders)}")
+                logger.info(f"[DATA] Orders na página {current_page}: {len(orders)}")
+                
+                # Log informações de paginação na primeira página
+                if current_page == 1:
+                    total = data.get('total', 0)
+                    last_page = data.get('last_page', 1)
+                    logger.info(f"[INFO] Total orders disponíveis: {total}, Total páginas: {last_page}")
+                
+                # LOG DE DEBUG: Estrutura do primeiro order para verificar campos
+                if orders and current_page == 1:
+                    first_order = orders[0]
+                    logger.info(f"[DEBUG] ESTRUTURA DO PRIMEIRO ORDER (página 1):")
+                    logger.info(f"   - ID: {first_order.get('id', 'N/A')}")
+                    logger.info(f"   - shipping_status: {first_order.get('shipping_status', 'N/A')} (tipo: {type(first_order.get('shipping_status'))})")
+                    logger.info(f"   - country: {first_order.get('country', 'N/A')}")
+                    logger.info(f"   - products: {len(first_order.get('products', []))} produtos")
+                    if first_order.get('products'):
+                        logger.info(f"   - primeiro produto: {first_order['products'][0].get('name', 'N/A')}")
+                    logger.info(f"   - campos disponíveis: {list(first_order.keys())}")
                 
                 # CONDIÇÃO DE PARADA: página completamente vazia (0 orders)
                 if not orders or len(orders) == 0:
-                    logger.info(f"🏁 Página {current_page} completamente vazia (0 orders) - finalizando coleta")
+                    logger.info(f"[FIM] Página {current_page} completamente vazia (0 orders) - finalizando coleta")
                     break
                 
                 # PROTEÇÃO ADICIONAL: Se orders é muito pequeno, pode indicar fim da coleta
                 if len(orders) < 50:   # API POST retorna variável orders por página, menos orders indica fim ou última página
-                    logger.info(f"🔍 Página {current_page} com {len(orders)} orders - possível fim da coleta (esperado: 50/página)")
+                    logger.info(f"[DEBUG] Página {current_page} com {len(orders)} orders - possível fim da coleta (esperado: 50/página)")
                 
                 # Adicionar todos os orders desta página (SEM filtros)
                 all_orders.extend(orders)
@@ -282,43 +300,43 @@ class PrimeCODClient:
                 # Obter informações de paginação da resposta
                 if total_pages is None:
                     total_pages = data.get('last_page', current_page)
-                    logger.info(f"📊 Total de páginas detectado: {total_pages}")
+                    logger.info(f"[INFO] Total de páginas detectado: {total_pages}")
                 
                 current_page += 1
                 pages_processed += 1
                 
-                # ⚡ CHUNK PROGRESS: Logs detalhados de progresso
+                # [RAPIDO] CHUNK PROGRESS: Logs detalhados de progresso
                 if pages_processed % 10 == 0 and pages_processed > 0:
                     pages_per_second = pages_processed / loop_duration if loop_duration > 0 else 0
                     estimated_total_time = (max_pages / pages_per_second) if pages_per_second > 0 else 0
-                    logger.info(f"📊 CHUNK {pages_processed//10}: {pages_processed} páginas em {loop_duration:.1f}s")
-                    logger.info(f"⚡ Velocidade: {pages_per_second:.1f} páginas/s, ETA: {estimated_total_time:.1f}s total")
-                    logger.info(f"💾 Orders coletados: {len(all_orders)} ({len(all_orders)/pages_processed:.1f}/página)")
+                    logger.info(f"[INFO] CHUNK {pages_processed//10}: {pages_processed} páginas em {loop_duration:.1f}s")
+                    logger.info(f"[RAPIDO] Velocidade: {pages_per_second:.1f} páginas/s, ETA: {estimated_total_time:.1f}s total")
+                    logger.info(f"[SAVE] Orders coletados: {len(all_orders)} ({len(all_orders)/pages_processed:.1f}/página)")
                 
-                # ⚡ CHECKPOINT LOG: Mais frequente próximo ao fim
+                # [RAPIDO] CHECKPOINT LOG: Mais frequente próximo ao fim
                 if (total_pages and current_page > total_pages - 5):
-                    logger.info(f"🏁 FINALIZAÇÃO: página {current_page}/{total_pages or '?'}, orders: {len(orders)}, tempo: {loop_duration:.1f}s")
-                    logger.info(f"💓 CHECKPOINT: Worker ativo - quase finalizando coleta")
+                    logger.info(f"[FIM] FINALIZAÇÃO: página {current_page}/{total_pages or '?'}, orders: {len(orders)}, tempo: {loop_duration:.1f}s")
+                    logger.info(f"[ALIVE] CHECKPOINT: Worker ativo - quase finalizando coleta")
             
             # Análise do motivo da parada
             final_duration = time.time() - loop_start_time
             
-            # ⚡ RESULTADO ULTRA-RÁPIDO: Performance final
+            # [RAPIDO] RESULTADO ULTRA-RÁPIDO: Performance final
             pages_per_second = pages_processed / final_duration if final_duration > 0 else 0
             orders_per_second = len(all_orders) / final_duration if final_duration > 0 else 0
             
-            logger.info(f"🎯 ⚡ COLETA ULTRA-RÁPIDA FINALIZADA:")
-            logger.info(f"⏱️ Duração total: {final_duration:.1f}s ({final_duration/60:.1f}min)")
-            logger.info(f"🚀 VELOCIDADE: {pages_per_second:.1f} páginas/s, {orders_per_second:.1f} orders/s")
-            logger.info(f"⚡ RESULTADO: {pages_processed} páginas × {len(all_orders)/pages_processed if pages_processed > 0 else 0:.1f} = {len(all_orders)} orders!")
-            logger.info(f"📄 Última página: {current_page - 1}/{total_pages or '?'}")
-            logger.info(f"🔥 OTIMIZAÇÃO: Rate limit 50ms (4x mais rápido) + Heartbeat logs")
+            logger.info(f"[CACHE] [RAPIDO] COLETA ULTRA-RÁPIDA FINALIZADA:")
+            logger.info(f"[TIME] Duração total: {final_duration:.1f}s ({final_duration/60:.1f}min)")
+            logger.info(f"[INICIO] VELOCIDADE: {pages_per_second:.1f} páginas/s, {orders_per_second:.1f} orders/s")
+            logger.info(f"[RAPIDO] RESULTADO: {pages_processed} páginas × {len(all_orders)/pages_processed if pages_processed > 0 else 0:.1f} = {len(all_orders)} orders!")
+            logger.info(f"[PAGE] Última página: {current_page - 1}/{total_pages or '?'}")
+            logger.info(f"[CRITICO] OTIMIZAÇÃO: Rate limit 50ms (4x mais rápido) + Heartbeat logs")
             
             if pages_processed >= max_pages:
-                logger.warning(f"⚠️ Coleta interrompida: atingiu limite máximo de {max_pages} páginas")
-                logger.warning(f"⚠️ Se você esperava mais dados, aumente o parâmetro max_pages ou remova o limite")
+                logger.warning(f"[SUCCESS]️ Coleta interrompida: atingiu limite máximo de {max_pages} páginas")
+                logger.warning(f"[SUCCESS]️ Se você esperava mais dados, aumente o parâmetro max_pages ou remova o limite")
             else:
-                logger.info(f"✅ Coleta finalizada normalmente: encontrou página vazia na página {current_page}")
+                logger.info(f"[SUCCESS] Coleta finalizada normalmente: encontrou página vazia na página {current_page}")
             
             # Salvar dados completos no cache ANTES de aplicar filtros
             if cache_key:
@@ -330,12 +348,12 @@ class PrimeCODClient:
                         'collected_at': datetime.now().isoformat()
                     }
                     cache.set(cache_key, cache_data, 600)  # Cache por 10 minutos
-                    logger.info(f"💾 Dados completos salvos no cache")
+                    logger.info(f"[SAVE] Dados completos salvos no cache")
                 except Exception as e:
-                    logger.warning(f"⚠️ Falha ao salvar no cache: {str(e)}")
+                    logger.warning(f"[SUCCESS]️ Falha ao salvar no cache: {str(e)}")
             
-            # ⚡ FILTROS: Data via payload JSON, país localmente
-            logger.info(f"🔍 Aplicando filtro de PAÍS localmente aos {len(all_orders)} orders (data via payload JSON)")
+            # [RAPIDO] FILTROS: Data via payload JSON, país localmente
+            logger.info(f"[DEBUG] Aplicando filtro de PAÍS localmente aos {len(all_orders)} orders (data via payload JSON)")
             # Se data foi aplicada via payload JSON, não aplicar novamente localmente
             date_range_local = None if (date_range and date_range.get('start') and date_range.get('end')) else date_range
             filtered_orders = self._apply_local_filters(all_orders, date_range_local, country_filter)
@@ -353,27 +371,27 @@ class PrimeCODClient:
                 'filtros_payload_json_aplicados': bool(date_range and date_range.get('start') and date_range.get('end'))
             }
             
-            logger.info(f"✅ Busca OTIMIZADA finalizada com sucesso:")
-            logger.info(f"📦 Orders coletados (bruto): {len(all_orders)}")
-            logger.info(f"🔍 Orders após filtros aplicados: {len(filtered_orders)}")
-            logger.info(f"📄 Páginas processadas: {pages_processed}")
-            logger.info(f"🔥 Filtro de data aplicado via PAYLOAD JSON: {'Sim' if date_range and date_range.get('start') else 'Não'}")
-            logger.info(f"🌍 Filtro de país aplicado localmente: {'Não (Todos os países)' if not country_filter or country_filter.lower().strip() in ['todos', 'todos os países', 'all', 'all countries'] else f'Sim ({country_filter})'}")
+            logger.info(f"[SUCCESS] Busca OTIMIZADA finalizada com sucesso:")
+            logger.info(f"[DATA] Orders coletados (bruto): {len(all_orders)}")
+            logger.info(f"[DEBUG] Orders após filtros aplicados: {len(filtered_orders)}")
+            logger.info(f"[PAGE] Páginas processadas: {pages_processed}")
+            logger.info(f"[CRITICO] Filtro de data aplicado via PAYLOAD JSON: {'Sim' if date_range and date_range.get('start') else 'Não'}")
+            logger.info(f"[COUNTRY] Filtro de país aplicado localmente: {'Não (Todos os países)' if not country_filter or country_filter.lower().strip() in ['todos', 'todos os países', 'all', 'all countries'] else f'Sim ({country_filter})'}")
             
             return result
             
         except Exception as e:
-            logger.error(f"❌ Erro ao buscar orders PrimeCOD: {str(e)}")
+            logger.error(f"[ERROR] Erro ao buscar orders PrimeCOD: {str(e)}")
             raise PrimeCODAPIError(f"Erro na busca de orders: {str(e)}")
     
     def get_orders_with_progress(self, 
                                 page: int = 1, 
                                 date_range: Optional[Dict[str, str]] = None,
-                                max_pages: int = 1000,  # ⚡ ULTRA-OTIMIZADO: Suporta 1000+ páginas
+                                max_pages: int = 1000,  # [RAPIDO] ULTRA-OTIMIZADO: Suporta 1000+ páginas
                                 country_filter: Optional[str] = None,
                                 progress_callback: Optional[callable] = None) -> Dict:
         """
-        ⚡ VERSÃO ASSÍNCRONA ULTRA-OTIMIZADA: Background jobs com 1000+ páginas!
+        [RAPIDO] VERSÃO ASSÍNCRONA ULTRA-OTIMIZADA: Background jobs com 1000+ páginas!
         
         OTIMIZAÇÕES ESPECÍFICAS PARA WORKERS:
         - Rate limit 50ms + heartbeat logs para manter processo vivo
@@ -407,7 +425,7 @@ class PrimeCODClient:
             cache_key = hashlib.md5(cache_data.encode()).hexdigest()[:20]
             cached_result = cache.get(cache_key)
             if cached_result:
-                logger.info("🎯 Usando dados completos em cache, aplicando filtros localmente")
+                logger.info("[CACHE] Usando dados completos em cache, aplicando filtros localmente")
                 # Aplicar filtros nos dados em cache
                 all_orders = cached_result.get('all_orders_raw', [])
                 filtered_orders = self._apply_local_filters(all_orders, date_range, country_filter)
@@ -429,7 +447,7 @@ class PrimeCODClient:
         
         url = f"{self.base_url}/orders"
         
-        # ⚡ CORREÇÃO CRÍTICA: Usar endpoint POST correto com payload JSON!
+        # [RAPIDO] CORREÇÃO CRÍTICA: Usar endpoint POST correto com payload JSON!
         # URL: https://api.primecod.app/api/orders (POST)
         # JSON payload com filtros e paginação  
         payload = {
@@ -445,17 +463,17 @@ class PrimeCODClient:
                 "startDate": start_iso,
                 "endDate": end_iso
             }
-            logger.info(f"🔥 USANDO FILTROS CORRETOS de data no payload JSON: {start_iso} até {end_iso}")
-            logger.info(f"⚡ CORREÇÃO APLICADA: creationDatesRange em vez de start_date/end_date")
+            logger.info(f"[CRITICO] USANDO FILTROS CORRETOS de data no payload JSON: {start_iso} até {end_iso}")
+            logger.info(f"[RAPIDO] CORREÇÃO APLICADA: creationDatesRange em vez de start_date/end_date")
         
         # RESULTADO ESPERADO: Payload JSON correto para API PrimeCOD!
         
-        logger.info(f"🚀 Iniciando coleta ASSÍNCRONA de orders PrimeCOD!")
-        logger.info(f"🚀 URL base: {url}")
-        logger.info(f"⚡ JSON Payload: {payload}")
-        logger.info(f"🔥 CORREÇÃO ASSÍNCRONA: Usando endpoint POST com payload JSON!")
-        logger.info(f"⚡ CORREÇÃO: Usando payload JSON correto para API PrimeCOD!")
-        logger.info(f"🚀 Filtros de data via payload JSON, país localmente")
+        logger.info(f"[INICIO] Iniciando coleta ASSÍNCRONA de orders PrimeCOD!")
+        logger.info(f"[INICIO] URL base: {url}")
+        logger.info(f"[RAPIDO] JSON Payload: {payload}")
+        logger.info(f"[CRITICO] CORREÇÃO ASSÍNCRONA: Usando endpoint POST com payload JSON!")
+        logger.info(f"[RAPIDO] CORREÇÃO: Usando payload JSON correto para API PrimeCOD!")
+        logger.info(f"[INICIO] Filtros de data via payload JSON, país localmente")
         
         all_orders = []
         current_page = 1  # SEMPRE começar da página 1
@@ -463,7 +481,7 @@ class PrimeCODClient:
         pages_processed = 0
         
         try:
-            logger.info(f"🚀 Iniciando loop ASSÍNCRONO para coletar até {max_pages} páginas...")
+            logger.info(f"[INICIO] Iniciando loop ASSÍNCRONO para coletar até {max_pages} páginas...")
             
             # Monitoramento de progresso para jobs assíncronos
             import time
@@ -472,30 +490,30 @@ class PrimeCODClient:
             while current_page <= max_pages:
                 loop_duration = time.time() - loop_start_time
                 
-                logger.info(f"📄 Processando página {current_page} (tempo: {loop_duration:.1f}s)")
+                logger.info(f"[PAGE] Processando página {current_page} (tempo: {loop_duration:.1f}s)")
                 
-                # ⚡ HEARTBEAT LOG ASSÍNCRONO: Manter worker "vivo" no Railway
+                # [RAPIDO] HEARTBEAT LOG ASSÍNCRONO: Manter worker "vivo" no Railway
                 if pages_processed % 10 == 0 and pages_processed > 0:
-                    logger.info(f"🔄 HEARTBEAT ASSÍNCRONO: {pages_processed} páginas, {len(all_orders)} orders")
-                    logger.info(f"💓 Worker assíncrono ativo - tempo: {loop_duration:.1f}s")
+                    logger.info(f"[HEARTBEAT] HEARTBEAT ASSÍNCRONO: {pages_processed} páginas, {len(all_orders)} orders")
+                    logger.info(f"[ALIVE] Worker assíncrono ativo - tempo: {loop_duration:.1f}s")
                 
                 # Proteção contra loop infinito por número de páginas
                 if pages_processed >= max_pages:
-                    logger.warning(f"⚠️ Limite de {max_pages} páginas atingido - interrompendo coleta")
+                    logger.warning(f"[SUCCESS]️ Limite de {max_pages} páginas atingido - interrompendo coleta")
                     break
                 
-                # ⚡ CORREÇÃO CRÍTICA ASSÍNCRONA: POST + TIMEOUT HANDLING
+                # [RAPIDO] CORREÇÃO CRÍTICA ASSÍNCRONA: POST + TIMEOUT HANDLING
                 payload["page"] = current_page
-                logger.info(f"🌐 Requisição ASSÍNCRONA POST: {url} com payload page={current_page}")
+                logger.info(f"[REQUEST] Requisição ASSÍNCRONA POST: {url} com payload page={current_page}")
                 
                 try:
                     response = self._make_request('POST', url, json=payload)
-                    logger.info(f"✅ Response assíncrono recebido - Status: {response.status_code}")
+                    logger.info(f"[SUCCESS] Response assíncrono recebido - Status: {response.status_code}")
                 except Exception as e:
-                    # ⚡ TIMEOUT HANDLING ASSÍNCRONO: Continue se possível
-                    logger.error(f"❌ Erro assíncrono na página {current_page}: {str(e)}")
+                    # [RAPIDO] TIMEOUT HANDLING ASSÍNCRONO: Continue se possível
+                    logger.error(f"[ERROR] Erro assíncrono na página {current_page}: {str(e)}")
                     if "timeout" in str(e).lower() or "time" in str(e).lower():
-                        logger.warning(f"⏰ Timeout assíncrono página {current_page} - continuando...")
+                        logger.warning(f"[TIMEOUT] Timeout assíncrono página {current_page} - continuando...")
                         current_page += 1
                         continue
                     else:
@@ -505,16 +523,16 @@ class PrimeCODClient:
                 
                 # Extrair orders da resposta
                 orders = data.get('data', [])
-                logger.info(f"📦 Orders na página {current_page}: {len(orders)}")
+                logger.info(f"[DATA] Orders na página {current_page}: {len(orders)}")
                 
                 # CONDIÇÃO DE PARADA: página completamente vazia (0 orders)
                 if not orders or len(orders) == 0:
-                    logger.info(f"🏁 Página {current_page} completamente vazia (0 orders) - finalizando coleta")
+                    logger.info(f"[FIM] Página {current_page} completamente vazia (0 orders) - finalizando coleta")
                     break
                 
                 # PROTEÇÃO ADICIONAL: Se orders é muito pequeno, pode indicar fim da coleta
                 if len(orders) < 50:   # API POST retorna variável orders por página, menos orders indica fim ou última página
-                    logger.info(f"🔍 Página {current_page} com {len(orders)} orders - possível fim da coleta (esperado: 50/página)")
+                    logger.info(f"[DEBUG] Página {current_page} com {len(orders)} orders - possível fim da coleta (esperado: 50/página)")
                 
                 # Adicionar todos os orders desta página (SEM filtros)
                 all_orders.extend(orders)
@@ -522,7 +540,7 @@ class PrimeCODClient:
                 # Obter informações de paginação da resposta
                 if total_pages is None:
                     total_pages = data.get('last_page', current_page)
-                    logger.info(f"📊 Total de páginas detectado: {total_pages}")
+                    logger.info(f"[INFO] Total de páginas detectado: {total_pages}")
                 
                 current_page += 1
                 pages_processed += 1
@@ -532,35 +550,35 @@ class PrimeCODClient:
                     try:
                         progress_callback(pages_processed, len(all_orders), loop_duration, total_pages)
                     except Exception as e:
-                        logger.warning(f"⚠️ Erro no callback de progresso: {str(e)}")
+                        logger.warning(f"[SUCCESS]️ Erro no callback de progresso: {str(e)}")
                 
-                # ⚡ CHUNK PROGRESS ASSÍNCRONO: Logs detalhados
+                # [RAPIDO] CHUNK PROGRESS ASSÍNCRONO: Logs detalhados
                 if pages_processed % 10 == 0 and pages_processed > 0:
                     pages_per_second = pages_processed / loop_duration if loop_duration > 0 else 0
                     estimated_total_time = (max_pages / pages_per_second) if pages_per_second > 0 else 0
-                    logger.info(f"📊 CHUNK ASSÍNCRONO {pages_processed//10}: {pages_processed} páginas em {loop_duration:.1f}s")
-                    logger.info(f"⚡ Velocidade assíncrona: {pages_per_second:.1f} páginas/s, ETA: {estimated_total_time:.1f}s")
-                    logger.info(f"💾 Orders assíncronos: {len(all_orders)} ({len(all_orders)/pages_processed:.1f}/página)")
+                    logger.info(f"[INFO] CHUNK ASSÍNCRONO {pages_processed//10}: {pages_processed} páginas em {loop_duration:.1f}s")
+                    logger.info(f"[RAPIDO] Velocidade assíncrona: {pages_per_second:.1f} páginas/s, ETA: {estimated_total_time:.1f}s")
+                    logger.info(f"[SAVE] Orders assíncronos: {len(all_orders)} ({len(all_orders)/pages_processed:.1f}/página)")
             
             # Análise do motivo da parada
             final_duration = time.time() - loop_start_time
             
-            # ⚡ RESULTADO ASSÍNCRONO ULTRA-RÁPIDO: Performance final
+            # [RAPIDO] RESULTADO ASSÍNCRONO ULTRA-RÁPIDO: Performance final
             pages_per_second = pages_processed / final_duration if final_duration > 0 else 0
             orders_per_second = len(all_orders) / final_duration if final_duration > 0 else 0
             
-            logger.info(f"🎯 ⚡ COLETA ASSÍNCRONA ULTRA-RÁPIDA FINALIZADA:")
-            logger.info(f"⏱️ Duração total: {final_duration:.1f}s ({final_duration/60:.1f}min)")
-            logger.info(f"🚀 VELOCIDADE ASSÍNCRONA: {pages_per_second:.1f} páginas/s, {orders_per_second:.1f} orders/s")
-            logger.info(f"⚡ RESULTADO: {pages_processed} páginas × {len(all_orders)/pages_processed if pages_processed > 0 else 0:.1f} = {len(all_orders)} orders!")
-            logger.info(f"📄 Última página: {current_page - 1}/{total_pages or '?'}")
-            logger.info(f"🔥 OTIMIZAÇÃO ASSÍNCRONA: Rate limit 50ms + Heartbeat logs")
+            logger.info(f"[CACHE] [RAPIDO] COLETA ASSÍNCRONA ULTRA-RÁPIDA FINALIZADA:")
+            logger.info(f"[TIME] Duração total: {final_duration:.1f}s ({final_duration/60:.1f}min)")
+            logger.info(f"[INICIO] VELOCIDADE ASSÍNCRONA: {pages_per_second:.1f} páginas/s, {orders_per_second:.1f} orders/s")
+            logger.info(f"[RAPIDO] RESULTADO: {pages_processed} páginas × {len(all_orders)/pages_processed if pages_processed > 0 else 0:.1f} = {len(all_orders)} orders!")
+            logger.info(f"[PAGE] Última página: {current_page - 1}/{total_pages or '?'}")
+            logger.info(f"[CRITICO] OTIMIZAÇÃO ASSÍNCRONA: Rate limit 50ms + Heartbeat logs")
             
             if pages_processed >= max_pages:
-                logger.warning(f"⚠️ Coleta interrompida: atingiu limite máximo de {max_pages} páginas")
-                logger.warning(f"⚠️ Para coletar mais dados, aumente o parâmetro max_pages")
+                logger.warning(f"[SUCCESS]️ Coleta interrompida: atingiu limite máximo de {max_pages} páginas")
+                logger.warning(f"[SUCCESS]️ Para coletar mais dados, aumente o parâmetro max_pages")
             else:
-                logger.info(f"✅ Coleta finalizada normalmente: encontrou página vazia na página {current_page}")
+                logger.info(f"[SUCCESS] Coleta finalizada normalmente: encontrou página vazia na página {current_page}")
             
             # Salvar dados completos no cache ANTES de aplicar filtros
             if cache_key:
@@ -572,12 +590,12 @@ class PrimeCODClient:
                         'collected_at': datetime.now().isoformat()
                     }
                     cache.set(cache_key, cache_data, 600)  # Cache por 10 minutos
-                    logger.info(f"💾 Dados completos salvos no cache")
+                    logger.info(f"[SAVE] Dados completos salvos no cache")
                 except Exception as e:
-                    logger.warning(f"⚠️ Falha ao salvar no cache: {str(e)}")
+                    logger.warning(f"[SUCCESS]️ Falha ao salvar no cache: {str(e)}")
             
-            # ⚡ FILTROS ASSÍNCRONOS: Data via payload JSON, país localmente
-            logger.info(f"🔍 Aplicando filtro de PAÍS localmente aos {len(all_orders)} orders ASSÍNCRONOS (data via payload JSON)")
+            # [RAPIDO] FILTROS ASSÍNCRONOS: Data via payload JSON, país localmente
+            logger.info(f"[DEBUG] Aplicando filtro de PAÍS localmente aos {len(all_orders)} orders ASSÍNCRONOS (data via payload JSON)")
             # Se data foi aplicada via payload JSON, não aplicar novamente localmente
             date_range_local = None if (date_range and date_range.get('start') and date_range.get('end')) else date_range
             filtered_orders = self._apply_local_filters(all_orders, date_range_local, country_filter)
@@ -595,17 +613,17 @@ class PrimeCODClient:
                 'filtros_payload_json_aplicados': bool(date_range and date_range.get('start') and date_range.get('end'))
             }
             
-            logger.info(f"✅ Busca ASSÍNCRONA OTIMIZADA finalizada com sucesso:")
-            logger.info(f"📦 Orders coletados (bruto): {len(all_orders)}")
-            logger.info(f"🔍 Orders após filtros aplicados: {len(filtered_orders)}")
-            logger.info(f"📄 Páginas processadas: {pages_processed}")
-            logger.info(f"🔥 Filtro de data aplicado via PAYLOAD JSON: {'Sim' if date_range and date_range.get('start') else 'Não'}")
-            logger.info(f"🌍 Filtro de país aplicado localmente: {'Não (Todos os países)' if not country_filter or country_filter.lower().strip() in ['todos', 'todos os países', 'all', 'all countries'] else f'Sim ({country_filter})'}")
+            logger.info(f"[SUCCESS] Busca ASSÍNCRONA OTIMIZADA finalizada com sucesso:")
+            logger.info(f"[DATA] Orders coletados (bruto): {len(all_orders)}")
+            logger.info(f"[DEBUG] Orders após filtros aplicados: {len(filtered_orders)}")
+            logger.info(f"[PAGE] Páginas processadas: {pages_processed}")
+            logger.info(f"[CRITICO] Filtro de data aplicado via PAYLOAD JSON: {'Sim' if date_range and date_range.get('start') else 'Não'}")
+            logger.info(f"[COUNTRY] Filtro de país aplicado localmente: {'Não (Todos os países)' if not country_filter or country_filter.lower().strip() in ['todos', 'todos os países', 'all', 'all countries'] else f'Sim ({country_filter})'}")
             
             return result
             
         except Exception as e:
-            logger.error(f"❌ Erro ao buscar orders PrimeCOD ASSÍNCRONO: {str(e)}")
+            logger.error(f"[ERROR] Erro ao buscar orders PrimeCOD ASSÍNCRONO: {str(e)}")
             raise PrimeCODAPIError(f"Erro na busca assíncrona de orders: {str(e)}")
     
     def _apply_local_filters(self, orders: List[Dict], date_range: Optional[Dict[str, str]] = None, country_filter: Optional[str] = None) -> List[Dict]:
@@ -621,42 +639,42 @@ class PrimeCODClient:
             Lista de orders filtrados
         """
         if not orders:
-            logger.info("🔍 Nenhum order para filtrar")
+            logger.info("[DEBUG] Nenhum order para filtrar")
             return orders
         
         filtered_orders = orders.copy()
-        logger.info(f"🔍 Iniciando filtros locais: {len(filtered_orders)} orders")
+        logger.info(f"[DEBUG] Iniciando filtros locais: {len(filtered_orders)} orders")
         
         # Aplicar filtro de data se especificado
         if date_range and date_range.get('start') and date_range.get('end'):
-            logger.info(f"📅 Aplicando filtro de data: {date_range['start']} até {date_range['end']}")
+            logger.info(f"[DATE] Aplicando filtro de data: {date_range['start']} até {date_range['end']}")
             filtered_orders = self._filter_orders_by_date(filtered_orders, date_range)
-            logger.info(f"📅 Após filtro de data: {len(filtered_orders)} orders")
+            logger.info(f"[DATE] Após filtro de data: {len(filtered_orders)} orders")
         
         # Aplicar filtro de país se especificado E se não for "todos"
         if country_filter and country_filter.lower().strip() not in ['todos', 'todos os países', 'all', 'all countries']:
-            logger.info(f"🌍 Aplicando filtro de país: {country_filter}")
+            logger.info(f"[COUNTRY] Aplicando filtro de país: {country_filter}")
             filtered_orders = self._filter_orders_by_country(filtered_orders, country_filter)
-            logger.info(f"🌍 Após filtro de país: {len(filtered_orders)} orders")
+            logger.info(f"[COUNTRY] Após filtro de país: {len(filtered_orders)} orders")
         elif country_filter:
-            logger.info(f"🌍 Filtro de país '{country_filter}' detectado como 'TODOS' - pulando filtro de país")
+            logger.info(f"[COUNTRY] Filtro de país '{country_filter}' detectado como 'TODOS' - pulando filtro de país")
         
-        logger.info(f"✅ Filtros aplicados: {len(orders)} -> {len(filtered_orders)} orders")
+        logger.info(f"[SUCCESS] Filtros aplicados: {len(orders)} -> {len(filtered_orders)} orders")
         return filtered_orders
     
     def _filter_orders_by_date(self, orders: List[Dict], date_range: Dict[str, str]) -> List[Dict]:
         """Filtra orders por data localmente"""
-        logger.info(f"📅 Aplicando filtro de data: {date_range}")
+        logger.info(f"[DATE] Aplicando filtro de data: {date_range}")
         
         if not date_range.get('start') or not date_range.get('end'):
-            logger.info("📅 Filtro de data incompleto, retornando todos os orders")
+            logger.info("[DATE] Filtro de data incompleto, retornando todos os orders")
             return orders
         
         try:
             start_date = datetime.strptime(date_range['start'], '%Y-%m-%d').date()
             end_date = datetime.strptime(date_range['end'], '%Y-%m-%d').date()
             
-            logger.info(f"📅 Período de filtro: {start_date} até {end_date}")
+            logger.info(f"[DATE] Período de filtro: {start_date} até {end_date}")
             
             filtered_orders = []
             orders_without_date = 0
@@ -694,7 +712,7 @@ class PrimeCODClient:
                     orders_without_date += 1
                     continue
             
-            logger.info(f"📅 Resultado do filtro de data:")
+            logger.info(f"[DATE] Resultado do filtro de data:")
             logger.info(f"   - Orders no período: {len(filtered_orders)}")
             logger.info(f"   - Orders sem data válida: {orders_without_date}")
             logger.info(f"   - Total processados: {len(orders)}")
@@ -702,20 +720,20 @@ class PrimeCODClient:
             return filtered_orders
             
         except ValueError as e:
-            logger.error(f"❌ Erro no filtro de data: {str(e)}")
+            logger.error(f"[ERROR] Erro no filtro de data: {str(e)}")
             return orders
     
     def _filter_orders_by_country(self, orders: List[Dict], country_filter: str) -> List[Dict]:
         """Filtra orders por país localmente"""
-        logger.info(f"🌍 Aplicando filtro de país: {country_filter}")
+        logger.info(f"[COUNTRY] Aplicando filtro de país: {country_filter}")
         
         if not country_filter:
-            logger.info(f"🌍 Country filter vazio - retornando todos os orders")
+            logger.info(f"[COUNTRY] Country filter vazio - retornando todos os orders")
             return orders
         
         # Se o filtro for "todos" em qualquer variação, retornar todos
         if country_filter.lower().strip() in ['todos', 'todos os países', 'all', 'all countries']:
-            logger.info(f"🌍 Country filter '{country_filter}' detectado como 'TODOS' - retornando todos os orders")
+            logger.info(f"[COUNTRY] Country filter '{country_filter}' detectado como 'TODOS' - retornando todos os orders")
             return orders
         
         filtered_orders = []
@@ -739,7 +757,7 @@ class PrimeCODClient:
             if country_name.lower().strip() == country_filter_lower:
                 filtered_orders.append(order)
         
-        logger.info(f"🌍 Resultado do filtro de país:")
+        logger.info(f"[COUNTRY] Resultado do filtro de país:")
         logger.info(f"   - Orders do país '{country_filter}': {len(filtered_orders)}")
         logger.info(f"   - Orders sem país válido: {orders_without_country}")
         logger.info(f"   - Total processados: {len(orders)}")
@@ -758,7 +776,10 @@ class PrimeCODClient:
             Dict com dados processados em formato de tabela cruzada
         """
         
+        logger.info(f"[DEBUG] INICIANDO process_orders_data com {len(orders) if orders else 0} orders")
+        
         if not orders:
+            logger.info(f"[INFO] Nenhum order encontrado para o período e filtros especificados")
             return {
                 'dados_processados': [],
                 'estatisticas': {
@@ -767,7 +788,8 @@ class PrimeCODClient:
                     'paises_unicos': 0,
                     'status_unicos': 0
                 },
-                'status_nao_mapeados': []
+                'status_nao_mapeados': [],
+                'message': 'Nenhum order encontrado para o período selecionado. Tente um período diferente ou verifique se há dados na sua conta PrimeCOD.'
             }
         
         # Agrupar dados por Produto + País + Status
@@ -777,7 +799,12 @@ class PrimeCODClient:
         paises = set()
         status_encontrados = set()
         
-        for order in orders:
+        logger.info(f"[DEBUG] Processando {len(orders)} orders...")
+        
+        for i, order in enumerate(orders):
+            # LOG DE DEBUG: Order ID para rastreamento
+            order_id = order.get('id', f'unknown_{i}')
+            
             # Extrair nome do produto dos produtos aninhados
             produto = 'Produto Desconhecido'
             if order.get('products') and len(order['products']) > 0:
@@ -790,14 +817,21 @@ class PrimeCODClient:
             # Status de shipping  
             status_original = order.get('shipping_status', 'Status Desconhecido')
             
+            # LOG 1: Status originais da API
+            logger.info(f"[DEBUG] Order {order_id}: shipping_status original = {status_original} (tipo: {type(status_original)})")
+            
             # Aplicar filtro de país se especificado
             if pais_filtro and pais.lower() != pais_filtro.lower():
+                logger.info(f"[DEBUG] Order {order_id}: Filtrado por país {pais} != {pais_filtro}")
                 continue
             
             # Mapear status para português
             status = self.status_mapping.get(status_original, status_original)
             if status == status_original and status_original not in self.status_mapping:
                 status_nao_mapeados.add(status_original)
+                
+            # LOG 2: Status após mapeamento
+            logger.info(f"[DEBUG] Order {order_id}: Status mapeado: {status_original} -> {status}")
             
             produtos.add(produto)
             paises.add(pais)
@@ -812,13 +846,31 @@ class PrimeCODClient:
                     'pais': pais,
                     'total': 0
                 }
+                logger.info(f"[DEBUG] Nova chave criada: {chave}")
             
             # Incrementar contador do status
             if status not in agrupamento[chave]:
                 agrupamento[chave][status] = 0
+                logger.info(f"[DEBUG] Novo status '{status}' adicionado para chave {chave}")
             
+            # Incrementar contadores
             agrupamento[chave][status] += 1
             agrupamento[chave]['total'] += 1
+            
+            logger.info(f"[DEBUG] Order {order_id}: Incrementando {chave}[{status}] = {agrupamento[chave][status]}, total = {agrupamento[chave]['total']}")
+            
+        # LOG 3: Status únicos encontrados
+        logger.info(f"[DEBUG] Status únicos encontrados: {sorted(list(status_encontrados))}")
+        logger.info(f"[DEBUG] Produtos únicos: {len(produtos)}")
+        logger.info(f"[DEBUG] Países únicos: {len(paises)}")
+        
+        # LOG 4: Contagem final do agrupamento
+        logger.info(f"[DEBUG] AGRUPAMENTO FINAL ({len(agrupamento)} chaves):")
+        for chave, dados in agrupamento.items():
+            logger.info(f"[DEBUG] {chave}: {dados}")
+            
+        if status_nao_mapeados:
+            logger.warning(f"[WARNING] Status não mapeados encontrados: {sorted(list(status_nao_mapeados))}")
         
         # Converter para lista e ordenar
         dados_processados = list(agrupamento.values())
@@ -858,19 +910,36 @@ class PrimeCODClient:
         
         logger.info(f"Processamento concluído: {estatisticas['total_orders']} orders -> {len(dados_processados)} linhas agrupadas")
         
-        # DEBUG: Log da estrutura dos dados processados
-        logger.info(f"🔍 DEBUG: Primeiros 3 items dos dados processados:")
-        for i, item in enumerate(dados_processados[:3]):
-            logger.info(f"   [{i}] {item}")
-        if len(dados_processados) > 3:
-            logger.info(f"   ... e mais {len(dados_processados) - 3} items")
+        # LOG 5: Estrutura dos dados processados FINAIS
+        logger.info(f"[DEBUG] DADOS PROCESSADOS FINAIS ({len(dados_processados)} items):")
+        for i, item in enumerate(dados_processados):
+            if i < 5:  # Mostrar primeiros 5 itens completos
+                logger.info(f"   [{i}] {item}")
+            elif i == 5:
+                logger.info(f"   ... e mais {len(dados_processados) - 5} items")
+                break
         
-        # DEBUG: Log da linha TOTAL se existir
+        # LOG 6: Linha TOTAL específica
         total_row = next((item for item in dados_processados if item.get('produto') == 'TOTAL'), None)
         if total_row:
-            logger.info(f"🔍 DEBUG: Linha TOTAL encontrada: {total_row}")
+            logger.info(f"[DEBUG] LINHA TOTAL ENCONTRADA: {total_row}")
+            # Log detalhado de cada status na linha TOTAL
+            for key, value in total_row.items():
+                if key not in ['produto', 'pais', 'total']:
+                    logger.info(f"   [DEBUG] Status '{key}': {value}")
         else:
-            logger.info(f"🔍 DEBUG: Nenhuma linha TOTAL encontrada")
+            logger.info(f"[DEBUG] NENHUMA LINHA TOTAL ENCONTRADA")
+        
+        # LOG 7: Verificação de status nas linhas normais
+        status_nas_linhas = set()
+        for item in dados_processados:
+            for key in item.keys():
+                if key not in ['produto', 'pais', 'total']:
+                    status_nas_linhas.add(key)
+        logger.info(f"[DEBUG] STATUS PRESENTES NAS LINHAS FINAIS: {sorted(list(status_nas_linhas))}")
+        
+        # LOG 8: Estatísticas finais detalhadas
+        logger.info(f"[DEBUG] ESTATÍSTICAS FINAIS: {estatisticas}")
         
         return {
             'dados_processados': dados_processados,
