@@ -91,6 +91,19 @@ function DetectorIPPage() {
             return;
         }
 
+        // Validação de limite de dias
+        if (searchParams.days < 1) {
+            showNotification('O período deve ser de pelo menos 1 dia', 'error');
+            return;
+        }
+        
+        if (searchParams.days > 90) {
+            showNotification('O período máximo é de 90 dias para garantir sincronização com o backend', 'error');
+            // Redefine para 90 dias automaticamente
+            setSearchParams(prev => ({ ...prev, days: 90 }));
+            return;
+        }
+
         setSearchingIPs(true);
         setIPGroups([]);
 
@@ -202,6 +215,9 @@ function DetectorIPPage() {
             return;
         }
 
+        // Validação adicional para garantir limite de 90 dias
+        const validDays = Math.min(Math.max(searchParams.days, 1), 90);
+
         setSelectedIP(ipGroup);
         setShowIPDetails(true);
         setLoadingDetails(true);
@@ -211,7 +227,7 @@ function DetectorIPPage() {
             const response = await axios.post('/processamento/detalhar-pedidos-ip/', {
                 loja_id: lojaSelecionada,
                 ip: ipGroup.ip,
-                days: searchParams.days
+                days: validDays
             }, {
                 headers: {
                     'X-CSRFToken': getCSRFToken()
@@ -335,7 +351,7 @@ function DetectorIPPage() {
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
                                                 <h4 className="font-semibold text-sm text-foreground">2. Configurar Filtros</h4>
-                                                <p className="text-sm text-muted-foreground">Período (até 365 dias) e mínimo de pedidos por IP</p>
+                                                <p className="text-sm text-muted-foreground">Período (até 90 dias) para garantir sincronização completa dos dados</p>
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
                                                 <h4 className="font-semibold text-sm text-foreground">3. Analisar Resultados</h4>
@@ -359,7 +375,7 @@ function DetectorIPPage() {
                                                             <li>• Identifica APENAS IPs onde há CLIENTES DIFERENTES fazendo pedidos</li>
                                                             <li>• Se o mesmo cliente faz múltiplos pedidos, é considerado comportamento normal</li>
                                                             <li>• Foco na detecção de fraudes e compartilhamento de IP suspeito</li>
-                                                            <li>• Período configurável (7 a 365 dias)</li>
+                                                            <li>• Período configurável (7 a 90 dias)</li>
                                                         </ul>
                                                     </div>
                                                     
@@ -425,6 +441,14 @@ function DetectorIPPage() {
                 </div>
             </div>
 
+            {/* Informação sobre limite */}
+            <Alert className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+                <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <AlertDescription className="text-blue-800 dark:text-blue-200">
+                    <strong>Limite de sincronização:</strong> O filtro é limitado a 90 dias para garantir consistência entre a tabela principal e os detalhes dos pedidos.
+                </AlertDescription>
+            </Alert>
+
             {/* Filtros Compactos */}
             <div className="flex flex-col sm:flex-row gap-4 items-center justify-between p-4 bg-muted/30 rounded-lg border">
                 <div className="flex items-center gap-2">
@@ -439,9 +463,7 @@ function DetectorIPPage() {
                             <SelectItem value="15">15 dias</SelectItem>
                             <SelectItem value="30">30 dias</SelectItem>
                             <SelectItem value="60">60 dias</SelectItem>
-                            <SelectItem value="90">90 dias</SelectItem>
-                            <SelectItem value="180">180 dias</SelectItem>
-                            <SelectItem value="365">365 dias</SelectItem>
+                            <SelectItem value="90">90 dias (máximo)</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
