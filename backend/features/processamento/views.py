@@ -191,17 +191,18 @@ def buscar_duplicatas(request):
             logger.warning(f"❌ ID da loja não fornecido")
             return Response({'error': 'ID da loja é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Debug: Verificar lojas disponíveis para o usuário
-        available_configs = ShopifyConfig.objects.filter(user=request.user, ativo=True)
-        logger.info(f"📊 Lojas disponíveis para {request.user.username}: {[(c.id, c.nome_loja) for c in available_configs]}")
+        # Debug: Verificar todas as lojas ativas (não limitadas por usuário)
+        available_configs = ShopifyConfig.objects.filter(ativo=True)
+        logger.info(f"📊 Todas as lojas ativas: {[(c.id, c.nome_loja, c.user.username) for c in available_configs]}")
         
-        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True, user=request.user).first()
+        # CORREÇÃO: Remover filtro por usuário - qualquer usuário pode acessar qualquer loja ativa
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
         if not config:
-            logger.warning(f"❌ Loja {loja_id} não encontrada para usuário {request.user.username}")
-            return Response({'error': 'Loja não encontrada', 'debug_info': {
+            logger.warning(f"❌ Loja {loja_id} não encontrada ou inativa")
+            return Response({'error': 'Loja não encontrada ou inativa', 'debug_info': {
                 'requested_loja_id': loja_id,
                 'available_lojas': [(c.id, c.nome_loja) for c in available_configs],
-                'user_id': request.user.id
+                'total_active_stores': available_configs.count()
             }}, status=status.HTTP_400_BAD_REQUEST)
         
         logger.info(f"✅ Loja encontrada: {config.nome_loja} (ID: {config.id})")

@@ -642,6 +642,12 @@ function PrimecodPage() {
             const statusColumns = Object.values(STATUS_MAPPING);
             colunas = ['produto', 'pais', ...statusColumns, 'total'];
         }
+        
+        // Debug para verificar os dados agrupados
+        if (tipoVisualizacao === 'otimizada' && dadosParaExibir.length > 0) {
+            console.log('Dados agrupados:', dadosParaExibir[0]);
+            console.log('Colunas:', colunas);
+        }
 
         return (
             <Card className="mb-6 border-border bg-card">
