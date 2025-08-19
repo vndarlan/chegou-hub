@@ -3878,14 +3878,36 @@ def buscar_ips_duplicados_simples(request):
         # Busca pedidos dos últimos X dias - SEM LIMITAÇÃO DE CAMPOS para pegar mais dados
         data_inicial = timezone.now() - timedelta(days=days)
         
-        # ⚡ CORREÇÃO CRÍTICA: Remove limit=250 e usa estratégia similar ao get_orders_for_specific_ip
-        # para garantir consistência de dados entre tabela principal e detalhes
-        orders = shopify.Order.find(
-            status='any',
-            created_at_min=data_inicial.isoformat()
-            # Removido limit=250 para buscar TODOS os pedidos do período
-            # Removido 'fields' para pegar todos os dados do pedido
-        )
+        # ⚡ CORREÇÃO CRÍTICA: Usa limit otimizado com fallback
+        # Tenta com limit=500, se falhar usa limit=250 como fallback
+        orders = None
+        limit_usado = 500
+        
+        try:
+            orders = shopify.Order.find(
+                status='any',
+                created_at_min=data_inicial.isoformat(),
+                limit=500  # Limite otimizado para evitar timeout da API
+                # Removido 'fields' para pegar todos os dados do pedido
+            )
+            logger.info(f"Busca bem-sucedida com limit=500")
+        except Exception as e:
+            logger.warning(f"Erro com limit=500, tentando com limit=250: {str(e)}")
+            try:
+                orders = shopify.Order.find(
+                    status='any',
+                    created_at_min=data_inicial.isoformat(),
+                    limit=250  # Fallback para limite menor
+                )
+                limit_usado = 250
+                logger.info(f"Busca bem-sucedida com limit=250 (fallback)")
+            except Exception as e2:
+                logger.error(f"Erro mesmo com limit=250: {str(e2)}")
+                return Response({
+                    'error': f'Erro ao buscar pedidos: {str(e2)}',
+                    'suggestion': 'Tente reduzir o período de busca ou contate o suporte',
+                    'original_error': str(e)
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         def extract_ip_from_order(order_dict):
             """Extrai IP usando note_attributes como fonte principal - OTIMIZADO"""
@@ -3948,11 +3970,32 @@ def buscar_ips_duplicados_simples(request):
             
             return False
         
+        # Verificação se orders foi retornado corretamente
+        if not orders:
+            logger.warning(f"Nenhum pedido retornado da API Shopify para o período de {days} dias")
+            return Response({
+                'ips_duplicados': [],
+                'total_ips': 0,
+                'total_pedidos': 0,
+                'days_searched': days,
+                'loja_nome': config.nome_loja,
+                'warning': 'Nenhum pedido encontrado no período especificado',
+                'statistics': {
+                    'total_processed': 0,
+                    'excluded_count': 0,
+                    'unique_ips_found': 0,
+                    'methods_used': {},
+                    'api_limit_used': 500
+                }
+            })
+        
         # Agrupa pedidos por IP usando múltiplas fontes
         ip_groups = {}
         total_processed = 0
         excluded_count = 0
         methods_used = {}
+        
+        logger.info(f"Processando {len(orders)} pedidos encontrados na API Shopify")
         
         for order in orders:
             total_processed += 1
@@ -4047,8 +4090,17 @@ def buscar_ips_duplicados_simples(request):
         # Ordena por quantidade de pedidos (mais pedidos primeiro)
         ips_duplicados.sort(key=lambda x: x['total_pedidos'], reverse=True)
         
+        # Verificação final de consistência
+        if total_processed > 0 and len(ip_groups) == 0:
+            logger.error(f"ERRO: Processamos {total_processed} pedidos mas não encontramos nenhum IP. Possível problema na extração de IPs.")
+        elif total_processed > 0 and len(ips_duplicados) == 0:
+            logger.info(f"INFO: Processamos {total_processed} pedidos e encontramos {len(ip_groups)} IPs únicos, mas nenhum com clientes diferentes.")
         
-        # Log da busca melhorado
+        # Log da busca melhorado com informações de debug
+        total_pedidos_encontrados = sum(ip['total_pedidos'] for ip in ips_duplicados)
+        
+        logger.info(f"Busca concluída - IPs duplicados: {len(ips_duplicados)}, Pedidos processados: {total_processed}, Pedidos com IPs duplicados: {total_pedidos_encontrados}")
+        
         create_safe_log(
             user=request.user,
             config=config,
@@ -4061,8 +4113,9 @@ def buscar_ips_duplicados_simples(request):
                 'excluded_count': excluded_count,
                 'unique_ips': len(ip_groups),
                 'methods_used': methods_used,
-                'version': 'improved_v2',
-                'pedidos_encontrados': sum(ip['total_pedidos'] for ip in ips_duplicados)
+                'version': 'optimized_v3',
+                'pedidos_encontrados': total_pedidos_encontrados,
+                'api_limit_used': limit_usado
             }
         )
         
@@ -4077,7 +4130,8 @@ def buscar_ips_duplicados_simples(request):
                 'excluded_count': excluded_count,
                 'unique_ips_found': len(ip_groups),
                 'methods_used': methods_used,
-                'success_rate': len(ip_groups) / max(total_processed - excluded_count, 1) * 100
+                'success_rate': len(ip_groups) / max(total_processed - excluded_count, 1) * 100,
+                'api_limit_used': limit_usado
             }
         })
         
