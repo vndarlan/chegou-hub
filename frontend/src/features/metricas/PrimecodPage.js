@@ -514,7 +514,7 @@ function PrimecodPage() {
                                 <div>
                                     <p className="text-sm text-muted-foreground">Efetividade Total</p>
                                     <p className={`text-xl font-bold ${getEfetividadeCor(totalRow.Efetividade_Total || 0)}`}>
-                                        {totalRow.Efetividade_Total || 0}%
+                                        {totalRow.Efetividade_Total || 0}
                                     </p>
                                 </div>
                                 <Target className="h-5 w-5 text-blue-500" />
@@ -528,7 +528,7 @@ function PrimecodPage() {
                                 <div>
                                     <p className="text-sm text-muted-foreground">Efetividade Parcial</p>
                                     <p className={`text-xl font-bold ${getEfetividadeCor(totalRow.Efetividade_Parcial || 0)}`}>
-                                        {totalRow.Efetividade_Parcial || 0}%
+                                        {totalRow.Efetividade_Parcial || 0}
                                     </p>
                                 </div>
                                 <TrendingUp className="h-5 w-5 text-green-500" />
@@ -554,7 +554,7 @@ function PrimecodPage() {
                                 <div>
                                     <p className="text-sm text-muted-foreground">% Processamento</p>
                                     <p className={`text-xl font-bold ${getEfetividadeCor(totalRow['% Processamento'] || 0)}`}>
-                                        {totalRow['% Processamento'] || 0}%
+                                        {totalRow['% Processamento'] || 0}
                                     </p>
                                 </div>
                                 <Percent className="h-5 w-5 text-orange-500" />
