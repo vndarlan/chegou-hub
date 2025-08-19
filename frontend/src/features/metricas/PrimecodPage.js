@@ -85,7 +85,7 @@ function PrimecodPage() {
     const [analisesSalvas, setAnalisesSalvas] = useState([]);
     const [dadosResultado, setDadosResultado] = useState(null);
     const [secaoAtiva, setSecaoAtiva] = useState('gerar');
-    const [tipoVisualizacao, setTipoVisualizacao] = useState('otimizada');
+    const [tipoVisualizacao, setTipoVisualizacao] = useState('total');
     
     // Estados do formulário
     const [dateRange, setDateRange] = useState({
@@ -327,6 +327,52 @@ function PrimecodPage() {
         setTimeout(() => setNotification(null), 5000);
     };
 
+    const agruparDadosPrimeCOD = (dados) => {
+        if (!dados || !Array.isArray(dados)) return [];
+        
+        return dados.map(row => {
+            const emProcessamento = (row['Efetuado'] || 0) + (row['Empacotado'] || 0);
+            const emTransito = (row['Despachado'] || 0) + (row['Enviado'] || 0) + 
+                               (row['Chegada ao Destino'] || 0) + (row['Saiu para Entrega'] || 0);
+            const entregues = row['Entregue'] || 0;
+            const devolucoes = (row['Recusado'] || 0) + (row['Retornando'] || 0) + (row['Devolvido'] || 0);
+            const cancelados = (row['Cancelado'] || 0) + (row['Fora de Estoque'] || 0);
+            const problemas = (row['Erro'] || 0) + (row['Erro de Fulfillment'] || 0) + (row['Incidente'] || 0);
+            const finalizados = entregues + (row['Recusado'] || 0) + (row['Devolvido'] || 0) + 
+                               cancelados + problemas;
+            const totais = row['total'] || 0;
+            
+            return {
+                produto: row.produto,
+                pais: row.pais,
+                'Totais': totais,
+                'Finalizados': finalizados,
+                'Em Processamento': emProcessamento,
+                'Em Trânsito': emTransito,
+                'Entregues': entregues,
+                'Devoluções': devolucoes,
+                'Cancelados': cancelados,
+                'Problemas': problemas,
+                '% Processamento': totais > 0 ? ((emProcessamento / totais) * 100).toFixed(1) + '%' : '0.0%',
+                '% A Caminho': totais > 0 ? ((emTransito / totais) * 100).toFixed(1) + '%' : '0.0%',
+                '% Devolvidos': totais > 0 ? ((devolucoes / totais) * 100).toFixed(1) + '%' : '0.0%',
+                'Efetividade_Parcial': finalizados > 0 ? ((entregues / finalizados) * 100).toFixed(1) + '%' : '0.0%',
+                'Efetividade_Total': totais > 0 ? ((entregues / totais) * 100).toFixed(1) + '%' : '0.0%'
+            };
+        });
+    };
+
+    const getEfetividadeCor = (valor) => {
+        if (!valor || typeof valor !== 'string') return '';
+        
+        const numero = parseFloat(valor.replace('%', '').replace('(Média)', ''));
+        
+        if (numero >= 60) return 'bg-green-600 text-white';
+        if (numero >= 50) return 'bg-green-500 text-white';
+        if (numero >= 40) return 'bg-yellow-500 text-black';
+        return 'bg-red-500 text-white';
+    };
+
     const sortData = (data, sortBy, sortOrder) => {
         if (!sortBy || !data) return data;
         
@@ -447,13 +493,79 @@ function PrimecodPage() {
     const renderEstatisticas = () => {
         if (!dadosResultado || !Array.isArray(dadosResultado)) return null;
         
+        if (tipoVisualizacao === 'otimizada') {
+            const dadosAgrupados = agruparDadosPrimeCOD(dadosResultado);
+            const totalRow = dadosAgrupados.find(item => item.produto === 'TOTAL');
+            
+            if (!totalRow) return null;
+            
+            return (
+                <div className="grid grid-cols-4 gap-4 mb-6">
+                    <Card className="border-border bg-card">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Efetividade Total</p>
+                                    <p className={`text-xl font-bold ${getEfetividadeCor(totalRow.Efetividade_Total)}`}>
+                                        {totalRow.Efetividade_Total}%
+                                    </p>
+                                </div>
+                                <Target className="h-5 w-5 text-blue-500" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                    
+                    <Card className="border-border bg-card">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Efetividade Parcial</p>
+                                    <p className={`text-xl font-bold ${getEfetividadeCor(totalRow.Efetividade_Parcial)}`}>
+                                        {totalRow.Efetividade_Parcial}%
+                                    </p>
+                                </div>
+                                <TrendingUp className="h-5 w-5 text-green-500" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                    
+                    <Card className="border-border bg-card">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Total de Pedidos</p>
+                                    <p className="text-xl font-bold text-blue-600">{totalRow.Total.toLocaleString()}</p>
+                                </div>
+                                <Package className="h-5 w-5 text-blue-500" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                    
+                    <Card className="border-border bg-card">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">% Processamento</p>
+                                    <p className={`text-xl font-bold ${getEfetividadeCor(totalRow['% Processamento'])}`}>
+                                        {totalRow['% Processamento']}%
+                                    </p>
+                                </div>
+                                <Percent className="h-5 w-5 text-orange-500" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            );
+        }
+        
+        // Versão padrão para visualização total
         const produtos = dadosResultado.filter(item => item.produto !== 'TOTAL');
         const totalRow = dadosResultado.find(item => item.produto === 'TOTAL');
         
         const totalProdutos = produtos.length;
         const totalOrders = totalRow?.total || 0;
-        const totalDelivered = totalRow?.Delivered || 0;
-        const totalReturned = totalRow?.Returned || 0;
+        const totalDelivered = totalRow?.Entregue || 0;
+        const totalReturned = totalRow?.Devolvido || 0;
         
         return (
             <div className="grid grid-cols-4 gap-4 mb-6">
@@ -512,38 +624,57 @@ function PrimecodPage() {
         if (!dadosResultado || !Array.isArray(dadosResultado)) return null;
 
         const dadosOrdenados = sortData(dadosResultado, sortBy, sortOrder);
-        const statusColumns = Object.values(STATUS_MAPPING);
-        const colunas = ['produto', 'pais', ...statusColumns, 'total'];
+        const dadosParaExibir = tipoVisualizacao === 'otimizada' 
+            ? agruparDadosPrimeCOD(dadosOrdenados)
+            : dadosOrdenados;
+        
+        let colunas;
+        if (tipoVisualizacao === 'otimizada') {
+            colunas = ['produto', 'pais', 'Totais', 'Finalizados', 'Em Processamento', 'Em Trânsito', 'Entregues', 'Devoluções', 'Cancelados', 'Problemas', '% Processamento', '% A Caminho', '% Devolvidos', 'Efetividade_Parcial', 'Efetividade_Total'];
+        } else {
+            const statusColumns = Object.values(STATUS_MAPPING);
+            colunas = ['produto', 'pais', ...statusColumns, 'total'];
+        }
 
         return (
             <Card className="mb-6 border-border bg-card">
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle className="text-lg text-card-foreground">Tabela Cruzada: Produto × País × Status</CardTitle>
+                            <CardTitle className="text-lg text-card-foreground">
+                                {tipoVisualizacao === 'otimizada' ? 'Análise Otimizada: Categorias × Métricas' : 'Tabela Cruzada: Produto × País × Status'}
+                            </CardTitle>
                             <CardDescription className="text-muted-foreground">{dadosResultado.length} registros</CardDescription>
                         </div>
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => setModalSalvar(true)}
-                            className="border-border bg-background text-foreground hover:bg-accent"
-                        >
-                            <Download className="h-4 w-4 mr-2" />
-                            Salvar
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Tabs value={tipoVisualizacao} onValueChange={setTipoVisualizacao}>
+                                <TabsList className="grid w-fit grid-cols-2 bg-muted">
+                                    <TabsTrigger value="total" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Total</TabsTrigger>
+                                    <TabsTrigger value="otimizada" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Otimizada</TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => setModalSalvar(true)}
+                                className="border-border bg-background text-foreground hover:bg-accent"
+                            >
+                                <Download className="h-4 w-4 mr-2" />
+                                Salvar
+                            </Button>
+                        </div>
                     </div>
                 </CardHeader>
 
                 <CardContent className="p-0">
                     {/* SOLUÇÃO: Separar overflow do sticky - container externo SEM overflow */}
-                    <div className="relative border-t" style={{ height: `${Math.min(300, (dadosOrdenados.length + 1) * 45)}px`, overflow: 'visible' }}>
+                    <div className="relative border-t" style={{ height: `${Math.min(300, (dadosParaExibir.length + 1) * 45)}px`, overflow: 'visible' }}>
                         {/* Container interno COM overflow para scroll */}
                         <div 
                             className="absolute inset-0 overflow-auto"
                             style={{ overflowX: 'auto', overflowY: 'auto' }}
                         >
-                            <table className="w-full text-sm border-collapse" style={{ minWidth: `${350 + statusColumns.length * 120}px` }}>
+                            <table className="w-full text-sm border-collapse" style={{ minWidth: `${350 + colunas.length * 120}px` }}>
                                 <thead>
                                     <tr className="bg-muted/50">
                                         {colunas.map(col => {
@@ -587,7 +718,7 @@ function PrimecodPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {dadosOrdenados.map((row, idx) => (
+                                    {dadosParaExibir.map((row, idx) => (
                                         <tr 
                                             key={idx} 
                                             className={`border-b border-border hover:bg-muted/50 transition-colors ${
@@ -598,12 +729,23 @@ function PrimecodPage() {
                                                 const isProduto = col === 'produto';
                                                 const isPais = col === 'pais';
                                                 
+                                                // Aplicar cores nas métricas da versão otimizada
+                                                const isMetrica = tipoVisualizacao === 'otimizada' && 
+                                                    (col === 'Efetividade_Total' || col === 'Efetividade_Parcial' || 
+                                                     col === '% Processamento' || col === '% A Caminho' || col === '% Devolvidos');
+                                                
+                                                let cellClassesAdicionais = `px-3 py-2 text-xs border-r border-border last:border-r-0 ${
+                                                    isProduto || isPais ? '' : 'text-center'
+                                                }`;
+                                                
+                                                if (isMetrica) {
+                                                    cellClassesAdicionais += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded`;
+                                                }
+                                                
                                                 return (
                                                     <td 
                                                         key={col} 
-                                                        className={`px-3 py-2 text-xs border-r border-border last:border-r-0 ${
-                                                            isProduto || isPais ? '' : 'text-center'
-                                                        }`}
+                                                        className={cellClassesAdicionais}
                                                         style={{
                                                             position: isProduto ? 'sticky' : isPais ? 'sticky' : 'static',
                                                             left: isProduto ? '0px' : isPais ? '200px' : 'auto',
@@ -852,15 +994,66 @@ function PrimecodPage() {
                         <Separator className="bg-border" />
 
                         <div>
-                            <h4 className="text-lg font-semibold text-teal-600 mb-3">📈 Tabela de Resultados</h4>
-                            <p className="text-sm text-muted-foreground mb-4">
-                                Visualização cruzada agrupando dados por:
-                            </p>
-                            <div className="space-y-1">
-                                <p className="text-sm text-foreground">• <strong>Produto:</strong> SKU do produto</p>
-                                <p className="text-sm text-foreground">• <strong>País:</strong> País de envio</p>
-                                <p className="text-sm text-foreground">• <strong>Status:</strong> Colunas para cada status</p>
-                                <p className="text-sm text-foreground">• <strong>Total:</strong> Soma de todos os status</p>
+                            <h4 className="text-lg font-semibold text-teal-600 mb-3">📈 Modos de Visualização</h4>
+                            
+                            <div className="space-y-4">
+                                <div>
+                                    <h5 className="font-semibold text-blue-600 mb-2">🔹 Visualização Total</h5>
+                                    <p className="text-sm text-muted-foreground mb-2">
+                                        Visualização completa com todas as 15 colunas de status individuais:
+                                    </p>
+                                    <div className="space-y-1 text-xs">
+                                        <p className="text-foreground">• <strong>Produto:</strong> SKU do produto</p>
+                                        <p className="text-foreground">• <strong>País:</strong> País de envio</p>
+                                        <p className="text-foreground">• <strong>Status:</strong> Colunas individuais para cada um dos 15 status</p>
+                                        <p className="text-foreground">• <strong>Total:</strong> Soma de todos os status</p>
+                                    </div>
+                                </div>
+
+                                <Separator className="bg-border" />
+
+                                <div>
+                                    <h5 className="font-semibold text-purple-600 mb-2">🔹 Visualização Otimizada</h5>
+                                    <p className="text-sm text-muted-foreground mb-3">
+                                        Versão agrupada com métricas calculadas para análise rápida:
+                                    </p>
+                                    
+                                    <div className="space-y-3">
+                                        <div className="bg-card border rounded-lg p-3">
+                                            <h6 className="font-medium text-green-600 mb-2">📊 Categorias de Status:</h6>
+                                            <div className="space-y-1 text-xs">
+                                                <p><strong>Em Processamento:</strong> Efetuado + Empacotado</p>
+                                                <p><strong>A Caminho:</strong> Despachado + Enviado + Chegada ao Destino + Saiu para Entrega</p>
+                                                <p><strong>Entregues:</strong> Entregue</p>
+                                                <p><strong>Devoluções:</strong> Recusado + Retornando + Devolvido</p>
+                                                <p><strong>Cancelados:</strong> Cancelado + Fora de Estoque</p>
+                                                <p><strong>Problemas:</strong> Erro + Erro de Fulfillment + Incidente</p>
+                                                <p><strong>Finalizados:</strong> Entregues + Devoluções + Cancelados + Problemas</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-card border rounded-lg p-3">
+                                            <h6 className="font-medium text-orange-600 mb-2">🧮 Métricas Calculadas:</h6>
+                                            <div className="space-y-1 text-xs">
+                                                <p><strong>Efetividade Total:</strong> (Entregues ÷ Total) × 100</p>
+                                                <p><strong>Efetividade Parcial:</strong> (Entregues ÷ Finalizados) × 100</p>
+                                                <p><strong>% Processamento:</strong> (Em Processamento ÷ Total) × 100</p>
+                                                <p><strong>% A Caminho:</strong> (A Caminho ÷ Total) × 100</p>
+                                                <p><strong>% Devolvidos:</strong> (Devoluções ÷ Total) × 100</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-card border rounded-lg p-3">
+                                            <h6 className="font-medium text-red-600 mb-2">🎨 Código de Cores:</h6>
+                                            <div className="space-y-1 text-xs">
+                                                <p className="text-green-600"><strong>Verde:</strong> ≥ 70% (Excelente)</p>
+                                                <p className="text-yellow-600"><strong>Amarelo:</strong> 50-69% (Bom)</p>
+                                                <p className="text-orange-600"><strong>Laranja:</strong> 30-49% (Regular)</p>
+                                                <p className="text-red-600"><strong>Vermelho:</strong> &lt; 30% (Crítico)</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

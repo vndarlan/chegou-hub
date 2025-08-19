@@ -76,6 +76,9 @@
       "Bash(git reset:*)"
     ],
     "deny": [],
-    "defaultMode": "acceptEdits"
+    "defaultMode": "acceptEdits",
+    "additionalDirectories": [
+      "C:\\c\\Users\\Vinic\\OneDrive\\Documentos\\Programação\\chegou-hub"
+    ]
   }
 }
