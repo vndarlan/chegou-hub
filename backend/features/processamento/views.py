@@ -4130,6 +4130,7 @@ def buscar_ips_duplicados_simples(request):
         total_processed = 0
         excluded_count = 0
         methods_used = {}
+        limit_usado = False  # Indica se foi usado algum limite de paginação
         
         logger.info(f"Processando {len(orders)} pedidos encontrados na API Shopify")
         
@@ -4178,14 +4179,14 @@ def buscar_ips_duplicados_simples(request):
                     pass  # Continua sem dados de endereço se houver erro
                 
                 ip_groups[ip_found].append({
-                    'order_id': str(order.id),
-                    'order_number': order.name or '',
+                    'order_id': str(order_dict.get('id', '')),
+                    'order_number': order_dict.get('name', '') or order_dict.get('order_number', ''),
                     'customer_name': customer_name,
                     'customer_email': customer_email,
                     'customer_phone': customer_phone,
                     'total_price': str(order_dict.get('total_price', '0.00')),
                     'currency': order_dict.get('currency', 'BRL'),
-                    'created_at': order.created_at.isoformat() if hasattr(order.created_at, 'isoformat') else str(order.created_at),
+                    'created_at': order_dict.get('created_at', ''),
                     'cancelled_at': order_dict.get('cancelled_at'),  # Campo crucial para verificar cancelamento
                     'financial_status': order_dict.get('financial_status', ''),
                     'shipping_city': shipping_city,
