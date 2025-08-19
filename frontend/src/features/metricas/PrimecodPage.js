@@ -536,94 +536,95 @@ function PrimecodPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div className="w-full overflow-x-auto border-t">
-                        <table className="w-full text-sm border-separate border-spacing-0" style={{ minWidth: '1200px' }}>
-                            <thead>
-                                <tr>
-                                    {colunas.map(col => {
-                                        const isProduto = col === 'produto';
-                                        const isPais = col === 'pais';
-                                        
-                                        let headerClasses = 'px-3 py-2 text-left text-xs font-medium text-muted-foreground border-r border-border last:border-r-0 sticky top-0 bg-muted/50';
-                                        
-                                        if (isProduto) {
-                                            headerClasses += ' sticky left-0 z-30 bg-muted/50';
-                                        } else if (isPais) {
-                                            headerClasses += ' sticky left-[200px] z-30 bg-muted/50';
-                                        } else {
-                                            headerClasses += ' z-20 text-center';
-                                        }
-                                        
-                                        return (
-                                            <th 
-                                                key={col} 
-                                                className={headerClasses}
-                                                style={{
-                                                    minWidth: isProduto ? '200px' : isPais ? '150px' : '120px',
-                                                    width: isProduto ? '200px' : isPais ? '150px' : '120px'
-                                                }}
-                                            >
-                                                <button
-                                                    className="flex items-center gap-1 text-xs hover:text-foreground transition-colors w-full"
-                                                    onClick={() => handleSort(col)}
-                                                >
-                                                    <span className="truncate">
-                                                        {col.toUpperCase()}
-                                                    </span>
-                                                    {sortBy === col ? (
-                                                        sortOrder === 'asc' ? 
-                                                            <ArrowUp className="h-3 w-3 flex-shrink-0" /> : 
-                                                            <ArrowDown className="h-3 w-3 flex-shrink-0" />
-                                                    ) : (
-                                                        <ArrowUpDown className="h-3 w-3 opacity-50 flex-shrink-0" />
-                                                    )}
-                                                </button>
-                                            </th>
-                                        );
-                                    })}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {dadosOrdenados.map((row, idx) => (
-                                    <tr 
-                                        key={idx} 
-                                        className={`border-b border-border hover:bg-muted/50 transition-colors ${
-                                            row.produto === 'TOTAL' ? 'bg-muted/20 font-medium' : ''
-                                        }`}
-                                    >
+                    {/* SOLUÇÃO: Separar overflow do sticky - container externo SEM overflow */}
+                    <div className="relative border-t" style={{ height: '400px', overflow: 'visible' }}>
+                        {/* Container interno COM overflow para scroll */}
+                        <div 
+                            className="absolute inset-0 overflow-auto"
+                            style={{ overflowX: 'auto', overflowY: 'auto' }}
+                        >
+                            <table className="w-full text-sm border-collapse" style={{ minWidth: `${350 + statusColumns.length * 120}px` }}>
+                                <thead>
+                                    <tr className="bg-muted/50">
                                         {colunas.map(col => {
                                             const isProduto = col === 'produto';
                                             const isPais = col === 'pais';
                                             
-                                            let cellClasses = 'px-3 py-2 text-xs border-r border-border last:border-r-0';
-                                            
-                                            if (isProduto) {
-                                                cellClasses += ' sticky left-0 bg-background z-10';
-                                            } else if (isPais) {
-                                                cellClasses += ' sticky left-[200px] bg-background z-10';
-                                            } else {
-                                                cellClasses += ' text-center';
-                                            }
-                                            
                                             return (
-                                                <td 
+                                                <th 
                                                     key={col} 
-                                                    className={cellClasses}
+                                                    className={`px-3 py-2 text-left text-xs font-medium text-muted-foreground border-r border-border last:border-r-0 ${
+                                                        isProduto || isPais ? '' : 'text-center'
+                                                    }`}
                                                     style={{
+                                                        position: isProduto ? 'sticky' : isPais ? 'sticky' : 'static',
+                                                        left: isProduto ? '0px' : isPais ? '200px' : 'auto',
+                                                        backgroundColor: isProduto || isPais ? 'hsl(var(--muted)/0.5)' : 'hsl(var(--muted)/0.5)',
+                                                        zIndex: isProduto || isPais ? 30 : 20,
                                                         minWidth: isProduto ? '200px' : isPais ? '150px' : '120px',
-                                                        width: isProduto ? '200px' : isPais ? '150px' : '120px'
+                                                        width: isProduto ? '200px' : isPais ? '150px' : '120px',
+                                                        boxShadow: isProduto || isPais ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none'
                                                     }}
                                                 >
-                                                    <div className="truncate" title={row[col]}>
-                                                        {typeof row[col] === 'number' ? row[col].toLocaleString() : (row[col] || 0)}
-                                                    </div>
-                                                </td>
+                                                    <button
+                                                        className="flex items-center gap-1 text-xs hover:text-foreground transition-colors w-full"
+                                                        onClick={() => handleSort(col)}
+                                                    >
+                                                        <span className="truncate">
+                                                            {col.toUpperCase()}
+                                                        </span>
+                                                        {sortBy === col ? (
+                                                            sortOrder === 'asc' ? 
+                                                                <ArrowUp className="h-3 w-3 flex-shrink-0" /> : 
+                                                                <ArrowDown className="h-3 w-3 flex-shrink-0" />
+                                                        ) : (
+                                                            <ArrowUpDown className="h-3 w-3 opacity-50 flex-shrink-0" />
+                                                        )}
+                                                    </button>
+                                                </th>
                                             );
                                         })}
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {dadosOrdenados.map((row, idx) => (
+                                        <tr 
+                                            key={idx} 
+                                            className={`border-b border-border hover:bg-muted/50 transition-colors ${
+                                                row.produto === 'TOTAL' ? 'bg-muted/20 font-medium' : ''
+                                            }`}
+                                        >
+                                            {colunas.map(col => {
+                                                const isProduto = col === 'produto';
+                                                const isPais = col === 'pais';
+                                                
+                                                return (
+                                                    <td 
+                                                        key={col} 
+                                                        className={`px-3 py-2 text-xs border-r border-border last:border-r-0 ${
+                                                            isProduto || isPais ? '' : 'text-center'
+                                                        }`}
+                                                        style={{
+                                                            position: isProduto ? 'sticky' : isPais ? 'sticky' : 'static',
+                                                            left: isProduto ? '0px' : isPais ? '200px' : 'auto',
+                                                            backgroundColor: isProduto || isPais ? 'hsl(var(--background))' : 'transparent',
+                                                            zIndex: isProduto || isPais ? 10 : 1,
+                                                            minWidth: isProduto ? '200px' : isPais ? '150px' : '120px',
+                                                            width: isProduto ? '200px' : isPais ? '150px' : '120px',
+                                                            boxShadow: isProduto || isPais ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none'
+                                                        }}
+                                                    >
+                                                        <div className="truncate" title={row[col]}>
+                                                            {typeof row[col] === 'number' ? row[col].toLocaleString() : (row[col] || 0)}
+                                                        </div>
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
