@@ -515,6 +515,18 @@ function PrimecodPage() {
         const statusColumns = Object.values(STATUS_MAPPING);
         const colunas = ['produto', 'pais', ...statusColumns, 'total'];
 
+        // CSS customizado para garantir barra de rolagem visível
+        const scrollContainerStyle = {
+            maxHeight: '70vh',
+            overflowX: 'scroll', // Força barra de rolagem horizontal
+            overflowY: 'hidden',
+            scrollbarWidth: 'auto', // Firefox
+            msOverflowStyle: 'auto', // IE  
+            WebkitOverflowScrolling: 'touch',
+            border: '1px solid #e2e8f0',
+            borderRadius: '6px'
+        };
+
         return (
             <Card className="mb-6 border-border bg-card">
                 <CardHeader className="pb-3">
@@ -536,8 +548,12 @@ function PrimecodPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div className="w-full overflow-x-auto">
-                        <Table className="w-max min-w-full">
+                    <div 
+                        className="w-full border-t" 
+                        style={scrollContainerStyle}
+                    >
+                        <div style={{ minWidth: `${350 + (statusColumns.length * 100)}px` }}>
+                            <Table className="w-full table-auto">
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     {colunas.map(col => {
@@ -614,7 +630,8 @@ function PrimecodPage() {
                                     </TableRow>
                                 ))}
                             </TableBody>
-                        </Table>
+                            </Table>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
