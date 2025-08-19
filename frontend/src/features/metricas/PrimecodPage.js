@@ -363,13 +363,20 @@ function PrimecodPage() {
     };
 
     const getEfetividadeCor = (valor) => {
-        if (!valor || typeof valor !== 'string') return '';
+        if (!valor) return '';
         
-        const numero = parseFloat(valor.replace('%', '').replace('(Média)', ''));
+        let numero;
+        if (typeof valor === 'string') {
+            numero = parseFloat(valor.replace('%', '').replace('(Média)', ''));
+        } else {
+            numero = parseFloat(valor);
+        }
         
-        if (numero >= 60) return 'bg-green-600 text-white';
-        if (numero >= 50) return 'bg-green-500 text-white';
-        if (numero >= 40) return 'bg-yellow-500 text-black';
+        if (isNaN(numero)) return '';
+        
+        if (numero >= 70) return 'bg-green-600 text-white';
+        if (numero >= 50) return 'bg-yellow-500 text-black';
+        if (numero >= 30) return 'bg-orange-500 text-white';
         return 'bg-red-500 text-white';
     };
 
@@ -506,8 +513,8 @@ function PrimecodPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground">Efetividade Total</p>
-                                    <p className={`text-xl font-bold ${getEfetividadeCor(totalRow.Efetividade_Total)}`}>
-                                        {totalRow.Efetividade_Total}%
+                                    <p className={`text-xl font-bold ${getEfetividadeCor(totalRow.Efetividade_Total || 0)}`}>
+                                        {totalRow.Efetividade_Total || 0}%
                                     </p>
                                 </div>
                                 <Target className="h-5 w-5 text-blue-500" />
@@ -520,8 +527,8 @@ function PrimecodPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground">Efetividade Parcial</p>
-                                    <p className={`text-xl font-bold ${getEfetividadeCor(totalRow.Efetividade_Parcial)}`}>
-                                        {totalRow.Efetividade_Parcial}%
+                                    <p className={`text-xl font-bold ${getEfetividadeCor(totalRow.Efetividade_Parcial || 0)}`}>
+                                        {totalRow.Efetividade_Parcial || 0}%
                                     </p>
                                 </div>
                                 <TrendingUp className="h-5 w-5 text-green-500" />
@@ -534,7 +541,7 @@ function PrimecodPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground">Total de Pedidos</p>
-                                    <p className="text-xl font-bold text-blue-600">{totalRow.Total.toLocaleString()}</p>
+                                    <p className="text-xl font-bold text-blue-600">{(totalRow.Totais || 0).toLocaleString()}</p>
                                 </div>
                                 <Package className="h-5 w-5 text-blue-500" />
                             </div>
@@ -546,8 +553,8 @@ function PrimecodPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground">% Processamento</p>
-                                    <p className={`text-xl font-bold ${getEfetividadeCor(totalRow['% Processamento'])}`}>
-                                        {totalRow['% Processamento']}%
+                                    <p className={`text-xl font-bold ${getEfetividadeCor(totalRow['% Processamento'] || 0)}`}>
+                                        {totalRow['% Processamento'] || 0}%
                                     </p>
                                 </div>
                                 <Percent className="h-5 w-5 text-orange-500" />
