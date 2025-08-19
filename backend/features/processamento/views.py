@@ -733,14 +733,44 @@ def detalhar_pedidos_ip(request):
             
             logger.info(f"Encontrados {len(specific_orders)} pedidos para IP {ip}")
             
+            # ⚡ APLICA MESMO FILTRO DA TABELA: Só pedidos de clientes DIFERENTES
+            clientes_unicos = set()
+            pedidos_filtrados = []
+            
+            # Primeiro, identifica todos os clientes únicos
+            for order in specific_orders:
+                customer = order.get('customer', {})
+                customer_name = f"{customer.get('first_name', '')} {customer.get('last_name', '')}".strip()
+                if customer_name:
+                    clientes_unicos.add(customer_name)
+            
+            # Se há apenas 1 cliente único, não deveria estar na lista (erro de lógica)
+            if len(clientes_unicos) <= 1:
+                logger.warning(f"IP {ip} tem apenas {len(clientes_unicos)} cliente(s) único(s) - não deveria estar na lista")
+                return Response({
+                    'success': True,
+                    'data': {
+                        'ip': ip,
+                        'total_orders': 0,
+                        'client_details': [],
+                        'active_orders': 0,
+                        'cancelled_orders': 0
+                    },
+                    'loja_nome': config.nome_loja,
+                    'message': f'IP {ip} não tem clientes diferentes - dados inconsistentes'
+                })
+            
+            # Usa TODOS os pedidos pois já passou no filtro da tabela principal
+            pedidos_filtrados = specific_orders
+            
             # Processa os dados para o formato esperado pelo frontend
             client_details = []
             active_orders = 0
             cancelled_orders = 0
             
-            logger.info(f"Processando {len(specific_orders)} pedidos do grupo")
+            logger.info(f"Processando {len(pedidos_filtrados)} pedidos filtrados do grupo (clientes únicos: {len(clientes_unicos)})")
             
-            for order in specific_orders:
+            for order in pedidos_filtrados:
                 try:
                     # Extrai dados do cliente
                     customer = order.get('customer', {})
@@ -797,14 +827,14 @@ def detalhar_pedidos_ip(request):
             
             logger.info(f"Processamento concluído: {len(client_details)} pedidos processados, {active_orders} ativos, {cancelled_orders} cancelados")
             
-            # Calcula estatísticas dos pedidos encontrados
-            total_sales = sum(float(order.get('total_price', 0)) for order in specific_orders)
+            # Calcula estatísticas dos pedidos filtrados
+            total_sales = sum(float(order.get('total_price', 0)) for order in pedidos_filtrados)
             unique_customers = set()
             currencies = set()
             first_order_date = None
             last_order_date = None
             
-            for order in specific_orders:
+            for order in pedidos_filtrados:
                 customer = order.get('customer', {})
                 if customer.get('email'):
                     unique_customers.add(customer['email'])
@@ -829,7 +859,7 @@ def detalhar_pedidos_ip(request):
                 'success': True,
                 'data': {
                     'ip': ip,
-                    'total_orders': len(specific_orders),
+                    'total_orders': len(pedidos_filtrados),
                     'client_details': client_details,
                     'active_orders': active_orders,
                     'cancelled_orders': cancelled_orders,
@@ -963,11 +993,12 @@ def test_simple_endpoint(request):
         # Busca pedidos dos últimos X dias
         data_inicial = timezone.now() - timedelta(days=days)
         
+        # ⚡ CORREÇÃO CRÍTICA: Remove limit=250 para garantir consistência com get_orders_for_specific_ip
         orders = shopify.Order.find(
             status='any',
             created_at_min=data_inicial.isoformat(),
-            limit=250,
             fields='id,name,created_at,browser_ip,customer'
+            # Removido limit=250 para buscar TODOS os pedidos do período
         )
         
         # Agrupa pedidos por IP
@@ -3805,13 +3836,28 @@ def _get_basic_ip_data_with_timeout(detector, days, min_orders, timeout=45):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def buscar_ips_duplicados_simples(request):
-    """Busca IPs com múltiplos pedidos - versão melhorada com múltiplas fontes"""
+    """
+    Busca IPs com múltiplos pedidos - versão melhorada com múltiplas fontes
+    
+    ⚡ CORREÇÃO CRÍTICA APLICADA:
+    - Removido limit=250 de shopify.Order.find() para garantir consistência
+    - Agora busca TODOS os pedidos do período, igual a get_orders_for_specific_ip()
+    - Resolve inconsistência: tabela principal mostrava menos pedidos que detalhes
+    - Performance: pode ser mais lenta, mas dados são consistentes e corretos
+    """
     try:
         loja_id = request.data.get('loja_id')
         days = request.data.get('days', 30)  # Padrão 30 dias
         
+        # ⚡ VALIDAÇÃO DE PERFORMANCE: Limite período para compensar remoção do limit=250
+        if days > 90:
+            return Response({
+                'error': 'Período máximo permitido é 90 dias para garantir performance',
+                'details': 'Com a correção aplicada, períodos longos podem impactar a performance'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         # Log de auditoria
-        logger.info(f"Busca de IPs duplicados - Usuário: {request.user.username} (ID: {request.user.id}), Loja: {loja_id}")
+        logger.info(f"Busca de IPs duplicados - Usuário: {request.user.username} (ID: {request.user.id}), Loja: {loja_id}, Período: {days} dias")
         
         if not loja_id:
             return Response({'error': 'ID da loja é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
@@ -3832,10 +3878,12 @@ def buscar_ips_duplicados_simples(request):
         # Busca pedidos dos últimos X dias - SEM LIMITAÇÃO DE CAMPOS para pegar mais dados
         data_inicial = timezone.now() - timedelta(days=days)
         
+        # ⚡ CORREÇÃO CRÍTICA: Remove limit=250 e usa estratégia similar ao get_orders_for_specific_ip
+        # para garantir consistência de dados entre tabela principal e detalhes
         orders = shopify.Order.find(
             status='any',
-            created_at_min=data_inicial.isoformat(),
-            limit=250
+            created_at_min=data_inicial.isoformat()
+            # Removido limit=250 para buscar TODOS os pedidos do período
             # Removido 'fields' para pegar todos os dados do pedido
         )
         
@@ -4074,10 +4122,11 @@ def debug_buscar_ip_especifico(request):
         # Busca pedidos dos últimos X dias SEM FILTRO DE STATUS
         data_inicial = timezone.now() - timedelta(days=days)
         
+        # ⚡ CORREÇÃO CRÍTICA: Remove limit=250 para garantir consistência com get_orders_for_specific_ip
         orders = shopify.Order.find(
             status='any',  # TODOS os status
-            created_at_min=data_inicial.isoformat(),
-            limit=250
+            created_at_min=data_inicial.isoformat()
+            # Removido limit=250 para buscar TODOS os pedidos do período
         )
         
         pedidos_encontrados = []

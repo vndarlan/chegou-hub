@@ -515,18 +515,6 @@ function PrimecodPage() {
         const statusColumns = Object.values(STATUS_MAPPING);
         const colunas = ['produto', 'pais', ...statusColumns, 'total'];
 
-        // CSS customizado para garantir barra de rolagem visível
-        const scrollContainerStyle = {
-            maxHeight: '70vh',
-            overflowX: 'scroll', // Força barra de rolagem horizontal
-            overflowY: 'hidden',
-            scrollbarWidth: 'auto', // Firefox
-            msOverflowStyle: 'auto', // IE  
-            WebkitOverflowScrolling: 'touch',
-            border: '1px solid #e2e8f0',
-            borderRadius: '6px'
-        };
-
         return (
             <Card className="mb-6 border-border bg-card">
                 <CardHeader className="pb-3">
@@ -548,90 +536,86 @@ function PrimecodPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div 
-                        className="w-full border-t" 
-                        style={scrollContainerStyle}
-                    >
-                        <div style={{ minWidth: `${350 + (statusColumns.length * 100)}px` }}>
-                            <Table className="w-full table-auto">
-                            <TableHeader>
-                                <TableRow className="bg-muted/50 border-border">
+                    <div className="overflow-x-auto border-t max-h-[70vh]">
+                        <table className="w-full text-sm border-collapse">
+                            <thead className="bg-muted/50 sticky top-0 z-10">
+                                <tr className="border-b border-border">
                                     {colunas.map(col => {
                                         const isProduto = col === 'produto';
                                         const isPais = col === 'pais';
                                         
-                                        let classesHeader = 'whitespace-nowrap px-3 py-2 text-xs text-muted-foreground';
+                                        let headerClasses = 'px-3 py-2 text-left text-xs font-medium text-muted-foreground border-r border-border last:border-r-0';
                                         
                                         if (isProduto) {
-                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border w-[200px] min-w-[200px]';
+                                            headerClasses += ' sticky left-0 bg-muted/50 z-20 min-w-[200px] w-[200px]';
                                         } else if (isPais) {
-                                            classesHeader += ' sticky left-[200px] z-20 bg-background border-r border-border w-[150px] min-w-[150px]';
+                                            headerClasses += ' sticky left-[200px] bg-muted/50 z-20 min-w-[150px] w-[150px]';
                                         } else {
-                                            // Colunas de status - largura fixa para evitar sobreposição
-                                            classesHeader += ' w-[100px] min-w-[100px] text-center';
+                                            headerClasses += ' min-w-[100px] w-[100px] text-center';
                                         }
                                         
                                         return (
-                                            <TableHead key={col} className={classesHeader}>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-auto p-0 font-medium text-xs text-muted-foreground hover:text-foreground"
+                                            <th key={col} className={headerClasses}>
+                                                <button
+                                                    className="flex items-center gap-1 text-xs hover:text-foreground transition-colors"
                                                     onClick={() => handleSort(col)}
                                                 >
                                                     {col.toUpperCase()}
                                                     {sortBy === col ? (
                                                         sortOrder === 'asc' ? 
-                                                            <ArrowUp className="ml-1 h-3 w-3" /> : 
-                                                            <ArrowDown className="ml-1 h-3 w-3" />
+                                                            <ArrowUp className="h-3 w-3" /> : 
+                                                            <ArrowDown className="h-3 w-3" />
                                                     ) : (
-                                                        <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
+                                                        <ArrowUpDown className="h-3 w-3 opacity-50" />
                                                     )}
-                                                </Button>
-                                            </TableHead>
+                                                </button>
+                                            </th>
                                         );
                                     })}
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
+                                </tr>
+                            </thead>
+                            <tbody>
                                 {dadosOrdenados.map((row, idx) => (
-                                    <TableRow key={idx} className={`border-border ${row.produto === 'TOTAL' ? 'bg-muted/20 font-medium' : ''}`}>
+                                    <tr 
+                                        key={idx} 
+                                        className={`border-b border-border hover:bg-muted/50 transition-colors ${
+                                            row.produto === 'TOTAL' ? 'bg-muted/20 font-medium' : ''
+                                        }`}
+                                    >
                                         {colunas.map(col => {
                                             const isProduto = col === 'produto';
                                             const isPais = col === 'pais';
                                             
-                                            let classesCelula = 'px-3 py-2 text-xs text-card-foreground';
+                                            let cellClasses = 'px-3 py-2 text-xs border-r border-border last:border-r-0';
                                             
                                             if (isProduto) {
-                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border w-[200px] min-w-[200px]';
+                                                cellClasses += ' sticky left-0 bg-background z-10 min-w-[200px] w-[200px]';
                                             } else if (isPais) {
-                                                classesCelula += ' sticky left-[200px] z-10 bg-background border-r border-border w-[150px] min-w-[150px]';
+                                                cellClasses += ' sticky left-[200px] bg-background z-10 min-w-[150px] w-[150px]';
                                             } else {
-                                                // Colunas de status - largura fixa e centralizada
-                                                classesCelula += ' w-[100px] min-w-[100px] text-center';
+                                                cellClasses += ' min-w-[100px] w-[100px] text-center';
                                             }
                                             
                                             return (
-                                                <TableCell key={col} className={classesCelula}>
+                                                <td key={col} className={cellClasses}>
                                                     {col === 'produto' ? (
-                                                        <div className="max-w-[120px] truncate" title={row[col]}>
+                                                        <div className="truncate max-w-[180px]" title={row[col]}>
                                                             {row[col]}
                                                         </div>
                                                     ) : col === 'pais' ? (
-                                                        <div className="max-w-[100px] truncate" title={row[col]}>
+                                                        <div className="truncate max-w-[130px]" title={row[col]}>
                                                             {row[col]}
                                                         </div>
                                                     ) : (
                                                         typeof row[col] === 'number' ? row[col].toLocaleString() : (row[col] || 0)
                                                     )}
-                                                </TableCell>
+                                                </td>
                                             );
                                         })}
-                                    </TableRow>
+                                    </tr>
                                 ))}
-                            </TableBody>
-                            </Table>
-                        </div>
+                            </tbody>
+                        </table>
                     </div>
                 </CardContent>
             </Card>
