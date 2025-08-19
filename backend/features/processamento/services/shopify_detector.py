@@ -434,9 +434,10 @@ class ShopifyDuplicateOrderDetector:
         """
         print(f"=== BUSCA RÁPIDA PARA IP ESPECÍFICO: {target_ip} ===")
         
-        # Circuit breaker - ⚡ CORREÇÃO: alinhado com buscar_ips_duplicados_simples (90 dias)
-        if days > 90:
-            raise Exception(f"Período de {days} dias muito grande para busca específica (máximo: 90 dias)")
+        # Circuit breaker - ⚡ AJUSTE: Permitir busca histórica completa para sincronização
+        # Removido limite de 90 dias para permitir busca completa por IP
+        # if days > 90:
+        #     raise Exception(f"Período de {days} dias muito grande para busca específica (máximo: 90 dias)")
         
         date_min = (datetime.now() - timedelta(days=days)).isoformat()
         found_orders = []
