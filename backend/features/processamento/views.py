@@ -3896,13 +3896,22 @@ def _get_basic_ip_data_with_timeout(detector, days, min_orders, timeout=45):
 @permission_classes([IsAuthenticated])
 def buscar_ips_duplicados_simples(request):
     """
-    Busca IPs com múltiplos pedidos - versão melhorada com múltiplas fontes
+    Busca IPs com múltiplos pedidos - ALGORITMO CORRIGIDO DE 3 ETAPAS
     
-    ⚡ CORREÇÃO CRÍTICA APLICADA:
-    - Removido limit=250 de shopify.Order.find() para garantir consistência
-    - Agora busca TODOS os pedidos do período, igual a get_orders_for_specific_ip()
-    - Resolve inconsistência: tabela principal mostrava menos pedidos que detalhes
-    - Performance: pode ser mais lenta, mas dados são consistentes e corretos
+    ETAPA 1: DESCOBERTA (com período escolhido)
+    - Busca pedidos nos últimos X dias (7/15/30/60/90 dias conforme selecionado)
+    - Filtra apenas pedidos com note_attributes "IP address"
+    - Identifica IPs com múltiplos clientes diferentes
+    
+    ETAPA 2: BUSCA COMPLETA POR IP (ANTES de gerar tabela)
+    - Para cada IP candidato descoberto na Etapa 1:
+    - Faz busca COMPLETA de TODOS os pedidos daquele IP específico (sem limite temporal)
+    - Usa a mesma lógica que a função de "Ver Detalhes"
+    - Conta TODOS os pedidos históricos do IP
+    
+    ETAPA 3: TABELA SINCRONIZADA
+    - Mostra contagem real baseada na busca completa
+    - Agora tabela e "Ver Detalhes" terão os mesmos números
     """
     try:
         loja_id = request.data.get('loja_id')
@@ -3934,16 +3943,16 @@ def buscar_ips_duplicados_simples(request):
         session = shopify.Session(shop_url, "2024-07", config.access_token)
         shopify.ShopifyResource.activate_session(session)
         
-        # ⚡ CORREÇÃO CRÍTICA: Implementa paginação completa como get_orders_for_specific_ip()
+        # ⚡ ETAPA 1: DESCOBERTA DE IPs CANDIDATOS (com período escolhido)
         data_inicial = timezone.now() - timedelta(days=days)
         
-        # Busca TODOS os pedidos do período usando paginação
+        # Busca pedidos do período escolhido para descoberta de IPs candidatos
         orders = []
         page_info = None
         page = 1
         total_paginas_buscadas = 0
         
-        logger.info(f"🔄 Iniciando busca paginada para TODOS os pedidos dos últimos {days} dias")
+        logger.info(f"🔄 ETAPA 1: Iniciando descoberta de IPs candidatos nos últimos {days} dias")
         
         while True:
             try:
@@ -4003,9 +4012,9 @@ def buscar_ips_duplicados_simples(request):
                 
                 page += 1
                 
-                # Limite de segurança para evitar loops infinitos
-                if page > 50:
-                    logger.warning(f"⚠️  Limite de 50 páginas atingido - parando busca")
+                # ⚡ LIMITE DE SEGURANÇA AUMENTADO (era 50, agora 200 páginas)
+                if page > 200:
+                    logger.warning(f"⚠️  Limite de segurança de 200 páginas atingido - parando busca")
                     break
                     
             except Exception as e:
@@ -4025,11 +4034,11 @@ def buscar_ips_duplicados_simples(request):
         
         def extract_ip_from_order(order_dict):
             """
-            ⚡ CORREÇÃO CRÍTICA: Usa exatamente a mesma lógica que _extract_real_customer_ip() 
-            para garantir consistência entre tabela principal e Ver Detalhes
+            ⚡ AJUSTE 1: SIMPLIFICAÇÃO - APENAS note_attributes "IP address"
+            Remove todos os outros métodos de extração de IP para focar apenas na fonte confiável
             """
             
-            # MÉTODO 1: note_attributes "IP address" (PRIORIDADE MÁXIMA - ÚNICO MÉTODO CONFIÁVEL)
+            # ÚNICO MÉTODO: note_attributes "IP address" (ÚNICA FONTE CONFIÁVEL)
             note_attributes = order_dict.get("note_attributes", [])
             if note_attributes:
                 # Busca exata por "IP address" (caso específico das lojas)
@@ -4043,68 +4052,21 @@ def buscar_ips_duplicados_simples(request):
                             if value and value != 'None':
                                 return value, 'note_attributes.IP_address', 0.98
             
-            # MÉTODO 2: client_details.browser_ip (FONTE PRIMÁRIA SHOPIFY)
-            client_details = order_dict.get("client_details", {})
-            if isinstance(client_details, dict):
-                browser_ip = client_details.get("browser_ip")
-                if browser_ip and isinstance(browser_ip, str):
-                    browser_ip = browser_ip.strip()
-                    if browser_ip and browser_ip != 'None':
-                        return browser_ip, 'client_details.browser_ip', 0.95
-            
-            # MÉTODO 3: Coordenadas geográficas como "fingerprint" único
-            def get_geo_fingerprint(address, prefix):
-                if not isinstance(address, dict):
-                    return None, None, 0
-                    
-                lat = address.get('latitude')
-                lng = address.get('longitude')
-                if lat and lng:
-                    # Cria fingerprint baseado em coordenadas
-                    geo_fingerprint = f"geo_{lat}_{lng}"
-                    return geo_fingerprint, f'{prefix}_coordinates', 0.75
-                return None, None, 0
-            
-            # Tenta billing_address primeiro
-            billing_address = order_dict.get('billing_address', {})
-            ip, method, confidence = get_geo_fingerprint(billing_address, 'billing')
-            if ip:
-                return ip, method, confidence
-            
-            # Tenta shipping_address
-            shipping_address = order_dict.get('shipping_address', {})
-            ip, method, confidence = get_geo_fingerprint(shipping_address, 'shipping')
-            if ip:
-                return ip, method, confidence
-            
-            # Tenta customer default_address
-            customer = order_dict.get('customer', {})
-            if isinstance(customer, dict):
-                default_address = customer.get('default_address', {})
-                ip, method, confidence = get_geo_fingerprint(default_address, 'customer')
-                if ip:
-                    return ip, method, confidence
-            
+            # Se não tiver note_attributes "IP address", IGNORA o pedido
             return None, 'none', 0.0
         
         def should_exclude_order(order_dict):
             """
-            ⚡ CORREÇÃO CRÍTICA: Aplica MESMOS CRITÉRIOS de exclusão que get_orders_for_specific_ip
-            para garantir consistência total entre tabela principal e Ver Detalhes
+            ⚡ AJUSTE 2: REMOVER TODOS OS FILTROS DE EXCLUSÃO
+            Incluir TODOS os pedidos independente do status (cancelados, reembolsados, etc.)
             """
             
-            # CRITÉRIO 1: Não excluir pedidos cancelados - incluir TODOS para análise de IP
-            # (get_orders_for_specific_ip também inclui cancelados)
+            # SEM FILTROS DE EXCLUSÃO - TODOS OS PEDIDOS SÃO INCLUÍDOS
+            # Não exclui pedidos cancelados
+            # Não exclui pedidos reembolsados  
+            # Não exclui pedidos por qualquer status
             
-            # CRITÉRIO 2: Excluir apenas pedidos totalmente reembolsados
-            financial_status = order_dict.get('financial_status', '').lower()
-            if financial_status in ['refunded']:
-                return True
-            
-            # CRITÉRIO 3: Não excluir por status de fulfillment
-            # (get_orders_for_specific_ip não filtra por fulfillment_status)
-            
-            return False
+            return False  # Nunca exclui nenhum pedido
         
         # Verificação se orders foi retornado corretamente
         if not orders:
@@ -4196,13 +4158,10 @@ def buscar_ips_duplicados_simples(request):
                 })
         
         
-        # ⚡ CORREÇÃO: Filtra APENAS IPs com CLIENTES DIFERENTES (não pelo mesmo cliente)
-        ips_duplicados = []
+        # ⚡ ETAPA 1 (continuação): Identifica IPs candidatos com CLIENTES DIFERENTES
+        ips_candidatos = []
         for ip, pedidos in ip_groups.items():
             if len(pedidos) >= 2:  # IP com 2+ pedidos
-                # Ordena por data
-                pedidos_ordenados = sorted(pedidos, key=lambda x: x['created_at'])
-                
                 # Conta clientes únicos para análise
                 clientes_unicos = set()
                 for pedido in pedidos:
@@ -4210,22 +4169,93 @@ def buscar_ips_duplicados_simples(request):
                     if cliente and cliente != 'N/A':
                         clientes_unicos.add(cliente)
                 
-                # DEBUG: Log detalhado para identificar diferenças
-                logger.info(f"[BUSCA_SIMPLES] IP {ip}: {len(pedidos)} pedidos, {len(clientes_unicos)} clientes únicos")
-                
-                # NOVA LÓGICA: SÓ INCLUI se há CLIENTES DIFERENTES no mesmo IP
+                # SÓ INCLUI se há CLIENTES DIFERENTES no mesmo IP
                 if len(clientes_unicos) > 1:  # Mais de 1 cliente único = suspeito
-                    ips_duplicados.append({
-                        'browser_ip': ip,
-                        'total_pedidos': len(pedidos),
-                        'clientes_unicos': len(clientes_unicos),
-                        'clientes_diferentes': True,  # Sempre True agora (condição de inclusão)
-                        'pedidos': pedidos_ordenados,
-                        'primeiro_pedido': pedidos_ordenados[0]['created_at'],
-                        'ultimo_pedido': pedidos_ordenados[-1]['created_at'],
-                        'method_used': pedidos_ordenados[0]['method_used'],
-                        'confidence': round(pedidos_ordenados[0]['confidence'], 2)
+                    ips_candidatos.append(ip)
+                    logger.info(f"[ETAPA 1] IP candidato {ip}: {len(pedidos)} pedidos, {len(clientes_unicos)} clientes únicos")
+        
+        logger.info(f"✅ ETAPA 1 concluída: {len(ips_candidatos)} IPs candidatos encontrados")
+        
+        # ⚡ ETAPA 2: BUSCA COMPLETA POR IP (SEM LIMITE TEMPORAL)
+        # Para cada IP candidato, busca TODOS os pedidos históricos daquele IP
+        ips_duplicados = []
+        
+        logger.info(f"🔄 ETAPA 2: Iniciando busca completa para cada IP candidato")
+        
+        for ip_candidato in ips_candidatos:
+            try:
+                logger.info(f"[ETAPA 2] Buscando TODOS os pedidos históricos do IP {ip_candidato}")
+                
+                # Usa o mesmo método que "Ver Detalhes" para busca completa
+                detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
+                
+                # Busca TODOS os pedidos históricos do IP (sem limite temporal)
+                all_orders_for_ip = detector.get_orders_for_specific_ip(
+                    target_ip=ip_candidato,
+                    days=3650,  # ~10 anos = busca completa histórica
+                    max_orders=500  # Limite alto para garantir que pega tudo
+                )
+                
+                if not all_orders_for_ip:
+                    logger.warning(f"[ETAPA 2] Nenhum pedido encontrado para IP {ip_candidato} na busca completa")
+                    continue
+                
+                # Processa os dados para o formato esperado pelo frontend
+                client_details = []
+                clientes_unicos = set()
+                
+                for order in all_orders_for_ip:
+                    # Extrai dados do cliente
+                    customer = order.get('customer', {})
+                    customer_name = f"{customer.get('first_name', '')} {customer.get('last_name', '')}".strip()
+                    if not customer_name:
+                        customer_name = 'Cliente não informado'
+                    
+                    clientes_unicos.add(customer_name)
+                    
+                    # Determina status do pedido
+                    is_cancelled = order.get('cancelled_at') is not None
+                    
+                    client_details.append({
+                        'order_id': str(order['id']),
+                        'order_number': order.get('order_number', ''),
+                        'customer_name': customer_name,
+                        'customer_email': customer.get('email', ''),
+                        'customer_phone': customer.get('phone', ''),
+                        'total_price': str(order.get('total_price', '0.00')),
+                        'currency': order.get('currency', 'BRL'),
+                        'created_at': order.get('created_at', ''),
+                        'cancelled_at': order.get('cancelled_at'),
+                        'financial_status': order.get('financial_status', ''),
+                        'shipping_city': '',  # Será preenchido se necessário
+                        'shipping_state': '',  # Será preenchido se necessário
+                        'method_used': 'note_attributes.IP_address',
+                        'confidence': 0.98
                     })
+                
+                # Ordena por data
+                client_details_ordenados = sorted(client_details, key=lambda x: x['created_at'])
+                
+                # Adiciona à lista final com contagem REAL de todos os pedidos
+                ips_duplicados.append({
+                    'browser_ip': ip_candidato,
+                    'total_pedidos': len(all_orders_for_ip),  # CONTAGEM REAL de TODOS os pedidos
+                    'clientes_unicos': len(clientes_unicos),
+                    'clientes_diferentes': True,
+                    'pedidos': client_details_ordenados,
+                    'primeiro_pedido': client_details_ordenados[0]['created_at'] if client_details_ordenados else '',
+                    'ultimo_pedido': client_details_ordenados[-1]['created_at'] if client_details_ordenados else '',
+                    'method_used': 'note_attributes.IP_address',
+                    'confidence': 0.98
+                })
+                
+                logger.info(f"[ETAPA 2] IP {ip_candidato}: {len(all_orders_for_ip)} pedidos TOTAIS encontrados, {len(clientes_unicos)} clientes únicos")
+                
+            except Exception as ip_error:
+                logger.error(f"[ETAPA 2] Erro ao buscar pedidos completos do IP {ip_candidato}: {str(ip_error)}")
+                continue
+        
+        logger.info(f"✅ ETAPA 2 concluída: Busca completa realizada para {len(ips_duplicados)} IPs")
         
         # Ordena por quantidade de pedidos (mais pedidos primeiro)
         ips_duplicados.sort(key=lambda x: x['total_pedidos'], reverse=True)
@@ -4253,9 +4283,16 @@ def buscar_ips_duplicados_simples(request):
                 'excluded_count': excluded_count,
                 'unique_ips': len(ip_groups),
                 'methods_used': methods_used,
-                'version': 'optimized_v3',
+                'version': 'ajustado_v4_simplificado',
                 'pedidos_encontrados': total_pedidos_encontrados,
-                'api_limit_used': limit_usado
+                'api_limit_used': limit_usado,
+                'algoritmo_aplicado': '3_etapas_sincronizado',
+                'etapas_executadas': [
+                    'etapa1_descoberta_periodo',
+                    'etapa2_busca_completa_historica',
+                    'etapa3_tabela_sincronizada'
+                ],
+                'ips_candidatos_descobertos': len(ips_candidatos) if 'ips_candidatos' in locals() else 0
             }
         )
         
