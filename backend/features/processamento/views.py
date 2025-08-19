@@ -994,16 +994,71 @@ def test_simple_endpoint(request):
         session = shopify.Session(shop_url, "2023-10", config.access_token)
         shopify.ShopifyResource.activate_session(session)
         
-        # Busca pedidos dos últimos X dias
+        # ⚡ CORREÇÃO CRÍTICA: Implementa paginação completa para buscar TODOS os pedidos
         data_inicial = timezone.now() - timedelta(days=days)
         
-        # ⚡ CORREÇÃO CRÍTICA: Remove limit=250 para garantir consistência com get_orders_for_specific_ip
-        orders = shopify.Order.find(
-            status='any',
-            created_at_min=data_inicial.isoformat(),
-            fields='id,name,created_at,browser_ip,customer'
-            # Removido limit=250 para buscar TODOS os pedidos do período
-        )
+        # Busca TODOS os pedidos do período usando paginação
+        orders = []
+        page_info = None
+        page = 1
+        
+        logger.info(f"🔄 Iniciando busca paginada (versão simples) para {days} dias")
+        
+        while True:
+            try:
+                if page_info:
+                    # Páginas subsequentes usam page_info
+                    api_orders = shopify.Order.find(
+                        limit=250,
+                        page_info=page_info,
+                        fields='id,name,created_at,browser_ip,customer'
+                    )
+                else:
+                    # Primeira página usa filtros de data
+                    api_orders = shopify.Order.find(
+                        status='any',
+                        created_at_min=data_inicial.isoformat(),
+                        limit=250,
+                        fields='id,name,created_at,browser_ip,customer'
+                    )
+                
+                if not api_orders:
+                    break
+                
+                orders.extend(api_orders)
+                logger.info(f"📄 Página {page}: {len(api_orders)} pedidos (Total: {len(orders)})")
+                
+                # Verifica próxima página
+                try:
+                    page_info = None
+                    if hasattr(shopify.ShopifyResource, 'connection') and hasattr(shopify.ShopifyResource.connection, 'response'):
+                        link_header = shopify.ShopifyResource.connection.response.headers.get('Link', '')
+                        if link_header:
+                            import re
+                            match = re.search(r'<[^>]*page_info=([^&>]+)[^>]*>;\s*rel="next"', link_header)
+                            if match:
+                                page_info = match.group(1)
+                            else:
+                                break
+                        else:
+                            break
+                    else:
+                        break
+                except Exception:
+                    break
+                
+                page += 1
+                if page > 50:  # Limite de segurança
+                    break
+                    
+            except Exception as e:
+                logger.error(f"❌ Erro na busca paginada página {page}: {e}")
+                if page == 1:
+                    raise e  # Falha na primeira página é crítica
+                else:
+                    break  # Páginas posteriores podem falhar
+        
+        logger.info(f"✅ Busca paginada concluída: {len(orders)} pedidos encontrados")
         
         # Agrupa pedidos por IP
         ip_groups = {}
@@ -3879,40 +3934,94 @@ def buscar_ips_duplicados_simples(request):
         session = shopify.Session(shop_url, "2024-07", config.access_token)
         shopify.ShopifyResource.activate_session(session)
         
-        # Busca pedidos dos últimos X dias - SEM LIMITAÇÃO DE CAMPOS para pegar mais dados
+        # ⚡ CORREÇÃO CRÍTICA: Implementa paginação completa como get_orders_for_specific_ip()
         data_inicial = timezone.now() - timedelta(days=days)
         
-        # ⚡ CORREÇÃO CRÍTICA: Usa MESMOS CAMPOS que get_orders_for_specific_ip para garantir consistência
-        orders = None
-        limit_usado = 500
+        # Busca TODOS os pedidos do período usando paginação
+        orders = []
+        page_info = None
+        page = 1
+        total_paginas_buscadas = 0
         
-        try:
-            # CORREÇÃO: Usa mesmos fields que get_orders_for_specific_ip()
-            orders = shopify.Order.find(
-                status='any',
-                created_at_min=data_inicial.isoformat(),
-                limit=500,  # Limite otimizado para evitar timeout da API
-                fields='id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,client_details,note_attributes'
-            )
-            logger.info(f"Busca bem-sucedida com limit=500 e fields específicos (compatibilidade com get_orders_for_specific_ip)")
-        except Exception as e:
-            logger.warning(f"Erro com limit=500, tentando com limit=250: {str(e)}")
+        logger.info(f"🔄 Iniciando busca paginada para TODOS os pedidos dos últimos {days} dias")
+        
+        while True:
             try:
-                orders = shopify.Order.find(
-                    status='any',
-                    created_at_min=data_inicial.isoformat(),
-                    limit=250,  # Fallback para limite menor
-                    fields='id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,client_details,note_attributes'
-                )
-                limit_usado = 250
-                logger.info(f"Busca bem-sucedida com limit=250 (fallback) e fields específicos")
-            except Exception as e2:
-                logger.error(f"Erro mesmo com limit=250: {str(e2)}")
-                return Response({
-                    'error': f'Erro ao buscar pedidos: {str(e2)}',
-                    'suggestion': 'Tente reduzir o período de busca ou contate o suporte',
-                    'original_error': str(e)
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                if page_info:
+                    # Páginas subsequentes usam page_info
+                    api_orders = shopify.Order.find(
+                        limit=250,
+                        page_info=page_info,
+                        fields='id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,client_details,note_attributes'
+                    )
+                else:
+                    # Primeira página usa filtros de data
+                    api_orders = shopify.Order.find(
+                        status='any',
+                        created_at_min=data_inicial.isoformat(),
+                        limit=250,
+                        fields='id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,client_details,note_attributes'
+                    )
+                
+                if not api_orders:
+                    logger.info(f"📄 Página {page} vazia - finalizando busca")
+                    break
+                
+                # Adiciona pedidos da página atual
+                orders.extend(api_orders)
+                total_paginas_buscadas += 1
+                
+                logger.info(f"📄 Página {page}: {len(api_orders)} pedidos encontrados (Total acumulado: {len(orders)})")
+                
+                # Verifica se há próxima página usando headers do Shopify
+                try:
+                    # Tenta obter page_info do último request
+                    page_info = None
+                    if hasattr(shopify.ShopifyResource, 'connection') and hasattr(shopify.ShopifyResource.connection, 'response'):
+                        link_header = shopify.ShopifyResource.connection.response.headers.get('Link', '')
+                        if link_header:
+                            # Extrai page_info do header Link
+                            import re
+                            match = re.search(r'<[^>]*page_info=([^&>]+)[^>]*>;\s*rel="next"', link_header)
+                            if match:
+                                page_info = match.group(1)
+                                logger.info(f"🔗 Próxima página encontrada: page_info={page_info[:20]}...")
+                            else:
+                                logger.info(f"🏁 Última página alcançada (sem rel=next no header)")
+                                break
+                        else:
+                            logger.info(f"🏁 Última página alcançada (sem header Link)")
+                            break
+                    else:
+                        # Fallback: se não conseguir ler headers, para aqui
+                        logger.warning(f"⚠️  Não foi possível ler headers para próxima página")
+                        break
+                        
+                except Exception as header_error:
+                    logger.warning(f"⚠️  Erro ao processar headers da página: {header_error}")
+                    break
+                
+                page += 1
+                
+                # Limite de segurança para evitar loops infinitos
+                if page > 50:
+                    logger.warning(f"⚠️  Limite de 50 páginas atingido - parando busca")
+                    break
+                    
+            except Exception as e:
+                logger.error(f"❌ Erro na página {page}: {str(e)}")
+                if page == 1:
+                    # Se primeira página falhar, propaga erro
+                    return Response({
+                        'error': f'Erro ao buscar pedidos: {str(e)}',
+                        'suggestion': 'Tente reduzir o período de busca ou contate o suporte'
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                else:
+                    # Se páginas posteriores falharem, para a busca mas usa dados coletados
+                    logger.warning(f"⚠️  Parando busca na página {page} devido a erro, mas usando {len(orders)} pedidos já coletados")
+                    break
+        
+        logger.info(f"✅ Busca paginada concluída: {len(orders)} pedidos em {total_paginas_buscadas} páginas")
         
         def extract_ip_from_order(order_dict):
             """
@@ -4203,15 +4312,74 @@ def debug_buscar_ip_especifico(request):
         session = shopify.Session(shop_url, "2024-07", config.access_token)
         shopify.ShopifyResource.activate_session(session)
         
-        # Busca pedidos dos últimos X dias SEM FILTRO DE STATUS
+        # ⚡ CORREÇÃO CRÍTICA: Implementa paginação completa para detalhar IP específico
         data_inicial = timezone.now() - timedelta(days=days)
         
-        # ⚡ CORREÇÃO CRÍTICA: Remove limit=250 para garantir consistência com get_orders_for_specific_ip
-        orders = shopify.Order.find(
-            status='any',  # TODOS os status
-            created_at_min=data_inicial.isoformat()
-            # Removido limit=250 para buscar TODOS os pedidos do período
-        )
+        # Busca TODOS os pedidos do período usando paginação
+        orders = []
+        page_info = None
+        page = 1
+        
+        logger.info(f"🔍 Iniciando busca paginada para IP {ip_procurado} nos últimos {days} dias")
+        
+        while True:
+            try:
+                if page_info:
+                    # Páginas subsequentes usam page_info
+                    api_orders = shopify.Order.find(
+                        limit=250,
+                        page_info=page_info,
+                        fields='id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,note_attributes'
+                    )
+                else:
+                    # Primeira página usa filtros de data
+                    api_orders = shopify.Order.find(
+                        status='any',
+                        created_at_min=data_inicial.isoformat(),
+                        limit=250,
+                        fields='id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,note_attributes'
+                    )
+                
+                if not api_orders:
+                    break
+                
+                orders.extend(api_orders)
+                logger.info(f"📄 Página {page}: {len(api_orders)} pedidos (Total: {len(orders)})")
+                
+                # Verifica próxima página
+                try:
+                    page_info = None
+                    if hasattr(shopify.ShopifyResource, 'connection') and hasattr(shopify.ShopifyResource.connection, 'response'):
+                        link_header = shopify.ShopifyResource.connection.response.headers.get('Link', '')
+                        if link_header:
+                            import re
+                            match = re.search(r'<[^>]*page_info=([^&>]+)[^>]*>;\s*rel="next"', link_header)
+                            if match:
+                                page_info = match.group(1)
+                            else:
+                                break
+                        else:
+                            break
+                    else:
+                        break
+                except Exception:
+                    break
+                
+                page += 1
+                if page > 50:  # Limite de segurança
+                    break
+                    
+            except Exception as e:
+                logger.error(f"❌ Erro na busca paginada página {page}: {e}")
+                if page == 1:
+                    return Response({
+                        'error': f'Erro ao buscar pedidos: {str(e)}',
+                        'suggestion': 'Tente reduzir o período de busca'
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                else:
+                    break  # Usa dados coletados até agora
+        
+        logger.info(f"✅ Busca paginada concluída: {len(orders)} pedidos para análise do IP {ip_procurado}")
         
         pedidos_encontrados = []
         total_analisados = 0
