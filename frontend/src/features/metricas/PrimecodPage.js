@@ -536,20 +536,23 @@ function PrimecodPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div className="w-full max-w-[calc(100vw-280px)] overflow-x-auto">
-                        <Table className="w-full table-fixed" style={{ minWidth: '1200px' }}>
+                    <div className="w-full overflow-x-auto">
+                        <Table className="w-max min-w-full">
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     {colunas.map(col => {
                                         const isProduto = col === 'produto';
                                         const isPais = col === 'pais';
                                         
-                                        let classesHeader = 'whitespace-nowrap px-2 py-2 text-xs text-muted-foreground';
+                                        let classesHeader = 'whitespace-nowrap px-3 py-2 text-xs text-muted-foreground';
                                         
                                         if (isProduto) {
-                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border min-w-[150px]';
+                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border w-[200px] min-w-[200px]';
                                         } else if (isPais) {
-                                            classesHeader += ' sticky left-[150px] z-20 bg-background border-r border-border min-w-[120px]';
+                                            classesHeader += ' sticky left-[200px] z-20 bg-background border-r border-border w-[150px] min-w-[150px]';
+                                        } else {
+                                            // Colunas de status - largura fixa para evitar sobreposição
+                                            classesHeader += ' w-[100px] min-w-[100px] text-center';
                                         }
                                         
                                         return (
@@ -581,12 +584,15 @@ function PrimecodPage() {
                                             const isProduto = col === 'produto';
                                             const isPais = col === 'pais';
                                             
-                                            let classesCelula = 'px-2 py-2 text-xs text-card-foreground';
+                                            let classesCelula = 'px-3 py-2 text-xs text-card-foreground';
                                             
                                             if (isProduto) {
-                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border min-w-[150px]';
+                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border w-[200px] min-w-[200px]';
                                             } else if (isPais) {
-                                                classesCelula += ' sticky left-[150px] z-10 bg-background border-r border-border min-w-[120px]';
+                                                classesCelula += ' sticky left-[200px] z-10 bg-background border-r border-border w-[150px] min-w-[150px]';
+                                            } else {
+                                                // Colunas de status - largura fixa e centralizada
+                                                classesCelula += ' w-[100px] min-w-[100px] text-center';
                                             }
                                             
                                             return (
