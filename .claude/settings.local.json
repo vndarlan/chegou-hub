@@ -72,7 +72,8 @@
       "WebFetch(domain:www.abstractapi.com)",
       "Bash(powershell:*)",
       "Bash(ping:*)",
-      "Bash(git tag:*)"
+      "Bash(git tag:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

@@ -536,86 +536,112 @@ function PrimecodPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div className="overflow-x-auto border-t max-h-[70vh]">
-                        <table className="w-full text-sm border-collapse">
-                            <thead className="bg-muted/50 sticky top-0 z-10">
-                                <tr className="border-b border-border">
-                                    {colunas.map(col => {
-                                        const isProduto = col === 'produto';
-                                        const isPais = col === 'pais';
-                                        
-                                        let headerClasses = 'px-3 py-2 text-left text-xs font-medium text-muted-foreground border-r border-border last:border-r-0';
-                                        
-                                        if (isProduto) {
-                                            headerClasses += ' sticky left-0 bg-muted/50 z-20 min-w-[200px] w-[200px]';
-                                        } else if (isPais) {
-                                            headerClasses += ' sticky left-[200px] bg-muted/50 z-20 min-w-[150px] w-[150px]';
-                                        } else {
-                                            headerClasses += ' min-w-[100px] w-[100px] text-center';
-                                        }
-                                        
-                                        return (
-                                            <th key={col} className={headerClasses}>
-                                                <button
-                                                    className="flex items-center gap-1 text-xs hover:text-foreground transition-colors"
-                                                    onClick={() => handleSort(col)}
-                                                >
-                                                    {col.toUpperCase()}
-                                                    {sortBy === col ? (
-                                                        sortOrder === 'asc' ? 
-                                                            <ArrowUp className="h-3 w-3" /> : 
-                                                            <ArrowDown className="h-3 w-3" />
-                                                    ) : (
-                                                        <ArrowUpDown className="h-3 w-3 opacity-50" />
-                                                    )}
-                                                </button>
-                                            </th>
-                                        );
-                                    })}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {dadosOrdenados.map((row, idx) => (
-                                    <tr 
-                                        key={idx} 
-                                        className={`border-b border-border hover:bg-muted/50 transition-colors ${
-                                            row.produto === 'TOTAL' ? 'bg-muted/20 font-medium' : ''
-                                        }`}
-                                    >
+                    {/* Container com scroll horizontal SEMPRE visível */}
+                    <div 
+                        className="border-t bg-background"
+                        style={{
+                            width: '100%',
+                            maxWidth: '100%',
+                            overflowX: 'scroll',
+                            overflowY: 'hidden',
+                            maxHeight: '70vh',
+                            scrollbarWidth: 'auto',
+                            msOverflowStyle: 'scrollbar'
+                        }}
+                    >
+                        {/* Container interno com altura controlada para scroll vertical */}
+                        <div 
+                            style={{
+                                minWidth: 'calc(350px + ' + statusColumns.length + ' * 120px)', // Largura mínima calculada
+                                height: '100%',
+                                maxHeight: '70vh',
+                                overflowY: 'auto'
+                            }}
+                        >
+                            <table className="w-full text-sm border-collapse">
+                                <thead className="bg-muted/50 sticky top-0 z-10">
+                                    <tr className="border-b border-border">
                                         {colunas.map(col => {
                                             const isProduto = col === 'produto';
                                             const isPais = col === 'pais';
                                             
-                                            let cellClasses = 'px-3 py-2 text-xs border-r border-border last:border-r-0';
+                                            let headerClasses = 'px-3 py-2 text-left text-xs font-medium text-muted-foreground border-r border-border last:border-r-0';
                                             
                                             if (isProduto) {
-                                                cellClasses += ' sticky left-0 bg-background z-10 min-w-[200px] w-[200px]';
+                                                headerClasses += ' sticky left-0 bg-muted/50 z-20 min-w-[200px] w-[200px]';
                                             } else if (isPais) {
-                                                cellClasses += ' sticky left-[200px] bg-background z-10 min-w-[150px] w-[150px]';
+                                                headerClasses += ' sticky left-[200px] bg-muted/50 z-20 min-w-[150px] w-[150px]';
                                             } else {
-                                                cellClasses += ' min-w-[100px] w-[100px] text-center';
+                                                headerClasses += ' min-w-[120px] w-[120px] text-center';
                                             }
                                             
                                             return (
-                                                <td key={col} className={cellClasses}>
-                                                    {col === 'produto' ? (
-                                                        <div className="truncate max-w-[180px]" title={row[col]}>
-                                                            {row[col]}
-                                                        </div>
-                                                    ) : col === 'pais' ? (
-                                                        <div className="truncate max-w-[130px]" title={row[col]}>
-                                                            {row[col]}
-                                                        </div>
-                                                    ) : (
-                                                        typeof row[col] === 'number' ? row[col].toLocaleString() : (row[col] || 0)
-                                                    )}
-                                                </td>
+                                                <th key={col} className={headerClasses}>
+                                                    <button
+                                                        className="flex items-center gap-1 text-xs hover:text-foreground transition-colors w-full"
+                                                        onClick={() => handleSort(col)}
+                                                    >
+                                                        <span className="truncate">
+                                                            {col.toUpperCase()}
+                                                        </span>
+                                                        {sortBy === col ? (
+                                                            sortOrder === 'asc' ? 
+                                                                <ArrowUp className="h-3 w-3 flex-shrink-0" /> : 
+                                                                <ArrowDown className="h-3 w-3 flex-shrink-0" />
+                                                        ) : (
+                                                            <ArrowUpDown className="h-3 w-3 opacity-50 flex-shrink-0" />
+                                                        )}
+                                                    </button>
+                                                </th>
                                             );
                                         })}
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {dadosOrdenados.map((row, idx) => (
+                                        <tr 
+                                            key={idx} 
+                                            className={`border-b border-border hover:bg-muted/50 transition-colors ${
+                                                row.produto === 'TOTAL' ? 'bg-muted/20 font-medium' : ''
+                                            }`}
+                                        >
+                                            {colunas.map(col => {
+                                                const isProduto = col === 'produto';
+                                                const isPais = col === 'pais';
+                                                
+                                                let cellClasses = 'px-3 py-2 text-xs border-r border-border last:border-r-0';
+                                                
+                                                if (isProduto) {
+                                                    cellClasses += ' sticky left-0 bg-background z-10 min-w-[200px] w-[200px]';
+                                                } else if (isPais) {
+                                                    cellClasses += ' sticky left-[200px] bg-background z-10 min-w-[150px] w-[150px]';
+                                                } else {
+                                                    cellClasses += ' min-w-[120px] w-[120px] text-center';
+                                                }
+                                                
+                                                return (
+                                                    <td key={col} className={cellClasses}>
+                                                        {col === 'produto' ? (
+                                                            <div className="truncate max-w-[180px]" title={row[col]}>
+                                                                {row[col]}
+                                                            </div>
+                                                        ) : col === 'pais' ? (
+                                                            <div className="truncate max-w-[130px]" title={row[col]}>
+                                                                {row[col]}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="truncate">
+                                                                {typeof row[col] === 'number' ? row[col].toLocaleString() : (row[col] || 0)}
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
