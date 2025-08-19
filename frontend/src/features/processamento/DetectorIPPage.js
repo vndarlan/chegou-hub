@@ -119,19 +119,33 @@ function DetectorIPPage() {
         console.log('🔑 CSRF Token:', getCSRFToken());
 
         try {
+            // Verificar se temos CSRF token antes de fazer a requisição
+            const csrfToken = getCSRFToken();
+            if (!csrfToken) {
+                console.warn('⚠️ CSRF Token não encontrado, tentando continuar...');
+            }
+
+            console.log('🌐 Fazendo requisição para:', '/processamento/buscar-ips-duplicados-simples/');
+            
             const response = await axios.post('/processamento/buscar-ips-duplicados-simples/', {
-                loja_id: lojaSelecionada,
-                days: searchParams.days
+                loja_id: parseInt(lojaSelecionada),
+                days: parseInt(searchParams.days)
             }, {
                 headers: {
-                    'X-CSRFToken': getCSRFToken()
+                    'Content-Type': 'application/json',
+                    ...(csrfToken && { 'X-CSRFToken': csrfToken })
                 },
-                timeout: 30000
+                timeout: 60000 // Aumentado para 60 segundos
             });
 
-            if (response.data.ips_duplicados) {
+            console.log('✅ Resposta recebida:', response.status, response.statusText);
+
+            if (response.data && response.data.ips_duplicados) {
                 // Debug: Log dos dados recebidos do backend
-                console.log('Dados do backend:', response.data.ips_duplicados[0]);
+                console.log('📊 Dados do backend:', response.data.ips_duplicados.length, 'IPs encontrados');
+                if (response.data.ips_duplicados.length > 0) {
+                    console.log('🔍 Primeiro IP:', response.data.ips_duplicados[0]);
+                }
                 
                 // Mapear dados do backend para formato esperado pelo frontend
                 const mappedIPs = response.data.ips_duplicados.map(ip => {
@@ -182,28 +196,62 @@ function DetectorIPPage() {
                 });
                 
                 // Debug: Log dos dados mapeados
-                console.log('Dados mapeados:', mappedIPs[0]);
+                if (mappedIPs.length > 0) {
+                    console.log('🎯 Dados mapeados (primeiro):', mappedIPs[0]);
+                }
                 
                 setIPGroups(mappedIPs);
                 const totalFound = mappedIPs.length;
                 showNotification(`${totalFound} IPs encontrados com múltiplos pedidos`);
             } else {
-                showNotification(response.data.message || 'Erro na busca', 'error');
+                const errorMessage = response.data?.message || response.data?.error || 'Nenhum resultado encontrado';
+                console.log('⚠️ Resposta sem dados:', errorMessage);
+                showNotification(errorMessage, 'error');
             }
         } catch (error) {
             console.error('🚨 Erro na busca de IPs:', error);
-            console.error('📋 Detalhes do erro:', {
-                status: error.response?.status,
-                statusText: error.response?.statusText,
-                data: error.response?.data,
-                headers: error.response?.headers,
-                config: {
-                    url: error.config?.url,
-                    method: error.config?.method,
-                    data: error.config?.data
+            
+            // Tratamento de erro mais detalhado
+            let errorMessage = 'Erro na busca de IPs';
+            
+            if (error.code === 'ECONNABORTED') {
+                errorMessage = 'Timeout: A consulta demorou muito para responder';
+            } else if (error.response) {
+                // O servidor respondeu com um status de erro
+                const status = error.response.status;
+                const data = error.response.data;
+                
+                console.error('📋 Detalhes da resposta de erro:', {
+                    status: status,
+                    statusText: error.response.statusText,
+                    data: data,
+                    url: error.config?.url
+                });
+                
+                if (status === 404) {
+                    errorMessage = 'Endpoint não encontrado. Verifique se o backend está rodando';
+                } else if (status === 403) {
+                    errorMessage = 'Erro de autenticação. Verifique o CSRF token';
+                } else if (status === 500) {
+                    errorMessage = 'Erro interno do servidor';
+                } else if (data?.error) {
+                    errorMessage = data.error;
+                } else if (data?.message) {
+                    errorMessage = data.message;
+                } else {
+                    errorMessage = `Erro ${status}: ${error.response.statusText}`;
                 }
-            });
-            showNotification(error.response?.data?.error || 'Erro na busca', 'error');
+            } else if (error.request) {
+                // A requisição foi feita mas não houve resposta
+                console.error('📡 Erro de rede:', error.request);
+                errorMessage = 'Erro de conexão. Verifique se o servidor está rodando';
+            } else {
+                // Erro na configuração da requisição
+                console.error('⚙️ Erro de configuração:', error.message);
+                errorMessage = `Erro de configuração: ${error.message}`;
+            }
+            
+            showNotification(errorMessage, 'error');
         } finally {
             setSearchingIPs(false);
         }
