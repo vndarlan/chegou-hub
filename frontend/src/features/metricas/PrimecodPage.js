@@ -99,6 +99,7 @@ function PrimecodPage() {
     // Estados de notificação e progresso
     const [notification, setNotification] = useState(null);
     const [progressoAtual, setProgressoAtual] = useState(null);
+    const [authChecked, setAuthChecked] = useState(false);
     
 
     // Estados para ordenação
@@ -164,10 +165,21 @@ function PrimecodPage() {
                 const dataStr = `${dateRange.from.toLocaleDateString('pt-BR')} - ${dateRange.to.toLocaleDateString('pt-BR')}`;
                 setNomeAnalise(`PrimeCOD ${paisNome} ${dataStr}`);
 
-                showNotification('success', 
-                    `Dados processados com sucesso! ${result.total_orders || 0} orders encontradas` +
-                    (result.tempo_processamento ? ` (${result.tempo_processamento})` : '')
-                );
+                // Verificar se todos os valores são zeros (indicando problema de dados)
+                const totalRow = result.dados_processados.find(item => item.produto === 'TOTAL');
+                const allZeros = totalRow && totalRow.total === 0;
+                
+                if (allZeros && result.dados_processados.length <= 1) {
+                    showNotification('warning', 
+                        'Dados processados, mas todos os valores estão zerados. ' +
+                        'Verifique se há dados no período selecionado ou se você está autenticado corretamente.'
+                    );
+                } else {
+                    showNotification('success', 
+                        `Dados processados com sucesso! ${result.total_orders || 0} orders encontradas` +
+                        (result.tempo_processamento ? ` (${result.tempo_processamento})` : '')
+                    );
+                }
             } else {
                 showNotification('error', result.message || 'Erro no processamento dos dados');
             }
@@ -176,7 +188,13 @@ function PrimecodPage() {
             console.error('Erro no processamento:', error);
             
             // Error handling específico para backend
-            if (error.response?.status === 500) {
+            if (error.response?.status === 401) {
+                showNotification('error', 'Sessão expirada. Faça login novamente para acessar os dados do PrimeCOD.');
+                // Opcional: redirecionar para login após alguns segundos
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 3000);
+            } else if (error.response?.status === 500) {
                 showNotification('error', 'Erro interno do servidor. Tente novamente.');
             } else if (error.response?.status === 503) {
                 showNotification('error', 'Serviço PrimeCOD temporariamente indisponível.');
@@ -405,7 +423,7 @@ function PrimecodPage() {
                         
                         <Button
                             onClick={processarDados}
-                            disabled={!dateRange?.from || !dateRange?.to || loadingProcessar}
+                            disabled={!dateRange?.from || !dateRange?.to || loadingProcessar || !authChecked}
                             size="lg"
                             className="min-w-36 bg-primary text-primary-foreground hover:bg-primary/90"
                         >
@@ -414,7 +432,7 @@ function PrimecodPage() {
                             ) : (
                                 <Search className="h-4 w-4 mr-2" />
                             )}
-                            {loadingProcessar ? 'Processando...' : 'Buscar Dados'}
+                            {!authChecked ? 'Verificando...' : (loadingProcessar ? 'Processando...' : 'Buscar Dados')}
                         </Button>
                     </div>
                 </div>
@@ -682,8 +700,26 @@ function PrimecodPage() {
 
     useEffect(() => {
         const inicializar = async () => {
-            // Buscar análises
-            fetchAnalises();
+            // Verificar autenticação primeiro
+            try {
+                const authResponse = await axios.get('/current-state/', { withCredentials: true });
+                if (authResponse.status === 200 && authResponse.data.logged_in) {
+                    setAuthChecked(true);
+                    // Buscar análises apenas se autenticado
+                    fetchAnalises();
+                } else {
+                    showNotification('error', 'Você precisa estar logado para acessar os dados do PrimeCOD. Redirecionando...');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error('Erro ao verificar autenticação:', error);
+                showNotification('error', 'Erro ao verificar autenticação. Redirecionando para login...');
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 2000);
+            }
             
             // Definir período padrão (última semana)
             const hoje = new Date();

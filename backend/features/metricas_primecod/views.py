@@ -185,15 +185,15 @@ def buscar_orders_primecod(request):
     Proxy para buscar orders da API PrimeCOD de forma segura
     Substitui chamadas diretas do frontend para a API externa
     """
-    print("🔥 PRIMECOD VIEW CHAMADA! 🔥")
-    logger.error("🔥 PRIMECOD VIEW CHAMADA! 🔥")
+    print("[CRITICAL] PRIMECOD VIEW CHAMADA!")
+    logger.error("[CRITICAL] PRIMECOD VIEW CHAMADA!")
     
     # Verificar autenticação manualmente
     logger.error(f"User authenticated: {request.user.is_authenticated}")
     logger.error(f"User: {request.user}")
     
     if not request.user.is_authenticated:
-        logger.error("❌ Usuário não autenticado!")
+        logger.error("[EMOJI] Usuario nao autenticado!")
         return Response({
             'status': 'error',
             'message': 'Usuário não autenticado'
@@ -210,8 +210,8 @@ def buscar_orders_primecod(request):
         
         logger.info(f"Usuário: {request.user.username}")
         logger.info(f"Parâmetros recebidos: data_inicio={data_inicio}, data_fim={data_fim}, pais_filtro={pais_filtro}")
-        logger.info(f"⚡ SEM LIMITES: max_paginas={max_paginas} - coletará TUDO até não haver mais dados")
-        logger.info(f"⚡ ULTRA-OTIMIZAÇÃO: Rate limit 50ms (4x mais rápido) + Heartbeat logs!")
+        logger.info(f"[SUCCESS] SEM LIMITES: max_paginas={max_paginas} - coletará TUDO até não haver mais dados")
+        logger.info(f"[SUCCESS] ULTRA-OTIMIZAÇÃO: Rate limit 50ms (4x mais rápido) + Heartbeat logs!")
         logger.info(f"Request data completo: {request.data}")
         
         # Validar parâmetros
@@ -263,7 +263,7 @@ def buscar_orders_primecod(request):
             # LOG CRÍTICO: Monitorar se está próximo de timeout
             import time
             start_time = time.time()
-            logger.info(f"⏱️ INICIANDO COLETA - Hora de início: {start_time}")
+            logger.info(f"[TIME] INICIANDO COLETA - Hora de início: {start_time}")
             
             resultado = client.get_orders(
                 page=1,
@@ -275,24 +275,24 @@ def buscar_orders_primecod(request):
             # LOG CRÍTICO: Tempo total gasto
             end_time = time.time()
             duration = end_time - start_time
-            logger.info(f"⏱️ COLETA FINALIZADA - Duração total: {duration:.2f} segundos")
+            logger.info(f"[TIME] COLETA FINALIZADA - Duração total: {duration:.2f} segundos")
             
             # LOG INFORMATIVO: Apenas registrar duração (sem alertas de timeout)
-            logger.info(f"✅ Coleta finalizada em {duration:.2f}s - sucesso!")
+            logger.info(f"[SUCCESS] Coleta finalizada em {duration:.2f}s - sucesso!")
             if duration > 60:  # Apenas informativo para coletas longas
-                logger.info(f"📈 Coleta longa ({duration:.1f}s) - consideração: usar processamento assíncrono para UX")
+                logger.info(f"[SUCCESS] Coleta longa ({duration:.1f}s) - consideração: usar processamento assíncrono para UX")
             logger.info(f"Busca concluída. Resultado: {type(resultado)}")
             logger.info(f"Keys do resultado: {list(resultado.keys()) if isinstance(resultado, dict) else 'Não é dict'}")
             
             # Processar os dados dos orders (filtros já aplicados)
-            logger.info(f"🔍 DEBUG VIEW: Processando {len(resultado['orders'])} orders")
+            logger.info(f"[SUCCESS] DEBUG VIEW: Processando {len(resultado['orders'])} orders")
             orders_processados = client.process_orders_data(
                 orders=resultado['orders'],  # resultado já contém os orders filtrados
                 pais_filtro=None  # Não reaplicar filtro de país aqui
             )
             
-            logger.info(f"🔍 DEBUG VIEW: Dados processados - {len(orders_processados['dados_processados'])} linhas")
-            logger.info(f"🔍 DEBUG VIEW: Primeira linha: {orders_processados['dados_processados'][0] if orders_processados['dados_processados'] else 'Nenhuma'}")
+            logger.info(f"[SUCCESS] DEBUG VIEW: Dados processados - {len(orders_processados['dados_processados'])} linhas")
+            logger.info(f"[SUCCESS] DEBUG VIEW: Primeira linha: {orders_processados['dados_processados'][0] if orders_processados['dados_processados'] else 'Nenhuma'}")
             
             # Combinar resultados
             resposta = {
@@ -486,12 +486,12 @@ def iniciar_coleta_async_primecod(request):
         data_inicio = request.data.get('data_inicio')
         data_fim = request.data.get('data_fim')
         pais_filtro = request.data.get('pais_filtro')
-        max_paginas = request.data.get('max_paginas', 1000)  # ⚡ ULTRA-OTIMIZADO: 1000+ páginas sem timeout
+        max_paginas = request.data.get('max_paginas', 1000)  # [SUCCESS] ULTRA-OTIMIZADO: 1000+ páginas sem timeout
         nome_analise = request.data.get('nome_analise')
         
         logger.info(f"Iniciando coleta assíncrona PrimeCOD para {request.user.username}")
         logger.info(f"Parâmetros: data_inicio={data_inicio}, data_fim={data_fim}, pais_filtro={pais_filtro}")
-        logger.info(f"⚡ ULTRA-OTIMIZADO: {max_paginas} páginas com rate limit 50ms + heartbeat logs")
+        logger.info(f"[SUCCESS] ULTRA-OTIMIZADO: {max_paginas} páginas com rate limit 50ms + heartbeat logs")
         
         # Validar parâmetros obrigatórios
         if not data_inicio or not data_fim:
