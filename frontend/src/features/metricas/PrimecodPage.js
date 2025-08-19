@@ -47,8 +47,8 @@ const PAISES_PRIMECOD = [
 
 // Status mapping PrimeCOD - COMPLETO com 15 status
 const STATUS_MAPPING = {
-    1: "Pedido Realizado",      // Placed
-    2: "Embalado",              // Packed  
+    1: "Efetuado",              // Placed
+    2: "Empacotado",            // Packed  
     3: "Despachado",            // Dispatched
     4: "Enviado",               // Shipped
     5: "Chegada ao Destino",    // Chegada ao Destino

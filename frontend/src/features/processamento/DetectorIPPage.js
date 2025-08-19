@@ -13,7 +13,7 @@ import { ScrollArea } from '../../components/ui/scroll-area';
 import { Separator } from '../../components/ui/separator';
 import {
     Shield, Globe, Eye, Users, ShoppingBag, AlertCircle, Check, X, RefreshCw,
-    Settings, History, Building, Search, Target, Loader2, Calendar
+    Settings, History, Building, Search, Target, Loader2, Calendar, Info
 } from 'lucide-react';
 import { getCSRFToken } from '../../utils/csrf';
 import { useToast } from '../../components/ui/use-toast';
@@ -356,7 +356,7 @@ function DetectorIPPage() {
                         <Shield className="h-6 w-6 text-primary" />
                         Detector de IP
                     </h1>
-                    <p className="text-muted-foreground">Detecta IPs com CLIENTES DIFERENTES - Ferramenta anti-fraude otimizada</p>
+                    <p className="text-muted-foreground">Detecta IPs com CLIENTES DIFERENTES - Ferramenta anti-fraude com busca histórica completa</p>
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-2">
@@ -377,7 +377,7 @@ function DetectorIPPage() {
                     <Dialog open={showInstructions} onOpenChange={setShowInstructions}>
                         <DialogTrigger asChild>
                             <Button variant="outline" size="icon">
-                                <Settings className="h-4 w-4" />
+                                <Info className="h-4 w-4" />
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[95vh] bg-background border-border">
@@ -395,15 +395,15 @@ function DetectorIPPage() {
                                         <CardContent className="space-y-3">
                                             <div className="p-3 bg-muted rounded-lg">
                                                 <h4 className="font-semibold text-sm text-foreground">1. Selecionar Loja</h4>
-                                                <p className="text-sm text-muted-foreground">Escolha a loja configurada para análise de pedidos</p>
+                                                <p className="text-sm text-muted-foreground">Escolha uma das lojas configuradas na página de Processamento</p>
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
-                                                <h4 className="font-semibold text-sm text-foreground">2. Configurar Filtros</h4>
-                                                <p className="text-sm text-muted-foreground">Período (até 90 dias) para garantir sincronização completa dos dados</p>
+                                                <h4 className="font-semibold text-sm text-foreground">2. Configurar Período</h4>
+                                                <p className="text-sm text-muted-foreground">Selecione o período para descobrir IPs candidatos (7 a 90 dias)</p>
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
                                                 <h4 className="font-semibold text-sm text-foreground">3. Analisar Resultados</h4>
-                                                <p className="text-sm text-muted-foreground">Clique em "Ver Detalhes" para investigar IPs específicos</p>
+                                                <p className="text-sm text-muted-foreground">Tabela mostra contagem histórica completa. Use "Ver Detalhes" para investigar</p>
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -415,26 +415,25 @@ function DetectorIPPage() {
                                         </CardHeader>
                                         <CardContent className="space-y-4">
                                             <div>
-                                                <h4 className="font-semibold text-blue-600 dark:text-blue-400 mb-2">🎯 O que esta ferramenta faz:</h4>
+                                                <h4 className="font-semibold text-blue-600 dark:text-blue-400 mb-2">🎯 Como funciona o algoritmo:</h4>
                                                 <div className="space-y-3 text-sm text-muted-foreground ml-4">
                                                     <div>
-                                                        <strong className="text-foreground">Detecção de IPs com Clientes Diferentes:</strong>
+                                                        <strong className="text-foreground">Processo em 2 Etapas:</strong>
                                                         <ul className="ml-4 space-y-1">
-                                                            <li>• Identifica APENAS IPs onde há CLIENTES DIFERENTES fazendo pedidos</li>
-                                                            <li>• Se o mesmo cliente faz múltiplos pedidos, é considerado comportamento normal</li>
-                                                            <li>• Foco na detecção de fraudes e compartilhamento de IP suspeito</li>
-                                                            <li>• Período configurável (7 a 90 dias)</li>
+                                                            <li>• <strong>Etapa 1:</strong> Busca pedidos no período selecionado para descobrir IPs candidatos</li>
+                                                            <li>• <strong>Etapa 2:</strong> Para cada IP candidato, busca TODOS os pedidos históricos</li>
+                                                            <li>• Tabela mostra contagem histórica completa, não apenas do período filtrado</li>
+                                                            <li>• Garante sincronização perfeita entre tabela e detalhes</li>
                                                         </ul>
                                                     </div>
                                                     
                                                     <div>
-                                                        <strong className="text-foreground">Dados Analisados:</strong>
+                                                        <strong className="text-foreground">Critério de Detecção:</strong>
                                                         <ul className="ml-4 space-y-1">
-                                                            <li>• Número total de pedidos por IP suspeito</li>
-                                                            <li>• Quantidade de clientes únicos (sempre > 1)</li>
-                                                            <li>• Valores totais por IP</li>
-                                                            <li>• Período de atividade (primeiro/último pedido)</li>
-                                                            <li>• Status correto: ativos vs cancelados (via cancelled_at)</li>
+                                                            <li>• Identifica APENAS IPs onde há CLIENTES DIFERENTES fazendo pedidos</li>
+                                                            <li>• Mesmo cliente com múltiplos pedidos = comportamento normal (ignorado)</li>
+                                                            <li>• Inclui TODOS os pedidos (ativos, cancelados, reembolsados)</li>
+                                                            <li>• Usa apenas pedidos com note_attributes "IP address"</li>
                                                         </ul>
                                                     </div>
                                                 </div>
@@ -456,24 +455,25 @@ function DetectorIPPage() {
                                             <Separator />
                                             
                                             <div>
-                                                <h4 className="font-semibold text-orange-600 dark:text-orange-400 mb-2">📊 Fonte de Dados (Otimizada):</h4>
+                                                <h4 className="font-semibold text-orange-600 dark:text-orange-400 mb-2">📊 Fonte de Dados (Simplificada):</h4>
                                                 <div className="text-sm text-muted-foreground ml-4 space-y-1">
-                                                    <p>• <strong className="text-foreground">note_attributes "IP address":</strong> IP mais confiável capturado pelo sistema</p>
-                                                    <p>• <strong className="text-foreground">Fallback geográfico:</strong> Coordenadas de entrega quando IP não disponível</p>
-                                                    <p>• <strong className="text-foreground">Dados completos:</strong> Status real via cancelled_at (não financial_status)</p>
+                                                    <p>• <strong className="text-foreground">ÚNICA FONTE:</strong> note_attributes "IP address" (98% confiável)</p>
+                                                    <p>• <strong className="text-foreground">Sem fallbacks:</strong> Se não tiver IP address, pedido é ignorado</p>
+                                                    <p>• <strong className="text-foreground">Dados históricos:</strong> Busca completa em ~10 anos de pedidos</p>
+                                                    <p>• <strong className="text-foreground">Status real:</strong> Inclui ativos, cancelados e reembolsados</p>
                                                 </div>
                                             </div>
                                             
                                             <Separator />
                                             
                                             <div>
-                                                <h4 className="font-semibold text-amber-600 dark:text-amber-400 mb-2">⚠️ Limitações e Considerações:</h4>
+                                                <h4 className="font-semibold text-amber-600 dark:text-amber-400 mb-2">⚠️ Importante Saber:</h4>
                                                 <ul className="text-sm text-muted-foreground space-y-1 ml-4">
-                                                    <li>• <strong className="text-foreground">Redes Legítimas:</strong> Escritórios e famílias podem ter múltiplos compradores legítimos</li>
+                                                    <li>• <strong className="text-foreground">Dependência Crítica:</strong> Funciona APENAS com note_attributes "IP address" configurado</li>
+                                                    <li>• <strong className="text-foreground">Contexto é Essencial:</strong> IPs legítimos podem ter múltiplos clientes (escritórios, famílias)</li>
+                                                    <li>• <strong className="text-foreground">Busca Histórica:</strong> Contagens mostram TODOS os pedidos, não apenas do período</li>
                                                     <li>• <strong className="text-foreground">VPNs e Proxies:</strong> Podem mascarar IPs reais e gerar alertas falsos</li>
-                                                    <li>• <strong className="text-foreground">IPs Dinâmicos:</strong> Provedores que reutilizam IPs entre clientes diferentes</li>
-                                                    <li>• <strong className="text-foreground">Dependência de Dados:</strong> Requer note_attributes "IP address" configurado</li>
-                                                    <li>• <strong className="text-foreground">Análise Contextual:</strong> Sempre investigar manualmente os casos encontrados</li>
+                                                    <li>• <strong className="text-foreground">Análise Manual:</strong> Sempre investigar os casos encontrados individualmente</li>
                                                 </ul>
                                             </div>
                                         </CardContent>
@@ -489,13 +489,6 @@ function DetectorIPPage() {
                 </div>
             </div>
 
-            {/* Informação sobre limite */}
-            <Alert className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
-                <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                <AlertDescription className="text-blue-800 dark:text-blue-200">
-                    <strong>Limite de sincronização:</strong> O filtro é limitado a 90 dias para garantir consistência entre a tabela principal e os detalhes dos pedidos.
-                </AlertDescription>
-            </Alert>
 
             {/* Filtros Compactos */}
             <div className="flex flex-col sm:flex-row gap-4 items-center justify-between p-4 bg-muted/30 rounded-lg border">
