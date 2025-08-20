@@ -205,6 +205,22 @@ export function AppSidebar({
     }
   ];
 
+  // Status items (nova categoria)
+  const statusItems = [
+    {
+      title: "Status",
+      icon: BarChart3,
+      isActive: location.pathname.includes('/workspace/status/'),
+      items: [
+        {
+          title: "Ecomhub",
+          url: "/workspace/status/ecomhub",
+          isActive: location.pathname === "/workspace/status/ecomhub",
+        },
+      ],
+    }
+  ];
+
   return (
     <Sidebar className="h-screen" {...props}>
       <SidebarHeader>
@@ -316,6 +332,55 @@ export function AppSidebar({
           <SidebarGroupLabel>Métricas</SidebarGroupLabel>
           <SidebarMenu>
             {metricasItems.map((item) => (
+              <Collapsible
+                key={item.title}
+                asChild
+                defaultOpen={item.isActive}
+                className="group/collapsible"
+              >
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton 
+                      tooltip={item.title} 
+                      isActive={item.isActive}
+                    >
+                      <item.icon className="size-4" />
+                      <span>{item.title}</span>
+                      <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {item.items?.map((subItem) => (
+                        <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubButton 
+                            asChild
+                            isActive={subItem.isActive}
+                          >
+                            <a
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleNavigation(subItem);
+                              }}
+                            >
+                              <span>{subItem.title}</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Status</SidebarGroupLabel>
+          <SidebarMenu>
+            {statusItems.map((item) => (
               <Collapsible
                 key={item.title}
                 asChild
