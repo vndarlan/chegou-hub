@@ -497,3 +497,134 @@ class IPDetectionAlert(models.Model):
             details=details or {},
             risk_level=risk_level
         )
+
+class ResolvedIP(models.Model):
+    """
+    Modelo para armazenar IPs que foram analisados e marcados como resolvidos.
+    Permite filtrar IPs já analisados em futuras buscas.
+    """
+    
+    config = models.ForeignKey(
+        ShopifyConfig, 
+        on_delete=models.CASCADE, 
+        related_name='resolved_ips',
+        help_text="Configuração da loja à qual este IP pertence"
+    )
+    ip_address = models.GenericIPAddressField(help_text="Endereço IP que foi resolvido")
+    resolved_by = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE,
+        help_text="Usuário que marcou este IP como resolvido"
+    )
+    resolved_at = models.DateTimeField(auto_now_add=True, help_text="Data e hora em que foi marcado como resolvido")
+    notes = models.TextField(
+        blank=True, 
+        help_text="Observações opcionais sobre a resolução do IP"
+    )
+    
+    # Campos adicionais para contexto
+    total_orders_at_resolution = models.IntegerField(
+        default=0,
+        help_text="Número total de pedidos deste IP no momento da resolução"
+    )
+    unique_customers_at_resolution = models.IntegerField(
+        default=0,
+        help_text="Número de clientes únicos deste IP no momento da resolução"
+    )
+    
+    class Meta:
+        verbose_name = "IP Resolvido"
+        verbose_name_plural = "IPs Resolvidos"
+        unique_together = ['config', 'ip_address']  # Evita duplicatas por loja
+        ordering = ['-resolved_at']
+        indexes = [
+            models.Index(fields=['config', 'ip_address']),
+            models.Index(fields=['resolved_at']),
+            models.Index(fields=['resolved_by']),
+        ]
+    
+    def __str__(self):
+        return f"{self.config.nome_loja} - {self.ip_address} - Resolvido por {self.resolved_by.username} em {self.resolved_at.strftime('%d/%m/%Y %H:%M')}"
+    
+    @classmethod
+    def is_ip_resolved(cls, config, ip_address):
+        """
+        Verifica se um IP já foi marcado como resolvido para uma loja específica
+        
+        Args:
+            config: ShopifyConfig object
+            ip_address: String do endereço IP
+            
+        Returns:
+            bool: True se o IP foi resolvido, False caso contrário
+        """
+        return cls.objects.filter(config=config, ip_address=ip_address).exists()
+    
+    @classmethod
+    def get_resolved_ips_for_config(cls, config):
+        """
+        Retorna lista de IPs resolvidos para uma configuração específica
+        
+        Args:
+            config: ShopifyConfig object
+            
+        Returns:
+            QuerySet: Lista de IPs resolvidos
+        """
+        return cls.objects.filter(config=config).order_by('-resolved_at')
+    
+    @classmethod
+    def mark_ip_as_resolved(cls, config, ip_address, user, notes='', total_orders=0, unique_customers=0):
+        """
+        Marca um IP como resolvido
+        
+        Args:
+            config: ShopifyConfig object
+            ip_address: String do endereço IP
+            user: User object que está marcando como resolvido
+            notes: Observações opcionais
+            total_orders: Total de pedidos no momento da resolução
+            unique_customers: Clientes únicos no momento da resolução
+            
+        Returns:
+            ResolvedIP: Objeto criado ou atualizado
+        """
+        resolved_ip, created = cls.objects.get_or_create(
+            config=config,
+            ip_address=ip_address,
+            defaults={
+                'resolved_by': user,
+                'notes': notes,
+                'total_orders_at_resolution': total_orders,
+                'unique_customers_at_resolution': unique_customers
+            }
+        )
+        
+        if not created:
+            # Atualiza dados se já existia
+            resolved_ip.resolved_by = user
+            resolved_ip.notes = notes
+            resolved_ip.total_orders_at_resolution = total_orders
+            resolved_ip.unique_customers_at_resolution = unique_customers
+            resolved_ip.save()
+        
+        return resolved_ip
+    
+    @classmethod
+    def unmark_ip_as_resolved(cls, config, ip_address):
+        """
+        Remove um IP da lista de resolvidos
+        
+        Args:
+            config: ShopifyConfig object
+            ip_address: String do endereço IP
+            
+        Returns:
+            bool: True se o IP foi removido, False se não existia
+        """
+        try:
+            resolved_ip = cls.objects.get(config=config, ip_address=ip_address)
+            resolved_ip.delete()
+            return True
+        except cls.DoesNotExist:
+            return False

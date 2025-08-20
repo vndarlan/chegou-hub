@@ -160,8 +160,8 @@ class ShopifyDuplicateOrderDetector:
             print(f"Erro ao buscar detalhes do pedido {order_id}: {str(e)}")
             return None
     
-    def get_all_orders(self, days_back=60):
-        """Busca pedidos dos últimos X dias usando cursor-based pagination (INCLUINDO CANCELADOS)"""
+    def get_all_orders_for_ip_detection(self, days_back=60):
+        """🔍 DETECTOR DE IP: Busca pedidos dos últimos X dias INCLUINDO CANCELADOS"""
         all_orders = []
         page_info = None
         page = 1
@@ -193,13 +193,13 @@ class ShopifyDuplicateOrderDetector:
                 if not orders:
                     break
                 
-                # Filtra pedidos com cliente válido (INCLUINDO CANCELADOS)
+                # Filtra pedidos com cliente válido (INCLUINDO CANCELADOS para IP)
                 valid_orders = []
                 for order in orders:
                     is_cancelled = order.get("cancelled_at") is not None
                     has_customer = order.get("customer") and order["customer"].get("phone")
                     
-                    # MUDANÇA: Agora inclui pedidos cancelados também
+                    # Para DETECTOR DE IP: inclui pedidos cancelados também
                     if has_customer:
                         order["_normalized_phone"] = self.normalize_phone(order["customer"]["phone"])
                         order["_is_cancelled"] = is_cancelled  # Adiciona flag de cancelamento
@@ -225,6 +225,76 @@ class ShopifyDuplicateOrderDetector:
                 raise Exception(f"Erro ao buscar pedidos na página {page}: {e}")
         
         return all_orders
+
+    def get_all_orders_for_duplicates(self, days_back=60):
+        """🔄 DETECTOR DE DUPLICATAS: Busca pedidos dos últimos X dias EXCLUINDO CANCELADOS"""
+        all_orders = []
+        page_info = None
+        page = 1
+        
+        date_min = (datetime.now() - timedelta(days=days_back)).isoformat()
+        
+        while True:
+            if page_info:
+                params = {
+                    "limit": 250,
+                    "page_info": page_info,
+                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address,note_attributes,custom_attributes,properties"
+                }
+            else:
+                params = {
+                    "limit": 250,
+                    "status": "open",  # APENAS pedidos ativos (não cancelados)
+                    "created_at_min": date_min,
+                    "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address,note_attributes,custom_attributes,properties"
+                }
+            
+            url = f"{self.base_url}/orders.json"
+            
+            try:
+                response = requests.get(url, headers=self.headers, params=params, timeout=30)
+                response.raise_for_status()
+                orders = response.json()["orders"]
+                
+                if not orders:
+                    break
+                
+                # Filtra pedidos com cliente válido (EXCLUINDO CANCELADOS para duplicatas)
+                valid_orders = []
+                for order in orders:
+                    is_cancelled = order.get("cancelled_at") is not None
+                    has_customer = order.get("customer") and order["customer"].get("phone")
+                    
+                    # Para DETECTOR DE DUPLICATAS: exclui pedidos cancelados
+                    if has_customer and not is_cancelled:
+                        order["_normalized_phone"] = self.normalize_phone(order["customer"]["phone"])
+                        order["_is_cancelled"] = False  # Sempre falso aqui
+                        order["_cancelled_at"] = None  # Sempre nulo aqui
+                        if order["_normalized_phone"]:
+                            valid_orders.append(order)
+                
+                all_orders.extend(valid_orders)
+                
+                # Próxima página
+                link_header = response.headers.get('Link')
+                page_info = self.extract_page_info_from_link_header(link_header)
+                
+                if not page_info:
+                    break
+                
+                page += 1
+                
+                if page > 50:  # Segurança
+                    break
+                    
+            except requests.exceptions.RequestException as e:
+                raise Exception(f"Erro ao buscar pedidos na página {page}: {e}")
+        
+        return all_orders
+
+    def get_all_orders(self, days_back=60):
+        """⚠️ MÉTODO LEGADO: Mantido para compatibilidade - usa lógica de duplicatas"""
+        return self.get_all_orders_for_duplicates(days_back)
     
     def categorize_orders(self, all_orders):
         """Separa pedidos em processados e não processados"""
@@ -245,8 +315,8 @@ class ShopifyDuplicateOrderDetector:
         return unprocessed_orders, all_orders_by_phone
     
     def find_duplicate_orders(self):
-        """Encontra duplicatas baseado em pedidos não processados"""
-        all_orders = self.get_all_orders()
+        """🔄 DETECTOR DE DUPLICATAS: Encontra duplicatas baseado em pedidos não processados (EXCLUINDO CANCELADOS)"""
+        all_orders = self.get_all_orders_for_duplicates()  # 🔄 USA MÉTODO ESPECÍFICO PARA DUPLICATAS
         unprocessed_orders, all_orders_by_phone = self.categorize_orders(all_orders)
         
         duplicate_candidates = []
@@ -422,7 +492,8 @@ class ShopifyDuplicateOrderDetector:
     
     def get_orders_for_specific_ip(self, target_ip, days=30, max_orders=200):
         """
-        Busca pedidos para um IP específico - MÉTODO ULTRA RÁPIDO
+        🔍 DETECTOR DE IP: Busca pedidos para um IP específico - MÉTODO ULTRA RÁPIDO
+        INCLUI pedidos cancelados para análise completa do IP
         
         Args:
             target_ip (str): IP específico para buscar
@@ -985,7 +1056,8 @@ class ShopifyDuplicateOrderDetector:
     
     def get_orders_by_ip(self, days=30, min_orders=2, target_ip=None, early_break_threshold=None):
         """
-        Agrupa pedidos por IP dos últimos X dias - VERSÃO ULTRA OTIMIZADA
+        🔍 DETECTOR DE IP: Agrupa pedidos por IP dos últimos X dias - VERSÃO ULTRA OTIMIZADA
+        INCLUI pedidos cancelados para análise completa de IPs
         
         Args:
             days (int): Dias para buscar pedidos

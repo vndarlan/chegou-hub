@@ -65,4 +65,9 @@ urlpatterns = [
     
     # Endpoint de debug temporário para diagnosticar erro 400 no detector de IP
     path('debug-detector-ip-user-data/', views.debug_detector_ip_user_data, name='debug_detector_ip_user_data'),
+    
+    # === ENDPOINTS PARA SISTEMA DE IPs RESOLVIDOS ===
+    path('marcar-ip-resolvido/', views.marcar_ip_resolvido, name='marcar_ip_resolvido'),
+    path('listar-ips-resolvidos/', views.listar_ips_resolvidos, name='listar_ips_resolvidos'),
+    path('desmarcar-ip-resolvido/', views.desmarcar_ip_resolvido, name='desmarcar_ip_resolvido'),
 ]

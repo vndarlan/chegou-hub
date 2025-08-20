@@ -4078,16 +4078,15 @@ def buscar_ips_duplicados_simples(request):
         
         def should_exclude_order(order_dict):
             """
-            ⚡ AJUSTE 2: REMOVER TODOS OS FILTROS DE EXCLUSÃO
-            Incluir TODOS os pedidos independente do status (cancelados, reembolsados, etc.)
+            🔍 FILTROS PARA DETECTOR DE IP: Incluir TODOS os pedidos (cancelados + ativos)
+            Este método é usado apenas pelo DETECTOR DE IP, que precisa de pedidos cancelados
+            O DETECTOR DE DUPLICATAS já usa método separado que exclui cancelados automaticamente
             """
             
-            # SEM FILTROS DE EXCLUSÃO - TODOS OS PEDIDOS SÃO INCLUÍDOS
-            # Não exclui pedidos cancelados
-            # Não exclui pedidos reembolsados  
-            # Não exclui pedidos por qualquer status
+            # Para DETECTOR DE IP: inclui todos os pedidos (cancelados, reembolsados, etc.)
+            # O DETECTOR DE DUPLICATAS usa get_all_orders_for_duplicates() que já filtra cancelados
             
-            return False  # Nunca exclui nenhum pedido
+            return False  # Nunca exclui nenhum pedido (correto para detector de IP)
         
         # Verificação se orders foi retornado corretamente
         if not orders:
@@ -4583,4 +4582,213 @@ def debug_detector_ip_user_data(request):
             'success': False,
             'error': str(e),
             'debug_info': 'Erro interno no endpoint de debug'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ===== ENDPOINTS PARA SISTEMA DE IPs RESOLVIDOS =====
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def marcar_ip_resolvido(request):
+    """
+    Marca um IP como resolvido para uma loja específica
+    """
+    try:
+        loja_id = request.data.get('loja_id')
+        ip_address = request.data.get('ip_address')
+        notes = request.data.get('notes', '')
+        total_orders = request.data.get('total_orders', 0)
+        unique_customers = request.data.get('unique_customers', 0)
+        
+        # Validação de dados obrigatórios
+        if not loja_id or not ip_address:
+            return Response({
+                'error': 'loja_id e ip_address são obrigatórios'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validar IP
+        try:
+            validated_ip = validate_ip_address(ip_address)
+        except ValueError as e:
+            return Response({
+                'error': f'IP inválido: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Buscar configuração da loja
+        try:
+            config = ShopifyConfig.objects.get(id=loja_id, ativo=True)
+        except ShopifyConfig.DoesNotExist:
+            return Response({
+                'error': 'Loja não encontrada ou inativa'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Importar o modelo aqui para evitar problemas de importação circular
+        from .models import ResolvedIP
+        
+        # Marcar IP como resolvido
+        resolved_ip = ResolvedIP.mark_ip_as_resolved(
+            config=config,
+            ip_address=validated_ip,
+            user=request.user,
+            notes=notes,
+            total_orders=int(total_orders),
+            unique_customers=int(unique_customers)
+        )
+        
+        # Log da ação
+        create_safe_log(
+            user=request.user,
+            config=config,
+            tipo='busca_ip',
+            status='sucesso',
+            dados={
+                'acao': 'ip_marcado_resolvido',
+                'ip_address': validated_ip,
+                'notes': notes,
+                'total_orders': total_orders,
+                'unique_customers': unique_customers
+            }
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'IP marcado como resolvido com sucesso',
+            'data': {
+                'ip_address': resolved_ip.ip_address,
+                'resolved_at': resolved_ip.resolved_at.isoformat(),
+                'resolved_by': resolved_ip.resolved_by.username,
+                'notes': resolved_ip.notes,
+                'total_orders_at_resolution': resolved_ip.total_orders_at_resolution,
+                'unique_customers_at_resolution': resolved_ip.unique_customers_at_resolution
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro ao marcar IP como resolvido: {str(e)}")
+        return Response({
+            'error': 'Erro interno do servidor',
+            'details': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def listar_ips_resolvidos(request):
+    """
+    Lista todos os IPs resolvidos para uma loja específica
+    """
+    try:
+        loja_id = request.GET.get('loja_id')
+        
+        if not loja_id:
+            return Response({
+                'error': 'loja_id é obrigatório'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Buscar configuração da loja
+        try:
+            config = ShopifyConfig.objects.get(id=loja_id, ativo=True)
+        except ShopifyConfig.DoesNotExist:
+            return Response({
+                'error': 'Loja não encontrada ou inativa'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Importar o modelo
+        from .models import ResolvedIP
+        
+        # Buscar IPs resolvidos
+        resolved_ips = ResolvedIP.get_resolved_ips_for_config(config)
+        
+        # Formatar dados para o frontend
+        ips_data = []
+        for resolved_ip in resolved_ips:
+            ips_data.append({
+                'ip_address': resolved_ip.ip_address,
+                'resolved_at': resolved_ip.resolved_at.isoformat(),
+                'resolved_by': resolved_ip.resolved_by.username,
+                'notes': resolved_ip.notes,
+                'total_orders_at_resolution': resolved_ip.total_orders_at_resolution,
+                'unique_customers_at_resolution': resolved_ip.unique_customers_at_resolution
+            })
+        
+        return Response({
+            'success': True,
+            'loja_nome': config.nome_loja,
+            'total_resolved_ips': len(ips_data),
+            'resolved_ips': ips_data
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro ao listar IPs resolvidos: {str(e)}")
+        return Response({
+            'error': 'Erro interno do servidor',
+            'details': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def desmarcar_ip_resolvido(request):
+    """
+    Remove um IP da lista de resolvidos
+    """
+    try:
+        loja_id = request.data.get('loja_id')
+        ip_address = request.data.get('ip_address')
+        
+        # Validação de dados obrigatórios
+        if not loja_id or not ip_address:
+            return Response({
+                'error': 'loja_id e ip_address são obrigatórios'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validar IP
+        try:
+            validated_ip = validate_ip_address(ip_address)
+        except ValueError as e:
+            return Response({
+                'error': f'IP inválido: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Buscar configuração da loja
+        try:
+            config = ShopifyConfig.objects.get(id=loja_id, ativo=True)
+        except ShopifyConfig.DoesNotExist:
+            return Response({
+                'error': 'Loja não encontrada ou inativa'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Importar o modelo
+        from .models import ResolvedIP
+        
+        # Remover IP da lista de resolvidos
+        was_removed = ResolvedIP.unmark_ip_as_resolved(config, validated_ip)
+        
+        if not was_removed:
+            return Response({
+                'error': 'IP não estava na lista de resolvidos'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Log da ação
+        create_safe_log(
+            user=request.user,
+            config=config,
+            tipo='busca_ip',
+            status='sucesso',
+            dados={
+                'acao': 'ip_desmarcado_resolvido',
+                'ip_address': validated_ip
+            }
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'IP removido da lista de resolvidos com sucesso'
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro ao desmarcar IP como resolvido: {str(e)}")
+        return Response({
+            'error': 'Erro interno do servidor',
+            'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
