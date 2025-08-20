@@ -120,8 +120,8 @@ function DetectorIPPage() {
         setIPGroups([]);
 
         // DEBUG: Log detalhado antes da requisição
-        console.log('🔍 DEBUG DetectorIP - Iniciando busca...');
-        console.log('📋 Dados que serão enviados:', {
+        console.log('DEBUG DetectorIP - Iniciando busca...');
+        console.log('Dados que serão enviados:', {
             loja_id: lojaSelecionada,
             days: searchParams.days,
             lojaSelecionada_type: typeof lojaSelecionada,
@@ -134,10 +134,10 @@ function DetectorIPPage() {
             // Verificar se temos CSRF token antes de fazer a requisição
             const csrfToken = getCSRFToken();
             if (!csrfToken) {
-                console.warn('⚠️ CSRF Token não encontrado, tentando continuar...');
+                console.warn('CSRF Token não encontrado, tentando continuar...');
             }
 
-            console.log('🌐 Fazendo requisição para:', '/processamento/buscar-ips-duplicados-simples/');
+            console.log('Fazendo requisição para:', '/processamento/buscar-ips-duplicados-simples/');
             
             const response = await axios.post('/processamento/buscar-ips-duplicados-simples/', {
                 loja_id: parseInt(lojaSelecionada),
@@ -150,13 +150,13 @@ function DetectorIPPage() {
                 timeout: 60000 // Aumentado para 60 segundos
             });
 
-            console.log('✅ Resposta recebida:', response.status, response.statusText);
+            console.log('Resposta recebida:', response.status, response.statusText);
 
             if (response.data && response.data.ips_duplicados) {
                 // Debug: Log dos dados recebidos do backend
-                console.log('📊 Dados do backend:', response.data.ips_duplicados.length, 'IPs encontrados');
+                console.log('Dados do backend:', response.data.ips_duplicados.length, 'IPs encontrados');
                 if (response.data.ips_duplicados.length > 0) {
-                    console.log('🔍 Primeiro IP:', response.data.ips_duplicados[0]);
+                    console.log('Primeiro IP:', response.data.ips_duplicados[0]);
                 }
                 
                 // Mapear dados do backend para formato esperado pelo frontend
@@ -209,7 +209,7 @@ function DetectorIPPage() {
                 
                 // Debug: Log dos dados mapeados
                 if (mappedIPs.length > 0) {
-                    console.log('🎯 Dados mapeados (primeiro):', mappedIPs[0]);
+                    console.log('Dados mapeados (primeiro):', mappedIPs[0]);
                 }
                 
                 setIPGroups(mappedIPs);
@@ -217,11 +217,11 @@ function DetectorIPPage() {
                 showNotification(`${totalFound} IPs encontrados com múltiplos pedidos`);
             } else {
                 const errorMessage = response.data?.message || response.data?.error || 'Nenhum resultado encontrado';
-                console.log('⚠️ Resposta sem dados:', errorMessage);
+                console.log('Resposta sem dados:', errorMessage);
                 showNotification(errorMessage, 'error');
             }
         } catch (error) {
-            console.error('🚨 Erro na busca de IPs:', error);
+            console.error('Erro na busca de IPs:', error);
             
             // Tratamento de erro mais detalhado
             let errorMessage = 'Erro na busca de IPs';
@@ -233,7 +233,7 @@ function DetectorIPPage() {
                 const status = error.response.status;
                 const data = error.response.data;
                 
-                console.error('📋 Detalhes da resposta de erro:', {
+                console.error('Detalhes da resposta de erro:', {
                     status: status,
                     statusText: error.response.statusText,
                     data: data,
@@ -255,11 +255,11 @@ function DetectorIPPage() {
                 }
             } else if (error.request) {
                 // A requisição foi feita mas não houve resposta
-                console.error('📡 Erro de rede:', error.request);
+                console.error('Erro de rede:', error.request);
                 errorMessage = 'Erro de conexão. Verifique se o servidor está rodando';
             } else {
                 // Erro na configuração da requisição
-                console.error('⚙️ Erro de configuração:', error.message);
+                console.error('Erro de configuração:', error.message);
                 errorMessage = `Erro de configuração: ${error.message}`;
             }
             
@@ -522,7 +522,7 @@ function DetectorIPPage() {
                                         </CardHeader>
                                         <CardContent className="space-y-4">
                                             <div>
-                                                <h4 className="font-semibold text-blue-600 dark:text-blue-400 mb-2">🎯 Como funciona o algoritmo:</h4>
+                                                <h4 className="font-semibold text-blue-600 dark:text-blue-400 mb-2">Como funciona o algoritmo:</h4>
                                                 <div className="space-y-3 text-sm text-muted-foreground ml-4">
                                                     <div>
                                                         <strong className="text-foreground">Processo em 2 Etapas:</strong>
@@ -549,7 +549,7 @@ function DetectorIPPage() {
                                             <Separator />
                                             
                                             <div>
-                                                <h4 className="font-semibold text-green-600 dark:text-green-400 mb-2">✅ Casos de Uso Principais:</h4>
+                                                <h4 className="font-semibold text-green-600 dark:text-green-400 mb-2">Casos de Uso Principais:</h4>
                                                 <ul className="text-sm text-muted-foreground space-y-1 ml-4">
                                                     <li>• <span className="font-medium text-foreground">Detecção de Fraudes:</span> Clientes diferentes usando o mesmo IP (suspeito)</li>
                                                     <li>• <span className="font-medium text-foreground">IPs Compartilhados:</span> Escritórios, lan houses, redes públicas</li>
@@ -562,7 +562,7 @@ function DetectorIPPage() {
                                             <Separator />
                                             
                                             <div>
-                                                <h4 className="font-semibold text-orange-600 dark:text-orange-400 mb-2">📊 Fonte de Dados (Simplificada):</h4>
+                                                <h4 className="font-semibold text-orange-600 dark:text-orange-400 mb-2">Fonte de Dados (Simplificada):</h4>
                                                 <div className="text-sm text-muted-foreground ml-4 space-y-1">
                                                     <p>• <strong className="text-foreground">ÚNICA FONTE:</strong> note_attributes "IP address" (98% confiável)</p>
                                                     <p>• <strong className="text-foreground">Sem fallbacks:</strong> Se não tiver IP address, pedido é ignorado</p>
@@ -574,7 +574,7 @@ function DetectorIPPage() {
                                             <Separator />
                                             
                                             <div>
-                                                <h4 className="font-semibold text-amber-600 dark:text-amber-400 mb-2">⚠️ Importante Saber:</h4>
+                                                <h4 className="font-semibold text-amber-600 dark:text-amber-400 mb-2">Importante Saber:</h4>
                                                 <ul className="text-sm text-muted-foreground space-y-1 ml-4">
                                                     <li>• <strong className="text-foreground">Dependência Crítica:</strong> Funciona APENAS com note_attributes "IP address" configurado</li>
                                                     <li>• <strong className="text-foreground">Contexto é Essencial:</strong> IPs legítimos podem ter múltiplos clientes (escritórios, famílias)</li>
@@ -789,7 +789,7 @@ function DetectorIPPage() {
                                                                 ) : (
                                                                     <Check className="h-4 w-4 mr-1" />
                                                                 )}
-                                                                Marcar Resolvido
+                                                                Resolvido
                                                             </Button>
                                                             
                                                             <Button
@@ -819,95 +819,54 @@ function DetectorIPPage() {
             </Card>
 
             {/* Seção de IPs Resolvidos */}
-            <Card className="bg-card border-border">
-                <CardHeader>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div>
-                            <CardTitle className="text-foreground flex items-center gap-2">
-                                <Check className="h-5 w-5 text-green-600" />
-                                IPs Resolvidos
+            {resolvedIPs.length > 0 && (
+                <Card className="bg-muted/30 border-border border-dashed">
+                    <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+                                <Check className="h-4 w-4" />
+                                IPs Resolvidos ({resolvedIPs.length})
                             </CardTitle>
-                            <CardDescription className="text-muted-foreground">
-                                {resolvedIPs.length > 0 
-                                    ? `${resolvedIPs.length} IPs já foram analisados e marcados como resolvidos`
-                                    : 'Nenhum IP foi marcado como resolvido ainda'
-                                }
-                            </CardDescription>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                                {resolvedIPs.length} resolvidos
-                            </Badge>
-                            {resolvedIPs.length > 0 && (
-                                <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => setShowResolvedIPs(!showResolvedIPs)}
-                                >
-                                    {showResolvedIPs ? 'Ocultar' : 'Mostrar'} Lista
-                                </Button>
-                            )}
                             <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
-                                onClick={loadResolvedIPs}
-                                disabled={loadingResolved}
+                                onClick={() => setShowResolvedIPs(!showResolvedIPs)}
+                                className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
                             >
-                                {loadingResolved ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                                Atualizar
+                                {showResolvedIPs ? 'Ocultar' : 'Mostrar'}
                             </Button>
                         </div>
-                    </div>
-                </CardHeader>
+                    </CardHeader>
                 
-                {showResolvedIPs && (
-                    <CardContent>
-                        {resolvedIPs.length === 0 ? (
-                            <div className="text-center py-8">
-                                <Check className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                                <p className="text-muted-foreground">Nenhum IP foi marcado como resolvido</p>
-                                <p className="text-sm text-muted-foreground">IPs marcados como resolvidos aparecerão aqui</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
+                    {showResolvedIPs && (
+                        <CardContent className="pt-0">
+                            <div className="space-y-2">
                                 {resolvedIPs.map((resolvedIP, index) => (
                                     <div key={`${resolvedIP.ip_address}-${index}`} 
-                                         className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                                         className="flex items-center justify-between py-2 px-3 bg-background rounded border text-sm">
                                         <div className="flex items-center gap-3">
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                                                <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                                            </div>
-                                            <div>
-                                                <p className="font-mono text-sm text-foreground font-semibold">{resolvedIP.ip_address}</p>
-                                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                                    <span>📊 {resolvedIP.total_orders_at_resolution} pedidos</span>
-                                                    <span>👥 {resolvedIP.unique_customers_at_resolution} clientes</span>
-                                                    <span>✅ {formatDate(resolvedIP.resolved_at)}</span>
-                                                    <span>por {resolvedIP.resolved_by}</span>
-                                                </div>
+                                            <span className="font-mono font-medium">{resolvedIP.ip_address}</span>
+                                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                                <span>{resolvedIP.total_orders_at_resolution} pedidos</span>
+                                                <span>{resolvedIP.unique_customers_at_resolution} clientes</span>
+                                                <span>{formatDate(resolvedIP.resolved_at)}</span>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                                Resolvido
-                                            </Badge>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => unmarkIPAsResolved(resolvedIP.ip_address)}
-                                                className="h-8 px-2 text-xs hover:bg-red-50 hover:text-red-600"
-                                            >
-                                                <X className="h-3 w-3 mr-1" />
-                                                Desmarcar
-                                            </Button>
-                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => unmarkIPAsResolved(resolvedIP.ip_address)}
+                                            className="h-6 px-2 text-xs text-muted-foreground hover:text-red-600"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </Button>
                                     </div>
                                 ))}
                             </div>
-                        )}
-                    </CardContent>
-                )}
-            </Card>
+                        </CardContent>
+                    )}
+                </Card>
+            )}
 
             <>
             {/* Modal de Detalhes do IP */}
@@ -1138,10 +1097,10 @@ function DetectorIPPage() {
                                             
                                             <div className="flex space-x-4 text-xs text-muted-foreground">
                                                 {log.pedidos_encontrados > 0 && (
-                                                    <span>📊 Analisados: {log.pedidos_encontrados}</span>
+                                                    <span>Analisados: {log.pedidos_encontrados}</span>
                                                 )}
                                                 {log.detalhes && (
-                                                    <span>🔍 {typeof log.detalhes === 'object' ? JSON.stringify(log.detalhes) : log.detalhes}</span>
+                                                    <span>{typeof log.detalhes === 'object' ? JSON.stringify(log.detalhes) : log.detalhes}</span>
                                                 )}
                                             </div>
                                         </div>
