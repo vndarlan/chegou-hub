@@ -23,6 +23,7 @@ import { Progress } from '../../components/ui/progress';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { Calendar } from '../../components/ui/calendar';
+import { RobustDatePicker } from '../../components/ui/robust-date-picker';
 import { getCSRFToken } from '../../utils/csrf';
 
 // Países PrimeCOD disponíveis
@@ -471,27 +472,13 @@ function PrimecodPage() {
 
                     <div className="flex flex-col lg:flex-row lg:items-start gap-6">
                         <div className="relative">
-                            <div className="p-3 border rounded-md bg-background">
-                                <Calendar
-                                    mode="range"
-                                    selected={dateRange}
-                                    onSelect={(range) => {
-                                        console.log('Calendar selecionado:', range);
-                                        setDateRange(range);
-                                    }}
-                                    disabled={loadingProcessar}
-                                    numberOfMonths={2}
-                                />
-                            </div>
-                            
-                            {/* Debug info - remover em produção */}
-                            {dateRange?.from && (
-                                <div className="mt-2 p-2 text-xs text-muted-foreground bg-muted/50 rounded border">
-                                    <p className="font-medium">Período selecionado:</p>
-                                    <p>De: {dateRange.from.toLocaleDateString('pt-BR')}</p>
-                                    {dateRange.to && <p>Até: {dateRange.to.toLocaleDateString('pt-BR')}</p>}
-                                </div>
-                            )}
+                            <RobustDatePicker
+                                dateRange={dateRange}
+                                onDateRangeChange={setDateRange}
+                                disabled={loadingProcessar}
+                                placeholder="Selecione o período de análise..."
+                                className="flex-shrink-0"
+                            />
                         </div>
                         
                         <div className="flex-shrink-0 md:self-center">
