@@ -202,11 +202,7 @@ export function AppSidebar({
           isActive: location.pathname === "/workspace/metricas/ecomhub",
         },
       ],
-    }
-  ];
-
-  // Status items (nova categoria)
-  const statusItems = [
+    },
     {
       title: "Status",
       icon: BarChart3,
@@ -377,54 +373,6 @@ export function AppSidebar({
           </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Status</SidebarGroupLabel>
-          <SidebarMenu>
-            {statusItems.map((item) => (
-              <Collapsible
-                key={item.title}
-                asChild
-                defaultOpen={item.isActive}
-                className="group/collapsible"
-              >
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton 
-                      tooltip={item.title} 
-                      isActive={item.isActive}
-                    >
-                      <item.icon className="size-4" />
-                      <span>{item.title}</span>
-                      <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {item.items?.map((subItem) => (
-                        <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton 
-                            asChild
-                            isActive={subItem.isActive}
-                          >
-                            <a
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleNavigation(subItem);
-                              }}
-                            >
-                              <span>{subItem.title}</span>
-                            </a>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
       </SidebarContent>
       
       <SidebarFooter className="mt-auto">

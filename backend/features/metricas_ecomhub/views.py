@@ -1,15 +1,37 @@
-# backend/features/metricas_ecomhub/views.py - COM SUPORTE A "TODOS"
-from rest_framework import viewsets, status, permissions
+# backend/features/metricas_ecomhub/views.py - COM SISTEMA COMPLETO DE TRACKING DE STATUS
+from rest_framework import viewsets, status, permissions, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
+from django.db.models import Q
 import requests
 import logging
 from django.conf import settings
+from datetime import datetime, timedelta
+from django.utils import timezone
 
-from .models import AnaliseEcomhub
-from .serializers import AnaliseEcomhubSerializer, ProcessamentoSeleniumSerializer
+from .models import (
+    AnaliseEcomhub, PedidoStatusAtual, HistoricoStatus, 
+    ConfiguracaoStatusTracking
+)
+from .serializers import (
+    AnaliseEcomhubSerializer, ProcessamentoSeleniumSerializer,
+    PedidoStatusAtualSerializer, PedidoStatusResumoSerializer,
+    HistoricoStatusSerializer, ConfiguracaoStatusTrackingSerializer,
+    DashboardMetricasSerializer, SincronizacaoStatusSerializer,
+    FiltrosPedidosSerializer
+)
+from .services import status_tracking_service
 
 logger = logging.getLogger(__name__)
+
+
+class PedidosPagination(PageNumberPagination):
+    """Paginação customizada para pedidos"""
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 200
+
 
 class AnaliseEcomhubViewSet(viewsets.ModelViewSet):
     serializer_class = AnaliseEcomhubSerializer
@@ -83,3 +105,246 @@ class AnaliseEcomhubViewSet(viewsets.ModelViewSet):
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class StatusTrackingViewSet(viewsets.ViewSet):
+    """ViewSet para sistema de tracking de status de pedidos"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    @action(detail=False, methods=['get'])
+    def dashboard(self, request):
+        """
+        GET /api/status-tracking/dashboard/
+        Retorna métricas do dashboard de status tracking
+        """
+        try:
+            metricas = status_tracking_service.gerar_metricas_dashboard()
+            serializer = DashboardMetricasSerializer(metricas)
+            return Response(serializer.data)
+        except Exception as e:
+            logger.error(f"Erro no dashboard: {e}")
+            return Response({
+                'error': 'Erro interno do servidor',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['post'])
+    def sincronizar(self, request):
+        """
+        POST /api/status-tracking/sincronizar/
+        Executa sincronização manual dos dados
+        """
+        serializer = SincronizacaoStatusSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                data = serializer.validated_data
+                
+                resultado = status_tracking_service.sincronizar_dados_pedidos(
+                    data_inicio=data.get('data_inicio'),
+                    data_fim=data.get('data_fim'),
+                    pais_id=data.get('pais_id', 'todos'),
+                    forcar=data.get('forcar_sincronizacao', False)
+                )
+                
+                if resultado['status'] == 'success':
+                    return Response(resultado)
+                else:
+                    return Response(resultado, status=status.HTTP_400_BAD_REQUEST)
+                    
+            except Exception as e:
+                logger.error(f"Erro na sincronização: {e}")
+                return Response({
+                    'status': 'error',
+                    'message': f'Erro inesperado: {str(e)}'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['get'])
+    def pedidos(self, request):
+        """
+        GET /api/status-tracking/pedidos/
+        Lista pedidos com filtros, paginação e ordenação
+        """
+        try:
+            queryset = PedidoStatusAtual.objects.all()
+            
+            # Aplicar filtros usando query parameters
+            filtros = FiltrosPedidosSerializer(data=request.query_params)
+            if filtros.is_valid():
+                data_filtros = filtros.validated_data
+                
+                if data_filtros.get('pais'):
+                    queryset = queryset.filter(pais__icontains=data_filtros['pais'])
+                
+                if data_filtros.get('status_atual'):
+                    queryset = queryset.filter(status_atual__icontains=data_filtros['status_atual'])
+                
+                if data_filtros.get('nivel_alerta'):
+                    queryset = queryset.filter(nivel_alerta=data_filtros['nivel_alerta'])
+                
+                if data_filtros.get('tempo_minimo'):
+                    queryset = queryset.filter(tempo_no_status_atual__gte=data_filtros['tempo_minimo'])
+                
+                if data_filtros.get('customer_name'):
+                    queryset = queryset.filter(customer_name__icontains=data_filtros['customer_name'])
+                
+                if data_filtros.get('pedido_id'):
+                    queryset = queryset.filter(pedido_id__icontains=data_filtros['pedido_id'])
+                
+                if data_filtros.get('data_criacao_inicio'):
+                    queryset = queryset.filter(data_criacao__gte=data_filtros['data_criacao_inicio'])
+                
+                if data_filtros.get('data_criacao_fim'):
+                    queryset = queryset.filter(data_criacao__lte=data_filtros['data_criacao_fim'])
+            
+            # Ordenação
+            ordenacao = request.query_params.get('ordenacao', '-tempo_no_status_atual')
+            if ordenacao:
+                queryset = queryset.order_by(ordenacao)
+            
+            # Paginação
+            paginator = PedidosPagination()
+            paginated_queryset = paginator.paginate_queryset(queryset, request)
+            
+            # Serializar dados
+            serializer = PedidoStatusResumoSerializer(paginated_queryset, many=True)
+            
+            return paginator.get_paginated_response(serializer.data)
+            
+        except Exception as e:
+            logger.error(f"Erro listando pedidos: {e}")
+            return Response({
+                'error': 'Erro interno do servidor',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'], url_path='historico/(?P<pedido_id>[^/.]+)')
+    def historico(self, request, pedido_id=None):
+        """
+        GET /api/status-tracking/historico/{pedido_id}/
+        Histórico completo de mudanças de status de um pedido
+        """
+        try:
+            # Buscar pedido
+            try:
+                pedido = PedidoStatusAtual.objects.get(pedido_id=pedido_id)
+            except PedidoStatusAtual.DoesNotExist:
+                return Response({
+                    'error': 'Pedido não encontrado',
+                    'pedido_id': pedido_id
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Buscar histórico
+            historico = HistoricoStatus.objects.filter(pedido=pedido).order_by('-data_mudanca')
+            
+            # Serializar dados
+            pedido_serializer = PedidoStatusAtualSerializer(pedido)
+            historico_serializer = HistoricoStatusSerializer(historico, many=True)
+            
+            return Response({
+                'pedido': pedido_serializer.data,
+                'historico': historico_serializer.data
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro no histórico do pedido {pedido_id}: {e}")
+            return Response({
+                'error': 'Erro interno do servidor',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def configuracao(self, request):
+        """GET /api/status-tracking/configuracao/ - Buscar configurações"""
+        try:
+            config = ConfiguracaoStatusTracking.get_configuracao()
+            serializer = ConfiguracaoStatusTrackingSerializer(config)
+            return Response(serializer.data)
+        except Exception as e:
+            logger.error(f"Erro buscando configuração: {e}")
+            return Response({
+                'error': 'Erro interno do servidor',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['put'])
+    def configuracao_update(self, request):
+        """PUT /api/status-tracking/configuracao/ - Atualizar configurações"""
+        try:
+            config = ConfiguracaoStatusTracking.get_configuracao()
+            serializer = ConfiguracaoStatusTrackingSerializer(config, data=request.data, partial=True)
+            
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Erro atualizando configuração: {e}")
+            return Response({
+                'error': 'Erro interno do servidor',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['post'])
+    def atualizar_tempos(self, request):
+        """POST /api/status-tracking/atualizar-tempos/ - Atualizar tempos de status"""
+        try:
+            atualizados = status_tracking_service.atualizar_tempos_status()
+            return Response({
+                'status': 'success',
+                'pedidos_atualizados': atualizados,
+                'message': f'{atualizados} pedidos tiveram seus tempos atualizados'
+            })
+        except Exception as e:
+            logger.error(f"Erro atualizando tempos: {e}")
+            return Response({
+                'error': 'Erro interno do servidor',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PedidoStatusViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet para operações CRUD nos pedidos (principalmente leitura)"""
+    
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = PedidosPagination
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    
+    # Campos para busca textual
+    search_fields = ['pedido_id', 'customer_name', 'customer_email', 'produto_nome']
+    
+    # Campos para ordenação
+    ordering_fields = ['tempo_no_status_atual', 'data_criacao', 'updated_at', 'nivel_alerta']
+    ordering = ['-tempo_no_status_atual']
+    
+    def get_queryset(self):
+        queryset = PedidoStatusAtual.objects.all()
+        
+        # Filtros manuais via query parameters
+        status_atual = self.request.query_params.get('status_atual')
+        if status_atual:
+            queryset = queryset.filter(status_atual__icontains=status_atual)
+        
+        nivel_alerta = self.request.query_params.get('nivel_alerta')
+        if nivel_alerta:
+            queryset = queryset.filter(nivel_alerta=nivel_alerta)
+        
+        pais = self.request.query_params.get('pais')
+        if pais:
+            queryset = queryset.filter(pais__icontains=pais)
+        
+        tempo_minimo = self.request.query_params.get('tempo_minimo')
+        if tempo_minimo:
+            try:
+                queryset = queryset.filter(tempo_no_status_atual__gte=int(tempo_minimo))
+            except ValueError:
+                pass
+        
+        return queryset
+    
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return PedidoStatusResumoSerializer
+        return PedidoStatusAtualSerializer

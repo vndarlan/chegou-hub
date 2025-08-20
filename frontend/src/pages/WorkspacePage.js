@@ -49,7 +49,7 @@ const breadcrumbMap = {
   '/workspace/metricas/primecod': [{ label: 'Efetividade', href: '#' }, { label: 'PRIMECOD' }],
   '/workspace/metricas/ecomhub': [{ label: 'Efetividade', href: '#' }, { label: 'ECOMHUB' }],
   '/workspace/metricas/dropi': [{ label: 'Efetividade', href: '#' }, { label: 'Dropi' }],
-  '/workspace/status/ecomhub': [{ label: 'Status', href: '#' }, { label: 'Ecomhub' }],
+  '/workspace/status/ecomhub': [{ label: 'Métricas', href: '#' }, { label: 'Status', href: '#' }, { label: 'Ecomhub' }],
   '/workspace/engajamento': [{ label: 'Operacional', href: '#' }, { label: 'Engajamento' }],
   '/workspace/novelties': [{ label: 'Operacional', href: '#' }, { label: 'Novelties' }],
   '/workspace/processamento': [{ label: 'Suporte', href: '#' }, { label: 'Processamento' }],

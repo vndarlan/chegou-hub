@@ -1,6 +1,8 @@
-# backend/features/metricas_ecomhub/models.py - VERSÃO SIMPLIFICADA
+# backend/features/metricas_ecomhub/models.py - COM SISTEMA DE TRACKING DE STATUS
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
+from datetime import timedelta
 
 class AnaliseEcomhub(models.Model):
     """Model simplificado apenas para análises"""
@@ -27,3 +29,184 @@ class AnaliseEcomhub(models.Model):
         if not self.nome.startswith('[ECOMHUB]'):
             self.nome = f"[ECOMHUB] {self.nome}"
         super().save(*args, **kwargs)
+
+
+class PedidoStatusAtual(models.Model):
+    """Estado atual de cada pedido EcomHub"""
+    
+    NIVEL_ALERTA_CHOICES = [
+        ('normal', 'Normal'),
+        ('amarelo', 'Amarelo'),
+        ('vermelho', 'Vermelho'),
+        ('critico', 'Crítico')
+    ]
+    
+    # Dados básicos do pedido
+    pedido_id = models.CharField(max_length=100, unique=True, verbose_name="ID do Pedido")
+    status_atual = models.CharField(max_length=50, verbose_name="Status Atual")
+    customer_name = models.CharField(max_length=200, verbose_name="Nome do Cliente")
+    customer_email = models.EmailField(verbose_name="Email do Cliente")
+    customer_phone = models.CharField(max_length=50, blank=True, verbose_name="Telefone do Cliente")
+    produto_nome = models.CharField(max_length=300, verbose_name="Nome do Produto")
+    pais = models.CharField(max_length=100, verbose_name="País")
+    preco = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Preço")
+    data_criacao = models.DateTimeField(verbose_name="Data de Criação")
+    data_ultima_atualizacao = models.DateTimeField(verbose_name="Última Atualização")
+    shopify_order_number = models.CharField(max_length=100, verbose_name="Número do Pedido Shopify")
+    tracking_url = models.URLField(blank=True, verbose_name="URL de Rastreamento")
+    
+    # Campos de controle de tempo e alertas
+    tempo_no_status_atual = models.IntegerField(default=0, verbose_name="Tempo no Status Atual (horas)")
+    nivel_alerta = models.CharField(
+        max_length=20, 
+        choices=NIVEL_ALERTA_CHOICES, 
+        default='normal',
+        verbose_name="Nível de Alerta"
+    )
+    
+    # Metadados
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
+    
+    class Meta:
+        verbose_name = "Pedido Status Atual"
+        verbose_name_plural = "Pedidos Status Atual"
+        ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['status_atual']),
+            models.Index(fields=['nivel_alerta']),
+            models.Index(fields=['pais']),
+            models.Index(fields=['tempo_no_status_atual']),
+        ]
+    
+    def __str__(self):
+        return f"Pedido {self.pedido_id} - {self.status_atual} ({self.nivel_alerta})"
+    
+    def calcular_nivel_alerta(self):
+        """Calcula o nível de alerta baseado no tempo no status atual e tipo de status"""
+        horas = self.tempo_no_status_atual
+        status = self.status_atual.lower()
+        
+        # Status finais não geram alertas
+        status_finais = ['delivered', 'returned', 'cancelled']
+        if status in status_finais:
+            return 'normal'
+        
+        # Regras específicas por tipo de status
+        if status in ['processing', 'preparing_for_shipping']:
+            if horas > 504:  # 21 dias
+                return 'critico'
+            elif horas > 336:  # 14 dias
+                return 'vermelho'
+            elif horas > 168:  # 7 dias
+                return 'amarelo'
+        
+        elif status in ['shipped', 'with_courier']:
+            # Para shipped/courier, usar limite menor
+            if horas > 504:  # 21 dias
+                return 'critico'
+            elif horas > 240:  # 10 dias
+                return 'vermelho'
+            elif horas > 168:  # 7 dias
+                return 'amarelo'
+        
+        elif status == 'out_for_delivery':
+            # Para saindo para entrega, limite muito menor
+            if horas > 168:  # 7 dias (muito crítico)
+                return 'critico'
+            elif horas > 120:  # 5 dias
+                return 'vermelho'
+            elif horas > 72:   # 3 dias
+                return 'amarelo'
+        
+        # Outros status - regra geral
+        else:
+            if horas > 504:  # 21 dias
+                return 'critico'
+            elif horas > 336:  # 14 dias
+                return 'vermelho'
+            elif horas > 168:  # 7 dias
+                return 'amarelo'
+        
+        return 'normal'
+    
+    def save(self, *args, **kwargs):
+        # Atualizar nível de alerta automaticamente
+        self.nivel_alerta = self.calcular_nivel_alerta()
+        super().save(*args, **kwargs)
+
+
+class HistoricoStatus(models.Model):
+    """Histórico de mudanças de status dos pedidos"""
+    
+    pedido = models.ForeignKey(
+        PedidoStatusAtual, 
+        on_delete=models.CASCADE, 
+        related_name='historico',
+        verbose_name="Pedido"
+    )
+    status_anterior = models.CharField(max_length=50, blank=True, verbose_name="Status Anterior")
+    status_novo = models.CharField(max_length=50, verbose_name="Status Novo")
+    data_mudanca = models.DateTimeField(verbose_name="Data da Mudança")
+    tempo_no_status_anterior = models.IntegerField(default=0, verbose_name="Tempo no Status Anterior (horas)")
+    
+    # Metadados
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
+    
+    class Meta:
+        verbose_name = "Histórico de Status"
+        verbose_name_plural = "Histórico de Status"
+        ordering = ['-data_mudanca']
+        indexes = [
+            models.Index(fields=['pedido', '-data_mudanca']),
+            models.Index(fields=['status_novo']),
+        ]
+    
+    def __str__(self):
+        return f"{self.pedido.pedido_id}: {self.status_anterior} → {self.status_novo}"
+
+
+class ConfiguracaoStatusTracking(models.Model):
+    """Configurações do sistema de tracking"""
+    
+    # Configurações de tempo (em horas)
+    limite_amarelo_padrao = models.IntegerField(default=168, verbose_name="Limite Amarelo Padrão (horas)")
+    limite_vermelho_padrao = models.IntegerField(default=336, verbose_name="Limite Vermelho Padrão (horas)")
+    limite_critico_padrao = models.IntegerField(default=504, verbose_name="Limite Crítico Padrão (horas)")
+    
+    # Configurações específicas para out_for_delivery
+    limite_amarelo_entrega = models.IntegerField(default=72, verbose_name="Limite Amarelo Entrega (horas)")
+    limite_vermelho_entrega = models.IntegerField(default=120, verbose_name="Limite Vermelho Entrega (horas)")
+    limite_critico_entrega = models.IntegerField(default=168, verbose_name="Limite Crítico Entrega (horas)")
+    
+    # Configurações de sincronização
+    intervalo_sincronizacao = models.IntegerField(default=6, verbose_name="Intervalo de Sincronização (horas)")
+    ultima_sincronizacao = models.DateTimeField(null=True, blank=True, verbose_name="Última Sincronização")
+    
+    # Metadados
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Configuração Status Tracking"
+        verbose_name_plural = "Configurações Status Tracking"
+    
+    def __str__(self):
+        return f"Configuração Status Tracking - {self.updated_at.strftime('%d/%m/%Y %H:%M')}"
+    
+    @classmethod
+    def get_configuracao(cls):
+        """Retorna a configuração atual ou cria uma padrão"""
+        config, created = cls.objects.get_or_create(
+            pk=1,
+            defaults={
+                'limite_amarelo_padrao': 168,
+                'limite_vermelho_padrao': 336,
+                'limite_critico_padrao': 504,
+                'limite_amarelo_entrega': 72,
+                'limite_vermelho_entrega': 120,
+                'limite_critico_entrega': 168,
+                'intervalo_sincronizacao': 6
+            }
+        )
+        return config
