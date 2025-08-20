@@ -447,7 +447,7 @@ function PrimecodPage() {
     const renderFormulario = () => (
         <Card className="mb-6 relative border-border bg-card">
             {loadingProcessar && (
-                <div className="absolute inset-0 bg-background/95 backdrop-blur flex flex-col items-center justify-center z-10 rounded-lg">
+                <div className="absolute inset-0 bg-background/95 backdrop-blur flex flex-col items-center justify-center z-50 rounded-lg">
                     <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
                     <p className="font-medium mb-2 text-foreground">Processando dados via backend...</p>
                     {progressoAtual && (
@@ -469,16 +469,29 @@ function PrimecodPage() {
                         </div>
                     </div>
 
-                    <div className="flex flex-col md:flex-row md:items-start gap-4">
-                        <div className="flex-shrink-0">
-                            <Calendar
-                                mode="range"
-                                selected={dateRange}
-                                onSelect={setDateRange}
-                                disabled={loadingProcessar}
-                                className="rounded-md border shadow-sm bg-background mx-auto md:mx-0"
-                                numberOfMonths={2}
-                            />
+                    <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+                        <div className="relative">
+                            <div className="p-3 border rounded-md bg-background">
+                                <Calendar
+                                    mode="range"
+                                    selected={dateRange}
+                                    onSelect={(range) => {
+                                        console.log('Calendar selecionado:', range);
+                                        setDateRange(range);
+                                    }}
+                                    disabled={loadingProcessar}
+                                    numberOfMonths={2}
+                                />
+                            </div>
+                            
+                            {/* Debug info - remover em produção */}
+                            {dateRange?.from && (
+                                <div className="mt-2 p-2 text-xs text-muted-foreground bg-muted/50 rounded border">
+                                    <p className="font-medium">Período selecionado:</p>
+                                    <p>De: {dateRange.from.toLocaleDateString('pt-BR')}</p>
+                                    {dateRange.to && <p>Até: {dateRange.to.toLocaleDateString('pt-BR')}</p>}
+                                </div>
+                            )}
                         </div>
                         
                         <div className="flex-shrink-0 md:self-center">
