@@ -22,8 +22,7 @@ import { Label } from '../../components/ui/label';
 import { Progress } from '../../components/ui/progress';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
-import { SimpleDateRangePicker } from '../../components/ui/simple-date-range-picker';
-import { DateInputs } from '../../components/ui/date-inputs';
+import { Calendar } from '../../components/ui/calendar';
 import { getCSRFToken } from '../../utils/csrf';
 
 // Países PrimeCOD disponíveis
@@ -413,7 +412,7 @@ function PrimecodPage() {
         <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
                 <BarChart3 className="h-6 w-6 text-primary" />
-                <h1 className="text-2xl font-bold text-foreground">📊 Prime COD Analytics</h1>
+                <h1 className="text-2xl font-bold text-foreground">Análise de Efetividade por Produto</h1>
             </div>
             
             <div className="flex items-center gap-3">
@@ -470,27 +469,33 @@ function PrimecodPage() {
                         </div>
                     </div>
 
-                    <div className="flex items-end gap-4">
-                        <DateInputs
-                            dateRange={dateRange}
-                            onDateRangeChange={setDateRange}
-                            disabled={loadingProcessar}
-                            className="w-96"
-                        />
+                    <div className="flex flex-col md:flex-row md:items-start gap-4">
+                        <div className="flex-shrink-0">
+                            <Calendar
+                                mode="range"
+                                selected={dateRange}
+                                onSelect={setDateRange}
+                                disabled={loadingProcessar}
+                                className="rounded-md border shadow-sm bg-background mx-auto md:mx-0"
+                                captionLayout="dropdown"
+                            />
+                        </div>
                         
-                        <Button
-                            onClick={processarDados}
-                            disabled={!dateRange?.from || !dateRange?.to || loadingProcessar || !authChecked}
-                            size="lg"
-                            className="min-w-36 bg-primary text-primary-foreground hover:bg-primary/90"
-                        >
-                            {loadingProcessar ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                                <Search className="h-4 w-4 mr-2" />
-                            )}
-                            {!authChecked ? 'Verificando...' : (loadingProcessar ? 'Processando...' : 'Buscar Dados')}
-                        </Button>
+                        <div className="flex-shrink-0 md:self-center">
+                            <Button
+                                onClick={processarDados}
+                                disabled={!dateRange?.from || !dateRange?.to || loadingProcessar || !authChecked}
+                                size="lg"
+                                className="w-full md:w-auto min-w-36 bg-primary text-primary-foreground hover:bg-primary/90"
+                            >
+                                {loadingProcessar ? (
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                    <Search className="h-4 w-4 mr-2" />
+                                )}
+                                {!authChecked ? 'Verificando...' : (loadingProcessar ? 'Processando...' : 'Buscar Dados')}
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </CardHeader>

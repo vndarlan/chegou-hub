@@ -537,7 +537,7 @@ function DropiPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div className="flex items-center gap-3">
                 <BarChart3 className="h-6 w-6 text-primary" />
-                <h1 className="text-xl sm:text-2xl font-bold text-foreground">Análise de Pedidos Dropi</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">Análise de Efetividade por Produto</h1>
             </div>
             
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
