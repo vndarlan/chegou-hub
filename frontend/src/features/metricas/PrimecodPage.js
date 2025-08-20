@@ -23,7 +23,6 @@ import { Progress } from '../../components/ui/progress';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { Calendar } from '../../components/ui/calendar';
-import { RobustDatePicker } from '../../components/ui/robust-date-picker';
 import { getCSRFToken } from '../../utils/csrf';
 
 // Países PrimeCOD disponíveis
@@ -472,13 +471,16 @@ function PrimecodPage() {
 
                     <div className="flex flex-col lg:flex-row lg:items-start gap-6">
                         <div className="relative">
-                            <RobustDatePicker
-                                dateRange={dateRange}
-                                onDateRangeChange={setDateRange}
-                                disabled={loadingProcessar}
-                                placeholder="Selecione o período de análise..."
-                                className="flex-shrink-0"
-                            />
+                            <div className="border border-border rounded-md p-3 bg-background">
+                                <Calendar
+                                    mode="range"
+                                    selected={dateRange}
+                                    onSelect={setDateRange}
+                                    numberOfMonths={2}
+                                    disabled={loadingProcessar}
+                                    className="rounded-md border-0 p-0"
+                                />
+                            </div>
                         </div>
                         
                         <div className="flex-shrink-0 md:self-center">
