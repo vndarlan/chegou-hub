@@ -28,6 +28,12 @@ function DetectorIPPage() {
         days: 30
     });
     
+    // Estados para IPs resolvidos
+    const [resolvedIPs, setResolvedIPs] = useState([]);
+    const [showResolvedIPs, setShowResolvedIPs] = useState(false);
+    const [loadingResolved, setLoadingResolved] = useState(false);
+    const [markingIP, setMarkingIP] = useState(null);
+    
     
     
     // Estados modais/interface
@@ -49,6 +55,12 @@ function DetectorIPPage() {
     useEffect(() => {
         loadLojas();
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        if (lojaSelecionada) {
+            loadResolvedIPs();
+        }
+    }, [lojaSelecionada]); // eslint-disable-line react-hooks/exhaustive-deps
     
 
     const showNotification = (message, type = 'success') => {
@@ -327,6 +339,101 @@ function DetectorIPPage() {
         if (days <= 7) return 'destructive';
         if (days <= 15) return 'secondary';
         return 'outline';
+    };
+
+    // Funções para gerenciar IPs resolvidos
+    const loadResolvedIPs = async () => {
+        if (!lojaSelecionada) return;
+        
+        setLoadingResolved(true);
+        try {
+            const response = await axios.get('/processamento/listar-ips-resolvidos/', {
+                params: { loja_id: lojaSelecionada }
+            });
+            
+            if (response.data.success) {
+                setResolvedIPs(response.data.resolved_ips || []);
+            } else {
+                console.error('Erro ao carregar IPs resolvidos:', response.data.error);
+            }
+        } catch (error) {
+            console.error('Erro ao carregar IPs resolvidos:', error);
+        } finally {
+            setLoadingResolved(false);
+        }
+    };
+
+    const markIPAsResolved = async (ipGroup) => {
+        if (!lojaSelecionada || !ipGroup?.ip) {
+            showNotification('Dados insuficientes para marcar IP como resolvido', 'error');
+            return;
+        }
+
+        setMarkingIP(ipGroup.ip);
+        try {
+            const response = await axios.post('/processamento/marcar-ip-resolvido/', {
+                loja_id: parseInt(lojaSelecionada),
+                ip_address: ipGroup.ip,
+                total_orders: ipGroup.order_count || 0,
+                unique_customers: ipGroup.unique_customers || 0,
+                notes: 'Marcado como resolvido via interface do detector'
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                }
+            });
+
+            if (response.data.success) {
+                // Remove IP da lista principal
+                setIPGroups(prev => prev.filter(ip => ip.ip !== ipGroup.ip));
+                
+                // Recarrega lista de IPs resolvidos
+                await loadResolvedIPs();
+                
+                showNotification(`IP ${ipGroup.ip} marcado como resolvido com sucesso`);
+            } else {
+                showNotification(response.data.error || 'Erro ao marcar IP como resolvido', 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao marcar IP como resolvido:', error);
+            showNotification('Erro ao marcar IP como resolvido', 'error');
+        } finally {
+            setMarkingIP(null);
+        }
+    };
+
+    const unmarkIPAsResolved = async (ipAddress) => {
+        if (!lojaSelecionada || !ipAddress) {
+            showNotification('Dados insuficientes para desmarcar IP', 'error');
+            return;
+        }
+
+        try {
+            const response = await axios.delete('/processamento/desmarcar-ip-resolvido/', {
+                data: {
+                    loja_id: parseInt(lojaSelecionada),
+                    ip_address: ipAddress
+                },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                }
+            });
+
+            if (response.data.success) {
+                // Remove da lista de resolvidos
+                setResolvedIPs(prev => prev.filter(ip => ip.ip_address !== ipAddress));
+                
+                // Força nova busca para mostrar o IP novamente
+                showNotification(`IP ${ipAddress} removido da lista de resolvidos. Execute uma nova busca para vê-lo novamente.`);
+            } else {
+                showNotification(response.data.error || 'Erro ao desmarcar IP', 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao desmarcar IP:', error);
+            showNotification('Erro ao desmarcar IP', 'error');
+        }
     };
     
 
@@ -669,19 +776,36 @@ function DetectorIPPage() {
                                                         </div>
                                                     </TableCell>
                                                     <TableCell className="text-right">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => openIPDetails(ipGroup)}
-                                                            disabled={loadingDetails && selectedIP?.ip === ipGroup.ip}
-                                                        >
-                                                            {loadingDetails && selectedIP?.ip === ipGroup.ip ? (
-                                                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                                                            ) : (
-                                                                <Eye className="h-4 w-4 mr-1" />
-                                                            )}
-                                                            Ver Detalhes
-                                                        </Button>
+                                                        <div className="flex items-center gap-2 justify-end">
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => markIPAsResolved(ipGroup)}
+                                                                disabled={markingIP === ipGroup.ip}
+                                                                className="text-green-600 hover:bg-green-50 hover:text-green-700 border-green-200"
+                                                            >
+                                                                {markingIP === ipGroup.ip ? (
+                                                                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                                                ) : (
+                                                                    <Check className="h-4 w-4 mr-1" />
+                                                                )}
+                                                                Marcar Resolvido
+                                                            </Button>
+                                                            
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => openIPDetails(ipGroup)}
+                                                                disabled={loadingDetails && selectedIP?.ip === ipGroup.ip}
+                                                            >
+                                                                {loadingDetails && selectedIP?.ip === ipGroup.ip ? (
+                                                                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                                                ) : (
+                                                                    <Eye className="h-4 w-4 mr-1" />
+                                                                )}
+                                                                Ver Detalhes
+                                                            </Button>
+                                                        </div>
                                                     </TableCell>
                                                 </TableRow>
                                             );
@@ -693,7 +817,97 @@ function DetectorIPPage() {
                     ) : null}
                 </CardContent>
             </Card>
-            
+
+            {/* Seção de IPs Resolvidos */}
+            <Card className="bg-card border-border">
+                <CardHeader>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <CardTitle className="text-foreground flex items-center gap-2">
+                                <Check className="h-5 w-5 text-green-600" />
+                                IPs Resolvidos
+                            </CardTitle>
+                            <CardDescription className="text-muted-foreground">
+                                {resolvedIPs.length > 0 
+                                    ? `${resolvedIPs.length} IPs já foram analisados e marcados como resolvidos`
+                                    : 'Nenhum IP foi marcado como resolvido ainda'
+                                }
+                            </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                                {resolvedIPs.length} resolvidos
+                            </Badge>
+                            {resolvedIPs.length > 0 && (
+                                <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => setShowResolvedIPs(!showResolvedIPs)}
+                                >
+                                    {showResolvedIPs ? 'Ocultar' : 'Mostrar'} Lista
+                                </Button>
+                            )}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={loadResolvedIPs}
+                                disabled={loadingResolved}
+                            >
+                                {loadingResolved ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                                Atualizar
+                            </Button>
+                        </div>
+                    </div>
+                </CardHeader>
+                
+                {showResolvedIPs && (
+                    <CardContent>
+                        {resolvedIPs.length === 0 ? (
+                            <div className="text-center py-8">
+                                <Check className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                                <p className="text-muted-foreground">Nenhum IP foi marcado como resolvido</p>
+                                <p className="text-sm text-muted-foreground">IPs marcados como resolvidos aparecerão aqui</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {resolvedIPs.map((resolvedIP, index) => (
+                                    <div key={`${resolvedIP.ip_address}-${index}`} 
+                                         className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                                                <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                            </div>
+                                            <div>
+                                                <p className="font-mono text-sm text-foreground font-semibold">{resolvedIP.ip_address}</p>
+                                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                                    <span>📊 {resolvedIP.total_orders_at_resolution} pedidos</span>
+                                                    <span>👥 {resolvedIP.unique_customers_at_resolution} clientes</span>
+                                                    <span>✅ {formatDate(resolvedIP.resolved_at)}</span>
+                                                    <span>por {resolvedIP.resolved_by}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                                Resolvido
+                                            </Badge>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => unmarkIPAsResolved(resolvedIP.ip_address)}
+                                                className="h-8 px-2 text-xs hover:bg-red-50 hover:text-red-600"
+                                            >
+                                                <X className="h-3 w-3 mr-1" />
+                                                Desmarcar
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                )}
+            </Card>
 
             <>
             {/* Modal de Detalhes do IP */}

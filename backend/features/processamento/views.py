@@ -4280,6 +4280,40 @@ def buscar_ips_duplicados_simples(request):
         # Ordena por quantidade de pedidos (mais pedidos primeiro)
         ips_duplicados.sort(key=lambda x: x['total_pedidos'], reverse=True)
         
+        # ⚡ FILTRAR IPs RESOLVIDOS
+        # Carrega lista de IPs que já foram marcados como resolvidos pelo usuário
+        from .models import ResolvedIP
+        resolved_ips_set = set()
+        try:
+            resolved_ips = ResolvedIP.objects.filter(config=config).values_list('ip_address', flat=True)
+            resolved_ips_set = set(resolved_ips)
+            logger.info(f"🔒 {len(resolved_ips_set)} IPs resolvidos carregados para filtrar: {list(resolved_ips_set)[:5]}...")
+        except Exception as e:
+            logger.warning(f"⚠️  Erro ao carregar IPs resolvidos, continuando sem filtrar: {str(e)}")
+        
+        # Filtra IPs resolvidos da lista principal
+        ips_duplicados_originais_count = len(ips_duplicados)
+        ips_filtrados = []
+        ips_removidos_por_resolucao = []
+        
+        for ip_data in ips_duplicados:
+            ip_address = ip_data.get('browser_ip')
+            if ip_address in resolved_ips_set:
+                # IP já foi resolvido, remove da lista principal
+                ips_removidos_por_resolucao.append({
+                    'ip': ip_address,
+                    'total_pedidos': ip_data.get('total_pedidos', 0),
+                    'clientes_unicos': ip_data.get('clientes_unicos', 0)
+                })
+            else:
+                # IP não foi resolvido, mantém na lista
+                ips_filtrados.append(ip_data)
+        
+        # Substitui lista original pelos IPs filtrados
+        ips_duplicados = ips_filtrados
+        
+        logger.info(f"📋 Filtragem de IPs resolvidos: {ips_duplicados_originais_count} → {len(ips_duplicados)} IPs (removidos: {len(ips_removidos_por_resolucao)})")
+        
         # Verificação final de consistência
         if total_processed > 0 and len(ip_groups) == 0:
             logger.error(f"ERRO: Processamos {total_processed} pedidos mas não encontramos nenhum IP. Possível problema na extração de IPs.")
@@ -4329,6 +4363,11 @@ def buscar_ips_duplicados_simples(request):
                 'methods_used': methods_used,
                 'success_rate': len(ip_groups) / max(total_processed - excluded_count, 1) * 100,
                 'api_limit_used': limit_usado
+            },
+            'resolved_ips_filter': {
+                'total_resolved_ips': len(resolved_ips_set) if 'resolved_ips_set' in locals() else 0,
+                'ips_filtered_out': len(ips_removidos_por_resolucao) if 'ips_removidos_por_resolucao' in locals() else 0,
+                'filtered_ips_details': ips_removidos_por_resolucao if 'ips_removidos_por_resolucao' in locals() else []
             }
         })
         

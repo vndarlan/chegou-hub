@@ -73,7 +73,8 @@
       "Bash(powershell:*)",
       "Bash(ping:*)",
       "Bash(git tag:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git pull:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",
