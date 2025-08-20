@@ -477,7 +477,7 @@ function PrimecodPage() {
                                 onSelect={setDateRange}
                                 disabled={loadingProcessar}
                                 className="rounded-md border shadow-sm bg-background mx-auto md:mx-0"
-                                captionLayout="dropdown"
+                                numberOfMonths={2}
                             />
                         </div>
                         
