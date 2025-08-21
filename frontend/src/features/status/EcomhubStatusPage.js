@@ -8,7 +8,7 @@ import {
     Timer, FileText, ExternalLink, Bell, PieChart, Percent
 } from 'lucide-react';
 import axios from 'axios';
-import { getCsrfToken } from '../../utils/csrf';
+import { getCSRFToken } from '../../utils/csrf';
 
 // shadcn/ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -107,7 +107,7 @@ function EcomhubStatusPage() {
         setLoadingDashboard(true);
         try {
             const response = await axios.get('/api/metricas/ecomhub/status-tracking/dashboard/', {
-                headers: { 'X-CSRFToken': getCsrfToken() }
+                headers: { 'X-CSRFToken': getCSRFToken() }
             });
             
             setDadosDashboard(response.data);
@@ -134,7 +134,7 @@ function EcomhubStatusPage() {
             if (filtros.nivel_alerta !== 'todos') params.append('nivel_alerta', filtros.nivel_alerta);
             
             const response = await axios.get(`/api/metricas/ecomhub/status-tracking/pedidos/?${params}`, {
-                headers: { 'X-CSRFToken': getCsrfToken() }
+                headers: { 'X-CSRFToken': getCSRFToken() }
             });
             
             setPedidos(response.data.results || []);
@@ -166,7 +166,7 @@ function EcomhubStatusPage() {
                 data_fim: dateRange.to.toISOString().split('T')[0],
                 pais_id: filtros.pais
             }, {
-                headers: { 'X-CSRFToken': getCsrfToken() }
+                headers: { 'X-CSRFToken': getCSRFToken() }
             });
 
             if (response.data.status === 'success') {
@@ -189,7 +189,7 @@ function EcomhubStatusPage() {
         setLoadingHistorico(true);
         try {
             const response = await axios.get(`/api/metricas/ecomhub/status-tracking/historico/${pedidoId}/`, {
-                headers: { 'X-CSRFToken': getCsrfToken() }
+                headers: { 'X-CSRFToken': getCSRFToken() }
             });
             
             setHistoricoPedido(response.data);
