@@ -373,6 +373,11 @@ CSRF_TRUSTED_ORIGINS = [
     "https://chegou-hubb-production.up.railway.app"
 ]
 
+# Adicionar origens do ambiente variável
+CSRF_TRUSTED_ORIGINS_ENV = os.getenv('CSRF_TRUSTED_ORIGINS')
+if CSRF_TRUSTED_ORIGINS_ENV:
+    CSRF_TRUSTED_ORIGINS.extend([origin.strip() for origin in CSRF_TRUSTED_ORIGINS_ENV.split(',')])
+
 # Adicionar origens locais para desenvolvimento
 if DEBUG:
     CSRF_TRUSTED_ORIGINS.extend([
@@ -381,6 +386,14 @@ if DEBUG:
         "http://localhost:8000",
         "http://127.0.0.1:8000",
     ])
+    
+    # Adicionar automaticamente URLs de teste do Railway
+    railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN')
+    if railway_domain:
+        CSRF_TRUSTED_ORIGINS.extend([
+            f"https://{railway_domain}",
+            f"http://{railway_domain}"
+        ])
 
 print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
 
