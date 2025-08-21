@@ -346,6 +346,11 @@ CORS_ALLOWED_ORIGINS = [
     "https://chegou-hubb-production.up.railway.app",
 ]
 
+# Adicionar origens do ambiente variável para CORS
+CORS_ALLOWED_ORIGINS_ENV = os.getenv('CORS_ALLOWED_ORIGINS')
+if CORS_ALLOWED_ORIGINS_ENV:
+    CORS_ALLOWED_ORIGINS.extend([origin.strip() for origin in CORS_ALLOWED_ORIGINS_ENV.split(',')])
+
 # Adicionar origens locais para desenvolvimento
 if DEBUG:
     CORS_ALLOWED_ORIGINS.extend([
@@ -354,6 +359,14 @@ if DEBUG:
         "http://localhost:8000",
         "http://127.0.0.1:8000",
     ])
+    
+    # Adicionar automaticamente URLs do Railway para CORS em ambiente de teste
+    railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN')
+    if railway_domain:
+        CORS_ALLOWED_ORIGINS.extend([
+            f"https://{railway_domain}",
+            f"http://{railway_domain}"
+        ])
 
 CORS_ALLOW_CREDENTIALS = True
 print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
