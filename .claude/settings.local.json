@@ -74,7 +74,8 @@
       "Bash(ping:*)",
       "Bash(git tag:*)",
       "Bash(git reset:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(touch:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",

@@ -401,6 +401,41 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 print(f"--- Django Settings Loaded ---")
 
+# ======================== AUTO-CRIAÇÃO DE SUPERUSUÁRIO PARA TESTE ========================
+def create_test_superuser():
+    """Cria automaticamente um superusuário para ambiente de teste"""
+    if DEBUG and IS_RAILWAY_DEPLOYMENT:
+        try:
+            from django.contrib.auth import get_user_model
+            from django.core.management import execute_from_command_line
+            import sys
+            
+            User = get_user_model()
+            
+            # Só cria se não existir nenhum superusuário
+            if not User.objects.filter(is_superuser=True).exists():
+                User.objects.create_superuser(
+                    username='admin',
+                    email='admin@teste.com', 
+                    password='123456'
+                )
+                print("✅ SUPERUSUÁRIO CRIADO AUTOMATICAMENTE:")
+                print("   Username: admin")
+                print("   Password: 123456")
+                print("   Email: admin@teste.com")
+            else:
+                print("ℹ️  Superusuário já existe no banco de teste")
+                
+        except Exception as e:
+            print(f"⚠️  Erro ao criar superusuário automático: {e}")
+
+# Executar após as configurações do Django estarem prontas
+import django
+from django.conf import settings
+if settings.configured:
+    django.setup()
+    create_test_superuser()
+
 
 # ======================== CONFIGURAÇÃO DJANGO-RQ ========================
 import os
