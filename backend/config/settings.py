@@ -107,7 +107,8 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # Desabilitar CSRF completamente no ambiente de teste
+    'django.middleware.csrf.CsrfViewMiddleware' if not (DEBUG and os.getenv('DISABLE_CSRF', 'False').lower() == 'true') else 'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -115,6 +116,11 @@ MIDDLEWARE = [
     # 'features.processamento.middleware.ip_security_middleware.IPDetectorSecurityMiddleware',
     # 'features.processamento.middleware.ip_security_middleware.SecurityAuditMiddleware',
 ]
+
+# Remover middleware CSRF duplicado se DISABLE_CSRF estiver ativo
+if DEBUG and os.getenv('DISABLE_CSRF', 'False').lower() == 'true':
+    MIDDLEWARE = [m for m in MIDDLEWARE if 'CsrfViewMiddleware' not in m]
+    print("🚨 CSRF TOTALMENTE DESABILITADO - APENAS PARA TESTE!")
 
 ROOT_URLCONF = 'config.urls'
 
