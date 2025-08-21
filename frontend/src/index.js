@@ -6,11 +6,12 @@ import './globals.css'; // Novo CSS com Tailwind e variáveis do tema
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
-// Configuração base do Axios (mantém igual)
-const API_URL = 'https://chegou-hubb-production.up.railway.app/api';
+// Configuração base do Axios - agora usando variável de ambiente
+const API_URL = process.env.REACT_APP_API_BASE_URL || 'https://chegou-hubb-production.up.railway.app/api';
 axios.defaults.baseURL = API_URL;
 axios.defaults.withCredentials = true;
 console.log("API Base URL configurada:", axios.defaults.baseURL);
+console.log("REACT_APP_API_BASE_URL env var:", process.env.REACT_APP_API_BASE_URL);
 
 axios.defaults.xsrfCookieName = 'csrftoken';
 axios.defaults.xsrfHeaderName = 'X-CSRFToken';

@@ -77,7 +77,7 @@ const linksBySection = {
   admin: [
     { 
       label: 'Acessar', 
-      link: 'https://chegou-hubb-production.up.railway.app/admin/',
+      link: `${process.env.REACT_APP_API_BASE_URL?.replace('/api', '') || 'https://chegou-hubb-production.up.railway.app'}/admin/`,
       external: true
     },
   ],
