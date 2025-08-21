@@ -1,5 +1,5 @@
 // frontend/src/features/status/EcomhubStatusPage.js - DASHBOARD STATUS TRACKING
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Clock, RefreshCw, AlertTriangle, TrendingUp, BarChart3, Eye, Search, Globe,
     ArrowUpDown, ArrowUp, ArrowDown, Package, Truck, CheckCircle, AlertCircle,
@@ -65,7 +65,7 @@ const ORDENACAO_OPTIONS = [
     { value: 'cliente', label: 'Nome do cliente' }
 ];
 
-function EcomhubStatusPage() {
+const EcomhubStatusPage = React.memo(function EcomhubStatusPage() {
     // Estados principais
     const [tabAtiva, setTabAtiva] = useState('dashboard');
     const [dadosDashboard, setDadosDashboard] = useState(null);
@@ -103,7 +103,7 @@ function EcomhubStatusPage() {
 
     // ======================== FUNÇÕES DE API ========================
 
-    const fetchDashboard = async () => {
+    const fetchDashboard = useCallback(async () => {
         setLoadingDashboard(true);
         try {
             const response = await axios.get('/api/metricas/ecomhub/status-tracking/dashboard/', {
@@ -119,9 +119,9 @@ function EcomhubStatusPage() {
         } finally {
             setLoadingDashboard(false);
         }
-    };
+    }, []);
 
-    const fetchPedidos = async (pagina = 1) => {
+    const fetchPedidos = useCallback(async (pagina = 1) => {
         setLoadingPedidos(true);
         try {
             const params = new URLSearchParams({
@@ -146,7 +146,7 @@ function EcomhubStatusPage() {
         } finally {
             setLoadingPedidos(false);
         }
-    };
+    }, [filtros]);
 
     const sincronizarAgora = async () => {
         if (!dateRange?.from || !dateRange?.to || filtros.pais === 'todos') {
@@ -304,8 +304,8 @@ function EcomhubStatusPage() {
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="border-border bg-popover">
-                        {PAISES.map(pais => (
-                            <SelectItem key={pais.value} value={pais.value} className="text-popover-foreground hover:bg-accent">
+                        {PAISES.map((pais) => (
+                            <SelectItem key={`pais-${pais.value}`} value={pais.value} className="text-popover-foreground hover:bg-accent">
                                 {pais.label}
                             </SelectItem>
                         ))}
@@ -316,7 +316,9 @@ function EcomhubStatusPage() {
     );
 
     const renderAlertasCriticos = () => {
-        if (!alertasCriticos || alertasCriticos.length === 0) return null;
+        if (!alertasCriticos || alertasCriticos.length === 0) {
+            return <React.Fragment key="no-alerts"></React.Fragment>;
+        }
 
         return (
             <Alert className="mb-6 border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
@@ -339,7 +341,7 @@ function EcomhubStatusPage() {
                     
                     <div className="mt-3 space-y-2">
                         {alertasCriticos.slice(0, 3).map((alerta, index) => (
-                            <div key={index} className="flex items-center gap-3 p-2 bg-white dark:bg-red-900/30 rounded border border-red-200 dark:border-red-700">
+                            <div key={`alerta-${alerta.id || 'unknown'}-${index}`} className="flex items-center gap-3 p-2 bg-white dark:bg-red-900/30 rounded border border-red-200 dark:border-red-700">
                                 <Badge className={getAlertaBadge(alerta.nivel_alerta)}>
                                     {alerta.nivel_alerta === 'critico' ? '🔴' : '⚠️'}
                                 </Badge>
@@ -368,7 +370,9 @@ function EcomhubStatusPage() {
     };
 
     const renderMetricasCards = () => {
-        if (!dadosDashboard?.distribuicao_status) return null;
+        if (!dadosDashboard?.distribuicao_status) {
+            return <React.Fragment key="no-metrics"></React.Fragment>;
+        }
 
         const distribuicao = dadosDashboard.distribuicao_status;
         const metricas = dadosDashboard.metricas_performance || {};
@@ -435,7 +439,9 @@ function EcomhubStatusPage() {
     };
 
     const renderPerformanceGeral = () => {
-        if (!dadosDashboard?.metricas_performance) return null;
+        if (!dadosDashboard?.metricas_performance) {
+            return <React.Fragment key="no-performance"></React.Fragment>;
+        }
 
         const metricas = dadosDashboard.metricas_performance;
 
@@ -550,8 +556,8 @@ function EcomhubStatusPage() {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="border-border bg-popover">
-                                {STATUS_OPTIONS.map(status => (
-                                    <SelectItem key={status.value} value={status.value} className="text-popover-foreground hover:bg-accent">
+                                {STATUS_OPTIONS.map((status) => (
+                                    <SelectItem key={`status-${status.value}`} value={status.value} className="text-popover-foreground hover:bg-accent">
                                         {status.label}
                                     </SelectItem>
                                 ))}
@@ -569,8 +575,8 @@ function EcomhubStatusPage() {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="border-border bg-popover">
-                                {NIVEL_ALERTA_OPTIONS.map(nivel => (
-                                    <SelectItem key={nivel.value} value={nivel.value} className="text-popover-foreground hover:bg-accent">
+                                {NIVEL_ALERTA_OPTIONS.map((nivel) => (
+                                    <SelectItem key={`nivel-${nivel.value}`} value={nivel.value} className="text-popover-foreground hover:bg-accent">
                                         {nivel.label}
                                     </SelectItem>
                                 ))}
@@ -588,8 +594,8 @@ function EcomhubStatusPage() {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="border-border bg-popover">
-                                {ORDENACAO_OPTIONS.map(ordem => (
-                                    <SelectItem key={ordem.value} value={ordem.value} className="text-popover-foreground hover:bg-accent">
+                                {ORDENACAO_OPTIONS.map((ordem) => (
+                                    <SelectItem key={`ordem-${ordem.value}`} value={ordem.value} className="text-popover-foreground hover:bg-accent">
                                         {ordem.label}
                                     </SelectItem>
                                 ))}
@@ -659,12 +665,12 @@ function EcomhubStatusPage() {
             
             <CardContent className="p-0">
                 {loadingPedidos ? (
-                    <div className="flex items-center justify-center py-12">
+                    <div key="loading-orders" className="flex items-center justify-center py-12">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         <span className="ml-2 text-muted-foreground">Carregando pedidos...</span>
                     </div>
                 ) : pedidos.length === 0 ? (
-                    <div className="flex items-center justify-center py-12">
+                    <div key="no-orders" className="flex items-center justify-center py-12">
                         <div className="text-center">
                             <Package className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
                             <p className="text-muted-foreground">Nenhum pedido encontrado com os filtros aplicados</p>
@@ -686,7 +692,7 @@ function EcomhubStatusPage() {
                             </TableHeader>
                             <TableBody>
                                 {pedidos.map((pedido) => (
-                                    <TableRow key={pedido.id} className="border-border">
+                                    <TableRow key={`pedido-${pedido.id}-${pedido.shopify_order_number || 'no-order'}`} className="border-border">
                                         <TableCell className="text-card-foreground">
                                             <div className="flex items-center gap-2">
                                                 <User className="h-4 w-4 text-muted-foreground" />
@@ -765,7 +771,7 @@ function EcomhubStatusPage() {
                 </DialogHeader>
                 
                 {loadingHistorico ? (
-                    <div className="flex items-center justify-center py-12">
+                    <div key="loading-history" className="flex items-center justify-center py-12">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         <span className="ml-2 text-muted-foreground">Carregando histórico...</span>
                     </div>
@@ -808,11 +814,9 @@ function EcomhubStatusPage() {
                             <CardContent>
                                 <div className="space-y-4">
                                     {historicoPedido.historico?.map((item, index) => (
-                                        <div key={index} className="flex items-start gap-4 relative">
+                                        <div key={`historico-${item.id || 'unknown'}-${item.status_novo || 'no-status'}-${index}`} className="flex items-start gap-4 relative">
                                             {/* Linha vertical conectora */}
-                                            {index < historicoPedido.historico.length - 1 && (
-                                                <div className="absolute left-3 top-8 w-px h-8 bg-border"></div>
-                                            )}
+                                            <div className={`absolute left-3 top-8 w-px h-8 bg-border ${index < historicoPedido.historico.length - 1 ? 'opacity-100' : 'opacity-0'}`}></div>
                                             
                                             {/* Ícone do status */}
                                             <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center bg-background ${getStatusColor(item.status_novo)}`}>
@@ -843,7 +847,9 @@ function EcomhubStatusPage() {
                         </Card>
                     </div>
                 ) : (
-                    <p className="text-center text-muted-foreground py-8">Nenhum histórico encontrado</p>
+                    <div className="text-center py-8" key="no-history">
+                        <p className="text-muted-foreground">Nenhum histórico encontrado</p>
+                    </div>
                 )}
                 
                 <DialogFooter>
@@ -883,7 +889,9 @@ function EcomhubStatusPage() {
 
     useEffect(() => {
         fetchDashboard();
-        
+    }, [fetchDashboard]);
+
+    useEffect(() => {
         // Auto-refresh a cada 5 minutos se habilitado
         let interval;
         if (autoRefresh) {
@@ -898,13 +906,20 @@ function EcomhubStatusPage() {
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [autoRefresh, tabAtiva, paginaAtual]);
+    }, [autoRefresh, tabAtiva, paginaAtual, fetchDashboard, fetchPedidos]);
+
+    // Separar useEffect para filtros dos pedidos
+    useEffect(() => {
+        if (tabAtiva === 'pedidos') {
+            fetchPedidos(1);
+        }
+    }, [tabAtiva, fetchPedidos]);
 
     useEffect(() => {
         if (tabAtiva === 'pedidos') {
             fetchPedidos(1);
         }
-    }, [tabAtiva, filtros]);
+    }, [filtros.pais, filtros.status, filtros.nivel_alerta, filtros.ordenacao, tabAtiva, fetchPedidos]);
 
     // ======================== RENDER PRINCIPAL ========================
 
@@ -961,6 +976,6 @@ function EcomhubStatusPage() {
             {renderModalHistorico()}
         </div>
     );
-}
+});
 
 export default EcomhubStatusPage;
