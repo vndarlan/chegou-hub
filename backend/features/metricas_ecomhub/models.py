@@ -34,6 +34,20 @@ class AnaliseEcomhub(models.Model):
 class PedidoStatusAtual(models.Model):
     """Estado atual de cada pedido EcomHub"""
     
+    # Status que não precisam de monitoramento (finalizados)
+    STATUS_FINAIS = ['delivered', 'returned', 'cancelled']
+    
+    # Status que precisam de monitoramento (ativos - podem ter problemas)
+    STATUS_ATIVOS = [
+        'processing',             # Processando
+        'preparing_for_shipping', # Preparando envio
+        'ready_to_ship',         # Pronto para enviar
+        'shipped',               # Enviado
+        'with_courier',          # Com transportadora
+        'out_for_delivery',      # Saiu para entrega
+        'issue'                  # Com problema (CRÍTICO)
+    ]
+    
     NIVEL_ALERTA_CHOICES = [
         ('normal', 'Normal'),
         ('amarelo', 'Amarelo'),
@@ -82,52 +96,61 @@ class PedidoStatusAtual(models.Model):
     def __str__(self):
         return f"Pedido {self.pedido_id} - {self.status_atual} ({self.nivel_alerta})"
     
+    @property
+    def is_ativo(self):
+        """Verifica se o pedido está em status ativo (precisa monitoramento)"""
+        return self.status_atual.lower() not in self.STATUS_FINAIS
+    
+    @property
+    def is_finalizado(self):
+        """Verifica se o pedido está finalizado (não precisa monitoramento)"""
+        return self.status_atual.lower() in self.STATUS_FINAIS
+    
     def calcular_nivel_alerta(self):
         """Calcula o nível de alerta baseado no tempo no status atual e tipo de status"""
         horas = self.tempo_no_status_atual
         status = self.status_atual.lower()
         
-        # Status finais não geram alertas
-        status_finais = ['delivered', 'returned', 'cancelled']
-        if status in status_finais:
+        # IGNORAR STATUS FINAIS - não geram alertas
+        if status in self.STATUS_FINAIS:
             return 'normal'
         
-        # Regras específicas por tipo de status
-        if status in ['processing', 'preparing_for_shipping']:
-            if horas > 504:  # 21 dias
+        # APLICAR REGRAS APENAS PARA STATUS ATIVOS
+        if status == 'issue':
+            # PROBLEMA - sempre crítico se > 24h
+            if horas >= 24:
                 return 'critico'
-            elif horas > 336:  # 14 dias
+            else:
+                return 'amarelo'  # Problema recente
+        
+        elif status == 'out_for_delivery':
+            # Mais urgente - saiu para entrega
+            if horas >= 168:  # 7 dias
+                return 'critico'
+            elif horas >= 120: # 5 dias
                 return 'vermelho'
-            elif horas > 168:  # 7 dias
+            elif horas >= 72:  # 3 dias
                 return 'amarelo'
         
         elif status in ['shipped', 'with_courier']:
-            # Para shipped/courier, usar limite menor
-            if horas > 504:  # 21 dias
+            # Médio - em trânsito
+            if horas >= 336:  # 14 dias
                 return 'critico'
-            elif horas > 240:  # 10 dias
+            elif horas >= 240: # 10 dias
                 return 'vermelho'
-            elif horas > 168:  # 7 dias
+            elif horas >= 168: # 7 dias
                 return 'amarelo'
         
-        elif status == 'out_for_delivery':
-            # Para saindo para entrega, limite muito menor
-            if horas > 168:  # 7 dias (muito crítico)
+        elif status in ['processing', 'preparing_for_shipping', 'ready_to_ship']:
+            # Processamento interno
+            if horas >= 504:  # 21 dias
                 return 'critico'
-            elif horas > 120:  # 5 dias
+            elif horas >= 336: # 14 dias
                 return 'vermelho'
-            elif horas > 72:   # 3 dias
+            elif horas >= 168: # 7 dias
                 return 'amarelo'
         
-        # Outros status - regra geral
-        else:
-            if horas > 504:  # 21 dias
-                return 'critico'
-            elif horas > 336:  # 14 dias
-                return 'vermelho'
-            elif horas > 168:  # 7 dias
-                return 'amarelo'
-        
+        # Status não reconhecido ou ainda dentro dos limites normais
         return 'normal'
     
     def save(self, *args, **kwargs):

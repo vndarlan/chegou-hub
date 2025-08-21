@@ -54,6 +54,8 @@ class PedidoStatusAtualSerializer(serializers.ModelSerializer):
     historico = HistoricoStatusSerializer(many=True, read_only=True)
     nivel_alerta_display = serializers.CharField(source='get_nivel_alerta_display', read_only=True)
     tempo_no_status_dias = serializers.SerializerMethodField()
+    is_ativo = serializers.ReadOnlyField()
+    is_finalizado = serializers.ReadOnlyField()
     
     class Meta:
         model = PedidoStatusAtual
@@ -62,7 +64,8 @@ class PedidoStatusAtualSerializer(serializers.ModelSerializer):
             'customer_phone', 'produto_nome', 'pais', 'preco', 'data_criacao',
             'data_ultima_atualizacao', 'shopify_order_number', 'tracking_url',
             'tempo_no_status_atual', 'nivel_alerta', 'nivel_alerta_display',
-            'tempo_no_status_dias', 'created_at', 'updated_at', 'historico'
+            'tempo_no_status_dias', 'is_ativo', 'is_finalizado', 
+            'created_at', 'updated_at', 'historico'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'nivel_alerta']
     
@@ -76,6 +79,8 @@ class PedidoStatusResumoSerializer(serializers.ModelSerializer):
     
     nivel_alerta_display = serializers.CharField(source='get_nivel_alerta_display', read_only=True)
     tempo_no_status_dias = serializers.SerializerMethodField()
+    is_ativo = serializers.ReadOnlyField()
+    is_finalizado = serializers.ReadOnlyField()
     
     class Meta:
         model = PedidoStatusAtual
@@ -83,7 +88,7 @@ class PedidoStatusResumoSerializer(serializers.ModelSerializer):
             'id', 'pedido_id', 'status_atual', 'customer_name', 'produto_nome',
             'pais', 'preco', 'data_criacao', 'shopify_order_number',
             'tempo_no_status_atual', 'nivel_alerta', 'nivel_alerta_display',
-            'tempo_no_status_dias', 'updated_at'
+            'tempo_no_status_dias', 'is_ativo', 'is_finalizado', 'updated_at'
         ]
     
     def get_tempo_no_status_dias(self, obj):
@@ -105,17 +110,18 @@ class ConfiguracaoStatusTrackingSerializer(serializers.ModelSerializer):
 
 
 class DashboardMetricasSerializer(serializers.Serializer):
-    """Serializer para dados do dashboard de métricas"""
+    """Serializer para dados do dashboard de métricas - FOCADO EM PEDIDOS ATIVOS"""
     
-    # Contadores por nível de alerta
-    total_pedidos = serializers.IntegerField()
+    # Contadores por nível de alerta - APENAS ATIVOS
+    total_pedidos_ativos = serializers.IntegerField()
     alertas_criticos = serializers.IntegerField()
     alertas_vermelhos = serializers.IntegerField()
     alertas_amarelos = serializers.IntegerField()
-    pedidos_normais = serializers.IntegerField()
+    pedidos_normais_ativos = serializers.IntegerField()
     
-    # Distribuição por status
+    # Distribuições
     distribuicao_status = serializers.DictField()
+    distribuicao_categorias = serializers.DictField()
     
     # Métricas de tempo
     tempo_medio_por_status = serializers.DictField()
@@ -125,6 +131,13 @@ class DashboardMetricasSerializer(serializers.Serializer):
     
     # Estatísticas por país
     estatisticas_pais = serializers.DictField()
+    
+    # Métricas de eficiência
+    total_todos_pedidos = serializers.IntegerField()
+    pedidos_finalizados = serializers.IntegerField()
+    pedidos_entregues = serializers.IntegerField()
+    eficiencia_entrega_pct = serializers.FloatField()
+    taxa_problemas_pct = serializers.FloatField()
     
     # Última sincronização
     ultima_sincronizacao = serializers.DateTimeField(allow_null=True)
@@ -168,6 +181,7 @@ class FiltrosPedidosSerializer(serializers.Serializer):
     pedido_id = serializers.CharField(required=False, help_text="Busca por ID do pedido")
     data_criacao_inicio = serializers.DateField(required=False, help_text="Data criação início")
     data_criacao_fim = serializers.DateField(required=False, help_text="Data criação fim")
+    incluir_finalizados = serializers.BooleanField(default=False, help_text="Incluir pedidos finalizados (padrão: false)")
     
     def validate(self, data):
         """Validações dos filtros"""

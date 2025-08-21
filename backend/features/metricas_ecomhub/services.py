@@ -301,10 +301,15 @@ class StatusTrackingService:
             return 0
     
     def gerar_metricas_dashboard(self):
-        """Gera métricas para o dashboard"""
+        """Gera métricas para o dashboard - FOCADO APENAS EM PEDIDOS ATIVOS"""
         try:
-            # Contadores por nível de alerta
-            contadores = PedidoStatusAtual.objects.aggregate(
+            # FILTRAR APENAS PEDIDOS ATIVOS (que podem ter problemas)
+            pedidos_ativos = PedidoStatusAtual.objects.exclude(
+                status_atual__in=PedidoStatusAtual.STATUS_FINAIS
+            )
+            
+            # Contadores por nível de alerta - APENAS ATIVOS
+            contadores = pedidos_ativos.aggregate(
                 total=Count('id'),
                 criticos=Count('id', filter=Q(nivel_alerta='critico')),
                 vermelhos=Count('id', filter=Q(nivel_alerta='vermelho')),
@@ -312,34 +317,48 @@ class StatusTrackingService:
                 normais=Count('id', filter=Q(nivel_alerta='normal'))
             )
             
-            # Distribuição por status
+            # Distribuição por status - APENAS ATIVOS
             distribuicao_status = dict(
-                PedidoStatusAtual.objects.values('status_atual')
+                pedidos_ativos.values('status_atual')
                 .annotate(count=Count('id'))
                 .values_list('status_atual', 'count')
             )
             
-            # Tempo médio por status
+            # Distribuição por categorias lógicas
+            distribuicao_categorias = {
+                'processando': pedidos_ativos.filter(
+                    status_atual__in=['processing', 'preparing_for_shipping', 'ready_to_ship']
+                ).count(),
+                'em_transito': pedidos_ativos.filter(
+                    status_atual__in=['shipped', 'with_courier', 'out_for_delivery']
+                ).count(),
+                'problemas': pedidos_ativos.filter(
+                    status_atual='issue'
+                ).count()
+            }
+            
+            # Tempo médio por status - APENAS ATIVOS
             tempo_medio_status = dict(
-                PedidoStatusAtual.objects.values('status_atual')
+                pedidos_ativos.values('status_atual')
                 .annotate(tempo_medio=Avg('tempo_no_status_atual'))
                 .values_list('status_atual', 'tempo_medio')
             )
             
-            # Pedidos com mais tempo parado (top 10)
-            pedidos_mais_tempo = PedidoStatusAtual.objects.exclude(
-                nivel_alerta='normal'
+            # Pedidos com mais tempo parado (top 10) - APENAS ATIVOS COM PROBLEMAS
+            pedidos_mais_tempo = pedidos_ativos.filter(
+                nivel_alerta__in=['amarelo', 'vermelho', 'critico']
             ).order_by('-tempo_no_status_atual')[:10]
             
-            # Estatísticas por país
+            # Estatísticas por país - APENAS ATIVOS
             estatisticas_pais = {}
             for pais, nome in self.PAISES_MAPPING.items():
                 if pais != 'todos':
-                    stats = PedidoStatusAtual.objects.filter(pais=nome).aggregate(
+                    stats = pedidos_ativos.filter(pais=nome).aggregate(
                         total=Count('id'),
                         criticos=Count('id', filter=Q(nivel_alerta='critico')),
                         vermelhos=Count('id', filter=Q(nivel_alerta='vermelho')),
-                        amarelos=Count('id', filter=Q(nivel_alerta='amarelo'))
+                        amarelos=Count('id', filter=Q(nivel_alerta='amarelo')),
+                        normais=Count('id', filter=Q(nivel_alerta='normal'))
                     )
                     if stats['total'] > 0:
                         estatisticas_pais[nome] = stats
@@ -347,39 +366,81 @@ class StatusTrackingService:
             # Última sincronização
             config = ConfiguracaoStatusTracking.get_configuracao()
             
+            # Métricas de eficiência
+            total_todos_pedidos = PedidoStatusAtual.objects.count()
+            pedidos_finalizados = PedidoStatusAtual.objects.filter(
+                status_atual__in=PedidoStatusAtual.STATUS_FINAIS
+            ).count()
+            pedidos_entregues = PedidoStatusAtual.objects.filter(
+                status_atual='delivered'
+            ).count()
+            
+            eficiencia_entrega = round(
+                (pedidos_entregues / total_todos_pedidos * 100) if total_todos_pedidos > 0 else 0, 1
+            )
+            
+            taxa_problemas = round(
+                (contadores['criticos'] + contadores['vermelhos']) / contadores['total'] * 100 
+                if contadores['total'] > 0 else 0, 1
+            )
+            
             return {
-                'total_pedidos': contadores['total'] or 0,
+                # FOCO: Apenas pedidos ativos
+                'total_pedidos_ativos': contadores['total'] or 0,
                 'alertas_criticos': contadores['criticos'] or 0,
                 'alertas_vermelhos': contadores['vermelhos'] or 0,
                 'alertas_amarelos': contadores['amarelos'] or 0,
-                'pedidos_normais': contadores['normais'] or 0,
+                'pedidos_normais_ativos': contadores['normais'] or 0,
+                
+                # Distribuições
                 'distribuicao_status': distribuicao_status,
+                'distribuicao_categorias': distribuicao_categorias,
+                
+                # Métricas de tempo
                 'tempo_medio_por_status': {k: round(v or 0, 1) for k, v in tempo_medio_status.items()},
                 'pedidos_mais_tempo': pedidos_mais_tempo,
+                
+                # Estatísticas
                 'estatisticas_pais': estatisticas_pais,
+                
+                # Métricas de eficiência
+                'total_todos_pedidos': total_todos_pedidos,
+                'pedidos_finalizados': pedidos_finalizados,
+                'pedidos_entregues': pedidos_entregues,
+                'eficiencia_entrega_pct': eficiencia_entrega,
+                'taxa_problemas_pct': taxa_problemas,
+                
+                # Meta
                 'ultima_sincronizacao': config.ultima_sincronizacao
             }
             
         except Exception as e:
             logger.error(f"Erro gerando métricas: {e}")
             return {
-                'total_pedidos': 0,
+                'total_pedidos_ativos': 0,
                 'alertas_criticos': 0,
                 'alertas_vermelhos': 0,
                 'alertas_amarelos': 0,
-                'pedidos_normais': 0,
+                'pedidos_normais_ativos': 0,
                 'distribuicao_status': {},
+                'distribuicao_categorias': {},
                 'tempo_medio_por_status': {},
                 'pedidos_mais_tempo': [],
                 'estatisticas_pais': {},
+                'total_todos_pedidos': 0,
+                'pedidos_finalizados': 0,
+                'pedidos_entregues': 0,
+                'eficiencia_entrega_pct': 0,
+                'taxa_problemas_pct': 0,
                 'ultima_sincronizacao': None
             }
     
     def atualizar_tempos_status(self):
         """Atualiza os tempos de status de todos os pedidos ativos"""
         try:
+            # USAR CONSTANTES DA CLASSE
             pedidos_ativos = PedidoStatusAtual.objects.exclude(
-                status_atual__in=['delivered', 'returned', 'cancelled']
+                status_atual__in=PedidoStatusAtual.STATUS_FINAIS
             )
             
             atualizados = 0

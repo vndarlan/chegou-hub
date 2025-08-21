@@ -164,10 +164,19 @@ class StatusTrackingViewSet(viewsets.ViewSet):
     def pedidos(self, request):
         """
         GET /api/status-tracking/pedidos/
-        Lista pedidos com filtros, paginação e ordenação
+        Lista pedidos com filtros, paginação e ordenação - FOCO EM ATIVOS
         """
         try:
-            queryset = PedidoStatusAtual.objects.all()
+            # POR PADRÃO, MOSTRAR APENAS PEDIDOS ATIVOS
+            mostrar_finalizados = request.query_params.get('incluir_finalizados', 'false').lower() == 'true'
+            
+            if mostrar_finalizados:
+                queryset = PedidoStatusAtual.objects.all()
+            else:
+                # FILTRAR APENAS PEDIDOS ATIVOS (padrão)
+                queryset = PedidoStatusAtual.objects.exclude(
+                    status_atual__in=PedidoStatusAtual.STATUS_FINAIS
+                )
             
             # Aplicar filtros usando query parameters
             filtros = FiltrosPedidosSerializer(data=request.query_params)
@@ -303,6 +312,106 @@ class StatusTrackingViewSet(viewsets.ViewSet):
                 'error': 'Erro interno do servidor',
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def pedidos_problematicos(self, request):
+        """
+        GET /api/status-tracking/pedidos-problematicos/
+        Retorna apenas pedidos com alertas (amarelo, vermelho, crítico)
+        """
+        try:
+            queryset = PedidoStatusAtual.objects.exclude(
+                status_atual__in=PedidoStatusAtual.STATUS_FINAIS
+            ).filter(
+                nivel_alerta__in=['amarelo', 'vermelho', 'critico']
+            ).order_by('-tempo_no_status_atual')
+            
+            # Paginação
+            paginator = PedidosPagination()
+            paginated_queryset = paginator.paginate_queryset(queryset, request)
+            
+            # Serializar dados
+            serializer = PedidoStatusResumoSerializer(paginated_queryset, many=True)
+            
+            return paginator.get_paginated_response({
+                'resultados': serializer.data,
+                'total_problematicos': queryset.count(),
+                'distribuicao': {
+                    'criticos': queryset.filter(nivel_alerta='critico').count(),
+                    'vermelhos': queryset.filter(nivel_alerta='vermelho').count(),
+                    'amarelos': queryset.filter(nivel_alerta='amarelo').count()
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro listando pedidos problemáticos: {e}")
+            return Response({
+                'error': 'Erro interno do servidor',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def resumo_eficiencia(self, request):
+        """
+        GET /api/status-tracking/resumo-eficiencia/
+        Retorna resumo de eficiência focado em pedidos ativos vs finalizados
+        """
+        try:
+            # Totais
+            total_todos = PedidoStatusAtual.objects.count()
+            total_ativos = PedidoStatusAtual.objects.exclude(
+                status_atual__in=PedidoStatusAtual.STATUS_FINAIS
+            ).count()
+            total_finalizados = PedidoStatusAtual.objects.filter(
+                status_atual__in=PedidoStatusAtual.STATUS_FINAIS
+            ).count()
+            
+            # Específicos por status final
+            entregues = PedidoStatusAtual.objects.filter(status_atual='delivered').count()
+            devolvidos = PedidoStatusAtual.objects.filter(status_atual='returned').count()
+            cancelados = PedidoStatusAtual.objects.filter(status_atual='cancelled').count()
+            
+            # Problemas nos ativos
+            com_problemas = PedidoStatusAtual.objects.exclude(
+                status_atual__in=PedidoStatusAtual.STATUS_FINAIS
+            ).filter(
+                nivel_alerta__in=['amarelo', 'vermelho', 'critico']
+            ).count()
+            
+            # Cálculos percentuais
+            pct_entregues = round((entregues / total_todos * 100) if total_todos > 0 else 0, 1)
+            pct_problemas = round((com_problemas / total_ativos * 100) if total_ativos > 0 else 0, 1)
+            pct_finalizados = round((total_finalizados / total_todos * 100) if total_todos > 0 else 0, 1)
+            
+            return Response({
+                'totais': {
+                    'todos_pedidos': total_todos,
+                    'ativos': total_ativos,
+                    'finalizados': total_finalizados
+                },
+                'finalizados_detalhado': {
+                    'entregues': entregues,
+                    'devolvidos': devolvidos,
+                    'cancelados': cancelados
+                },
+                'problemas_ativos': {
+                    'total_com_problemas': com_problemas,
+                    'sem_problemas': total_ativos - com_problemas
+                },
+                'percentuais': {
+                    'eficiencia_entrega': pct_entregues,
+                    'taxa_problemas': pct_problemas,
+                    'taxa_finalizacao': pct_finalizados
+                },
+                'status': 'success'
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro no resumo de eficiência: {e}")
+            return Response({
+                'error': 'Erro interno do servidor',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class PedidoStatusViewSet(viewsets.ReadOnlyModelViewSet):
@@ -320,7 +429,16 @@ class PedidoStatusViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-tempo_no_status_atual']
     
     def get_queryset(self):
-        queryset = PedidoStatusAtual.objects.all()
+        # POR PADRÃO, MOSTRAR APENAS PEDIDOS ATIVOS
+        mostrar_finalizados = self.request.query_params.get('incluir_finalizados', 'false').lower() == 'true'
+        
+        if mostrar_finalizados:
+            queryset = PedidoStatusAtual.objects.all()
+        else:
+            # FILTRAR APENAS PEDIDOS ATIVOS (padrão)
+            queryset = PedidoStatusAtual.objects.exclude(
+                status_atual__in=PedidoStatusAtual.STATUS_FINAIS
+            )
         
         # Filtros manuais via query parameters
         status_atual = self.request.query_params.get('status_atual')
