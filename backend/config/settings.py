@@ -368,12 +368,16 @@ if DEBUG:
             f"http://{railway_domain}"
         ])
 
-# Desabilitar CORS completamente no ambiente de teste
+# CORS deve sempre permitir credentials, nunca usar wildcard
+CORS_ALLOW_CREDENTIALS = True
+
+# Para ambiente de teste, forçar a inclusão da URL de teste
 if DEBUG and os.getenv('DISABLE_CSRF', 'False').lower() == 'true':
-    CORS_ALLOW_ALL_ORIGINS = True
-    print("🚨 CORS TOTALMENTE DESABILITADO - APENAS PARA TESTE!")
-else:
-    CORS_ALLOW_CREDENTIALS = True
+    CORS_ALLOWED_ORIGINS.extend([
+        "https://chegouhubteste.up.railway.app",
+        "http://chegouhubteste.up.railway.app"
+    ])
+    print("🔧 URLs de teste adicionadas ao CORS automaticamente!")
 
 print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
 print(f"CORS_ALLOWED_ORIGINS_ENV lida: '{CORS_ALLOWED_ORIGINS_ENV}'")
