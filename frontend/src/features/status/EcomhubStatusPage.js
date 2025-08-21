@@ -220,7 +220,7 @@ function EcomhubStatusPage() {
             <div className="flex items-center gap-3">
                 <Activity className="h-6 w-6 text-primary" />
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Status</h1>
+                    <h1 className="text-2xl font-bold text-foreground">Status Teste</h1>
                     <p className="text-sm text-muted-foreground">
                         Monitoramento em tempo real de pedidos ativos
                     </p>
