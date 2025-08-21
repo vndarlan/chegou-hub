@@ -368,7 +368,13 @@ if DEBUG:
             f"http://{railway_domain}"
         ])
 
-CORS_ALLOW_CREDENTIALS = True
+# Desabilitar CORS completamente no ambiente de teste
+if DEBUG and os.getenv('DISABLE_CSRF', 'False').lower() == 'true':
+    CORS_ALLOW_ALL_ORIGINS = True
+    print("🚨 CORS TOTALMENTE DESABILITADO - APENAS PARA TESTE!")
+else:
+    CORS_ALLOW_CREDENTIALS = True
+
 print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
 print(f"CORS_ALLOWED_ORIGINS_ENV lida: '{CORS_ALLOWED_ORIGINS_ENV}'")
 
