@@ -11,7 +11,7 @@ function CSRFManager({ children }) {
     const fetchCSRFToken = async () => {
       try {
         console.log("🔐 Obtendo token CSRF...");
-        const response = await axios.get('/api/current-state/');
+        const response = await axios.get('/current-state/');
         
         // Obter token do JSON response (não do cookie)
         if (response.data && response.data.csrf_token) {
