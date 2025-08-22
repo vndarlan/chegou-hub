@@ -8,6 +8,15 @@ from .models import (
     FrequenciaUsoChoices, NivelAutonomiaChoices
 )
 
+# ===== CAMPOS CUSTOMIZADOS =====
+class FlexibleDateField(serializers.DateField):
+    """Campo de data que aceita strings vazias e converte para None"""
+    
+    def to_internal_value(self, value):
+        if value == '' or value == 'null' or not value:
+            return None
+        return super().to_internal_value(value)
+
 # ===== SERIALIZERS DE LOGS (EXISTENTES) =====
 class LogEntrySerializer(serializers.ModelSerializer):
     resolvido_por_nome = serializers.CharField(
@@ -193,6 +202,10 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
     departamentos_display = serializers.SerializerMethodField(read_only=True)
     criado_por_nome = serializers.SerializerMethodField(read_only=True)
     versoes = VersaoProjetoSerializer(many=True, read_only=True)
+    
+    # === CAMPOS PERSONALIZADOS ===
+    data_revisao = FlexibleDateField(required=False, allow_null=True)
+    data_break_even = FlexibleDateField(required=False, allow_null=True)
     
     # === RELACIONAMENTOS WRITE-ONLY ===
     criadores_ids = serializers.PrimaryKeyRelatedField(
@@ -419,7 +432,7 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
         # 4. Validar campo de data
         if 'data_revisao' in data:
             data_revisao = data.get('data_revisao')
-            if data_revisao == '' or data_revisao == 'null':
+            if data_revisao == '' or data_revisao == 'null' or not data_revisao:
                 data['data_revisao'] = None
         
         # Validar encoding de campos de texto
@@ -696,6 +709,10 @@ class ProjetoIACreateSerializer(serializers.ModelSerializer):
         required=False
     )
     
+    # === CAMPOS PERSONALIZADOS ===
+    data_revisao = FlexibleDateField(required=False, allow_null=True)
+    data_break_even = FlexibleDateField(required=False, allow_null=True)
+    
     class Meta:
         model = ProjetoIA
         fields = [
@@ -783,7 +800,7 @@ class ProjetoIACreateSerializer(serializers.ModelSerializer):
         # 4. Validar campo de data
         if 'data_revisao' in data:
             data_revisao = data.get('data_revisao')
-            if data_revisao == '' or data_revisao == 'null':
+            if data_revisao == '' or data_revisao == 'null' or not data_revisao:
                 data['data_revisao'] = None
         
         print(f"CREATE VALIDACAO OK - dados sanitizados")
