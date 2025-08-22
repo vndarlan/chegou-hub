@@ -1723,8 +1723,8 @@ function ProjetoDashboard() {
                     </div>
                 </div>
 
-            <div className="border-border rounded-lg overflow-hidden bg-card">
-                <Table>
+            <div className="border-border rounded-lg overflow-visible bg-card">
+                <Table className="relative">
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Nome</TableHead>
@@ -1753,7 +1753,7 @@ function ProjetoDashboard() {
                                             <span className="text-xs text-muted-foreground">({projeto.dias_sem_atualizacao} dias)</span>
                                         </div>
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell className="relative">
                                         <div className="flex gap-1">
                                             <Button variant="ghost" size="sm" onClick={() => handleViewProjeto(projeto)}>
                                                 <Eye className="h-4 w-4" />
@@ -1768,7 +1768,12 @@ function ProjetoDashboard() {
                                                         <ChevronDown className="h-4 w-4" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent className="w-56">
+                                                <DropdownMenuContent 
+                                                    className="w-56 z-50" 
+                                                    align="end" 
+                                                    side="bottom"
+                                                    sideOffset={4}
+                                                >
                                                     <DropdownMenuItem onClick={() => {
                                                         if (!opcoes) {
                                                             showNotification({
