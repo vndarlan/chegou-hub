@@ -109,7 +109,6 @@ export function AppSidebar({
       title: "IA & Automações",
       icon: Bot,
       isActive: location.pathname.includes('/workspace/projetos') ||
-                location.pathname.includes('/workspace/relatorios') ||
                 location.pathname.includes('/workspace/logs') ||
                 location.pathname.includes('/workspace/nicochat') ||
                 location.pathname.includes('/workspace/openai-analytics'),
@@ -118,11 +117,6 @@ export function AppSidebar({
           title: "Projetos",
           url: "/workspace/projetos",
           isActive: location.pathname === "/workspace/projetos",
-        },
-        {
-          title: "Relatórios & Análise",
-          url: "/workspace/relatorios",
-          isActive: location.pathname === "/workspace/relatorios",
         },
         {
           title: "Logs de Erros",

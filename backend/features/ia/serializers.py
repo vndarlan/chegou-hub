@@ -248,7 +248,7 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
             'reducao_erros_mensais', 'economia_outros_mensais',
             
             # === DOCUMENTAÇÃO (READ/WRITE) ===
-            'documentacao_tecnica', 'licoes_aprendidas', 'proximos_passos', 'data_revisao',
+            'documentacao_tecnica', 'documentacao_apoio', 'licoes_aprendidas', 'proximos_passos', 'data_revisao',
             
             # === RELACIONAMENTOS ===
             'criadores', 'criadores_ids', 'dependencias', 'dependencias_nomes',
@@ -627,7 +627,7 @@ class ProjetoIACreateSerializer(serializers.ModelSerializer):
             'reducao_erros_mensais', 'economia_outros_mensais',
             
             # Documentação
-            'documentacao_tecnica', 'licoes_aprendidas', 'proximos_passos', 'data_revisao'
+            'documentacao_tecnica', 'documentacao_apoio', 'licoes_aprendidas', 'proximos_passos', 'data_revisao'
         ]
     
     def create(self, validated_data):

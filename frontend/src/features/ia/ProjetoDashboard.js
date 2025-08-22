@@ -342,6 +342,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
         
         // === DOCUMENTAÇÃO ===
         documentacao_tecnica: '',
+        documentacao_apoio: '',
         licoes_aprendidas: '',
         proximos_passos: '',
         data_revisao: null
@@ -368,7 +369,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                 horas_economizadas_mes: 0, valor_monetario_economizado_mes: 0,
                 nivel_autonomia: 'total', frequencia_uso: 'diario',
                 ferramentas_tecnologias: [], usuarios_impactados: 0,
-                documentacao_tecnica: '', licoes_aprendidas: '', proximos_passos: '',
+                documentacao_tecnica: '', documentacao_apoio: '', licoes_aprendidas: '', proximos_passos: '',
                 horas_desenvolvimento: 0, horas_testes: 0, horas_documentacao: 0, horas_deploy: 0
             });
         }
@@ -556,19 +557,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                         </TabsContent>
 
                         <TabsContent value="detalhes" className="space-y-4 mt-4">
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="text-sm font-medium">Horas Totais</label>
-                                    <Input
-                                        type="number"
-                                        placeholder="0"
-                                        min={0}
-                                        step={0.5}
-                                        required
-                                        value={formData.horas_totais}
-                                        onChange={(e) => setFormData(prev => ({...prev, horas_totais: parseFloat(e.target.value) || 0}))}
-                                    />
-                                </div>
+                            <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-sm font-medium">Prioridade</label>
                                     <Select 
@@ -616,35 +605,23 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 />
                             </div>
                             
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-sm font-medium">Usuários Impactados</label>
-                                    <Input
-                                        type="number"
-                                        placeholder="0"
-                                        min={0}
-                                        value={formData.usuarios_impactados}
-                                        onChange={(e) => setFormData(prev => ({...prev, usuarios_impactados: parseInt(e.target.value) || 0}))}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium">Frequência de Uso</label>
-                                    <Select 
-                                        value={formData.frequencia_uso}
-                                        onValueChange={(value) => setFormData(prev => ({...prev, frequencia_uso: value}))}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {frequenciaOptions?.map((option) => (
-                                                <SelectItem key={option.value} value={option.value}>
-                                                    {option.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                            <div>
+                                <label className="text-sm font-medium">Frequência de Uso</label>
+                                <Select 
+                                    value={formData.frequencia_uso}
+                                    onValueChange={(value) => setFormData(prev => ({...prev, frequencia_uso: value}))}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {frequenciaOptions?.map((option) => (
+                                            <SelectItem key={option.value} value={option.value}>
+                                                {option.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                             
                             <div>
@@ -670,6 +647,16 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                             placeholder="https://..."
                                             value={formData.documentacao_tecnica}
                                             onChange={(e) => setFormData(prev => ({...prev, documentacao_tecnica: e.target.value}))}
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="text-sm font-medium">Documentação de Apoio</label>
+                                        <p className="text-xs text-muted-foreground mb-1">Link para documentação adicional que serve como apoio</p>
+                                        <Input
+                                            placeholder="https://..."
+                                            value={formData.documentacao_apoio}
+                                            onChange={(e) => setFormData(prev => ({...prev, documentacao_apoio: e.target.value}))}
                                         />
                                     </div>
                                     
@@ -711,31 +698,17 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                             <div>
                                 <h3 className="text-base font-medium mb-4">Custos</h3>
                                 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-sm font-medium">Custo/Hora da Empresa (R$)</label>
-                                        <p className="text-xs text-muted-foreground mb-1">Quanto custa cada hora de trabalho</p>
-                                        <Input
-                                            type="number"
-                                            placeholder="80"
-                                            min={0}
-                                            step={0.01}
-                                            value={formData.custo_hora_empresa}
-                                            onChange={(e) => setFormData(prev => ({...prev, custo_hora_empresa: parseFloat(e.target.value) || 0}))}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium">Custo APIs/Mês (R$)</label>
-                                        <p className="text-xs text-muted-foreground mb-1">ChatGPT, Claude, etc.</p>
-                                        <Input
-                                            type="number"
-                                            placeholder="0"
-                                            min={0}
-                                            step={0.01}
-                                            value={formData.custo_apis_mensal}
-                                            onChange={(e) => setFormData(prev => ({...prev, custo_apis_mensal: parseFloat(e.target.value) || 0}))}
-                                        />
-                                    </div>
+                                <div>
+                                    <label className="text-sm font-medium">Custo APIs/Mês (R$)</label>
+                                    <p className="text-xs text-muted-foreground mb-1">ChatGPT, Claude, etc.</p>
+                                    <Input
+                                        type="number"
+                                        placeholder="0"
+                                        min={0}
+                                        step={0.01}
+                                        value={formData.custo_apis_mensal}
+                                        onChange={(e) => setFormData(prev => ({...prev, custo_apis_mensal: parseFloat(e.target.value) || 0}))}
+                                    />
                                 </div>
                             </div>
 
@@ -802,82 +775,25 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                             <Separator />
                             
                             <div>
-                                <h3 className="text-base font-medium mb-4">Retornos/Economias</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-sm font-medium">Horas Economizadas/Mês</label>
-                                        <p className="text-xs text-muted-foreground mb-1">Quantas horas por mês o projeto economiza</p>
-                                        <Input
-                                            type="number"
-                                            placeholder="0"
-                                            min={0}
-                                            step={0.5}
-                                            value={formData.horas_economizadas_mes}
-                                            onChange={(e) => setFormData(prev => ({...prev, horas_economizadas_mes: parseFloat(e.target.value) || 0}))}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium">Valor Monetário Economizado/Mês (R$)</label>
-                                        <p className="text-xs text-muted-foreground mb-1">Outros ganhos em reais (opcional)</p>
-                                        <Input
-                                            type="number"
-                                            placeholder="0"
-                                            min={0}
-                                            step={0.01}
-                                            value={formData.valor_monetario_economizado_mes}
-                                            onChange={(e) => setFormData(prev => ({...prev, valor_monetario_economizado_mes: parseFloat(e.target.value) || 0}))}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <Separator />
-                            
-                            <div>
                                 <h3 className="text-base font-medium mb-4">Controle</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-sm font-medium">Nível de Autonomia</label>
-                                        <Select 
-                                            value={formData.nivel_autonomia}
-                                            onValueChange={(value) => setFormData(prev => ({...prev, nivel_autonomia: value}))}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="total">Totalmente Autônomo</SelectItem>
-                                                <SelectItem value="parcial">Requer Supervisão</SelectItem>
-                                                <SelectItem value="manual">Processo Manual</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-foreground">Data Break-Even (Opcional)</label>
-                                        <p className="text-xs text-muted-foreground text-muted-foreground mb-1">Ex: 2024-03-15</p>
-                                        <Input
-                                            type="date"
-                                            value={formData.data_break_even || ''}
-                                            onChange={(e) => setFormData(prev => ({...prev, data_break_even: e.target.value || null}))}
-                                            className="bg-input border"
-                                        />
-                                    </div>
+                                <div>
+                                    <label className="text-sm font-medium">Nível de Autonomia</label>
+                                    <Select 
+                                        value={formData.nivel_autonomia}
+                                        onValueChange={(value) => setFormData(prev => ({...prev, nivel_autonomia: value}))}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="total">Totalmente Autônomo</SelectItem>
+                                            <SelectItem value="parcial">Requer Supervisão</SelectItem>
+                                            <SelectItem value="manual">Processo Manual</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </div>
 
-                            {formData.horas_totais > 0 && formData.custo_hora_empresa > 0 && (
-                                <div className="border rounded-lg p-4 bg-muted mt-4">
-                                    <h4 className="text-sm font-medium mb-2">Prévia dos Cálculos</h4>
-                                    <p className="text-sm">
-                                        Investimento em desenvolvimento: R$ {(formData.horas_totais * formData.custo_hora_empresa).toLocaleString('pt-BR')}
-                                    </p>
-                                    {formData.horas_economizadas_mes > 0 && (
-                                        <p className="text-sm">
-                                            Economia/mês: {formData.horas_economizadas_mes}h × R$ {formData.custo_hora_empresa} = R$ {(formData.horas_economizadas_mes * formData.custo_hora_empresa).toLocaleString('pt-BR')}
-                                        </p>
-                                    )}
-                                </div>
-                            )}
                         </TabsContent>
                     </Tabs>
 
@@ -1039,7 +955,7 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                         )}
 
                         {/* Documentação com formatação preservada */}
-                        {(projeto.documentacao_tecnica || projeto.licoes_aprendidas || projeto.proximos_passos) && (
+                        {(projeto.documentacao_tecnica || projeto.documentacao_apoio || projeto.licoes_aprendidas || projeto.proximos_passos) && (
                             <Card>
                                 <CardContent className="p-4">
                                     <h3 className="text-base font-medium mb-4">Documentação</h3>
@@ -1054,6 +970,20 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                                                     className="text-sm text-blue-600 hover:underline"
                                                 >
                                                     {projeto.documentacao_tecnica}
+                                                </a>
+                                            </div>
+                                        )}
+                                        
+                                        {projeto.documentacao_apoio && (
+                                            <div>
+                                                <p className="text-sm text-muted-foreground mb-1">Documentação de Apoio</p>
+                                                <a 
+                                                    href={projeto.documentacao_apoio} 
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-sm text-blue-600 hover:underline"
+                                                >
+                                                    {projeto.documentacao_apoio}
                                                 </a>
                                             </div>
                                         )}
@@ -1444,6 +1374,7 @@ function ProjetoDashboard() {
                 
                 // === DOCUMENTAÇÃO ===
                 documentacao_tecnica: data.documentacao_tecnica?.trim() || '',
+                documentacao_apoio: data.documentacao_apoio?.trim() || '',
                 licoes_aprendidas: data.licoes_aprendidas?.trim() || '',
                 proximos_passos: data.proximos_passos?.trim() || '',
                 data_revisao: data.data_revisao || null
@@ -1695,7 +1626,7 @@ function ProjetoDashboard() {
 
             {/* Cards de Estatísticas */}
             {stats && (
-                <div className={`grid gap-4 mb-6 ${userPermissions?.pode_ver_financeiro && stats.economia_mensal_total ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
+                <div className={`grid gap-4 mb-6 ${userPermissions?.pode_ver_financeiro && stats.economia_mensal_total ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
                     <Card className="bg-gradient-to-b from-muted/50 to-muted border-border">
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
@@ -1720,17 +1651,6 @@ function ProjetoDashboard() {
                         </CardContent>
                     </Card>
                     
-                    <Card className="bg-gradient-to-b from-muted/50 to-muted border-border">
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Horas Investidas</p>
-                                    <p className="text-xl font-bold text-card-foreground">{stats.horas_totais_investidas}h</p>
-                                </div>
-                                <Clock className="h-5 w-5 text-primary" />
-                            </div>
-                        </CardContent>
-                    </Card>
                     
                     {/* Só mostrar se tiver dados financeiros E permissão */}
                     {userPermissions?.pode_ver_financeiro && stats.economia_mensal_total && (

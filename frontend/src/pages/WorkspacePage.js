@@ -21,7 +21,6 @@ import axios from 'axios';
 import AgendaPage from '../features/agenda/AgendaPage';
 import MapaPage from '../features/mapa/MapaPage';
 import ProjetoDashboard from '../features/ia/ProjetoDashboard';
-import RelatoriosProjetos from '../features/ia/RelatoriosProjetos';
 import LogsPage from '../features/ia/LogsPage';
 import NicochatPage from '../features/ia/NicochatPage';
 import OpenAIAnalytics from '../features/ia/OpenAIAnalytics';
@@ -42,7 +41,6 @@ const breadcrumbMap = {
   '/workspace/agenda': [{ label: 'HOME', href: '#' }, { label: 'Agenda da Empresa' }],
   '/workspace/mapa': [{ label: 'HOME', href: '#' }, { label: 'Mapa de Atuação' }],
   '/workspace/projetos': [{ label: 'IA & Automações', href: '#' }, { label: 'Projetos' }],
-  '/workspace/relatorios': [{ label: 'IA & Automações', href: '#' }, { label: 'Relatórios' }],
   '/workspace/logs': [{ label: 'IA & Automações', href: '#' }, { label: 'Logs de Erros' }],
   '/workspace/nicochat': [{ label: 'IA & Automações', href: '#' }, { label: 'Nicochat' }],
   '/workspace/openai-analytics': [{ label: 'IA & Automações', href: '#' }, { label: 'OpenAI Analytics' }],
@@ -151,7 +149,6 @@ function WorkspacePage({ setIsLoggedIn }) {
               <Route path="agenda" element={<AgendaPage />} />
               <Route path="mapa" element={<MapaPage />} />
               <Route path="projetos" element={<ProjetoDashboard />} />
-              <Route path="relatorios" element={<RelatoriosProjetos />} />
               <Route path="logs" element={<LogsPage />} />
               <Route path="nicochat" element={<NicochatPage />} />
               <Route path="openai-analytics" element={<OpenAIAnalytics />} />
