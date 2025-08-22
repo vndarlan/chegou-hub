@@ -363,6 +363,18 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
     def validate(self, data):
         print(f"VALIDACAO - dados recebidos: {list(data.keys())}")
         
+        # Validar encoding de campos de texto
+        for field_name, value in data.items():
+            if isinstance(value, str):
+                try:
+                    # Testar se o valor pode ser encodado/decodificado corretamente
+                    value.encode('utf-8').decode('utf-8')
+                except UnicodeError as e:
+                    print(f"ERRO ENCODING no campo {field_name}: {e}")
+                    raise serializers.ValidationError({
+                        field_name: f'Caracteres inválidos detectados: {str(e)}'
+                    })
+        
         # Validar departamentos se fornecido
         if 'departamentos_atendidos' in data:
             departamentos = data.get('departamentos_atendidos', [])
@@ -401,7 +413,18 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
             return projeto
             
         except Exception as e:
-            print(f"CREATE - erro: {e}")
+            print(f"CREATE - erro detalhado: {e}")
+            print(f"CREATE - tipo do erro: {type(e)}")
+            if hasattr(e, '__traceback__'):
+                import traceback
+                traceback.print_exc()
+            
+            # Verificar se é um erro de encoding
+            if 'encoding' in str(e).lower() or 'unicode' in str(e).lower():
+                raise serializers.ValidationError({
+                    'encoding_error': 'Erro de codificação de caracteres. Verifique se não há caracteres especiais inválidos.'
+                })
+            
             raise
     
     # === UPDATE ===
@@ -585,9 +608,23 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
             return instance
             
         except Exception as e:
-            print(f" UPDATE - erro: {e}")
+            print(f" UPDATE - erro detalhado: {e}")
+            print(f" UPDATE - tipo do erro: {type(e)}")
             import traceback
             traceback.print_exc()
+            
+            # Verificar se é um erro de encoding
+            if 'encoding' in str(e).lower() or 'unicode' in str(e).lower():
+                raise serializers.ValidationError({
+                    'encoding_error': 'Erro de codificação de caracteres. Verifique se não há caracteres especiais inválidos.'
+                })
+            
+            # Verificar se é um erro de campo específico
+            if 'IntegrityError' in str(type(e)):
+                raise serializers.ValidationError({
+                    'database_error': 'Erro de integridade no banco de dados. Verifique se todos os campos obrigatórios estão preenchidos.'
+                })
+            
             raise
 
 class ProjetoIACreateSerializer(serializers.ModelSerializer):

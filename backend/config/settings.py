@@ -112,6 +112,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Middleware de error logging para produção
+    'core.middleware.error_logging.ErrorLoggingMiddleware',
     # Middleware de segurança para detecção de IP - TEMPORARIAMENTE DESABILITADO
     # 'features.processamento.middleware.ip_security_middleware.IPDetectorSecurityMiddleware',
     # 'features.processamento.middleware.ip_security_middleware.SecurityAuditMiddleware',
@@ -166,6 +168,23 @@ if DATABASE_URL_FROM_ENV and DATABASE_URL_FROM_ENV.strip():
             conn_health_checks=True,
             ssl_require=os.getenv('DB_SSL_REQUIRE', 'False').lower() == 'true'
         )
+        
+        # Adicionar configurações específicas para PostgreSQL em produção
+        if 'postgresql' in DATABASES['default']['ENGINE']:
+            DATABASES['default']['OPTIONS'] = {
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                'charset': 'utf8mb4',
+                'autocommit': True,
+            }
+            # Para PostgreSQL, usar configurações específicas
+            if IS_RAILWAY_DEPLOYMENT:
+                DATABASES['default']['OPTIONS'] = {
+                    'sslmode': 'require',
+                    'connect_timeout': 30,
+                    'client_encoding': 'UTF8',
+                }
+        print("Configurações de encoding UTF-8 aplicadas ao banco")
+        
     except Exception as e:
         print(f"ERRO ao configurar DATABASE_URL: {e}. Usando SQLite como fallback.")
         DATABASES['default'] = {
@@ -552,7 +571,7 @@ else:
 LOG_DIR = BASE_DIR / 'logs'
 LOG_DIR.mkdir(exist_ok=True)
 
-# Configurações de logging para RQ e Feedback
+# Configurações de logging para RQ, Feedback e Error Tracking
 if 'LOGGING' not in locals():
     LOGGING = {
         'version': 1,
@@ -564,6 +583,10 @@ if 'LOGGING' not in locals():
             },
             'rq': {
                 'format': '[RQ] {levelname} {asctime} - {message}',
+                'style': '{',
+            },
+            'error_detail': {
+                'format': '[ERROR] {asctime} {levelname} {name} - {message}',
                 'style': '{',
             },
         },
@@ -579,6 +602,12 @@ if 'LOGGING' not in locals():
                 'class': 'logging.FileHandler',
                 'filename': LOG_DIR / 'feedback.log',
                 'formatter': 'verbose',
+            },
+            'file_error': {
+                'level': 'ERROR',
+                'class': 'logging.FileHandler',
+                'filename': LOG_DIR / 'errors.log',
+                'formatter': 'error_detail',
             },
             'console': {
                 'level': 'INFO',
@@ -600,6 +629,21 @@ if 'LOGGING' not in locals():
             'features.feedback': {
                 'handlers': ['file_feedback', 'console'],
                 'level': 'DEBUG',
+                'propagate': False,
+            },
+            'core.middleware.error_logging': {
+                'handlers': ['file_error', 'console'],
+                'level': 'ERROR',
+                'propagate': False,
+            },
+            'features.ia': {
+                'handlers': ['file_error', 'console'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+            'django.request': {
+                'handlers': ['file_error', 'console'],
+                'level': 'ERROR',
                 'propagate': False,
             },
         },
