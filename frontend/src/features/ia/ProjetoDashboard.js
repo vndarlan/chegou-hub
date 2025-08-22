@@ -25,7 +25,7 @@ import {
     Plus, Filter, Download, Edit, Archive,
     Copy, GitBranch, Eye, Coins,
     Clock, Users, Wrench, Check, X, Search,
-    Settings, ChevronDown, Activity, Target,
+    Settings, ChevronDown, Activity,
     FileText, Brain
 } from 'lucide-react';
 
@@ -141,162 +141,7 @@ const PrioridadeBadge = ({ prioridade }) => {
     );
 };
 
-// Card de Projeto - migrado para shadcn/ui
-const ProjetoCard = React.memo(({ projeto, onEdit, onView, onArchive, onDuplicate, onNewVersion, onChangeStatus, userPermissions }) => {
-    const metricas = projeto.metricas_financeiras;
-    const podeVerFinanceiro = userPermissions?.pode_ver_financeiro && !metricas?.acesso_restrito;
-    
-    return (
-        <Card className="border shadow-sm">
-            <CardHeader className="border-b pb-3">
-                <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg font-medium">{projeto.nome}</CardTitle>
-                    <div className="flex gap-2">
-                        <StatusBadge status={projeto.status} />
-                        <PrioridadeBadge prioridade={projeto.prioridade} />
-                    </div>
-                </div>
-            </CardHeader>
-
-            <CardContent className="pt-4">
-                {/* Descrição com formatação preservada */}
-                <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap line-clamp-2">
-                    {projeto.descricao}
-                </p>
-
-                <div className="grid grid-cols-2 gap-3 mt-4">
-                    <div>
-                        <p className="text-xs text-muted-foreground">Tipo</p>
-                        <p className="text-sm font-medium">{projeto.tipo_projeto}</p>
-                    </div>
-                    <div>
-                        <p className="text-xs text-muted-foreground">Departamentos</p>
-                        <div className="flex gap-1 flex-wrap">
-                            {projeto.departamentos_display?.length > 0 ? (
-                                projeto.departamentos_display.slice(0, 2).map((dept, i) => (
-                                    <Badge key={i} variant="secondary" className="text-xs">
-                                        {dept}
-                                    </Badge>
-                                ))
-                            ) : (
-                                <p className="text-sm font-medium">{projeto.departamento_atendido || 'N/A'}</p>
-                            )}
-                            {projeto.departamentos_display?.length > 2 && (
-                                <Badge variant="secondary" className="text-xs">
-                                    +{projeto.departamentos_display.length - 2}
-                                </Badge>
-                            )}
-                        </div>
-                    </div>
-                    <div>
-                        <p className="text-xs text-muted-foreground">Horas Investidas</p>
-                        <p className="text-sm font-medium">{projeto.horas_totais}h</p>
-                    </div>
-                    <div>
-                        <p className="text-xs text-muted-foreground">Usuários Impactados</p>
-                        <p className="text-sm font-medium">{projeto.usuarios_impactados}</p>
-                    </div>
-                </div>
-
-                {podeVerFinanceiro && (
-                    <div className="border rounded-lg p-3 mt-4 bg-muted">
-                        <div className="flex justify-between">
-                            <div>
-                                <p className="text-xs text-muted-foreground">ROI</p>
-                                <p className={`text-sm font-bold ${metricas.roi > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {metricas.roi}%
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground">Economia/Mês</p>
-                                <p className="text-sm font-medium">
-                                    R$ {metricas.economia_mensal?.toLocaleString('pt-BR')}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                <div className="flex items-center gap-2 mt-4 flex-wrap">
-                    <span className="text-xs text-muted-foreground">Criadores:</span>
-                    {projeto.criadores_nomes.slice(0, 2).map((nome, i) => (
-                        <Badge key={i} variant="outline" className="text-xs">
-                            {nome}
-                        </Badge>
-                    ))}
-                    {projeto.criadores_nomes.length > 2 && (
-                        <Badge variant="outline" className="text-xs">
-                            +{projeto.criadores_nomes.length - 2}
-                        </Badge>
-                    )}
-                </div>
-
-                <div className="flex justify-between items-center mt-4">
-                    <div className="flex gap-2 text-xs text-muted-foreground">
-                        <span>v{projeto.versao_atual}</span>
-                        <span>•</span>
-                        <span>{projeto.dias_sem_atualizacao} dias</span>
-                    </div>
-                    
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                                <ChevronDown className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56">
-                            <DropdownMenuItem onClick={() => onView(projeto)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Visualizar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onEdit(projeto)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onNewVersion(projeto)}>
-                                <GitBranch className="mr-2 h-4 w-4" />
-                                Nova Versão
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onDuplicate(projeto)}>
-                                <Copy className="mr-2 h-4 w-4" />
-                                Duplicar
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuLabel>Alterar Status</DropdownMenuLabel>
-                            {projeto.status !== 'ativo' && (
-                                <DropdownMenuItem 
-                                    onClick={() => onChangeStatus(projeto, 'ativo')}
-                                    className="text-green-600"
-                                >
-                                    <Activity className="mr-2 h-4 w-4" />
-                                    Ativar
-                                </DropdownMenuItem>
-                            )}
-                            {projeto.status !== 'manutencao' && (
-                                <DropdownMenuItem 
-                                    onClick={() => onChangeStatus(projeto, 'manutencao')}
-                                    className="text-yellow-600"
-                                >
-                                    <Wrench className="mr-2 h-4 w-4" />
-                                    Em Manutenção
-                                </DropdownMenuItem>
-                            )}
-                            {projeto.status !== 'arquivado' && (
-                                <DropdownMenuItem 
-                                    onClick={() => onChangeStatus(projeto, 'arquivado')}
-                                    className="text-orange-600"
-                                >
-                                    <Archive className="mr-2 h-4 w-4" />
-                                    Arquivar
-                                </DropdownMenuItem>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            </CardContent>
-        </Card>
-    );
-});
+// Card de Projeto - REMOVIDO - agora apenas visualização em tabela
 
 // Modal de Formulário de Projeto - COMPLETAMENTE CORRIGIDO
 const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading }) => {
@@ -1257,7 +1102,7 @@ function ProjetoDashboard() {
         prioridade: [],
         complexidade: []
     });
-    const [viewMode, setViewMode] = useState('cards'); // 'cards' ou 'tabela'
+    // Removida a alternância de visualizações - apenas tabela
     
     // Estados de paginação
     const [currentPage, setCurrentPage] = useState(1);
@@ -1875,70 +1720,17 @@ function ProjetoDashboard() {
                                 </PopoverContent>
                             </Popover>
                     </div>
-                    <div className="flex gap-2 items-end">
-                        <div>
-                                <div className="text-xs text-muted-foreground mb-1.5">Visualização</div>
-                                <div className="flex gap-1">
-                                    <Button
-                                        variant={viewMode === 'cards' ? 'default' : 'outline'}
-                                        size="sm"
-                                        onClick={() => setViewMode('cards')}
-                                        className="h-9"
-                                    >
-                                        <Target className="h-3.5 w-3.5" />
-                                    </Button>
-                                    <Button
-                                        variant={viewMode === 'tabela' ? 'default' : 'outline'}
-                                        size="sm"
-                                        onClick={() => setViewMode('tabela')}
-                                        className="h-9"
-                                    >
-                                        <FileText className="h-3.5 w-3.5" />
-                                    </Button>
-                                </div>
-                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Lista de Projetos */}
-            {viewMode === 'cards' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {projetosFiltrados.slice(0, 20).map((projeto) => (
-                        <ProjetoCard
-                            key={projeto.id}
-                            projeto={projeto}
-                            onEdit={handleEditProjeto}
-                            onView={handleViewProjeto}
-                            onArchive={handleArchiveProjeto}
-                            onDuplicate={handleDuplicateProjeto}
-                            onNewVersion={(p) => {
-                                if (!opcoes) {
-                                    showNotification({
-                                        title: 'Aviso',
-                                        message: 'Aguarde o carregamento das opções',
-                                        type: 'default'
-                                    });
-                                    return;
-                                }
-                                setSelectedProjeto(p);
-                                setVersionModalOpen(true);
-                            }}
-                            onChangeStatus={handleChangeStatus}
-                            userPermissions={userPermissions}
-                        />
-                    ))}
-                </div>
-            ) : (
-                <div className="border-border rounded-lg overflow-hidden bg-card">
-                    <Table>
+            <div className="border-border rounded-lg overflow-hidden bg-card">
+                <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Nome</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead>Tipo</TableHead>
-                                <TableHead>Horas</TableHead>
-                                {userPermissions?.pode_ver_financeiro && <TableHead>ROI</TableHead>}
+                                <TableHead>Versão</TableHead>
                                 <TableHead>Ações</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -1955,18 +1747,12 @@ function ProjetoDashboard() {
                                         <StatusBadge status={projeto.status} />
                                     </TableCell>
                                     <TableCell>{projeto.tipo_projeto}</TableCell>
-                                    <TableCell>{projeto.horas_totais}h</TableCell>
-                                    {userPermissions?.pode_ver_financeiro && (
-                                        <TableCell>
-                                            {projeto.metricas_financeiras?.acesso_restrito ? (
-                                                <span className="text-xs text-muted-foreground">Restrito</span>
-                                            ) : (
-                                                <span className={`font-medium ${projeto.metricas_financeiras?.roi > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                    {projeto.metricas_financeiras?.roi}%
-                                                </span>
-                                            )}
-                                        </TableCell>
-                                    )}
+                                    <TableCell>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm">v{projeto.versao_atual}</span>
+                                            <span className="text-xs text-muted-foreground">({projeto.dias_sem_atualizacao} dias)</span>
+                                        </div>
+                                    </TableCell>
                                     <TableCell>
                                         <div className="flex gap-1">
                                             <Button variant="ghost" size="sm" onClick={() => handleViewProjeto(projeto)}>
@@ -1975,6 +1761,64 @@ function ProjetoDashboard() {
                                             <Button variant="ghost" size="sm" onClick={() => handleEditProjeto(projeto)}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
+                                            
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="sm">
+                                                        <ChevronDown className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent className="w-56">
+                                                    <DropdownMenuItem onClick={() => {
+                                                        if (!opcoes) {
+                                                            showNotification({
+                                                                title: 'Aviso',
+                                                                message: 'Aguarde o carregamento das opções',
+                                                                type: 'default'
+                                                            });
+                                                            return;
+                                                        }
+                                                        setSelectedProjeto(projeto);
+                                                        setVersionModalOpen(true);
+                                                    }}>
+                                                        <GitBranch className="mr-2 h-4 w-4" />
+                                                        Nova Versão
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleDuplicateProjeto(projeto)}>
+                                                        <Copy className="mr-2 h-4 w-4" />
+                                                        Duplicar
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuLabel>Alterar Status</DropdownMenuLabel>
+                                                    {projeto.status !== 'ativo' && (
+                                                        <DropdownMenuItem 
+                                                            onClick={() => handleChangeStatus(projeto, 'ativo')}
+                                                            className="text-green-600"
+                                                        >
+                                                            <Activity className="mr-2 h-4 w-4" />
+                                                            Ativar
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    {projeto.status !== 'manutencao' && (
+                                                        <DropdownMenuItem 
+                                                            onClick={() => handleChangeStatus(projeto, 'manutencao')}
+                                                            className="text-yellow-600"
+                                                        >
+                                                            <Wrench className="mr-2 h-4 w-4" />
+                                                            Em Manutenção
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    {projeto.status !== 'arquivado' && (
+                                                        <DropdownMenuItem 
+                                                            onClick={() => handleChangeStatus(projeto, 'arquivado')}
+                                                            className="text-orange-600"
+                                                        >
+                                                            <Archive className="mr-2 h-4 w-4" />
+                                                            Arquivar
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -1982,10 +1826,9 @@ function ProjetoDashboard() {
                         </TableBody>
                     </Table>
                 </div>
-            )}
 
-            {/* Paginação - somente para visualização de tabela */}
-            {viewMode === 'tabela' && totalPages > 1 && (
+            {/* Paginação */}
+            {totalPages > 1 && (
                 <div className="mt-6 flex justify-center">
                     <Pagination>
                         <PaginationContent>
@@ -2041,7 +1884,7 @@ function ProjetoDashboard() {
             )}
 
             {/* Informações de paginação */}
-            {viewMode === 'tabela' && projetosFiltradosCompletos.length > 0 && (
+            {projetosFiltradosCompletos.length > 0 && (
                 <div className="mt-4 text-center text-sm text-muted-foreground">
                     Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, projetosFiltradosCompletos.length)} de {projetosFiltradosCompletos.length} projetos
                 </div>
