@@ -60,7 +60,7 @@ class VersaoProjetoInline(admin.TabularInline):
 class ProjetoIAAdmin(admin.ModelAdmin):
     list_display = [
         'nome', 'status', 'tipo_projeto', 'departamento_atendido',
-        'prioridade_badge', 'horas_totais', 'criado_por', 'versao_atual',
+        'prioridade_badge', 'horas_breakdown', 'criado_por', 'versao_atual',
         'criado_em'
     ]
     list_filter = [
@@ -96,7 +96,7 @@ class ProjetoIAAdmin(admin.ModelAdmin):
         }),
         ('Investimento de Tempo', {
             'fields': (
-                'horas_totais', 'horas_desenvolvimento', 'horas_testes',
+                'horas_desenvolvimento', 'horas_testes',
                 'horas_documentacao', 'horas_deploy', 'valor_hora'
             )
         }),
@@ -151,6 +151,22 @@ class ProjetoIAAdmin(admin.ModelAdmin):
         )
     prioridade_badge.short_description = 'Prioridade'
     prioridade_badge.admin_order_field = 'prioridade'
+    
+    def horas_breakdown(self, obj):
+        """Exibe o breakdown de horas com total calculado"""
+        try:
+            total = float(obj.horas_totais)
+            return format_html(
+                '{:.1f}h total<br/><small>Dev: {:.1f} | Teste: {:.1f} | Doc: {:.1f} | Deploy: {:.1f}</small>',
+                total,
+                float(obj.horas_desenvolvimento or 0),
+                float(obj.horas_testes or 0),
+                float(obj.horas_documentacao or 0),
+                float(obj.horas_deploy or 0)
+            )
+        except Exception:
+            return "N/A"
+    horas_breakdown.short_description = 'Horas (Total/Breakdown)'
     
     # CORREÇÃO: Remover métodos que causam erro
     # Removemos get_roi e get_metricas_financeiras_display por enquanto

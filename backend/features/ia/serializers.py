@@ -268,7 +268,7 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'id', 'criado_por', 'criado_em', 'atualizado_em',
             # Campos calculados são read-only
-            'custo_desenvolvimento', 'custos_recorrentes_mensais_novo',
+            'horas_totais', 'custo_desenvolvimento', 'custos_recorrentes_mensais_novo',
             'custos_unicos_totais_novo', 'economia_mensal_total_novo',
             'custos_recorrentes_mensais', 'custos_unicos_totais', 'economia_mensal_total',
             'metricas_financeiras', 'departamentos_display', 'criado_por_nome',
@@ -466,9 +466,7 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
                 print(f"  📝 frequencia_uso: {instance.frequencia_uso}")
             
             # CAMPOS DE TEMPO
-            if 'horas_totais' in validated_data:
-                instance.horas_totais = validated_data['horas_totais']
-                print(f"  📝 horas_totais: {instance.horas_totais}")
+            # horas_totais é calculado automaticamente a partir do breakdown
             
             if 'horas_desenvolvimento' in validated_data:
                 instance.horas_desenvolvimento = validated_data['horas_desenvolvimento']
@@ -607,7 +605,7 @@ class ProjetoIACreateSerializer(serializers.ModelSerializer):
         fields = [
             # Campos básicos
             'nome', 'descricao', 'tipo_projeto', 'departamentos_atendidos',
-            'prioridade', 'complexidade', 'horas_totais', 'criadores_ids',
+            'prioridade', 'complexidade', 'criadores_ids',
             'ferramentas_tecnologias', 'link_projeto', 'usuarios_impactados',
             'frequencia_uso',
             

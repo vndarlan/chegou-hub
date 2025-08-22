@@ -23,12 +23,10 @@ import { Label } from '../../components/ui/label';
 // lucide-react icons (replacement for @tabler/icons-react)
 import {
     Plus, Filter, Download, Edit, Archive,
-    Copy, GitBranch, Eye, BarChart, Coins,
+    Copy, GitBranch, Eye, Coins,
     Clock, Users, Wrench, Check, X, Search,
-    ArrowUp, ArrowDown, RefreshCw, Settings,
-    ChevronDown, Activity, TrendingUp, Target,
-    Building, AlertCircle, Calendar,
-    FileText, Link, Tag, Brain, Bot
+    Settings, ChevronDown, Activity, Target,
+    FileText, Brain, Bot
 } from 'lucide-react';
 
 import axios from 'axios';
@@ -1592,16 +1590,23 @@ function ProjetoDashboard() {
                     <h1 className="text-2xl font-bold text-foreground">Dashboard de IA & Automação</h1>
                 </div>
                 
-                <div className="flex items-center gap-3">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={carregarDadosIniciais}
-                        className="border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
-                    >
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Atualizar
-                    </Button>
+                <div className="flex items-center gap-4">
+                    {/* Estatísticas minimalistas */}
+                    {stats && (
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border">
+                                <Brain className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="text-xs font-medium text-muted-foreground">Total:</span>
+                                <span className="text-xs font-semibold text-foreground">{stats.total_projetos}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border">
+                                <Activity className="h-3.5 w-3.5 text-green-600" />
+                                <span className="text-xs font-medium text-muted-foreground">Ativos:</span>
+                                <span className="text-xs font-semibold text-foreground">{stats.projetos_ativos}</span>
+                            </div>
+                        </div>
+                    )}
+                    
                     <Button
                         size="sm"
                         onClick={() => {
@@ -1624,79 +1629,32 @@ function ProjetoDashboard() {
                 </Alert>
             )}
 
-            {/* Cards de Estatísticas */}
-            {stats && (
-                <div className={`grid gap-4 mb-6 ${userPermissions?.pode_ver_financeiro && stats.economia_mensal_total ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
-                    <Card className="bg-gradient-to-b from-muted/50 to-muted border-border">
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Total de Projetos</p>
-                                    <p className="text-xl font-bold text-card-foreground">{stats.total_projetos}</p>
-                                </div>
-                                <Brain className="h-5 w-5 text-primary" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    
-                    <Card className="bg-gradient-to-b from-muted/50 to-muted border-border">
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Projetos Ativos</p>
-                                    <p className="text-xl font-bold text-card-foreground">{stats.projetos_ativos}</p>
-                                </div>
-                                <Activity className="h-5 w-5 text-primary" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    
-                    
-                    {/* Só mostrar se tiver dados financeiros E permissão */}
-                    {userPermissions?.pode_ver_financeiro && stats.economia_mensal_total && (
-                        <Card className="bg-gradient-to-b from-muted/50 to-muted border-border">
-                            <CardContent className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">Economia/Mês</p>
-                                        <p className="text-xl font-bold text-card-foreground">
-                                            R$ {stats.economia_mensal_total?.toLocaleString('pt-BR')}
-                                        </p>
-                                    </div>
-                                    <TrendingUp className="h-5 w-5 text-primary" />
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
-                </div>
-            )}
 
-            {/* Filtros */}
-            <Card className="mb-4 border-border bg-card">
-                <CardContent className="p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-                        <div className="md:col-span-2">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Buscar projetos..."
-                                    value={searchValue}
-                                    onChange={(e) => setSearchValue(e.target.value)}
-                                    className="pl-10 border-border bg-background text-foreground"
-                                />
-                            </div>
+            {/* Filtros minimalistas */}
+            <div className="mb-4 p-3 rounded-lg border border-border bg-muted/30">
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                    <div className="md:col-span-2">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Buscar projetos..."
+                                value={searchValue}
+                                onChange={(e) => setSearchValue(e.target.value)}
+                                className="pl-10 h-9 border-border bg-background text-foreground"
+                            />
                         </div>
-                        <div>
-                            <div className="text-sm text-muted-foreground mb-2">Status</div>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" className="w-full justify-between text-left">
-                                        {(filtros.status || []).length > 0 
-                                            ? `${filtros.status.length} selecionados`
-                                            : "Todos os status"
-                                        }
-                                        <ChevronDown className="h-4 w-4 opacity-50" />
-                                    </Button>
+                    </div>
+                    <div>
+                        <div className="text-xs text-muted-foreground mb-1.5">Status</div>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="sm" className="w-full justify-between text-left h-9">
+                                    {(filtros.status || []).length > 0 
+                                        ? `${filtros.status.length} selecionados`
+                                        : "Todos os status"
+                                    }
+                                    <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                                </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-52 p-0">
                                     <div className="p-2 space-y-2 max-h-64 overflow-y-auto">
@@ -1722,18 +1680,18 @@ function ProjetoDashboard() {
                                     </div>
                                 </PopoverContent>
                             </Popover>
-                        </div>
-                        <div>
-                            <div className="text-sm text-muted-foreground mb-2">Tipo</div>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" className="w-full justify-between text-left">
-                                        {(filtros.tipo_projeto || []).length > 0 
-                                            ? `${filtros.tipo_projeto.length} selecionados`
-                                            : "Todos os tipos"
-                                        }
-                                        <ChevronDown className="h-4 w-4 opacity-50" />
-                                    </Button>
+                    </div>
+                    <div>
+                        <div className="text-xs text-muted-foreground mb-1.5">Tipo</div>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="sm" className="w-full justify-between text-left h-9">
+                                    {(filtros.tipo_projeto || []).length > 0 
+                                        ? `${filtros.tipo_projeto.length} selecionados`
+                                        : "Todos os tipos"
+                                    }
+                                    <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                                </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-52 p-0">
                                     <div className="p-2 space-y-2 max-h-64 overflow-y-auto">
@@ -1759,18 +1717,18 @@ function ProjetoDashboard() {
                                     </div>
                                 </PopoverContent>
                             </Popover>
-                        </div>
-                        <div>
-                            <div className="text-sm text-muted-foreground mb-2">Departamento</div>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" className="w-full justify-between text-left">
-                                        {(filtros.departamento || []).length > 0 
-                                            ? `${filtros.departamento.length} selecionados`
-                                            : "Todos os deptos"
-                                        }
-                                        <ChevronDown className="h-4 w-4 opacity-50" />
-                                    </Button>
+                    </div>
+                    <div>
+                        <div className="text-xs text-muted-foreground mb-1.5">Departamento</div>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="sm" className="w-full justify-between text-left h-9">
+                                    {(filtros.departamento || []).length > 0 
+                                        ? `${filtros.departamento.length} selecionados`
+                                        : "Todos os deptos"
+                                    }
+                                    <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                                </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-52 p-0">
                                     <div className="p-2 space-y-2 max-h-64 overflow-y-auto">
@@ -1797,25 +1755,105 @@ function ProjetoDashboard() {
                                 </PopoverContent>
                             </Popover>
                         </div>
-                        <div className="flex gap-2">
-                            <Button
-                                variant={viewMode === 'cards' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setViewMode('cards')}
-                            >
-                                <Target className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                variant={viewMode === 'tabela' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setViewMode('tabela')}
-                            >
-                                <FileText className="h-4 w-4" />
-                            </Button>
+                        <div>
+                            <div className="text-xs text-muted-foreground mb-1.5">Prioridade</div>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" size="sm" className="w-full justify-between text-left h-9">
+                                        {(filtros.prioridade || []).length > 0 
+                                            ? `${filtros.prioridade.length} selecionados`
+                                            : "Todas prioridades"
+                                        }
+                                        <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-52 p-0">
+                                    <div className="p-2 space-y-2 max-h-64 overflow-y-auto">
+                                        {(opcoes?.prioridade_choices || []).map((prioridade) => (
+                                            <div key={prioridade.value} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id={`prioridade-${prioridade.value}`}
+                                                    checked={(filtros.prioridade || []).includes(prioridade.value)}
+                                                    onCheckedChange={(checked) => {
+                                                        const current = filtros.prioridade || [];
+                                                        if (checked) {
+                                                            setFiltros(prev => ({...prev, prioridade: [...current, prioridade.value]}));
+                                                        } else {
+                                                            setFiltros(prev => ({...prev, prioridade: current.filter(p => p !== prioridade.value)}));
+                                                        }
+                                                    }}
+                                                />
+                                                <Label htmlFor={`prioridade-${prioridade.value}`} className="text-sm">
+                                                    {prioridade.label}
+                                                </Label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div>
+                            <div className="text-xs text-muted-foreground mb-1.5">Complexidade</div>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" size="sm" className="w-full justify-between text-left h-9">
+                                        {(filtros.complexidade || []).length > 0 
+                                            ? `${filtros.complexidade.length} selecionados`
+                                            : "Todas complexidades"
+                                        }
+                                        <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-52 p-0">
+                                    <div className="p-2 space-y-2 max-h-64 overflow-y-auto">
+                                        {(opcoes?.complexidade_choices || []).map((complexidade) => (
+                                            <div key={complexidade.value} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id={`complexidade-${complexidade.value}`}
+                                                    checked={(filtros.complexidade || []).includes(complexidade.value)}
+                                                    onCheckedChange={(checked) => {
+                                                        const current = filtros.complexidade || [];
+                                                        if (checked) {
+                                                            setFiltros(prev => ({...prev, complexidade: [...current, complexidade.value]}));
+                                                        } else {
+                                                            setFiltros(prev => ({...prev, complexidade: current.filter(c => c !== complexidade.value)}));
+                                                        }
+                                                    }}
+                                                />
+                                                <Label htmlFor={`complexidade-${complexidade.value}`} className="text-sm">
+                                                    {complexidade.label}
+                                                </Label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div className="flex gap-2 items-end">
+                            <div>
+                                <div className="text-xs text-muted-foreground mb-1.5">Visualização</div>
+                                <div className="flex gap-1">
+                                    <Button
+                                        variant={viewMode === 'cards' ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => setViewMode('cards')}
+                                        className="h-9"
+                                    >
+                                        <Target className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button
+                                        variant={viewMode === 'tabela' ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => setViewMode('tabela')}
+                                        className="h-9"
+                                    >
+                                        <FileText className="h-3.5 w-3.5" />
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
 
             {/* Lista de Projetos */}
             {viewMode === 'cards' ? (

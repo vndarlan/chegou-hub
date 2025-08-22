@@ -266,12 +266,7 @@ class ProjetoIA(models.Model):
     )
     
     # ===== INVESTIMENTO DE TEMPO =====
-    horas_totais = models.DecimalField(
-        max_digits=8,
-        decimal_places=2,
-        verbose_name="Horas Totais de Desenvolvimento",
-        help_text="Total de horas investidas no desenvolvimento"
-    )
+    # Campo horas_totais foi removido - usar breakdown específico de horas
     horas_desenvolvimento = models.DecimalField(
         max_digits=8,
         decimal_places=2,
@@ -513,11 +508,25 @@ class ProjetoIA(models.Model):
             return []
     
     # ===== PROPRIEDADES CALCULADAS ATUALIZADAS =====
+    
+    @property
+    def horas_totais(self):
+        """Calcula horas totais dinamicamente a partir do breakdown"""
+        try:
+            desenvolvimento = Decimal(str(self.horas_desenvolvimento or 0))
+            testes = Decimal(str(self.horas_testes or 0))
+            documentacao = Decimal(str(self.horas_documentacao or 0))
+            deploy = Decimal(str(self.horas_deploy or 0))
+            return desenvolvimento + testes + documentacao + deploy
+        except Exception as e:
+            print(f"Erro em horas_totais: {e}")
+            return Decimal('0')
+    
     @property
     def custo_desenvolvimento(self):
         """Calcula o custo total de desenvolvimento usando o novo campo"""
         try:
-            horas = Decimal(str(self.horas_totais or 0))
+            horas = self.horas_totais
             custo_hora = Decimal(str(self.custo_hora_empresa or 80))
             return horas * custo_hora
         except Exception as e:
@@ -596,7 +605,7 @@ class ProjetoIA(models.Model):
     def custos_unicos_totais(self):
         """Calcula total de custos únicos (compatibilidade)"""
         try:
-            horas = Decimal(str(self.horas_totais or 0))
+            horas = self.horas_totais  # Usar a property
             valor_hora = Decimal(str(self.valor_hora or 150))
             custo_dev_legado = horas * valor_hora
             
@@ -630,7 +639,7 @@ class ProjetoIA(models.Model):
         Calcula métricas financeiras do projeto - CORRIGIDO
         """
         try:
-            print(f"📊 Calculando métricas para projeto {self.id} - usar_novos_campos: {usar_novos_campos}")
+            print(f"Calculando métricas para projeto {self.id} - usar_novos_campos: {usar_novos_campos}")
             
             if meses_operacao is None:
                 delta = date.today() - self.data_criacao
@@ -641,13 +650,13 @@ class ProjetoIA(models.Model):
                 custos_recorrentes_mensais = float(self.custos_recorrentes_mensais_novo)
                 economia_mensal = float(self.economia_mensal_total_novo)
                 custo_desenvolvimento = float(self.custo_desenvolvimento)
-                print(f"📊 Usando NOVOS campos - economia_mensal: {economia_mensal}")
+                print(f"Usando NOVOS campos - economia_mensal: {economia_mensal}")
             else:
                 custos_unicos = float(self.custos_unicos_totais)
                 custos_recorrentes_mensais = float(self.custos_recorrentes_mensais)
                 economia_mensal = float(self.economia_mensal_total)
                 custo_desenvolvimento = float(self.horas_totais * self.valor_hora)
-                print(f"📊 Usando campos LEGADOS - economia_mensal: {economia_mensal}")
+                print(f"Usando campos LEGADOS - economia_mensal: {economia_mensal}")
             
             # Converter para float
             meses_operacao = float(meses_operacao)
@@ -687,11 +696,11 @@ class ProjetoIA(models.Model):
                 'usando_novos_campos': usar_novos_campos
             }
             
-            print(f"📊 Métricas calculadas: ROI={resultado['roi']}%, economia_mensal={resultado['economia_mensal']}")
+            print(f"Métricas calculadas: ROI={resultado['roi']}%, economia_mensal={resultado['economia_mensal']}")
             return resultado
             
         except Exception as e:
-            print(f"❌ Erro ao calcular métricas: {e}")
+            print(f"Erro ao calcular métricas: {e}")
             import traceback
             traceback.print_exc()
             return {

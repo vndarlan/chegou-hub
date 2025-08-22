@@ -203,12 +203,8 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
                 if filtros.get('data_criacao_fim'):
                     queryset = queryset.filter(data_criacao__lte=filtros['data_criacao_fim'])
                 
-                # Filtros de horas
-                if filtros.get('horas_min'):
-                    queryset = queryset.filter(horas_totais__gte=filtros['horas_min'])
-                
-                if filtros.get('horas_max'):
-                    queryset = queryset.filter(horas_totais__lte=filtros['horas_max'])
+                # Filtros de horas - removidos porque horas_totais não existe mais na DB
+                # Filtros baseados no breakdown específico podem ser adicionados se necessário
                 
                 # Filtro de usuários impactados
                 if filtros.get('usuarios_impactados_min'):
@@ -430,7 +426,6 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
                 departamento_atendido=projeto_original.departamento_atendido,  # Manter compatibilidade
                 prioridade=projeto_original.prioridade,
                 complexidade=projeto_original.complexidade,
-                horas_totais=projeto_original.horas_totais,
                 ferramentas_tecnologias=projeto_original.ferramentas_tecnologias or [],
                 link_projeto=projeto_original.link_projeto,
                 usuarios_impactados=projeto_original.usuarios_impactados,
@@ -575,11 +570,19 @@ def dashboard_stats(request):
         
         print(f"Stats básicas calculadas: {total_projetos}, {projetos_ativos}, {projetos_arquivados}, {projetos_manutencao}")
         
-        # Horas totais investidas
+        # Horas totais investidas - calcular a partir do breakdown
         try:
             horas_totais = projetos_queryset.aggregate(
-                total=Sum('horas_totais')
-            )['total'] or Decimal('0')
+                desenvolvimento=Sum('horas_desenvolvimento'),
+                testes=Sum('horas_testes'),
+                documentacao=Sum('horas_documentacao'),
+                deploy=Sum('horas_deploy')
+            )
+            total_horas = Decimal('0')
+            for key, valor in horas_totais.items():
+                if valor:
+                    total_horas += Decimal(str(valor))
+            horas_totais = total_horas
             print(f"Horas totais: {horas_totais}")
         except Exception as e:
             print(f"Erro ao calcular horas: {e}")
