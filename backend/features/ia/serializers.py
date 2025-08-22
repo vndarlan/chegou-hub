@@ -363,6 +363,65 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
     def validate(self, data):
         print(f"VALIDACAO - dados recebidos: {list(data.keys())}")
         
+        # CORREÇÃO: Sanitizar campos de array problemáticos
+        
+        # 1. Limpar ferramentas_tecnologias - remover strings vazias
+        if 'ferramentas_tecnologias' in data:
+            ferramentas = data.get('ferramentas_tecnologias', [])
+            if isinstance(ferramentas, list):
+                ferramentas_limpas = [f.strip() for f in ferramentas if f and str(f).strip()]
+                data['ferramentas_tecnologias'] = ferramentas_limpas
+                print(f"VALIDACAO - ferramentas_tecnologias sanitizadas: {ferramentas_limpas}")
+            else:
+                data['ferramentas_tecnologias'] = []
+        
+        # 2. Sanitizar lista_ferramentas - remover objetos vazios ou malformados
+        if 'lista_ferramentas' in data:
+            lista = data.get('lista_ferramentas', [])
+            if isinstance(lista, list):
+                lista_limpa = []
+                for item in lista:
+                    if isinstance(item, dict):
+                        nome = str(item.get('nome', '')).strip()
+                        valor = item.get('valor', 0)
+                        # Só incluir se tiver nome válido
+                        if nome:
+                            try:
+                                valor = float(valor) if valor else 0
+                                lista_limpa.append({'nome': nome, 'valor': valor})
+                            except (ValueError, TypeError):
+                                lista_limpa.append({'nome': nome, 'valor': 0})
+                data['lista_ferramentas'] = lista_limpa
+                print(f"VALIDACAO - lista_ferramentas sanitizada: {lista_limpa}")
+            else:
+                data['lista_ferramentas'] = []
+        
+        # 3. Validar campos numéricos
+        campos_numericos = [
+            'custo_apis_mensal', 'custo_hora_empresa', 'horas_desenvolvimento',
+            'horas_testes', 'horas_documentacao', 'horas_deploy',
+            'custo_treinamentos', 'custo_setup_inicial', 'custo_consultoria',
+            'horas_economizadas_mes', 'valor_monetario_economizado_mes'
+        ]
+        
+        for campo in campos_numericos:
+            if campo in data:
+                try:
+                    valor = data[campo]
+                    if valor is None or valor == '':
+                        data[campo] = 0
+                    else:
+                        data[campo] = float(valor) if valor else 0
+                except (ValueError, TypeError) as e:
+                    print(f"ERRO campo numerico {campo}: {e}")
+                    data[campo] = 0
+        
+        # 4. Validar campo de data
+        if 'data_revisao' in data:
+            data_revisao = data.get('data_revisao')
+            if data_revisao == '' or data_revisao == 'null':
+                data['data_revisao'] = None
+        
         # Validar encoding de campos de texto
         for field_name, value in data.items():
             if isinstance(value, str):
@@ -383,7 +442,7 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
                     'departamentos_atendidos': 'Pelo menos um departamento deve ser selecionado'
                 })
         
-        print(f"VALIDACAO OK")
+        print(f"VALIDACAO OK - dados sanitizados")
         return data
     
     # === CREATE ===
@@ -665,18 +724,91 @@ class ProjetoIACreateSerializer(serializers.ModelSerializer):
             'documentacao_tecnica', 'documentacao_apoio', 'licoes_aprendidas', 'proximos_passos', 'data_revisao'
         ]
     
+    def validate(self, data):
+        """Aplicar as mesmas validações do DetailSerializer"""
+        print(f"CREATE VALIDACAO - dados recebidos: {list(data.keys())}")
+        
+        # CORREÇÃO: Aplicar as mesmas sanitizações
+        
+        # 1. Limpar ferramentas_tecnologias
+        if 'ferramentas_tecnologias' in data:
+            ferramentas = data.get('ferramentas_tecnologias', [])
+            if isinstance(ferramentas, list):
+                ferramentas_limpas = [f.strip() for f in ferramentas if f and str(f).strip()]
+                data['ferramentas_tecnologias'] = ferramentas_limpas
+                print(f"CREATE - ferramentas_tecnologias sanitizadas: {ferramentas_limpas}")
+            else:
+                data['ferramentas_tecnologias'] = []
+        
+        # 2. Sanitizar lista_ferramentas
+        if 'lista_ferramentas' in data:
+            lista = data.get('lista_ferramentas', [])
+            if isinstance(lista, list):
+                lista_limpa = []
+                for item in lista:
+                    if isinstance(item, dict):
+                        nome = str(item.get('nome', '')).strip()
+                        valor = item.get('valor', 0)
+                        if nome:
+                            try:
+                                valor = float(valor) if valor else 0
+                                lista_limpa.append({'nome': nome, 'valor': valor})
+                            except (ValueError, TypeError):
+                                lista_limpa.append({'nome': nome, 'valor': 0})
+                data['lista_ferramentas'] = lista_limpa
+                print(f"CREATE - lista_ferramentas sanitizada: {lista_limpa}")
+            else:
+                data['lista_ferramentas'] = []
+        
+        # 3. Validar campos numéricos
+        campos_numericos = [
+            'custo_apis_mensal', 'custo_hora_empresa', 'horas_desenvolvimento',
+            'horas_testes', 'horas_documentacao', 'horas_deploy',
+            'custo_treinamentos', 'custo_setup_inicial', 'custo_consultoria',
+            'horas_economizadas_mes', 'valor_monetario_economizado_mes'
+        ]
+        
+        for campo in campos_numericos:
+            if campo in data:
+                try:
+                    valor = data[campo]
+                    if valor is None or valor == '':
+                        data[campo] = 0
+                    else:
+                        data[campo] = float(valor) if valor else 0
+                except (ValueError, TypeError) as e:
+                    print(f"CREATE ERRO campo numerico {campo}: {e}")
+                    data[campo] = 0
+        
+        # 4. Validar campo de data
+        if 'data_revisao' in data:
+            data_revisao = data.get('data_revisao')
+            if data_revisao == '' or data_revisao == 'null':
+                data['data_revisao'] = None
+        
+        print(f"CREATE VALIDACAO OK - dados sanitizados")
+        return data
+    
     def create(self, validated_data):
         try:
+            print(f"CREATE SERIALIZER - campos recebidos: {list(validated_data.keys())}")
+            
             criadores_data = validated_data.pop('criadores', [])
             validated_data['criado_por'] = self.context['request'].user
             
+            # Criar projeto com dados sanitizados
             projeto = ProjetoIA.objects.create(**validated_data)
+            print(f"CREATE SERIALIZER - projeto {projeto.id} criado com sucesso")
+            
             if criadores_data:
                 projeto.criadores.set(criadores_data)
+                print(f"CREATE SERIALIZER - {len(criadores_data)} criadores definidos")
             
             return projeto
         except Exception as e:
-            print(f"Erro no create: {e}")
+            print(f"CREATE SERIALIZER - erro: {e}")
+            import traceback
+            traceback.print_exc()
             raise
 
 class NovaVersaoSerializer(serializers.ModelSerializer):

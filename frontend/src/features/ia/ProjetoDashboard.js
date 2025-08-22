@@ -1229,7 +1229,10 @@ function ProjetoDashboard() {
                 complexidade: data.complexidade || 'media',
                 // CORREÇÃO: Remover horas_totais - agora é calculado no backend
                 criadores_ids: Array.isArray(data.criadores_ids) ? data.criadores_ids : [],
-                ferramentas_tecnologias: Array.isArray(data.ferramentas_tecnologias) ? data.ferramentas_tecnologias : [],
+                // CORREÇÃO: Sanitizar ferramentas_tecnologias - remover strings vazias
+                ferramentas_tecnologias: Array.isArray(data.ferramentas_tecnologias) 
+                    ? data.ferramentas_tecnologias.filter(f => f && f.trim()) 
+                    : [],
                 link_projeto: data.link_projeto?.trim() || '',
                 usuarios_impactados: Number(data.usuarios_impactados) || 0,
                 frequencia_uso: data.frequencia_uso || 'diario',
@@ -1243,7 +1246,15 @@ function ProjetoDashboard() {
                 // === NOVOS CAMPOS FINANCEIROS ===
                 custo_hora_empresa: Number(data.custo_hora_empresa) || 0,
                 custo_apis_mensal: Number(data.custo_apis_mensal) || 0,
-                lista_ferramentas: Array.isArray(data.lista_ferramentas) ? data.lista_ferramentas : [],
+                // CORREÇÃO: Sanitizar lista_ferramentas - remover objetos vazios
+                lista_ferramentas: Array.isArray(data.lista_ferramentas) 
+                    ? data.lista_ferramentas.filter(item => 
+                        item && typeof item === 'object' && item.nome && item.nome.trim()
+                      ).map(item => ({
+                        nome: item.nome.trim(),
+                        valor: Number(item.valor) || 0
+                      }))
+                    : [],
                 custo_treinamentos: Number(data.custo_treinamentos) || 0,
                 custo_setup_inicial: Number(data.custo_setup_inicial) || 0,
                 custo_consultoria: Number(data.custo_consultoria) || 0,
