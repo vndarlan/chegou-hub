@@ -223,7 +223,7 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
             
             return queryset
         except Exception as e:
-            print(f"❌ Erro no get_queryset: {e}")
+            print(f"Erro no get_queryset: {e}")
             import traceback
             traceback.print_exc()
             return ProjetoIA.objects.filter(ativo=True)
@@ -235,10 +235,10 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         """CORREÇÃO: List otimizado com tratamento de erros"""
         try:
-            print(f"📋 LIST - carregando projetos para usuário {request.user.username}")
+            print(f"LIST - carregando projetos para usuario {request.user.username}")
             return super().list(request, *args, **kwargs)
         except Exception as e:
-            print(f"❌ LIST - erro: {e}")
+            print(f"LIST - erro: {e}")
             import traceback
             traceback.print_exc()
             return Response(
@@ -249,12 +249,12 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         """CORREÇÃO: Retrieve otimizado com todos os dados"""
         try:
-            print(f"📥 RETRIEVE - carregando projeto {kwargs.get('pk')}")
+            print(f"RETRIEVE - carregando projeto {kwargs.get('pk')}")
             
             # CORREÇÃO: Usar get_object() que já aplica os filtros corretos
             instance = self.get_object()
-            print(f"📋 RETRIEVE - projeto encontrado: {instance.id}")
-            print(f"📋 RETRIEVE - dados verificação:")
+            print(f"RETRIEVE - projeto encontrado: {instance.id}")
+            print(f"RETRIEVE - dados verificacao:")
             print(f"   - licoes_aprendidas: {instance.licoes_aprendidas}")
             print(f"   - proximos_passos: {instance.proximos_passos}")
             print(f"   - custo_apis_mensal: {instance.custo_apis_mensal}")
@@ -264,7 +264,7 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(instance)
             response_data = serializer.data
             
-            print(f"📤 RETRIEVE - dados serializados:")
+            print(f"RETRIEVE - dados serializados:")
             print(f"   - licoes_aprendidas: {response_data.get('licoes_aprendidas')}")
             print(f"   - proximos_passos: {response_data.get('proximos_passos')}")
             print(f"   - custo_apis_mensal: {response_data.get('custo_apis_mensal')}")
@@ -273,7 +273,7 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
             
             return Response(response_data)
         except Exception as e:
-            print(f"❌ RETRIEVE - erro: {e}")
+            print(f"RETRIEVE - erro: {e}")
             import traceback
             traceback.print_exc()
             return Response(
@@ -284,14 +284,14 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """CORREÇÃO: Create com logs detalhados"""
         try:
-            print(f"➕ CREATE - usuário: {request.user.username}")
-            print(f"📥 CREATE - dados recebidos: {list(request.data.keys())}")
-            print(f"📥 CREATE - departamentos_atendidos: {request.data.get('departamentos_atendidos')}")
-            print(f"📥 CREATE - criadores_ids: {request.data.get('criadores_ids')}")
+            print(f"CREATE - usuario: {request.user.username}")
+            print(f"CREATE - dados recebidos: {list(request.data.keys())}")
+            print(f"CREATE - departamentos_atendidos: {request.data.get('departamentos_atendidos')}")
+            print(f"CREATE - criadores_ids: {request.data.get('criadores_ids')}")
             
             return super().create(request, *args, **kwargs)
         except Exception as e:
-            print(f"❌ CREATE - erro: {e}")
+            print(f"CREATE - erro: {e}")
             import traceback
             traceback.print_exc()
             return Response(
@@ -302,9 +302,9 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         """CORREÇÃO: Update com verificação de permissões e logs"""
         try:
-            print(f"📝 UPDATE - usuário: {request.user.username}")
-            print(f"📝 UPDATE - projeto: {kwargs.get('pk')}")
-            print(f"📥 UPDATE - dados recebidos: {list(request.data.keys())}")
+            print(f"UPDATE - usuario: {request.user.username}")
+            print(f"UPDATE - projeto: {kwargs.get('pk')}")
+            print(f"UPDATE - dados recebidos: {list(request.data.keys())}")
             
             projeto = self.get_object()
             if not verificar_permissao_edicao(request.user, projeto):
@@ -314,17 +314,17 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
                 )
             
             # Log do estado atual vs dados recebidos
-            print(f"📋 UPDATE - estado atual vs novos dados:")
+            print(f"UPDATE - estado atual vs novos dados:")
             for key in request.data.keys():
                 if hasattr(projeto, key):
                     current_value = getattr(projeto, key)
                     new_value = request.data.get(key)
-                    print(f"   - {key}: {current_value} → {new_value}")
+                    print(f"   - {key}: {current_value} -> {new_value}")
             
             return super().update(request, *args, **kwargs)
         except Exception as e:
-            print(f"❌ UPDATE - erro detalhado: {str(e)}")
-            print(f"❌ UPDATE - tipo do erro: {type(e)}")
+            print(f"UPDATE - erro detalhado: {str(e)}")
+            print(f"UPDATE - tipo do erro: {type(e)}")
             import traceback
             traceback.print_exc()
             return Response(
@@ -335,9 +335,9 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         """CORREÇÃO: Partial update com logs detalhados"""
         try:
-            print(f"📝 PARTIAL_UPDATE - usuário: {request.user.username}")
-            print(f"📝 PARTIAL_UPDATE - projeto: {kwargs.get('pk')}")
-            print(f"📥 PARTIAL_UPDATE - dados recebidos: {list(request.data.keys())}")
+            print(f"PARTIAL_UPDATE - usuario: {request.user.username}")
+            print(f"PARTIAL_UPDATE - projeto: {kwargs.get('pk')}")
+            print(f"PARTIAL_UPDATE - dados recebidos: {list(request.data.keys())}")
             
             projeto = self.get_object()
             if not verificar_permissao_edicao(request.user, projeto):
@@ -350,14 +350,14 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
             for key, value in request.data.items():
                 if hasattr(projeto, key):
                     current_value = getattr(projeto, key)
-                    print(f"📋 {key}: {current_value} → {value}")
+                    print(f"{key}: {current_value} -> {value}")
                 else:
-                    print(f"⚠️ Campo {key} não existe no modelo")
+                    print(f"AVISO - Campo {key} nao existe no modelo")
             
             return super().partial_update(request, *args, **kwargs)
         except Exception as e:
-            print(f"❌ PARTIAL_UPDATE - erro detalhado: {str(e)}")
-            print(f"❌ PARTIAL_UPDATE - tipo do erro: {type(e)}")
+            print(f"PARTIAL_UPDATE - erro detalhado: {str(e)}")
+            print(f"PARTIAL_UPDATE - tipo do erro: {type(e)}")
             import traceback
             traceback.print_exc()
             return Response(
@@ -414,7 +414,7 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
         """Duplicar projeto como template"""
         try:
             projeto_original = self.get_object()
-            print(f"🔄 DUPLICANDO projeto: {projeto_original.nome}")
+            print(f"DUPLICANDO projeto: {projeto_original.nome}")
             
             # CORREÇÃO: Criar cópia com TODOS os campos importantes
             novo_projeto = ProjetoIA.objects.create(
@@ -471,25 +471,25 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
                 versao_atual="1.0.0"
             )
             
-            print(f"✅ DUPLICAÇÃO - projeto duplicado criado: {novo_projeto.id}")
+            print(f"DUPLICACAO - projeto duplicado criado: {novo_projeto.id}")
             
             # Copiar criadores de forma segura
             try:
                 criadores = projeto_original.criadores.all()
                 if criadores.exists():
                     novo_projeto.criadores.set(criadores)
-                    print(f"✅ DUPLICAÇÃO - criadores copiados: {criadores.count()}")
+                    print(f"DUPLICACAO - criadores copiados: {criadores.count()}")
             except Exception as e:
-                print(f"⚠️ DUPLICAÇÃO - erro ao copiar criadores: {e}")
+                print(f"DUPLICACAO - erro ao copiar criadores: {e}")
             
             # Copiar dependências de forma segura
             try:
                 dependencias = projeto_original.dependencias.all()
                 if dependencias.exists():
                     novo_projeto.dependencias.set(dependencias)
-                    print(f"✅ DUPLICAÇÃO - dependências copiadas: {dependencias.count()}")
+                    print(f"DUPLICACAO - dependencias copiadas: {dependencias.count()}")
             except Exception as e:
-                print(f"⚠️ DUPLICAÇÃO - erro ao copiar dependências: {e}")
+                print(f"DUPLICACAO - erro ao copiar dependencias: {e}")
             
             # Retornar resposta simples
             return Response({
@@ -499,7 +499,7 @@ class ProjetoIAViewSet(viewsets.ModelViewSet):
             })
             
         except Exception as e:
-            print(f"❌ DUPLICAÇÃO - erro: {e}")
+            print(f"DUPLICACAO - erro: {e}")
             import traceback
             traceback.print_exc()
             return Response(
