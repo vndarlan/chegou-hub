@@ -1432,12 +1432,8 @@ function ProjetoDashboard() {
             if (!projetoData.tipo_projeto) throw new Error('Tipo de projeto é obrigatório');
             if (!projetoData.departamentos_atendidos.length) throw new Error('Pelo menos um departamento é obrigatório');
             
-            // CORREÇÃO: Validar o breakdown de horas ao invés de horas_totais (que é calculado)
-            const totalHorasBreakdown = (projetoData.horas_desenvolvimento || 0) + 
-                                      (projetoData.horas_testes || 0) + 
-                                      (projetoData.horas_documentacao || 0) + 
-                                      (projetoData.horas_deploy || 0);
-            if (totalHorasBreakdown <= 0) throw new Error('Pelo menos uma hora deve ser especificada no breakdown de tempo');
+            // CORREÇÃO: Horas são opcionais - removido validação obrigatória
+            // Usuário pode criar projeto sem especificar horas
             
             const config = {
                 headers: {
@@ -1682,8 +1678,8 @@ function ProjetoDashboard() {
 
             {/* Filtros minimalistas */}
             <div className="mb-4 p-3 rounded-lg border border-border bg-muted/30">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                    <div className="sm:col-span-2 md:col-span-3 lg:col-span-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                    <div className="col-span-2">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
@@ -1842,8 +1838,8 @@ function ProjetoDashboard() {
                                 </PopoverContent>
                             </Popover>
                         </div>
-                        <div>
-                            <div className="text-xs text-muted-foreground mb-1.5">Complexidade</div>
+                    <div>
+                        <div className="text-xs text-muted-foreground mb-1.5">Complexidade</div>
                             <Popover>
                                 <PopoverTrigger asChild>
                                     <Button variant="outline" size="sm" className="w-full justify-between text-left h-9">
@@ -1878,9 +1874,9 @@ function ProjetoDashboard() {
                                     </div>
                                 </PopoverContent>
                             </Popover>
-                        </div>
-                        <div className="flex gap-2 items-end">
-                            <div>
+                    </div>
+                    <div className="flex gap-2 items-end">
+                        <div>
                                 <div className="text-xs text-muted-foreground mb-1.5">Visualização</div>
                                 <div className="flex gap-1">
                                     <Button
@@ -1900,10 +1896,10 @@ function ProjetoDashboard() {
                                         <FileText className="h-3.5 w-3.5" />
                                     </Button>
                                 </div>
-                            </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
             {/* Lista de Projetos */}
             {viewMode === 'cards' ? (
