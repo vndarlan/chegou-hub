@@ -26,7 +26,7 @@ import {
     Copy, GitBranch, Eye, Coins,
     Clock, Users, Wrench, Check, X, Search,
     Settings, ChevronDown, Activity, Target,
-    FileText, Brain, Bot
+    FileText, Brain
 } from 'lucide-react';
 
 import axios from 'axios';
@@ -309,12 +309,13 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
         departamentos_atendidos: [],
         criadores_ids: [],
         ferramentas_tecnologias: [],
+        ferramentas_fields: [''],
         link_projeto: '',
         usuarios_impactados: 0,
         frequencia_uso: 'diario',
         
         // === CAMPOS DE DETALHES ===
-        horas_totais: 0,
+        // CORREÇÃO: Remover horas_totais - agora é calculado
         prioridade: 'media',
         complexidade: 'media',
         
@@ -356,17 +357,22 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                 departamentos_atendidos: projeto.departamentos_atendidos || [],
                 lista_ferramentas: projeto.lista_ferramentas || [],
                 ferramentas_tecnologias: projeto.ferramentas_tecnologias || [],
-                horas_totais: Number(projeto.horas_totais) || 0,
+                ferramentas_fields: projeto.ferramentas_tecnologias?.length > 0 
+                    ? projeto.ferramentas_tecnologias 
+                    : [''],
+                // CORREÇÃO: Remover horas_totais - agora é calculado no backend
                 custo_hora_empresa: Number(projeto.custo_hora_empresa) || 80
             });
         } else {
             setFormData({
                 nome: '', descricao: '', tipo_projeto: '', departamentos_atendidos: [],
-                criadores_ids: [], horas_totais: 0, prioridade: 'media', complexidade: 'media',
+                criadores_ids: [], prioridade: 'media', complexidade: 'media',
                 custo_hora_empresa: 80, custo_apis_mensal: 0, lista_ferramentas: [],
                 horas_economizadas_mes: 0, valor_monetario_economizado_mes: 0,
                 nivel_autonomia: 'total', frequencia_uso: 'diario',
-                ferramentas_tecnologias: [], usuarios_impactados: 0,
+                ferramentas_tecnologias: [], 
+                ferramentas_fields: [''],
+                usuarios_impactados: 0,
                 documentacao_tecnica: '', documentacao_apoio: '', licoes_aprendidas: '', proximos_passos: '',
                 horas_desenvolvimento: 0, horas_testes: 0, horas_documentacao: 0, horas_deploy: 0
             });
@@ -624,15 +630,57 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                             
                             <div>
                                 <label className="text-sm font-medium">Ferramentas/Tecnologias</label>
-                                <p className="text-xs text-muted-foreground mb-1">Separadas por vírgula</p>
-                                <Input
-                                    placeholder="Ex: Python, OpenAI API, PostgreSQL"
-                                    value={(formData.ferramentas_tecnologias || []).join(', ')}
-                                    onChange={(e) => {
-                                        const techs = e.target.value.split(',').map(t => t.trim()).filter(t => t);
-                                        setFormData(prev => ({...prev, ferramentas_tecnologias: techs}));
-                                    }}
-                                />
+                                <div className="space-y-2 mt-2">
+                                    {(formData.ferramentas_fields || ['']).map((campo, index) => (
+                                        <div key={index} className="flex gap-2">
+                                            <Input
+                                                placeholder={`Ferramenta/Tecnologia ${index + 1}`}
+                                                value={campo}
+                                                onChange={(e) => {
+                                                    const newFields = [...(formData.ferramentas_fields || [])];
+                                                    newFields[index] = e.target.value;
+                                                    setFormData(prev => ({
+                                                        ...prev, 
+                                                        ferramentas_fields: newFields,
+                                                        ferramentas_tecnologias: newFields.filter(f => f.trim())
+                                                    }));
+                                                }}
+                                                className="flex-1"
+                                            />
+                                            {(formData.ferramentas_fields || []).length > 1 && (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        const newFields = (formData.ferramentas_fields || []).filter((_, i) => i !== index);
+                                                        setFormData(prev => ({
+                                                            ...prev, 
+                                                            ferramentas_fields: newFields,
+                                                            ferramentas_tecnologias: newFields.filter(f => f.trim())
+                                                        }));
+                                                    }}
+                                                    className="px-2"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            const newFields = [...(formData.ferramentas_fields || []), ''];
+                                            setFormData(prev => ({...prev, ferramentas_fields: newFields}));
+                                        }}
+                                        className="w-full"
+                                    >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Adicionar Ferramenta/Tecnologia
+                                    </Button>
+                                </div>
                             </div>
                             
                             <div className="mt-6">
@@ -1334,7 +1382,7 @@ function ProjetoDashboard() {
                 departamentos_atendidos: Array.isArray(data.departamentos_atendidos) ? data.departamentos_atendidos : [],
                 prioridade: data.prioridade || 'media',
                 complexidade: data.complexidade || 'media',
-                horas_totais: Number(data.horas_totais) || 0,
+                // CORREÇÃO: Remover horas_totais - agora é calculado no backend
                 criadores_ids: Array.isArray(data.criadores_ids) ? data.criadores_ids : [],
                 ferramentas_tecnologias: Array.isArray(data.ferramentas_tecnologias) ? data.ferramentas_tecnologias : [],
                 link_projeto: data.link_projeto?.trim() || '',
@@ -1383,7 +1431,13 @@ function ProjetoDashboard() {
             if (!projetoData.descricao) throw new Error('Descrição é obrigatória');
             if (!projetoData.tipo_projeto) throw new Error('Tipo de projeto é obrigatório');
             if (!projetoData.departamentos_atendidos.length) throw new Error('Pelo menos um departamento é obrigatório');
-            if (projetoData.horas_totais <= 0) throw new Error('Horas totais deve ser maior que 0');
+            
+            // CORREÇÃO: Validar o breakdown de horas ao invés de horas_totais (que é calculado)
+            const totalHorasBreakdown = (projetoData.horas_desenvolvimento || 0) + 
+                                      (projetoData.horas_testes || 0) + 
+                                      (projetoData.horas_documentacao || 0) + 
+                                      (projetoData.horas_deploy || 0);
+            if (totalHorasBreakdown <= 0) throw new Error('Pelo menos uma hora deve ser especificada no breakdown de tempo');
             
             const config = {
                 headers: {
@@ -1584,11 +1638,7 @@ function ProjetoDashboard() {
             )}
 
             {/* Header minimalista */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                    <Bot className="h-6 w-6 text-primary" />
-                    <h1 className="text-2xl font-bold text-foreground">Dashboard de IA & Automação</h1>
-                </div>
+            <div className="flex items-center justify-end mb-6">
                 
                 <div className="flex items-center gap-4">
                     {/* Estatísticas minimalistas */}
@@ -1632,8 +1682,8 @@ function ProjetoDashboard() {
 
             {/* Filtros minimalistas */}
             <div className="mb-4 p-3 rounded-lg border border-border bg-muted/30">
-                <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-                    <div className="md:col-span-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div className="sm:col-span-2 md:col-span-3 lg:col-span-2">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
