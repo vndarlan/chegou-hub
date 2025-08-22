@@ -1724,7 +1724,7 @@ function ProjetoDashboard() {
                 </div>
 
             <div className="border-border rounded-lg overflow-visible bg-card">
-                <Table className="relative">
+                <Table className="relative overflow-visible">
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Nome</TableHead>
@@ -1753,8 +1753,8 @@ function ProjetoDashboard() {
                                             <span className="text-xs text-muted-foreground">({projeto.dias_sem_atualizacao} dias)</span>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="relative">
-                                        <div className="flex gap-1">
+                                    <TableCell className="relative overflow-visible">
+                                        <div className="flex gap-1 relative">
                                             <Button variant="ghost" size="sm" onClick={() => handleViewProjeto(projeto)}>
                                                 <Eye className="h-4 w-4" />
                                             </Button>
@@ -1769,10 +1769,13 @@ function ProjetoDashboard() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent 
-                                                    className="w-56 z-50" 
+                                                    className="w-56 z-[9999] bg-popover border shadow-lg table-dropdown-content" 
                                                     align="end" 
                                                     side="bottom"
                                                     sideOffset={4}
+                                                    avoidCollisions={true}
+                                                    collisionPadding={10}
+                                                    portal={true}
                                                 >
                                                     <DropdownMenuItem onClick={() => {
                                                         if (!opcoes) {

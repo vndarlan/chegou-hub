@@ -474,3 +474,14 @@ code {
 .animate-slide-down {
   animation: slideDown 0.2s ease-out;
 }
+
+/* TABLE DROPDOWN FIX - Garante que dropdowns em tabelas apareçam acima do conteúdo */
+[data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
+}
+
+/* Específico para DropdownMenuContent em tabelas */
+.table-dropdown-content {
+  z-index: 9999 !important;
+  position: fixed !important;
+}
