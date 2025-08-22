@@ -212,20 +212,37 @@ CACHES = {
     }
 }
 
-# Usar LocMem cache sempre que não estivermos no Railway com Redis configurado
+# Verificar se Redis está disponível
 REDIS_AVAILABLE = False
+
+# Em produção (Railway), só tentar Redis se a URL não for localhost
 if IS_RAILWAY_DEPLOYMENT:
-    # No Railway, verificar se Redis está disponível
-    try:
-        from django_redis import get_redis_connection
-        get_redis_connection("default").ping()
-        print(f"OK: Cache Redis conectado: {REDIS_URL}")
-        REDIS_AVAILABLE = True
-    except Exception as e:
-        print(f"WARNING: Redis nao disponivel no Railway, usando LocMem cache: {str(e)}")
+    # Verificar se temos uma URL de Redis válida para produção
+    if REDIS_URL and 'localhost' not in REDIS_URL and '127.0.0.1' not in REDIS_URL:
+        try:
+            from django_redis import get_redis_connection
+            get_redis_connection("default").ping()
+            print(f"OK: Cache Redis conectado: {REDIS_URL}")
+            REDIS_AVAILABLE = True
+        except Exception as e:
+            print(f"WARNING: Redis nao disponivel no Railway, usando LocMem cache: {str(e)}")
+            REDIS_AVAILABLE = False
+    else:
+        print(f"Railway: Redis URL invalida ou localhost detectado: {REDIS_URL}")
         REDIS_AVAILABLE = False
 else:
-    print("Desenvolvimento local: Usando LocMem cache")
+    # Em desenvolvimento local, tentar Redis apenas se explicitamente solicitado
+    if os.getenv('USE_REDIS_LOCALLY', 'False').lower() == 'true':
+        try:
+            from django_redis import get_redis_connection
+            get_redis_connection("default").ping()
+            print(f"OK: Cache Redis local conectado: {REDIS_URL}")
+            REDIS_AVAILABLE = True
+        except Exception as e:
+            print(f"WARNING: Redis local nao disponivel: {str(e)}")
+            REDIS_AVAILABLE = False
+    else:
+        print("Desenvolvimento local: Usando LocMem cache (USE_REDIS_LOCALLY=False)")
 
 if not REDIS_AVAILABLE:
     CACHES = {
@@ -502,19 +519,30 @@ if REDIS_AVAILABLE:
             }
         }
     else:
-        # Para produção (Railway, Heroku, etc)
-        import redis
-
-        REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
-
-        RQ_QUEUES = {
-            'default': {
-                'CONNECTION': redis.from_url(REDIS_URL),
-                'DEFAULT_TIMEOUT': 3600,
+        # Para produção (Railway, Heroku, etc) - apenas se Redis estiver realmente disponível
+        try:
+            import redis
+            REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+            
+            # Testar conexão antes de configurar RQ
+            test_redis = redis.from_url(REDIS_URL)
+            test_redis.ping()
+            
+            RQ_QUEUES = {
+                'default': {
+                    'CONNECTION': test_redis,
+                    'DEFAULT_TIMEOUT': 3600,
+                }
             }
-        }
-
-    print(f"RQ configurado com Redis: {REDIS_URL}")
+            print(f"RQ configurado com Redis: {REDIS_URL}")
+        except Exception as e:
+            print(f"ERRO ao configurar RQ com Redis: {e}")
+            RQ_QUEUES = {}
+            # Marcar Redis como não disponível se a conexão falhar
+            REDIS_AVAILABLE = False
+            if 'django_rq' in INSTALLED_APPS:
+                INSTALLED_APPS.remove('django_rq')
+                print("django_rq removido dos INSTALLED_APPS devido a erro de conexão Redis")
 else:
     # Desabilitar RQ quando Redis não estiver disponível
     RQ_QUEUES = {}

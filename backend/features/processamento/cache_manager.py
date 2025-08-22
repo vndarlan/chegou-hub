@@ -63,6 +63,14 @@ class IPDetectionCacheManager:
     def _init_redis(self):
         """Inicializa conexão Redis com fallback gracioso"""
         try:
+            # Verificar primeiro se Redis está disponível globalmente
+            redis_global_available = getattr(settings, 'REDIS_AVAILABLE', False)
+            if not redis_global_available:
+                logger.info("Redis marcado como não disponível globalmente, usando fallback")
+                self.redis_available = False
+                self.redis_client = None
+                return
+            
             redis_url = getattr(settings, 'REDIS_URL', 'redis://localhost:6379/0')
             self.redis_client = redis.from_url(redis_url, decode_responses=True)
             
