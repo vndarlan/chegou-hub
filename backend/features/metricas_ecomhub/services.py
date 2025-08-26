@@ -75,18 +75,30 @@ class StatusTrackingService:
             dados_processados = dados_api.get('dados_processados', [])
             logger.info(f"Dados recebidos da API - Tipo: {type(dados_processados)}, Quantidade: {len(dados_processados) if isinstance(dados_processados, list) else 'N/A'}")
             
-            # CORREÇÃO: API externa retorna estrutura diferente, extrair lista de pedidos
+            # CORREÇÃO: API externa deve retornar apenas dados reais
             lista_pedidos = []
             if isinstance(dados_processados, dict):
                 # A API retorna dados agregados, não pedidos individuais
-                # Vamos processar a visualização total para extrair dados de pedidos
-                visualizacao_total = dados_processados.get('visualizacao_total', [])
-                logger.info(f"Encontrados {len(visualizacao_total)} registros agregados na visualização total")
-                
-                # Converter dados agregados em pedidos simulados (para tracking)
-                lista_pedidos = self._converter_dados_agregados_para_pedidos(visualizacao_total)
+                # Verificar se há pedidos reais na estrutura
+                pedidos_reais = dados_processados.get('pedidos', [])
+                if pedidos_reais:
+                    lista_pedidos = pedidos_reais
+                    logger.info(f"Encontrados {len(lista_pedidos)} pedidos reais")
+                else:
+                    logger.warning("Nenhum pedido real encontrado nos dados da API")
+                    return {
+                        'status': 'error',
+                        'message': 'API externa não retornou pedidos reais. Sincronização cancelada.'
+                    }
             elif isinstance(dados_processados, list):
-                lista_pedidos = dados_processados
+                if dados_processados:
+                    lista_pedidos = dados_processados
+                else:
+                    logger.warning("Lista de dados vazia da API externa")
+                    return {
+                        'status': 'error', 
+                        'message': 'API externa retornou lista vazia. Nenhum dado real para sincronizar.'
+                    }
             
             logger.info(f"Lista de pedidos processada - Quantidade: {len(lista_pedidos)}")
             
@@ -559,69 +571,21 @@ class StatusTrackingService:
             logger.error(f"Erro atualizando tempos: {e}")
             return 0
     
-    def _converter_dados_agregados_para_pedidos(self, visualizacao_total):
+    def _extrair_pedidos_reais_da_api(self, dados_api):
         """
-        Converte dados agregados da API em pedidos individuais simulados
-        A API externa retorna dados agregados por produto/país, não pedidos individuais
+        Extrai apenas pedidos reais da API externa.
+        NÃO cria dados simulados ou fictícios.
         """
-        pedidos_simulados = []
+        pedidos_reais = []
         
-        for item in visualizacao_total:
-            if not isinstance(item, dict):
-                continue
+        # Verificar se a API retornou pedidos individuais
+        if 'pedidos' in dados_api and isinstance(dados_api['pedidos'], list):
+            pedidos_reais = dados_api['pedidos']
+            logger.info(f"Extraídos {len(pedidos_reais)} pedidos reais da API")
+        else:
+            logger.error("API externa não retornou pedidos individuais. Apenas dados agregados não são suficientes.")
             
-            # Pular o item de total geral
-            if item.get('País') == 'Todos':
-                continue
-            
-            pais = item.get('País', '')
-            produto = item.get('Produto', '')
-            imagem = item.get('Imagem', '')
-            
-            # Mapear códigos de país para nomes
-            pais_nome = self._mapear_codigo_pais_para_nome(pais)
-            
-            # Para cada status, criar pedidos simulados baseado na contagem
-            status_counts = {
-                'created': item.get('created', 0),
-                'processing': 0,  # Não vem da API
-                'preparing_for_shipping': item.get('preparing_for_shipping', 0),
-                'ready_to_ship': item.get('ready_to_ship', 0),
-                'shipped': 0,  # Não vem da API
-                'with_courier': item.get('with_courier', 0),
-                'out_for_delivery': item.get('out_for_delivery', 0),
-                'issue': item.get('issue', 0),
-                'delivered': item.get('delivered', 0),
-                'returned': item.get('returned', 0),
-                'returning': item.get('returning', 0),
-                'cancelled': item.get('cancelled', 0)
-            }
-            
-            # Criar pedidos simulados para cada status com contagem > 0
-            for status, count in status_counts.items():
-                if count > 0:
-                    for i in range(min(count, 50)):  # Limitar a 50 por status para não sobrecarregar
-                        pedido_id = f"{pais}_{produto.replace(' ', '_')}_{status}_{i+1}"
-                        
-                        pedido_simulado = {
-                            'pedido_id': pedido_id,
-                            'status': status,
-                            'customer_name': f'Cliente Simulado {i+1}',
-                            'customer_email': f'cliente{i+1}@exemplo.com',
-                            'customer_phone': '+000000000',
-                            'produto_nome': produto,
-                            'pais': pais_nome,
-                            'preco': 50.00,
-                            'data_criacao': timezone.now().isoformat(),
-                            'data_ultima_atualizacao': timezone.now().isoformat(),
-                            'shopify_order_number': f'SIM{i+1}',
-                            'tracking_url': ''
-                        }
-                        
-                        pedidos_simulados.append(pedido_simulado)
-        
-        logger.info(f"Convertidos {len(pedidos_simulados)} pedidos simulados dos dados agregados")
-        return pedidos_simulados
+        return pedidos_reais
     
     def _mapear_codigo_pais_para_nome(self, codigo):
         """Mapeia código de país para nome completo"""

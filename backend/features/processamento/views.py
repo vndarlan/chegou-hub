@@ -1211,44 +1211,9 @@ def debug_detector_ip(request):
         logger.error(f"DEBUG: Erro geral no debug: {str(e)}", exc_info=True)
         return Response({'error': f'Erro geral: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@csrf_exempt
-@api_view(['POST'])
-@never_cache
-def test_detalhar_ip(request):
-    """Endpoint de teste simplificado para diagnosticar o erro 500"""
-    try:
-        loja_id = request.data.get('loja_id')
-        ip = request.data.get('ip')
-        
-        return Response({
-            'success': True,
-            'message': 'Endpoint de teste funcionando',
-            'data': {
-                'ip': ip,
-                'total_orders': 2,
-                'active_orders': 1,
-                'cancelled_orders': 1,
-                'client_details': [
-                    {
-                        'order_id': 'test-123',
-                        'order_number': 'TEST123',
-                        'created_at': '2024-08-15T10:00:00Z',
-                        'cancelled_at': None,
-                        'status': 'active',
-                        'total_price': '49.90',
-                        'currency': 'BRL',
-                        'customer_name': 'Cliente Teste',
-                        'customer_email': 'teste@exemplo.com',
-                        'customer_phone': None,
-                        'shipping_city': 'São Paulo',
-                        'shipping_state': 'SP'
-                    }
-                ]
-            }
-        })
-    except Exception as e:
-        logger.error(f"Erro no teste detalhar IP: {str(e)}")
-        return Response({'error': f'Erro: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# ENDPOINT DE TESTE REMOVIDO
+# Era usado apenas para debug e retornava dados fictícios.
+# Todos os endpoints devem retornar apenas dados reais das APIs.
 
 @csrf_exempt
 @api_view(['GET'])
