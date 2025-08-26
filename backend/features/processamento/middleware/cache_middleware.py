@@ -22,6 +22,9 @@ class IPDetectionCacheMiddleware:
     Adiciona headers apropriados e monitora performance
     """
     
+    # Atributo obrigatório para compatibilidade com Django
+    async_mode = False
+    
     def __init__(self, get_response: Callable):
         self.get_response = get_response
         self.cache_manager = get_cache_manager()

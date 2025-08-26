@@ -16,6 +16,9 @@ class IPDetectorSecurityMiddleware(MiddlewareMixin):
     apenas nas rotas relacionadas a IPs para não impactar outras funcionalidades
     """
     
+    # Atributo obrigatório para compatibilidade com Django
+    async_mode = False
+    
     # URLs que devem passar pelo middleware de segurança
     PROTECTED_URLS = [
         'buscar-ips-duplicados',
@@ -155,6 +158,9 @@ class SecurityAuditMiddleware(MiddlewareMixin):
     
     Monitora tentativas de acesso não autorizadas e comportamentos suspeitos
     """
+    
+    # Atributo obrigatório para compatibilidade com Django
+    async_mode = False
     
     def process_request(self, request):
         """Monitora requests suspeitas"""

@@ -16,6 +16,9 @@ class ErrorLoggingMiddleware(MiddlewareMixin):
     Middleware para capturar e logar erros 500 com detalhes completos
     """
     
+    # Atributo obrigatório para compatibilidade com Django
+    async_mode = False
+    
     def process_exception(self, request, exception):
         """
         Captura exceções não tratadas e cria logs detalhados

@@ -14,6 +14,9 @@ class EcomhubRequestLoggerMiddleware(MiddlewareMixin):
     para investigar diferenças entre ambiente local e produção
     """
     
+    # Atributo obrigatório para compatibilidade com Django
+    async_mode = False
+    
     def __init__(self, get_response):
         self.get_response = get_response
         self.ecomhub_paths = [
