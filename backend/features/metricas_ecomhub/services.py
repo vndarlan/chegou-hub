@@ -1,12 +1,14 @@
 # backend/features/metricas_ecomhub/services.py - SERVIÇOS DE TRACKING DE STATUS
 import requests
 import logging
+import time
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q, Count, Avg, Max
 from .models import PedidoStatusAtual, HistoricoStatus, ConfiguracaoStatusTracking
+from core.middleware.ultra_logging import ultra_logging
 
 logger = logging.getLogger(__name__)
 
@@ -59,57 +61,135 @@ class StatusTrackingService:
                     'message': 'Erro na validação das datas: valores None detectados'
                 }
             
-            logger.info(f"Iniciando sincronização: {data_inicio} a {data_fim}, país: {pais_id}")
+            logger.info("="*80)
+            logger.info("🚀 INICIANDO SINCRONIZAÇÃO COMPLETA")
+            logger.info("="*80)
+            logger.info(f"📅 Período solicitado: {data_inicio} a {data_fim} ({(data_fim - data_inicio).days + 1} dias)")
+            logger.info(f"🌍 País ID: {pais_id}")
+            logger.info(f"🔧 Forçar sincronização: {forcar}")
+            logger.info(f"🌐 URL da API: {self.servidor_externo_url}")
             
             # Buscar dados da API externa (APÓS validação das datas)
             dados_api = self._buscar_dados_api_externa(data_inicio, data_fim, pais_id)
             
             if not dados_api.get('success'):
-                logger.error(f"Erro na API externa: {dados_api.get('message', 'Erro desconhecido')}")
+                logger.error("="*80)
+                logger.error("❌ FALHA NA API EXTERNA")
+                logger.error("="*80)
+                logger.error(f"❌ Mensagem de erro: {dados_api.get('message', 'Erro desconhecido')}")
+                logger.error(f"❌ Dados completos da resposta: {dados_api}")
                 return {
                     'status': 'error',
                     'message': f"Erro na API externa: {dados_api.get('message', 'Erro desconhecido')}"
                 }
             
+            logger.info("="*80)
+            logger.info("✅ API EXTERNA RESPONDEU COM SUCESSO")
+            logger.info("="*80)
+            
             # Log detalhado dos dados recebidos
             dados_processados = dados_api.get('dados_processados', [])
-            logger.info(f"Dados recebidos da API - Tipo: {type(dados_processados)}, Quantidade: {len(dados_processados) if isinstance(dados_processados, list) else 'N/A'}")
+            logger.info(f"📦 DADOS RECEBIDOS DA API:")
+            logger.info(f"   📊 Tipo: {type(dados_processados)}")
+            logger.info(f"   📏 Quantidade: {len(dados_processados) if isinstance(dados_processados, list) else 'N/A'}")
+            logger.info(f"   📄 Conteúdo (resumo): {str(dados_processados)[:500]}...")
             
-            # CORREÇÃO: API externa deve retornar apenas dados reais
-            # PERMITIR sincronização vazia - não é erro se não há dados no período
-            lista_pedidos = []
-            if isinstance(dados_processados, dict):
-                # A API retorna dados agregados, não pedidos individuais
-                # Verificar se há pedidos reais na estrutura
-                pedidos_reais = dados_processados.get('pedidos', [])
-                if pedidos_reais:
-                    lista_pedidos = pedidos_reais
-                    logger.info(f"Encontrados {len(lista_pedidos)} pedidos reais")
+            # Log da estrutura completa da resposta da API
+            logger.info(f"🔍 ESTRUTURA COMPLETA DA RESPOSTA DA API:")
+            for key, value in dados_api.items():
+                if key != 'dados_processados':  # Já logamos acima
+                    logger.info(f"   🔑 {key}: {type(value).__name__} = {str(value)[:100]}...")
                 else:
-                    logger.info("Nenhum pedido encontrado no período especificado - sincronização vazia")
-                    lista_pedidos = []  # Lista vazia, mas continua o processo
-            elif isinstance(dados_processados, list):
-                lista_pedidos = dados_processados if dados_processados else []
-                if not lista_pedidos:
-                    logger.info("API externa retornou lista vazia - sem dados no período especificado")
+                    logger.info(f"   🔑 {key}: [já detalhado acima]")
             
-            logger.info(f"Lista de pedidos processada - Quantidade: {len(lista_pedidos)}")
+            logger.info("="*80)
+            logger.info("🔄 PROCESSANDO DADOS DA API")
+            logger.info("="*80)
+            
+            # 🚨 CORREÇÃO CRÍTICA: API retorna DADOS AGREGADOS, não pedidos individuais
+            logger.info("📋 API retornou dados AGREGADOS/ESTATÍSTICOS")
+            logger.info("🔍 A API EcomHub não retorna pedidos individuais, apenas estatísticas por produto/país")
+            
+            # Verificar estrutura real da API
+            if isinstance(dados_processados, dict):
+                logger.info(f"📊 Estrutura recebida - chaves disponíveis: {list(dados_processados.keys())}")
+                
+                # A API retorna dados estatísticos em diferentes formatos:
+                # - visualizacao_total: lista de estatísticas por produto
+                # - visualizacao_otimizada: dados otimizados  
+                # - stats_total: estatísticas totais
+                # - stats_otimizada: estatísticas otimizadas
+                
+                lista_pedidos = []  # NÃO há pedidos individuais
+                
+                # Extrair informações das estatísticas para análise
+                visualizacao_total = dados_processados.get('visualizacao_total', [])
+                stats_total = dados_processados.get('stats_total', [])
+                
+                logger.info(f"📈 visualizacao_total: {len(visualizacao_total)} produtos")
+                logger.info(f"📊 stats_total: {len(stats_total)} estatísticas")
+                
+                if visualizacao_total:
+                    logger.info(f"📋 Primeiro produto: {str(visualizacao_total[0])[:200]}...")
+                    
+                    # Calcular total de pedidos das estatísticas
+                    total_pedidos_stats = 0
+                    for produto in visualizacao_total:
+                        if isinstance(produto, dict) and 'Total' in produto:
+                            total_pedidos_stats += int(produto.get('Total', 0))
+                    
+                    logger.info(f"📊 Total de pedidos nas estatísticas: {total_pedidos_stats}")
+                
+                # ❌ IMPORTANTE: Não podemos processar estatísticas como pedidos individuais
+                # A API mudou de formato - agora só retorna dados agregados
+                logger.warning("⚠️ API MUDOU DE FORMATO: Não há mais pedidos individuais disponíveis")
+                logger.warning("⚠️ Apenas dados estatísticos/agregados são fornecidos")
+                logger.warning("⚠️ Sistema de tracking individual não pode ser alimentado com estes dados")
+                
+            elif isinstance(dados_processados, list):
+                logger.info(f"📋 API retornou dados como LISTA com {len(dados_processados)} itens")
+                lista_pedidos = dados_processados if dados_processados else []
+                if lista_pedidos:
+                    logger.info(f"📋 Primeiro item: {str(lista_pedidos[0])[:200]}...")
+            else:
+                logger.error(f"❌ TIPO INESPERADO: dados_processados não é dict nem list: {type(dados_processados)}")
+                logger.error(f"❌ Conteúdo: {str(dados_processados)[:300]}...")
+                lista_pedidos = []
+            
+            logger.info(f"🎯 RESULTADO FINAL: {len(lista_pedidos)} pedidos individuais para processar")
+            logger.warning("⚠️ ATENÇÃO: API externa não fornece mais pedidos individuais, apenas estatísticas!")
             
             # Processar dados e atualizar base local
             resultado_processamento = self._processar_dados_api(lista_pedidos)
+            
+            logger.info("="*80)
+            logger.info("✅ PROCESSAMENTO LOCAL FINALIZADO")
+            logger.info("="*80)
+            logger.info(f"📊 Resultado do processamento: {resultado_processamento}")
             
             # Atualizar timestamp da última sincronização
             config.ultima_sincronizacao = timezone.now()
             config.save()
             
-            logger.info(f"Sincronização concluída com sucesso: {resultado_processamento}")
+            logger.info(f"🕒 Timestamp da última sincronização atualizado: {config.ultima_sincronizacao}")
             
             # Mensagem mais clara baseada na quantidade de dados processados
             total_processados = resultado_processamento.get('total_processados', 0)
             if total_processados == 0:
-                mensagem = f'Sincronização concluída: nenhum pedido encontrado no período {data_inicio} a {data_fim}'
+                # Verificar se a API retornou dados estatísticos
+                if isinstance(dados_processados, dict) and 'visualizacao_total' in dados_processados:
+                    mensagem = f'API externa mudou de formato: retorna apenas dados estatísticos agregados, não pedidos individuais. Período: {data_inicio} a {data_fim}'
+                    logger.warning(f"⚠️ {mensagem}")
+                else:
+                    mensagem = f'Sincronização concluída: nenhum pedido encontrado no período {data_inicio} a {data_fim}'
+                    logger.info(f"⚠️ {mensagem}")
             else:
                 mensagem = f'Sincronização concluída: {total_processados} pedidos processados'
+                logger.info(f"🎉 {mensagem}")
+                
+            logger.info("="*80)
+            logger.info("🏁 SINCRONIZAÇÃO COMPLETA FINALIZADA")
+            logger.info("="*80)
             
             return {
                 'status': 'success',
@@ -131,82 +211,178 @@ class StatusTrackingService:
             }
     
     def _buscar_dados_api_externa(self, data_inicio, data_fim, pais_id):
-        """Busca dados da API externa (servidor Selenium)"""
+        """Busca dados da API externa (servidor Selenium) - COM ULTRA LOGGING"""
         try:
             # VALIDAÇÃO ROBUSTA: Verificar se datas não são None antes de isoformat()
             if data_inicio is None:
-                logger.error("Erro: data_inicio é None no método _buscar_dados_api_externa")
+                ultra_logging.log_erro_detalhado(
+                    ValueError("data_inicio é None"), 
+                    "Validação inicial no método _buscar_dados_api_externa"
+                )
                 return {'success': False, 'message': 'data_inicio não pode ser None'}
             
             if data_fim is None:
-                logger.error("Erro: data_fim é None no método _buscar_dados_api_externa")
+                ultra_logging.log_erro_detalhado(
+                    ValueError("data_fim é None"), 
+                    "Validação inicial no método _buscar_dados_api_externa"
+                )
                 return {'success': False, 'message': 'data_fim não pode ser None'}
             
             # Verificar se as datas têm o método isoformat (são objetos date/datetime)
             if not hasattr(data_inicio, 'isoformat'):
-                logger.error(f"Erro: data_inicio não é um objeto date/datetime: {type(data_inicio)} - {data_inicio}")
+                ultra_logging.log_erro_detalhado(
+                    TypeError(f"data_inicio não é date/datetime: {type(data_inicio)} - {data_inicio}"),
+                    "Validação de tipo de data_inicio"
+                )
                 return {'success': False, 'message': f'data_inicio deve ser date/datetime, recebido: {type(data_inicio).__name__}'}
             
             if not hasattr(data_fim, 'isoformat'):
-                logger.error(f"Erro: data_fim não é um objeto date/datetime: {type(data_fim)} - {data_fim}")
+                ultra_logging.log_erro_detalhado(
+                    TypeError(f"data_fim não é date/datetime: {type(data_fim)} - {data_fim}"),
+                    "Validação de tipo de data_fim"
+                )
                 return {'success': False, 'message': f'data_fim deve ser date/datetime, recebido: {type(data_fim).__name__}'}
             
+            # Preparar requisição
+            url_completa = f"{self.servidor_externo_url}/api/processar-ecomhub/"
+            headers = {
+                'Content-Type': 'application/json',
+                'User-Agent': f'ChegouHub-Backend/{ultra_logging.ambiente}',
+                'X-Request-Source': ultra_logging.ambiente,
+                'X-Timestamp': timezone.now().isoformat()
+            }
             payload = {
                 'data_inicio': data_inicio.isoformat(),
                 'data_fim': data_fim.isoformat(),
                 'pais_id': pais_id
             }
+            timeout = 300
             
-            logger.info(f"Chamando API externa: {self.servidor_externo_url}/api/processar-ecomhub/")
+            # 🚨 ULTRA LOGGING DA REQUISIÇÃO
+            ultra_logging.log_requisicao_detalhada(url_completa, headers, payload, timeout)
+            
+            # Teste de conectividade ANTES da requisição
+            try:
+                ultra_logging.logger.info(f"🔗 Testando conectividade com {self.servidor_externo_url}/health...")
+                test_response = requests.get(f"{self.servidor_externo_url}/health", timeout=10)
+                ultra_logging.logger.info(f"✅ Health check: Status {test_response.status_code}")
+                ultra_logging.logger.info(f"📄 Health check response: {test_response.text[:200]}...")
+            except Exception as health_error:
+                ultra_logging.log_erro_detalhado(health_error, "Health check antes da requisição principal")
+            
+            # Executar requisição principal com medição de tempo
+            inicio_chamada = time.time()
+            ultra_logging.logger.info(f"⏱️ Iniciando requisição principal às {timezone.now()}")
             
             response = requests.post(
-                f"{self.servidor_externo_url}/api/processar-ecomhub/",
+                url_completa,
                 json=payload,
-                timeout=300  # 5 minutos
+                timeout=timeout,
+                headers=headers
             )
             
+            tempo_resposta = time.time() - inicio_chamada
+            ultra_logging.logger.info(f"⏱️ Tempo total da requisição: {tempo_resposta:.2f} segundos")
+            
+            # 🚨 ULTRA LOGGING DA RESPOSTA
+            ultra_logging.log_resposta_detalhada(response, tempo_resposta)
+            
+            # Análise detalhada baseada no status
             if response.status_code == 200:
                 try:
-                    # CORREÇÃO: Validar se a resposta é JSON válido
                     response_data = response.json()
+                    ultra_logging.logger.info(f"✅ JSON decodificado com sucesso")
                     
-                    # Verificar se response_data é um dict (JSON válido)
+                    # Verificar estrutura da resposta
                     if isinstance(response_data, dict):
+                        dados_processados = response_data.get('dados_processados', [])
+                        
+                        # 🚨 DETECÇÃO CRÍTICA: Verificar se há pedidos individuais vs dados agregados
+                        ultra_logging.logger.info(f"🎯 INVESTIGAÇÃO CRÍTICA - TIPO DE DADOS:")
+                        
+                        if isinstance(dados_processados, list) and len(dados_processados) > 0:
+                            primeiro_item = dados_processados[0]
+                            if isinstance(primeiro_item, dict) and any(campo in primeiro_item for campo in ['pedido_id', 'order_id', 'customer_name']):
+                                ultra_logging.logger.info(f"🎯 DETECTADO: API RETORNA PEDIDOS INDIVIDUAIS")
+                                ultra_logging.logger.info(f"📊 Quantidade de pedidos individuais: {len(dados_processados)}")
+                            else:
+                                ultra_logging.logger.warning(f"⚠️ DETECTADO: API RETORNA DADOS AGREGADOS, NÃO PEDIDOS INDIVIDUAIS")
+                                
+                        elif isinstance(dados_processados, dict):
+                            # Verificar se é estrutura agregada
+                            if 'visualizacao_total' in dados_processados or 'stats_total' in dados_processados:
+                                ultra_logging.logger.warning(f"⚠️ CONFIRMADO: API MUDOU PARA DADOS AGREGADOS")
+                                ultra_logging.logger.warning(f"📊 Estrutura agregada detectada - chaves: {list(dados_processados.keys())}")
+                            elif 'pedidos' in dados_processados:
+                                pedidos_individuais = dados_processados['pedidos']
+                                ultra_logging.logger.info(f"🎯 DETECTADO: PEDIDOS INDIVIDUAIS EM SUBCHAVE 'pedidos'")
+                                ultra_logging.logger.info(f"📊 Quantidade: {len(pedidos_individuais) if isinstance(pedidos_individuais, list) else 'N/A'}")
+                        
+                        # Comparar com expectativa baseada no ambiente
+                        ambiente_esperado = 'LOCAL' if 'localhost' in self.servidor_externo_url else 'PRODUÇÃO'
+                        ultra_logging.logger.info(f"🌍 AMBIENTE DETECTADO: {ambiente_esperado}")
+                        
+                        if ambiente_esperado == 'LOCAL' and isinstance(dados_processados, list) and len(dados_processados) > 0:
+                            ultra_logging.logger.info(f"✅ COMPORTAMENTO ESPERADO: Local retorna pedidos individuais")
+                        elif ambiente_esperado == 'PRODUÇÃO' and isinstance(dados_processados, dict) and 'visualizacao_total' in dados_processados:
+                            ultra_logging.logger.warning(f"⚠️ COMPORTAMENTO DIFERENTE: Produção retorna apenas dados agregados")
+                        else:
+                            ultra_logging.logger.warning(f"❓ COMPORTAMENTO INESPERADO para ambiente {ambiente_esperado}")
+                        
                         return {
                             'success': True,
-                            'dados_processados': response_data.get('dados_processados', [])
+                            'dados_processados': dados_processados,
+                            'ambiente_detectado': ambiente_esperado,
+                            'tipo_resposta': ultra_logging.detectar_tipo_resposta(response.text)
                         }
                     else:
-                        # Se não é dict, a API retornou algo inesperado
-                        logger.error(f"API externa retornou tipo inesperado: {type(response_data)} - Conteúdo: {response_data}")
+                        ultra_logging.log_erro_detalhado(
+                            ValueError(f"API retornou tipo inesperado: {type(response_data)}"),
+                            "Validação do tipo de resposta JSON"
+                        )
                         return {
                             'success': False,
                             'message': f'API retornou formato inesperado (tipo: {type(response_data).__name__}): {str(response_data)[:200]}...'
                         }
                         
                 except ValueError as json_error:
-                    # Erro ao decodificar JSON
-                    logger.error(f"Erro decodificando JSON da API externa: {json_error} - Conteúdo: {response.text[:500]}...")
+                    ultra_logging.log_erro_detalhado(json_error, "Decodificação JSON da resposta da API")
+                    
+                    # Análise adicional do conteúdo não-JSON
+                    tipo_conteudo = ultra_logging.detectar_tipo_resposta(response.text)
+                    ultra_logging.logger.error(f"🔍 TIPO DE CONTEÚDO DETECTADO: {tipo_conteudo}")
+                    
+                    if tipo_conteudo == 'HTML':
+                        ultra_logging.logger.error(f"⚠️ API RETORNOU HTML EM VEZ DE JSON - POSSÍVEL ERRO DE ROTEAMENTO OU AUTENTICAÇÃO")
+                        # Extrair informações úteis do HTML
+                        import re
+                        title_match = re.search(r'<title>(.*?)</title>', response.text, re.IGNORECASE)
+                        if title_match:
+                            ultra_logging.logger.error(f"📄 TÍTULO DA PÁGINA HTML: {title_match.group(1)}")
+                    
                     return {
                         'success': False,
-                        'message': f'API retornou resposta não-JSON: {str(json_error)} - Início da resposta: {response.text[:100]}...'
+                        'message': f'API retornou resposta não-JSON ({tipo_conteudo}): {str(json_error)} - Início: {response.text[:100]}...'
                     }
                     
             else:
-                logger.error(f"Erro API externa: {response.status_code} - {response.text}")
+                ultra_logging.log_erro_detalhado(
+                    requests.HTTPError(f"HTTP {response.status_code}: {response.text}"),
+                    f"Resposta HTTP não-200 da API externa"
+                )
                 return {
                     'success': False,
                     'message': f'Erro HTTP {response.status_code}: {response.text}'
                 }
                 
-        except requests.exceptions.Timeout:
-            logger.error("Timeout na requisição para API externa")
+        except requests.exceptions.Timeout as timeout_error:
+            ultra_logging.log_erro_detalhado(timeout_error, "Timeout na requisição para API externa")
             return {'success': False, 'message': 'Timeout na requisição'}
         except requests.exceptions.ConnectionError as conn_error:
-            logger.error(f"Erro de conexão com API externa: {conn_error}")
+            ultra_logging.log_erro_detalhado(conn_error, "Erro de conexão com API externa")
             return {'success': False, 'message': 'Erro de conexão com servidor externo'}
         except Exception as e:
-            logger.error(f"Erro inesperado na comunicação com API externa: {e}")
+            ultra_logging.log_erro_detalhado(e, "Erro inesperado na comunicação com API externa")
             return {'success': False, 'message': f'Erro inesperado: {str(e)}'}
     
     @transaction.atomic

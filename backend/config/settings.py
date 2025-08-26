@@ -114,6 +114,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # Middleware de error logging para produção
     'core.middleware.error_logging.ErrorLoggingMiddleware',
+    # Middleware de ultra logging para debug EcomHub (LOCAL vs PRODUÇÃO)
+    'core.middleware.ecomhub_request_logger.EcomhubRequestLoggerMiddleware',
     # Middleware de segurança para detecção de IP - TEMPORARIAMENTE DESABILITADO
     # 'features.processamento.middleware.ip_security_middleware.IPDetectorSecurityMiddleware',
     # 'features.processamento.middleware.ip_security_middleware.SecurityAuditMiddleware',
