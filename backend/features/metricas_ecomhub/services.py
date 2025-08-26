@@ -256,7 +256,7 @@ class StatusTrackingService:
                 'data_fim': data_fim.isoformat(),
                 'pais_id': pais_id
             }
-            timeout = 300
+            timeout = 1800  # 30 minutos timeout
             
             # 🚨 ULTRA LOGGING DA REQUISIÇÃO
             ultra_logging.log_requisicao_detalhada(url_completa, headers, payload, timeout)

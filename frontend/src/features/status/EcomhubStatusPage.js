@@ -93,7 +93,7 @@ function EcomhubStatusPage() {
     const buscarDadosDashboard = useCallback(async () => {
         setLoadingDashboard(true);
         try {
-            const response = await axios.get('/metricas/ecomhub/status-tracking/dashboard/', {
+            const response = await axios.get('/api/metricas/ecomhub/status-tracking/dashboard/', {
                 params: { pais: paisSelecionado !== 'todos' ? paisSelecionado : undefined },
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
@@ -122,7 +122,7 @@ function EcomhubStatusPage() {
             if (buscaCliente.trim()) params.customer_name = buscaCliente.trim();
             if (buscaPedidoId.trim()) params.pedido_id = buscaPedidoId.trim();
 
-            const response = await axios.get('/metricas/ecomhub/status-tracking/pedidos/', {
+            const response = await axios.get('/api/metricas/ecomhub/status-tracking/pedidos/', {
                 params,
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
@@ -142,7 +142,7 @@ function EcomhubStatusPage() {
 
     const buscarHistoricoPedido = async (pedidoId) => {
         try {
-            const response = await axios.get(`/metricas/ecomhub/status-tracking/historico/${pedidoId}/`, {
+            const response = await axios.get(`/api/metricas/ecomhub/status-tracking/historico/${pedidoId}/`, {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
             setPedidoHistorico(response.data);
@@ -157,11 +157,11 @@ function EcomhubStatusPage() {
         setLoadingSincronizar(true);
         try {
             const today = new Date();
-            const oneMonthAgo = new Date();
-            oneMonthAgo.setDate(today.getDate() - 30);
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(today.getDate() - 7);
 
-            const response = await axios.post('/metricas/ecomhub/status-tracking/sincronizar/', {
-                data_inicio: oneMonthAgo.toISOString().split('T')[0],
+            const response = await axios.post('/api/metricas/ecomhub/status-tracking/sincronizar/', {
+                data_inicio: oneWeekAgo.toISOString().split('T')[0],
                 data_fim: today.toISOString().split('T')[0],
                 pais_id: paisSelecionado,
                 forcar_sincronizacao: true
