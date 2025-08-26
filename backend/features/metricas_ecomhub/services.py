@@ -76,6 +76,7 @@ class StatusTrackingService:
             logger.info(f"Dados recebidos da API - Tipo: {type(dados_processados)}, Quantidade: {len(dados_processados) if isinstance(dados_processados, list) else 'N/A'}")
             
             # CORREÇÃO: API externa deve retornar apenas dados reais
+            # PERMITIR sincronização vazia - não é erro se não há dados no período
             lista_pedidos = []
             if isinstance(dados_processados, dict):
                 # A API retorna dados agregados, não pedidos individuais
@@ -85,20 +86,12 @@ class StatusTrackingService:
                     lista_pedidos = pedidos_reais
                     logger.info(f"Encontrados {len(lista_pedidos)} pedidos reais")
                 else:
-                    logger.warning("Nenhum pedido real encontrado nos dados da API")
-                    return {
-                        'status': 'error',
-                        'message': 'API externa não retornou pedidos reais. Sincronização cancelada.'
-                    }
+                    logger.info("Nenhum pedido encontrado no período especificado - sincronização vazia")
+                    lista_pedidos = []  # Lista vazia, mas continua o processo
             elif isinstance(dados_processados, list):
-                if dados_processados:
-                    lista_pedidos = dados_processados
-                else:
-                    logger.warning("Lista de dados vazia da API externa")
-                    return {
-                        'status': 'error', 
-                        'message': 'API externa retornou lista vazia. Nenhum dado real para sincronizar.'
-                    }
+                lista_pedidos = dados_processados if dados_processados else []
+                if not lista_pedidos:
+                    logger.info("API externa retornou lista vazia - sem dados no período especificado")
             
             logger.info(f"Lista de pedidos processada - Quantidade: {len(lista_pedidos)}")
             
@@ -111,11 +104,23 @@ class StatusTrackingService:
             
             logger.info(f"Sincronização concluída com sucesso: {resultado_processamento}")
             
+            # Mensagem mais clara baseada na quantidade de dados processados
+            total_processados = resultado_processamento.get('total_processados', 0)
+            if total_processados == 0:
+                mensagem = f'Sincronização concluída: nenhum pedido encontrado no período {data_inicio} a {data_fim}'
+            else:
+                mensagem = f'Sincronização concluída: {total_processados} pedidos processados'
+            
             return {
                 'status': 'success',
-                'message': 'Sincronização concluída com sucesso',
+                'message': mensagem,
                 'dados_processados': resultado_processamento,
-                'ultima_sincronizacao': config.ultima_sincronizacao
+                'ultima_sincronizacao': config.ultima_sincronizacao,
+                'periodo_sincronizado': {
+                    'data_inicio': data_inicio.isoformat(),
+                    'data_fim': data_fim.isoformat(),
+                    'pais_id': pais_id
+                }
             }
             
         except Exception as e:
