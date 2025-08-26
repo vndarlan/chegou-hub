@@ -45,25 +45,38 @@ class StatusTrackingService:
                         'ultima_sincronizacao': config.ultima_sincronizacao
                     }
             
-            # Definir período padrão se não informado
+            # CORREÇÃO: Definir período padrão ANTES de chamar API externa
             if not data_inicio:
                 data_inicio = (timezone.now() - timedelta(days=30)).date()
             if not data_fim:
                 data_fim = timezone.now().date()
             
+            # VALIDAÇÃO: Garantir que data_inicio e data_fim não são None
+            if data_inicio is None or data_fim is None:
+                logger.error("Erro: data_inicio ou data_fim são None após definição padrão")
+                return {
+                    'status': 'error',
+                    'message': 'Erro na validação das datas: valores None detectados'
+                }
+            
             logger.info(f"Iniciando sincronização: {data_inicio} a {data_fim}, país: {pais_id}")
             
-            # Buscar dados da API externa
+            # Buscar dados da API externa (APÓS validação das datas)
             dados_api = self._buscar_dados_api_externa(data_inicio, data_fim, pais_id)
             
             if not dados_api.get('success'):
+                logger.error(f"Erro na API externa: {dados_api.get('message', 'Erro desconhecido')}")
                 return {
                     'status': 'error',
                     'message': f"Erro na API externa: {dados_api.get('message', 'Erro desconhecido')}"
                 }
             
+            # Log detalhado dos dados recebidos
+            dados_processados = dados_api.get('dados_processados', [])
+            logger.info(f"Dados recebidos da API - Tipo: {type(dados_processados)}, Quantidade: {len(dados_processados) if isinstance(dados_processados, list) else 'N/A'}")
+            
             # Processar dados e atualizar base local
-            resultado_processamento = self._processar_dados_api(dados_api.get('dados_processados', []))
+            resultado_processamento = self._processar_dados_api(dados_processados)
             
             # Atualizar timestamp da última sincronização
             config.ultima_sincronizacao = timezone.now()
@@ -88,6 +101,24 @@ class StatusTrackingService:
     def _buscar_dados_api_externa(self, data_inicio, data_fim, pais_id):
         """Busca dados da API externa (servidor Selenium)"""
         try:
+            # VALIDAÇÃO ROBUSTA: Verificar se datas não são None antes de isoformat()
+            if data_inicio is None:
+                logger.error("Erro: data_inicio é None no método _buscar_dados_api_externa")
+                return {'success': False, 'message': 'data_inicio não pode ser None'}
+            
+            if data_fim is None:
+                logger.error("Erro: data_fim é None no método _buscar_dados_api_externa")
+                return {'success': False, 'message': 'data_fim não pode ser None'}
+            
+            # Verificar se as datas têm o método isoformat (são objetos date/datetime)
+            if not hasattr(data_inicio, 'isoformat'):
+                logger.error(f"Erro: data_inicio não é um objeto date/datetime: {type(data_inicio)} - {data_inicio}")
+                return {'success': False, 'message': f'data_inicio deve ser date/datetime, recebido: {type(data_inicio).__name__}'}
+            
+            if not hasattr(data_fim, 'isoformat'):
+                logger.error(f"Erro: data_fim não é um objeto date/datetime: {type(data_fim)} - {data_fim}")
+                return {'success': False, 'message': f'data_fim deve ser date/datetime, recebido: {type(data_fim).__name__}'}
+            
             payload = {
                 'data_inicio': data_inicio.isoformat(),
                 'data_fim': data_fim.isoformat(),
@@ -103,10 +134,32 @@ class StatusTrackingService:
             )
             
             if response.status_code == 200:
-                return {
-                    'success': True,
-                    'dados_processados': response.json().get('dados_processados', [])
-                }
+                try:
+                    # CORREÇÃO: Validar se a resposta é JSON válido
+                    response_data = response.json()
+                    
+                    # Verificar se response_data é um dict (JSON válido)
+                    if isinstance(response_data, dict):
+                        return {
+                            'success': True,
+                            'dados_processados': response_data.get('dados_processados', [])
+                        }
+                    else:
+                        # Se não é dict, a API retornou algo inesperado
+                        logger.error(f"API externa retornou tipo inesperado: {type(response_data)} - Conteúdo: {response_data}")
+                        return {
+                            'success': False,
+                            'message': f'API retornou formato inesperado (tipo: {type(response_data).__name__}): {str(response_data)[:200]}...'
+                        }
+                        
+                except ValueError as json_error:
+                    # Erro ao decodificar JSON
+                    logger.error(f"Erro decodificando JSON da API externa: {json_error} - Conteúdo: {response.text[:500]}...")
+                    return {
+                        'success': False,
+                        'message': f'API retornou resposta não-JSON: {str(json_error)} - Início da resposta: {response.text[:100]}...'
+                    }
+                    
             else:
                 logger.error(f"Erro API externa: {response.status_code} - {response.text}")
                 return {
@@ -115,10 +168,13 @@ class StatusTrackingService:
                 }
                 
         except requests.exceptions.Timeout:
+            logger.error("Timeout na requisição para API externa")
             return {'success': False, 'message': 'Timeout na requisição'}
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.ConnectionError as conn_error:
+            logger.error(f"Erro de conexão com API externa: {conn_error}")
             return {'success': False, 'message': 'Erro de conexão com servidor externo'}
         except Exception as e:
+            logger.error(f"Erro inesperado na comunicação com API externa: {e}")
             return {'success': False, 'message': f'Erro inesperado: {str(e)}'}
     
     @transaction.atomic
@@ -129,8 +185,26 @@ class StatusTrackingService:
         mudancas_status = 0
         erros = 0
         
-        for dados_pedido in dados_lista:
+        # VALIDAÇÃO: Verificar se dados_lista é uma lista
+        if not isinstance(dados_lista, list):
+            logger.error(f"Dados recebidos não são uma lista: {type(dados_lista)} - {str(dados_lista)[:200]}...")
+            return {
+                'novos_pedidos': 0,
+                'pedidos_atualizados': 0,
+                'mudancas_status': 0,
+                'erros': 1,
+                'total_processados': 0,
+                'erro_tipo': f'Dados não são lista: {type(dados_lista).__name__}'
+            }
+        
+        for i, dados_pedido in enumerate(dados_lista):
             try:
+                # VALIDAÇÃO: Verificar se cada item é um dict
+                if not isinstance(dados_pedido, dict):
+                    logger.error(f"Item {i} não é um dicionário: {type(dados_pedido)} - {str(dados_pedido)[:100]}...")
+                    erros += 1
+                    continue
+                
                 resultado = self._processar_pedido_individual(dados_pedido)
                 
                 if resultado['acao'] == 'criado':
@@ -141,7 +215,12 @@ class StatusTrackingService:
                         mudancas_status += 1
                         
             except Exception as e:
-                logger.error(f"Erro processando pedido {dados_pedido.get('pedido_id', 'UNKNOWN')}: {e}")
+                # Usar get() com validação robusta para pedido_id
+                pedido_id = 'UNKNOWN'
+                if isinstance(dados_pedido, dict):
+                    pedido_id = dados_pedido.get('pedido_id', 'UNKNOWN')
+                
+                logger.error(f"Erro processando pedido {pedido_id}: {e}")
                 erros += 1
         
         return {
@@ -154,6 +233,10 @@ class StatusTrackingService:
     
     def _processar_pedido_individual(self, dados):
         """Processa um pedido individual"""
+        # VALIDAÇÃO ROBUSTA: Verificar se dados é dict
+        if not isinstance(dados, dict):
+            raise ValueError(f"Dados do pedido devem ser um dicionário, recebido: {type(dados).__name__}")
+        
         pedido_id = dados.get('pedido_id')
         if not pedido_id:
             raise ValueError("pedido_id é obrigatório")
