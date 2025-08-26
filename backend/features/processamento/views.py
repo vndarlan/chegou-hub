@@ -3901,13 +3901,15 @@ def buscar_ips_duplicados_simples(request):
     """
     try:
         loja_id = request.data.get('loja_id')
-        days = request.data.get('days', 30)  # Padrão 30 dias
+        days = request.data.get('days', 7)  # PADRÃO ALTERADO PARA 7 DIAS - PERFORMANCE OTIMIZADA
         
-        # ⚡ VALIDAÇÃO DE PERFORMANCE: Limite período para compensar remoção do limit=250
+        # ⚡ VALIDAÇÃO DE PERFORMANCE: Avisa sobre períodos grandes mas permite
+        if days > 30:
+            logger.warning(f"⚠️  Período de {days} dias pode causar timeout. Recomendação: usar até 7 dias.")
         if days > 90:
             return Response({
                 'error': 'Período máximo permitido é 90 dias para garantir performance',
-                'details': 'Com a correção aplicada, períodos longos podem impactar a performance'
+                'details': 'Recomendamos usar períodos de até 7 dias para melhor performance'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Log de auditoria
@@ -3939,6 +3941,9 @@ def buscar_ips_duplicados_simples(request):
         total_paginas_buscadas = 0
         
         logger.info(f"🔄 ETAPA 1: Iniciando descoberta de IPs candidatos nos últimos {days} dias")
+        # ⚡ LOG DE PROGRESSO: Implementa logging em tempo real para requisições longas
+        inicio_requisicao = timezone.now()
+        logger.info(f"⏱️  Início da requisição: {inicio_requisicao.strftime('%H:%M:%S')} - Período: {days} dias")
         
         while True:
             try:

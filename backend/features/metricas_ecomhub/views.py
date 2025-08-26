@@ -112,13 +112,13 @@ class AnaliseEcomhubViewSet(viewsets.ModelViewSet):
                 logger.info(f"🚀 ECOMHUB DEBUG - Enviando requisição para servidor Selenium")
                 logger.info(f"🔍 URL servidor externo: {servidor_externo_url}")
                 logger.info(f"📦 Payload completo: {payload}")
-                logger.info(f"⏰ Timeout configurado: 300 segundos")
+                logger.info(f"⏰ Timeout configurado: 1800 segundos")
                 
                 # Fazer requisição para servidor externo
                 response = requests.post(
                     f"{servidor_externo_url}/api/processar-ecomhub/",
                     json=payload,
-                    timeout=300  # 5 minutos timeout
+                    timeout=1800  # 30 minutos timeout
                 )
                 
                 logger.info(f"📡 Resposta recebida - Status Code: {response.status_code}")

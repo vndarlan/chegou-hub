@@ -551,10 +551,10 @@ def sync_openai_manual(request):
         # Parâmetros opcionais
         days_back = int(request.data.get('days_back', 7))
         
-        if days_back > 30:
+        if days_back > 7:
             return Response({
                 'success': False,
-                'error': 'Máximo de 30 dias permitido'
+                'error': 'Máximo de 7 dias permitido'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Executar sincronização

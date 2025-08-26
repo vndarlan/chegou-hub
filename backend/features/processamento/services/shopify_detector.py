@@ -65,7 +65,7 @@ class ShopifyDuplicateOrderDetector:
         """Testa conexão com Shopify"""
         try:
             url = f"{self.base_url}/shop.json"
-            response = requests.get(url, headers=self.headers, timeout=10)
+            response = requests.get(url, headers=self.headers, timeout=300)  # 5 minutos para teste de conexão
             
             if response.status_code == 200:
                 shop_data = response.json()["shop"]
@@ -83,7 +83,7 @@ class ShopifyDuplicateOrderDetector:
             params = {
                 "fields": "id,order_number,created_at,cancelled_at,total_price,currency,financial_status,fulfillment_status,customer,line_items,tags,browser_ip,client_details,shipping_address,billing_address,note_attributes,custom_attributes,properties"
             }
-            response = requests.get(url, headers=self.headers, params=params, timeout=10)
+            response = requests.get(url, headers=self.headers, params=params, timeout=1800)  # 30 minutos
             
             if response.status_code == 200:
                 order_data = response.json()["order"]
@@ -160,7 +160,7 @@ class ShopifyDuplicateOrderDetector:
             print(f"Erro ao buscar detalhes do pedido {order_id}: {str(e)}")
             return None
     
-    def get_all_orders_for_ip_detection(self, days_back=60):
+    def get_all_orders_for_ip_detection(self, days_back=7):
         """🔍 DETECTOR DE IP: Busca pedidos dos últimos X dias INCLUINDO CANCELADOS"""
         all_orders = []
         page_info = None
@@ -186,7 +186,7 @@ class ShopifyDuplicateOrderDetector:
             url = f"{self.base_url}/orders.json"
             
             try:
-                response = requests.get(url, headers=self.headers, params=params, timeout=30)
+                response = requests.get(url, headers=self.headers, params=params, timeout=1800)  # 30 minutos
                 response.raise_for_status()
                 orders = response.json()["orders"]
                 
@@ -226,7 +226,7 @@ class ShopifyDuplicateOrderDetector:
         
         return all_orders
 
-    def get_all_orders_for_duplicates(self, days_back=60):
+    def get_all_orders_for_duplicates(self, days_back=7):
         """🔄 DETECTOR DE DUPLICATAS: Busca pedidos dos últimos X dias EXCLUINDO CANCELADOS"""
         all_orders = []
         page_info = None
@@ -252,7 +252,7 @@ class ShopifyDuplicateOrderDetector:
             url = f"{self.base_url}/orders.json"
             
             try:
-                response = requests.get(url, headers=self.headers, params=params, timeout=30)
+                response = requests.get(url, headers=self.headers, params=params, timeout=1800)  # 30 minutos
                 response.raise_for_status()
                 orders = response.json()["orders"]
                 
@@ -292,7 +292,7 @@ class ShopifyDuplicateOrderDetector:
         
         return all_orders
 
-    def get_all_orders(self, days_back=60):
+    def get_all_orders(self, days_back=7):
         """⚠️ MÉTODO LEGADO: Mantido para compatibilidade - usa lógica de duplicatas"""
         return self.get_all_orders_for_duplicates(days_back)
     
@@ -534,7 +534,7 @@ class ShopifyDuplicateOrderDetector:
             url = f"{self.base_url}/orders.json"
             
             try:
-                response = requests.get(url, headers=self.headers, params=params, timeout=10)
+                response = requests.get(url, headers=self.headers, params=params, timeout=1800)  # 30 minutos
                 response.raise_for_status()
                 orders = response.json()["orders"]
                 
@@ -1054,7 +1054,7 @@ class ShopifyDuplicateOrderDetector:
         
         return False
     
-    def get_orders_by_ip(self, days=30, min_orders=2, target_ip=None, early_break_threshold=None):
+    def get_orders_by_ip(self, days=7, min_orders=2, target_ip=None, early_break_threshold=None):
         """
         🔍 DETECTOR DE IP: Agrupa pedidos por IP dos últimos X dias - VERSÃO ULTRA OTIMIZADA
         INCLUI pedidos cancelados para análise completa de IPs
@@ -1070,7 +1070,8 @@ class ShopifyDuplicateOrderDetector:
         """
         # === CIRCUIT BREAKER PARA PERÍODOS GRANDES ===
         if days > 30:
-            raise Exception(f"Período de {days} dias muito grande. Máximo permitido: 30 dias para evitar timeout.")
+            print(f"⚠️  AVISO: Período de {days} dias é grande e pode causar timeout. Recomendado: máximo 7 dias.")
+            # Não bloqueia mais, mas avisa
         
         # === EARLY BREAK THRESHOLD AUTOMÁTICO ===
         if early_break_threshold is None:
@@ -1127,8 +1128,8 @@ class ShopifyDuplicateOrderDetector:
             retry_count = 0
             while retry_count <= max_retries:
                 try:
-                    # Timeout adaptativo baseado no período (ultra otimizado)
-                    timeout = 10 if days <= 7 else 15 if days <= 14 else 20
+                    # Timeout MASSIVAMENTE AUMENTADO para resolver timeout de 5+ minutos
+                    timeout = 300 if days <= 7 else 600 if days <= 14 else 1800  # 5min, 10min, 30min
                     
                     response = requests.get(url, headers=self.headers, params=params, timeout=timeout)
                     response.raise_for_status()
@@ -1717,7 +1718,7 @@ class ShopifyDuplicateOrderDetector:
             }
             
             url = f"{self.base_url}/orders.json"
-            response = requests.get(url, headers=self.headers, params=params, timeout=30)
+            response = requests.get(url, headers=self.headers, params=params, timeout=1800)  # 30 minutos
             response.raise_for_status()
             
             orders = response.json()["orders"]
@@ -1883,7 +1884,7 @@ class ShopifyDuplicateOrderDetector:
             }
             
             url = f"{self.base_url}/orders.json"
-            response = requests.get(url, headers=self.headers, params=params, timeout=30)
+            response = requests.get(url, headers=self.headers, params=params, timeout=1800)  # 30 minutos
             response.raise_for_status()
             
             orders = response.json()["orders"]

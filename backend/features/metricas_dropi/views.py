@@ -297,6 +297,45 @@ class AnaliseDropiViewSet(viewsets.ModelViewSet):
                 'message': f'Erro inesperado: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+    def test_api_health_with_small_period(self, country):
+        """Testa a saúde da API com um período pequeno (1 dia)"""
+        try:
+            from datetime import date
+            today = date.today()
+            
+            url = f"https://dropi-api.up.railway.app/api/dados/{country}"
+            payload = {
+                "data_inicio": today.strftime('%Y-%m-%d'),
+                "data_fim": today.strftime('%Y-%m-%d')
+            }
+            headers = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'User-Agent': 'ChegouHub/1.0 HealthCheck'
+            }
+            
+            logger.info(f"Testando saúde da API {country} com período de 1 dia")
+            
+            response = requests.post(
+                url,
+                json=payload,
+                headers=headers,
+                timeout=60  # 1 minuto para teste
+            )
+            
+            return {
+                'healthy': response.status_code == 200,
+                'status_code': response.status_code,
+                'response_time': response.elapsed.total_seconds() if response.elapsed else 0
+            }
+            
+        except Exception as e:
+            logger.error(f"Erro no teste de saúde da API {country}: {e}")
+            return {
+                'healthy': False,
+                'error': str(e)
+            }
+
     @action(detail=False, methods=['post'])
     def extract_orders_new_api(self, request):
         """Extrai pedidos usando a nova API unificada da Dropi"""
@@ -308,6 +347,20 @@ class AnaliseDropiViewSet(viewsets.ModelViewSet):
                 country = data['pais']  # Recebe país do payload validado
                 
                 logger.info(f"Extraindo pedidos via nova API {country}: {data['data_inicio']} - {data['data_fim']}")
+                
+                # Teste rápido da saúde da API antes da requisição principal
+                health_check = self.test_api_health_with_small_period(country)
+                if not health_check.get('healthy'):
+                    logger.warning(f"API {country} não está saudável: {health_check}")
+                    return Response({
+                        'status': 'error',
+                        'message': f'API {country} não está respondendo corretamente',
+                        'health_check': health_check,
+                        'fallback_available': True
+                    }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+                
+                logger.info(f"API {country} está saudável (tempo resposta: {health_check.get('response_time', 0):.1f}s)")
+                logger.info(f"Iniciando requisição principal às {datetime.now()}")
                 
                 # URL da nova API unificada
                 url = f"https://dropi-api.up.railway.app/api/dados/{country}"
@@ -323,19 +376,43 @@ class AnaliseDropiViewSet(viewsets.ModelViewSet):
                     'User-Agent': 'ChegouHub/1.0'
                 }
                 
+                # Calcular período em dias para ajustar timeout
+                periodo_dias = (data['data_fim'] - data['data_inicio']).days + 1
+                
+                # Timeout baseado no período: mínimo 10min, máximo 30min
+                timeout_base = max(600, min(1800, periodo_dias * 10))  # 10s por dia (otimizado)
+                logger.info(f"Período: {periodo_dias} dias, timeout: {timeout_base}s")
+                
                 try:
+                    start_time = time.time()
+                    logger.info(f"Iniciando requisição para {url} com timeout de {timeout_base}s")
+                    
                     response = requests.post(
                         url,
                         json=payload,
                         headers=headers,
-                        timeout=300  # 5 minutos para processamento
+                        timeout=timeout_base  # Timeout dinâmico baseado no período
                     )
                     
+                    elapsed_time = time.time() - start_time
+                    logger.info(f"Requisição completada em {elapsed_time:.2f}s")
+                    
                     if response.status_code == 200:
-                        response_data = response.json()
+                        logger.info("RESPOSTA RECEBIDA - Status 200")
+                        
+                        try:
+                            response_data = response.json()
+                            logger.info(f"RESPOSTA ULTRA-DETALHADA: {type(response_data)} com {len(str(response_data))} caracteres")
+                        except Exception as json_error:
+                            logger.error(f"Erro ao fazer parse JSON: {json_error}")
+                            logger.error(f"Conteúdo da resposta (primeiros 1000 chars): {response.text[:1000]}")
+                            raise
                         
                         # Valida estrutura da resposta
                         if response_data.get('status') == 'success':
+                            pedidos_count = len(response_data.get('pedidos', []))
+                            logger.info(f"Processamento concluído: {pedidos_count} pedidos extraídos")
+                            
                             return Response({
                                 'status': 'success',
                                 'country': response_data.get('country', country),
@@ -344,7 +421,8 @@ class AnaliseDropiViewSet(viewsets.ModelViewSet):
                                 'valor_total': response_data.get('valor_total', 0.0),
                                 'status_distribution': response_data.get('status_distribution', {}),
                                 'pedidos': response_data.get('pedidos', []),
-                                'message': f'Dados extraídos com sucesso via nova API - {country.title()}'
+                                'processing_time': elapsed_time,
+                                'message': f'Dados extraídos com sucesso via nova API - {country.title()} ({pedidos_count} pedidos em {elapsed_time:.1f}s)'
                             })
                         else:
                             # API retornou erro
@@ -382,26 +460,42 @@ class AnaliseDropiViewSet(viewsets.ModelViewSet):
                         }, status=status.HTTP_502_BAD_GATEWAY)
                 
                 except requests.exceptions.Timeout:
-                    logger.error(f"Timeout na nova API {country}")
+                    elapsed_time = time.time() - start_time if 'start_time' in locals() else 0
+                    logger.error(f"TIMEOUT na nova API {country} após {elapsed_time:.1f}s (limite: {timeout_base}s)")
+                    logger.error(f"Período solicitado: {periodo_dias} dias ({data['data_inicio']} - {data['data_fim']})")
+                    
                     return Response({
                         'status': 'error',
-                        'message': 'Timeout na requisição para nova API (>5min)',
+                        'message': f'Timeout na requisição para nova API (>{timeout_base//60}min para {periodo_dias} dias)',
+                        'timeout_used': timeout_base,
+                        'period_days': periodo_dias,
+                        'elapsed_time': elapsed_time,
+                        'suggestion': 'Tente um período menor (7-15 dias) ou use a API legada',
                         'fallback_available': True
                     }, status=status.HTTP_504_GATEWAY_TIMEOUT)
                 
-                except requests.exceptions.ConnectionError:
-                    logger.error(f"Erro de conexão com nova API {country}")
+                except requests.exceptions.ConnectionError as e:
+                    elapsed_time = time.time() - start_time if 'start_time' in locals() else 0
+                    logger.error(f"ERRO DE CONEXÃO com nova API {country} após {elapsed_time:.1f}s: {e}")
+                    
                     return Response({
                         'status': 'error',
-                        'message': 'Erro de conexão com a nova API',
+                        'message': 'Erro de conexão com a nova API - serviço pode estar offline',
+                        'details': str(e)[:200],
+                        'elapsed_time': elapsed_time,
                         'fallback_available': True
                     }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
                 
                 except requests.exceptions.RequestException as e:
-                    logger.error(f"Erro na requisição para nova API {country}: {e}")
+                    elapsed_time = time.time() - start_time if 'start_time' in locals() else 0
+                    logger.error(f"ERRO NA REQUISIÇÃO para nova API {country} após {elapsed_time:.1f}s: {e}")
+                    logger.error(f"Tipo do erro: {type(e).__name__}")
+                    
                     return Response({
                         'status': 'error',
-                        'message': f'Erro na requisição: {str(e)}',
+                        'message': f'Erro na requisição ({type(e).__name__}): {str(e)[:300]}',
+                        'elapsed_time': elapsed_time,
+                        'error_type': type(e).__name__,
                         'fallback_available': True
                     }, status=status.HTTP_502_BAD_GATEWAY)
             
@@ -411,6 +505,98 @@ class AnaliseDropiViewSet(viewsets.ModelViewSet):
                     'status': 'error',
                     'message': f'Erro inesperado: {str(e)}',
                     'fallback_available': True
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'])
+    def extract_orders_small_period(self, request):
+        """Extrai pedidos com período reduzido para teste (máximo 7 dias)"""
+        serializer = ProcessamentoDropiNovaApiSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            try:
+                data = serializer.validated_data
+                country = data['pais']
+                
+                # Limitar período a máximo 7 dias
+                periodo_original = (data['data_fim'] - data['data_inicio']).days + 1
+                if periodo_original > 7:
+                    # Usar apenas os últimos 7 dias
+                    nova_data_inicio = data['data_fim'] - timedelta(days=6)
+                    logger.info(f"Período reduzido de {periodo_original} para 7 dias: {nova_data_inicio} - {data['data_fim']}")
+                else:
+                    nova_data_inicio = data['data_inicio']
+                
+                # URL da nova API unificada
+                url = f"https://dropi-api.up.railway.app/api/dados/{country}"
+                
+                payload = {
+                    "data_inicio": nova_data_inicio.strftime('%Y-%m-%d'),
+                    "data_fim": data['data_fim'].strftime('%Y-%m-%d')
+                }
+                
+                headers = {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'User-Agent': 'ChegouHub/1.0 SmallPeriod'
+                }
+                
+                logger.info(f"Testando período pequeno para {country}: {payload}")
+                
+                try:
+                    start_time = time.time()
+                    response = requests.post(
+                        url,
+                        json=payload,
+                        headers=headers,
+                        timeout=300  # 5 minutos para período pequeno
+                    )
+                    
+                    elapsed_time = time.time() - start_time
+                    
+                    if response.status_code == 200:
+                        response_data = response.json()
+                        
+                        if response_data.get('status') == 'success':
+                            pedidos_count = len(response_data.get('pedidos', []))
+                            
+                            return Response({
+                                'status': 'success',
+                                'country': country,
+                                'original_period_days': periodo_original,
+                                'tested_period_days': (data['data_fim'] - nova_data_inicio).days + 1,
+                                'period': response_data.get('period'),
+                                'total_pedidos': response_data.get('total_pedidos', 0),
+                                'valor_total': response_data.get('valor_total', 0.0),
+                                'status_distribution': response_data.get('status_distribution', {}),
+                                'pedidos': response_data.get('pedidos', []),
+                                'processing_time': elapsed_time,
+                                'message': f'Teste com período reduzido bem-sucedido - {country.title()} ({pedidos_count} pedidos em {elapsed_time:.1f}s)'
+                            })
+                        else:
+                            return Response({
+                                'status': 'error',
+                                'message': f'API retornou erro: {response_data.get("message", "Desconhecido")}'
+                            }, status=status.HTTP_502_BAD_GATEWAY)
+                    else:
+                        return Response({
+                            'status': 'error',
+                            'message': f'HTTP {response.status_code}: {response.text[:200]}'
+                        }, status=status.HTTP_502_BAD_GATEWAY)
+                        
+                except requests.exceptions.Timeout:
+                    elapsed_time = time.time() - start_time if 'start_time' in locals() else 0
+                    return Response({
+                        'status': 'error',
+                        'message': f'Timeout mesmo com período pequeno ({elapsed_time:.1f}s)'
+                    }, status=status.HTTP_504_GATEWAY_TIMEOUT)
+                
+            except Exception as e:
+                logger.error(f"Erro no teste com período pequeno: {e}")
+                return Response({
+                    'status': 'error',
+                    'message': f'Erro no teste com período reduzido: {str(e)}'
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

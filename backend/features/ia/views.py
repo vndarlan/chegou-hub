@@ -93,7 +93,7 @@ class LogEntryViewSet(viewsets.ModelViewSet):
                 '6h': timedelta(hours=6),
                 '24h': timedelta(days=1),
                 '7d': timedelta(days=7),
-                '30d': timedelta(days=30),
+                '7d': timedelta(days=7),
             }
             if periodo in periodo_map:
                 since = now - periodo_map[periodo]

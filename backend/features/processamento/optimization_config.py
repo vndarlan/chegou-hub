@@ -132,7 +132,8 @@ class TimeEstimation:
     
     ESTIMATES = {
         (0, 7): 1,      # 1 minuto para até 7 dias
-        (8, 30): 3,     # 3 minutos para 8-30 dias
+        (8, 15): 2,     # 2 minutos para 8-15 dias
+        (16, 30): 4,    # 4 minutos para 16-30 dias
         (31, 60): 8,    # 8 minutos para 31-60 dias
         (61, 120): 15,  # 15 minutos para 61-120 dias
         (121, 999): 25  # 25 minutos para mais de 120 dias
