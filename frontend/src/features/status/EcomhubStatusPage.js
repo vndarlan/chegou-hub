@@ -157,11 +157,11 @@ function EcomhubStatusPage() {
         setLoadingSincronizar(true);
         try {
             const today = new Date();
-            const oneWeekAgo = new Date();
-            oneWeekAgo.setDate(today.getDate() - 7);
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setDate(today.getDate() - 30);
 
             const response = await axios.post('/metricas/ecomhub/status-tracking/sincronizar/', {
-                data_inicio: oneWeekAgo.toISOString().split('T')[0],
+                data_inicio: oneMonthAgo.toISOString().split('T')[0],
                 data_fim: today.toISOString().split('T')[0],
                 pais_id: paisSelecionado,
                 forcar_sincronizacao: true
