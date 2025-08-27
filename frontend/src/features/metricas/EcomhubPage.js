@@ -22,7 +22,7 @@ import { Label } from '../../components/ui/label';
 import { Progress } from '../../components/ui/progress';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
-import { RobustDatePicker } from '../../components/ui/robust-date-picker';
+import { DateRangePicker } from '../../components/ui/date-range-picker';
 
 const PAISES = [
     { value: 'todos', label: 'Todos os Países' },
@@ -312,8 +312,8 @@ function EcomhubPage() {
                     </div>
 
                     <div className="flex items-end gap-4">
-                        {/* Date Picker Robusto - Alterna automaticamente entre Calendar e Inputs */}
-                        <RobustDatePicker
+                        {/* Date Range Picker com Calendar padrão do shadcn/ui */}
+                        <DateRangePicker
                             dateRange={dateRange}
                             onDateRangeChange={setDateRange}
                             disabled={loadingProcessar}
