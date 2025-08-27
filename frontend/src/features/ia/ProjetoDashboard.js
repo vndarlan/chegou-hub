@@ -841,19 +841,19 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                                             </div>
                                         )}
                                         
-                                        {(Array.isArray(projeto.documentacao_apoio) ? projeto.documentacao_apoio : projeto.documentacao_apoio ? [projeto.documentacao_apoio] : []).filter(link => link?.trim()).length > 0 && (
+                                        {projeto.documentacao_apoio && projeto.documentacao_apoio.trim() && (
                                             <div>
                                                 <p className="text-sm text-muted-foreground mb-1">Documentação de Apoio</p>
-                                                <div className="space-y-1">
-                                                    {(Array.isArray(projeto.documentacao_apoio) ? projeto.documentacao_apoio : [projeto.documentacao_apoio]).filter(link => link?.trim()).map((link, index) => (
+                                                <div className="space-y-2 flex flex-col">
+                                                    {projeto.documentacao_apoio.split('\n').filter(link => link.trim()).map((link, index) => (
                                                         <a 
                                                             key={index}
-                                                            href={link} 
+                                                            href={link.trim()} 
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="text-sm text-blue-600 hover:underline block"
+                                                            className="text-sm text-blue-600 hover:underline break-all"
                                                         >
-                                                            {link}
+                                                            {link.trim()}
                                                         </a>
                                                     ))}
                                                 </div>
