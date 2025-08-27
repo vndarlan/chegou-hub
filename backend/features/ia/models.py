@@ -32,12 +32,8 @@ class StatusProjeto(models.TextChoices):
 
 class TipoProjeto(models.TextChoices):
     AUTOMACAO = 'automacao', 'Automação'
-    CHATBOT = 'chatbot', 'Chatbot'
-    ANALISE_PREDITIVA = 'analise_preditiva', 'Análise Preditiva'
-    VISAO_COMPUTACIONAL = 'visao_computacional', 'Visão Computacional'
-    PROCESSAMENTO_NLP = 'processamento_nlp', 'Processamento de Linguagem Natural'
-    INTEGRACAO_API = 'integracao_api', 'Integração de APIs'
-    DASHBOARD_BI = 'dashboard_bi', 'Dashboard BI'
+    CHATBOT = 'chatbot', 'ChatBot'
+    AGENTE = 'agente', 'Agente'
     OUTROS = 'outros', 'Outros'
 
 class DepartamentoChoices(models.TextChoices):
