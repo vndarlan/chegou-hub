@@ -166,7 +166,9 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
         // === NOVOS CAMPOS FINANCEIROS ===
         custo_hora_empresa: 80,
         custo_apis_mensal: 0,
+        moeda_apis: 'BRL', // Real por padrão
         lista_ferramentas: [],
+        moeda_ferramentas: 'BRL', // Real por padrão
         horas_economizadas_mes: 0,
         valor_monetario_economizado_mes: 0,
         data_break_even: null,
@@ -594,21 +596,50 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 <h3 className="text-base font-medium mb-4">Custos</h3>
                                 
                                 <div>
-                                    <label className="text-sm font-medium">Custo APIs/Mês (R$)</label>
-                                    <p className="text-xs text-muted-foreground mb-1">ChatGPT, Claude, etc.</p>
-                                    <Input
-                                        type="number"
-                                        placeholder="0"
-                                        min={0}
-                                        step={0.01}
-                                        value={formData.custo_apis_mensal}
-                                        onChange={(e) => setFormData(prev => ({...prev, custo_apis_mensal: parseFloat(e.target.value) || 0}))}
-                                    />
+                                    <label className="text-sm font-medium">Custo APIs/Mês</label>
+                                    <p className="text-xs text-muted-foreground mb-2">ChatGPT, Claude, etc.</p>
+                                    <div className="flex gap-2">
+                                        <Select 
+                                            value={formData.moeda_apis || 'BRL'}
+                                            onValueChange={(value) => setFormData(prev => ({...prev, moeda_apis: value}))}
+                                        >
+                                            <SelectTrigger className="w-24">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="BRL">R$</SelectItem>
+                                                <SelectItem value="USD">US$</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <Input
+                                            type="number"
+                                            placeholder="0"
+                                            min={0}
+                                            step={0.01}
+                                            value={formData.custo_apis_mensal}
+                                            onChange={(e) => setFormData(prev => ({...prev, custo_apis_mensal: parseFloat(e.target.value) || 0}))}
+                                            className="flex-1"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
                             <div>
-                                <h4 className="text-sm font-medium mb-2">Ferramentas/Infraestrutura</h4>
+                                <div className="flex items-center justify-between mb-2">
+                                    <h4 className="text-sm font-medium">Ferramentas/Infraestrutura</h4>
+                                    <Select 
+                                        value={formData.moeda_ferramentas || 'BRL'}
+                                        onValueChange={(value) => setFormData(prev => ({...prev, moeda_ferramentas: value}))}
+                                    >
+                                        <SelectTrigger className="w-20">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="BRL">R$</SelectItem>
+                                            <SelectItem value="USD">US$</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                                 <p className="text-xs text-muted-foreground mb-3">Adicione ferramentas e seus custos mensais</p>
                                 
                                 <div className="space-y-2">
@@ -626,7 +657,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                             />
                                             <Input
                                                 type="number"
-                                                placeholder="R$ 0"
+                                                placeholder={formData.moeda_ferramentas === 'USD' ? 'US$ 0' : 'R$ 0'}
                                                 min={0}
                                                 step={0.01}
                                                 value={ferramenta?.valor || 0}
@@ -932,7 +963,9 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                                         </div>
                                         <div>
                                             <p className="text-xs text-muted-foreground">APIs/Mês</p>
-                                            <p className="text-sm font-medium">R$ {projeto.custo_apis_mensal || 0}</p>
+                                            <p className="text-sm font-medium">
+                                                {projeto.moeda_apis === 'USD' ? 'US$' : 'R$'} {projeto.custo_apis_mensal || 0}
+                                            </p>
                                         </div>
                                     </div>
                                     
@@ -944,7 +977,9 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                                                 {projeto.lista_ferramentas.map((ferramenta, i) => (
                                                     <div key={i} className="flex justify-between items-center">
                                                         <span className="text-sm">{ferramenta.nome}</span>
-                                                        <span className="text-sm font-medium">R$ {ferramenta.valor}</span>
+                                                        <span className="text-sm font-medium">
+                                                            {projeto.moeda_ferramentas === 'USD' ? 'US$' : 'R$'} {ferramenta.valor}
+                                                        </span>
                                                     </div>
                                                 ))}
                                             </div>
