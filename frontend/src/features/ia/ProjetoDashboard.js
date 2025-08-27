@@ -1518,8 +1518,17 @@ function ProjetoDashboard() {
                 </div>
             )}
 
-            {/* Header minimalista */}
-            <div className="flex items-center justify-end mb-6">
+            {/* Header com título */}
+            <div className="flex items-center justify-between mb-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                        <Brain className="h-6 w-6 text-primary" />
+                        Portfólio de Projetos IA
+                    </h1>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        Gestão completa dos seus projetos de inteligência artificial e automação
+                    </p>
+                </div>
                 
                 <div className="flex items-center gap-4">
                     {/* Estatísticas minimalistas */}
