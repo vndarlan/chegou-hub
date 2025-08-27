@@ -475,64 +475,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 </Select>
                             </div>
                             
-                            <div>
-                                <label className="text-sm font-medium">Ferramentas/Tecnologias</label>
-                                <div className="space-y-2 mt-2">
-                                    {(formData.ferramentas_fields || ['']).map((campo, index) => (
-                                        <div key={index} className="flex gap-2">
-                                            <Input
-                                                placeholder={`Ferramenta/Tecnologia ${index + 1}`}
-                                                value={campo}
-                                                onChange={(e) => {
-                                                    const newFields = [...(formData.ferramentas_fields || [])];
-                                                    newFields[index] = e.target.value;
-                                                    setFormData(prev => ({
-                                                        ...prev, 
-                                                        ferramentas_fields: newFields,
-                                                        ferramentas_tecnologias: newFields.filter(f => f.trim())
-                                                    }));
-                                                }}
-                                                className="flex-1"
-                                            />
-                                            {(formData.ferramentas_fields || []).length > 1 && (
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                        const newFields = (formData.ferramentas_fields || []).filter((_, i) => i !== index);
-                                                        setFormData(prev => ({
-                                                            ...prev, 
-                                                            ferramentas_fields: newFields,
-                                                            ferramentas_tecnologias: newFields.filter(f => f.trim())
-                                                        }));
-                                                    }}
-                                                    className="px-2"
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </Button>
-                                            )}
-                                        </div>
-                                    ))}
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            const newFields = [...(formData.ferramentas_fields || []), ''];
-                                            setFormData(prev => ({...prev, ferramentas_fields: newFields}));
-                                        }}
-                                        className="w-full"
-                                    >
-                                        <Plus className="h-4 w-4 mr-2" />
-                                        Adicionar Ferramenta/Tecnologia
-                                    </Button>
-                                </div>
-                            </div>
                             
                             <div className="mt-6">
                                 <h3 className="text-base font-medium mb-4">Documentação</h3>
@@ -829,13 +771,7 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
 
 
                         {/* INFORMAÇÕES ADICIONAIS */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <Card>
-                                <CardContent className="p-3">
-                                    <p className="text-xs text-muted-foreground">Usuários Impactados</p>
-                                    <p className="text-sm font-medium">{projeto.usuarios_impactados}</p>
-                                </CardContent>
-                            </Card>
+                        <div className="grid grid-cols-1 gap-4">
                             <Card>
                                 <CardContent className="p-3">
                                     <p className="text-xs text-muted-foreground">Frequência de Uso</p>
@@ -844,19 +780,6 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                             </Card>
                         </div>
 
-                        {/* FERRAMENTAS */}
-                        {projeto.ferramentas_tecnologias?.length > 0 && (
-                            <Card>
-                                <CardContent className="p-4">
-                                    <p className="text-sm text-muted-foreground mb-2">Ferramentas/Tecnologias</p>
-                                    <div className="flex gap-2 flex-wrap">
-                                        {projeto.ferramentas_tecnologias.map((tech, i) => (
-                                            <Badge key={i} variant="outline">{tech}</Badge>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
 
                         {/* Documentação com formatação preservada */}
                         {(projeto.documentacao_tecnica || projeto.documentacao_apoio || projeto.licoes_aprendidas || projeto.proximos_passos) && (
@@ -956,17 +879,11 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                             <Card>
                                 <CardContent className="p-4">
                                     <h3 className="text-base font-medium mb-4">Custos</h3>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">Custo/Hora Empresa</p>
-                                            <p className="text-sm font-medium">R$ {projeto.custo_hora_empresa || 0}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">APIs/Mês</p>
-                                            <p className="text-sm font-medium">
-                                                {projeto.moeda_apis === 'USD' ? 'US$' : 'R$'} {projeto.custo_apis_mensal || 0}
-                                            </p>
-                                        </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">APIs/Mês</p>
+                                        <p className="text-sm font-medium">
+                                            {projeto.moeda_apis === 'USD' ? 'US$' : 'R$'} {projeto.custo_apis_mensal || 0}
+                                        </p>
                                     </div>
                                     
                                     {/* LISTA DE FERRAMENTAS */}
@@ -1216,8 +1133,9 @@ function ProjetoDashboard() {
                 horas_deploy: Number(data.horas_deploy) || 0,
                 
                 // === NOVOS CAMPOS FINANCEIROS ===
-                custo_hora_empresa: Number(data.custo_hora_empresa) || 0,
                 custo_apis_mensal: Number(data.custo_apis_mensal) || 0,
+                moeda_apis: data.moeda_apis || 'BRL',
+                moeda_ferramentas: data.moeda_ferramentas || 'BRL',
                 // CORREÇÃO: Sanitizar lista_ferramentas - remover objetos vazios
                 lista_ferramentas: Array.isArray(data.lista_ferramentas) 
                     ? data.lista_ferramentas.filter(item => 
