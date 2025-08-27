@@ -24,7 +24,7 @@ import {
     Plus, Filter, Download, Edit, Archive,
     Copy, GitBranch, Eye, Coins,
     Clock, Users, Wrench, Check, X, Search,
-    Settings, ChevronDown, Activity,
+    Settings, ChevronDown, Activity, Hammer,
     FileText, Brain
 } from 'lucide-react';
 
@@ -96,20 +96,23 @@ CustomTimeline.Item = TimelineItem;
 const StatusBadge = ({ status }) => {
     const variants = {
         'ativo': 'default',
-        'arquivado': 'secondary',
-        'manutencao': 'outline'
+        'em_construcao': 'outline',
+        'manutencao': 'outline',
+        'arquivado': 'secondary'
     };
     
     const colors = {
         'ativo': 'bg-green-500 text-white',
-        'arquivado': 'bg-gray-500 text-white',
-        'manutencao': 'bg-yellow-500 text-white'
+        'em_construcao': 'bg-blue-500 text-white',
+        'manutencao': 'bg-yellow-500 text-white',
+        'arquivado': 'bg-gray-500 text-white'
     };
     
     const labels = {
         'ativo': 'Ativo',
-        'arquivado': 'Arquivado',
-        'manutencao': 'Manutenção'
+        'em_construcao': 'Em Construção',
+        'manutencao': 'Manutenção',
+        'arquivado': 'Arquivado'
     };
     
     return (
@@ -1723,6 +1726,18 @@ function ProjetoDashboard() {
                                                     className="hover:bg-emerald-50"
                                                 >
                                                     <Activity className="h-4 w-4 text-emerald-600" />
+                                                </Button>
+                                            )}
+                                            
+                                            {projeto.status !== 'em_construcao' && (
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    onClick={() => handleChangeStatus(projeto, 'em_construcao')}
+                                                    title="Marcar como em construção"
+                                                    className="hover:bg-blue-50"
+                                                >
+                                                    <Hammer className="h-4 w-4 text-blue-600" />
                                                 </Button>
                                             )}
                                             
