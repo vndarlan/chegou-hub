@@ -2,215 +2,366 @@
 
 ## Para que serve
 
-O Projetos IA permite criar, gerenciar e acompanhar projetos de inteligência artificial da empresa. Com ele você pode cadastrar novos projetos, acompanhar orçamentos, definir prioridades e visualizar métricas de desempenho dos projetos de IA.
+O Projetos IA permite criar, gerenciar e acompanhar projetos de inteligência artificial da empresa. Com ele você pode cadastrar novos projetos, acompanhar custos, definir prioridades e visualizar métricas de desempenho dos projetos de IA.
 
 ## Como acessar
 
 1. Faça login no Chegou Hub
 2. No menu lateral esquerdo, clique em "IA & Automações"
 3. Clique em "🤖 Projetos"
-4. A página mostrará todos os projetos de IA organizados em cards
+4. A página mostrará o dashboard com contadores e lista de projetos em tabela
+
+## Dashboard principal
+
+### Contadores no cabeçalho
+A página mostra contadores em tempo real:
+- **Total:** Número total de projetos no sistema
+- **Ativos:** Projetos em funcionamento normal (ícone verde)
+- **Em Construção:** Projetos sendo desenvolvidos (ícone martelo azul) 
+- **Manutenção:** Projetos temporariamente parados (ícone chave amarelo)
+- **Arquivados:** Projetos finalizados ou cancelados (ícone arquivo cinza)
+
+### Visualização em tabela
+**Para que serve:** Ver todos os projetos de forma organizada
+**Como usar:**
+1. A página principal mostra uma tabela com todos os projetos
+2. Cada linha da tabela exibe:
+   - **Nome do projeto** e responsáveis
+   - **Status:** Ativo, Em Construção, Manutenção ou Arquivado
+   - **Tipo:** Automação, ChatBot, Agente ou Outros
+   - **Versão atual** e dias desde última atualização
+   - **Botões de ação** para diferentes operações
+3. Dados financeiros aparecem apenas se você tiver permissão
 
 ## Funcionalidades principais
-
-### Ver lista de projetos
-**Para que serve:** Visualizar todos os projetos de IA da empresa
-**Como usar:**
-1. A página principal mostra cards com todos os projetos
-2. Cada card exibe:
-   - **Nome do projeto** no cabeçalho
-   - **Status:** Ativo (verde), Arquivado (cinza), Manutenção (amarelo)
-   - **Prioridade:** Alta (vermelho), Média (amarelo), Baixa (azul)
-   - **Tipo:** Como "chatbot", "automacao", "analise_preditiva"
-   - **Departamentos:** Badges com nomes dos departamentos
-   - **Horas Investidas:** Total de horas trabalhadas
-   - **Usuários Impactados:** Número de pessoas que usam
-3. Dados financeiros aparecem apenas se você tiver permissão
 
 ### Criar novo projeto
 **Para que serve:** Cadastrar um novo projeto de IA no sistema
 **Como usar:**
-1. Clique no botão "+" ou "Novo Projeto"
-2. Preencha as informações obrigatórias:
-   - **Nome:** Título do projeto (ex: "Automação de Relatórios")
-   - **Descrição:** O que o projeto faz
-   - **Departamento:** Área responsável
-   - **Prioridade:** Alta, Média ou Baixa
-   - **Orçamento:** Valor previsto
-   - **Data limite:** Prazo para conclusão
-3. Clique em "Criar Projeto"
-4. O novo projeto aparecerá na lista
+1. Clique no botão "Novo Projeto" no canto superior direito
+2. O formulário abre com 3 abas: **Básico**, **Detalhes** e **Financeiro**
+
+#### Aba Básico (obrigatória)
+1. **Nome do Projeto:** Título descritivo (ex: "Chatbot de Atendimento")
+2. **Descrição:** O que o projeto faz em detalhes
+3. **Tipo de Projeto:** Escolha entre 4 opções:
+   - **Automação:** Para processos automatizados
+   - **ChatBot:** Para sistemas de conversa
+   - **Agente:** Para assistentes inteligentes
+   - **Outros:** Para projetos que não se encaixam nas categorias acima
+4. **Departamentos:** Selecione um ou mais departamentos que o projeto atende:
+   - Diretoria, Gestão, Operacional, IA & Automações, Suporte, Tráfego Pago
+5. **Criadores/Responsáveis:** Selecione as pessoas responsáveis pelo projeto
+
+#### Aba Detalhes
+1. **Prioridade:** Alta, Média ou Baixa
+2. **Complexidade:** Alta, Média ou Baixa  
+3. **Link do Projeto:** URL de acesso (se houver)
+4. **Nível de Autonomia:** 
+   - Totalmente Autônomo
+   - Requer Supervisão
+   - Processo Manual
+5. **Frequência de Uso:** Diário, Semanal, Mensal, Trimestral ou Eventual
+
+#### Seção Documentação (na aba Detalhes)
+1. **Link da Documentação Técnica:** URL única para documentação principal
+2. **Documentação de Apoio:** Múltiplos links para documentos auxiliares
+   - Clique "+ Adicionar Link" para incluir mais URLs
+   - Use o "X" para remover links desnecessários
+3. **Lições Aprendidas:** Texto livre sobre o que funcionou e desafios
+4. **Próximos Passos:** Melhorias e funcionalidades planejadas
+5. **Data de Próxima Revisão:** Quando reavaliar o projeto (opcional)
+
+#### Aba Financeiro (opcional)
+1. **Custo APIs/Mês:** Gastos mensais com ChatGPT, Claude, etc.
+   - Selecione moeda: R$ (Real) ou US$ (Dólar)
+2. **Ferramentas/Infraestrutura:** Lista de ferramentas com custos
+   - Digite nome da ferramenta e valor mensal
+   - Clique "+ Adicionar Ferramenta" para mais itens
+   - Selecione moeda para todas as ferramentas
+
+3. **Salvar:** Clique "Criar Projeto" para finalizar
+4. O projeto aparecerá na tabela principal
 
 ### Editar projeto existente
 **Para que serve:** Modificar informações de um projeto já criado
 **Como usar:**
-1. No card do projeto, clique no ícone de editar (✏️)
-2. Modifique as informações necessárias
-3. Atualize orçamento, descrição, prazo ou outros campos
-4. Clique em "Salvar Alterações"
-5. As mudanças serão refletidas no card do projeto
+1. Na tabela, localize o projeto que deseja editar
+2. Clique no botão verde com ícone de lápis (Edit)
+3. O formulário abre com os dados atuais preenchidos
+4. Modifique as informações nas abas Básico, Detalhes ou Financeiro
+5. Clique em "Salvar" para confirmar as alterações
+6. As mudanças aparecerão imediatamente na tabela
 
-### Acompanhar métricas financeiras
-**Para que serve:** Monitorar gastos e orçamento dos projetos
+### Visualizar detalhes do projeto
+**Para que serve:** Ver informações completas de um projeto
 **Como usar:**
-1. Projetos com dados financeiros mostram:
-   - Valor total investido
-   - Orçamento disponível
-   - Porcentagem gasta
-   - Status financeiro
-2. Gráficos mostram evolução dos gastos
-3. Use para controlar se está dentro do orçamento
+1. Na tabela, clique no botão azul com ícone de olho (Eye)
+2. Abre um modal com 3 abas:
+   - **Informações:** Descrição, status, departamentos, criadores
+   - **Financeiro:** Custos de APIs e ferramentas (se tiver permissão)
+   - **Histórico:** Datas de criação, versões e alterações
+3. Clique fora do modal ou no "X" para fechar
+
+### Gerenciar status dos projetos
+**Para que serve:** Controlar o ciclo de vida dos projetos
+**Como usar:**
+1. Na tabela, cada projeto mostra botões coloridos para mudar status:
+   - **Botão verde (Activity):** Ativar projeto
+   - **Botão azul (Hammer):** Marcar como "Em Construção"
+   - **Botão amarelo (Wrench):** Colocar em "Manutenção"
+   - **Botão vermelho (Archive):** Arquivar projeto
+2. Apenas os botões relevantes aparecem (não mostra o status atual)
+3. Clique no botão desejado para alterar o status imediatamente
+4. Os contadores no cabeçalho são atualizados automaticamente
+
+#### Significado dos status:
+- **Ativo:** Projeto funcionando normalmente
+- **Em Construção:** Projeto sendo desenvolvido
+- **Manutenção:** Projeto temporariamente parado para correções
+- **Arquivado:** Projeto finalizado ou cancelado
 
 ### Filtrar e buscar projetos
 **Para que serve:** Encontrar projetos específicos rapidamente
 **Como usar:**
-1. **Barra de busca:** Digite nome do projeto para buscar
-2. **Filtro por status:** Selecione Ativo, Arquivado ou Manutenção
-3. **Filtro por prioridade:** Escolha Alta, Média ou Baixa
-4. **Filtro por departamento:** Veja projetos de uma área específica
-5. **Limpar filtros:** Remove todos os filtros aplicados
+1. **Barra de busca:** Digite nome do projeto na caixa com ícone de lupa
+2. **Filtros avançados:** Use os dropdowns na área cinza:
+   - **Status:** Ativo, Em Construção, Manutenção, Arquivado
+   - **Tipo:** Automação, ChatBot, Agente, Outros
+   - **Departamento:** Diretoria, Gestão, Operacional, etc.
+   - **Prioridade:** Alta, Média, Baixa
+   - **Complexidade:** Alta, Média, Baixa
+3. **Múltipla seleção:** Pode selecionar vários itens em cada filtro
+4. **Aplicação automática:** Filtros são aplicados conforme você seleciona
+5. **Busca com delay:** Digite na busca e aguarde meio segundo para filtrar
 
-### Gerenciar status do projeto
-**Para que serve:** Controlar o ciclo de vida dos projetos
+### Criar nova versão do projeto
+**Para que serve:** Registrar atualizações e mudanças importantes
 **Como usar:**
-1. **Projeto Ativo:** Em desenvolvimento ou funcionando
-2. **Projeto Arquivado:** Finalizado ou cancelado
-3. **Projeto em Manutenção:** Parado temporariamente
-4. Clique no menu de ações do projeto para mudar status
+1. Na tabela, clique no botão roxo com ícone de bifurcação (GitBranch)
+2. Abre modal mostrando a versão atual (ex: v1.0.0)
+3. Digite a **Nova Versão** (ex: 1.1.0, 2.0.0)
+4. Descreva o **Motivo da Mudança** (novas funcionalidades, correções)
+5. Clique "Criar Versão"
+6. A nova versão aparece na coluna "Versão" da tabela
 
 ### Duplicar projeto
 **Para que serve:** Criar uma cópia de projeto existente
 **Como usar:**
-1. No menu de ações do projeto, clique em "Duplicar"
-2. Um novo projeto será criado com os mesmos dados
-3. Modifique o nome e ajuste conforme necessário
-4. Útil para projetos similares ou versões diferentes
+1. Na tabela, clique no botão laranja com ícone de cópia (Copy)
+2. Um novo projeto é criado automaticamente com:
+   - Todos os dados copiados do original
+   - Nome alterado para "Cópia de [nome original]"
+   - Status definido como "Ativo"
+3. Edite o projeto duplicado para ajustar conforme necessário
+4. Útil para criar projetos similares rapidamente
 
 ## Casos práticos
 
-### Exemplo 1: Criar projeto de automação
-**Situação:** Quer automatizar o processo de relatórios mensais
-1. Clique em "Novo Projeto"
-2. Preencha:
-   - Nome: "Automação de Relatórios Mensais"
-   - Descrição: "Sistema para gerar relatórios automaticamente"
-   - Departamento: "TI"
+### Exemplo 1: Criar projeto de chatbot completo
+**Situação:** Quer criar um chatbot para atendimento ao cliente
+1. Clique em "Novo Projeto" no canto superior direito
+2. **Aba Básico:**
+   - Nome: "ChatBot Atendimento Cliente"
+   - Descrição: "Bot para responder dúvidas frequentes e direcionar clientes"
+   - Tipo: Selecione "ChatBot"
+   - Departamentos: Marque "Suporte" e "Operacional"
+   - Responsáveis: Selecione você e outros membros da equipe
+3. **Aba Detalhes:**
    - Prioridade: "Alta"
-   - Orçamento: "R$ 15.000"
-   - Prazo: 3 meses a partir de hoje
-3. Clique "Criar Projeto"
-4. O projeto aparecerá na lista como "Ativo"
+   - Complexidade: "Média"
+   - Nível de Autonomia: "Requer Supervisão"
+   - Frequência de Uso: "Diário"
+   - Documentação de Apoio: Adicione 2-3 links de referência
+4. **Aba Financeiro:**
+   - Custo APIs/Mês: R$ 200 (para ChatGPT)
+   - Ferramentas: Adicione "Dialogflow: R$ 100" e "Hosting: R$ 50"
+5. Clique "Criar Projeto"
+6. Projeto aparece na tabela com status "Ativo"
 
-### Exemplo 2: Acompanhar progresso financeiro
-**Situação:** Quer ver se o projeto está dentro do orçamento
-1. Encontre o card do seu projeto na lista
-2. Verifique a seção financeira (se tiver permissão)
-3. Observe:
-   - Total gasto até agora
-   - Porcentagem do orçamento utilizada
-   - Valor restante disponível
-4. Se estiver próximo do limite, considere ajustar o orçamento
+### Exemplo 2: Acompanhar projeto existente
+**Situação:** Quer ver detalhes de um projeto já criado
+1. Encontre o projeto na tabela
+2. Clique no botão azul (olho) para visualizar
+3. Na aba **Informações**: veja descrição completa e departamentos
+4. Na aba **Financeiro**: confira custos mensais (se tiver permissão)
+5. Na aba **Histórico**: veja quando foi criado e por quem
+6. Se precisar editar, feche e clique no botão verde (lápis)
 
-### Exemplo 3: Buscar projetos de IA específicos
-**Situação:** Quer ver apenas projetos do departamento de Marketing
-1. Use o filtro "Departamento" e selecione "Marketing"
-2. A lista mostrará apenas projetos desta área
-3. Para buscar por nome, digite na barra de busca
-4. Combine filtros para busca mais específica
+### Exemplo 3: Filtrar projetos do departamento de Gestão
+**Situação:** Gestor quer ver apenas projetos da sua área
+1. Na área cinza de filtros, clique no dropdown "Departamento"
+2. Marque apenas "Gestão"
+3. A tabela mostra automaticamente só projetos deste departamento
+4. Para ver também projetos "Em Construção", clique no filtro "Status"
+5. Para buscar por nome específico, digite na caixa de busca
+6. Combine múltiplos filtros para refinar a busca
 
-### Exemplo 4: Arquivar projeto finalizado
-**Situação:** Projeto foi concluído e quer marcá-lo como finalizado
-1. No card do projeto, clique no menu de ações (⋮)
-2. Selecione "Arquivar"
-3. Confirme a ação
-4. O projeto mudará status para "Arquivado"
-5. Ainda aparecerá na lista mas com visual diferente
+### Exemplo 4: Evoluir projeto com nova versão
+**Situação:** Projeto foi atualizado com novas funcionalidades
+1. Na tabela, encontre seu projeto (mostra "v1.0.0")
+2. Clique no botão roxo (bifurcação) para nova versão
+3. Digite "1.1.0" no campo Nova Versão
+4. Motivo: "Adicionado integração com WhatsApp e melhorias na precisão"
+5. Clique "Criar Versão"
+6. Projeto agora mostra "v1.1.0" na coluna Versão
+7. Histórico fica registrado na aba Histórico do projeto
+
+### Exemplo 5: Gerenciar status de projeto em desenvolvimento
+**Situação:** Projeto saiu de construção e entrou em funcionamento
+1. Encontre projeto com status "Em Construção" na tabela
+2. Clique no botão verde com ícone Activity (Ativar)
+3. Status muda imediatamente para "Ativo"
+4. Contador "Ativos" no cabeçalho aumenta
+5. Contador "Em Construção" diminui
+6. Se depois precisar manutenção, clique botão amarelo (chave)
 
 ## Problemas comuns
 
 ### Não consegue criar projeto
-**Sintoma:** Clica em "Criar" mas nada acontece
+**Sintoma:** Clica em "Criar Projeto" mas aparece erro ou nada acontece
 **Solução:**
-1. **Campos obrigatórios:** Verifique se preencheu todos os campos necessários
-2. **Orçamento válido:** Use apenas números no campo de valor
-3. **Data válida:** Certifique-se que a data limite é futura
-4. **Conexão:** Verifique se tem internet e tente novamente
+1. **Campos obrigatórios:** Verifique se preencheu:
+   - Nome do projeto
+   - Descrição completa
+   - Tipo de projeto selecionado
+   - Pelo menos um departamento marcado
+2. **Valores válidos:** Use apenas números nos campos de custos
+3. **Links válidos:** URLs devem começar com http:// ou https://
+4. **Conexão:** Verifique internet e tente novamente
 
-### Informações financeiras não aparecem
-**Sintoma:** Card do projeto não mostra valores e orçamentos
+### Aba Financeiro não aparece
+**Sintoma:** Modal de detalhes só mostra 2 abas (Informações e Histórico)
 **Solução:**
-1. **Permissões:** Você pode não ter permissão para ver dados financeiros
-2. **Projeto sem dados:** Projeto pode não ter informações financeiras cadastradas
-3. **Acesso restrito:** Projeto pode ter dados financeiros restritos
-4. **Contate admin:** Peça acesso se precisar ver essas informações
+1. **Sem permissão:** Você não tem permissão para ver dados financeiros
+2. **Projeto sem dados:** Projeto não possui informações financeiras cadastradas
+3. **Contate admin:** Solicite acesso financeiro se necessário para seu trabalho
 
-### Filtros não funcionam
-**Sintoma:** Aplica filtro mas projetos não são filtrados
+### Filtros não mostram resultados
+**Sintoma:** Seleciona filtros mas tabela fica vazia
 **Solução:**
-1. **Aguardar:** Filtros podem demorar alguns segundos para aplicar
-2. **Limpar filtros:** Clique em "Limpar" e tente novamente
-3. **Recarregar página:** Atualize a página (F5) se necessário
-4. **Combinação de filtros:** Verifique se não está usando filtros conflitantes
+1. **Aguardar busca:** Digite na busca e espere meio segundo
+2. **Múltiplas seleções:** Verifique se selecionou itens corretos nos dropdowns
+3. **Filtros conflitantes:** Não combine filtros que se excluem mutuamente
+4. **Remover filtros:** Desmarque itens para ampliar a busca
+5. **Recarregar:** Pressione F5 para atualizar a página
 
-### Projeto não aparece na lista
-**Sintoma:** Criou projeto mas não consegue encontrar
+### Não consegue alterar status
+**Sintoma:** Clica nos botões coloridos mas status não muda
 **Solução:**
-1. **Recarregar:** Atualize a página para ver novos projetos
-2. **Filtros ativos:** Verifique se não há filtros escondendo o projeto
-3. **Status diferente:** Projeto pode ter sido criado com status diferente
-4. **Buscar por nome:** Use a barra de busca para encontrar
+1. **Aguardar:** Status pode demorar alguns segundos para atualizar
+2. **Permissões:** Pode não ter autorização para alterar status
+3. **Projeto bloqueado:** Alguns projetos podem ter restrições
+4. **Recarregar:** Atualize a página se os botões não respondem
 
-### Erro ao editar projeto
-**Sintoma:** Tenta salvar alterações mas aparece erro
+### Botões de ação não aparecem
+**Sintoma:** Linha da tabela não mostra botões coloridos
 **Solução:**
-1. **Campos válidos:** Verifique se todos os campos estão preenchidos corretamente
-2. **Permissões:** Você pode não ter permissão para editar este projeto
-3. **Conflito:** Outra pessoa pode estar editando simultaneamente
-4. **Tentar novamente:** Feche o modal e tente editar novamente
+1. **Tela pequena:** Em telas menores, botões podem ficar ocultos
+2. **Scroll horizontal:** Role para direita na tabela
+3. **Permissões:** Pode não ter acesso a certas ações
+4. **Zoom:** Diminua o zoom do navegador para ver mais conteúdo
+
+### Nova versão não é criada
+**Sintoma:** Preenche dados da versão mas não salva
+**Solução:**
+1. **Versão única:** Número da versão deve ser diferente da atual
+2. **Formato:** Use formato como 1.1.0, 2.0.0, etc.
+3. **Motivo obrigatório:** Campo "Motivo da Mudança" é obrigatório
+4. **Versão menor:** Não pode criar versão com número menor que atual
+
+### Múltiplos links não salvam
+**Sintoma:** Adiciona vários links na documentação mas não ficam
+**Solução:**
+1. **URLs completas:** Use links completos iniciando com http:// ou https://
+2. **Um por linha:** Cada link deve estar em um campo separado
+3. **Remover vazios:** Delete campos de link vazios antes de salvar
+4. **Limite do sistema:** Pode haver limite na quantidade de links
+
+## Tipos de projeto disponíveis
+
+### Automação
+- Projetos que automatizam processos manuais
+- Workflows e integrações entre sistemas
+- Scripts e robôs para tarefas repetitivas
+
+### ChatBot 
+- Assistentes de conversação
+- Bots para atendimento ao cliente
+- Sistemas de perguntas e respostas
+
+### Agente
+- Assistentes inteligentes complexos
+- IA que toma decisões autonomamente
+- Sistemas que aprendem com interações
+
+### Outros
+- Projetos que não se encaixam nas categorias acima
+- Análises preditivas, visão computacional
+- Projetos experimentais de IA
 
 ## Status dos projetos
 
-### Ativo (Verde)
-- Projeto em desenvolvimento
-- Funcionando normalmente
-- Recebendo investimentos e recursos
+### Ativo (Verde - ícone Activity)
+- Projeto funcionando normalmente
+- Em uso pelos usuários finais
+- Recebendo manutenção regular
 
-### Arquivado (Cinza)
-- Projeto finalizado
-- Cancelado ou pausado indefinidamente
-- Não está mais em desenvolvimento ativo
+### Em Construção (Azul - ícone Hammer)
+- Projeto sendo desenvolvido
+- Ainda não está pronto para uso
+- Em fase de testes e ajustes
 
-### Manutenção (Amarelo)
-- Temporariamente parado
+### Manutenção (Amarelo - ícone Wrench)  
+- Temporariamente parado para correções
 - Sendo reparado ou atualizado
-- Voltará ao status ativo em breve
+- Voltará ao status ativo após ajustes
 
-## Níveis de prioridade
+### Arquivado (Cinza - ícone Archive)
+- Projeto finalizado ou cancelado
+- Não está mais em desenvolvimento ativo
+- Mantido apenas para histórico
 
-### Alta (Vermelho)
-- Projetos urgentes
-- Alta importância estratégica
-- Recursos prioritários
+## Níveis de autonomia
 
-### Média (Amarelo)
-- Importância moderada
-- Cronograma normal
-- Recursos padrão
+### Totalmente Autônomo
+- Funciona sem intervenção humana
+- Toma decisões de forma independente
+- Requer apenas monitoramento
 
-### Baixa (Azul)
-- Projetos secundários
-- Podem ser adiados se necessário
-- Recursos limitados
+### Requer Supervisão
+- Funciona mas precisa de acompanhamento
+- Humano valida ou aprova algumas ações
+- Semi-automatizado
+
+### Processo Manual
+- Ainda depende muito de intervenção humana
+- IA apenas auxilia no processo
+- Automação limitada
 
 ## Dicas importantes
 
-- **Use nomes descritivos** para facilitar busca e identificação
-- **Mantenha orçamentos realistas** baseados em projetos similares
-- **Atualize status regularmente** para refletir situação atual
-- **Use prioridades corretamente** para organizar recursos da equipe
-- **Monitore métricas financeiras** para evitar estouro de orçamento
-- **Archive projetos finalizados** para manter lista organizada
-- **Use filtros** para encontrar projetos rapidamente
-- **Documente bem** as descrições para outros membros entenderem
-- **Defina prazos realistas** considerando complexidade do projeto
-- **Comunique mudanças** importantes para a equipe envolvida
+### Para criar projetos eficientes:
+- **Use nomes claros** que identifiquem o propósito (ex: "ChatBot Suporte RH")
+- **Seja específico na descrição** explicando exatamente o que o projeto faz
+- **Escolha o tipo certo** para facilitar categorização e busca
+- **Marque todos os departamentos** que realmente usam o projeto
+- **Documente links importantes** para facilitar manutenção futura
+
+### Para gerenciar custos:
+- **Use seletor de moeda** (R$/US$) adequado para cada ferramenta
+- **Mantenha lista de ferramentas atualizada** com valores reais
+- **Monitore custos de APIs** que podem variar mensalmente
+- **Registre apenas custos diretos** do projeto específico
+
+### Para acompanhar evolução:
+- **Crie novas versões** sempre que fizer melhorias importantes
+- **Use versionamento semântico** (1.0.0, 1.1.0, 2.0.0)
+- **Documente mudanças** de forma clara no motivo da versão
+- **Atualize status** conforme o projeto evolui no ciclo de vida
+
+### Para organizar a visualização:
+- **Use filtros múltiplos** para encontrar projetos específicos
+- **Combine busca com filtros** para resultados mais precisos
+- **Aproveite os contadores** no cabeçalho para visão geral rápida
+- **Mantenha projetos arquivados** para não poluir a lista ativa

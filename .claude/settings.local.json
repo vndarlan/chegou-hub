@@ -77,7 +77,8 @@
       "Bash(git pull:*)",
       "Bash(touch:*)",
       "Bash(npm test:*)",
-      "Bash(cmd //c:*)"
+      "Bash(cmd //c:*)",
+      "Read(/c:\\Users\\Vinic\\OneDrive\\Documentos\\Screenshots/**)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",

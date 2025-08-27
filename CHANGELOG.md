@@ -8,15 +8,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ## [v1.1.0] - 27/08/2025
 
 ### ✨ Novidades
-- **[Projetos IA]** Novo status "Em Construção" com ícone martelo azul
-- **[Projetos IA]** Campo "Documentação de Apoio" agora suporta múltiplos links separados por vírgula
-- **[Projetos IA]** Seletor de moeda (BRL/USD) para custos de APIs e ferramentas
-- **[Status Tracking]** Nova página EcomHub Status para monitoramento de pedidos com problemas
-- **[🔒 Detector IP - CRÍTICO]** Sistema anti-fraude avançado para proteção contra acessos maliciosos e identificação de IPs duplicados suspeitos
-- **[PrimeCOD]** Integração completa com métricas de efetividade do fornecedor
-- **[🚀 Infraestrutura]** Ambiente de teste Railway dedicado - Deploy separado do ambiente de produção
+
+#### 🚨 PÁGINAS E FUNCIONALIDADES TOTALMENTE NOVAS
+- **[🔒 Detector IP - NOVA PÁGINA]** Sistema anti-fraude avançado para proteção contra acessos maliciosos e detecção de IPs suspeitos - **FUNCIONALIDADE INÉDITA DE SEGURANÇA**
+- **[📊 Log de Erros - NOVA PÁGINA]** Página dedicada para monitoramento e análise de erros do sistema em tempo real - **PRIMEIRA IMPLEMENTAÇÃO DE MONITORAMENTO**
+- **[🚀 Nova Arquitetura de Deploy]** Ambiente de teste Railway dedicado com deploy separado do ambiente de produção - **MUDANÇA REVOLUCIONÁRIA NO WORKFLOW**
 
 ### 🔧 Melhorias
+- **[Projetos IA]** Novo status "Em Construção" com ícone martelo azul
+- **[Projetos IA]** Campo "Documentação de Apoio" agora suporta múltiplos links separados por linha
+- **[Projetos IA]** Seletor de moeda (BRL/USD) para custos de APIs e ferramentas
 - **[Projetos IA]** Tipos de projeto simplificados para 4 categorias principais (Automação, ChatBot, Agente, Outros)
 - **[Projetos IA]** Campo "Nível de Autonomia" reorganizado para aba Detalhes
 - **[Projetos IA]** Dashboard com contadores em tempo real de todos os status
@@ -42,13 +43,13 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - **[Interface]** Corrigidos erros de hidratação HTML e problemas de React DOM
 
 ### ⚠️ Importante
+- **🚨 PÁGINA COMPLETAMENTE NOVA**: **Detector IP** - Primeira página dedicada exclusivamente à proteção anti-fraude do sistema (NÃO EXISTIA ANTES)
 - **🔒 SEGURANÇA CRÍTICA**: Sistema Detector IP implementado como proteção essencial contra fraudes e acessos maliciosos
 - **🚀 MUDANÇA NO WORKFLOW**: Nova arquitetura de deploy implementada:
   - **Antes**: Deploy direto para produção (todos tinham acesso)
   - **Agora**: Deploy para ambiente de teste → Validação → Deploy oficial
   - **Benefício**: Testes seguros com URL separada e banco próprio antes da produção
 - **Remoção**: Página "Relatórios de Projetos IA" foi removida - funcionalidades centralizadas na página principal
-- **Campos Removidos**: "Usuários Impactados", "Ferramentas/Tecnologias", "Custo/Hora Empresa" removidos do formulário
 - **Migração**: Projetos existentes mantêm compatibilidade com novos tipos e status
 - **Performance**: Sistema otimizado para lidar com milhares de registros sem timeout
 
@@ -68,14 +69,6 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - **[Mapa]** Visualização geográfica de todos os países de atuação
 - **[Feedback]** Sistema completo para reportar bugs e sugestões de melhorias
 - **[Novelties]** Dashboard para monitorar agentes automáticos do fornecedor Dropi
-
-### 🚧 Em Desenvolvimento
-- **[Chatbot]** Assistente inteligente em fase de implementação
-- **[Detector IP]** Sistema de detecção e análise de IPs
-- **[EFETIVIDADE/PRIMECOD]** Página de métricas de efetividade integrada com API oficial do fornecedor
-- **[EFETIVIDADE/DROPI]** Página de métricas de efetividade integrada com API oficial do fornecedor
-- **[NicoChat]** Página dedicada em desenvolvimento
-- **[OpenAI Analytics]** Dashboard de análise de custos de IA
 
 ### 🔧 Melhorias
 - Interface completamente renovada com shadcn/ui e Tailwind CSS

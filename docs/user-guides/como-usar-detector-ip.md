@@ -2,7 +2,7 @@
 
 ## Para que serve
 
-O Detector de IP é uma ferramenta de segurança e análise que identifica pedidos feitos pelo mesmo endereço IP na sua loja Shopify. Esta funcionalidade é essencial para:
+O Detector de IP é uma ferramenta avançada de segurança e análise anti-fraude que identifica pedidos feitos por clientes diferentes a partir do mesmo endereço IP na sua loja Shopify. Com busca histórica completa e sistema de gerenciamento de casos investigados, esta funcionalidade é essencial para:
 
 - **Detectar possíveis fraudes** - Múltiplas compras suspeitas do mesmo local
 - **Identificar padrões de comportamento** - Clientes comprando repetidamente 
@@ -16,7 +16,7 @@ O Detector de IP é uma ferramenta de segurança e análise que identifica pedid
 2. No menu lateral esquerdo, clique em "Suporte"
 3. Clique em "⚙️ Processamento"
 4. Na página de processamento, localize e clique em "🛡️ Detector de IP"
-5. A ferramenta carregará mostrando as opções de análise
+5. A ferramenta carregará mostrando as opções de análise e seletor de loja
 
 ## Funcionalidades principais
 
@@ -28,13 +28,12 @@ O Detector de IP é uma ferramenta de segurança e análise que identifica pedid
 3. A loja selecionada ficará ativa para todas as análises
 
 ### Configurar filtros de busca
-**Para que serve:** Definir período e critérios para a análise de IPs
+**Para que serve:** Definir período para a análise de IPs
 **Como usar:**
-1. No card "Configuração da Busca":
-   - **Período:** Escolha entre 7, 15, 30, 60 ou 90 dias
-   - **Mínimo de pedidos:** Selecione quantos pedidos mínimos por IP (2, 3, 4, 5 ou 10)
-2. Configure conforme sua necessidade de análise
-3. Clique em "Buscar IPs" para executar
+1. Use o seletor "Período" na barra de filtros:
+   - **Opções:** 7, 15, 30, 60 ou 90 dias (padrão: 30 dias)
+2. O sistema automaticamente busca IPs com múltiplos clientes
+3. Clique em "Buscar IPs" para executar a análise
 
 ### Analisar resultados encontrados
 **Para que serve:** Revisar IPs que tiveram múltiplos pedidos no período
@@ -59,6 +58,23 @@ O Detector de IP é uma ferramenta de segurança e análise que identifica pedid
    - Informações de entrega quando disponíveis
 3. Use para investigação detalhada de casos suspeitos
 
+### Marcar IP como resolvido
+**Para que serve:** Marcar IPs já investigados para não aparecerem mais nas buscas
+**Como usar:**
+1. Na tabela de resultados, clique no botão verde "Resolvido" ao lado do IP investigado
+2. O IP será removido da lista atual e marcado como resolvido
+3. IPs resolvidos ficam salvos e não aparecem em futuras buscas
+4. Use para organizar o trabalho e evitar investigar o mesmo IP novamente
+
+### Gerenciar IPs resolvidos
+**Para que serve:** Visualizar e gerenciar IPs já marcados como resolvidos
+**Como usar:**
+1. Abaixo da tabela principal, você verá uma seção "IPs Resolvidos"
+2. Clique em "Mostrar" para expandir a lista
+3. Visualize todos os IPs marcados como resolvidos com suas datas
+4. Clique no "X" ao lado de qualquer IP para removê-lo da lista de resolvidos
+5. IPs removidos voltarão a aparecer nas próximas buscas
+
 ### Consultar histórico de análises
 **Para que serve:** Ver análises anteriores realizadas no sistema
 **Como usar:**
@@ -77,16 +93,16 @@ O Detector de IP é uma ferramenta de segurança e análise que identifica pedid
 
 ### Filtros disponíveis
 - **Período de análise:** 7 a 90 dias (padrão: 30 dias)
-- **Mínimo de pedidos:** 2 a 10 pedidos por IP (padrão: 2)
 - **Seletor de loja:** Todas as lojas Shopify configuradas
+- **Critério automático:** Busca apenas IPs com clientes diferentes
 
 ### Tabela de resultados
-- **IP (Mascarado):** Endereço IP parcialmente oculto por segurança
+- **IP:** Endereço IP completo (não mais mascarado)
 - **Pedidos:** Quantidade total de pedidos deste IP
+- **Status:** Status dos pedidos (ativos, cancelados)
 - **Clientes:** Número de clientes únicos
-- **Total:** Valor total das vendas
-- **Período:** Intervalo entre primeira e última compra
-- **Ações:** Botão para ver detalhes completos
+- **Período:** Intervalo entre primeira e última compra com duração em dias
+- **Ações:** Botões "Resolvido" (verde) e "Ver Detalhes"
 
 ### Modal de detalhes
 - **Cartões de resumo:** Visão geral dos números principais
@@ -97,11 +113,11 @@ O Detector de IP é uma ferramenta de segurança e análise que identifica pedid
 ## Interpretação dos dados
 
 ### O que significa cada coluna
-- **IP Mascarado:** Mostra apenas primeiros dois números do IP por segurança
+- **IP:** Endereço IP completo usado pelos clientes
 - **Pedidos:** Total de compras feitas deste endereço IP
+- **Status:** Mostra quantos pedidos estão ativos ou cancelados
 - **Clientes:** Quantos clientes diferentes compraram deste IP
-- **Total:** Soma de todos os valores das vendas
-- **Período:** Tempo entre primeira e última compra
+- **Período:** Data da primeira e última compra + duração em dias
 
 ### Como ler os resultados
 - **1 cliente, múltiplos pedidos:** Cliente frequente ou possível fraude
@@ -168,6 +184,16 @@ O Detector de IP é uma ferramenta de segurança e análise que identifica pedid
 5. Verifique se clientes são diferentes mas suspeitos
 6. Documente casos para cancelamento/estorno
 
+### Caso 5: Organização do trabalho em equipe
+**Situação:** Equipe precisa dividir investigação de IPs suspeitos
+1. Execute busca normal de IPs
+2. Cada pessoa da equipe investiga alguns IPs da lista
+3. Após investigar, clique em "Resolvido" nos IPs analisados
+4. IPs resolvidos somem da lista principal
+5. Outros membros da equipe veem apenas IPs não investigados
+6. Use seção "IPs Resolvidos" para ver histórico do trabalho
+7. Se descobrir algo novo sobre IP resolvido, remova da lista para reinvestigar
+
 ## Limitações e considerações
 
 ### IPs dinâmicos
@@ -195,17 +221,27 @@ O Detector de IP é uma ferramenta de segurança e análise que identifica pedid
 
 ### Limitações técnicas
 - **Dados dependem do Shopify registrar o IP corretamente**
-- **IPs são mascarados por segurança (não vê IP completo)**
 - **Análise limitada a 90 dias por questões de performance**
 - **Não detecta fraudes entre IPs diferentes**
+- **Funciona apenas com pedidos que têm "IP address" nos note_attributes**
+
+## Melhorias recentes
+
+### Novidades na ferramenta
+- ✅ **IPs não são mais mascarados** - Você vê o endereço IP completo para melhor análise
+- ✅ **Sistema de IPs resolvidos** - Marque casos investigados para organizar o trabalho
+- ✅ **Status detalhado dos pedidos** - Veja quantos pedidos estão ativos vs cancelados
+- ✅ **Busca histórica otimizada** - Algoritmo em 2 etapas garante dados completos
+- ✅ **Interface melhorada** - Botões mais claros e informações organizadas
+- ✅ **Detecção aprimorada** - Foca apenas em IPs com clientes realmente diferentes
 
 ## Dicas e boas práticas
 
 ### Filtros recomendados
-- **Para detecção de fraude:** 7-15 dias, mínimo 3-4 pedidos
-- **Para análise comportamental:** 30-60 dias, mínimo 2 pedidos  
+- **Para detecção de fraude:** 7-15 dias (comportamento suspeito recente)
+- **Para análise comportamental:** 30-60 dias (padrões estabelecidos)  
 - **Para auditoria de promoções:** Período específico da campanha
-- **Para análise geral:** 30 dias, mínimo 2 pedidos
+- **Para análise geral:** 30 dias (equilíbrio entre dados e performance)
 
 ### Como investigar suspeitas
 1. **Comece com dados gerais** - Use tabela principal para identificar padrões
@@ -232,6 +268,12 @@ O Detector de IP é uma ferramenta de segurança e análise que identifica pedid
 - **Configure alertas** para situações específicas da sua loja
 - **Mantenha histórico** das análises para comparação
 - **Compartilhe insights** com equipe de marketing/vendas
+
+### Gerenciamento de IPs resolvidos
+- **Marque IPs investigados** como resolvidos para organizar o trabalho
+- **Use a lista de resolvidos** para referência de casos já tratados  
+- **Remova da lista** apenas se o IP precisar ser investigado novamente
+- **Mantenha controle** dos IPs já analisados pela equipe
 
 ### Documentação recomendada
 - **Anote casos suspeitos** encontrados e ações tomadas
