@@ -1289,8 +1289,9 @@ function ProjetoDashboard() {
             
             const statusLabels = {
                 'ativo': 'ativado',
-                'arquivado': 'arquivado', 
-                'manutencao': 'em manutenção'
+                'em_construcao': 'em construção',
+                'manutencao': 'em manutenção',
+                'arquivado': 'arquivado'
             };
             
             showNotification({

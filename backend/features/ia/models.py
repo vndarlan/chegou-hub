@@ -27,8 +27,9 @@ class PaisNicochat(models.TextChoices):
 
 class StatusProjeto(models.TextChoices):
     ATIVO = 'ativo', 'Ativo'
-    ARQUIVADO = 'arquivado', 'Arquivado'
+    EM_CONSTRUCAO = 'em_construcao', 'Em Construção'
     MANUTENCAO = 'manutencao', 'Em Manutenção'
+    ARQUIVADO = 'arquivado', 'Arquivado'
 
 class TipoProjeto(models.TextChoices):
     AUTOMACAO = 'automacao', 'Automação'
