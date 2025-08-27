@@ -12,8 +12,9 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - **[Projetos IA]** Campo "Documentação de Apoio" agora suporta múltiplos links separados por vírgula
 - **[Projetos IA]** Seletor de moeda (BRL/USD) para custos de APIs e ferramentas
 - **[Status Tracking]** Nova página EcomHub Status para monitoramento de pedidos com problemas
-- **[Detector IP]** Sistema anti-fraude para identificação de IPs duplicados suspeitos
+- **[🔒 Detector IP - CRÍTICO]** Sistema anti-fraude avançado para proteção contra acessos maliciosos e identificação de IPs duplicados suspeitos
 - **[PrimeCOD]** Integração completa com métricas de efetividade do fornecedor
+- **[🚀 Infraestrutura]** Ambiente de teste Railway dedicado - Deploy separado do ambiente de produção
 
 ### 🔧 Melhorias
 - **[Projetos IA]** Tipos de projeto simplificados para 4 categorias principais (Automação, ChatBot, Agente, Outros)
@@ -25,6 +26,9 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - **[Sistema]** Centralização de funcionalidades - página Relatórios de Projetos IA removida
 - **[Performance]** Otimizações críticas de timeout e performance para lidar com grandes volumes de dados
 - **[Interface]** Múltiplas melhorias de UX e layout responsivo
+- **[🚀 Deploy]** Novo workflow de deploy com ambiente de teste isolado (URL + banco próprios)
+- **[🔒 Segurança]** Maior controle de qualidade com validação prévia antes do deploy oficial
+- **[📊 Desenvolvimento]** Redução significativa de riscos em produção com testes seguros
 
 ### 🐛 Correções
 - **[Projetos IA]** Corrigido erro 500 ao salvar projetos com múltiplos links de documentação
@@ -38,6 +42,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - **[Interface]** Corrigidos erros de hidratação HTML e problemas de React DOM
 
 ### ⚠️ Importante
+- **🔒 SEGURANÇA CRÍTICA**: Sistema Detector IP implementado como proteção essencial contra fraudes e acessos maliciosos
+- **🚀 MUDANÇA NO WORKFLOW**: Nova arquitetura de deploy implementada:
+  - **Antes**: Deploy direto para produção (todos tinham acesso)
+  - **Agora**: Deploy para ambiente de teste → Validação → Deploy oficial
+  - **Benefício**: Testes seguros com URL separada e banco próprio antes da produção
 - **Remoção**: Página "Relatórios de Projetos IA" foi removida - funcionalidades centralizadas na página principal
 - **Campos Removidos**: "Usuários Impactados", "Ferramentas/Tecnologias", "Custo/Hora Empresa" removidos do formulário
 - **Migração**: Projetos existentes mantêm compatibilidade com novos tipos e status
