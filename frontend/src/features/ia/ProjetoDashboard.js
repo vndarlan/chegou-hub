@@ -1046,51 +1046,6 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                                 </CardContent>
                             </Card>
 
-                            {/* RETORNOS */}
-                            <Card>
-                                <CardContent className="p-4">
-                                    <h3 className="text-base font-medium mb-4">Retornos</h3>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">Horas Economizadas/Mês</p>
-                                            <p className="text-sm font-medium">{projeto.horas_economizadas_mes || 0}h</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">Valor Monetário/Mês</p>
-                                            <p className="text-sm font-medium">R$ {projeto.valor_monetario_economizado_mes || 0}</p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* MÉTRICAS CALCULADAS */}
-                            {metricas && (
-                                <Card className="bg-muted">
-                                    <CardContent className="p-4">
-                                        <h3 className="text-base font-medium mb-4">Métricas Calculadas</h3>
-                                        <div className="grid grid-cols-3 gap-4">
-                                            <div>
-                                                <p className="text-xs text-muted-foreground">ROI</p>
-                                                <p className={`text-lg font-bold ${metricas.roi > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                    {metricas.roi}%
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-muted-foreground">Economia/Mês</p>
-                                                <p className="text-lg font-bold">
-                                                    R$ {metricas.economia_mensal?.toLocaleString('pt-BR')}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-muted-foreground">Payback (meses)</p>
-                                                <p className="text-lg font-bold">
-                                                    {metricas.payback_meses}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            )}
                         </div>
                     </TabsContent>
                 )}
@@ -1863,14 +1818,6 @@ function ProjetoDashboard() {
                                                     collisionPadding={10}
                                                 >
                                                     <DropdownMenuItem onClick={() => {
-                                                        if (!opcoes) {
-                                                            showNotification({
-                                                                title: 'Aviso',
-                                                                message: 'Aguarde o carregamento das opções',
-                                                                type: 'default'
-                                                            });
-                                                            return;
-                                                        }
                                                         setSelectedProjeto(projeto);
                                                         setVersionModalOpen(true);
                                                     }}>
