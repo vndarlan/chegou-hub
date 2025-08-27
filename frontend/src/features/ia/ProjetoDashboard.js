@@ -190,7 +190,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
         
         // === DOCUMENTAÇÃO ===
         documentacao_tecnica: '',
-        documentacao_apoio: '',
+        documentacao_apoio: [''],
         licoes_aprendidas: '',
         proximos_passos: '',
         data_revisao: null
@@ -209,6 +209,10 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                 ferramentas_fields: projeto.ferramentas_tecnologias?.length > 0 
                     ? projeto.ferramentas_tecnologias 
                     : [''],
+                // CORREÇÃO: Converter documentacao_apoio string para array
+                documentacao_apoio: projeto.documentacao_apoio?.trim() 
+                    ? projeto.documentacao_apoio.trim().split('\n').filter(link => link.trim()) 
+                    : [''],
                 // CORREÇÃO: Remover horas_totais - agora é calculado no backend
                 custo_hora_empresa: Number(projeto.custo_hora_empresa) || 80
             });
@@ -222,7 +226,7 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                 ferramentas_tecnologias: [], 
                 ferramentas_fields: [''],
                 usuarios_impactados: 0,
-                documentacao_tecnica: '', documentacao_apoio: '', licoes_aprendidas: '', proximos_passos: '',
+                documentacao_tecnica: '', documentacao_apoio: [''], licoes_aprendidas: '', proximos_passos: '',
                 horas_desenvolvimento: 0, horas_testes: 0, horas_documentacao: 0, horas_deploy: 0
             });
         }
@@ -460,6 +464,23 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                             </div>
                             
                             <div>
+                                <label className="text-sm font-medium">Nível de Autonomia</label>
+                                <Select 
+                                    value={formData.nivel_autonomia}
+                                    onValueChange={(value) => setFormData(prev => ({...prev, nivel_autonomia: value}))}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="total">Totalmente Autônomo</SelectItem>
+                                        <SelectItem value="parcial">Requer Supervisão</SelectItem>
+                                        <SelectItem value="manual">Processo Manual</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            
+                            <div>
                                 <label className="text-sm font-medium">Frequência de Uso</label>
                                 <Select 
                                     value={formData.frequencia_uso}
@@ -494,12 +515,50 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                     
                                     <div>
                                         <label className="text-sm font-medium">Documentação de Apoio</label>
-                                        <p className="text-xs text-muted-foreground mb-1">Link para documentação adicional que serve como apoio</p>
-                                        <Input
-                                            placeholder="https://..."
-                                            value={formData.documentacao_apoio}
-                                            onChange={(e) => setFormData(prev => ({...prev, documentacao_apoio: e.target.value}))}
-                                        />
+                                        <p className="text-xs text-muted-foreground mb-1">Links para documentação adicional que serve como apoio</p>
+                                        <div className="space-y-2">
+                                            {formData.documentacao_apoio?.map((link, index) => (
+                                                <div key={index} className="flex gap-2">
+                                                    <Input
+                                                        placeholder={`Link ${index + 1}: https://...`}
+                                                        value={link}
+                                                        onChange={(e) => {
+                                                            const newLinks = [...(formData.documentacao_apoio || [])];
+                                                            newLinks[index] = e.target.value;
+                                                            setFormData(prev => ({...prev, documentacao_apoio: newLinks}));
+                                                        }}
+                                                    />
+                                                    {formData.documentacao_apoio?.length > 1 && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                const newLinks = formData.documentacao_apoio?.filter((_, i) => i !== index) || [];
+                                                                setFormData(prev => ({...prev, documentacao_apoio: newLinks.length > 0 ? newLinks : ['']}));
+                                                            }}
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setFormData(prev => ({
+                                                        ...prev, 
+                                                        documentacao_apoio: [...(prev.documentacao_apoio || []), '']
+                                                    }));
+                                                }}
+                                                className="mt-2"
+                                            >
+                                                <Plus className="h-4 w-4 mr-1" />
+                                                Adicionar Link
+                                            </Button>
+                                        </div>
                                     </div>
                                     
                                     <div>
@@ -648,28 +707,6 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                     Adicionar Ferramenta
                                 </Button>
                             </div>
-                            
-                            <Separator />
-                            
-                            <div>
-                                <h3 className="text-base font-medium mb-4">Controle</h3>
-                                <div>
-                                    <label className="text-sm font-medium">Nível de Autonomia</label>
-                                    <Select 
-                                        value={formData.nivel_autonomia}
-                                        onValueChange={(value) => setFormData(prev => ({...prev, nivel_autonomia: value}))}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="total">Totalmente Autônomo</SelectItem>
-                                            <SelectItem value="parcial">Requer Supervisão</SelectItem>
-                                            <SelectItem value="manual">Processo Manual</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
 
                         </TabsContent>
                     </Tabs>
@@ -804,17 +841,22 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                                             </div>
                                         )}
                                         
-                                        {projeto.documentacao_apoio && (
+                                        {(Array.isArray(projeto.documentacao_apoio) ? projeto.documentacao_apoio : projeto.documentacao_apoio ? [projeto.documentacao_apoio] : []).filter(link => link?.trim()).length > 0 && (
                                             <div>
                                                 <p className="text-sm text-muted-foreground mb-1">Documentação de Apoio</p>
-                                                <a 
-                                                    href={projeto.documentacao_apoio} 
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-sm text-blue-600 hover:underline"
-                                                >
-                                                    {projeto.documentacao_apoio}
-                                                </a>
+                                                <div className="space-y-1">
+                                                    {(Array.isArray(projeto.documentacao_apoio) ? projeto.documentacao_apoio : [projeto.documentacao_apoio]).filter(link => link?.trim()).map((link, index) => (
+                                                        <a 
+                                                            key={index}
+                                                            href={link} 
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-sm text-blue-600 hover:underline block"
+                                                        >
+                                                            {link}
+                                                        </a>
+                                                    ))}
+                                                </div>
                                             </div>
                                         )}
                                         
@@ -1169,7 +1211,9 @@ function ProjetoDashboard() {
                 
                 // === DOCUMENTAÇÃO ===
                 documentacao_tecnica: data.documentacao_tecnica?.trim() || '',
-                documentacao_apoio: data.documentacao_apoio?.trim() || '',
+                documentacao_apoio: Array.isArray(data.documentacao_apoio) 
+                    ? data.documentacao_apoio.filter(link => link?.trim()).join('\n') 
+                    : data.documentacao_apoio?.trim() || '',
                 licoes_aprendidas: data.licoes_aprendidas?.trim() || '',
                 proximos_passos: data.proximos_passos?.trim() || '',
                 data_revisao: data.data_revisao || null
