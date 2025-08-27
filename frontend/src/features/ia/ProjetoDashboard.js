@@ -24,7 +24,7 @@ import {
     Plus, Filter, Download, Edit, Archive,
     Copy, GitBranch, Eye, Coins,
     Clock, Users, Wrench, Check, X, Search,
-    Settings, Activity,
+    Settings, ChevronDown, Activity,
     FileText, Brain
 } from 'lucide-react';
 
