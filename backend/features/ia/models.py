@@ -429,11 +429,11 @@ class ProjetoIA(models.Model):
         null=True,
         verbose_name="Link da Documentação Técnica"
     )
-    documentacao_apoio = models.URLField(
+    documentacao_apoio = models.TextField(
         blank=True,
         null=True,
         verbose_name="Documentação de Apoio",
-        help_text="Link para documentação adicional que serve como apoio"
+        help_text="Links para documentação adicional que serve como apoio (separados por linha)"
     )
     licoes_aprendidas = models.TextField(
         blank=True,
