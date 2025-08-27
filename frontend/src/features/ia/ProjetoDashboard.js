@@ -1213,7 +1213,7 @@ function ProjetoDashboard() {
                 documentacao_tecnica: data.documentacao_tecnica?.trim() || '',
                 documentacao_apoio: Array.isArray(data.documentacao_apoio) 
                     ? data.documentacao_apoio.filter(link => link?.trim()).join('\n') 
-                    : data.documentacao_apoio?.trim() || '',
+                    : (typeof data.documentacao_apoio === 'string' ? data.documentacao_apoio.trim() : '') || '',
                 licoes_aprendidas: data.licoes_aprendidas?.trim() || '',
                 proximos_passos: data.proximos_passos?.trim() || '',
                 data_revisao: data.data_revisao || null
