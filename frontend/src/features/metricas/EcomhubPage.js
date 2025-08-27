@@ -22,7 +22,6 @@ import { Label } from '../../components/ui/label';
 import { Progress } from '../../components/ui/progress';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
-import { DateRangePicker } from '../../components/ui/date-range-picker';
 
 const PAISES = [
     { value: 'todos', label: 'Todos os Países' },
@@ -312,14 +311,36 @@ function EcomhubPage() {
                     </div>
 
                     <div className="flex items-end gap-4">
-                        {/* Date Range Picker com Calendar padrão do shadcn/ui */}
-                        <DateRangePicker
-                            dateRange={dateRange}
-                            onDateRangeChange={setDateRange}
-                            disabled={loadingProcessar}
-                            className="w-80"
-                            placeholder="Selecione o período..."
-                        />
+                        {/* Dois calendários separados - simples e funcional */}
+                        <div className="flex gap-4">
+                            <div className="flex flex-col gap-2">
+                                <Label className="text-sm font-medium">Data Inicial</Label>
+                                <input
+                                    type="date"
+                                    value={dateRange?.from ? dateRange.from.toISOString().split('T')[0] : ''}
+                                    onChange={(e) => {
+                                        const newDate = e.target.value ? new Date(e.target.value) : undefined;
+                                        setDateRange(prev => ({ ...prev, from: newDate }));
+                                    }}
+                                    disabled={loadingProcessar}
+                                    className="px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                />
+                            </div>
+                            
+                            <div className="flex flex-col gap-2">
+                                <Label className="text-sm font-medium">Data Final</Label>
+                                <input
+                                    type="date"
+                                    value={dateRange?.to ? dateRange.to.toISOString().split('T')[0] : ''}
+                                    onChange={(e) => {
+                                        const newDate = e.target.value ? new Date(e.target.value) : undefined;
+                                        setDateRange(prev => ({ ...prev, to: newDate }));
+                                    }}
+                                    disabled={loadingProcessar}
+                                    className="px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                />
+                            </div>
+                        </div>
                         
                         <Button
                             onClick={processarDados}
