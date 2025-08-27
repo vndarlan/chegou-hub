@@ -445,6 +445,69 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 </div>
                             </div>
                             
+                            <div className="mt-6">
+                                <h3 className="text-base font-medium mb-4">Breakdown de Horas (Opcional)</h3>
+                                <p className="text-xs text-muted-foreground mb-4">Detalhe o tempo investido em cada fase do projeto</p>
+                                
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm font-medium">Horas de Desenvolvimento</label>
+                                        <Input
+                                            type="number"
+                                            placeholder="0"
+                                            min={0}
+                                            step={0.5}
+                                            value={formData.horas_desenvolvimento || ''}
+                                            onChange={(e) => setFormData(prev => ({...prev, horas_desenvolvimento: parseFloat(e.target.value) || 0}))}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium">Horas de Testes</label>
+                                        <Input
+                                            type="number"
+                                            placeholder="0"
+                                            min={0}
+                                            step={0.5}
+                                            value={formData.horas_testes || ''}
+                                            onChange={(e) => setFormData(prev => ({...prev, horas_testes: parseFloat(e.target.value) || 0}))}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium">Horas de Documentação</label>
+                                        <Input
+                                            type="number"
+                                            placeholder="0"
+                                            min={0}
+                                            step={0.5}
+                                            value={formData.horas_documentacao || ''}
+                                            onChange={(e) => setFormData(prev => ({...prev, horas_documentacao: parseFloat(e.target.value) || 0}))}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium">Horas de Deploy/Configuração</label>
+                                        <Input
+                                            type="number"
+                                            placeholder="0"
+                                            min={0}
+                                            step={0.5}
+                                            value={formData.horas_deploy || ''}
+                                            onChange={(e) => setFormData(prev => ({...prev, horas_deploy: parseFloat(e.target.value) || 0}))}
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div className="mt-3 p-3 bg-muted/50 rounded-md">
+                                    <p className="text-sm text-muted-foreground">
+                                        <strong>Total de horas:</strong> {
+                                            (Number(formData.horas_desenvolvimento || 0) + 
+                                             Number(formData.horas_testes || 0) + 
+                                             Number(formData.horas_documentacao || 0) + 
+                                             Number(formData.horas_deploy || 0)).toFixed(1)
+                                        }h
+                                    </p>
+                                </div>
+                            </div>
+                            
                             <div>
                                 <label className="text-sm font-medium">Link do Projeto</label>
                                 <Input
@@ -497,7 +560,9 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                                     type="button"
                                                     variant="outline"
                                                     size="sm"
-                                                    onClick={() => {
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
                                                         const newFields = (formData.ferramentas_fields || []).filter((_, i) => i !== index);
                                                         setFormData(prev => ({
                                                             ...prev, 
@@ -516,7 +581,9 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                         type="button"
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
                                             const newFields = [...(formData.ferramentas_fields || []), ''];
                                             setFormData(prev => ({...prev, ferramentas_fields: newFields}));
                                         }}
@@ -634,9 +701,12 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                                 className="w-32"
                                             />
                                             <Button 
+                                                type="button"
                                                 variant="destructive" 
                                                 size="sm"
-                                                onClick={() => {
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
                                                     const novaLista = (formData.lista_ferramentas || []).filter((_, i) => i !== index);
                                                     setFormData(prev => ({...prev, lista_ferramentas: novaLista}));
                                                 }}
@@ -648,9 +718,12 @@ const ProjetoFormModal = ({ opened, onClose, projeto, onSave, opcoes, loading })
                                 </div>
                                 
                                 <Button 
+                                    type="button"
                                     variant="outline" 
                                     size="sm"
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
                                         setFormData(prev => ({
                                             ...prev, 
                                             lista_ferramentas: [...(prev.lista_ferramentas || []), { nome: '', valor: 0 }]
@@ -786,34 +859,36 @@ const ProjetoDetailModal = ({ opened, onClose, projeto, userPermissions }) => {
                             </Card>
                         </div>
 
-                        {/* BREAKDOWN DE HORAS */}
-                        <Card>
-                            <CardContent className="p-4">
-                                <h3 className="text-base font-medium mb-4">Breakdown de Horas</h3>
-                                <div className="grid grid-cols-5 gap-4">
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Total</p>
-                                        <p className="text-lg font-bold">{projeto.horas_totais}h</p>
+                        {/* BREAKDOWN DE HORAS - só mostra se há dados */}
+                        {(projeto.horas_desenvolvimento > 0 || projeto.horas_testes > 0 || projeto.horas_documentacao > 0 || projeto.horas_deploy > 0) && (
+                            <Card>
+                                <CardContent className="p-4">
+                                    <h3 className="text-base font-medium mb-4">Breakdown de Horas</h3>
+                                    <div className="grid grid-cols-5 gap-4">
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Total</p>
+                                            <p className="text-lg font-bold">{projeto.horas_totais}h</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Desenvolvimento</p>
+                                            <p className="text-sm">{projeto.horas_desenvolvimento || 0}h</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Testes</p>
+                                            <p className="text-sm">{projeto.horas_testes || 0}h</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Documentação</p>
+                                            <p className="text-sm">{projeto.horas_documentacao || 0}h</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Deploy</p>
+                                            <p className="text-sm">{projeto.horas_deploy || 0}h</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Desenvolvimento</p>
-                                        <p className="text-sm">{projeto.horas_desenvolvimento || 0}h</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Testes</p>
-                                        <p className="text-sm">{projeto.horas_testes || 0}h</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Documentação</p>
-                                        <p className="text-sm">{projeto.horas_documentacao || 0}h</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Deploy</p>
-                                        <p className="text-sm">{projeto.horas_deploy || 0}h</p>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* INFORMAÇÕES ADICIONAIS */}
                         <div className="grid grid-cols-2 gap-4">
@@ -1786,7 +1861,6 @@ function ProjetoDashboard() {
                                                     sideOffset={4}
                                                     avoidCollisions={true}
                                                     collisionPadding={10}
-                                                    portal={true}
                                                 >
                                                     <DropdownMenuItem onClick={() => {
                                                         if (!opcoes) {
