@@ -1440,21 +1440,34 @@ function ProjetoDashboard() {
                 </div>
                 
                 <div className="flex items-center gap-4">
-                    {/* Estatísticas minimalistas */}
-                    {stats && (
-                        <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border">
-                                <Brain className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="text-xs font-medium text-muted-foreground">Total:</span>
-                                <span className="text-xs font-semibold text-foreground">{stats.total_projetos}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border">
-                                <Activity className="h-3.5 w-3.5 text-green-600" />
-                                <span className="text-xs font-medium text-muted-foreground">Ativos:</span>
-                                <span className="text-xs font-semibold text-foreground">{stats.projetos_ativos}</span>
-                            </div>
+                    {/* Estatísticas completas */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border">
+                            <Brain className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="text-xs font-medium text-muted-foreground">Total:</span>
+                            <span className="text-xs font-semibold text-foreground">{projetos?.length || 0}</span>
                         </div>
-                    )}
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border">
+                            <Activity className="h-3.5 w-3.5 text-green-600" />
+                            <span className="text-xs font-medium text-muted-foreground">Ativos:</span>
+                            <span className="text-xs font-semibold text-foreground">{projetos?.filter(p => p.status === 'ativo').length || 0}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border">
+                            <Hammer className="h-3.5 w-3.5 text-blue-600" />
+                            <span className="text-xs font-medium text-muted-foreground">Em Construção:</span>
+                            <span className="text-xs font-semibold text-foreground">{projetos?.filter(p => p.status === 'em_construcao').length || 0}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border">
+                            <Wrench className="h-3.5 w-3.5 text-yellow-600" />
+                            <span className="text-xs font-medium text-muted-foreground">Manutenção:</span>
+                            <span className="text-xs font-semibold text-foreground">{projetos?.filter(p => p.status === 'manutencao').length || 0}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border">
+                            <Archive className="h-3.5 w-3.5 text-gray-600" />
+                            <span className="text-xs font-medium text-muted-foreground">Arquivados:</span>
+                            <span className="text-xs font-semibold text-foreground">{projetos?.filter(p => p.status === 'arquivado').length || 0}</span>
+                        </div>
+                    </div>
                     
                     <Button
                         size="sm"
@@ -1481,8 +1494,9 @@ function ProjetoDashboard() {
 
             {/* Filtros minimalistas */}
             <div className="mb-4 p-3 rounded-lg border border-border bg-muted/30">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                    <div className="col-span-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div>
+                        <div className="text-xs text-muted-foreground mb-1.5">Buscar</div>
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
