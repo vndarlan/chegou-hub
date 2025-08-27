@@ -13,7 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { Progress } from '../../components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Alert, AlertDescription } from '../../components/ui/alert';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 import { Separator } from '../../components/ui/separator';
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../../components/ui/pagination';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
@@ -25,7 +24,7 @@ import {
     Plus, Filter, Download, Edit, Archive,
     Copy, GitBranch, Eye, Coins,
     Clock, Users, Wrench, Check, X, Search,
-    Settings, ChevronDown, Activity,
+    Settings, Activity,
     FileText, Brain
 } from 'lucide-react';
 
@@ -1794,71 +1793,91 @@ function ProjetoDashboard() {
                                             <span className="text-xs text-muted-foreground">({projeto.dias_sem_atualizacao} dias)</span>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="relative overflow-visible">
-                                        <div className="flex gap-1 relative">
-                                            <Button variant="ghost" size="sm" onClick={() => handleViewProjeto(projeto)}>
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="sm" onClick={() => handleEditProjeto(projeto)}>
-                                                <Edit className="h-4 w-4" />
+                                    <TableCell>
+                                        <div className="flex gap-1">
+                                            {/* Visualizar */}
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                onClick={() => handleViewProjeto(projeto)}
+                                                title="Visualizar projeto"
+                                                className="hover:bg-blue-50"
+                                            >
+                                                <Eye className="h-4 w-4 text-blue-600" />
                                             </Button>
                                             
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="sm">
-                                                        <ChevronDown className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent 
-                                                    className="w-56 z-[9999] bg-popover border shadow-lg table-dropdown-content" 
-                                                    align="end" 
-                                                    side="bottom"
-                                                    sideOffset={4}
-                                                    avoidCollisions={true}
-                                                    collisionPadding={10}
+                                            {/* Editar */}
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                onClick={() => handleEditProjeto(projeto)}
+                                                title="Editar projeto"
+                                                className="hover:bg-green-50"
+                                            >
+                                                <Edit className="h-4 w-4 text-green-600" />
+                                            </Button>
+                                            
+                                            {/* Nova Versão */}
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                onClick={() => {
+                                                    setSelectedProjeto(projeto);
+                                                    setVersionModalOpen(true);
+                                                }}
+                                                title="Nova versão"
+                                                className="hover:bg-purple-50"
+                                            >
+                                                <GitBranch className="h-4 w-4 text-purple-600" />
+                                            </Button>
+                                            
+                                            {/* Duplicar */}
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                onClick={() => handleDuplicateProjeto(projeto)}
+                                                title="Duplicar projeto"
+                                                className="hover:bg-orange-50"
+                                            >
+                                                <Copy className="h-4 w-4 text-orange-600" />
+                                            </Button>
+                                            
+                                            {/* Ações de Status - mostram apenas as disponíveis */}
+                                            {projeto.status !== 'ativo' && (
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    onClick={() => handleChangeStatus(projeto, 'ativo')}
+                                                    title="Ativar projeto"
+                                                    className="hover:bg-emerald-50"
                                                 >
-                                                    <DropdownMenuItem onClick={() => {
-                                                        setSelectedProjeto(projeto);
-                                                        setVersionModalOpen(true);
-                                                    }}>
-                                                        <GitBranch className="mr-2 h-4 w-4" />
-                                                        Nova Versão
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleDuplicateProjeto(projeto)}>
-                                                        <Copy className="mr-2 h-4 w-4" />
-                                                        Duplicar
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuLabel>Alterar Status</DropdownMenuLabel>
-                                                    {projeto.status !== 'ativo' && (
-                                                        <DropdownMenuItem 
-                                                            onClick={() => handleChangeStatus(projeto, 'ativo')}
-                                                            className="text-green-600"
-                                                        >
-                                                            <Activity className="mr-2 h-4 w-4" />
-                                                            Ativar
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                    {projeto.status !== 'manutencao' && (
-                                                        <DropdownMenuItem 
-                                                            onClick={() => handleChangeStatus(projeto, 'manutencao')}
-                                                            className="text-yellow-600"
-                                                        >
-                                                            <Wrench className="mr-2 h-4 w-4" />
-                                                            Em Manutenção
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                    {projeto.status !== 'arquivado' && (
-                                                        <DropdownMenuItem 
-                                                            onClick={() => handleChangeStatus(projeto, 'arquivado')}
-                                                            className="text-orange-600"
-                                                        >
-                                                            <Archive className="mr-2 h-4 w-4" />
-                                                            Arquivar
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
+                                                    <Activity className="h-4 w-4 text-emerald-600" />
+                                                </Button>
+                                            )}
+                                            
+                                            {projeto.status !== 'manutencao' && (
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    onClick={() => handleChangeStatus(projeto, 'manutencao')}
+                                                    title="Colocar em manutenção"
+                                                    className="hover:bg-yellow-50"
+                                                >
+                                                    <Wrench className="h-4 w-4 text-yellow-600" />
+                                                </Button>
+                                            )}
+                                            
+                                            {projeto.status !== 'arquivado' && (
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    onClick={() => handleChangeStatus(projeto, 'arquivado')}
+                                                    title="Arquivar projeto"
+                                                    className="hover:bg-red-50"
+                                                >
+                                                    <Archive className="h-4 w-4 text-red-600" />
+                                                </Button>
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>
