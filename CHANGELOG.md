@@ -5,6 +5,44 @@ Todas as mudanças deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [v1.1.0] - 27/08/2025
+
+### ✨ Novidades
+- **[Projetos IA]** Novo status "Em Construção" com ícone martelo azul
+- **[Projetos IA]** Campo "Documentação de Apoio" agora suporta múltiplos links separados por vírgula
+- **[Projetos IA]** Seletor de moeda (BRL/USD) para custos de APIs e ferramentas
+- **[Status Tracking]** Nova página EcomHub Status para monitoramento de pedidos com problemas
+- **[Detector IP]** Sistema anti-fraude para identificação de IPs duplicados suspeitos
+- **[PrimeCOD]** Integração completa com métricas de efetividade do fornecedor
+
+### 🔧 Melhorias
+- **[Projetos IA]** Tipos de projeto simplificados para 4 categorias principais (Automação, ChatBot, Agente, Outros)
+- **[Projetos IA]** Campo "Nível de Autonomia" reorganizado para aba Detalhes
+- **[Projetos IA]** Dashboard com contadores em tempo real de todos os status
+- **[Projetos IA]** Layout do campo de busca melhorado e alinhado
+- **[Projetos IA]** Interface de ações da tabela reformulada para melhor usabilidade
+- **[Projetos IA]** Remoção da seção "Breakdown de Horas" do dashboard
+- **[Sistema]** Centralização de funcionalidades - página Relatórios de Projetos IA removida
+- **[Performance]** Otimizações críticas de timeout e performance para lidar com grandes volumes de dados
+- **[Interface]** Múltiplas melhorias de UX e layout responsivo
+
+### 🐛 Correções
+- **[Projetos IA]** Corrigido erro 500 ao salvar projetos com múltiplos links de documentação
+- **[Projetos IA]** Corrigida visualização adequada de múltiplos links de documentação de apoio
+- **[Projetos IA]** Corrigida exibição e salvamento de dados financeiros
+- **[Projetos IA]** Corrigido problema de campos faltantes em abas Detalhes/Financeiro
+- **[Processamento]** Corrigido bug crítico na detecção de pedidos duplicados
+- **[Sistema]** Corrigidos múltiplos erros 500 e problemas de autenticação
+- **[Sistema]** Corrigidos problemas críticos de CORS e CSRF em produção
+- **[Performance]** Corrigidos timeouts em operações com grande volume de dados
+- **[Interface]** Corrigidos erros de hidratação HTML e problemas de React DOM
+
+### ⚠️ Importante
+- **Remoção**: Página "Relatórios de Projetos IA" foi removida - funcionalidades centralizadas na página principal
+- **Campos Removidos**: "Usuários Impactados", "Ferramentas/Tecnologias", "Custo/Hora Empresa" removidos do formulário
+- **Migração**: Projetos existentes mantêm compatibilidade com novos tipos e status
+- **Performance**: Sistema otimizado para lidar com milhares de registros sem timeout
+
 ## [v1.0.0] - 14/08/2025
 
 ### ✨ Novidades
