@@ -267,11 +267,14 @@ class DataSyncViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([])  # Permitir acesso sem autenticação para teste de conectividade
 def validate_api_key(request):
     """
     Endpoint para validar a API key OpenAI
     GET /api/monitoring/validate-key/
+    
+    Este endpoint pode ser usado sem autenticação para testar a conectividade
+    com a API OpenAI. Usado principalmente para diagnósticos e configuração inicial.
     """
     try:
         from .services import OpenAIAPIService

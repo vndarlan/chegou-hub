@@ -1,11 +1,15 @@
 // frontend/src/features/ia/OpenAIAnalytics.js
 // 
-// CORREÇÕES IMPLEMENTADAS:
+// CORREÇÕES IMPLEMENTADAS CONTRA TIMESTAMPS FUTUROS:
 // - Validação rigorosa de datas para prevenir timestamps futuras
 // - Logs de debug para monitorar geração de datas e timestamps Unix
 // - Tratamento específico para erro 400 Bad Request da API OpenAI
 // - Uso da função getCSRFToken padronizada do projeto
 // - Validação de datas futuras em todas as funções (loadAnalytics, sync, export)
+// - Forçar endDate para ser no máximo a data atual com Math.min()
+// - Validação adicional de timestamps Unix para evitar valores futuros
+// - Logs detalhados com timestamps readable para debug
+// - Correção aplicada em: loadAnalyticsData, handleSyncData, handleExportCSV, handleExportJSON
 //
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
@@ -64,6 +68,35 @@ const CHART_COLORS = [
 ];
 
 const OpenAIAnalytics = () => {
+    // Função utilitária para calcular datas seguras (não futuras)
+    const calculateSafeDates = (daysBack) => {
+        const now = new Date();
+        const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startDate = new Date(endDate);
+        startDate.setDate(endDate.getDate() - daysBack);
+        
+        // Garantir que endDate não seja futuro
+        const safeEndDate = new Date(Math.min(endDate.getTime(), now.getTime()));
+        
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const safeEndDateStr = safeEndDate.toISOString().split('T')[0];
+        
+        const startTimestamp = Math.floor(startDate.getTime() / 1000);
+        const endTimestamp = Math.floor(safeEndDate.getTime() / 1000);
+        const nowTimestamp = Math.floor(now.getTime() / 1000);
+        
+        return {
+            startDate,
+            endDate: safeEndDate,
+            startDateStr,
+            endDateStr: safeEndDateStr,
+            startTimestamp,
+            endTimestamp,
+            nowTimestamp,
+            isValid: endTimestamp <= nowTimestamp
+        };
+    };
+
     // Estados
     const [loading, setLoading] = useState(true);
     const [syncing, setSyncing] = useState(false);
@@ -147,14 +180,23 @@ const OpenAIAnalytics = () => {
             const startDateStr = startDate.toISOString().split('T')[0];
             const endDateStr = endDate.toISOString().split('T')[0];
             
+            // Calcular timestamps Unix corretamente (em UTC)
+            const startTimestamp = Math.floor(startDate.getTime() / 1000);
+            const endTimestamp = Math.floor(endDate.getTime() / 1000);
+            const nowTimestamp = Math.floor(now.getTime() / 1000);
+            
             // Log das datas para debug
             console.log('📅 Datas calculadas:', {
                 selectedPeriod,
                 startDate: startDateStr,
                 endDate: endDateStr,
                 today: todayStr,
-                startTimestamp: Math.floor(startDate.getTime() / 1000),
-                endTimestamp: Math.floor(endDate.getTime() / 1000)
+                startTimestamp,
+                endTimestamp,
+                nowTimestamp,
+                startDateReadable: new Date(startTimestamp * 1000).toISOString(),
+                endDateReadable: new Date(endTimestamp * 1000).toISOString(),
+                nowReadable: new Date(nowTimestamp * 1000).toISOString()
             });
             
             // Validação extra: não permitir datas futuras
@@ -163,9 +205,33 @@ const OpenAIAnalytics = () => {
                 setError('Erro de data: não é possível buscar dados futuros');
                 return;
             }
+            
+            // Validação adicional para timestamps futuros
+            if (endTimestamp > nowTimestamp) {
+                console.error('❌ Timestamp final é futuro:', {
+                    endTimestamp,
+                    nowTimestamp,
+                    endDate: new Date(endTimestamp * 1000).toISOString(),
+                    now: new Date(nowTimestamp * 1000).toISOString()
+                });
+                setError('Erro de timestamp: timestamp final não pode ser futuro');
+                return;
+            }
+            
+            // Forçar que endDate seja no máximo hoje
+            const safeEndDate = new Date(Math.min(endDate.getTime(), now.getTime()));
+            const safeEndDateStr = safeEndDate.toISOString().split('T')[0];
+            const safeEndTimestamp = Math.floor(safeEndDate.getTime() / 1000);
+            
+            console.log('🔒 Datas seguras:', {
+                originalEndDate: endDateStr,
+                safeEndDate: safeEndDateStr,
+                originalEndTimestamp: endTimestamp,
+                safeEndTimestamp: safeEndTimestamp
+            });
 
             params.append('start_date', startDateStr);
-            params.append('end_date', endDateStr);
+            params.append('end_date', safeEndDateStr);
 
             // Adicionar API keys selecionadas
             selectedApiKeys.forEach(keyId => {
@@ -272,17 +338,40 @@ const OpenAIAnalytics = () => {
                 return;
             }
             
-            // Validação de datas futuras
+            // Calcular datas com validação rigorosa contra timestamps futuros
             const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const startDate = new Date(endDate);
             startDate.setDate(endDate.getDate() - daysBack);
             
+            // Garantir que endDate não seja futuro
+            const safeEndDate = new Date(Math.min(endDate.getTime(), now.getTime()));
+            const startTimestamp = Math.floor(startDate.getTime() / 1000);
+            const endTimestamp = Math.floor(safeEndDate.getTime() / 1000);
+            const nowTimestamp = Math.floor(now.getTime() / 1000);
+            
             console.log('🔄 Sincronizando com datas:', {
                 daysBack,
                 startDate: startDate.toISOString(),
-                endDate: endDate.toISOString(),
-                now: now.toISOString()
+                endDate: safeEndDate.toISOString(),
+                now: now.toISOString(),
+                startTimestamp,
+                endTimestamp,
+                nowTimestamp,
+                timestampValidation: {
+                    endIsNotFuture: endTimestamp <= nowTimestamp,
+                    startIsBeforeEnd: startTimestamp <= endTimestamp
+                }
             });
+            
+            // Validação final de timestamps
+            if (endTimestamp > nowTimestamp) {
+                toast({
+                    title: "❌ Erro de Data",
+                    description: "Erro interno: timestamp calculado é futuro. Contate o suporte.",
+                    variant: "destructive",
+                });
+                return;
+            }
 
             toast({
                 title: "🔄 Sincronizando...",
@@ -366,28 +455,43 @@ const OpenAIAnalytics = () => {
         try {
             const params = new URLSearchParams();
             
-            // Calcular datas com validação
+            // Calcular datas com validação rigorosa contra timestamps futuros
             const now = new Date();
             const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const startDate = new Date(endDate);
             startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
             
+            // Garantir que endDate não seja futuro
+            const safeEndDate = new Date(Math.min(endDate.getTime(), now.getTime()));
             const startDateStr = startDate.toISOString().split('T')[0];
-            const endDateStr = endDate.toISOString().split('T')[0];
+            const safeEndDateStr = safeEndDate.toISOString().split('T')[0];
             
-            // Validação de datas futuras
-            const todayStr = new Date().toISOString().split('T')[0];
-            if (endDateStr > todayStr) {
+            const startTimestamp = Math.floor(startDate.getTime() / 1000);
+            const endTimestamp = Math.floor(safeEndDate.getTime() / 1000);
+            const nowTimestamp = Math.floor(now.getTime() / 1000);
+            
+            // Log para debug de export
+            console.log('📤 Export CSV - Datas calculadas:', {
+                type,
+                startDate: startDateStr,
+                safeEndDate: safeEndDateStr,
+                startTimestamp,
+                endTimestamp,
+                nowTimestamp
+            });
+            
+            // Validação de timestamps futuras
+            if (endTimestamp > nowTimestamp) {
                 toast({
-                    title: "❌ Erro de Data",
-                    description: "Não é possível exportar dados futuros.",
+                    title: "❌ Erro de Timestamp",
+                    description: "Erro interno: timestamp calculado é futuro.",
                     variant: "destructive",
                 });
                 return;
             }
             
             params.append('start_date', startDateStr);
-            params.append('end_date', endDateStr);
+            params.append('end_date', safeEndDateStr);
             
             const url = `${API_BASE}/export/${type}/csv/?${params.toString()}`;
             
@@ -401,7 +505,7 @@ const OpenAIAnalytics = () => {
             const downloadUrl = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = downloadUrl;
-            link.download = `openai_${type}_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.csv`;
+            link.download = `openai_${type}_${startDate.toISOString().split('T')[0]}_${safeEndDate.toISOString().split('T')[0]}.csv`;
             link.style.display = 'none'; // Ocultar completamente
             
             // Trigger download sem modificar DOM
@@ -430,28 +534,42 @@ const OpenAIAnalytics = () => {
         try {
             const params = new URLSearchParams();
             
-            // Calcular datas com validação
+            // Calcular datas com validação rigorosa contra timestamps futuros
             const now = new Date();
             const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const startDate = new Date(endDate);
             startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
             
+            // Garantir que endDate não seja futuro
+            const safeEndDate = new Date(Math.min(endDate.getTime(), now.getTime()));
             const startDateStr = startDate.toISOString().split('T')[0];
-            const endDateStr = endDate.toISOString().split('T')[0];
+            const safeEndDateStr = safeEndDate.toISOString().split('T')[0];
             
-            // Validação de datas futuras
-            const todayStr = new Date().toISOString().split('T')[0];
-            if (endDateStr > todayStr) {
+            const startTimestamp = Math.floor(startDate.getTime() / 1000);
+            const endTimestamp = Math.floor(safeEndDate.getTime() / 1000);
+            const nowTimestamp = Math.floor(now.getTime() / 1000);
+            
+            // Log para debug de export JSON
+            console.log('📤 Export JSON - Datas calculadas:', {
+                startDate: startDateStr,
+                safeEndDate: safeEndDateStr,
+                startTimestamp,
+                endTimestamp,
+                nowTimestamp
+            });
+            
+            // Validação de timestamps futuras
+            if (endTimestamp > nowTimestamp) {
                 toast({
-                    title: "❌ Erro de Data",
-                    description: "Não é possível exportar dados futuros.",
+                    title: "❌ Erro de Timestamp",
+                    description: "Erro interno: timestamp calculado é futuro.",
                     variant: "destructive",
                 });
                 return;
             }
             
             params.append('start_date', startDateStr);
-            params.append('end_date', endDateStr);
+            params.append('end_date', safeEndDateStr);
             
             const url = `${API_BASE}/export/summary/json/?${params.toString()}`;
             
@@ -463,7 +581,7 @@ const OpenAIAnalytics = () => {
             const downloadUrl = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = downloadUrl;
-            link.download = `openai_summary_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.json`;
+            link.download = `openai_summary_${startDate.toISOString().split('T')[0]}_${safeEndDate.toISOString().split('T')[0]}.json`;
             link.style.display = 'none'; // Ocultar completamente
             
             // Trigger download sem modificar DOM
