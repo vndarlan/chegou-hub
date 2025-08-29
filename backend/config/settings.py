@@ -23,6 +23,9 @@ else:
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'local-dev-insecure-fallback-key')
 
+# Chave de criptografia para WhatsApp Business API
+WHATSAPP_ENCRYPTION_KEY = os.getenv('WHATSAPP_ENCRYPTION_KEY')
+
 # --- DEBUG ---
 DEBUG_ENV_VAR = os.getenv('DEBUG', 'True' if not IS_RAILWAY_DEPLOYMENT else 'False')
 DEBUG = DEBUG_ENV_VAR.lower() == 'true'
