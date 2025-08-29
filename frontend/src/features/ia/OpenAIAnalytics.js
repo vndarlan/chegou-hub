@@ -169,11 +169,18 @@ const OpenAIAnalytics = () => {
         try {
             const params = new URLSearchParams();
             
-            // Calcular datas com validação rigorosa
+            // CORREÇÃO CRÍTICA: Calcular datas forçando ano 2024 para evitar timestamps futuros na API OpenAI
             const now = new Date();
-            const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Limpa horas
-            const startDate = new Date(endDate);
+            let endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            let startDate = new Date(endDate);
             startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+
+            // FORÇA ANO 2024 se estivermos em 2025+ (API OpenAI não aceita datas futuras)
+            if (endDate.getFullYear() > 2024) {
+                endDate = new Date(2024, 11, 31); // 31/12/2024
+                startDate = new Date(endDate);
+                startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+            }
 
             // Validação para garantir que as datas não sejam futuras
             const todayStr = new Date().toISOString().split('T')[0];
@@ -338,10 +345,17 @@ const OpenAIAnalytics = () => {
                 return;
             }
             
-            // Calcular datas com validação rigorosa contra timestamps futuros
-            const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const startDate = new Date(endDate);
+            // CORREÇÃO CRÍTICA: Calcular datas forçando ano 2024 para evitar timestamps futuros na API OpenAI
+            let endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            let startDate = new Date(endDate);
             startDate.setDate(endDate.getDate() - daysBack);
+            
+            // FORÇA ANO 2024 se estivermos em 2025+ (API OpenAI não aceita datas futuras)
+            if (endDate.getFullYear() > 2024) {
+                endDate = new Date(2024, 11, 31); // 31/12/2024
+                startDate = new Date(endDate);
+                startDate.setDate(endDate.getDate() - daysBack);
+            }
             
             // Garantir que endDate não seja futuro
             const safeEndDate = new Date(Math.min(endDate.getTime(), now.getTime()));
@@ -455,11 +469,18 @@ const OpenAIAnalytics = () => {
         try {
             const params = new URLSearchParams();
             
-            // Calcular datas com validação rigorosa contra timestamps futuros
+            // CORREÇÃO CRÍTICA: Calcular datas forçando ano 2024 para evitar timestamps futuros na API OpenAI
             const now = new Date();
-            const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const startDate = new Date(endDate);
+            let endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            let startDate = new Date(endDate);
             startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+            
+            // FORÇA ANO 2024 se estivermos em 2025+ (API OpenAI não aceita datas futuras)
+            if (endDate.getFullYear() > 2024) {
+                endDate = new Date(2024, 11, 31); // 31/12/2024
+                startDate = new Date(endDate);
+                startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+            }
             
             // Garantir que endDate não seja futuro
             const safeEndDate = new Date(Math.min(endDate.getTime(), now.getTime()));
@@ -534,11 +555,18 @@ const OpenAIAnalytics = () => {
         try {
             const params = new URLSearchParams();
             
-            // Calcular datas com validação rigorosa contra timestamps futuros
+            // CORREÇÃO CRÍTICA: Calcular datas forçando ano 2024 para evitar timestamps futuros na API OpenAI
             const now = new Date();
-            const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const startDate = new Date(endDate);
+            let endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            let startDate = new Date(endDate);
             startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+            
+            // FORÇA ANO 2024 se estivermos em 2025+ (API OpenAI não aceita datas futuras)
+            if (endDate.getFullYear() > 2024) {
+                endDate = new Date(2024, 11, 31); // 31/12/2024
+                startDate = new Date(endDate);
+                startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+            }
             
             // Garantir que endDate não seja futuro
             const safeEndDate = new Date(Math.min(endDate.getTime(), now.getTime()));
