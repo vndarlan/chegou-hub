@@ -44,7 +44,7 @@ function ControleEstoquePage() {
     const [novoProduto, setNovoProduto] = useState({ 
         sku: '', 
         nome: '', 
-        fornecedor: '',
+        fornecedor: 'N1',
         estoque_inicial: 0, 
         estoque_minimo: 5
     });
@@ -121,9 +121,9 @@ function ControleEstoquePage() {
                 params: { loja_id: lojaSelecionada }
             });
             
-            if (response.data.success) {
-                setProdutos(response.data.produtos || []);
-                showNotification(`${response.data.produtos?.length || 0} produtos carregados`);
+            if (response.data && Array.isArray(response.data)) {
+                setProdutos(response.data);
+                showNotification(`${response.data.length || 0} produtos carregados`);
             } else {
                 showNotification(response.data.error || 'Erro ao carregar produtos', 'error');
             }
@@ -144,8 +144,8 @@ function ControleEstoquePage() {
                 params: { loja_id: lojaSelecionada }
             });
             
-            if (response.data.success) {
-                setAlertas(response.data.alertas || []);
+            if (response.data && Array.isArray(response.data)) {
+                setAlertas(response.data);
             } else {
                 console.error('Erro ao carregar alertas:', response.data.error);
             }
@@ -164,8 +164,8 @@ function ControleEstoquePage() {
             
             const response = await axios.get('/estoque/movimentacoes/', { params });
             
-            if (response.data.success) {
-                setMovimentacoes(response.data.movimentacoes || []);
+            if (response.data && Array.isArray(response.data)) {
+                setMovimentacoes(response.data);
             } else {
                 showNotification(response.data.error || 'Erro ao carregar movimentações', 'error');
             }
@@ -192,7 +192,7 @@ function ControleEstoquePage() {
         try {
             const dados = {
                 ...novoProduto,
-                loja_id: lojaSelecionada,
+                loja_config: lojaSelecionada,
                 estoque_inicial: parseInt(novoProduto.estoque_inicial) || 0,
                 estoque_minimo: parseInt(novoProduto.estoque_minimo) || 5
             };
@@ -201,12 +201,12 @@ function ControleEstoquePage() {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
 
-            if (response.data.success) {
+            if (response.data && response.data.id) {
                 showNotification('Produto adicionado com sucesso!');
                 setNovoProduto({ 
                     sku: '', 
                     nome: '', 
-                    fornecedor: '',
+                    fornecedor: 'N1',
                     estoque_inicial: 0, 
                     estoque_minimo: 5
                 });
@@ -240,7 +240,7 @@ function ControleEstoquePage() {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
 
-            if (response.data.success) {
+            if (response.data && response.data.id) {
                 showNotification('Produto atualizado com sucesso!');
                 setShowEditProduto(false);
                 setSelectedProduto(null);
@@ -273,19 +273,17 @@ function ControleEstoquePage() {
         setAjustandoEstoque(true);
         try {
             const dados = {
-                produto_id: selectedProduto.id,
-                loja_id: lojaSelecionada,
-                tipo: ajusteEstoque.tipo,
+                produto: selectedProduto.id,
+                tipo_movimento: ajusteEstoque.tipo === 'adicionar' ? 'entrada' : 'saida',
                 quantidade: parseInt(ajusteEstoque.quantidade),
-                motivo: ajusteEstoque.motivo,
-                observacoes: ajusteEstoque.observacoes || ''
+                observacoes: `${ajusteEstoque.motivo}${ajusteEstoque.observacoes ? ': ' + ajusteEstoque.observacoes : ''}`
             };
 
             const response = await axios.post('/estoque/movimentacoes/', dados, {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
 
-            if (response.data.success) {
+            if (response.data && response.data.id) {
                 const acao = ajusteEstoque.tipo === 'adicionar' ? 'adicionado' : 'removido';
                 showNotification(`Estoque ${acao} com sucesso!`);
                 setAjusteEstoque({
@@ -319,7 +317,7 @@ function ControleEstoquePage() {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
 
-            if (response.data.success) {
+            if (response.status === 204) {
                 showNotification('Produto deletado com sucesso!');
                 await loadProdutos();
                 await loadAlertas();
