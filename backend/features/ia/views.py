@@ -1473,3 +1473,34 @@ def fix_whatsapp_tokens_temp(request):
             'success': False,
             'error': f'ERRO ao limpar tokens: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# VIEW TEMPORÁRIA - APLICAR MIGRATIONS
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def apply_migrations_temp(request):
+    """View temporária para aplicar migrations WhatsApp Business"""
+    
+    try:
+        from django.core.management import call_command
+        from io import StringIO
+        
+        # Capturar saída
+        output = StringIO()
+        
+        # Aplicar migrations da app ia
+        call_command('migrate', 'ia', stdout=output, stderr=output)
+        
+        output_text = output.getvalue()
+        
+        return Response({
+            'success': True,
+            'message': 'Migrations aplicadas com sucesso!',
+            'output': output_text
+        })
+
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'ERRO ao aplicar migrations: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

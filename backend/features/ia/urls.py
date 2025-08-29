@@ -30,6 +30,7 @@ urlpatterns = [
     path('dashboard-whatsapp-stats/', views.dashboard_whatsapp_stats, name='dashboard-whatsapp-stats'),
     path('verificar-mudancas-qualidade/', views.verificar_mudancas_qualidade, name='verificar-mudancas-qualidade'),
     
-    # === ENDPOINT TEMPORÁRIO - REMOVER APÓS USO ===
+    # === ENDPOINTS TEMPORÁRIOS - REMOVER APÓS USO ===
     path('fix-whatsapp-tokens-temp/', views.fix_whatsapp_tokens_temp, name='fix-whatsapp-tokens-temp'),
+    path('apply-migrations-temp/', views.apply_migrations_temp, name='apply-migrations-temp'),
 ]
