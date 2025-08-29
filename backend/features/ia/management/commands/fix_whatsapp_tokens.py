@@ -33,14 +33,14 @@ class Command(BaseCommand):
 
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f'✅ {count} tokens limpos com sucesso!\n'
-                        '⚠️  AÇÃO NECESSÁRIA: Re-cadastre o access token de todas as Business Managers\n'
+                        f'SUCESSO: {count} tokens limpos com sucesso!\n'
+                        'ACAO NECESSARIA: Re-cadastre o access token de todas as Business Managers\n'
                         'no painel administrativo para que funcionem novamente.'
                     )
                 )
 
         except Exception as e:
             self.stdout.write(
-                self.style.ERROR(f'❌ Erro ao limpar tokens: {str(e)}')
+                self.style.ERROR(f'ERRO ao limpar tokens: {str(e)}')
             )
             raise

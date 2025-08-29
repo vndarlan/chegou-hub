@@ -128,7 +128,7 @@ MIDDLEWARE = [
 # Remover middleware CSRF duplicado se DISABLE_CSRF estiver ativo
 if DEBUG and os.getenv('DISABLE_CSRF', 'False').lower() == 'true':
     MIDDLEWARE = [m for m in MIDDLEWARE if 'CsrfViewMiddleware' not in m]
-    print("🚨 CSRF TOTALMENTE DESABILITADO - APENAS PARA TESTE!")
+    print("CSRF TOTALMENTE DESABILITADO - APENAS PARA TESTE!")
 
 ROOT_URLCONF = 'config.urls'
 
@@ -419,7 +419,7 @@ if DEBUG and os.getenv('DISABLE_CSRF', 'False').lower() == 'true':
         "https://chegouhubteste.up.railway.app",
         "http://chegouhubteste.up.railway.app"
     ])
-    print("🔧 URLs de teste adicionadas ao CORS automaticamente!")
+    print("URLs de teste adicionadas ao CORS automaticamente!")
 
 print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
 print(f"CORS_ALLOWED_ORIGINS_ENV lida: '{CORS_ALLOWED_ORIGINS_ENV}'")
@@ -521,10 +521,10 @@ def create_test_superuser():
                 print("   Password: 123456")
                 print("   Email: admin@teste.com")
             else:
-                print("ℹ️  Superusuário já existe no banco de teste")
+                print("INFO: Superusuário já existe no banco de teste")
                 
         except Exception as e:
-            print(f"⚠️  Erro ao criar superusuário automático: {e}")
+            print(f"AVISO: Erro ao criar superusuário automático: {e}")
 
 # Executar após as configurações do Django estarem prontas
 import django
