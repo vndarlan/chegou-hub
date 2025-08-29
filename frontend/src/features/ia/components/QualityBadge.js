@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '../../../components/ui/badge';
 import { CheckCircle, AlertTriangle, XCircle, Clock } from 'lucide-react';
 
 const QualityBadge = ({ quality, className = "" }) => {

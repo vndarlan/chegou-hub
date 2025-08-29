@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Alert, AlertDescription } from '../../components/ui/alert';
 import { 
   Phone, 
   Building2, 
@@ -12,7 +12,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import axios from 'axios';
-import { getCSRFToken } from '@/utils/csrf';
+import { getCSRFToken } from '../../utils/csrf';
 
 // Importar componentes criados
 import BusinessManagerCard from './components/BusinessManagerCard';
