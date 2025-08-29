@@ -9,12 +9,12 @@ from .models import ProdutoEstoque, MovimentacaoEstoque, AlertaEstoque
 @admin.register(ProdutoEstoque)
 class ProdutoEstoqueAdmin(admin.ModelAdmin):
     list_display = [
-        'sku', 'nome', 'loja_config', 'estoque_atual', 
+        'sku', 'nome', 'fornecedor', 'loja_config', 'estoque_atual', 
         'estoque_minimo', 'status_estoque', 'sync_status', 
         'ultima_sincronizacao', 'ativo'
     ]
     list_filter = [
-        'ativo', 'loja_config', 'sync_shopify_enabled', 
+        'ativo', 'loja_config', 'fornecedor', 'sync_shopify_enabled', 
         'alerta_estoque_baixo', 'alerta_estoque_zero'
     ]
     search_fields = ['sku', 'nome', 'shopify_product_id']
@@ -25,7 +25,7 @@ class ProdutoEstoqueAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Informações Básicas', {
-            'fields': ('user', 'loja_config', 'sku', 'nome', 'ativo')
+            'fields': ('user', 'loja_config', 'sku', 'nome', 'fornecedor', 'ativo')
         }),
         ('Shopify', {
             'fields': ('shopify_product_id', 'shopify_variant_id', 'sync_shopify_enabled', 

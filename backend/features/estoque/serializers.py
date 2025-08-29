@@ -24,7 +24,7 @@ class ProdutoEstoqueSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProdutoEstoque
         fields = [
-            'id', 'sku', 'nome', 'loja_config', 'loja_nome', 'loja_url',
+            'id', 'sku', 'nome', 'fornecedor', 'loja_config', 'loja_nome', 'loja_url',
             'shopify_product_id', 'shopify_variant_id',
             'estoque_inicial', 'estoque_atual', 'estoque_minimo', 'estoque_maximo',
             'estoque_disponivel', 'estoque_baixo', 'necessita_reposicao',
@@ -313,7 +313,7 @@ class ProdutoEstoqueResumoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProdutoEstoque
         fields = [
-            'id', 'sku', 'nome', 'loja_nome', 'estoque_atual',
+            'id', 'sku', 'nome', 'fornecedor', 'loja_nome', 'estoque_atual',
             'estoque_minimo', 'status_estoque', 'ativo'
         ]
     

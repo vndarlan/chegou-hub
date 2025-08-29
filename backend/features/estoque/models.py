@@ -7,6 +7,13 @@ from features.processamento.models import ShopifyConfig
 class ProdutoEstoque(models.Model):
     """Modelo para controle de estoque de produtos por loja"""
     
+    FORNECEDOR_CHOICES = [
+        ('Dropi', 'Dropi'),
+        ('PrimeCod', 'PrimeCod'),
+        ('Ecomhub', 'Ecomhub'),
+        ('N1', 'N1'),
+    ]
+    
     # Relacionamentos
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Usuário")
     loja_config = models.ForeignKey(ShopifyConfig, on_delete=models.CASCADE, verbose_name="Loja")
@@ -16,6 +23,7 @@ class ProdutoEstoque(models.Model):
     shopify_variant_id = models.BigIntegerField(help_text="ID da variação no Shopify", null=True, blank=True)
     sku = models.CharField(max_length=100, help_text="SKU único do produto")
     nome = models.CharField(max_length=255, verbose_name="Nome do produto")
+    fornecedor = models.CharField(max_length=20, choices=FORNECEDOR_CHOICES, verbose_name="Fornecedor", default='N1')
     
     # Controle de estoque
     estoque_inicial = models.IntegerField(default=0, verbose_name="Estoque inicial")
