@@ -3,20 +3,32 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 const QualityChart = ({ data = [], title = "Evolução da Qualidade" }) => {
-  // Dados mock para demonstração - em produção viriam da API
-  const mockData = data.length > 0 ? data : [
-    { date: '2024-01-01', green: 15, yellow: 3, red: 1 },
-    { date: '2024-01-02', green: 16, yellow: 2, red: 1 },
-    { date: '2024-01-03', green: 14, yellow: 4, red: 1 },
-    { date: '2024-01-04', green: 17, yellow: 2, red: 0 },
-    { date: '2024-01-05', green: 18, yellow: 1, red: 0 },
-    { date: '2024-01-06', green: 16, yellow: 3, red: 0 },
-    { date: '2024-01-07', green: 19, yellow: 0, red: 0 }
-  ];
+  // Se não há dados, exibir estado vazio
+  if (data.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            {title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-64 text-muted-foreground">
+            <div className="text-center">
+              <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum dado de qualidade disponível</p>
+              <p className="text-sm">Sincronize com a Meta API para visualizar dados</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
-  const maxValue = Math.max(...mockData.map(d => d.green + d.yellow + d.red));
-  const latestData = mockData[mockData.length - 1];
-  const previousData = mockData[mockData.length - 2];
+  const maxValue = Math.max(...data.map(d => d.green + d.yellow + d.red));
+  const latestData = data[data.length - 1];
+  const previousData = data[data.length - 2];
   
   const getTrend = () => {
     if (!previousData) return { icon: Minus, color: 'text-gray-500', text: 'Sem dados anteriores' };
@@ -67,7 +79,7 @@ const QualityChart = ({ data = [], title = "Evolução da Qualidade" }) => {
 
           {/* Gráfico de barras simples */}
           <div className="space-y-2">
-            {mockData.slice(-7).map((item, index) => {
+            {data.slice(-7).map((item, index) => {
               const total = item.green + item.yellow + item.red;
               const greenPercent = (item.green / total) * 100;
               const yellowPercent = (item.yellow / total) * 100;

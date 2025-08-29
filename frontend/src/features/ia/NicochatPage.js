@@ -42,10 +42,10 @@ const NicochatPage = () => {
       setError(null);
 
       const [statsRes, bmRes, numbersRes, alertsRes] = await Promise.all([
-        axios.get('/api/ia/dashboard-whatsapp-stats/'),
-        axios.get('/api/ia/business-managers/'),
-        axios.get('/api/ia/whatsapp-numeros/'),
-        axios.get('/api/ia/quality-alerts/')
+        axios.get('/ia/dashboard-whatsapp-stats/'),
+        axios.get('/ia/business-managers/'),
+        axios.get('/ia/whatsapp-numeros/'),
+        axios.get('/ia/quality-alerts/')
       ]);
 
       setDashboardStats(statsRes.data);
@@ -70,7 +70,7 @@ const NicochatPage = () => {
   const handleSyncMetaAPI = async () => {
     try {
       setIsSyncing(true);
-      await axios.post('/api/ia/sincronizar-meta-api/', {}, {
+      await axios.post('/ia/sincronizar-meta-api/', {}, {
         headers: {
           'X-CSRFToken': getCSRFToken(),
           'Content-Type': 'application/json'
@@ -91,7 +91,7 @@ const NicochatPage = () => {
   // Adicionar Business Manager
   const handleAddBusinessManager = async (formData) => {
     try {
-      await axios.post('/api/ia/business-managers/', formData, {
+      await axios.post('/ia/business-managers/', formData, {
         headers: {
           'X-CSRFToken': getCSRFToken(),
           'Content-Type': 'application/json'
@@ -111,7 +111,7 @@ const NicochatPage = () => {
   const handleSyncBusinessManager = async (bmId) => {
     try {
       setIsSyncing(true);
-      await axios.post(`/api/ia/business-managers/${bmId}/sincronizar/`, {}, {
+      await axios.post(`/ia/business-managers/${bmId}/sincronizar/`, {}, {
         headers: {
           'X-CSRFToken': getCSRFToken()
         }
@@ -134,7 +134,7 @@ const NicochatPage = () => {
     }
     
     try {
-      await axios.delete(`/api/ia/business-managers/${bmId}/`, {
+      await axios.delete(`/ia/business-managers/${bmId}/`, {
         headers: {
           'X-CSRFToken': getCSRFToken()
         }
