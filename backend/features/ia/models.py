@@ -151,6 +151,8 @@ class LogEntry(models.Model):
             models.Index(fields=['nivel', 'timestamp']),
             models.Index(fields=['pais', 'timestamp']),
             models.Index(fields=['resolvido']),
+            # CORREÇÃO: Não incluir detalhes (JSONField) em índice simples
+            models.Index(fields=['timestamp']),
         ]
     
     def __str__(self):
@@ -479,9 +481,12 @@ class ProjetoIA(models.Model):
         ordering = ['-criado_em']
         indexes = [
             models.Index(fields=['status', 'ativo']),
-            models.Index(fields=['tipo_projeto', 'departamentos_atendidos']),
+            models.Index(fields=['tipo_projeto']),
+            # CORREÇÃO: Não indexar JSONField diretamente
+            # models.Index(fields=['tipo_projeto', 'departamentos_atendidos']),
             models.Index(fields=['prioridade', 'complexidade']),
             models.Index(fields=['criado_em']),
+            models.Index(fields=['departamento_atendido']),  # Campo legado
         ]
     
     def __str__(self):
@@ -749,3 +754,458 @@ class VersaoProjeto(models.Model):
     
     def __str__(self):
         return f"{self.projeto.nome} v{self.versao}"
+
+
+# ===== CLASSES DE ESCOLHAS PARA WHATSAPP BUSINESS =====
+
+class QualityRatingChoices(models.TextChoices):
+    """Qualidade do número WhatsApp"""
+    GREEN = 'GREEN', 'Verde (Boa)'
+    YELLOW = 'YELLOW', 'Amarela (Atenção)'
+    RED = 'RED', 'Vermelha (Baixa)'
+    NA = 'NA', 'Não Disponível'
+
+class MessagingLimitTierChoices(models.TextChoices):
+    """Limite de mensagens por dia"""
+    TIER_50 = 'TIER_50', '50 mensagens/dia'
+    TIER_250 = 'TIER_250', '250 mensagens/dia'
+    TIER_1000 = 'TIER_1000', '1.000 mensagens/dia'
+    TIER_UNLIMITED = 'TIER_UNLIMITED', 'Ilimitado'
+
+class PhoneNumberStatusChoices(models.TextChoices):
+    """Status do número WhatsApp"""
+    CONNECTED = 'CONNECTED', 'Conectado'
+    DISCONNECTED = 'DISCONNECTED', 'Desconectado'
+    FLAGGED = 'FLAGGED', 'Sinalizado'
+    RESTRICTED = 'RESTRICTED', 'Restrito'
+
+class AlertTypeChoices(models.TextChoices):
+    """Tipos de alertas"""
+    QUALITY_DEGRADED = 'quality_degraded', 'Qualidade Degradada'
+    LIMIT_REDUCED = 'limit_reduced', 'Limite Reduzido'
+    STATUS_CHANGED = 'status_changed', 'Status Alterado'
+    DISCONNECTED = 'disconnected', 'Desconectado'
+    RESTRICTED = 'restricted', 'Restrito'
+
+class AlertPriorityChoices(models.TextChoices):
+    """Prioridade dos alertas"""
+    LOW = 'low', 'Baixa'
+    MEDIUM = 'medium', 'Média'
+    HIGH = 'high', 'Alta'
+    CRITICAL = 'critical', 'Crítica'
+
+
+# ===== MODELS PARA WHATSAPP BUSINESS MONITORING =====
+
+class BusinessManager(models.Model):
+    """Gerenciar múltiplas Business Managers do Facebook"""
+    
+    nome = models.CharField(
+        max_length=200,
+        verbose_name="Nome da Business Manager",
+        help_text="Nome identificador da Business Manager"
+    )
+    business_manager_id = models.CharField(
+        max_length=50,
+        unique=True,
+        verbose_name="ID da Business Manager",
+        help_text="ID único da Business Manager no Facebook"
+    )
+    access_token_encrypted = models.TextField(
+        verbose_name="Token de Acesso (Criptografado)",
+        help_text="Token de acesso criptografado para API do WhatsApp"
+    )
+    webhook_verify_token = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Token de Verificação do Webhook",
+        help_text="Token para verificação do webhook"
+    )
+    ativo = models.BooleanField(
+        default=True,
+        verbose_name="Ativo",
+        help_text="Se esta Business Manager está ativa para monitoramento"
+    )
+    ultima_sincronizacao = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Última Sincronização",
+        help_text="Data/hora da última sincronização com a API"
+    )
+    erro_ultima_sincronizacao = models.TextField(
+        blank=True,
+        verbose_name="Erro na Última Sincronização",
+        help_text="Detalhes do erro caso a última sincronização tenha falhado"
+    )
+    responsavel = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name='business_managers',
+        verbose_name="Responsável",
+        help_text="Usuário responsável por esta Business Manager"
+    )
+    
+    # Campos de auditoria
+    criado_em = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Criado em"
+    )
+    atualizado_em = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Atualizado em"
+    )
+    
+    class Meta:
+        verbose_name = "Business Manager"
+        verbose_name_plural = "Business Managers"
+        ordering = ['nome']
+        indexes = [
+            models.Index(fields=['ativo', 'ultima_sincronizacao']),
+            models.Index(fields=['business_manager_id']),
+        ]
+    
+    def __str__(self):
+        status = "🟢" if self.ativo else "🔴"
+        return f"{status} {self.nome}"
+
+
+class WhatsAppPhoneNumber(models.Model):
+    """Armazenar dados dos números WhatsApp Business"""
+    
+    business_manager = models.ForeignKey(
+        BusinessManager,
+        on_delete=models.CASCADE,
+        related_name='phone_numbers',
+        verbose_name="Business Manager"
+    )
+    phone_number_id = models.CharField(
+        max_length=50,
+        unique=True,
+        verbose_name="ID do Número",
+        help_text="ID único do número na API do WhatsApp"
+    )
+    display_phone_number = models.CharField(
+        max_length=20,
+        verbose_name="Número de Telefone",
+        help_text="Número formatado para exibição"
+    )
+    verified_name = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Nome Verificado",
+        help_text="Nome verificado na conta WhatsApp Business"
+    )
+    
+    # Status atual
+    quality_rating = models.CharField(
+        max_length=10,
+        choices=QualityRatingChoices.choices,
+        default=QualityRatingChoices.NA,
+        verbose_name="Classificação de Qualidade"
+    )
+    messaging_limit_tier = models.CharField(
+        max_length=20,
+        choices=MessagingLimitTierChoices.choices,
+        default=MessagingLimitTierChoices.TIER_50,
+        verbose_name="Limite de Mensagens"
+    )
+    status = models.CharField(
+        max_length=15,
+        choices=PhoneNumberStatusChoices.choices,
+        default=PhoneNumberStatusChoices.CONNECTED,
+        verbose_name="Status"
+    )
+    
+    # Controle de monitoramento
+    monitoramento_ativo = models.BooleanField(
+        default=True,
+        verbose_name="Monitoramento Ativo",
+        help_text="Se este número deve ser monitorado automaticamente"
+    )
+    frequencia_verificacao_minutos = models.PositiveIntegerField(
+        default=60,
+        verbose_name="Frequência de Verificação (minutos)",
+        help_text="Intervalo em minutos para verificar este número"
+    )
+    
+    # Dados adicionais
+    detalhes_api = models.JSONField(
+        default=dict,
+        verbose_name="Detalhes da API",
+        help_text="Dados completos retornados pela API do WhatsApp"
+    )
+    
+    # Campos de auditoria
+    criado_em = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Criado em"
+    )
+    atualizado_em = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Atualizado em"
+    )
+    ultima_verificacao = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Última Verificação",
+        help_text="Data/hora da última verificação na API"
+    )
+    
+    class Meta:
+        verbose_name = "Número WhatsApp Business"
+        verbose_name_plural = "Números WhatsApp Business"
+        ordering = ['display_phone_number']
+        indexes = [
+            models.Index(fields=['quality_rating', 'monitoramento_ativo']),
+            models.Index(fields=['status', 'monitoramento_ativo']),
+            models.Index(fields=['ultima_verificacao']),
+            models.Index(fields=['phone_number_id']),
+        ]
+    
+    def __str__(self):
+        quality_icon = {
+            'GREEN': '🟢',
+            'YELLOW': '🟡',
+            'RED': '🔴',
+            'NA': '⚫'
+        }.get(self.quality_rating, '⚫')
+        
+        return f"{quality_icon} {self.display_phone_number} ({self.get_quality_rating_display()})"
+
+
+class QualityHistory(models.Model):
+    """Histórico de qualidade dos números WhatsApp"""
+    
+    phone_number = models.ForeignKey(
+        WhatsAppPhoneNumber,
+        on_delete=models.CASCADE,
+        related_name='quality_history',
+        verbose_name="Número WhatsApp"
+    )
+    
+    # Dados capturados
+    quality_rating = models.CharField(
+        max_length=10,
+        choices=QualityRatingChoices.choices,
+        verbose_name="Classificação de Qualidade"
+    )
+    messaging_limit_tier = models.CharField(
+        max_length=20,
+        choices=MessagingLimitTierChoices.choices,
+        verbose_name="Limite de Mensagens"
+    )
+    status = models.CharField(
+        max_length=15,
+        choices=PhoneNumberStatusChoices.choices,
+        verbose_name="Status"
+    )
+    
+    # Dados anteriores (para comparação)
+    quality_rating_anterior = models.CharField(
+        max_length=10,
+        choices=QualityRatingChoices.choices,
+        null=True,
+        blank=True,
+        verbose_name="Qualidade Anterior"
+    )
+    messaging_limit_tier_anterior = models.CharField(
+        max_length=20,
+        choices=MessagingLimitTierChoices.choices,
+        null=True,
+        blank=True,
+        verbose_name="Limite Anterior"
+    )
+    status_anterior = models.CharField(
+        max_length=15,
+        choices=PhoneNumberStatusChoices.choices,
+        null=True,
+        blank=True,
+        verbose_name="Status Anterior"
+    )
+    
+    # Indicadores de mudança
+    houve_mudanca_qualidade = models.BooleanField(
+        default=False,
+        verbose_name="Mudança na Qualidade"
+    )
+    houve_mudanca_limite = models.BooleanField(
+        default=False,
+        verbose_name="Mudança no Limite"
+    )
+    houve_mudanca_status = models.BooleanField(
+        default=False,
+        verbose_name="Mudança no Status"
+    )
+    
+    # Dados completos da API
+    dados_api_completos = models.JSONField(
+        default=dict,
+        verbose_name="Dados Completos da API",
+        help_text="Resposta completa da API no momento da captura"
+    )
+    
+    # Timestamp
+    capturado_em = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Capturado em"
+    )
+    
+    class Meta:
+        verbose_name = "Histórico de Qualidade"
+        verbose_name_plural = "Histórico de Qualidade"
+        ordering = ['-capturado_em']
+        indexes = [
+            models.Index(fields=['phone_number', '-capturado_em']),
+            models.Index(fields=['quality_rating', '-capturado_em']),
+            models.Index(fields=['houve_mudanca_qualidade', '-capturado_em']),
+            models.Index(fields=['houve_mudanca_limite', '-capturado_em']),
+            models.Index(fields=['houve_mudanca_status', '-capturado_em']),
+        ]
+    
+    def __str__(self):
+        mudancas = []
+        if self.houve_mudanca_qualidade:
+            mudancas.append("📊")
+        if self.houve_mudanca_limite:
+            mudancas.append("📈")
+        if self.houve_mudanca_status:
+            mudancas.append("🔄")
+        
+        mudanca_icons = "".join(mudancas) if mudancas else "📝"
+        
+        return f"{mudanca_icons} {self.phone_number.display_phone_number} - {self.capturado_em.strftime('%d/%m %H:%M')}"
+
+
+class QualityAlert(models.Model):
+    """Alertas de mudanças importantes na qualidade"""
+    
+    phone_number = models.ForeignKey(
+        WhatsAppPhoneNumber,
+        on_delete=models.CASCADE,
+        related_name='alerts',
+        verbose_name="Número WhatsApp"
+    )
+    quality_history = models.ForeignKey(
+        QualityHistory,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Histórico Relacionado",
+        help_text="Registro do histórico que gerou este alerta"
+    )
+    
+    # Tipo e prioridade do alerta
+    alert_type = models.CharField(
+        max_length=30,
+        choices=AlertTypeChoices.choices,
+        verbose_name="Tipo de Alerta"
+    )
+    priority = models.CharField(
+        max_length=10,
+        choices=AlertPriorityChoices.choices,
+        default=AlertPriorityChoices.MEDIUM,
+        verbose_name="Prioridade"
+    )
+    
+    # Conteúdo do alerta
+    titulo = models.CharField(
+        max_length=200,
+        verbose_name="Título do Alerta"
+    )
+    descricao = models.TextField(
+        verbose_name="Descrição",
+        help_text="Descrição detalhada do que aconteceu"
+    )
+    
+    # Dados da mudança
+    valor_anterior = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name="Valor Anterior"
+    )
+    valor_atual = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name="Valor Atual"
+    )
+    
+    # Status do alerta
+    visualizado = models.BooleanField(
+        default=False,
+        verbose_name="Visualizado",
+        help_text="Se o alerta foi visualizado pelo usuário"
+    )
+    resolvido = models.BooleanField(
+        default=False,
+        verbose_name="Resolvido",
+        help_text="Se o alerta foi marcado como resolvido"
+    )
+    
+    # Ações tomadas
+    usuario_que_visualizou = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='alerts_visualizados',
+        verbose_name="Visualizado por"
+    )
+    data_visualizacao = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Data de Visualização"
+    )
+    usuario_que_resolveu = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='alerts_resolvidos',
+        verbose_name="Resolvido por"
+    )
+    data_resolucao = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Data de Resolução"
+    )
+    comentario_resolucao = models.TextField(
+        blank=True,
+        verbose_name="Comentário da Resolução",
+        help_text="Comentário sobre como o alerta foi resolvido"
+    )
+    
+    # Notificação
+    notificacao_enviada = models.BooleanField(
+        default=False,
+        verbose_name="Notificação Enviada",
+        help_text="Se a notificação foi enviada via email/webhook"
+    )
+    
+    # Timestamp
+    criado_em = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Criado em"
+    )
+    
+    class Meta:
+        verbose_name = "Alerta de Qualidade"
+        verbose_name_plural = "Alertas de Qualidade"
+        ordering = ['-criado_em']
+        indexes = [
+            models.Index(fields=['phone_number', '-criado_em']),
+            models.Index(fields=['alert_type', 'priority', '-criado_em']),
+            models.Index(fields=['visualizado', 'resolvido', '-criado_em']),
+            models.Index(fields=['priority', 'visualizado', '-criado_em']),
+        ]
+    
+    def __str__(self):
+        priority_icon = {
+            'low': '🟢',
+            'medium': '🟡',
+            'high': '🟠',
+            'critical': '🔴'
+        }.get(self.priority, '⚫')
+        
+        status_icon = "✅" if self.resolvido else ("👀" if self.visualizado else "🆕")
+        
+        return f"{priority_icon}{status_icon} {self.titulo} - {self.phone_number.display_phone_number}"

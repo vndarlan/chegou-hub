@@ -5,7 +5,11 @@ from .models import (
     LogEntry, TipoFerramenta, NivelLog, PaisNicochat,
     ProjetoIA, VersaoProjeto, StatusProjeto, TipoProjeto,
     DepartamentoChoices, PrioridadeChoices, ComplexidadeChoices,
-    FrequenciaUsoChoices, NivelAutonomiaChoices
+    FrequenciaUsoChoices, NivelAutonomiaChoices,
+    # WhatsApp Business models
+    BusinessManager, WhatsAppPhoneNumber, QualityHistory, QualityAlert,
+    QualityRatingChoices, MessagingLimitTierChoices, PhoneNumberStatusChoices,
+    AlertTypeChoices, AlertPriorityChoices
 )
 
 # ===== CAMPOS CUSTOMIZADOS =====
@@ -43,13 +47,13 @@ class LogEntrySerializer(serializers.ModelSerializer):
         diff = now - obj.timestamp
         
         if diff < timedelta(minutes=1):
-            return "Agora h pouco"
+            return "Agora há pouco"
         elif diff < timedelta(hours=1):
-            return f"{diff.seconds // 60} min atrs"
+            return f"{diff.seconds // 60} min atrás"
         elif diff < timedelta(days=1):
-            return f"{diff.seconds // 3600} h atrs"
+            return f"{diff.seconds // 3600} h atrás"
         elif diff < timedelta(days=7):
-            return f"{diff.days} dia(s) atrs"
+            return f"{diff.days} dia(s) atrás"
         else:
             return obj.timestamp.strftime("%d/%m/%Y %H:%M")
 
@@ -222,6 +226,7 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
     )
     
     # === CAMPOS CALCULADOS READ-ONLY ===
+    horas_totais = serializers.SerializerMethodField(read_only=True)
     custo_desenvolvimento = serializers.SerializerMethodField(read_only=True)
     custos_recorrentes_mensais_novo = serializers.SerializerMethodField(read_only=True)
     custos_unicos_totais_novo = serializers.SerializerMethodField(read_only=True)
@@ -245,7 +250,8 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
             'prioridade', 'complexidade', 'usuarios_impactados', 'frequencia_uso',
             
             # === INVESTIMENTO DE TEMPO (READ/WRITE) ===
-            'horas_totais', 'horas_desenvolvimento', 'horas_testes', 
+            # CORREÇÃO: horas_totais é calculado, não editável diretamente
+            'horas_desenvolvimento', 'horas_testes', 
             'horas_documentacao', 'horas_deploy',
             
             # === NOVOS CAMPOS FINANCEIROS (READ/WRITE) ===
@@ -269,7 +275,7 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
             'departamentos_display',
             
             # === CAMPOS CALCULADOS (READ-ONLY) ===
-            'custo_desenvolvimento', 'custos_recorrentes_mensais_novo',
+            'horas_totais', 'custo_desenvolvimento', 'custos_recorrentes_mensais_novo',
             'custos_unicos_totais_novo', 'economia_mensal_total_novo',
             'custos_recorrentes_mensais', 'custos_unicos_totais', 'economia_mensal_total',
             'metricas_financeiras',
@@ -316,6 +322,12 @@ class ProjetoIADetailSerializer(serializers.ModelSerializer):
             return []
     
     # === CAMPOS CALCULADOS NOVOS ===
+    def get_horas_totais(self, obj):
+        try:
+            return float(obj.horas_totais)
+        except Exception:
+            return 0.0
+    
     def get_custo_desenvolvimento(self, obj):
         try:
             return float(obj.custo_desenvolvimento)
@@ -916,3 +928,250 @@ class FiltrosProjetosSerializer(serializers.Serializer):
     roi_min = serializers.DecimalField(max_digits=8, decimal_places=2, required=False)
     roi_max = serializers.DecimalField(max_digits=8, decimal_places=2, required=False)
     economia_mensal_min = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+
+
+# ===== SERIALIZERS PARA WHATSAPP BUSINESS =====
+
+class BusinessManagerSerializer(serializers.ModelSerializer):
+    """Serializer para Business Manager - VERSÃO SEGURA"""
+    responsavel_nome = serializers.CharField(source='responsavel.get_full_name', read_only=True)
+    total_numeros = serializers.SerializerMethodField()
+    numeros_monitorados = serializers.SerializerMethodField()
+    status_sincronizacao = serializers.SerializerMethodField()
+    
+    # Campo especial para receber access_token não criptografado
+    access_token = serializers.CharField(write_only=True, required=False, help_text="Token original da Meta API")
+    
+    class Meta:
+        model = BusinessManager
+        fields = [
+            'id', 'nome', 'business_manager_id', 'access_token_encrypted', 'access_token',
+            'webhook_verify_token', 'ativo', 'ultima_sincronizacao',
+            'erro_ultima_sincronizacao', 'responsavel', 'responsavel_nome',
+            'criado_em', 'atualizado_em', 'total_numeros', 'numeros_monitorados',
+            'status_sincronizacao'
+        ]
+        read_only_fields = ['criado_em', 'atualizado_em', 'ultima_sincronizacao', 
+                           'erro_ultima_sincronizacao', 'responsavel_nome']
+        extra_kwargs = {
+            'access_token_encrypted': {'write_only': True}
+        }
+    
+    def validate_nome(self, value):
+        """Validar nome do Business Manager"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Nome é obrigatório")
+        if len(value.strip()) < 3:
+            raise serializers.ValidationError("Nome deve ter pelo menos 3 caracteres")
+        # Sanitizar HTML e caracteres especiais
+        import html
+        return html.escape(value.strip())
+    
+    def validate_business_manager_id(self, value):
+        """Validar ID do Business Manager"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("ID do Business Manager é obrigatório")
+        
+        # Validar formato (apenas números e tamanho esperado)
+        import re
+        if not re.match(r'^\d{15,20}$', value.strip()):
+            raise serializers.ValidationError(
+                "ID do Business Manager deve conter apenas números e ter entre 15-20 dígitos"
+            )
+        return value.strip()
+    
+    def validate_access_token(self, value):
+        """Validar Access Token da Meta API"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Access Token é obrigatório")
+        
+        # Validar formato básico do token Meta
+        import re
+        # Tokens Meta geralmente seguem padrões específicos
+        if not re.match(r'^[A-Za-z0-9_\-|]+$', value.strip()):
+            raise serializers.ValidationError(
+                "Formato de Access Token inválido - deve conter apenas letras, números, _ - |"
+            )
+        
+        if len(value.strip()) < 50:
+            raise serializers.ValidationError("Access Token muito curto - verifique se está completo")
+        
+        return value.strip()
+    
+    def validate_webhook_verify_token(self, value):
+        """Validar token de webhook"""
+        if value and len(value.strip()) > 0:
+            # Sanitizar e validar se fornecido
+            import html
+            return html.escape(value.strip())
+        return value
+    
+    def create(self, validated_data):
+        """Criar Business Manager com criptografia de token"""
+        access_token = validated_data.pop('access_token', None)
+        
+        if access_token:
+            try:
+                from .services import WhatsAppMetaAPIService
+                service = WhatsAppMetaAPIService()
+                validated_data['access_token_encrypted'] = service._encrypt_token(access_token)
+            except ImportError as e:
+                raise serializers.ValidationError(f"Erro na configuração de segurança: {str(e)}")
+        
+        return super().create(validated_data)
+    
+    def update(self, instance, validated_data):
+        """Atualizar Business Manager com recriptografia se necessário"""
+        access_token = validated_data.pop('access_token', None)
+        
+        if access_token:
+            try:
+                from .services import WhatsAppMetaAPIService
+                service = WhatsAppMetaAPIService()
+                validated_data['access_token_encrypted'] = service._encrypt_token(access_token)
+            except ImportError as e:
+                raise serializers.ValidationError(f"Erro na configuração de segurança: {str(e)}")
+        
+        return super().update(instance, validated_data)
+    
+    def get_total_numeros(self, obj):
+        """Conta total de números cadastrados"""
+        return obj.phone_numbers.count()
+    
+    def get_numeros_monitorados(self, obj):
+        """Conta números com monitoramento ativo"""
+        return obj.phone_numbers.filter(monitoramento_ativo=True).count()
+    
+    def get_status_sincronizacao(self, obj):
+        """Retorna status da sincronização"""
+        if not obj.ultima_sincronizacao:
+            return 'nunca_sincronizado'
+        elif obj.erro_ultima_sincronizacao:
+            return 'erro'
+        else:
+            from django.utils import timezone
+            from datetime import timedelta
+            if timezone.now() - obj.ultima_sincronizacao > timedelta(hours=2):
+                return 'desatualizado'
+            return 'ok'
+
+
+class WhatsAppPhoneNumberSerializer(serializers.ModelSerializer):
+    """Serializer para números WhatsApp"""
+    business_manager_nome = serializers.CharField(source='business_manager.nome', read_only=True)
+    quality_rating_display = serializers.CharField(source='get_quality_rating_display', read_only=True)
+    messaging_limit_display = serializers.CharField(source='get_messaging_limit_tier_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    tempo_sem_verificacao = serializers.SerializerMethodField()
+    alertas_pendentes = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = WhatsAppPhoneNumber
+        fields = [
+            'id', 'business_manager', 'business_manager_nome', 'phone_number_id',
+            'display_phone_number', 'verified_name', 'quality_rating',
+            'quality_rating_display', 'messaging_limit_tier', 'messaging_limit_display',
+            'status', 'status_display', 'monitoramento_ativo', 
+            'frequencia_verificacao_minutos', 'detalhes_api', 'criado_em',
+            'atualizado_em', 'ultima_verificacao', 'tempo_sem_verificacao',
+            'alertas_pendentes'
+        ]
+        read_only_fields = ['criado_em', 'atualizado_em', 'ultima_verificacao',
+                           'business_manager_nome', 'quality_rating_display',
+                           'messaging_limit_display', 'status_display',
+                           'tempo_sem_verificacao', 'alertas_pendentes']
+    
+    def get_tempo_sem_verificacao(self, obj):
+        """Calcula tempo desde última verificação em minutos"""
+        if not obj.ultima_verificacao:
+            return None
+        from django.utils import timezone
+        delta = timezone.now() - obj.ultima_verificacao
+        return int(delta.total_seconds() / 60)
+    
+    def get_alertas_pendentes(self, obj):
+        """Conta alertas não resolvidos"""
+        return obj.alerts.filter(resolvido=False).count()
+
+
+class QualityHistorySerializer(serializers.ModelSerializer):
+    """Serializer para histórico de qualidade"""
+    phone_number_display = serializers.CharField(source='phone_number.display_phone_number', read_only=True)
+    quality_rating_display = serializers.CharField(source='get_quality_rating_display', read_only=True)
+    messaging_limit_display = serializers.CharField(source='get_messaging_limit_tier_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    
+    class Meta:
+        model = QualityHistory
+        fields = [
+            'id', 'phone_number', 'phone_number_display', 'quality_rating',
+            'quality_rating_display', 'messaging_limit_tier', 'messaging_limit_display',
+            'status', 'status_display', 'quality_rating_anterior',
+            'messaging_limit_tier_anterior', 'status_anterior',
+            'houve_mudanca_qualidade', 'houve_mudanca_limite',
+            'houve_mudanca_status', 'dados_api_completos', 'capturado_em'
+        ]
+        read_only_fields = ['capturado_em', 'phone_number_display',
+                           'quality_rating_display', 'messaging_limit_display',
+                           'status_display']
+
+
+class QualityAlertSerializer(serializers.ModelSerializer):
+    """Serializer para alertas de qualidade"""
+    phone_number_display = serializers.CharField(source='phone_number.display_phone_number', read_only=True)
+    alert_type_display = serializers.CharField(source='get_alert_type_display', read_only=True)
+    priority_display = serializers.CharField(source='get_priority_display', read_only=True)
+    usuario_que_visualizou_nome = serializers.CharField(source='usuario_que_visualizou.get_full_name', read_only=True)
+    usuario_que_resolveu_nome = serializers.CharField(source='usuario_que_resolveu.get_full_name', read_only=True)
+    tempo_desde_criacao = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = QualityAlert
+        fields = [
+            'id', 'phone_number', 'phone_number_display', 'quality_history',
+            'alert_type', 'alert_type_display', 'priority', 'priority_display',
+            'titulo', 'descricao', 'valor_anterior', 'valor_atual',
+            'visualizado', 'resolvido', 'usuario_que_visualizou',
+            'usuario_que_visualizou_nome', 'data_visualizacao',
+            'usuario_que_resolveu', 'usuario_que_resolveu_nome',
+            'data_resolucao', 'comentario_resolucao', 'notificacao_enviada',
+            'criado_em', 'tempo_desde_criacao'
+        ]
+        read_only_fields = ['criado_em', 'phone_number_display', 'alert_type_display',
+                           'priority_display', 'usuario_que_visualizou_nome',
+                           'usuario_que_resolveu_nome', 'tempo_desde_criacao']
+    
+    def get_tempo_desde_criacao(self, obj):
+        """Calcula tempo desde criação do alerta"""
+        from django.utils import timezone
+        delta = timezone.now() - obj.criado_em
+        horas = int(delta.total_seconds() / 3600)
+        if horas < 1:
+            minutos = int(delta.total_seconds() / 60)
+            return f"{minutos} min atrás"
+        elif horas < 24:
+            return f"{horas}h atrás"
+        else:
+            dias = delta.days
+            return f"{dias} dia(s) atrás"
+
+
+class MarcarAlertaResolvidoSerializer(serializers.Serializer):
+    """Serializer para marcar alerta como resolvido"""
+    comentario_resolucao = serializers.CharField(
+        required=False, 
+        allow_blank=True,
+        help_text="Comentário sobre como o alerta foi resolvido"
+    )
+
+
+class SincronizarMetaAPISerializer(serializers.Serializer):
+    """Serializer para sincronização com Meta API"""
+    business_manager_id = serializers.IntegerField(
+        required=False,
+        help_text="ID da Business Manager específica. Se não fornecido, sincroniza todas ativas"
+    )
+    force_update = serializers.BooleanField(
+        default=False,
+        help_text="Força atualização mesmo que tenha sido sincronizada recentemente"
+    )

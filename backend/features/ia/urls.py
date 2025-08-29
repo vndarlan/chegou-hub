@@ -7,6 +7,12 @@ router = DefaultRouter()
 router.register(r'logs', views.LogEntryViewSet, basename='logentry')
 router.register(r'projetos', views.ProjetoIAViewSet, basename='projeto-ia')
 
+# WhatsApp Business routers
+router.register(r'business-managers', views.BusinessManagerViewSet, basename='business-manager')
+router.register(r'whatsapp-numeros', views.WhatsAppPhoneNumberViewSet, basename='whatsapp-numero')
+router.register(r'quality-history', views.QualityHistoryViewSet, basename='quality-history')
+router.register(r'quality-alerts', views.QualityAlertViewSet, basename='quality-alert')
+
 urlpatterns = [
     path('', include(router.urls)),
     
@@ -18,4 +24,9 @@ urlpatterns = [
     path('dashboard-stats/', views.dashboard_stats, name='dashboard-projetos-stats'),
     path('opcoes-formulario/', views.opcoes_formulario, name='opcoes-formulario'),
     path('verificar-permissoes/', views.verificar_permissoes, name='verificar-permissoes'),
+    
+    # === ENDPOINTS DE WHATSAPP BUSINESS ===
+    path('sincronizar-meta-api/', views.sincronizar_meta_api, name='sincronizar-meta-api'),
+    path('dashboard-whatsapp-stats/', views.dashboard_whatsapp_stats, name='dashboard-whatsapp-stats'),
+    path('verificar-mudancas-qualidade/', views.verificar_mudancas_qualidade, name='verificar-mudancas-qualidade'),
 ]

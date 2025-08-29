@@ -16,14 +16,26 @@ from .models import (
     LogEntry, TipoFerramenta, PaisNicochat,
     ProjetoIA, VersaoProjeto, StatusProjeto,
     TipoProjeto, DepartamentoChoices, PrioridadeChoices,
-    ComplexidadeChoices, FrequenciaUsoChoices
+    ComplexidadeChoices, FrequenciaUsoChoices,
+    # WhatsApp Business models
+    BusinessManager, WhatsAppPhoneNumber, QualityHistory, QualityAlert,
+    QualityRatingChoices, MessagingLimitTierChoices, PhoneNumberStatusChoices,
+    AlertTypeChoices, AlertPriorityChoices
 )
 from .serializers import (
     LogEntrySerializer, CriarLogSerializer, MarcarResolvidoSerializer,
     ProjetoIAListSerializer, ProjetoIADetailSerializer, ProjetoIACreateSerializer,
     VersaoProjetoSerializer, NovaVersaoSerializer, DashboardStatsSerializer,
-    FiltrosProjetosSerializer
+    FiltrosProjetosSerializer,
+    # WhatsApp Business serializers
+    BusinessManagerSerializer, WhatsAppPhoneNumberSerializer, 
+    QualityHistorySerializer, QualityAlertSerializer,
+    MarcarAlertaResolvidoSerializer, SincronizarMetaAPISerializer
 )
+
+# Importar serviço e auditoria
+from .services import WhatsAppMetaAPIService
+from .security_audit import security_audit
 
 # Configurar logger
 logger = logging.getLogger(__name__)
@@ -868,11 +880,11 @@ def verificar_permissoes(request):
     })
 
 @api_view(['POST'])
-@permission_classes([AllowAny])  # Para permitir que Nicochat/N8N enviem logs
+@permission_classes([IsAuthenticated])  # CORREÇÃO CRÍTICA: Requires authentication
 def criar_log_publico(request):
     """
-    Endpoint público para Nicochat e N8N enviarem logs
-    Usar uma API key no futuro para segurança
+    Endpoint para Nicochat e N8N enviarem logs - REQUER AUTENTICAÇÃO
+    CORREÇÃO: Removido acesso público por questões de segurança
     """
     serializer = CriarLogSerializer(data=request.data)
     
@@ -936,3 +948,476 @@ def dashboard_logs_stats(request):
         'por_ferramenta': list(stats_ferramentas),
         'por_pais_nicochat': list(stats_paises)
     })
+
+
+# ===== VIEWS PARA WHATSAPP BUSINESS =====
+
+class BusinessManagerViewSet(viewsets.ModelViewSet):
+    """ViewSet para CRUD de Business Managers"""
+    
+    queryset = BusinessManager.objects.all()
+    serializer_class = BusinessManagerSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filtrar por permissões do usuário"""
+        queryset = BusinessManager.objects.all()
+        
+        # Superuser e grupos especiais veem tudo
+        if not (self.request.user.is_superuser or 
+                self.request.user.groups.filter(name__in=['Diretoria', 'Gestão']).exists()):
+            # Usuários normais veem apenas as que são responsáveis
+            queryset = queryset.filter(responsavel=self.request.user)
+        
+        return queryset.order_by('nome')
+    
+    def perform_create(self, serializer):
+        """Definir responsável ao criar - COM AUDITORIA DE SEGURANÇA"""
+        
+        # Obter IP do usuário
+        ip_address = self.get_client_ip()
+        
+        try:
+            instance = serializer.save(responsavel=self.request.user)
+            
+            # Log de auditoria - criação bem-sucedida
+            security_audit.log_token_operation(
+                user=self.request.user,
+                operation='create',
+                business_manager_id=instance.business_manager_id,
+                success=True,
+                ip_address=ip_address
+            )
+            
+        except Exception as e:
+            # Log de auditoria - criação falhada
+            business_manager_id = serializer.validated_data.get('business_manager_id', 'unknown')
+            security_audit.log_token_operation(
+                user=self.request.user,
+                operation='create',
+                business_manager_id=business_manager_id,
+                success=False,
+                ip_address=ip_address
+            )
+            raise
+    
+    def get_client_ip(self):
+        """Obtém o IP real do cliente"""
+        x_forwarded_for = self.request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            return x_forwarded_for.split(',')[0].strip()
+        return self.request.META.get('REMOTE_ADDR', '')
+    
+    @action(detail=True, methods=['post'])
+    def sincronizar(self, request, pk=None):
+        """Sincronizar números desta Business Manager específica"""
+        business_manager = self.get_object()
+        
+        # Verificar permissão
+        if not (request.user.is_superuser or 
+                request.user.groups.filter(name__in=['Diretoria', 'Gestão']).exists() or
+                business_manager.responsavel == request.user):
+            return Response(
+                {'error': 'Sem permissão para sincronizar esta Business Manager'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            serializer = SincronizarMetaAPISerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            force_update = serializer.validated_data.get('force_update', False)
+            
+            # Executar sincronização
+            whatsapp_service = WhatsAppMetaAPIService()
+            resultado = whatsapp_service.sincronizar_numeros_business_manager(
+                business_manager, force_update
+            )
+            
+            if resultado['sucesso']:
+                return Response({
+                    'message': 'Sincronização concluída com sucesso',
+                    'resultado': resultado
+                })
+            else:
+                return Response({
+                    'message': 'Sincronização concluída com erros',
+                    'resultado': resultado
+                }, status=status.HTTP_206_PARTIAL_CONTENT)
+        
+        except Exception as e:
+            logger.error(f"Erro na sincronização da BM {business_manager.id}: {e}")
+            return Response(
+                {'error': f'Erro na sincronização: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class WhatsAppPhoneNumberViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet para visualização de números WhatsApp (read-only)"""
+    
+    queryset = WhatsAppPhoneNumber.objects.all()
+    serializer_class = WhatsAppPhoneNumberSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filtrar por permissões do usuário"""
+        queryset = WhatsAppPhoneNumber.objects.select_related('business_manager')
+        
+        # Filtrar por Business Manager se usuário não for admin
+        if not (self.request.user.is_superuser or 
+                self.request.user.groups.filter(name__in=['Diretoria', 'Gestão']).exists()):
+            queryset = queryset.filter(business_manager__responsavel=self.request.user)
+        
+        # Filtros por query params
+        business_manager_id = self.request.query_params.get('business_manager')
+        if business_manager_id:
+            queryset = queryset.filter(business_manager_id=business_manager_id)
+        
+        quality_rating = self.request.query_params.get('quality_rating')
+        if quality_rating:
+            queryset = queryset.filter(quality_rating=quality_rating)
+        
+        monitoramento_ativo = self.request.query_params.get('monitoramento_ativo')
+        if monitoramento_ativo is not None:
+            queryset = queryset.filter(monitoramento_ativo=monitoramento_ativo.lower() == 'true')
+        
+        return queryset.order_by('display_phone_number')
+    
+    @action(detail=True, methods=['patch'])
+    def toggle_monitoramento(self, request, pk=None):
+        """Ativar/desativar monitoramento do número"""
+        numero = self.get_object()
+        
+        # Verificar permissão
+        if not (request.user.is_superuser or 
+                request.user.groups.filter(name__in=['Diretoria', 'Gestão']).exists() or
+                numero.business_manager.responsavel == request.user):
+            return Response(
+                {'error': 'Sem permissão para modificar este número'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        numero.monitoramento_ativo = not numero.monitoramento_ativo
+        numero.save()
+        
+        return Response({
+            'message': f'Monitoramento {"ativado" if numero.monitoramento_ativo else "desativado"}',
+            'monitoramento_ativo': numero.monitoramento_ativo
+        })
+
+
+class QualityHistoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet para visualização do histórico de qualidade"""
+    
+    queryset = QualityHistory.objects.all()
+    serializer_class = QualityHistorySerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = LogsPagination
+    
+    def get_queryset(self):
+        """Filtrar por permissões e parâmetros"""
+        queryset = QualityHistory.objects.select_related(
+            'phone_number', 'phone_number__business_manager'
+        )
+        
+        # Filtrar por permissões
+        if not (self.request.user.is_superuser or 
+                self.request.user.groups.filter(name__in=['Diretoria', 'Gestão']).exists()):
+            queryset = queryset.filter(phone_number__business_manager__responsavel=self.request.user)
+        
+        # Filtros por query params
+        phone_number_id = self.request.query_params.get('phone_number')
+        if phone_number_id:
+            queryset = queryset.filter(phone_number_id=phone_number_id)
+        
+        business_manager_id = self.request.query_params.get('business_manager')
+        if business_manager_id:
+            queryset = queryset.filter(phone_number__business_manager_id=business_manager_id)
+        
+        # Filtrar apenas mudanças
+        apenas_mudancas = self.request.query_params.get('apenas_mudancas')
+        if apenas_mudancas == 'true':
+            queryset = queryset.filter(
+                Q(houve_mudanca_qualidade=True) |
+                Q(houve_mudanca_limite=True) |
+                Q(houve_mudanca_status=True)
+            )
+        
+        # Filtro de período
+        periodo = self.request.query_params.get('periodo', '7d')
+        periodo_map = {
+            '1d': timedelta(days=1),
+            '7d': timedelta(days=7),
+            '30d': timedelta(days=30),
+            '90d': timedelta(days=90)
+        }
+        if periodo in periodo_map:
+            desde = timezone.now() - periodo_map[periodo]
+            queryset = queryset.filter(capturado_em__gte=desde)
+        
+        return queryset.order_by('-capturado_em')
+
+
+class QualityAlertViewSet(viewsets.ModelViewSet):
+    """ViewSet para gerenciamento de alertas de qualidade"""
+    
+    queryset = QualityAlert.objects.all()
+    serializer_class = QualityAlertSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = LogsPagination
+    
+    def get_queryset(self):
+        """Filtrar por permissões e parâmetros"""
+        queryset = QualityAlert.objects.select_related(
+            'phone_number', 'phone_number__business_manager', 
+            'usuario_que_visualizou', 'usuario_que_resolveu'
+        )
+        
+        # Filtrar por permissões
+        if not (self.request.user.is_superuser or 
+                self.request.user.groups.filter(name__in=['Diretoria', 'Gestão']).exists()):
+            queryset = queryset.filter(phone_number__business_manager__responsavel=self.request.user)
+        
+        # Filtros por query params
+        resolvido = self.request.query_params.get('resolvido')
+        if resolvido is not None:
+            queryset = queryset.filter(resolvido=resolvido.lower() == 'true')
+        
+        visualizado = self.request.query_params.get('visualizado')
+        if visualizado is not None:
+            queryset = queryset.filter(visualizado=visualizado.lower() == 'true')
+        
+        priority = self.request.query_params.get('priority')
+        if priority:
+            queryset = queryset.filter(priority=priority)
+        
+        alert_type = self.request.query_params.get('alert_type')
+        if alert_type:
+            queryset = queryset.filter(alert_type=alert_type)
+        
+        phone_number_id = self.request.query_params.get('phone_number')
+        if phone_number_id:
+            queryset = queryset.filter(phone_number_id=phone_number_id)
+        
+        return queryset.order_by('-criado_em')
+    
+    @action(detail=True, methods=['post'])
+    def marcar_visualizado(self, request, pk=None):
+        """Marcar alerta como visualizado"""
+        alerta = self.get_object()
+        
+        if not alerta.visualizado:
+            alerta.visualizado = True
+            alerta.usuario_que_visualizou = request.user
+            alerta.data_visualizacao = timezone.now()
+            alerta.save()
+        
+        return Response({
+            'message': 'Alerta marcado como visualizado',
+            'visualizado': True
+        })
+    
+    @action(detail=True, methods=['post'])
+    def marcar_resolvido(self, request, pk=None):
+        """Marcar alerta como resolvido"""
+        alerta = self.get_object()
+        
+        serializer = MarcarAlertaResolvidoSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        comentario = serializer.validated_data.get('comentario_resolucao', '')
+        
+        alerta.resolvido = True
+        alerta.usuario_que_resolveu = request.user
+        alerta.data_resolucao = timezone.now()
+        alerta.comentario_resolucao = comentario
+        
+        # Se não estava visualizado, marcar como visualizado também
+        if not alerta.visualizado:
+            alerta.visualizado = True
+            alerta.usuario_que_visualizou = request.user
+            alerta.data_visualizacao = timezone.now()
+        
+        alerta.save()
+        
+        return Response({
+            'message': 'Alerta marcado como resolvido',
+            'resolvido': True
+        })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def sincronizar_meta_api(request):
+    """Endpoint para sincronizar com Meta WhatsApp API"""
+    
+    # Verificar permissões
+    if not (request.user.is_superuser or 
+            request.user.groups.filter(name__in=['Diretoria', 'Gestão']).exists()):
+        return Response(
+            {'error': 'Sem permissão para executar sincronização'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    try:
+        serializer = SincronizarMetaAPISerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        business_manager_id = serializer.validated_data.get('business_manager_id')
+        force_update = serializer.validated_data.get('force_update', False)
+        
+        # Executar sincronização
+        whatsapp_service = WhatsAppMetaAPIService()
+        resultado = whatsapp_service.sincronizar_qualidade_numeros(
+            business_manager_id, force_update
+        )
+        
+        if resultado['sucesso']:
+            return Response({
+                'message': 'Sincronização concluída com sucesso',
+                'resultado': resultado
+            })
+        else:
+            return Response({
+                'message': 'Sincronização concluída com erros',
+                'resultado': resultado
+            }, status=status.HTTP_206_PARTIAL_CONTENT)
+    
+    except Exception as e:
+        logger.error(f"Erro na sincronização geral: {e}")
+        return Response(
+            {'error': f'Erro na sincronização: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def dashboard_whatsapp_stats(request):
+    """Estatísticas para dashboard do WhatsApp Business"""
+    
+    try:
+        # Verificar se usuário tem acesso
+        user_has_access = (request.user.is_superuser or 
+                          request.user.groups.filter(name__in=['Diretoria', 'Gestão']).exists() or
+                          BusinessManager.objects.filter(responsavel=request.user).exists())
+        
+        if not user_has_access:
+            return Response(
+                {'error': 'Sem permissão para ver dados do WhatsApp Business'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Filtrar dados por permissão
+        if (request.user.is_superuser or 
+            request.user.groups.filter(name__in=['Diretoria', 'Gestão']).exists()):
+            # Admin vê tudo
+            business_managers = BusinessManager.objects.filter(ativo=True)
+            numeros = WhatsAppPhoneNumber.objects.all()
+            alertas = QualityAlert.objects.all()
+        else:
+            # Usuário comum vê apenas suas Business Managers
+            business_managers = BusinessManager.objects.filter(responsavel=request.user, ativo=True)
+            numeros = WhatsAppPhoneNumber.objects.filter(business_manager__responsavel=request.user)
+            alertas = QualityAlert.objects.filter(phone_number__business_manager__responsavel=request.user)
+        
+        # Estatísticas básicas
+        total_business_managers = business_managers.count()
+        total_numeros = numeros.count()
+        numeros_monitorados = numeros.filter(monitoramento_ativo=True).count()
+        
+        # Distribuição por qualidade
+        distribuicao_qualidade = dict(
+            numeros.values('quality_rating')
+            .annotate(count=Count('id'))
+            .values_list('quality_rating', 'count')
+        )
+        
+        # Distribuição por status
+        distribuicao_status = dict(
+            numeros.values('status')
+            .annotate(count=Count('id'))
+            .values_list('status', 'count')
+        )
+        
+        # Alertas
+        alertas_pendentes = alertas.filter(resolvido=False).count()
+        alertas_criticos = alertas.filter(resolvido=False, priority=AlertPriorityChoices.CRITICAL).count()
+        alertas_24h = alertas.filter(criado_em__gte=timezone.now() - timedelta(days=1)).count()
+        
+        # Números com problemas
+        numeros_problematicos = {
+            'qualidade_vermelha': numeros.filter(
+                quality_rating=QualityRatingChoices.RED,
+                monitoramento_ativo=True
+            ).count(),
+            'desconectados': numeros.filter(
+                status=PhoneNumberStatusChoices.DISCONNECTED,
+                monitoramento_ativo=True
+            ).count(),
+            'restritos': numeros.filter(
+                status=PhoneNumberStatusChoices.RESTRICTED,
+                monitoramento_ativo=True
+            ).count()
+        }
+        
+        # Status de sincronização das Business Managers
+        status_sincronizacao = {
+            'nunca_sincronizadas': business_managers.filter(ultima_sincronizacao__isnull=True).count(),
+            'com_erro': business_managers.exclude(erro_ultima_sincronizacao='').count(),
+            'desatualizadas': business_managers.filter(
+                ultima_sincronizacao__lt=timezone.now() - timedelta(hours=2)
+            ).count()
+        }
+        
+        # Preparar resposta
+        stats = {
+            'resumo': {
+                'total_business_managers': total_business_managers,
+                'total_numeros': total_numeros,
+                'numeros_monitorados': numeros_monitorados,
+                'alertas_pendentes': alertas_pendentes,
+                'alertas_criticos': alertas_criticos,
+                'alertas_24h': alertas_24h
+            },
+            'distribuicao_qualidade': distribuicao_qualidade,
+            'distribuicao_status': distribuicao_status,
+            'numeros_problematicos': numeros_problematicos,
+            'status_sincronizacao': status_sincronizacao
+        }
+        
+        # Cache por 5 minutos
+        cache_key = f'whatsapp_stats_{request.user.id}'
+        cache.set(cache_key, stats, 300)
+        
+        return Response(stats)
+        
+    except Exception as e:
+        logger.error(f"Erro ao carregar stats WhatsApp: {e}")
+        return Response(
+            {'error': 'Erro ao carregar estatísticas'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def verificar_mudancas_qualidade(request):
+    """Verifica mudanças recentes na qualidade dos números"""
+    
+    try:
+        whatsapp_service = WhatsAppMetaAPIService()
+        resultado = whatsapp_service.verificar_mudancas_qualidade()
+        
+        return Response(resultado)
+        
+    except Exception as e:
+        logger.error(f"Erro ao verificar mudanças: {e}")
+        return Response(
+            {'error': f'Erro ao verificar mudanças: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
