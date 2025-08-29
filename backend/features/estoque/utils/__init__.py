@@ -1,0 +1,1 @@
+# backend/features/estoque/utils/__init__.py

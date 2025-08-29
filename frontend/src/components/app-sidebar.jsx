@@ -14,7 +14,8 @@ import {
   Calendar,
   Map,
   MessageSquare,
-  TrendingUp
+  TrendingUp,
+  Package
 } from 'lucide-react'
 
 import {
@@ -157,7 +158,8 @@ export function AppSidebar({
       title: "Suporte",
       icon: Phone,
       isActive: location.pathname.includes('/workspace/processamento') ||
-                location.pathname.includes('/workspace/detector-ip'),
+                location.pathname.includes('/workspace/detector-ip') ||
+                location.pathname.includes('/workspace/estoque'),
       items: [
         {
           title: "Processamento",
@@ -168,6 +170,11 @@ export function AppSidebar({
           title: "Detector de IP",
           url: "/workspace/detector-ip",
           isActive: location.pathname === "/workspace/detector-ip",
+        },
+        {
+          title: "Controle de Estoque",
+          url: "/workspace/estoque",
+          isActive: location.pathname === "/workspace/estoque",
         },
       ],
     }

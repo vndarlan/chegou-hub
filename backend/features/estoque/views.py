@@ -5,6 +5,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.throttling import UserRateThrottle
 from django.db.models import Q, Count, Sum, F
 from django.db import models
 from django.utils import timezone
@@ -12,6 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
 from datetime import datetime, timedelta
+from django.core.exceptions import PermissionDenied
 
 from .models import ProdutoEstoque, MovimentacaoEstoque, AlertaEstoque
 from .serializers import (
@@ -21,15 +23,23 @@ from .serializers import (
 )
 from .services.shopify_webhook_service import ShopifyWebhookService
 from .services.estoque_service import EstoqueService
+from .throttles import (
+    EstoqueUserRateThrottle, EstoqueWebhookRateThrottle, 
+    EstoqueAPIRateThrottle, EstoqueBulkOperationThrottle
+)
+from .utils.security_utils import (
+    LogSanitizer, PermissionValidator, safe_log_data
+)
 
 logger = logging.getLogger(__name__)
 
 
 class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
-    """ViewSet para gerenciar produtos em estoque"""
+    """ViewSet para gerenciar produtos em estoque com segurança aprimorada"""
     
     serializer_class = ProdutoEstoqueSerializer
     permission_classes = [IsAuthenticated]
+    throttle_classes = [EstoqueUserRateThrottle]
     
     def get_serializer_class(self):
         """Usar serializer resumido para listagem"""
@@ -229,10 +239,11 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
 
 
 class MovimentacaoEstoqueViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet para visualizar movimentações de estoque"""
+    """ViewSet para visualizar movimentações de estoque com segurança"""
     
     serializer_class = MovimentacaoEstoqueSerializer
     permission_classes = [IsAuthenticated]
+    throttle_classes = [EstoqueUserRateThrottle]
     
     def get_queryset(self):
         """Filtros avançados via query parameters"""
@@ -335,10 +346,11 @@ class MovimentacaoEstoqueViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AlertaEstoqueViewSet(viewsets.ModelViewSet):
-    """ViewSet para gerenciar alertas de estoque"""
+    """ViewSet para gerenciar alertas de estoque com segurança"""
     
     serializer_class = AlertaEstoqueSerializer
     permission_classes = [IsAuthenticated]
+    throttle_classes = [EstoqueUserRateThrottle]
     
     def get_queryset(self):
         """Filtros avançados via query parameters"""
@@ -415,16 +427,34 @@ class AlertaEstoqueViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'])
     def resolver_multiplos(self, request):
-        """Resolver múltiplos alertas de uma vez"""
+        """Resolver múltiplos alertas de uma vez com throttling específico"""
+        # Aplicar throttling específico para operações em lote
+        throttle = EstoqueBulkOperationThrottle()
+        if not throttle.allow_request(request, self):
+            return Response({
+                'erro': 'Muitas operações em lote. Tente novamente em alguns minutos.'
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        
         ids = request.data.get('alertas_ids', [])
         observacao = request.data.get('observacao', '')
         
-        if not ids:
+        # Sanitizar observação
+        observacao_sanitizada = LogSanitizer.sanitize_string(observacao)
+        
+        if not ids or len(ids) == 0:
             return Response(
                 {'erro': 'Lista de IDs de alertas é obrigatória'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Limitar quantidade para prevenir abuse
+        if len(ids) > 50:
+            return Response(
+                {'erro': 'Máximo 50 alertas por operação em lote'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validar que os alertas pertencem ao usuário
         alertas = self.get_queryset().filter(
             id__in=ids,
             status__in=['ativo', 'lido']
@@ -432,8 +462,19 @@ class AlertaEstoqueViewSet(viewsets.ModelViewSet):
         
         resolvidos = 0
         for alerta in alertas:
-            alerta.resolver(request.user, observacao)
+            # Validar ownership antes de resolver
+            if not PermissionValidator.validate_product_ownership(request.user, alerta.produto):
+                continue
+            alerta.resolver(request.user, observacao_sanitizada)
             resolvidos += 1
+        
+        # Log seguro da operação em lote
+        safe_log_data({
+            'event': 'alertas_resolvidos_lote',
+            'total_solicitado': len(ids),
+            'total_resolvido': resolvidos,
+            'user_id': request.user.id
+        }, 'info')
         
         return Response({
             'sucesso': True,
@@ -484,35 +525,54 @@ class AlertaEstoqueViewSet(viewsets.ModelViewSet):
 @require_http_methods(["POST"])
 def shopify_order_webhook(request):
     """
-    Endpoint webhook para receber pedidos do Shopify e decrementar estoque automaticamente
+    Endpoint webhook SEGURO para receber pedidos do Shopify
     
-    Este endpoint:
-    1. Recebe webhooks do Shopify quando pedidos são criados/pagos
-    2. Valida a assinatura HMAC para segurança  
-    3. Extrai os line_items com SKUs
-    4. Decrementa o estoque para cada SKU encontrado
-    5. Cria movimentações de estoque tipo 'venda'
-    6. Gera alertas se estoque ficar baixo/zerado
+    SEGURANÇA IMPLEMENTADA:
+    1. Rate limiting por IP e domínio da loja
+    2. Validação HMAC OBRIGATÓRIA (nunca é pulada)
+    3. Validação rigorosa de headers Shopify
+    4. Logs sanitizados (sem dados sensíveis)
+    5. Detecção de requisições suspeitas
     """
+    ip_address = request.META.get('REMOTE_ADDR', 'unknown')
+    
     try:
-        # Log da requisição recebida
-        logger.info(f"Webhook recebido do Shopify. IP: {request.META.get('REMOTE_ADDR')}")
+        # SEGURANÇA: Rate limiting manual para webhooks
+        from django.core.cache import cache
+        throttle_key = f"webhook_throttle:{ip_address}"
+        requests_count = cache.get(throttle_key, 0)
         
-        # Obter headers necessários
+        if requests_count >= 60:  # Máximo 60 requests por minuto por IP
+            logger.warning(f"SECURITY: Rate limit exceeded for IP {ip_address}")
+            return JsonResponse({
+                'success': False, 
+                'message': 'Rate limit exceeded'
+            }, status=429)
+        
+        cache.set(throttle_key, requests_count + 1, timeout=60)
+        
+        # SEGURANÇA: Validação completa da requisição
+        is_valid, error_message = ShopifyWebhookService.validate_webhook_request(request)
+        if not is_valid:
+            logger.error(f"SECURITY: Webhook validation failed - {error_message} - IP: {ip_address}")
+            return JsonResponse({
+                'success': False,
+                'message': f'Validação falhou: {error_message}'
+            }, status=400)
+        
+        # Obter headers após validação
         shopify_topic = request.META.get('HTTP_X_SHOPIFY_TOPIC', '')
         shopify_shop_domain = request.META.get('HTTP_X_SHOPIFY_SHOP_DOMAIN', '')
         shopify_signature = request.META.get('HTTP_X_SHOPIFY_HMAC_SHA256', '')
         
-        # Log dos headers
-        logger.info(f"Headers - Topic: {shopify_topic}, Shop: {shopify_shop_domain}")
-        
-        # Validar se é um evento que devemos processar
-        if not shopify_topic or shopify_topic not in ['orders/create', 'orders/paid', 'orders/updated']:
-            logger.warning(f"Tópico de webhook não suportado: {shopify_topic}")
-            return JsonResponse({
-                'success': False, 
-                'message': f'Tópico não suportado: {shopify_topic}'
-            }, status=400)
+        # Log seguro (sem dados sensíveis)
+        safe_log_data({
+            'event': 'webhook_received',
+            'topic': shopify_topic,
+            'shop_domain': shopify_shop_domain,
+            'ip': ip_address,
+            'has_signature': bool(shopify_signature)
+        }, 'info')
         
         # Obter dados do payload
         try:
@@ -527,23 +587,31 @@ def shopify_order_webhook(request):
         # Buscar configuração da loja
         loja_config = ShopifyWebhookService.get_shop_config_by_domain(shopify_shop_domain)
         if not loja_config:
-            logger.warning(f"Loja não encontrada para domínio: {shopify_shop_domain}")
+            logger.error(f"SECURITY: Loja não encontrada para domínio: {shopify_shop_domain}")
             return JsonResponse({
                 'success': False, 
                 'message': f'Loja não encontrada: {shopify_shop_domain}'
             }, status=404)
         
-        # Verificar assinatura HMAC (opcional - pode ser configurado via env)
+        # VALIDAÇÃO HMAC OBRIGATÓRIA - NUNCA É PULADA
         webhook_secret = getattr(loja_config, 'webhook_secret', None)
-        if webhook_secret and shopify_signature:
-            if not ShopifyWebhookService.verify_webhook_signature(
-                request.body, shopify_signature, webhook_secret
-            ):
-                logger.warning(f"Assinatura inválida para loja {shopify_shop_domain}")
-                return JsonResponse({
-                    'success': False, 
-                    'message': 'Assinatura inválida'
-                }, status=401)
+        
+        if not webhook_secret:
+            logger.error(f"SECURITY: Webhook secret não configurado para loja {shopify_shop_domain} - REJEITADO")
+            return JsonResponse({
+                'success': False, 
+                'message': 'Webhook secret não configurado - contate o suporte'
+            }, status=401)
+        
+        # Validação HMAC é SEMPRE obrigatória
+        if not ShopifyWebhookService.verify_webhook_signature(
+            request.body, shopify_signature, webhook_secret
+        ):
+            logger.error(f"SECURITY: Assinatura HMAC inválida para loja {shopify_shop_domain} - POSSÍVEL ATAQUE")
+            return JsonResponse({
+                'success': False, 
+                'message': 'Assinatura inválida'
+            }, status=401)
         
         # Extrair dados do pedido
         order_data = ShopifyWebhookService.extract_order_data(webhook_payload)
@@ -658,13 +726,26 @@ def webhook_status(request):
 @permission_classes([IsAuthenticated])
 def webhook_stats(request):
     """
-    Endpoint para obter estatísticas detalhadas do processamento de webhooks
+    Endpoint SEGURO para obter estatísticas detalhadas do processamento de webhooks
     """
     try:
         from datetime import timedelta
         
-        # Parâmetros de filtro
-        days = int(request.query_params.get('days', 30))
+        # Aplicar throttling para API sensível
+        throttle = EstoqueAPIRateThrottle()
+        if not throttle.allow_request(request, None):
+            return Response({
+                'erro': 'Muitas consultas às estatísticas. Tente novamente mais tarde.'
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        
+        # Parâmetros de filtro com validação
+        try:
+            days = int(request.query_params.get('days', 30))
+            if days < 1 or days > 365:  # Limitar para prevenir queries pesadas
+                days = 30
+        except (ValueError, TypeError):
+            days = 30
+            
         loja_id = request.query_params.get('loja_id')
         
         data_inicio = timezone.now() - timedelta(days=days)
@@ -676,25 +757,47 @@ def webhook_stats(request):
             'data_movimentacao__gte': data_inicio
         }
         
+        # SEGURANÇA: Validar acesso à loja se especificada
         if loja_id:
-            filtros['produto__loja_config_id'] = loja_id
+            try:
+                loja_id = int(loja_id)
+                from features.processamento.models import ShopifyConfig
+                loja_config = ShopifyConfig.objects.filter(id=loja_id).first()
+                if loja_config and not PermissionValidator.validate_store_ownership(request.user, loja_config):
+                    return Response({
+                        'erro': 'Você não tem permissão para visualizar estatísticas desta loja'
+                    }, status=status.HTTP_403_FORBIDDEN)
+                filtros['produto__loja_config_id'] = loja_id
+            except (ValueError, TypeError):
+                return Response({
+                    'erro': 'ID da loja inválido'
+                }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Se não for superuser, filtrar por usuário
+        # SEGURANÇA: Sempre filtrar por usuário (exceto superuser)
         if not request.user.is_superuser:
             filtros['produto__user'] = request.user
         
-        # Estatísticas
-        movimentacoes = MovimentacaoEstoque.objects.filter(**filtros)
+        # Estatísticas com queries otimizadas
+        movimentacoes = MovimentacaoEstoque.objects.filter(**filtros).select_related(
+            'produto__loja_config'
+        )
+        
+        # Usar aggregate para operações mais eficientes
+        stats_aggregated = movimentacoes.aggregate(
+            total_vendas=Count('id'),
+            total_itens=Sum('quantidade'),
+            produtos_unicos=Count('produto', distinct=True)
+        )
         
         stats = {
             'periodo_dias': days,
             'data_inicio': data_inicio.isoformat(),
-            'total_vendas_processadas': movimentacoes.count(),
-            'total_itens_vendidos': sum(m.quantidade for m in movimentacoes),
-            'produtos_diferentes': movimentacoes.values('produto').distinct().count()
+            'total_vendas_processadas': stats_aggregated['total_vendas'] or 0,
+            'total_itens_vendidos': stats_aggregated['total_itens'] or 0,
+            'produtos_diferentes': stats_aggregated['produtos_unicos'] or 0
         }
         
-        # Por loja
+        # Por loja com otimização
         por_loja = movimentacoes.values(
             'produto__loja_config__nome_loja',
             'produto__loja_config_id'
@@ -705,7 +808,7 @@ def webhook_stats(request):
         
         stats['por_loja'] = list(por_loja)
         
-        # Por produto (top 10)
+        # Por produto (top 10) com otimização
         por_produto = movimentacoes.values(
             'produto__sku',
             'produto__nome'
@@ -715,6 +818,15 @@ def webhook_stats(request):
         ).order_by('-itens_vendidos')[:10]
         
         stats['top_produtos'] = list(por_produto)
+        
+        # Log seguro da consulta
+        safe_log_data({
+            'event': 'webhook_stats_consulted',
+            'user_id': request.user.id,
+            'days': days,
+            'loja_id': loja_id,
+            'total_vendas': stats['total_vendas_processadas']
+        }, 'info')
         
         return Response(stats)
         

@@ -474,7 +474,19 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
-    ]
+    ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour',
+        'estoque_user': '200/hour',
+        'estoque_webhook': '60/minute',
+        'estoque_api_sensitive': '50/hour',
+        'estoque_bulk': '10/hour',
+    }
 }
 
 # Aumentar timeout da sessão

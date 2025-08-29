@@ -32,6 +32,7 @@ import EngajamentoPage from '../features/engajamento/EngajamentoPage';
 import NoveltiesPage from '../features/novelties/NoveltiesPage';
 import ProcessamentoPage from '../features/processamento/ProcessamentoPage';
 import DetectorIPPage from '../features/processamento/DetectorIPPage';
+import ControleEstoquePage from '../features/estoque/ControleEstoquePage';
 import FeedbackButton from '../components/FeedbackButton';
 import FeedbackNotificationButton from '../components/FeedbackNotificationButton';
 import ChatbotWidget from '../components/ui/chatbot-widget';
@@ -52,6 +53,7 @@ const breadcrumbMap = {
   '/workspace/novelties': [{ label: 'Operacional', href: '#' }, { label: 'Novelties' }],
   '/workspace/processamento': [{ label: 'Suporte', href: '#' }, { label: 'Processamento' }],
   '/workspace/detector-ip': [{ label: 'Suporte', href: '#' }, { label: 'Detector de IP' }],
+  '/workspace/estoque': [{ label: 'Suporte', href: '#' }, { label: 'Controle de Estoque' }],
 };
 
 function WorkspacePage({ setIsLoggedIn }) {
@@ -160,6 +162,7 @@ function WorkspacePage({ setIsLoggedIn }) {
               <Route path="novelties" element={<NoveltiesPage />} />
               <Route path="processamento" element={<ProcessamentoPage />} />
               <Route path="detector-ip" element={<DetectorIPPage />} />
+              <Route path="estoque" element={<ControleEstoquePage />} />
               <Route path="*" element={
                 <div className="flex h-full items-center justify-center">
                   <div className="text-center">
