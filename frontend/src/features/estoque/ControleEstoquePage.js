@@ -117,7 +117,7 @@ function ControleEstoquePage() {
         
         setSearchingProdutos(true);
         try {
-            const response = await axios.get('/api/estoque/produtos/', {
+            const response = await axios.get('/estoque/produtos/', {
                 params: { loja_id: lojaSelecionada }
             });
             
@@ -140,7 +140,7 @@ function ControleEstoquePage() {
         if (!lojaSelecionada) return;
         
         try {
-            const response = await axios.get('/api/estoque/alertas/', {
+            const response = await axios.get('/estoque/alertas/', {
                 params: { loja_id: lojaSelecionada }
             });
             
@@ -162,7 +162,7 @@ function ControleEstoquePage() {
             const params = { loja_id: lojaSelecionada };
             if (produtoId) params.produto_id = produtoId;
             
-            const response = await axios.get('/api/estoque/movimentacoes/', { params });
+            const response = await axios.get('/estoque/movimentacoes/', { params });
             
             if (response.data.success) {
                 setMovimentacoes(response.data.movimentacoes || []);
@@ -197,7 +197,7 @@ function ControleEstoquePage() {
                 estoque_minimo: parseInt(novoProduto.estoque_minimo) || 5
             };
 
-            const response = await axios.post('/api/estoque/produtos/', dados, {
+            const response = await axios.post('/estoque/produtos/', dados, {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
 
@@ -236,7 +236,7 @@ function ControleEstoquePage() {
                 estoque_minimo: parseInt(selectedProduto.estoque_minimo) || 5
             };
 
-            const response = await axios.put(`/api/estoque/produtos/${selectedProduto.id}/`, dados, {
+            const response = await axios.put(`/estoque/produtos/${selectedProduto.id}/`, dados, {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
 
@@ -281,7 +281,7 @@ function ControleEstoquePage() {
                 observacoes: ajusteEstoque.observacoes || ''
             };
 
-            const response = await axios.post('/api/estoque/movimentacoes/', dados, {
+            const response = await axios.post('/estoque/movimentacoes/', dados, {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
 
@@ -315,7 +315,7 @@ function ControleEstoquePage() {
         }
 
         try {
-            const response = await axios.delete(`/api/estoque/produtos/${produto.id}/`, {
+            const response = await axios.delete(`/estoque/produtos/${produto.id}/`, {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
 
