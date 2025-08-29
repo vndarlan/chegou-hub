@@ -940,7 +940,7 @@ class BusinessManagerSerializer(serializers.ModelSerializer):
     status_sincronizacao = serializers.SerializerMethodField()
     
     # Campo especial para receber access_token não criptografado
-    access_token = serializers.CharField(write_only=True, required=False, help_text="Token original da Meta API")
+    access_token = serializers.CharField(write_only=True, required=True, help_text="Token original da Meta API")
     
     class Meta:
         model = BusinessManager
@@ -952,9 +952,9 @@ class BusinessManagerSerializer(serializers.ModelSerializer):
             'status_sincronizacao'
         ]
         read_only_fields = ['criado_em', 'atualizado_em', 'ultima_sincronizacao', 
-                           'erro_ultima_sincronizacao', 'responsavel_nome']
+                           'erro_ultima_sincronizacao', 'responsavel_nome', 'responsavel']
         extra_kwargs = {
-            'access_token_encrypted': {'write_only': True}
+            'access_token_encrypted': {'write_only': True, 'required': False}
         }
     
     def validate_nome(self, value):

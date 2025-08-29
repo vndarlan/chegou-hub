@@ -28,6 +28,9 @@ urlpatterns = [
     # CORRIGIDO: URLs do Processamento COM /api/
     path('api/processamento/', include('features.processamento.urls')),
     
+    # URLs do Sistema de Estoque
+    path('api/estoque/', include('features.estoque.urls')),
+    
     # URLs das Métricas Separadas
     path('api/metricas/primecod/', include('features.metricas_primecod.urls')),
     path('api/metricas/ecomhub/', include('features.metricas_ecomhub.urls')),

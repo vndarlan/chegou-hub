@@ -8,6 +8,14 @@ class ShopifyConfig(models.Model):
     shop_url = models.CharField(max_length=255, help_text="URL da loja (ex: minha-loja.myshopify.com)")
     access_token = models.CharField(max_length=255, help_text="Token de acesso da API do Shopify")
     api_version = models.CharField(max_length=20, default="2024-07")
+    
+    # Campo para webhook security (opcional)
+    webhook_secret = models.CharField(
+        max_length=255, 
+        blank=True, 
+        help_text="Secret do webhook para validação HMAC (opcional, mas recomendado para segurança)"
+    )
+    
     ativo = models.BooleanField(default=True)
     data_criacao = models.DateTimeField(auto_now_add=True)
     data_atualizacao = models.DateTimeField(auto_now=True)
