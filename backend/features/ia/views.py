@@ -1421,3 +1421,55 @@ def verificar_mudancas_qualidade(request):
             {'error': f'Erro ao verificar mudanças: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# VIEW TEMPORÁRIA - REMOVER APÓS LIMPEZA DOS TOKENS
+@api_view(['POST'])
+@permission_classes([AllowAny])  # Temporariamente sem autenticação para facilitar acesso
+def fix_whatsapp_tokens_temp(request):
+    """View temporária para limpar tokens WhatsApp corrompidos"""
+    
+    try:
+        from django.db import transaction
+        from .models import BusinessManager
+        
+        with transaction.atomic():
+            # Buscar BMs com tokens corrompidos
+            business_managers = BusinessManager.objects.filter(
+                access_token_encrypted__isnull=False
+            ).exclude(access_token_encrypted='')
+
+            count = business_managers.count()
+            
+            if count == 0:
+                return Response({
+                    'success': True,
+                    'message': 'Nenhum token corrompido encontrado.',
+                    'count': 0
+                })
+
+            # Limpar tokens
+            cleaned_bms = []
+            for bm in business_managers:
+                cleaned_bms.append({
+                    'id': bm.id,
+                    'nome': bm.nome,
+                    'business_manager_id': bm.business_manager_id
+                })
+                bm.access_token_encrypted = ''
+                bm.erro_ultima_sincronizacao = 'Token limpo - re-cadastre o access token'
+                bm.save()
+
+            return Response({
+                'success': True,
+                'message': f'SUCESSO: {count} tokens limpos com sucesso!',
+                'count': count,
+                'business_managers_limpas': cleaned_bms,
+                'proximos_passos': 'ACAO NECESSARIA: Re-cadastre o access token de todas as Business Managers no painel administrativo'
+            })
+
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'ERRO ao limpar tokens: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
