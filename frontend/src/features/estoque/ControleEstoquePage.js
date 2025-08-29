@@ -44,11 +44,9 @@ function ControleEstoquePage() {
     const [novoProduto, setNovoProduto] = useState({ 
         sku: '', 
         nome: '', 
-        estoque_atual: 0, 
-        estoque_minimo: 5,
-        preco: 0,
-        categoria: '',
-        descricao: ''
+        fornecedor: '',
+        estoque_inicial: 0, 
+        estoque_minimo: 5
     });
     const [ajusteEstoque, setAjusteEstoque] = useState({
         tipo: 'adicionar', // 'adicionar' ou 'remover'
@@ -88,7 +86,7 @@ function ControleEstoquePage() {
             const filtered = produtos.filter(produto => 
                 produto.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 produto.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                produto.categoria?.toLowerCase().includes(searchTerm.toLowerCase())
+                produto.fornecedor?.toLowerCase().includes(searchTerm.toLowerCase())
             );
             setProdutosFiltrados(filtered);
         }
@@ -185,8 +183,8 @@ function ControleEstoquePage() {
             return;
         }
 
-        if (!novoProduto.sku || !novoProduto.nome) {
-            showNotification('SKU e nome são obrigatórios', 'error');
+        if (!novoProduto.sku || !novoProduto.nome || !novoProduto.fornecedor) {
+            showNotification('SKU, nome e fornecedor são obrigatórios', 'error');
             return;
         }
 
@@ -195,9 +193,8 @@ function ControleEstoquePage() {
             const dados = {
                 ...novoProduto,
                 loja_id: lojaSelecionada,
-                estoque_atual: parseInt(novoProduto.estoque_atual) || 0,
-                estoque_minimo: parseInt(novoProduto.estoque_minimo) || 5,
-                preco: parseFloat(novoProduto.preco) || 0
+                estoque_inicial: parseInt(novoProduto.estoque_inicial) || 0,
+                estoque_minimo: parseInt(novoProduto.estoque_minimo) || 5
             };
 
             const response = await axios.post('/api/estoque/produtos/', dados, {
@@ -209,11 +206,9 @@ function ControleEstoquePage() {
                 setNovoProduto({ 
                     sku: '', 
                     nome: '', 
-                    estoque_atual: 0, 
-                    estoque_minimo: 5,
-                    preco: 0,
-                    categoria: '',
-                    descricao: ''
+                    fornecedor: '',
+                    estoque_inicial: 0, 
+                    estoque_minimo: 5
                 });
                 setShowAddProduto(false);
                 await loadProdutos();
@@ -235,9 +230,10 @@ function ControleEstoquePage() {
         setSavingProduto(true);
         try {
             const dados = {
-                ...selectedProduto,
-                estoque_minimo: parseInt(selectedProduto.estoque_minimo) || 5,
-                preco: parseFloat(selectedProduto.preco) || 0
+                sku: selectedProduto.sku,
+                nome: selectedProduto.nome,
+                fornecedor: selectedProduto.fornecedor,
+                estoque_minimo: parseInt(selectedProduto.estoque_minimo) || 5
             };
 
             const response = await axios.put(`/api/estoque/produtos/${selectedProduto.id}/`, dados, {
@@ -367,12 +363,6 @@ function ControleEstoquePage() {
         }
     };
 
-    const formatCurrency = (value) => {
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        }).format(parseFloat(value) || 0);
-    };
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleString('pt-BR', {
@@ -382,6 +372,16 @@ function ControleEstoquePage() {
             hour: '2-digit',
             minute: '2-digit'
         });
+    };
+
+    const getFornecedorBadge = (fornecedor) => {
+        const fornecedorMap = {
+            'Dropi': { variant: 'default', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' },
+            'PrimeCod': { variant: 'default', className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' },
+            'Ecomhub': { variant: 'default', className: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300' },
+            'N1': { variant: 'default', className: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300' }
+        };
+        return fornecedorMap[fornecedor] || { variant: 'outline', className: '' };
     };
 
     if (loading) {
@@ -465,15 +465,30 @@ function ControleEstoquePage() {
                                     </div>
                                 </div>
                                 
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div>
+                                    <Label htmlFor="fornecedor" className="text-foreground">Fornecedor *</Label>
+                                    <Select value={novoProduto.fornecedor} onValueChange={(value) => setNovoProduto(prev => ({ ...prev, fornecedor: value }))}>
+                                        <SelectTrigger className="bg-background border-input text-foreground">
+                                            <SelectValue placeholder="Selecione o fornecedor" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Dropi">Dropi</SelectItem>
+                                            <SelectItem value="PrimeCod">PrimeCod</SelectItem>
+                                            <SelectItem value="Ecomhub">Ecomhub</SelectItem>
+                                            <SelectItem value="N1">N1</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <Label htmlFor="estoque_atual" className="text-foreground">Estoque Inicial</Label>
+                                        <Label htmlFor="estoque_inicial" className="text-foreground">Estoque Inicial</Label>
                                         <Input
-                                            id="estoque_atual"
+                                            id="estoque_inicial"
                                             type="number"
                                             min="0"
-                                            value={novoProduto.estoque_atual}
-                                            onChange={(e) => setNovoProduto(prev => ({ ...prev, estoque_atual: e.target.value }))}
+                                            value={novoProduto.estoque_inicial}
+                                            onChange={(e) => setNovoProduto(prev => ({ ...prev, estoque_inicial: e.target.value }))}
                                             className="bg-background border-input text-foreground"
                                         />
                                     </div>
@@ -488,41 +503,6 @@ function ControleEstoquePage() {
                                             className="bg-background border-input text-foreground"
                                         />
                                     </div>
-                                    <div>
-                                        <Label htmlFor="preco" className="text-foreground">Preço (R$)</Label>
-                                        <Input
-                                            id="preco"
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={novoProduto.preco}
-                                            onChange={(e) => setNovoProduto(prev => ({ ...prev, preco: e.target.value }))}
-                                            className="bg-background border-input text-foreground"
-                                        />
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <Label htmlFor="categoria" className="text-foreground">Categoria</Label>
-                                    <Input
-                                        id="categoria"
-                                        placeholder="Ex: Roupas, Acessórios"
-                                        value={novoProduto.categoria}
-                                        onChange={(e) => setNovoProduto(prev => ({ ...prev, categoria: e.target.value }))}
-                                        className="bg-background border-input text-foreground"
-                                    />
-                                </div>
-                                
-                                <div>
-                                    <Label htmlFor="descricao" className="text-foreground">Descrição</Label>
-                                    <Textarea
-                                        id="descricao"
-                                        placeholder="Descrição opcional do produto"
-                                        value={novoProduto.descricao}
-                                        onChange={(e) => setNovoProduto(prev => ({ ...prev, descricao: e.target.value }))}
-                                        className="bg-background border-input text-foreground"
-                                        rows={3}
-                                    />
                                 </div>
 
                                 <div className="flex justify-end space-x-2 pt-4">
@@ -686,7 +666,7 @@ function ControleEstoquePage() {
                             <div className="flex items-center gap-2">
                                 <Search className="h-4 w-4 text-muted-foreground" />
                                 <Input
-                                    placeholder="Buscar por SKU, nome ou categoria..."
+                                    placeholder="Buscar por SKU, nome ou fornecedor..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="w-64 h-8 bg-background border-input text-foreground"
@@ -737,10 +717,9 @@ function ControleEstoquePage() {
                                     <TableHeader>
                                         <TableRow className="border-border">
                                             <TableHead className="text-foreground">Produto</TableHead>
+                                            <TableHead className="text-foreground text-center">Fornecedor</TableHead>
                                             <TableHead className="text-foreground text-center">Estoque</TableHead>
                                             <TableHead className="text-foreground text-center">Status</TableHead>
-                                            <TableHead className="text-foreground text-center">Preço</TableHead>
-                                            <TableHead className="text-foreground">Categoria</TableHead>
                                             <TableHead className="text-right text-foreground">Ações</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -771,6 +750,14 @@ function ControleEstoquePage() {
                                                         </div>
                                                     </TableCell>
                                                     <TableCell className="text-center">
+                                                        <Badge 
+                                                            variant={getFornecedorBadge(produto.fornecedor).variant}
+                                                            className={`text-xs ${getFornecedorBadge(produto.fornecedor).className}`}
+                                                        >
+                                                            {produto.fornecedor || 'N/A'}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
                                                         <div className="space-y-1">
                                                             <Badge variant="outline" className="font-mono">
                                                                 {produto.estoque_atual || 0}
@@ -783,16 +770,6 @@ function ControleEstoquePage() {
                                                     <TableCell className="text-center">
                                                         <Badge variant={statusInfo.variant} className="text-xs">
                                                             {statusInfo.status}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-center">
-                                                        <span className="font-medium text-foreground">
-                                                            {formatCurrency(produto.preco)}
-                                                        </span>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge variant="outline" className="text-xs">
-                                                            {produto.categoria || 'Sem categoria'}
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell className="text-right">
@@ -876,50 +853,30 @@ function ControleEstoquePage() {
                                 </div>
                             </div>
                             
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <Label htmlFor="edit-estoque-minimo" className="text-foreground">Estoque Mínimo</Label>
-                                    <Input
-                                        id="edit-estoque-minimo"
-                                        type="number"
-                                        min="0"
-                                        value={selectedProduto.estoque_minimo}
-                                        onChange={(e) => setSelectedProduto(prev => ({ ...prev, estoque_minimo: e.target.value }))}
-                                        className="bg-background border-input text-foreground"
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor="edit-preco" className="text-foreground">Preço (R$)</Label>
-                                    <Input
-                                        id="edit-preco"
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={selectedProduto.preco}
-                                        onChange={(e) => setSelectedProduto(prev => ({ ...prev, preco: e.target.value }))}
-                                        className="bg-background border-input text-foreground"
-                                    />
-                                </div>
+                            <div>
+                                <Label htmlFor="edit-fornecedor" className="text-foreground">Fornecedor</Label>
+                                <Select value={selectedProduto.fornecedor} onValueChange={(value) => setSelectedProduto(prev => ({ ...prev, fornecedor: value }))}>
+                                    <SelectTrigger className="bg-background border-input text-foreground">
+                                        <SelectValue placeholder="Selecione o fornecedor" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Dropi">Dropi</SelectItem>
+                                        <SelectItem value="PrimeCod">PrimeCod</SelectItem>
+                                        <SelectItem value="Ecomhub">Ecomhub</SelectItem>
+                                        <SelectItem value="N1">N1</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                             
                             <div>
-                                <Label htmlFor="edit-categoria" className="text-foreground">Categoria</Label>
+                                <Label htmlFor="edit-estoque-minimo" className="text-foreground">Estoque Mínimo</Label>
                                 <Input
-                                    id="edit-categoria"
-                                    value={selectedProduto.categoria}
-                                    onChange={(e) => setSelectedProduto(prev => ({ ...prev, categoria: e.target.value }))}
+                                    id="edit-estoque-minimo"
+                                    type="number"
+                                    min="0"
+                                    value={selectedProduto.estoque_minimo}
+                                    onChange={(e) => setSelectedProduto(prev => ({ ...prev, estoque_minimo: e.target.value }))}
                                     className="bg-background border-input text-foreground"
-                                />
-                            </div>
-                            
-                            <div>
-                                <Label htmlFor="edit-descricao" className="text-foreground">Descrição</Label>
-                                <Textarea
-                                    id="edit-descricao"
-                                    value={selectedProduto.descricao}
-                                    onChange={(e) => setSelectedProduto(prev => ({ ...prev, descricao: e.target.value }))}
-                                    className="bg-background border-input text-foreground"
-                                    rows={3}
                                 />
                             </div>
                             
