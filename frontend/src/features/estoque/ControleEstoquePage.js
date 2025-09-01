@@ -85,7 +85,7 @@ function ControleEstoquePage() {
         messageHistory,
         reconnectAttempts,
         maxReconnectAttempts
-    } = useWebSocket(lojaSelecionada ? `/ws/estoque/${lojaSelecionada}/` : null, {
+    } = useWebSocket(null, { // WebSocket desabilitado temporariamente
         shouldReconnect: true,
         reconnectInterval: 3000,
         maxReconnectAttempts: 5
