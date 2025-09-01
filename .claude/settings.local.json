@@ -78,7 +78,11 @@
       "Bash(touch:*)",
       "Bash(npm test:*)",
       "Bash(cmd //c:*)",
-      "Read(/c:\\Users\\Vinic\\OneDrive\\Documentos\\Screenshots/**)"
+      "Read(/c:\\Users\\Vinic\\OneDrive\\Documentos\\Screenshots/**)",
+      "Bash(railway run:*)",
+      "Bash(railway shell:*)",
+      "Bash(cross-env:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",

@@ -35,7 +35,7 @@ cryptography==41.0.4
 python-dateutil==2.8.2
 pytz==2023.3
 django-rq==2.8.1
-redis==4.5.4
+redis>=4.6.0
 rq==1.15.1
 django-redis>=5.4.0
 Pillow>=10.0.0
@@ -46,3 +46,7 @@ django-cloudinary-storage>=0.3.0
 
 # Shopify API para integração com lojas
 ShopifyAPI>=12.0.0
+
+# Django Channels para WebSockets em tempo real
+channels>=4.1.0
+channels-redis>=4.2.0

@@ -9,6 +9,17 @@ from ..models import ProdutoEstoque, MovimentacaoEstoque, AlertaEstoque
 
 logger = logging.getLogger(__name__)
 
+# Import para notificações em tempo real (com fallback se não disponível)
+try:
+    from features.sync_realtime.services import (
+        notify_venda_shopify, notify_estoque_update, 
+        notify_alerta_gerado, notify_webhook_error
+    )
+    REALTIME_NOTIFICATIONS_AVAILABLE = True
+except ImportError:
+    logger.warning("Notificações em tempo real não disponíveis - funcionará sem WebSockets")
+    REALTIME_NOTIFICATIONS_AVAILABLE = False
+
 
 class EstoqueService:
     """Serviço para operações de controle de estoque"""
@@ -65,12 +76,45 @@ class EstoqueService:
             else:
                 result['message'] = f"Todos os {result['items_processados']} itens processados com sucesso"
             
+            # === NOTIFICAÇÃO EM TEMPO REAL ===
+            # Enviar notificação WebSocket sobre a venda processada
+            if REALTIME_NOTIFICATIONS_AVAILABLE:
+                try:
+                    notify_venda_shopify(
+                        user=loja_config.user,
+                        loja_config=loja_config,
+                        order_data=order_data,
+                        result=result
+                    )
+                    logger.info(f"Notificação WebSocket enviada para venda {order_data.get('order_number')}")
+                except Exception as e:
+                    logger.error(f"Erro ao enviar notificação WebSocket: {str(e)}")
+            
             return result
             
         except Exception as e:
             logger.error(f"Erro no processamento da venda webhook: {str(e)}")
             result['success'] = False
             result['message'] = f"Erro no processamento: {str(e)}"
+            
+            # Notificar erro via WebSocket
+            if REALTIME_NOTIFICATIONS_AVAILABLE:
+                try:
+                    notify_webhook_error(
+                        user=loja_config.user,
+                        loja_config=loja_config,
+                        error_details={
+                            'error_type': 'processing_error',
+                            'error_message': str(e),
+                            'order_number': order_data.get('order_number'),
+                            'shopify_order_id': order_data.get('shopify_order_id'),
+                            'webhook_topic': 'orders/paid',
+                            'suggested_action': 'Verificar logs do sistema e configurações da loja'
+                        }
+                    )
+                except Exception as notify_error:
+                    logger.error(f"Erro ao notificar erro webhook: {str(notify_error)}")
+            
             return result
     
     @staticmethod

@@ -1,0 +1,1 @@
+# backend/features/sync_realtime/management/commands/__init__.py

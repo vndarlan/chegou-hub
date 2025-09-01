@@ -73,6 +73,9 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     
+    # Django Channels para WebSockets
+    'channels',
+    
     # Core (apenas autenticação)
     'core.apps.CoreConfig',
     
@@ -85,6 +88,9 @@ INSTALLED_APPS = [
     'features.processamento',
     'features.estoque.apps.EstoqueConfig',
     'features.api_monitoring.apps.ApiMonitoringConfig',
+    
+    # Sincronização em Tempo Real
+    'features.sync_realtime.apps.SyncRealtimeConfig',
     
     # Métricas Separadas
     'features.metricas_primecod',
@@ -149,6 +155,9 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+
+# === CONFIGURAÇÃO DJANGO CHANNELS ===
+ASGI_APPLICATION = 'config.asgi.application'
 
 # --- Diagnósticos ---
 print(f"--- Django Settings Values ---")
@@ -711,3 +720,38 @@ PRIMECOD_API_TOKEN = os.getenv('PRIMECOD_API_TOKEN', '')
 print(f"PrimeCOD API configurado: {'Sim' if PRIMECOD_API_TOKEN else 'Não'}")
 
 # Cache para tokens (já configurado acima com Redis)
+
+# ======================== CONFIGURAÇÃO DJANGO CHANNELS ========================
+
+# Configurar Channel Layer (usado para WebSockets)
+if REDIS_AVAILABLE:
+    # Usar Redis para Channel Layer se disponível
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [REDIS_URL],
+                'capacity': 1500,  # Máximo de mensagens por canal
+                'expiry': 60,      # TTL das mensagens em segundos
+                'group_expiry': 86400,  # TTL dos grupos em segundos (24h)
+                'symmetric_encryption_keys': [SECRET_KEY[:32]],  # Criptografia para segurança
+            },
+        },
+    }
+    print(f"Channel Layer configurado com Redis: {REDIS_URL}")
+else:
+    # Fallback para InMemoryChannelLayer (apenas desenvolvimento)
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+            'CONFIG': {
+                'capacity': 300,  # Limite menor para memória
+                'expiry': 60,
+            }
+        },
+    }
+    print("Channel Layer configurado com InMemory (desenvolvimento apenas)")
+
+# WebSocket timeout settings
+WEBSOCKET_ACCEPT_ALL = False  # Requer autenticação
+WEBSOCKET_CLOSE_TIMEOUT = 10  # Timeout para fechar conexões em segundos

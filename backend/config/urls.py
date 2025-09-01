@@ -31,6 +31,9 @@ urlpatterns = [
     # URLs do Sistema de Estoque
     path('api/estoque/', include('features.estoque.urls')),
     
+    # URLs da Sincronização em Tempo Real
+    path('api/sync-realtime/', include('features.sync_realtime.urls')),
+    
     # URLs das Métricas Separadas
     path('api/metricas/primecod/', include('features.metricas_primecod.urls')),
     path('api/metricas/ecomhub/', include('features.metricas_ecomhub.urls')),

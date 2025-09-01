@@ -19,9 +19,20 @@ import {
     Package, AlertCircle, Check, X, RefreshCw, Trash2, 
     Settings, History, Plus, Building, TrendingUp, TrendingDown,
     Edit, Search, Target, Loader2, Eye, PackageOpen,
-    BarChart3, AlertTriangle, ChevronDown, ChevronUp
+    BarChart3, AlertTriangle, ChevronDown, ChevronUp, Zap
 } from 'lucide-react';
 import { getCSRFToken } from '../../utils/csrf';
+
+// WebSocket e componentes de tempo real
+import useWebSocket from '../../hooks/useWebSocket';
+import SyncStatus from './components/SyncStatus';
+import RealtimeNotifications from './components/RealtimeNotifications';
+import { 
+    useProductHighlight, 
+    ProductHighlightBadge, 
+    HighlightedTableRow, 
+    UpdateAnimation 
+} from './components/ProductHighlight';
 
 function ControleEstoquePage() {
     // Estados principais
@@ -66,6 +77,27 @@ function ControleEstoquePage() {
     const [savingProduto, setSavingProduto] = useState(false);
     const [ajustandoEstoque, setAjustandoEstoque] = useState(false);
     const [loadingMovimentacoes, setLoadingMovimentacoes] = useState(false);
+    
+    // WebSocket e tempo real
+    const {
+        connectionStatus,
+        lastMessage,
+        messageHistory,
+        reconnectAttempts,
+        maxReconnectAttempts
+    } = useWebSocket(lojaSelecionada ? `/ws/estoque/${lojaSelecionada}/` : null, {
+        shouldReconnect: true,
+        reconnectInterval: 3000,
+        maxReconnectAttempts: 5
+    });
+    
+    // Sistema de destaque de produtos
+    const {
+        highlightProduct,
+        isHighlighted,
+        getHighlight,
+        clearAllHighlights
+    } = useProductHighlight();
 
     useEffect(() => {
         loadLojas();
@@ -75,8 +107,10 @@ function ControleEstoquePage() {
         if (lojaSelecionada) {
             loadProdutos();
             loadAlertas();
+            // Limpar destaques quando trocar de loja
+            clearAllHighlights();
         }
-    }, [lojaSelecionada]);
+    }, [lojaSelecionada, clearAllHighlights]);
 
     useEffect(() => {
         // Filtrar produtos baseado no termo de busca
@@ -91,6 +125,30 @@ function ControleEstoquePage() {
             setProdutosFiltrados(filtered);
         }
     }, [produtos, searchTerm]);
+    
+    // Handlers para notificações em tempo real
+    const handleStockUpdate = async (data) => {
+        // Destacar produto atualizado
+        if (data.produto?.id) {
+            const highlightType = data.estoque_atual > data.estoque_anterior ? 
+                'stock_increase' : 'stock_decrease';
+            highlightProduct(data.produto.id, highlightType, 5000);
+        }
+        
+        // Recarregar dados
+        await loadProdutos();
+        await loadAlertas();
+    };
+    
+    const handleProductUpdate = async () => {
+        await loadProdutos();
+        await loadAlertas();
+    };
+    
+    const handleWebhookConfigured = () => {
+        // Callback quando webhook é configurado
+        console.log('Webhook configurado com sucesso');
+    };
 
     const showNotification = (message, type = 'success') => {
         setNotification({ message, type });
@@ -406,8 +464,17 @@ function ControleEstoquePage() {
                     <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                         <Package className="h-6 w-6 text-primary" />
                         Controle de Estoque
+                        {connectionStatus === 'Open' && (
+                            <Badge variant="default" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                <Zap className="h-3 w-3 mr-1" />
+                                Tempo Real
+                            </Badge>
+                        )}
                     </h1>
-                    <p className="text-muted-foreground">Gestão completa do estoque de produtos</p>
+                    <p className="text-muted-foreground">
+                        Gestão completa do estoque de produtos
+                        {connectionStatus === 'Open' && ' - Sincronização automática ativa'}
+                    </p>
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-2">
@@ -587,6 +654,25 @@ function ControleEstoquePage() {
                 </div>
             </div>
 
+            {/* Notificações em Tempo Real */}
+            <RealtimeNotifications 
+                lastMessage={lastMessage}
+                onStockUpdate={handleStockUpdate}
+                onProductUpdate={handleProductUpdate}
+            />
+
+            {/* Status de Sincronização */}
+            <SyncStatus 
+                connectionStatus={connectionStatus}
+                lastMessage={lastMessage}
+                messageHistory={messageHistory}
+                reconnectAttempts={reconnectAttempts}
+                maxReconnectAttempts={maxReconnectAttempts}
+                lojaSelecionada={lojaSelecionada}
+                lojas={lojas}
+                onConfigWebhook={handleWebhookConfigured}
+            />
+
             {/* Alertas de Estoque Baixo */}
             {alertas.length > 0 && (
                 <Collapsible open={showAlertas} onOpenChange={setShowAlertas}>
@@ -675,9 +761,10 @@ function ControleEstoquePage() {
                                 size="sm"
                                 onClick={loadProdutos}
                                 disabled={searchingProdutos}
+                                className={connectionStatus === 'Open' ? 'border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950/20' : ''}
                             >
                                 {searchingProdutos ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                                Atualizar
+                                {connectionStatus === 'Open' ? 'Atualizar' : 'Atualizar'}
                             </Button>
                         </div>
                     </div>
@@ -725,9 +812,14 @@ function ControleEstoquePage() {
                                         {produtosFiltrados.map((produto, index) => {
                                             const statusInfo = getStatusEstoque(produto);
                                             const StatusIcon = statusInfo.icon;
+                                            const highlight = isHighlighted(produto.id) ? getHighlight(produto.id) : null;
                                             
                                             return (
-                                                <TableRow key={produto.id || index} className="border-border hover:bg-muted/50">
+                                                <HighlightedTableRow 
+                                                    key={produto.id || index} 
+                                                    className="border-border hover:bg-muted/50"
+                                                    highlight={highlight}
+                                                >
                                                     <TableCell>
                                                         <div className="flex items-center space-x-3">
                                                             <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
@@ -766,9 +858,15 @@ function ControleEstoquePage() {
                                                         </div>
                                                     </TableCell>
                                                     <TableCell className="text-center">
-                                                        <Badge variant={statusInfo.variant} className="text-xs">
-                                                            {statusInfo.status}
-                                                        </Badge>
+                                                        <div className="flex flex-col items-center gap-1">
+                                                            <Badge variant={statusInfo.variant} className="text-xs">
+                                                                {statusInfo.status}
+                                                            </Badge>
+                                                            <ProductHighlightBadge 
+                                                                productId={produto.id} 
+                                                                highlight={highlight} 
+                                                            />
+                                                        </div>
                                                     </TableCell>
                                                     <TableCell className="text-right">
                                                         <div className="flex items-center justify-end gap-1">
@@ -806,7 +904,7 @@ function ControleEstoquePage() {
                                                             </Button>
                                                         </div>
                                                     </TableCell>
-                                                </TableRow>
+                                                </HighlightedTableRow>
                                             );
                                         })}
                                     </TableBody>
