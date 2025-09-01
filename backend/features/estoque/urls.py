@@ -42,8 +42,9 @@ urlpatterns = [
 
 # === MOVIMENTAÇÕES ===
 # GET /api/estoque/movimentacoes/ - Lista movimentações
+# POST /api/estoque/movimentacoes/ - Cria nova movimentação
 # GET /api/estoque/movimentacoes/{id}/ - Detalhes da movimentação
-# POST /api/estoque/movimentacoes/criar_movimentacao/ - Cria movimentação
+# POST /api/estoque/movimentacoes/criar_movimentacao/ - Cria movimentação (alternativa)
 # GET /api/estoque/movimentacoes/relatorio_periodo/ - Relatório por período
 
 # === ALERTAS ===

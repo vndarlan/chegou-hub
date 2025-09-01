@@ -48,8 +48,24 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
         return ProdutoEstoqueSerializer
     
     def perform_create(self, serializer):
-        """Definir usuário automaticamente na criação"""
-        serializer.save(user=self.request.user)
+        """Definir usuário automaticamente na criação e configurar estoque inicial"""
+        # Salvar o produto primeiro - o modelo já configurará o estoque inicial
+        produto = serializer.save(user=self.request.user)
+        
+        # Atualizar a movimentação inicial se foi criada pelo modelo
+        # para incluir o usuário que criou via API
+        if produto.estoque_inicial > 0:
+            movimentacao_inicial = MovimentacaoEstoque.objects.filter(
+                produto=produto,
+                tipo_movimento='entrada',
+                observacoes='Estoque inicial do produto',
+                usuario__isnull=True
+            ).first()
+            
+            if movimentacao_inicial:
+                movimentacao_inicial.usuario = self.request.user
+                movimentacao_inicial.origem_sync = 'manual'
+                movimentacao_inicial.save()
     
     def get_queryset(self):
         """Filtros avançados via query parameters"""
@@ -238,12 +254,21 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class MovimentacaoEstoqueViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet para visualizar movimentações de estoque com segurança"""
+class MovimentacaoEstoqueViewSet(viewsets.ModelViewSet):
+    """ViewSet para gerenciar movimentações de estoque com segurança"""
     
     serializer_class = MovimentacaoEstoqueSerializer
     permission_classes = [IsAuthenticated]
     throttle_classes = [EstoqueUserRateThrottle]
+    
+    def get_serializer_class(self):
+        """Usar serializer específico para criação"""
+        if self.action == 'create':
+            return MovimentacaoEstoqueCreateSerializer
+        return MovimentacaoEstoqueSerializer
+    
+    # Restringir ações permitidas (sem update, partial_update, destroy por segurança)
+    http_method_names = ['get', 'post', 'head', 'options']
     
     def get_queryset(self):
         """Filtros avançados via query parameters"""
@@ -629,16 +654,25 @@ def shopify_order_webhook(request):
         # Processar o pedido para decremento de estoque
         result = EstoqueService.processar_venda_webhook(loja_config, order_data)
         
-        # Log do resultado
+        # Log detalhado do resultado
+        items_processados = result['items_processados']
+        items_com_erro = result['items_com_erro']
+        alertas_gerados = len(result['alertas_gerados'])
+        
+        logger.info(f"Webhook processado: Pedido {order_data.get('order_number')} - "
+                   f"Sucessos: {items_processados}, Erros: {items_com_erro}, "
+                   f"Alertas: {alertas_gerados}")
+        
+        # Log do resultado para auditoria
         ShopifyWebhookService.log_webhook_received(
             shop_domain=shopify_shop_domain,
             order_id=str(order_data.get('shopify_order_id')),
             event_type=shopify_topic,
             success=result['success'],
             details={
-                'items_processados': result['items_processados'],
-                'items_com_erro': result['items_com_erro'],
-                'alertas_gerados': len(result['alertas_gerados']),
+                'items_processados': items_processados,
+                'items_com_erro': items_com_erro,
+                'alertas_gerados': alertas_gerados,
                 'message': result['message']
             }
         )
@@ -648,9 +682,20 @@ def shopify_order_webhook(request):
             'success': result['success'],
             'message': result['message'],
             'order_number': result['order_number'],
-            'items_processados': result['items_processados'],
-            'items_com_erro': result['items_com_erro'],
-            'alertas_gerados': len(result['alertas_gerados'])
+            'shopify_order_id': result['shopify_order_id'],
+            'items_processados': items_processados,
+            'items_com_erro': items_com_erro,
+            'alertas_gerados': alertas_gerados,
+            'loja_nome': loja_config.nome_loja,
+            'processed_at': timezone.now().isoformat(),
+            'notifications_sent': True,  # Indica que notificações WebSocket foram enviadas
+            'detalhes_items': [
+                {
+                    'sku': item['sku'],
+                    'success': item['success'],
+                    'message': item['message']
+                } for item in result.get('detalhes', [])
+            ][:10]  # Limitar a 10 itens para não sobrecarregar resposta
         }, status=200 if result['success'] else 206)  # 206 = Partial Content para sucesso parcial
         
     except Exception as e:

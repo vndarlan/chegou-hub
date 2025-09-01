@@ -15,6 +15,7 @@ import { Separator } from '../../components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Textarea } from '../../components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../components/ui/collapsible';
+import { Toaster } from '../../components/ui/toaster';
 import {
     Package, AlertCircle, Check, X, RefreshCw, Trash2, 
     Settings, History, Plus, Building, TrendingUp, TrendingDown,
@@ -79,16 +80,43 @@ function ControleEstoquePage() {
     const [loadingMovimentacoes, setLoadingMovimentacoes] = useState(false);
     
     // WebSocket e tempo real
+    // Construir URL do WebSocket baseada na loja selecionada
+    const websocketUrl = lojaSelecionada ? `/ws/estoque/?loja_id=${lojaSelecionada}` : null;
+    
     const {
         connectionStatus,
         lastMessage,
         messageHistory,
         reconnectAttempts,
-        maxReconnectAttempts
-    } = useWebSocket(null, { // WebSocket desabilitado temporariamente
+        maxReconnectAttempts,
+        sendMessage,
+        sendJsonMessage
+    } = useWebSocket(websocketUrl, {
         shouldReconnect: true,
         reconnectInterval: 3000,
-        maxReconnectAttempts: 5
+        maxReconnectAttempts: 5,
+        onOpen: (event) => {
+            console.log('WebSocket conectado para estoque em tempo real:', event);
+        },
+        onClose: (event) => {
+            console.log('WebSocket desconectado:', event.code, event.reason);
+            
+            // Notificar desconexão se não foi intencional
+            if (event.code !== 1000) { // 1000 = fechamento normal
+                showNotification(
+                    `Conexão em tempo real perdida (código: ${event.code}). Tentando reconectar...`,
+                    'warning'
+                );
+            }
+        },
+        onMessage: (message) => {
+            console.log('Mensagem WebSocket recebida:', message);
+            // Processar mensagens diretas e deixar RealtimeNotifications processar o resto
+            handleWebSocketMessage(message);
+        },
+        onError: (error) => {
+            console.error('Erro no WebSocket:', error);
+        }
     });
     
     // Sistema de destaque de produtos
@@ -111,6 +139,37 @@ function ControleEstoquePage() {
             clearAllHighlights();
         }
     }, [lojaSelecionada, clearAllHighlights]);
+    
+    // Enviar identificação quando WebSocket conectar
+    useEffect(() => {
+        if (connectionStatus === 'Open' && sendJsonMessage && lojaSelecionada) {
+            console.log('Enviando identificação para o WebSocket');
+            sendJsonMessage({
+                type: 'identify',
+                data: {
+                    loja_id: lojaSelecionada,
+                    user_agent: navigator.userAgent,
+                    timestamp: Date.now(),
+                    client_type: 'controle_estoque'
+                }
+            });
+            
+            // Notificar conexão bem-sucedida
+            if (reconnectAttempts > 0) {
+                showNotification('Conexão em tempo real restaurada!', 'success');
+            }
+        }
+    }, [connectionStatus, sendJsonMessage, lojaSelecionada, reconnectAttempts]);
+    
+    // Mostrar progresso de reconexão
+    useEffect(() => {
+        if (reconnectAttempts > 0 && connectionStatus !== 'Open') {
+            showNotification(
+                `Tentativa de reconexão ${reconnectAttempts}/${maxReconnectAttempts}...`,
+                'info'
+            );
+        }
+    }, [reconnectAttempts, maxReconnectAttempts, connectionStatus]);
 
     useEffect(() => {
         // Filtrar produtos baseado no termo de busca
@@ -128,31 +187,94 @@ function ControleEstoquePage() {
     
     // Handlers para notificações em tempo real
     const handleStockUpdate = async (data) => {
-        // Destacar produto atualizado
-        if (data.produto?.id) {
-            const highlightType = data.estoque_atual > data.estoque_anterior ? 
-                'stock_increase' : 'stock_decrease';
-            highlightProduct(data.produto.id, highlightType, 5000);
-        }
+        console.log('Handler: atualização de estoque recebida:', data);
         
-        // Recarregar dados
-        await loadProdutos();
-        await loadAlertas();
+        try {
+            // Destacar produto atualizado com animação visual
+            if (data.produto?.id) {
+                const highlightType = data.estoque_atual > data.estoque_anterior ? 
+                    'stock_increase' : 'stock_decrease';
+                highlightProduct(data.produto.id, highlightType, 6000); // 6 segundos de destaque
+                
+                // Log detalhado da alteração
+                console.log(`Produto ${data.produto.nome} (ID: ${data.produto.id}):`, 
+                           `${data.estoque_anterior} → ${data.estoque_atual}`);
+            }
+            
+            // Recarregar dados para manter sincronização
+            await Promise.all([loadProdutos(), loadAlertas()]);
+            
+            // Feedback visual adicional
+            const diferenca = data.estoque_atual - data.estoque_anterior;
+            const acao = diferenca > 0 ? 'aumentou' : 'diminuiu';
+            showNotification(
+                `Estoque ${acao}: ${data.produto?.nome || 'Produto'} (${Math.abs(diferenca)} unidades)`,
+                diferenca > 0 ? 'success' : 'warning'
+            );
+            
+        } catch (error) {
+            console.error('Erro ao processar atualização de estoque:', error);
+        }
     };
     
     const handleProductUpdate = async () => {
-        await loadProdutos();
-        await loadAlertas();
+        console.log('Handler: atualização geral de produtos recebida');
+        
+        try {
+            await Promise.all([loadProdutos(), loadAlertas()]);
+            showNotification('Produtos atualizados automaticamente', 'success');
+        } catch (error) {
+            console.error('Erro ao processar atualização de produtos:', error);
+        }
     };
     
-    const handleWebhookConfigured = () => {
-        // Callback quando webhook é configurado
-        console.log('Webhook configurado com sucesso');
+    const handleWebhookConfigured = (data) => {
+        console.log('Handler: webhook configurado com sucesso:', data);
+        showNotification(
+            `Webhook configurado para ${data?.loja_nome || 'loja'}! Sincronização automática ativa.`,
+            'success'
+        );
+    };
+    
+    // Handler adicional para mensagens WebSocket diretas
+    const handleWebSocketMessage = (message) => {
+        console.log('Mensagem WebSocket processada:', message.type, message.data);
+        
+        // Processar mensagens específicas que requerem ação imediata
+        switch (message.type) {
+            case 'ping':
+                // Responder a pings para manter conexão
+                if (sendMessage) {
+                    sendMessage(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
+                }
+                break;
+            
+            case 'connection_acknowledged':
+                console.log('Conexão WebSocket confirmada pelo servidor');
+                showNotification('Sincronização em tempo real ativada!', 'success');
+                break;
+                
+            default:
+                // Outras mensagens são tratadas pelo RealtimeNotifications
+                break;
+        }
     };
 
     const showNotification = (message, type = 'success') => {
+        const typeConfig = {
+            success: { duration: 4000 },
+            warning: { duration: 5000 },
+            error: { duration: 6000 },
+            info: { duration: 4000 }
+        };
+        
         setNotification({ message, type });
-        setTimeout(() => setNotification(null), 4000);
+        
+        const duration = typeConfig[type]?.duration || 4000;
+        setTimeout(() => setNotification(null), duration);
+        
+        // Log para debug
+        console.log(`Notificação [${type}]: ${message}`);
     };
 
     const loadLojas = async () => {
@@ -452,9 +574,31 @@ function ControleEstoquePage() {
         <div className="min-h-screen bg-background text-foreground p-6 space-y-6">
             {/* Notification */}
             {notification && (
-                <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4">
-                    {notification.type === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
-                    <AlertDescription>{notification.message}</AlertDescription>
+                <Alert 
+                    variant={
+                        notification.type === 'error' ? 'destructive' : 
+                        notification.type === 'warning' ? 'default' : 
+                        'default'
+                    } 
+                    className={`mb-4 ${
+                        notification.type === 'success' ? 'border-green-200 bg-green-50 dark:bg-green-950/20' :
+                        notification.type === 'warning' ? 'border-orange-200 bg-orange-50 dark:bg-orange-950/20' :
+                        notification.type === 'info' ? 'border-blue-200 bg-blue-50 dark:bg-blue-950/20' :
+                        ''
+                    }`}
+                >
+                    {notification.type === 'success' && <Check className="h-4 w-4 text-green-600" />}
+                    {notification.type === 'warning' && <AlertTriangle className="h-4 w-4 text-orange-600" />}
+                    {notification.type === 'error' && <X className="h-4 w-4 text-red-600" />}
+                    {notification.type === 'info' && <AlertCircle className="h-4 w-4 text-blue-600" />}
+                    <AlertDescription className={
+                        notification.type === 'success' ? 'text-green-700 dark:text-green-300' :
+                        notification.type === 'warning' ? 'text-orange-700 dark:text-orange-300' :
+                        notification.type === 'info' ? 'text-blue-700 dark:text-blue-300' :
+                        ''
+                    }>
+                        {notification.message}
+                    </AlertDescription>
                 </Alert>
             )}
 
@@ -470,10 +614,31 @@ function ControleEstoquePage() {
                                 Tempo Real
                             </Badge>
                         )}
+                        {connectionStatus === 'Connecting' && (
+                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400">
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                Conectando
+                            </Badge>
+                        )}
+                        {connectionStatus === 'Closed' && lojaSelecionada && (
+                            <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400">
+                                <X className="h-3 w-3 mr-1" />
+                                Desconectado
+                            </Badge>
+                        )}
+                        {connectionStatus === 'Error' && (
+                            <Badge variant="destructive" className="text-xs">
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                Erro
+                            </Badge>
+                        )}
                     </h1>
                     <p className="text-muted-foreground">
                         Gestão completa do estoque de produtos
                         {connectionStatus === 'Open' && ' - Sincronização automática ativa'}
+                        {connectionStatus === 'Connecting' && ' - Conectando ao servidor...'}
+                        {connectionStatus === 'Closed' && lojaSelecionada && ' - Modo offline (atualize manualmente)'}
+                        {connectionStatus === 'Error' && ' - Erro na conexão (tentando reconectar...)'}
                     </p>
                 </div>
                 
@@ -761,10 +926,29 @@ function ControleEstoquePage() {
                                 size="sm"
                                 onClick={loadProdutos}
                                 disabled={searchingProdutos}
-                                className={connectionStatus === 'Open' ? 'border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950/20' : ''}
+                                className={
+                                    connectionStatus === 'Open' ? 
+                                    'border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950/20' : 
+                                    connectionStatus === 'Error' ?
+                                    'border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/20' :
+                                    ''
+                                }
+                                title={
+                                    connectionStatus === 'Open' ? 
+                                    'Sincronização automática ativa - clique para forçar atualização' :
+                                    connectionStatus === 'Error' ? 
+                                    'Erro na conexão WebSocket - atualizando manualmente' :
+                                    'Modo offline - atualize manualmente'
+                                }
                             >
-                                {searchingProdutos ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                                {connectionStatus === 'Open' ? 'Atualizar' : 'Atualizar'}
+                                {searchingProdutos ? (
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                ) : connectionStatus === 'Open' ? (
+                                    <Zap className="h-4 w-4 mr-2" />
+                                ) : (
+                                    <RefreshCw className="h-4 w-4 mr-2" />
+                                )}
+                                {connectionStatus === 'Open' ? 'Sincronizado' : 'Atualizar'}
                             </Button>
                         </div>
                     </div>
@@ -1187,6 +1371,9 @@ function ControleEstoquePage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Toaster para notificações em tempo real */}
+            <Toaster />
         </div>
     );
 }

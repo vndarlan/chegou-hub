@@ -66,6 +66,39 @@ class ProdutoEstoque(models.Model):
     def __str__(self):
         return f"{self.sku} - {self.nome} ({self.loja_config.nome_loja})"
     
+    def save(self, *args, **kwargs):
+        """Override do save para configurar estoque inicial"""
+        is_new = not self.pk
+        
+        # Se é uma nova criação e estoque_atual não foi definido mas estoque_inicial sim
+        if is_new and self.estoque_inicial > 0 and self.estoque_atual == 0:
+            self.estoque_atual = self.estoque_inicial
+        
+        super().save(*args, **kwargs)
+        
+        # Criar movimentação inicial se é nova criação com estoque inicial
+        # Mas só se não estamos numa migração ou se o contexto permite
+        if (is_new and self.estoque_inicial > 0 and 
+            not getattr(self, '_skip_initial_movement', False)):
+            self._create_initial_movement()
+    
+    def _create_initial_movement(self):
+        """Cria movimentação inicial de estoque"""
+        try:
+            # Evitar importação circular
+            MovimentacaoEstoque.objects.create(
+                produto=self,
+                tipo_movimento='entrada',
+                quantidade=self.estoque_inicial,
+                estoque_anterior=0,
+                estoque_posterior=self.estoque_atual,
+                observacoes='Estoque inicial do produto',
+                origem_sync='sistema'
+            )
+        except Exception:
+            # Em caso de erro (ex: durante migrações), continuar sem bloquear
+            pass
+    
     @property
     def estoque_disponivel(self):
         """Retorna se há estoque disponível"""

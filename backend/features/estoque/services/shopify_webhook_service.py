@@ -158,9 +158,10 @@ class ShopifyWebhookService:
         """
         try:
             # Verificar se o pedido foi pago
-            financial_status = order_data.get('financial_status', '').lower()
+            financial_status = order_data.get('financial_status') or ''
+            financial_status = financial_status.lower() if financial_status else ''
             if financial_status not in ['paid', 'partially_paid']:
-                return False, f"Pedido não pago. Status financeiro: {financial_status}"
+                return False, f"Pedido não pago. Status financeiro: {financial_status or 'não informado'}"
             
             # Verificar se há line items
             line_items = order_data.get('line_items', [])
