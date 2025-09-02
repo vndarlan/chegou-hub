@@ -361,7 +361,7 @@ function PrimecodPage() {
     };
 
     const getEfetividadeCor = (valor) => {
-        if (!valor) return '';
+        if (!valor) return { className: '', style: {} };
         
         let numero;
         if (typeof valor === 'string') {
@@ -370,13 +370,31 @@ function PrimecodPage() {
             numero = parseFloat(valor);
         }
         
-        if (isNaN(numero)) return '';
+        if (isNaN(numero)) return { className: '', style: {} };
         
-        // Usando cores sólidas de fundo igual ao EcomhubPage
-        if (numero >= 70) return 'bg-green-600 text-white';
-        if (numero >= 50) return 'bg-green-500 text-white';
-        if (numero >= 40) return 'bg-yellow-500 text-black';
-        return 'bg-red-500 text-white';
+        // Usando cores sólidas com inline styles para garantir que funcionem
+        if (numero >= 70) {
+            return { 
+                className: 'text-white font-bold', 
+                style: { backgroundColor: '#16a34a' } // green-600
+            };
+        }
+        if (numero >= 50) {
+            return { 
+                className: 'text-white font-bold', 
+                style: { backgroundColor: '#22c55e' } // green-500
+            };
+        }
+        if (numero >= 40) {
+            return { 
+                className: 'text-black font-bold', 
+                style: { backgroundColor: '#eab308' } // yellow-500
+            };
+        }
+        return { 
+            className: 'text-white font-bold', 
+            style: { backgroundColor: '#ef4444' } // red-500
+        };
     };
 
     const sortData = (data, sortBy, sortOrder) => {
@@ -536,7 +554,7 @@ function PrimecodPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground">Efetividade Total</p>
-                                    <p className={`text-xl font-bold px-2 py-1 rounded ${getEfetividadeCor(totalRow.Efetividade_Total || 0)}`}>
+                                    <p className={`text-xl font-bold px-2 py-1 rounded ${getEfetividadeCor(totalRow.Efetividade_Total || 0).className}`} style={getEfetividadeCor(totalRow.Efetividade_Total || 0).style}>
                                         {totalRow.Efetividade_Total || 0}
                                     </p>
                                 </div>
@@ -550,7 +568,7 @@ function PrimecodPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground">Efetividade Parcial</p>
-                                    <p className={`text-xl font-bold px-2 py-1 rounded ${getEfetividadeCor(totalRow.Efetividade_Parcial || 0)}`}>
+                                    <p className={`text-xl font-bold px-2 py-1 rounded ${getEfetividadeCor(totalRow.Efetividade_Parcial || 0).className}`} style={getEfetividadeCor(totalRow.Efetividade_Parcial || 0).style}>
                                         {totalRow.Efetividade_Parcial || 0}
                                     </p>
                                 </div>
@@ -576,7 +594,7 @@ function PrimecodPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground">% Processamento</p>
-                                    <p className={`text-xl font-bold px-2 py-1 rounded ${getEfetividadeCor(totalRow['% Processamento'] || 0)}`}>
+                                    <p className={`text-xl font-bold px-2 py-1 rounded ${getEfetividadeCor(totalRow['% Processamento'] || 0).className}`} style={getEfetividadeCor(totalRow['% Processamento'] || 0).style}>
                                         {totalRow['% Processamento'] || 0}
                                     </p>
                                 </div>
@@ -775,9 +793,7 @@ function PrimecodPage() {
                                                     isProduto || isPais ? '' : 'text-center'
                                                 }`;
                                                 
-                                                if (isMetrica) {
-                                                    cellClassesAdicionais += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded`;
-                                                }
+                                                const corMetrica = isMetrica ? getEfetividadeCor(row[col]) : { className: '', style: {} };
                                                 
                                                 return (
                                                     <td 
@@ -793,9 +809,19 @@ function PrimecodPage() {
                                                             boxShadow: isProduto || isPais ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none'
                                                         }}
                                                     >
-                                                        <div className="truncate" title={row[col]}>
-                                                            {typeof row[col] === 'number' ? row[col].toLocaleString() : (row[col] || 0)}
-                                                        </div>
+                                                        {isMetrica ? (
+                                                            <div 
+                                                                className={`truncate px-2 py-1 rounded ${corMetrica.className}`}
+                                                                style={corMetrica.style}
+                                                                title={row[col]}
+                                                            >
+                                                                {typeof row[col] === 'number' ? row[col].toLocaleString() : (row[col] || 0)}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="truncate" title={row[col]}>
+                                                                {typeof row[col] === 'number' ? row[col].toLocaleString() : (row[col] || 0)}
+                                                            </div>
+                                                        )}
                                                     </td>
                                                 );
                                             })}
