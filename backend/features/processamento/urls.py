@@ -70,4 +70,8 @@ urlpatterns = [
     path('marcar-ip-resolvido/', views.marcar_ip_resolvido, name='marcar_ip_resolvido'),
     path('listar-ips-resolvidos/', views.listar_ips_resolvidos, name='listar_ips_resolvidos'),
     path('desmarcar-ip-resolvido/', views.desmarcar_ip_resolvido, name='desmarcar_ip_resolvido'),
+    
+    # === ENDPOINT PARA VALIDAÇÃO DE CONFIGURAÇÃO DE LOJAS ===
+    path('validate-store-config/', views.validate_store_configuration, name='validate_store_configuration'),
+    path('validate-store-config/<int:store_id>/', views.validate_store_configuration, name='validate_single_store_configuration'),
 ]

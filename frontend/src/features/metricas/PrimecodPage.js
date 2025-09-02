@@ -372,11 +372,11 @@ function PrimecodPage() {
         
         if (isNaN(numero)) return '';
         
-        // Usando cores que funcionam bem com temas claro/escuro
-        if (numero >= 70) return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border border-green-300 dark:border-green-700';
-        if (numero >= 50) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border border-yellow-300 dark:border-yellow-700';
-        if (numero >= 30) return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 border border-orange-300 dark:border-orange-700';
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border border-red-300 dark:border-red-700';
+        // Usando cores sólidas de fundo igual ao EcomhubPage
+        if (numero >= 70) return 'bg-green-600 text-white';
+        if (numero >= 50) return 'bg-green-500 text-white';
+        if (numero >= 40) return 'bg-yellow-500 text-black';
+        return 'bg-red-500 text-white';
     };
 
     const sortData = (data, sortBy, sortOrder) => {

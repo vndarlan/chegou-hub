@@ -4801,3 +4801,321 @@ def desmarcar_ip_resolvido(request):
             'error': 'Erro interno do servidor',
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def validate_store_configuration(request, store_id=None):
+    """
+    Endpoint para validar configuração de lojas Shopify
+    GET: Valida todas as lojas do usuário ou uma específica
+    POST: Valida configuração antes de salvar
+    """
+    try:
+        if request.method == 'GET':
+            return _handle_store_validation_get(request, store_id)
+        elif request.method == 'POST':
+            return _handle_store_validation_post(request)
+            
+    except Exception as e:
+        logger.error(f"Erro na validação de loja: {str(e)}")
+        return Response({
+            'error': 'Erro interno do servidor',
+            'details': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def _handle_store_validation_get(request, store_id):
+    """Valida lojas existentes via GET"""
+    try:
+        # Filtrar lojas do usuário
+        if store_id:
+            configs = ShopifyConfig.objects.filter(id=store_id, user=request.user)
+            if not configs.exists():
+                return Response({
+                    'error': 'Loja não encontrada ou acesso negado'
+                }, status=status.HTTP_404_NOT_FOUND)
+        else:
+            configs = ShopifyConfig.objects.filter(user=request.user)
+        
+        validation_results = []
+        total_problems = 0
+        
+        for config in configs:
+            issues = _validate_store_config(config, request.user)
+            
+            validation_results.append({
+                'store_id': config.id,
+                'store_name': config.nome_loja,
+                'shop_url': config.shop_url,
+                'is_valid': len(issues) == 0,
+                'issues': issues,
+                'issue_count': len(issues),
+                'last_updated': config.data_atualizacao.isoformat()
+            })
+            
+            total_problems += len(issues)
+        
+        # Sugestões automáticas baseadas nos problemas encontrados
+        suggestions = _generate_fix_suggestions(validation_results)
+        
+        return Response({
+            'stores': validation_results,
+            'summary': {
+                'total_stores': len(validation_results),
+                'valid_stores': sum(1 for r in validation_results if r['is_valid']),
+                'total_problems': total_problems,
+                'needs_attention': total_problems > 0
+            },
+            'suggestions': suggestions
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro na validação GET: {str(e)}")
+        raise
+
+
+def _handle_store_validation_post(request):
+    """Valida dados de loja antes de salvar via POST"""
+    try:
+        data = request.data
+        
+        # Validação básica dos campos obrigatórios
+        required_fields = ['nome_loja', 'shop_url', 'access_token']
+        missing_fields = [field for field in required_fields if not data.get(field)]
+        
+        if missing_fields:
+            return Response({
+                'valid': False,
+                'errors': {
+                    'missing_fields': missing_fields
+                },
+                'message': f'Campos obrigatórios ausentes: {", ".join(missing_fields)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Criar objeto temporário para validação
+        temp_config = ShopifyConfig(
+            user=request.user,
+            nome_loja=data.get('nome_loja', '').strip(),
+            shop_url=data.get('shop_url', '').strip(),
+            access_token=data.get('access_token', '').strip(),
+            webhook_secret=data.get('webhook_secret', '').strip(),
+            api_version=data.get('api_version', '2024-07')
+        )
+        
+        # Validar configuração
+        issues = _validate_store_config(temp_config, request.user, check_duplicates=True)
+        
+        # Teste de conectividade opcional
+        connectivity_test = None
+        if data.get('test_connectivity', False):
+            connectivity_test = _test_shopify_connectivity(temp_config)
+        
+        return Response({
+            'valid': len(issues) == 0,
+            'issues': issues,
+            'connectivity_test': connectivity_test,
+            'recommendations': _generate_specific_recommendations(temp_config, issues)
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro na validação POST: {str(e)}")
+        raise
+
+
+def _validate_store_config(config, user, check_duplicates=False):
+    """Valida uma configuração de loja específica"""
+    issues = []
+    
+    # 1. Validação básica de campos
+    if not config.nome_loja or len(config.nome_loja.strip()) < 2:
+        issues.append({
+            'type': 'field_validation',
+            'field': 'nome_loja',
+            'message': 'Nome da loja deve ter pelo menos 2 caracteres',
+            'severity': 'error'
+        })
+    
+    if not config.shop_url:
+        issues.append({
+            'type': 'field_validation',
+            'field': 'shop_url',
+            'message': 'URL da loja é obrigatória',
+            'severity': 'error'
+        })
+    elif not config.shop_url.endswith(('.myshopify.com', '.shopifypreview.com')):
+        issues.append({
+            'type': 'field_validation',
+            'field': 'shop_url',
+            'message': 'URL deve ser de uma loja Shopify válida (.myshopify.com)',
+            'severity': 'error'
+        })
+    
+    if not config.access_token:
+        issues.append({
+            'type': 'field_validation',
+            'field': 'access_token',
+            'message': 'Access token é obrigatório',
+            'severity': 'error'
+        })
+    elif len(config.access_token) < 20:
+        issues.append({
+            'type': 'field_validation',
+            'field': 'access_token',
+            'message': 'Access token parece inválido (muito curto)',
+            'severity': 'warning'
+        })
+    
+    # 2. VALIDAÇÃO CRÍTICA: Webhook Secret
+    if not config.webhook_secret:
+        issues.append({
+            'type': 'security',
+            'field': 'webhook_secret',
+            'message': 'Webhook secret ausente - CRÍTICO para segurança dos webhooks',
+            'severity': 'critical',
+            'fix_command': 'python manage.py fix_webhook_secrets'
+        })
+    elif len(config.webhook_secret) < 16:
+        issues.append({
+            'type': 'security',
+            'field': 'webhook_secret',
+            'message': 'Webhook secret muito fraco (recomendado: mínimo 32 caracteres)',
+            'severity': 'warning'
+        })
+    
+    # 3. Validação de duplicatas
+    if check_duplicates and config.shop_url:
+        existing_filter = ShopifyConfig.objects.filter(shop_url=config.shop_url, user=user)
+        if hasattr(config, 'id') and config.id:
+            existing_filter = existing_filter.exclude(id=config.id)
+        
+        if existing_filter.exists():
+            issues.append({
+                'type': 'duplicate',
+                'field': 'shop_url',
+                'message': f'Já existe outra configuração para esta loja ({existing_filter.count()} duplicata(s))',
+                'severity': 'error'
+            })
+    
+    return issues
+
+
+def _test_shopify_connectivity(config):
+    """Testa conectividade com a API do Shopify"""
+    try:
+        import requests
+        url = f'https://{config.shop_url}/admin/api/{config.api_version}/shop.json'
+        headers = {
+            'X-Shopify-Access-Token': config.access_token,
+            'Content-Type': 'application/json'
+        }
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            shop_data = response.json().get('shop', {})
+            return {
+                'success': True,
+                'message': 'Conexão bem-sucedida',
+                'shop_name': shop_data.get('name', 'N/A'),
+                'plan': shop_data.get('plan_name', 'N/A')
+            }
+        elif response.status_code == 401:
+            return {
+                'success': False,
+                'message': 'Token de acesso inválido ou expirado',
+                'http_status': 401
+            }
+        elif response.status_code == 404:
+            return {
+                'success': False,
+                'message': 'Loja não encontrada',
+                'http_status': 404
+            }
+        else:
+            return {
+                'success': False,
+                'message': f'Erro HTTP {response.status_code}',
+                'http_status': response.status_code
+            }
+            
+    except requests.exceptions.Timeout:
+        return {
+            'success': False,
+            'message': 'Timeout na conexão (>10s)'
+        }
+    except requests.exceptions.ConnectionError:
+        return {
+            'success': False,
+            'message': 'Erro de conexão - verifique URL da loja'
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'message': f'Erro inesperado: {str(e)[:50]}...'
+        }
+
+
+def _generate_fix_suggestions(validation_results):
+    """Gera sugestões automáticas baseadas nos problemas encontrados"""
+    suggestions = []
+    
+    # Contar tipos de problemas
+    missing_secrets = sum(1 for r in validation_results 
+                         for issue in r['issues'] 
+                         if issue.get('field') == 'webhook_secret')
+    
+    duplicates = sum(1 for r in validation_results 
+                    for issue in r['issues'] 
+                    if issue.get('type') == 'duplicate')
+    
+    # Sugestões baseadas em problemas encontrados
+    if missing_secrets > 0:
+        suggestions.append({
+            'priority': 'high',
+            'action': 'fix_webhook_secrets',
+            'title': 'Corrigir Webhook Secrets Ausentes',
+            'description': f'{missing_secrets} loja(s) sem webhook secret configurado',
+            'command': 'python manage.py fix_webhook_secrets',
+            'impact': 'CRÍTICO - Webhooks serão rejeitados por motivos de segurança'
+        })
+    
+    if duplicates > 0:
+        suggestions.append({
+            'priority': 'medium',
+            'action': 'remove_duplicates',
+            'title': 'Remover Lojas Duplicadas',
+            'description': f'{duplicates} configuração(ões) duplicada(s) encontrada(s)',
+            'command': 'Acesse Django Admin > Processamento > Configurações Shopify',
+            'impact': 'MÉDIO - Pode causar conflitos no processamento'
+        })
+    
+    return suggestions
+
+
+def _generate_specific_recommendations(config, issues):
+    """Gera recomendações específicas para uma configuração"""
+    recommendations = []
+    
+    for issue in issues:
+        if issue['field'] == 'webhook_secret' and issue['severity'] == 'critical':
+            recommendations.append({
+                'title': 'Configurar Webhook Secret',
+                'steps': [
+                    'Execute: python manage.py fix_webhook_secrets',
+                    'Configure o webhook no Shopify com o secret gerado',
+                    'Teste a conectividade do webhook'
+                ]
+            })
+        elif issue['type'] == 'duplicate':
+            recommendations.append({
+                'title': 'Resolver Duplicata',
+                'steps': [
+                    'Acesse o Django Admin',
+                    'Vá em Processamento > Configurações Shopify', 
+                    'Remova configurações duplicadas',
+                    'Mantenha apenas a mais recente e completa'
+                ]
+            })
+    
+    return recommendations
