@@ -559,6 +559,8 @@ if REDIS_AVAILABLE:
                 'DB': 0,
                 'PASSWORD': '',
                 'DEFAULT_TIMEOUT': 3600,  # 1 hora
+                'JOB_TIMEOUT': 1800,       # 30 minutos para jobs individuais
+                'RESULT_TTL': 3600,        # Manter resultados por 1 hora
                 'CONNECTION_KWARGS': {
                     'health_check_interval': 30,
                 },
@@ -577,7 +579,9 @@ if REDIS_AVAILABLE:
             RQ_QUEUES = {
                 'default': {
                     'CONNECTION': test_redis,
-                    'DEFAULT_TIMEOUT': 3600,
+                    'DEFAULT_TIMEOUT': 3600,   # 1 hora
+                    'JOB_TIMEOUT': 1800,       # 30 minutos para jobs individuais
+                    'RESULT_TTL': 3600,        # Manter resultados por 1 hora
                 }
             }
             print(f"RQ configurado com Redis: {REDIS_URL}")

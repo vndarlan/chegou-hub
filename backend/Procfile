@@ -1,2 +1,2 @@
-web: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --log-level debug --timeout 120
+web: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --log-level debug --timeout 1800 --keep-alive 300 --max-requests 0
 worker: python manage.py start_worker

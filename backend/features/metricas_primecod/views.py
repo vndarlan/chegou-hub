@@ -562,7 +562,7 @@ def iniciar_coleta_async_primecod(request):
             # Obter queue
             queue = django_rq.get_queue('default')
             
-            # Criar job assíncrono
+            # Criar job assíncrono com timeout inteligente
             job = queue.enqueue(
                 coletar_orders_primecod_async,
                 user_id=request.user.id,
@@ -571,8 +571,10 @@ def iniciar_coleta_async_primecod(request):
                 pais_filtro=pais_filtro,
                 max_paginas=max_paginas,
                 nome_analise=nome_analise,
-                job_timeout='30m',  # 30 minutos de timeout para job
-                result_ttl='2h'     # Manter resultado por 2 horas
+                timeout_limite=20 * 60,  # 20 minutos de coleta (10 min buffer)
+                job_timeout='30m',       # 30 minutos totais para job
+                result_ttl='2h',         # Manter resultado por 2 horas
+                failure_ttl='1h'         # Manter erros por 1 hora
             )
             
             # Atualizar job com seu próprio ID para tracking

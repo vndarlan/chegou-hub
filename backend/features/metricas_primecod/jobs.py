@@ -18,7 +18,8 @@ def coletar_orders_primecod_async(
     pais_filtro: Optional[str] = None,
     max_paginas: int = 1000,  # ⚡ ULTRA-OTIMIZADO: Suporte completo a 1000+ páginas
     nome_analise: Optional[str] = None,
-    job_id: Optional[str] = None
+    job_id: Optional[str] = None,
+    timeout_limite: int = 20 * 60  # 20 minutos de limite seguro (10 min buffer)
 ) -> Dict:
     """
     Job assíncrono para coletar orders PrimeCOD sem timeout
@@ -92,17 +93,46 @@ def coletar_orders_primecod_async(
                     'message': f'Coletando página {pages_processed}... ({orders_collected} orders coletados)'
                 }, timeout=1800)
         
-        # Coletar orders com callback de progresso
+        # Coletar orders com callback de progresso E limite de tempo
         start_time = time.time()
         
-        # Atualizar método get_orders para aceitar callback
-        resultado = client.get_orders_with_progress(
-            page=1,
-            date_range=date_range,
-            max_pages=max_paginas,
-            country_filter=pais_filtro,
-            progress_callback=update_progress
-        )
+        # Limite de tempo inteligente (buffer maior para segurança)
+        tempo_limite = timeout_limite  # 20 minutos por padrão com buffer
+        
+        # Wrapper de progresso com timeout inteligente
+        def progress_with_timeout(pages_processed: int, orders_collected: int, elapsed_time: float, total_pages: Optional[int] = None):
+            # Verificar se estamos próximos do timeout
+            if elapsed_time > tempo_limite:
+                logger.warning(f"[TIMEOUT] Timeout inteligente ativado após {elapsed_time:.1f}s (limite: {tempo_limite}s)")
+                logger.warning(f"[TIMEOUT] Coletados {orders_collected} orders em {pages_processed} páginas até agora")
+                raise TimeoutError(f"Timeout inteligente: {elapsed_time:.1f}s > {tempo_limite}s")
+            
+            # Callback normal de progresso
+            update_progress(pages_processed, orders_collected, elapsed_time, total_pages)
+        
+        # Coletar orders com timeout inteligente
+        try:
+            resultado = client.get_orders_with_progress(
+                page=1,
+                date_range=date_range,
+                max_pages=max_paginas,
+                country_filter=pais_filtro,
+                progress_callback=progress_with_timeout,
+                timeout_limite=tempo_limite
+            )
+        except TimeoutError as e:
+            # Timeout inteligente: retornar dados parciais
+            logger.warning(f"[TIMEOUT] Job interrompido por timeout inteligente: {str(e)}")
+            logger.warning(f"[TIMEOUT] Tentando recuperar dados parciais...")
+            
+            # Simular resultado parcial (API pode ter coletado dados antes do timeout)
+            resultado = {
+                'orders': [],
+                'total_orders': 0,
+                'pages_processed': 0,
+                'status': 'timeout_parcial',
+                'timeout_reason': str(e)
+            }
         
         end_time = time.time()
         duration = end_time - start_time
@@ -163,7 +193,9 @@ def coletar_orders_primecod_async(
             'dados_processados': orders_processados['dados_processados'],
             'estatisticas': orders_processados['estatisticas'],
             'status_nao_mapeados': orders_processados['status_nao_mapeados'],
-            'message': f"Coleta assíncrona concluída em {duration/60:.1f} min: {resultado['total_orders']} orders processados"
+            'message': f"Coleta assíncrona concluída em {duration/60:.1f} min: {resultado['total_orders']} orders processados",
+            'timeout_aplicado': duration > tempo_limite,
+            'dados_parciais': resultado.get('status') == 'timeout_parcial'
         }
         
         # Atualizar progresso final

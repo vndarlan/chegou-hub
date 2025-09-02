@@ -33,9 +33,14 @@ class PrimeCODClient:
             'User-Agent': 'ChegouHub-Backend/1.0'
         }
         
-        # Rate limiting ULTRA-RÁPIDO para suportar 1000+ páginas
+        # Rate limiting OTIMIZADO para estabilidade máxima
         self.last_request_time = 0
-        self.min_request_interval = 0.05  # 50ms entre requests (4x mais rápido!)
+        self.min_request_interval = 0.05  # 50ms entre requests (mais estável e rápido)
+        
+        # Cache de sessão para reutilizar conexões HTTP
+        import requests
+        self.session = requests.Session()
+        self.session.headers.update(self.headers)
         
         # Status mapping completo para português (15 status PrimeCOD)
         self.status_mapping = {
@@ -95,12 +100,11 @@ class PrimeCODClient:
         logger.error(f"[REQUEST] Rate limit OK, fazendo requisição...")
         
         try:
-            logger.error(f"[REQUEST] Fazendo requests.request...")
-            response = requests.request(
+            logger.error(f"[REQUEST] Fazendo requests.request com sessão reutilizável...")
+            response = self.session.request(
                 method=method,
                 url=url,
-                headers=self.headers,
-                timeout=30,
+                timeout=120,  # Timeout maior para requisições longas e estabilidade
                 **kwargs
             )
             logger.error(f"[REQUEST] Response recebido: {response.status_code}")
@@ -233,14 +237,25 @@ class PrimeCODClient:
                 
                 logger.info(f"[PAGE] Processando página {current_page} (tempo: {loop_duration:.1f}s)")
                 
-                # [RAPIDO] HEARTBEAT LOG: Manter worker "vivo" no Railway
-                if pages_processed % 10 == 0 and pages_processed > 0:
+                # [RAPIDO] HEARTBEAT LOG: Manter worker "vivo" no Railway + Timeout check
+                if pages_processed % 5 == 0 and pages_processed > 0:  # Heartbeat mais frequente
                     logger.info(f"[HEARTBEAT] HEARTBEAT: {pages_processed} páginas processadas, {len(all_orders)} orders coletados")
                     logger.info(f"[ALIVE] Worker ativo - tempo: {loop_duration:.1f}s")
+                    
+                    # Aviso prévio de timeout próximo (5 min antes do limite)
+                    if loop_duration > 20 * 60:  # 20 minutos
+                        logger.warning(f"[TIMEOUT] Aviso: Tempo elevado {loop_duration/60:.1f}min - considere parar em breve")
                 
-                # Proteção contra loop infinito por número de páginas
+                # Proteção contra loop infinito e timeout inteligente
                 if pages_processed >= max_pages:
-                    logger.warning(f"[SUCCESS]️ Limite de {max_pages} páginas atingido - interrompendo coleta")
+                    logger.warning(f"[SUCCESS] Limite de {max_pages} páginas atingido - interrompendo coleta")
+                    break
+                    
+                # Timeout preventivo inteligente (parar 3 min antes do limite do Railway)
+                if loop_duration > 27 * 60:  # 27 minutos (3 min antes dos 30 min do Railway)
+                    logger.warning(f"[TIMEOUT] Timeout preventivo ativado aos {loop_duration/60:.1f} min")
+                    logger.warning(f"[TIMEOUT] Dados coletados: {len(all_orders)} orders em {pages_processed} páginas")
+                    logger.warning(f"[TIMEOUT] Parando para evitar timeout do Railway")
                     break
                 
                 # [RAPIDO] CORREÇÃO CRÍTICA: Usar POST com payload JSON + TIMEOUT HANDLING
@@ -251,12 +266,19 @@ class PrimeCODClient:
                     response = self._make_request('POST', url, json=payload)
                     logger.info(f"[SUCCESS] Response recebido - Status: {response.status_code}")
                 except Exception as e:
-                    # [RAPIDO] TIMEOUT HANDLING: Continue se possível
+                    # [RAPIDO] TIMEOUT HANDLING: Continue se possível com retry
                     logger.error(f"[ERROR] Erro na página {current_page}: {str(e)}")
                     if "timeout" in str(e).lower() or "time" in str(e).lower():
-                        logger.warning(f"[TIMEOUT] Timeout detectado na página {current_page} - continuando...")
-                        current_page += 1
-                        continue
+                        logger.warning(f"[TIMEOUT] Timeout detectado na página {current_page} - tentando 1x mais...")
+                        # Retry uma vez com timeout maior
+                        try:
+                            time.sleep(2)  # Pausa antes do retry
+                            response = self._make_request('POST', url, json=payload)
+                            logger.info(f"[SUCCESS] Retry bem-sucedido na página {current_page}")
+                        except Exception as retry_e:
+                            logger.warning(f"[TIMEOUT] Retry falhou na página {current_page}, pulando...")
+                            current_page += 1
+                            continue
                     else:
                         raise  # Re-raise se não for timeout
                 
@@ -377,7 +399,7 @@ class PrimeCODClient:
                         'total_pages': total_pages,
                         'collected_at': datetime.now().isoformat()
                     }
-                    cache.set(cache_key, cache_data, 600)  # Cache por 10 minutos
+                    cache.set(cache_key, cache_data, 1200)  # Cache por 20 minutos (dados mais estáveis)
                     logger.info(f"[SAVE] Dados completos salvos no cache")
                 except Exception as e:
                     logger.warning(f"[SUCCESS]️ Falha ao salvar no cache: {str(e)}")
@@ -419,7 +441,8 @@ class PrimeCODClient:
                                 date_range: Optional[Dict[str, str]] = None,
                                 max_pages: int = 1000,  # [RAPIDO] ULTRA-OTIMIZADO: Suporta 1000+ páginas
                                 country_filter: Optional[str] = None,
-                                progress_callback: Optional[callable] = None) -> Dict:
+                                progress_callback: Optional[callable] = None,
+                                timeout_limite: Optional[int] = None) -> Dict:
         """
         [RAPIDO] VERSÃO ASSÍNCRONA ULTRA-OTIMIZADA: Background jobs com 1000+ páginas!
         
@@ -520,16 +543,32 @@ class PrimeCODClient:
             while current_page <= max_pages:
                 loop_duration = time.time() - loop_start_time
                 
+                # Verificar timeout inteligente
+                if timeout_limite and loop_duration > timeout_limite:
+                    logger.warning(f"[TIMEOUT] Timeout inteligente ativado: {loop_duration:.1f}s > {timeout_limite}s")
+                    logger.warning(f"[TIMEOUT] Dados parciais: {len(all_orders)} orders em {pages_processed} páginas")
+                    break
+                
                 logger.info(f"[PAGE] Processando página {current_page} (tempo: {loop_duration:.1f}s)")
                 
-                # [RAPIDO] HEARTBEAT LOG ASSÍNCRONO: Manter worker "vivo" no Railway
-                if pages_processed % 10 == 0 and pages_processed > 0:
+                # [RAPIDO] HEARTBEAT LOG ASSÍNCRONO: Manter worker "vivo" no Railway + timeout check
+                if pages_processed % 5 == 0 and pages_processed > 0:  # Heartbeat mais frequente
                     logger.info(f"[HEARTBEAT] HEARTBEAT ASSÍNCRONO: {pages_processed} páginas, {len(all_orders)} orders")
                     logger.info(f"[ALIVE] Worker assíncrono ativo - tempo: {loop_duration:.1f}s")
+                    
+                    # Aviso prévio de timeout próximo
+                    if timeout_limite and loop_duration > (timeout_limite - 5 * 60):  # 5 min antes
+                        logger.warning(f"[TIMEOUT] Aviso: Próximo do timeout {timeout_limite/60:.1f}min")
                 
-                # Proteção contra loop infinito por número de páginas
+                # Proteção contra loop infinito e timeout inteligente
                 if pages_processed >= max_pages:
-                    logger.warning(f"[SUCCESS]️ Limite de {max_pages} páginas atingido - interrompendo coleta")
+                    logger.warning(f"[SUCCESS] Limite de {max_pages} páginas atingido - interrompendo coleta")
+                    break
+                    
+                # Timeout preventivo adicional para jobs assíncronos
+                if timeout_limite and loop_duration > (timeout_limite - 2 * 60):  # 2 min antes
+                    logger.warning(f"[TIMEOUT] Timeout preventivo assíncrono: {loop_duration/60:.1f}min")
+                    logger.warning(f"[TIMEOUT] Parando 2min antes do limite para finalizar processamento")
                     break
                 
                 # [RAPIDO] CORREÇÃO CRÍTICA ASSÍNCRONA: POST + TIMEOUT HANDLING
@@ -540,12 +579,19 @@ class PrimeCODClient:
                     response = self._make_request('POST', url, json=payload)
                     logger.info(f"[SUCCESS] Response assíncrono recebido - Status: {response.status_code}")
                 except Exception as e:
-                    # [RAPIDO] TIMEOUT HANDLING ASSÍNCRONO: Continue se possível
+                    # [RAPIDO] TIMEOUT HANDLING ASSÍNCRONO: Continue com retry inteligente
                     logger.error(f"[ERROR] Erro assíncrono na página {current_page}: {str(e)}")
                     if "timeout" in str(e).lower() or "time" in str(e).lower():
-                        logger.warning(f"[TIMEOUT] Timeout assíncrono página {current_page} - continuando...")
-                        current_page += 1
-                        continue
+                        logger.warning(f"[TIMEOUT] Timeout assíncrono página {current_page} - retry...")
+                        # Retry uma vez com timeout maior
+                        try:
+                            time.sleep(1)  # Pausa menor para jobs assíncronos
+                            response = self._make_request('POST', url, json=payload)
+                            logger.info(f"[SUCCESS] Retry assíncrono bem-sucedido na página {current_page}")
+                        except Exception as retry_e:
+                            logger.warning(f"[TIMEOUT] Retry assíncrono falhou na página {current_page}, pulando...")
+                            current_page += 1
+                            continue
                     else:
                         raise  # Re-raise se não for timeout
                 
@@ -599,13 +645,24 @@ class PrimeCODClient:
                     except Exception as e:
                         logger.warning(f"[SUCCESS]️ Erro no callback de progresso: {str(e)}")
                 
-                # [RAPIDO] CHUNK PROGRESS ASSÍNCRONO: Logs detalhados
+                # [RAPIDO] CHUNK PROGRESS ASSÍNCRONO: Logs detalhados + timeout check
                 if pages_processed % 10 == 0 and pages_processed > 0:
                     pages_per_second = pages_processed / loop_duration if loop_duration > 0 else 0
                     estimated_total_time = (max_pages / pages_per_second) if pages_per_second > 0 else 0
+                    
+                    # Aviso se estimativa excede timeout
+                    if timeout_limite and estimated_total_time > timeout_limite:
+                        logger.warning(f"[TIMEOUT] Estimativa excede timeout: {estimated_total_time:.1f}s > {timeout_limite}s")
+                        logger.warning(f"[TIMEOUT] Considere reduzir max_pages ou aumentar timeout")
+                    
                     logger.info(f"[INFO] CHUNK ASSÍNCRONO {pages_processed//10}: {pages_processed} páginas em {loop_duration:.1f}s")
                     logger.info(f"[RAPIDO] Velocidade assíncrona: {pages_per_second:.1f} páginas/s, ETA: {estimated_total_time:.1f}s")
                     logger.info(f"[SAVE] Orders assíncronos: {len(all_orders)} ({len(all_orders)/pages_processed:.1f}/página)")
+                    
+                    # Log de timeout restante se aplicável
+                    if timeout_limite:
+                        tempo_restante = timeout_limite - loop_duration
+                        logger.info(f"[TIMEOUT] Tempo restante: {tempo_restante:.1f}s")
             
             # Análise do motivo da parada
             final_duration = time.time() - loop_start_time
@@ -621,9 +678,12 @@ class PrimeCODClient:
             logger.info(f"[PAGE] Última página: {current_page - 1}/{total_pages or '?'}")
             logger.info(f"[CRITICO] OTIMIZAÇÃO ASSÍNCRONA: Rate limit 50ms + Heartbeat logs")
             
-            if pages_processed >= max_pages:
-                logger.warning(f"[SUCCESS]️ Coleta interrompida: atingiu limite máximo de {max_pages} páginas")
-                logger.warning(f"[SUCCESS]️ Para coletar mais dados, aumente o parâmetro max_pages")
+            if loop_duration > (timeout_limite or float('inf')):
+                logger.warning(f"[TIMEOUT] Coleta interrompida por timeout inteligente: {loop_duration:.1f}s")
+                logger.warning(f"[TIMEOUT] Dados coletados: {len(all_orders)} orders em {pages_processed} páginas")
+            elif pages_processed >= max_pages:
+                logger.warning(f"[SUCCESS] Coleta interrompida: atingiu limite máximo de {max_pages} páginas")
+                logger.warning(f"[SUCCESS] Para coletar mais dados, aumente o parâmetro max_pages")
             else:
                 logger.info(f"[SUCCESS] Coleta finalizada normalmente: encontrou página vazia na página {current_page}")
             
@@ -636,7 +696,7 @@ class PrimeCODClient:
                         'total_pages': total_pages,
                         'collected_at': datetime.now().isoformat()
                     }
-                    cache.set(cache_key, cache_data, 600)  # Cache por 10 minutos
+                    cache.set(cache_key, cache_data, 1200)  # Cache por 20 minutos (dados mais estáveis)
                     logger.info(f"[SAVE] Dados completos salvos no cache")
                 except Exception as e:
                     logger.warning(f"[SUCCESS]️ Falha ao salvar no cache: {str(e)}")
@@ -657,7 +717,9 @@ class PrimeCODClient:
                 'country_filter_applied': country_filter,
                 'status': 'success',
                 'data_source': 'async_api_optimized',
-                'filtros_payload_json_aplicados': bool(date_range and date_range.get('start') and date_range.get('end'))
+                'filtros_payload_json_aplicados': bool(date_range and date_range.get('start') and date_range.get('end')),
+                'timeout_aplicado': timeout_limite and loop_duration > timeout_limite,
+                'tempo_total': loop_duration
             }
             
             logger.info(f"[SUCCESS] Busca ASSÍNCRONA OTIMIZADA finalizada com sucesso:")
