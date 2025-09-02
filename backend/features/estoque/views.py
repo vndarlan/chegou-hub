@@ -546,7 +546,6 @@ class AlertaEstoqueViewSet(viewsets.ModelViewSet):
 # ===== WEBHOOK ENDPOINTS =====
 
 @csrf_exempt
-@api_view(['POST'])
 @require_http_methods(["POST"])
 def shopify_order_webhook(request):
     """

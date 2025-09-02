@@ -82,7 +82,8 @@
       "Bash(railway run:*)",
       "Bash(railway shell:*)",
       "Bash(cross-env:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(wmic:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",

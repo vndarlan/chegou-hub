@@ -22,7 +22,6 @@ import { Label } from '../../components/ui/label';
 import { Progress } from '../../components/ui/progress';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
-import { Calendar } from '../../components/ui/calendar';
 import { getCSRFToken } from '../../utils/csrf';
 
 // Países PrimeCOD disponíveis
@@ -469,35 +468,51 @@ function PrimecodPage() {
                         </div>
                     </div>
 
-                    <div className="flex flex-col lg:flex-row lg:items-start gap-6">
-                        <div className="relative">
-                            <div className="border border-border rounded-md p-3 bg-background">
-                                <Calendar
-                                    mode="range"
-                                    selected={dateRange}
-                                    onSelect={setDateRange}
-                                    numberOfMonths={2}
+                    <div className="flex items-end gap-4">
+                        {/* Dois calendários separados - simples e funcional */}
+                        <div className="flex gap-4">
+                            <div className="flex flex-col gap-2">
+                                <Label className="text-sm font-medium">Data Inicial</Label>
+                                <input
+                                    type="date"
+                                    value={dateRange?.from ? dateRange.from.toISOString().split('T')[0] : ''}
+                                    onChange={(e) => {
+                                        const newDate = e.target.value ? new Date(e.target.value) : undefined;
+                                        setDateRange(prev => ({ ...prev, from: newDate }));
+                                    }}
                                     disabled={loadingProcessar}
-                                    className="rounded-md border-0 p-0"
+                                    className="px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                />
+                            </div>
+                            
+                            <div className="flex flex-col gap-2">
+                                <Label className="text-sm font-medium">Data Final</Label>
+                                <input
+                                    type="date"
+                                    value={dateRange?.to ? dateRange.to.toISOString().split('T')[0] : ''}
+                                    onChange={(e) => {
+                                        const newDate = e.target.value ? new Date(e.target.value) : undefined;
+                                        setDateRange(prev => ({ ...prev, to: newDate }));
+                                    }}
+                                    disabled={loadingProcessar}
+                                    className="px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                                 />
                             </div>
                         </div>
                         
-                        <div className="flex-shrink-0 md:self-center">
-                            <Button
-                                onClick={processarDados}
-                                disabled={!dateRange?.from || !dateRange?.to || loadingProcessar || !authChecked}
-                                size="lg"
-                                className="w-full md:w-auto min-w-36 bg-primary text-primary-foreground hover:bg-primary/90"
-                            >
-                                {loadingProcessar ? (
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                ) : (
-                                    <Search className="h-4 w-4 mr-2" />
-                                )}
-                                {!authChecked ? 'Verificando...' : (loadingProcessar ? 'Processando...' : 'Buscar Dados')}
-                            </Button>
-                        </div>
+                        <Button
+                            onClick={processarDados}
+                            disabled={!dateRange?.from || !dateRange?.to || loadingProcessar || !authChecked}
+                            size="lg"
+                            className="min-w-36 bg-primary text-primary-foreground hover:bg-primary/90"
+                        >
+                            {loadingProcessar ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                                <Search className="h-4 w-4 mr-2" />
+                            )}
+                            {!authChecked ? 'Verificando...' : (loadingProcessar ? 'Processando...' : 'Buscar Dados')}
+                        </Button>
                     </div>
                 </div>
             </CardHeader>
