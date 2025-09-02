@@ -235,6 +235,11 @@ class PrimeCODClient:
                 # Apenas monitorar progresso (SEM interromper por tempo)
                 loop_duration = time.time() - loop_start_time
                 
+                # VERIFICAÇÃO CRÍTICA: Parar ANTES da requisição se já sabemos o total de páginas
+                if total_pages and current_page > total_pages:
+                    logger.info(f"[FIM] Parando ANTES da requisição: página {current_page} > total_pages {total_pages}")
+                    break
+                
                 logger.info(f"[PAGE] Processando página {current_page} (tempo: {loop_duration:.1f}s)")
                 
                 # [RAPIDO] HEARTBEAT LOG: Manter worker "vivo" no Railway + Timeout check
@@ -285,26 +290,30 @@ class PrimeCODClient:
                 data = response.json()
                 logger.info(f"[INFO] Estrutura da resposta: {list(data.keys()) if isinstance(data, dict) else type(data)}")
                 
-                # LOG CRÍTICO: Verificar estrutura da resposta da API
-                logger.info(f"[CRITICAL] ESTRUTURA DA RESPOSTA API (página {current_page}):")
-                logger.info(f"   - Chaves da resposta: {list(data.keys())}")
-                logger.info(f"   - Tipo da resposta: {type(data)}")
-                if isinstance(data, dict):
-                    for key, value in data.items():
-                        if key == 'data':
-                            logger.info(f"   - '{key}': {len(value) if isinstance(value, list) else type(value)} ({type(value)})")
-                        else:
-                            logger.info(f"   - '{key}': {value}")
+                # VERIFICAÇÃO CRÍTICA DE PAGINAÇÃO: Verificar ANTES de processar dados
+                current_page_api = data.get('current_page', current_page)
+                last_page = data.get('last_page', 1)
+                
+                logger.info(f"[PAGINATION] Página {current_page}: current_page={current_page_api}, last_page={last_page}")
+                
+                # CORREÇÃO CRÍTICA: Parar quando ultrapassar last_page
+                if current_page_api > last_page:
+                    logger.info(f"[FIM] Página {current_page_api} > last_page {last_page} - fim natural da paginação")
+                    break
+                
+                # Log informações de paginação na primeira página
+                if current_page == 1:
+                    total = data.get('total', 0)
+                    logger.info(f"[INFO] Total orders disponíveis: {total}, Total páginas: {last_page}")
                 
                 # Extrair orders da resposta
                 orders = data.get('data', [])
                 logger.info(f"[DATA] Orders na página {current_page}: {len(orders)}")
                 
-                # VERIFICAÇÃO CRÍTICA: Se não há 'data', verificar outras chaves possíveis
-                if not orders:
-                    logger.error(f"[CRITICAL] Campo 'data' vazio ou ausente!")
-                    logger.error(f"[CRITICAL] Verificando chaves alternativas na resposta...")
-                    logger.error(f"[CRITICAL] Estrutura completa da resposta: {data}")
+                # VERIFICAÇÃO DE CHAVES ALTERNATIVAS: Apenas para páginas VÁLIDAS
+                if not orders and current_page_api <= last_page:
+                    logger.warning(f"[FALLBACK] Campo 'data' vazio em página válida ({current_page_api}/{last_page})")
+                    logger.warning(f"[FALLBACK] Verificando chaves alternativas...")
                     
                     # Lista mais abrangente de chaves possíveis
                     possible_keys = ['orders', 'results', 'items', 'records', 'order_data', 'order_list', 'content']
@@ -313,17 +322,16 @@ class PrimeCODClient:
                     for alt_key in possible_keys:
                         if alt_key in data:
                             alt_orders = data.get(alt_key, [])
-                            logger.info(f"[CRITICAL] Chave alternativa '{alt_key}' encontrada com {len(alt_orders)} items")
+                            logger.info(f"[FALLBACK] Chave alternativa '{alt_key}' encontrada com {len(alt_orders)} items")
                             if alt_orders and isinstance(alt_orders, list):
                                 logger.warning(f"[FIX] USANDO CHAVE ALTERNATIVA '{alt_key}' em vez de 'data'")
                                 orders = alt_orders
                                 chave_encontrada = True
                                 break
                     
-                    # Se ainda não encontrou dados, verificar se a resposta tem estrutura diferente
+                    # Se ainda não encontrou dados em página válida, verificar estrutura diferente
                     if not chave_encontrada:
-                        logger.error(f"[CRITICAL] Nenhuma chave alternativa com dados encontrada!")
-                        logger.error(f"[CRITICAL] Chaves disponíveis na resposta: {list(data.keys())}")
+                        logger.warning(f"[FALLBACK] Nenhuma chave alternativa com dados em página válida")
                         
                         # Verificar se alguma chave contém lista de objetos
                         for key, value in data.items():
@@ -336,21 +344,16 @@ class PrimeCODClient:
                                     orders = value
                                     chave_encontrada = True
                                     break
-                                    
+                        
                         if not chave_encontrada:
-                            logger.error(f"[CRITICAL] NENHUMA ESTRUTURA DE DADOS VÁLIDA ENCONTRADA!")
-                            logger.error(f"[CRITICAL] Esta página pode estar vazia ou ter formato incompatível")
+                            logger.warning(f"[FALLBACK] Nenhuma estrutura de dados válida encontrada em página válida")
+                elif not orders:
+                    logger.info(f"[NORMAL] Campo 'data' vazio em página {current_page_api} (normal se > last_page)")
                 
-                # Log informações de paginação na primeira página
-                if current_page == 1:
-                    total = data.get('total', 0)
-                    last_page = data.get('last_page', 1)
-                    logger.info(f"[INFO] Total orders disponíveis: {total}, Total páginas: {last_page}")
-                    
-                    # LOG CRÍTICO: Se total > 0 mas orders vazio, há problema na API
-                    if total > 0 and not orders:
-                        logger.error(f"[CRITICAL] INCONSISTÊNCIA: API indica {total} orders mas 'data' está vazio!")
-                        logger.error(f"[CRITICAL] Possível problema: chave errada, formato diferente ou erro na API")
+                # LOG CRÍTICO APENAS para primeira página: Se total > 0 mas orders vazio
+                if current_page == 1 and data.get('total', 0) > 0 and not orders:
+                    logger.error(f"[CRITICAL] INCONSISTÊNCIA na página 1: API indica {data.get('total')} orders mas 'data' está vazio!")
+                    logger.error(f"[CRITICAL] Possível problema: chave errada, formato diferente ou erro na API")
                 
                 # LOG DE DEBUG: Estrutura do primeiro order para verificar campos
                 if orders and current_page == 1:
@@ -364,24 +367,20 @@ class PrimeCODClient:
                         logger.info(f"   - primeiro produto: {first_order['products'][0].get('name', 'N/A')}")
                     logger.info(f"   - campos disponíveis: {list(first_order.keys())}")
                 
-                # CONDIÇÃO DE PARADA: página completamente vazia (0 orders)
-                # IMPORTANTE: só parar se realmente não há dados OU se a estrutura indica fim
+                # CONDIÇÃO DE PARADA: página vazia ou fim da paginação
                 if not orders or len(orders) == 0:
-                    logger.info(f"[FIM] Página {current_page} sem orders - verificando se é fim real ou erro temporário")
+                    logger.info(f"[FIM] Página {current_page} sem orders")
                     
-                    # Se temos informações de paginação, verificar se realmente chegamos ao fim
-                    if total_pages and current_page >= total_pages:
-                        logger.info(f"[FIM] Confirmado: página {current_page} >= total_pages {total_pages} - fim natural")
+                    # Se chegamos ao fim da paginação ou não há dados, parar
+                    if current_page_api >= last_page:
+                        logger.info(f"[FIM] Confirmado: página {current_page_api} >= last_page {last_page} - fim natural")
                         break
-                    elif not total_pages and current_page > 1:
-                        logger.info(f"[FIM] Assumindo fim: página {current_page} vazia sem paginação definida")
+                    elif current_page > 1:
+                        logger.info(f"[FIM] Página vazia encontrada - assumindo fim da coleta")
                         break
                     else:
-                        logger.warning(f"[FIM] Página {current_page} vazia mas não temos certeza se é o fim - continuando mais uma...")
-                        # Continuar para próxima página para verificar
-                        current_page += 1
-                        pages_processed += 1
-                        continue
+                        logger.warning(f"[FIM] Primeira página sem dados - possível problema na API")
+                        break
                 
                 # PROTEÇÃO ADICIONAL: Se orders é muito pequeno, pode indicar fim da coleta
                 if len(orders) < 50:   # API POST retorna variável orders por página, menos orders indica fim ou última página
@@ -392,7 +391,7 @@ class PrimeCODClient:
                 
                 # Obter informações de paginação da resposta
                 if total_pages is None:
-                    total_pages = data.get('last_page', current_page)
+                    total_pages = last_page
                     logger.info(f"[INFO] Total de páginas detectado: {total_pages}")
                 
                 current_page += 1
@@ -590,6 +589,11 @@ class PrimeCODClient:
                     logger.warning(f"[TIMEOUT] Dados parciais: {len(all_orders)} orders em {pages_processed} páginas")
                     break
                 
+                # VERIFICAÇÃO CRÍTICA ASSÍNCRONA: Parar ANTES da requisição se já sabemos o total de páginas
+                if total_pages and current_page > total_pages:
+                    logger.info(f"[FIM] Parando ANTES da requisição assíncrona: página {current_page} > total_pages {total_pages}")
+                    break
+                
                 logger.info(f"[PAGE] Processando página {current_page} (tempo: {loop_duration:.1f}s)")
                 
                 # [RAPIDO] HEARTBEAT LOG ASSÍNCRONO: Manter worker "vivo" no Railway + timeout check
@@ -637,20 +641,27 @@ class PrimeCODClient:
                         raise  # Re-raise se não for timeout
                 
                 data = response.json()
+                logger.info(f"[INFO] Estrutura da resposta assíncrona: {list(data.keys()) if isinstance(data, dict) else type(data)}")
                 
-                # LOG CRÍTICO: Verificar estrutura da resposta da API (versão assíncrona)
-                logger.info(f"[CRITICAL] ESTRUTURA DA RESPOSTA API ASSÍNCRONA (página {current_page}):")
-                logger.info(f"   - Chaves da resposta: {list(data.keys())}")
+                # VERIFICAÇÃO CRÍTICA DE PAGINAÇÃO ASSÍNCRONA: Verificar ANTES de processar dados
+                current_page_api = data.get('current_page', current_page)
+                last_page = data.get('last_page', 1)
+                
+                logger.info(f"[PAGINATION] Página assíncrona {current_page}: current_page={current_page_api}, last_page={last_page}")
+                
+                # CORREÇÃO CRÍTICA ASSÍNCRONA: Parar quando ultrapassar last_page
+                if current_page_api > last_page:
+                    logger.info(f"[FIM] Página assíncrona {current_page_api} > last_page {last_page} - fim natural da paginação")
+                    break
                 
                 # Extrair orders da resposta
                 orders = data.get('data', [])
-                logger.info(f"[DATA] Orders na página {current_page}: {len(orders)}")
+                logger.info(f"[DATA] Orders na página assíncrona {current_page}: {len(orders)}")
                 
-                # VERIFICAÇÃO CRÍTICA: Se não há 'data', verificar outras chaves possíveis
-                if not orders:
-                    logger.error(f"[CRITICAL] ASSÍNCRONO - Campo 'data' vazio ou ausente!")
-                    logger.error(f"[CRITICAL] Verificando chaves alternativas na resposta...")
-                    logger.error(f"[CRITICAL] Estrutura completa da resposta: {data}")
+                # VERIFICAÇÃO DE CHAVES ALTERNATIVAS ASSÍNCRONA: Apenas para páginas VÁLIDAS
+                if not orders and current_page_api <= last_page:
+                    logger.warning(f"[FALLBACK] Campo 'data' vazio em página assíncrona válida ({current_page_api}/{last_page})")
+                    logger.warning(f"[FALLBACK] Verificando chaves alternativas assíncronas...")
                     
                     # Lista mais abrangente de chaves possíveis
                     possible_keys = ['orders', 'results', 'items', 'records', 'order_data', 'order_list', 'content']
@@ -659,52 +670,48 @@ class PrimeCODClient:
                     for alt_key in possible_keys:
                         if alt_key in data:
                             alt_orders = data.get(alt_key, [])
-                            logger.info(f"[CRITICAL] Chave alternativa '{alt_key}' encontrada com {len(alt_orders)} items")
+                            logger.info(f"[FALLBACK] Chave alternativa assíncrona '{alt_key}' encontrada com {len(alt_orders)} items")
                             if alt_orders and isinstance(alt_orders, list):
-                                logger.warning(f"[FIX] USANDO CHAVE ALTERNATIVA '{alt_key}' em vez de 'data'")
+                                logger.warning(f"[FIX] USANDO CHAVE ALTERNATIVA ASSÍNCRONA '{alt_key}' em vez de 'data'")
                                 orders = alt_orders
                                 chave_encontrada = True
                                 break
                     
-                    # Se ainda não encontrou dados, verificar se a resposta tem estrutura diferente
+                    # Se ainda não encontrou dados em página válida, verificar estrutura diferente
                     if not chave_encontrada:
-                        logger.error(f"[CRITICAL] Nenhuma chave alternativa com dados encontrada!")
-                        logger.error(f"[CRITICAL] Chaves disponíveis na resposta: {list(data.keys())}")
+                        logger.warning(f"[FALLBACK] Nenhuma chave alternativa assíncrona com dados em página válida")
                         
                         # Verificar se alguma chave contém lista de objetos
                         for key, value in data.items():
                             if isinstance(value, list) and value:
-                                logger.warning(f"[EMERGENCY] Tentativa: usando chave '{key}' que contém lista com {len(value)} items")
+                                logger.warning(f"[EMERGENCY] Tentativa assíncrona: usando chave '{key}' que contém lista com {len(value)} items")
                                 # Verificar se o primeiro item parece um order
                                 first_item = value[0]
                                 if isinstance(first_item, dict) and any(field in first_item for field in ['id', 'order_id', 'shipping_status', 'products']):
-                                    logger.warning(f"[EMERGENCY] DETECTADO: '{key}' parece conter orders válidos!")
+                                    logger.warning(f"[EMERGENCY] DETECTADO assíncrono: '{key}' parece conter orders válidos!")
                                     orders = value
                                     chave_encontrada = True
                                     break
-                                    
+                        
                         if not chave_encontrada:
-                            logger.error(f"[CRITICAL] NENHUMA ESTRUTURA DE DADOS VÁLIDA ENCONTRADA!")
-                            logger.error(f"[CRITICAL] Esta página pode estar vazia ou ter formato incompatível")
+                            logger.warning(f"[FALLBACK] Nenhuma estrutura de dados válida encontrada em página assíncrona válida")
+                elif not orders:
+                    logger.info(f"[NORMAL] Campo 'data' vazio em página assíncrona {current_page_api} (normal se > last_page)")
                 
-                # CONDIÇÃO DE PARADA: página completamente vazia (0 orders) - VERSÃO ASSÍNCRONA
-                # IMPORTANTE: só parar se realmente não há dados OU se a estrutura indica fim
+                # CONDIÇÃO DE PARADA ASSÍNCRONA: página vazia ou fim da paginação
                 if not orders or len(orders) == 0:
-                    logger.info(f"[FIM] Página {current_page} sem orders - verificando se é fim real ou erro temporário")
+                    logger.info(f"[FIM] Página assíncrona {current_page} sem orders")
                     
-                    # Se temos informações de paginação, verificar se realmente chegamos ao fim
-                    if total_pages and current_page >= total_pages:
-                        logger.info(f"[FIM] Confirmado: página {current_page} >= total_pages {total_pages} - fim natural")
+                    # Se chegamos ao fim da paginação ou não há dados, parar
+                    if current_page_api >= last_page:
+                        logger.info(f"[FIM] Confirmado assíncrono: página {current_page_api} >= last_page {last_page} - fim natural")
                         break
-                    elif not total_pages and current_page > 1:
-                        logger.info(f"[FIM] Assumindo fim: página {current_page} vazia sem paginação definida")
+                    elif current_page > 1:
+                        logger.info(f"[FIM] Página assíncrona vazia encontrada - assumindo fim da coleta")
                         break
                     else:
-                        logger.warning(f"[FIM] Página {current_page} vazia mas não temos certeza se é o fim - continuando mais uma...")
-                        # Continuar para próxima página para verificar
-                        current_page += 1
-                        pages_processed += 1
-                        continue
+                        logger.warning(f"[FIM] Primeira página assíncrona sem dados - possível problema na API")
+                        break
                 
                 # PROTEÇÃO ADICIONAL: Se orders é muito pequeno, pode indicar fim da coleta
                 if len(orders) < 50:   # API POST retorna variável orders por página, menos orders indica fim ou última página
@@ -715,7 +722,7 @@ class PrimeCODClient:
                 
                 # Obter informações de paginação da resposta
                 if total_pages is None:
-                    total_pages = data.get('last_page', current_page)
+                    total_pages = last_page
                     logger.info(f"[INFO] Total de páginas detectado: {total_pages}")
                 
                 current_page += 1
@@ -1197,8 +1204,7 @@ class PrimeCODClient:
     def test_connection(self) -> Dict:
         """Testa conectividade com API PrimeCOD"""
         try:
-            # Testar com um endpoint que sabemos que existe (orders página 1)
-            # Usar método POST correto
+            # API PrimeCOD aceita apenas POST para /api/orders
             response = self._make_request('POST', f"{self.base_url}/orders", json={"page": 1})
             data = response.json()
             
