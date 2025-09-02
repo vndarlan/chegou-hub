@@ -644,9 +644,13 @@ def shopify_order_webhook(request):
             print("[WEBHOOK SHOPIFY] === PAYLOAD RECEBIDO ===")
             safe_print(f"[WEBHOOK SHOPIFY] IP: {ip_address}")
             safe_print(f"[WEBHOOK SHOPIFY] Shop Domain: {shopify_shop_domain}")
-            safe_print(f"[WEBHOOK SHOPIFY] Topic: {shopify_topic}")
+            safe_print(f"[WEBHOOK SHOPIFY] Topic: '{shopify_topic}' (EXATO)")
             safe_print(f"[WEBHOOK SHOPIFY] Has Signature: {bool(shopify_signature)}")
             safe_print(f"[WEBHOOK SHOPIFY] Body size: {len(request.body)} bytes")
+            safe_print(f"[WEBHOOK SHOPIFY] Headers disponíveis:")
+            for header, value in request.META.items():
+                if header.startswith('HTTP_X_SHOPIFY'):
+                    safe_print(f"[WEBHOOK SHOPIFY]   {header}: {value}")
             
             # Log de encoding somente se houver caracteres substituídos
             encoding_info = "(clean UTF-8)"
