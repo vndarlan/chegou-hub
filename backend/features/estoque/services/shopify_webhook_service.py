@@ -184,11 +184,10 @@ class ShopifyWebhookService:
             tuple: (should_process: bool, reason: str)
         """
         try:
-            # Verificar se o pedido foi pago
-            financial_status = order_data.get('financial_status') or ''
-            financial_status = financial_status.lower() if financial_status else ''
-            if financial_status not in ['paid', 'partially_paid']:
-                return False, f"Pedido não pago. Status financeiro: {financial_status or 'não informado'}"
+            # CONTRA ENTREGA: Não verificar status de pagamento
+            # Processar pedidos independente do status financeiro (pending, paid, etc.)
+            financial_status = order_data.get('financial_status') or 'não informado'
+            logger.info(f"Processando pedido com status financeiro: {financial_status} (contra entrega)")
             
             # Verificar se há line items
             line_items = order_data.get('line_items', [])
@@ -200,7 +199,7 @@ class ShopifyWebhookService:
             if not items_with_sku:
                 return False, "Nenhum item com SKU encontrado"
             
-            return True, "Pedido válido para processamento"
+            return True, f"Pedido válido para processamento (status: {financial_status})"
             
         except Exception as e:
             logger.error(f"Erro ao validar se deve processar pedido: {str(e)}")
