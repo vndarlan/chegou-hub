@@ -625,7 +625,7 @@ def shopify_order_webhook(request):
             return JsonResponse({
                 'success': False, 
                 'message': 'Webhook secret não configurado - contate o suporte'
-            }, status=401)
+            }, status=500)  # 500 Internal Server Error para erro de configuração
         
         # Validação HMAC é SEMPRE obrigatória
         if not ShopifyWebhookService.verify_webhook_signature(
@@ -635,7 +635,7 @@ def shopify_order_webhook(request):
             return JsonResponse({
                 'success': False, 
                 'message': 'Assinatura inválida'
-            }, status=401)
+            }, status=400)  # 400 Bad Request, não 401 Unauthorized
         
         # Extrair dados do pedido
         order_data = ShopifyWebhookService.extract_order_data(webhook_payload)
