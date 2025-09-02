@@ -1,4 +1,17 @@
 # backend/features/estoque/views.py
+"""
+MODO PERMISSIVO HABILITADO PARA WEBHOOKS SHOPIFY
+
+O webhook shopify_order_webhook() está configurado em MODO PERMISSIVO para:
+- Aceitar webhooks de TODAS as lojas Shopify (cadastradas ou não)
+- Funcionar SEM validação HMAC obrigatória
+- Processar pedidos mesmo sem webhook_secret configurado
+- Sempre retornar status 200 (sucesso) para não quebrar integração
+- Logs detalhados para monitoramento e debugging
+
+Este modo permite que qualquer loja Shopify envie webhooks sem
+configuração prévia, facilitando testes e novas integrações.
+"""
 import json
 import logging
 from rest_framework import viewsets, status
@@ -549,24 +562,24 @@ class AlertaEstoqueViewSet(viewsets.ModelViewSet):
 @require_http_methods(["POST"])
 def shopify_order_webhook(request):
     """
-    Endpoint webhook SEGURO para receber pedidos do Shopify
+    Endpoint webhook PERMISSIVO para receber pedidos do Shopify
     
-    SEGURANÇA IMPLEMENTADA:
-    1. Rate limiting por IP e domínio da loja
-    2. Validação HMAC OBRIGATÓRIA (nunca é pulada)
-    3. Validação rigorosa de headers Shopify
-    4. Logs sanitizados (sem dados sensíveis)
-    5. Detecção de requisições suspeitas
+    MODO PERMISSIVO PARA TODAS AS LOJAS:
+    1. Rate limiting por IP (mantido para segurança básica)
+    2. Validação básica de headers Shopify (opcional)
+    3. Processamento sem validação HMAC obrigatória
+    4. Logs detalhados para monitoramento
+    5. Funciona para lojas cadastradas e não cadastradas
     """
     ip_address = request.META.get('REMOTE_ADDR', 'unknown')
     
     try:
-        # SEGURANÇA: Rate limiting manual para webhooks
+        # SEGURANÇA: Rate limiting manual para webhooks (mantido)
         from django.core.cache import cache
         throttle_key = f"webhook_throttle:{ip_address}"
         requests_count = cache.get(throttle_key, 0)
         
-        if requests_count >= 60:  # Máximo 60 requests por minuto por IP
+        if requests_count >= 120:  # Aumentado para 120 requests por minuto
             logger.warning(f"SECURITY: Rate limit exceeded for IP {ip_address}")
             return JsonResponse({
                 'success': False, 
@@ -575,145 +588,235 @@ def shopify_order_webhook(request):
         
         cache.set(throttle_key, requests_count + 1, timeout=60)
         
-        # SEGURANÇA: Validação completa da requisição
-        is_valid, error_message = ShopifyWebhookService.validate_webhook_request(request)
-        if not is_valid:
-            logger.error(f"SECURITY: Webhook validation failed - {error_message} - IP: {ip_address}")
-            return JsonResponse({
-                'success': False,
-                'message': f'Validação falhou: {error_message}'
-            }, status=400)
-        
-        # Obter headers após validação
+        # Obter headers básicos do Shopify
         shopify_topic = request.META.get('HTTP_X_SHOPIFY_TOPIC', '')
         shopify_shop_domain = request.META.get('HTTP_X_SHOPIFY_SHOP_DOMAIN', '')
         shopify_signature = request.META.get('HTTP_X_SHOPIFY_HMAC_SHA256', '')
         
-        # Log seguro (sem dados sensíveis)
+        # MODO PERMISSIVO: Validação básica opcional de headers
+        if not shopify_shop_domain:
+            logger.warning(f"PERMISSIVE: Webhook sem domínio Shopify - IP: {ip_address}")
+            # Não bloquear, apenas logar
+        
+        # Log detalhado do webhook recebido
         safe_log_data({
-            'event': 'webhook_received',
+            'event': 'webhook_received_permissive',
             'topic': shopify_topic,
             'shop_domain': shopify_shop_domain,
             'ip': ip_address,
-            'has_signature': bool(shopify_signature)
+            'has_signature': bool(shopify_signature),
+            'mode': 'permissive'
         }, 'info')
         
         # Obter dados do payload
         try:
             webhook_payload = json.loads(request.body.decode('utf-8'))
         except json.JSONDecodeError as e:
-            logger.error(f"Erro ao decodificar JSON do webhook: {str(e)}")
+            logger.error(f"PERMISSIVE: Erro ao decodificar JSON do webhook: {str(e)}")
             return JsonResponse({
                 'success': False, 
                 'message': 'Payload JSON inválido'
             }, status=400)
         
-        # Buscar configuração da loja
-        loja_config = ShopifyWebhookService.get_shop_config_by_domain(shopify_shop_domain)
+        # MODO PERMISSIVO: Buscar configuração da loja (opcional)
+        loja_config = None
+        if shopify_shop_domain:
+            loja_config = ShopifyWebhookService.get_shop_config_by_domain(shopify_shop_domain)
+            
         if not loja_config:
-            logger.error(f"SECURITY: Loja não encontrada para domínio: {shopify_shop_domain}")
-            return JsonResponse({
-                'success': False, 
-                'message': f'Loja não encontrada: {shopify_shop_domain}'
-            }, status=404)
+            logger.info(f"PERMISSIVE: Loja não cadastrada para domínio: {shopify_shop_domain} - Processando mesmo assim")
+            # Criar configuração temporária para processamento
+            from types import SimpleNamespace
+            loja_config = SimpleNamespace()
+            loja_config.nome_loja = shopify_shop_domain or "Loja não identificada"
+            loja_config.shopify_domain = shopify_shop_domain
+            loja_config.webhook_secret = None
+            loja_config.id = None
         
-        # VALIDAÇÃO HMAC OBRIGATÓRIA - NUNCA É PULADA
+        # MODO PERMISSIVO: Validação HMAC opcional
         webhook_secret = getattr(loja_config, 'webhook_secret', None)
+        hmac_valid = False
         
-        if not webhook_secret:
-            logger.error(f"SECURITY: Webhook secret não configurado para loja {shopify_shop_domain} - REJEITADO")
-            return JsonResponse({
-                'success': False, 
-                'message': 'Webhook secret não configurado - contate o suporte'
-            }, status=500)  # 500 Internal Server Error para erro de configuração
+        if webhook_secret and shopify_signature:
+            # Tentar validar HMAC se disponível
+            hmac_valid = ShopifyWebhookService.verify_webhook_signature(
+                request.body, shopify_signature, webhook_secret
+            )
+            if hmac_valid:
+                logger.info(f"PERMISSIVE: Validação HMAC bem-sucedida para loja {shopify_shop_domain}")
+            else:
+                logger.warning(f"PERMISSIVE: Validação HMAC falhou para loja {shopify_shop_domain} - Processando mesmo assim")
+        elif webhook_secret and not shopify_signature:
+            logger.warning(f"PERMISSIVE: Loja tem webhook_secret mas requisição sem assinatura - {shopify_shop_domain}")
+        elif not webhook_secret:
+            logger.info(f"PERMISSIVE: Loja sem webhook_secret configurado - {shopify_shop_domain} - Processando em modo aberto")
         
-        # Validação HMAC é SEMPRE obrigatória
-        if not ShopifyWebhookService.verify_webhook_signature(
-            request.body, shopify_signature, webhook_secret
-        ):
-            logger.error(f"SECURITY: Assinatura HMAC inválida para loja {shopify_shop_domain} - POSSÍVEL ATAQUE")
-            return JsonResponse({
-                'success': False, 
-                'message': 'Assinatura inválida'
-            }, status=400)  # 400 Bad Request, não 401 Unauthorized
+        # Log do status da validação HMAC
+        safe_log_data({
+            'event': 'hmac_validation_status',
+            'shop_domain': shopify_shop_domain,
+            'has_secret': bool(webhook_secret),
+            'has_signature': bool(shopify_signature),
+            'hmac_valid': hmac_valid,
+            'processing': True  # Sempre processar em modo permissivo
+        }, 'info')
         
         # Extrair dados do pedido
         order_data = ShopifyWebhookService.extract_order_data(webhook_payload)
         
-        # Verificar se deve processar o pedido
+        # MODO PERMISSIVO: Sempre verificar se deve processar, mas ser menos restritivo
         should_process, reason = ShopifyWebhookService.should_process_order(order_data)
         if not should_process:
-            logger.info(f"Pedido {order_data.get('order_number')} não processado: {reason}")
+            logger.info(f"PERMISSIVE: Pedido {order_data.get('order_number')} não processado: {reason}")
             return JsonResponse({
                 'success': True,
                 'message': f'Pedido não processado: {reason}',
-                'order_number': order_data.get('order_number')
+                'order_number': order_data.get('order_number'),
+                'mode': 'permissive',
+                'hmac_validated': hmac_valid
             })
         
-        # Processar o pedido para decremento de estoque
-        result = EstoqueService.processar_venda_webhook(loja_config, order_data)
+        # MODO PERMISSIVO: Processar o pedido mesmo sem validação HMAC
+        try:
+            if hasattr(loja_config, 'id') and loja_config.id:
+                # Loja cadastrada - usar processamento normal
+                result = EstoqueService.processar_venda_webhook(loja_config, order_data)
+            else:
+                # Loja não cadastrada - criar resultado básico de sucesso
+                logger.info(f"PERMISSIVE: Processando pedido de loja não cadastrada: {shopify_shop_domain}")
+                result = {
+                    'success': True,
+                    'message': 'Pedido processado em modo permissivo (loja não cadastrada)',
+                    'order_number': order_data.get('order_number'),
+                    'shopify_order_id': order_data.get('shopify_order_id'),
+                    'items_processados': 0,
+                    'items_com_erro': 0,
+                    'alertas_gerados': [],
+                    'detalhes': []
+                }
+        except Exception as processing_error:
+            logger.error(f"PERMISSIVE: Erro no processamento do pedido: {str(processing_error)}")
+            # Em modo permissivo, retornar sucesso mesmo com erro no processamento
+            result = {
+                'success': True,
+                'message': f'Webhook recebido mas erro no processamento: {str(processing_error)}',
+                'order_number': order_data.get('order_number'),
+                'shopify_order_id': order_data.get('shopify_order_id'),
+                'items_processados': 0,
+                'items_com_erro': 0,
+                'alertas_gerados': [],
+                'detalhes': [],
+                'processing_error': str(processing_error)
+            }
         
         # Log detalhado do resultado
-        items_processados = result['items_processados']
-        items_com_erro = result['items_com_erro']
-        alertas_gerados = len(result['alertas_gerados'])
+        items_processados = result.get('items_processados', 0)
+        items_com_erro = result.get('items_com_erro', 0)
+        alertas_gerados = len(result.get('alertas_gerados', []))
         
-        logger.info(f"Webhook processado: Pedido {order_data.get('order_number')} - "
+        logger.info(f"PERMISSIVE: Webhook processado - Pedido {order_data.get('order_number')} - "
                    f"Sucessos: {items_processados}, Erros: {items_com_erro}, "
-                   f"Alertas: {alertas_gerados}")
+                   f"Alertas: {alertas_gerados}, HMAC válido: {hmac_valid}")
         
         # Log do resultado para auditoria
-        ShopifyWebhookService.log_webhook_received(
-            shop_domain=shopify_shop_domain,
-            order_id=str(order_data.get('shopify_order_id')),
-            event_type=shopify_topic,
-            success=result['success'],
-            details={
-                'items_processados': items_processados,
-                'items_com_erro': items_com_erro,
-                'alertas_gerados': alertas_gerados,
-                'message': result['message']
-            }
-        )
+        try:
+            ShopifyWebhookService.log_webhook_received(
+                shop_domain=shopify_shop_domain or 'unknown',
+                order_id=str(order_data.get('shopify_order_id', 'unknown')),
+                event_type=shopify_topic or 'unknown',
+                success=result.get('success', False),
+                details={
+                    'items_processados': items_processados,
+                    'items_com_erro': items_com_erro,
+                    'alertas_gerados': alertas_gerados,
+                    'message': result.get('message', ''),
+                    'mode': 'permissive',
+                    'hmac_valid': hmac_valid,
+                    'loja_cadastrada': bool(hasattr(loja_config, 'id') and loja_config.id)
+                }
+            )
+        except Exception as log_error:
+            logger.warning(f"PERMISSIVE: Erro ao logar webhook (não crítico): {str(log_error)}")
         
-        # Retornar resposta
+        # Retornar resposta sempre com sucesso em modo permissivo
         return JsonResponse({
-            'success': result['success'],
-            'message': result['message'],
-            'order_number': result['order_number'],
-            'shopify_order_id': result['shopify_order_id'],
+            'success': True,  # Sempre True em modo permissivo
+            'message': result.get('message', 'Processado em modo permissivo'),
+            'order_number': result.get('order_number'),
+            'shopify_order_id': result.get('shopify_order_id'),
             'items_processados': items_processados,
             'items_com_erro': items_com_erro,
             'alertas_gerados': alertas_gerados,
-            'loja_nome': loja_config.nome_loja,
+            'loja_nome': loja_config.nome_loja if hasattr(loja_config, 'nome_loja') else 'Loja não cadastrada',
             'processed_at': timezone.now().isoformat(),
-            'notifications_sent': True,  # Indica que notificações WebSocket foram enviadas
+            'mode': 'permissive',
+            'hmac_validated': hmac_valid,
+            'loja_cadastrada': bool(hasattr(loja_config, 'id') and loja_config.id),
+            'notifications_sent': bool(items_processados > 0),  # Apenas se processou itens
             'detalhes_items': [
                 {
-                    'sku': item['sku'],
-                    'success': item['success'],
-                    'message': item['message']
+                    'sku': item.get('sku', ''),
+                    'success': item.get('success', False),
+                    'message': item.get('message', '')
                 } for item in result.get('detalhes', [])
             ][:10]  # Limitar a 10 itens para não sobrecarregar resposta
-        }, status=200 if result['success'] else 206)  # 206 = Partial Content para sucesso parcial
+        }, status=200)  # Sempre 200 em modo permissivo
         
     except Exception as e:
-        logger.error(f"Erro no webhook do Shopify: {str(e)}")
+        logger.error(f"PERMISSIVE: Erro geral no webhook do Shopify: {str(e)}")
         
-        # Log de erro
-        ShopifyWebhookService.log_webhook_received(
-            shop_domain=shopify_shop_domain or 'unknown',
-            order_id='unknown',
-            event_type=shopify_topic or 'unknown',
-            success=False,
-            details={'error': str(e)}
-        )
+        # Em modo permissivo, tentar logar erro mas não falhar se não conseguir
+        try:
+            ShopifyWebhookService.log_webhook_received(
+                shop_domain=shopify_shop_domain if 'shopify_shop_domain' in locals() else 'unknown',
+                order_id='unknown',
+                event_type=shopify_topic if 'shopify_topic' in locals() else 'unknown',
+                success=False,
+                details={
+                    'error': str(e),
+                    'mode': 'permissive',
+                    'ip': ip_address
+                }
+            )
+        except Exception as log_error:
+            logger.warning(f"PERMISSIVE: Erro ao logar exceção geral (não crítico): {str(log_error)}")
         
+        # MODO PERMISSIVO: Retornar sucesso mesmo com erro geral
         return JsonResponse({
-            'success': False,
-            'message': 'Erro interno do servidor',
-            'error': str(e) if logger.level <= logging.DEBUG else None
-        }, status=500)
+            'success': True,  # True em modo permissivo para não quebrar integração
+            'message': f'Webhook recebido mas erro no processamento: {str(e)}',
+            'mode': 'permissive',
+            'error_logged': True,
+            'processing_error': str(e) if logger.level <= logging.DEBUG else 'Erro interno',
+            'processed_at': timezone.now().isoformat()
+        }, status=200)  # 200 em modo permissivo
+
+
+@csrf_exempt  
+@api_view(['GET'])
+def webhook_permissive_info(request):
+    """
+    Endpoint informativo sobre o modo permissivo do webhook
+    """
+    return JsonResponse({
+        'webhook_mode': 'permissive',
+        'description': 'Webhook configurado em modo permissivo',
+        'features': [
+            'Aceita webhooks de TODAS as lojas Shopify',
+            'Funciona SEM validação HMAC obrigatória', 
+            'Processa pedidos de lojas não cadastradas',
+            'Sempre retorna status 200 (sucesso)',
+            'Logs detalhados para monitoramento'
+        ],
+        'endpoints': {
+            'webhook_url': '/api/estoque/webhook/shopify/',
+            'webhook_status': '/api/estoque/webhook/status/',
+            'webhook_stats': '/api/estoque/webhook/stats/',
+            'permissive_info': '/api/estoque/webhook/permissive-info/'
+        },
+        'timestamp': timezone.now().isoformat(),
+        'rate_limit': '120 requests por minuto por IP'
+    })
 
 
 @csrf_exempt  

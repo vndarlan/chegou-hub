@@ -3,7 +3,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     ProdutoEstoqueViewSet, MovimentacaoEstoqueViewSet, AlertaEstoqueViewSet,
-    shopify_order_webhook, webhook_status, webhook_stats
+    shopify_order_webhook, webhook_status, webhook_stats, webhook_permissive_info
 )
 
 # Criar router para os ViewSets
@@ -26,6 +26,7 @@ urlpatterns = [
     # Endpoints de monitoramento e estatísticas
     path('webhook/status/', webhook_status, name='webhook-status'),
     path('webhook/stats/', webhook_stats, name='webhook-stats'),
+    path('webhook/permissive-info/', webhook_permissive_info, name='webhook-permissive-info'),
 ]
 
 # URLs disponíveis:
@@ -59,8 +60,9 @@ urlpatterns = [
 # POST /api/estoque/alertas/resolver_multiplos/ - Resolve múltiplos alertas
 # GET /api/estoque/alertas/resumo/ - Resumo dos alertas
 
-# === WEBHOOKS SHOPIFY ===
-# POST /api/estoque/webhook/order-created/ - Recebe pedidos do Shopify (público, CSRF exempt)
-# POST /api/estoque/webhook/shopify/ - Endpoint alternativo para webhooks do Shopify (público, CSRF exempt)
+# === WEBHOOKS SHOPIFY (MODO PERMISSIVO) ===
+# POST /api/estoque/webhook/order-created/ - Recebe pedidos do Shopify (público, CSRF exempt, MODO PERMISSIVO)
+# POST /api/estoque/webhook/shopify/ - Endpoint alternativo para webhooks do Shopify (público, CSRF exempt, MODO PERMISSIVO)
 # GET /api/estoque/webhook/status/ - Status do sistema de webhook (público)
 # GET /api/estoque/webhook/stats/ - Estatísticas de processamento (autenticado)
+# GET /api/estoque/webhook/permissive-info/ - Informações sobre o modo permissivo (público)
