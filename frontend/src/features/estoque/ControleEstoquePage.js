@@ -79,14 +79,7 @@ function ControleEstoquePage() {
     const [ajustandoEstoque, setAjustandoEstoque] = useState(false);
     const [loadingMovimentacoes, setLoadingMovimentacoes] = useState(false);
     
-    // Estados para fallback WebSocket
-    const [isWebSocketAvailable, setIsWebSocketAvailable] = useState(true);
-    const [failedAttempts, setFailedAttempts] = useState(0);
-    const [isOfflineMode, setIsOfflineMode] = useState(false);
-    const [lastNotificationTime, setLastNotificationTime] = useState(0);
-    const maxFailedAttempts = 3; // Parar após 3 tentativas
-    const pollingInterval = 30000; // 30 segundos
-    const notificationCooldown = 10000; // 10 segundos entre notificações similares
+    // WebSocket desabilitado - usando apenas atualizações manuais
     
     // WebSocket e tempo real
     // Construir URL do WebSocket baseada na loja selecionada
@@ -101,61 +94,14 @@ function ControleEstoquePage() {
         sendMessage,
         sendJsonMessage,
         connect: reconnectWebSocket
-    } = useWebSocket(websocketUrl && isWebSocketAvailable ? websocketUrl : null, {
-        shouldReconnect: isWebSocketAvailable && failedAttempts < maxFailedAttempts,
-        reconnectInterval: 3000,
-        maxReconnectAttempts: maxFailedAttempts,
-        onOpen: (event) => {
-            console.log('WebSocket conectado para estoque em tempo real:', event);
-            // Reset contadores de falha ao conectar com sucesso
-            setFailedAttempts(0);
-            setIsOfflineMode(false);
-            
-            // Notificar reconexão se estava em modo offline
-            if (!isWebSocketAvailable) {
-                setIsWebSocketAvailable(true);
-                showNotificationWithCooldown('Conexão em tempo real restaurada!', 'success');
-            }
-        },
-        onClose: (event) => {
-            console.log('WebSocket desconectado:', event.code, event.reason);
-            
-            // Incrementar contador de falhas se não foi fechamento intencional
-            if (event.code !== 1000 && isWebSocketAvailable) { // 1000 = fechamento normal
-                const newFailedAttempts = failedAttempts + 1;
-                setFailedAttempts(newFailedAttempts);
-                
-                // Se atingiu limite máximo, desabilitar WebSocket e ativar modo offline
-                if (newFailedAttempts >= maxFailedAttempts) {
-                    console.log('Limite de tentativas de reconexão atingido. Ativando modo offline.');
-                    setIsWebSocketAvailable(false);
-                    setIsOfflineMode(true);
-                    showNotificationWithCooldown(
-                        'Conexão instável detectada. Ativando modo offline com atualizações automáticas.',
-                        'info'
-                    );
-                } else {
-                    showNotificationWithCooldown(
-                        `Conexão perdida (${newFailedAttempts}/${maxFailedAttempts}). Tentando reconectar...`,
-                        'warning'
-                    );
-                }
-            }
-        },
-        onMessage: (message) => {
-            console.log('Mensagem WebSocket recebida:', message);
-            // Reset contador de falhas ao receber mensagens (conexão estável)
-            if (failedAttempts > 0) {
-                setFailedAttempts(0);
-            }
-            handleWebSocketMessage(message);
-        },
-        onError: (error) => {
-            console.error('Erro no WebSocket:', error);
-            // Incrementar falhas em caso de erro
-            const newFailedAttempts = Math.min(failedAttempts + 1, maxFailedAttempts);
-            setFailedAttempts(newFailedAttempts);
-        }
+    } = useWebSocket(null, {
+        shouldReconnect: false,
+        reconnectInterval: 0,
+        maxReconnectAttempts: 0,
+        onOpen: () => {},
+        onClose: () => {},
+        onMessage: () => {},
+        onError: () => {}
     });
     
     // Sistema de destaque de produtos
@@ -179,30 +125,7 @@ function ControleEstoquePage() {
         }
     }, [lojaSelecionada, clearAllHighlights]);
     
-    // Polling automático quando WebSocket não está disponível
-    useEffect(() => {
-        let pollingIntervalId;
-        
-        if (isOfflineMode && lojaSelecionada && !isWebSocketAvailable) {
-            console.log('Iniciando polling automático no modo offline');
-            pollingIntervalId = setInterval(() => {
-                console.log('Polling: atualizando dados automaticamente');
-                Promise.all([
-                    loadProdutos(),
-                    loadAlertas()
-                ]).catch(error => {
-                    console.error('Erro no polling automático:', error);
-                });
-            }, pollingInterval);
-        }
-        
-        return () => {
-            if (pollingIntervalId) {
-                console.log('Parando polling automático');
-                clearInterval(pollingIntervalId);
-            }
-        };
-    }, [isOfflineMode, lojaSelecionada, isWebSocketAvailable]);
+    // WebSocket desabilitado - sem polling automático
     
     // Enviar identificação quando WebSocket conectar
     useEffect(() => {
@@ -341,31 +264,7 @@ function ControleEstoquePage() {
         console.log(`Notificação [${type}]: ${message}`);
     };
     
-    // Função para mostrar notificações com cooldown (evitar spam)
-    const showNotificationWithCooldown = (message, type = 'success') => {
-        const now = Date.now();
-        if (now - lastNotificationTime < notificationCooldown) {
-            console.log('Notificação suprimida devido ao cooldown:', message);
-            return;
-        }
-        
-        setLastNotificationTime(now);
-        showNotification(message, type);
-    };
-    
-    // Função para tentar reconectar WebSocket manualmente
-    const tryReconnectWebSocket = () => {
-        console.log('Tentando reconectar WebSocket manualmente...');
-        setFailedAttempts(0);
-        setIsWebSocketAvailable(true);
-        setIsOfflineMode(false);
-        showNotification('Tentando reconectar...', 'info');
-        
-        // Se já existe uma URL, o useWebSocket irá tentar conectar automaticamente
-        if (reconnectWebSocket && websocketUrl) {
-            reconnectWebSocket();
-        }
-    };
+    // WebSocket desabilitado - funções removidas
 
     const loadLojas = async () => {
         try {
@@ -698,37 +597,9 @@ function ControleEstoquePage() {
                     <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                         <Package className="h-6 w-6 text-primary" />
                         Controle de Estoque
-                        {connectionStatus === 'Open' && (
-                            <Badge variant="default" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                <Zap className="h-3 w-3 mr-1" />
-                                Tempo Real
-                            </Badge>
-                        )}
-                        {connectionStatus === 'Connecting' && isWebSocketAvailable && (
-                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400">
-                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                Conectando ({failedAttempts}/{maxFailedAttempts})
-                            </Badge>
-                        )}
-                        {(connectionStatus === 'Closed' || connectionStatus === 'Error' || !isWebSocketAvailable) && lojaSelecionada && isOfflineMode && (
-                            <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
-                                <RefreshCw className="h-3 w-3 mr-1" />
-                                Modo Offline
-                            </Badge>
-                        )}
-                        {(connectionStatus === 'Closed' || connectionStatus === 'Error') && lojaSelecionada && !isOfflineMode && isWebSocketAvailable && (
-                            <Badge variant="destructive" className="text-xs">
-                                <AlertTriangle className="h-3 w-3 mr-1" />
-                                Reconectando...
-                            </Badge>
-                        )}
                     </h1>
                     <p className="text-muted-foreground">
                         Gestão completa do estoque de produtos
-                        {connectionStatus === 'Open' && isWebSocketAvailable && ' - Sincronização automática ativa'}
-                        {connectionStatus === 'Connecting' && isWebSocketAvailable && ' - Conectando ao servidor...'}
-                        {isOfflineMode && ' - Modo offline (atualizações automáticas a cada 30s)'}
-                        {(connectionStatus === 'Closed' || connectionStatus === 'Error') && !isOfflineMode && isWebSocketAvailable && ' - Tentando reconectar...'}
                     </p>
                 </div>
                 
@@ -838,19 +709,6 @@ function ControleEstoquePage() {
                         </DialogContent>
                     </Dialog>
                     
-                    {/* Botão de reconexão manual (apenas quando em modo offline) */}
-                    {isOfflineMode && (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={tryReconnectWebSocket}
-                            className="border-orange-200 text-orange-700 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-950/20"
-                            title="Tentar reconectar WebSocket"
-                        >
-                            <Zap className="h-4 w-4 mr-2" />
-                            Reconectar
-                        </Button>
-                    )}
                     
                     <Dialog open={showInstructions} onOpenChange={setShowInstructions}>
                         <DialogTrigger asChild>
@@ -886,9 +744,9 @@ function ControleEstoquePage() {
                                                 <h4 className="font-semibold text-sm text-foreground">4. Histórico Completo</h4>
                                                 <p className="text-sm text-muted-foreground">Visualize todas as movimentações de estoque por produto</p>
                                             </div>
-                                            <div className="p-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg">
-                                                <h4 className="font-semibold text-sm text-orange-700 dark:text-orange-400">5. Modo Offline</h4>
-                                                <p className="text-sm text-orange-600 dark:text-orange-300">Quando a conexão WebSocket falha, o sistema ativa automaticamente o modo offline com atualizações a cada 30 segundos</p>
+                                            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                                <h4 className="font-semibold text-sm text-blue-700 dark:text-blue-400">5. Atualizações Manuais</h4>
+                                                <p className="text-sm text-blue-600 dark:text-blue-300">Use o botão "Atualizar" para buscar os dados mais recentes do servidor</p>
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -1034,30 +892,13 @@ function ControleEstoquePage() {
                                 size="sm"
                                 onClick={loadProdutos}
                                 disabled={searchingProdutos}
-                                className={
-                                    connectionStatus === 'Open' && isWebSocketAvailable ? 
-                                    'border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950/20' : 
-                                    isOfflineMode ?
-                                    'border-orange-200 text-orange-700 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-950/20' :
-                                    'border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/20'
-                                }
-                                title={
-                                    connectionStatus === 'Open' && isWebSocketAvailable ? 
-                                    'Sincronização automática ativa - clique para forçar atualização' :
-                                    isOfflineMode ? 
-                                    'Modo offline - dados atualizados automaticamente a cada 30s' :
-                                    'Problema na conexão - atualize manualmente'
-                                }
                             >
                                 {searchingProdutos ? (
                                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                ) : connectionStatus === 'Open' && isWebSocketAvailable ? (
-                                    <Zap className="h-4 w-4 mr-2" />
                                 ) : (
                                     <RefreshCw className="h-4 w-4 mr-2" />
                                 )}
-                                {connectionStatus === 'Open' && isWebSocketAvailable ? 'Sincronizado' : 
-                                 isOfflineMode ? 'Atualizar' : 'Atualizar'}
+                                Atualizar
                             </Button>
                         </div>
                     </div>
