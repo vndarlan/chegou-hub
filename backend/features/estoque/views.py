@@ -754,6 +754,7 @@ def webhook_status(request):
             },
             'endpoints': {
                 'webhook_order': '/api/estoque/webhook/order-created/',
+                'webhook_shopify': '/api/estoque/webhook/shopify/',
                 'webhook_status': '/api/estoque/webhook/status/'
             }
         })

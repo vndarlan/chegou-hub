@@ -20,6 +20,9 @@ urlpatterns = [
     # Endpoint principal para receber webhooks do Shopify
     path('webhook/order-created/', shopify_order_webhook, name='shopify-order-webhook'),
     
+    # Endpoint alternativo para compatibilidade (mesmo endpoint, URL diferente)
+    path('webhook/shopify/', shopify_order_webhook, name='shopify-webhook-alt'),
+    
     # Endpoints de monitoramento e estatísticas
     path('webhook/status/', webhook_status, name='webhook-status'),
     path('webhook/stats/', webhook_stats, name='webhook-stats'),
@@ -58,5 +61,6 @@ urlpatterns = [
 
 # === WEBHOOKS SHOPIFY ===
 # POST /api/estoque/webhook/order-created/ - Recebe pedidos do Shopify (público, CSRF exempt)
+# POST /api/estoque/webhook/shopify/ - Endpoint alternativo para webhooks do Shopify (público, CSRF exempt)
 # GET /api/estoque/webhook/status/ - Status do sistema de webhook (público)
 # GET /api/estoque/webhook/stats/ - Estatísticas de processamento (autenticado)
