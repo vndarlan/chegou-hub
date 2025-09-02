@@ -434,7 +434,7 @@ function ControleEstoquePage() {
         setAjustandoEstoque(true);
         try {
             const dados = {
-                produto: selectedProduto.id,
+                produto_id: selectedProduto.id,
                 tipo_movimento: ajusteEstoque.tipo === 'adicionar' ? 'entrada' : 'saida',
                 quantidade: parseInt(ajusteEstoque.quantidade),
                 observacoes: `${ajusteEstoque.motivo}${ajusteEstoque.observacoes ? ': ' + ajusteEstoque.observacoes : ''}`
