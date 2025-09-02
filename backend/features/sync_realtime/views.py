@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
 from django.http import JsonResponse
+from django.utils import timezone
 
 from .shopify_webhook_manager import ShopifyWebhookManager, WebhookBulkManager
 from features.processamento.models import ShopifyConfig
@@ -352,42 +353,89 @@ def realtime_status(request):
     """
     try:
         from .services import realtime_service
+        from channels.layers import get_channel_layer
         
         # Verificar se WebSockets estão disponíveis
         websockets_available = realtime_service.is_available()
+        channel_layer = get_channel_layer()
+        
+        # Verificação mais detalhada
+        detailed_status = {
+            'channel_layer_exists': channel_layer is not None,
+            'channel_layer_type': channel_layer.__class__.__name__ if channel_layer else None,
+            'redis_available': getattr(settings, 'REDIS_AVAILABLE', False),
+            'is_railway': getattr(settings, 'IS_RAILWAY_DEPLOYMENT', False)
+        }
+        
+        # Determinar se WebSockets realmente funcionam
+        websocket_functional = (
+            websockets_available and 
+            channel_layer is not None and 
+            detailed_status['channel_layer_type'] != 'InMemoryChannelLayer'
+        )
         
         # Estatísticas básicas (sem dados sensíveis)
         status_info = {
-            'websockets_available': websockets_available,
+            'websockets_available': websocket_functional,
+            'websockets_limited': websockets_available and not websocket_functional,
+            'detailed_status': detailed_status,
             'features': {
                 'stock_notifications': True,
                 'shopify_webhook_processing': True,
-                'real_time_alerts': websockets_available,
+                'real_time_alerts': websocket_functional,
                 'bulk_webhook_configuration': True
             },
             'endpoints': {
                 'websocket_stock': '/ws/estoque/',
                 'websocket_notifications': '/ws/notifications/',
                 'webhook_configure': '/api/sync-realtime/configure-webhooks/',
-                'webhook_status': '/api/sync-realtime/webhooks-status/'
+                'webhook_status': '/api/sync-realtime/webhooks-status/',
+                'diagnostic': '/api/sync-realtime/diagnostic/'
             },
-            'timestamp': request.timestamp if hasattr(request, 'timestamp') else None
+            'timestamp': timezone.now().isoformat()
         }
         
-        # Se WebSockets não disponíveis, explicar alternativas
-        if not websockets_available:
+        # Se WebSockets não disponíveis ou limitados, explicar alternativas
+        if not websocket_functional:
+            fallback_reason = "Channel Layer não funcional"
+            if not websockets_available:
+                fallback_reason = "WebSocket não disponível"
+            elif detailed_status['channel_layer_type'] == 'InMemoryChannelLayer':
+                fallback_reason = "Usando InMemory (apenas desenvolvimento)"
+                
             status_info['fallback_mode'] = {
                 'enabled': True,
+                'reason': fallback_reason,
                 'description': 'Sistema funcionará via polling e refresh manual',
-                'polling_endpoint': '/api/estoque/produtos/resumo_geral/'
+                'polling_endpoint': '/api/estoque/produtos/resumo_geral/',
+                'recommended_polling_interval': 30000,  # 30 segundos
+                'features_available': [
+                    'Visualização de estoque completa',
+                    'Processamento de webhooks Shopify',
+                    'Alertas via interface padrão',
+                    'Configuração de webhooks'
+                ]
             }
         
-        return JsonResponse(status_info)
+        # Adicionar instruções de diagnóstico se há problemas
+        if not websocket_functional:
+            status_info['troubleshooting'] = {
+                'check_diagnostic': '/api/sync-realtime/diagnostic/',
+                'test_authentication': '/api/sync-realtime/test-auth/',
+                'force_fallback': '/api/sync-realtime/force-fallback/'
+            }
+        
+        return JsonResponse(status_info, json_dumps_params={'indent': 2})
         
     except Exception as e:
         logger.error(f"Erro no status do sistema de tempo real: {str(e)}")
         return JsonResponse({
             'websockets_available': False,
+            'fallback_mode': {
+                'enabled': True,
+                'reason': 'Erro interno no sistema',
+                'description': 'Sistema funcionará via polling apenas'
+            },
             'error': 'Sistema temporariamente indisponível',
-            'timestamp': None
+            'timestamp': timezone.now().isoformat()
         }, status=500)

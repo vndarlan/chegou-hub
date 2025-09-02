@@ -24,11 +24,17 @@ class EstoqueRealtimeConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         """Conexão WebSocket estabelecida"""
         try:
+            # Log inicial da tentativa de conexão
+            logger.info("WebSocket: Nova tentativa de conexão")
+            logger.info(f"Headers: {dict(self.scope.get('headers', []))}")
+            logger.info(f"Query string: {self.scope.get('query_string', b'').decode('utf-8')}")
+            
             # Obter usuário da sessão
             self.user = await self.get_user_from_session()
             
             if not self.user or not self.user.is_authenticated:
-                logger.warning("WebSocket: Tentativa de conexão sem autenticação")
+                logger.warning("WebSocket: Tentativa de conexão sem autenticação válida")
+                logger.warning(f"User found: {self.user}, Authenticated: {self.user.is_authenticated if self.user else 'No user'}")
                 await self.close(code=4001)  # Unauthorized
                 return
             

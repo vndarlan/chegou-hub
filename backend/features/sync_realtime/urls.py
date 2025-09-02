@@ -1,6 +1,6 @@
 # backend/features/sync_realtime/urls.py
 from django.urls import path
-from . import views
+from . import views, diagnostic_views
 
 urlpatterns = [
     # === CONFIGURAÇÃO DE WEBHOOKS ===
@@ -24,6 +24,20 @@ urlpatterns = [
     
     # Status geral do sistema de tempo real (público)
     path('status/', views.realtime_status, name='realtime-status'),
+    
+    # === DIAGNÓSTICO DE PROBLEMAS ===
+    
+    # Diagnóstico completo do WebSocket (público)
+    path('diagnostic/', diagnostic_views.websocket_diagnostic, name='websocket-diagnostic'),
+    
+    # Teste de autenticação WebSocket
+    path('test-auth/', diagnostic_views.test_websocket_auth, name='test-websocket-auth'),
+    
+    # Teste específico do Channel Layer
+    path('test-channel/', diagnostic_views.channel_layer_test, name='test-channel-layer'),
+    
+    # Forçar modo fallback (sem WebSocket)
+    path('force-fallback/', diagnostic_views.force_fallback_mode, name='force-fallback'),
 ]
 
 # URLs disponíveis:
