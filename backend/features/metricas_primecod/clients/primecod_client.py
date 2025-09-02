@@ -263,15 +263,45 @@ class PrimeCODClient:
                 data = response.json()
                 logger.info(f"[INFO] Estrutura da resposta: {list(data.keys()) if isinstance(data, dict) else type(data)}")
                 
+                # LOG CRÍTICO: Verificar estrutura da resposta da API
+                logger.info(f"[CRITICAL] ESTRUTURA DA RESPOSTA API (página {current_page}):")
+                logger.info(f"   - Chaves da resposta: {list(data.keys())}")
+                logger.info(f"   - Tipo da resposta: {type(data)}")
+                if isinstance(data, dict):
+                    for key, value in data.items():
+                        if key == 'data':
+                            logger.info(f"   - '{key}': {len(value) if isinstance(value, list) else type(value)} ({type(value)})")
+                        else:
+                            logger.info(f"   - '{key}': {value}")
+                
                 # Extrair orders da resposta
                 orders = data.get('data', [])
                 logger.info(f"[DATA] Orders na página {current_page}: {len(orders)}")
+                
+                # VERIFICAÇÃO CRÍTICA: Se não há 'data', verificar outras chaves possíveis
+                if not orders:
+                    logger.error(f"[CRITICAL] Campo 'data' vazio ou ausente!")
+                    logger.error(f"[CRITICAL] Verificando chaves alternativas na resposta...")
+                    possible_keys = ['orders', 'results', 'items', 'records']
+                    for alt_key in possible_keys:
+                        if alt_key in data:
+                            alt_orders = data.get(alt_key, [])
+                            logger.info(f"[CRITICAL] Chave alternativa '{alt_key}' encontrada com {len(alt_orders)} items")
+                            if alt_orders:
+                                logger.warning(f"[FIX] USANDO CHAVE ALTERNATIVA '{alt_key}' em vez de 'data'")
+                                orders = alt_orders
+                                break
                 
                 # Log informações de paginação na primeira página
                 if current_page == 1:
                     total = data.get('total', 0)
                     last_page = data.get('last_page', 1)
                     logger.info(f"[INFO] Total orders disponíveis: {total}, Total páginas: {last_page}")
+                    
+                    # LOG CRÍTICO: Se total > 0 mas orders vazio, há problema na API
+                    if total > 0 and not orders:
+                        logger.error(f"[CRITICAL] INCONSISTÊNCIA: API indica {total} orders mas 'data' está vazio!")
+                        logger.error(f"[CRITICAL] Possível problema: chave errada, formato diferente ou erro na API")
                 
                 # LOG DE DEBUG: Estrutura do primeiro order para verificar campos
                 if orders and current_page == 1:
@@ -521,9 +551,26 @@ class PrimeCODClient:
                 
                 data = response.json()
                 
+                # LOG CRÍTICO: Verificar estrutura da resposta da API (versão assíncrona)
+                logger.info(f"[CRITICAL] ESTRUTURA DA RESPOSTA API ASSÍNCRONA (página {current_page}):")
+                logger.info(f"   - Chaves da resposta: {list(data.keys())}")
+                
                 # Extrair orders da resposta
                 orders = data.get('data', [])
                 logger.info(f"[DATA] Orders na página {current_page}: {len(orders)}")
+                
+                # VERIFICAÇÃO CRÍTICA: Se não há 'data', verificar outras chaves possíveis
+                if not orders:
+                    logger.error(f"[CRITICAL] ASSÍNCRONO - Campo 'data' vazio ou ausente!")
+                    possible_keys = ['orders', 'results', 'items', 'records']
+                    for alt_key in possible_keys:
+                        if alt_key in data:
+                            alt_orders = data.get(alt_key, [])
+                            logger.info(f"[CRITICAL] Chave alternativa '{alt_key}' encontrada com {len(alt_orders)} items")
+                            if alt_orders:
+                                logger.warning(f"[FIX] USANDO CHAVE ALTERNATIVA '{alt_key}' em vez de 'data'")
+                                orders = alt_orders
+                                break
                 
                 # CONDIÇÃO DE PARADA: página completamente vazia (0 orders)
                 if not orders or len(orders) == 0:
@@ -778,8 +825,20 @@ class PrimeCODClient:
         
         logger.info(f"[DEBUG] INICIANDO process_orders_data com {len(orders) if orders else 0} orders")
         
+        # LOG CRÍTICO: Verificar exatamente o que está sendo passado
+        if orders is None:
+            logger.error(f"[CRITICAL] orders é None - problema na chamada do método")
+        elif not orders:
+            logger.error(f"[CRITICAL] orders é lista vazia: {orders}")
+        else:
+            logger.info(f"[SUCCESS] process_orders_data: {len(orders)} orders válidos para processar")
+            # Log alguns orders de exemplo
+            for i, order in enumerate(orders[:3]):
+                logger.info(f"[DEBUG] Order exemplo {i+1}: ID={order.get('id', 'N/A')}, status={order.get('shipping_status', 'N/A')}")
+        
         if not orders:
-            logger.info(f"[INFO] Nenhum order encontrado para o período e filtros especificados")
+            logger.error(f"[CRITICAL] RETORNANDO DADOS VAZIOS - LINHA TOTAL NÃO SERÁ CRIADA!")
+            logger.error(f"[CRITICAL] Possíveis causas: filtros removeram todos os orders, API retornou array vazio, erro no processamento")
             return {
                 'dados_processados': [],
                 'estatisticas': {
@@ -801,9 +860,18 @@ class PrimeCODClient:
         
         logger.info(f"[DEBUG] Processando {len(orders)} orders...")
         
+        orders_filtrados_por_pais = 0
+        orders_processados_com_sucesso = 0
+        
         for i, order in enumerate(orders):
             # LOG DE DEBUG: Order ID para rastreamento
             order_id = order.get('id', f'unknown_{i}')
+            
+            # LOG CRÍTICO: Estrutura completa do order para debug
+            if i == 0:  # Log completo apenas do primeiro order
+                logger.info(f"[CRITICAL] ESTRUTURA COMPLETA DO PRIMEIRO ORDER:")
+                logger.info(f"   - Chaves disponíveis: {list(order.keys())}")
+                logger.info(f"   - Order completo: {order}")
             
             # Extrair nome do produto dos produtos aninhados
             produto = 'Produto Desconhecido'
@@ -817,12 +885,13 @@ class PrimeCODClient:
             # Status de shipping  
             status_original = order.get('shipping_status', 'Status Desconhecido')
             
-            # LOG 1: Status originais da API
-            logger.info(f"[DEBUG] Order {order_id}: shipping_status original = {status_original} (tipo: {type(status_original)})")
+            # LOG 1: Dados extraídos do order
+            logger.info(f"[DEBUG] Order {order_id}: produto='{produto}', país='{pais}', status='{status_original}' (tipo: {type(status_original)})")
             
             # Aplicar filtro de país se especificado
             if pais_filtro and pais.lower() != pais_filtro.lower():
                 logger.info(f"[DEBUG] Order {order_id}: Filtrado por país {pais} != {pais_filtro}")
+                orders_filtrados_por_pais += 1
                 continue
             
             # Mapear status para português
@@ -856,9 +925,17 @@ class PrimeCODClient:
             # Incrementar contadores
             agrupamento[chave][status] += 1
             agrupamento[chave]['total'] += 1
+            orders_processados_com_sucesso += 1
             
             logger.info(f"[DEBUG] Order {order_id}: Incrementando {chave}[{status}] = {agrupamento[chave][status]}, total = {agrupamento[chave]['total']}")
             
+        # LOG CRÍTICO: Resumo do processamento
+        logger.info(f"[CRITICAL] RESUMO DO PROCESSAMENTO:")
+        logger.info(f"   - Orders recebidos: {len(orders)}")
+        logger.info(f"   - Orders filtrados por país: {orders_filtrados_por_pais}")
+        logger.info(f"   - Orders processados com sucesso: {orders_processados_com_sucesso}")
+        logger.info(f"   - Agrupamentos criados: {len(agrupamento)}")
+        
         # LOG 3: Status únicos encontrados
         logger.info(f"[DEBUG] Status únicos encontrados: {sorted(list(status_encontrados))}")
         logger.info(f"[DEBUG] Produtos únicos: {len(produtos)}")
@@ -877,13 +954,19 @@ class PrimeCODClient:
         dados_processados.sort(key=lambda x: (x['produto'], x['pais']))
         
         # Criar linha de TOTAL agregado
+        logger.info(f"[CRITICAL] CRIANDO LINHA TOTAL - dados_processados tem {len(dados_processados)} itens")
+        
         if dados_processados:
+            logger.info(f"[SUCCESS] Linha TOTAL será criada - {len(dados_processados)} linhas de dados disponíveis")
+            
             # Coletar todos os status únicos dos dados
             status_unicos = set()
             for item in dados_processados:
                 for key in item.keys():
                     if key not in ['produto', 'pais', 'total']:
                         status_unicos.add(key)
+            
+            logger.info(f"[DEBUG] Status únicos para linha TOTAL: {sorted(list(status_unicos))}")
             
             # Calcular totais por status
             total_row = {
@@ -894,10 +977,18 @@ class PrimeCODClient:
             
             # Somar todos os status
             for status in status_unicos:
-                total_row[status] = sum(item.get(status, 0) for item in dados_processados)
+                total_value = sum(item.get(status, 0) for item in dados_processados)
+                total_row[status] = total_value
+                logger.info(f"[DEBUG] Total para status '{status}': {total_value}")
+            
+            logger.info(f"[SUCCESS] LINHA TOTAL CRIADA: {total_row}")
             
             # Adicionar linha TOTAL ao final
             dados_processados.append(total_row)
+            logger.info(f"[SUCCESS] LINHA TOTAL ADICIONADA - dados_processados agora tem {len(dados_processados)} itens")
+        else:
+            logger.error(f"[CRITICAL] NÃO FOI POSSÍVEL CRIAR LINHA TOTAL - dados_processados está vazio!")
+            logger.error(f"[CRITICAL] Isso significa que nenhum order foi processado com sucesso ou todos foram filtrados")
         
         # Calcular estatísticas
         estatisticas = {
@@ -940,6 +1031,16 @@ class PrimeCODClient:
         
         # LOG 8: Estatísticas finais detalhadas
         logger.info(f"[DEBUG] ESTATÍSTICAS FINAIS: {estatisticas}")
+        
+        # LOG FINAL CRÍTICO: Verificar se linha TOTAL está sendo retornada
+        final_total_row = next((item for item in dados_processados if item.get('produto') == 'TOTAL'), None)
+        if final_total_row:
+            logger.info(f"[SUCCESS] CONFIRMAÇÃO: Linha TOTAL será retornada: {final_total_row}")
+        else:
+            logger.error(f"[CRITICAL] ERRO FATAL: Linha TOTAL não está nos dados finais!")
+            logger.error(f"[CRITICAL] dados_processados final: {dados_processados}")
+        
+        logger.info(f"[SUCCESS] process_orders_data FINALIZADO - retornando {len(dados_processados)} linhas")
         
         return {
             'dados_processados': dados_processados,
