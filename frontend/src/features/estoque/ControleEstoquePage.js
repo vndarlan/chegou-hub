@@ -26,7 +26,6 @@ import { getCSRFToken } from '../../utils/csrf';
 
 // WebSocket e componentes de tempo real
 import useWebSocket from '../../hooks/useWebSocket';
-import SyncStatus from './components/SyncStatus';
 import RealtimeNotifications from './components/RealtimeNotifications';
 import { 
     useProductHighlight, 
@@ -215,13 +214,6 @@ function ControleEstoquePage() {
         }
     };
     
-    const handleWebhookConfigured = (data) => {
-        console.log('Handler: webhook configurado com sucesso:', data);
-        showNotification(
-            `Webhook configurado para ${data?.loja_nome || 'loja'}! Sincronização automática ativa.`,
-            'success'
-        );
-    };
     
     // Handler adicional para mensagens WebSocket diretas
     const handleWebSocketMessage = (message) => {
@@ -792,17 +784,6 @@ function ControleEstoquePage() {
                 onProductUpdate={handleProductUpdate}
             />
 
-            {/* Status de Sincronização */}
-            <SyncStatus 
-                connectionStatus={connectionStatus}
-                lastMessage={lastMessage}
-                messageHistory={messageHistory}
-                reconnectAttempts={reconnectAttempts}
-                maxReconnectAttempts={maxReconnectAttempts}
-                lojaSelecionada={lojaSelecionada}
-                lojas={lojas}
-                onConfigWebhook={handleWebhookConfigured}
-            />
 
             {/* Alertas de Estoque Baixo */}
             {alertas.length > 0 && (
