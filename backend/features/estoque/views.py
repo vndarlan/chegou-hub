@@ -764,34 +764,58 @@ def shopify_order_webhook(request):
         
         print("[WEBHOOK SHOPIFY] ==========================================")
         
-        # MODO PERMISSIVO: Sempre verificar se deve processar, mas ser menos restritivo
-        safe_print(f"[WEBHOOK SHOPIFY] === VERIFICANDO SE DEVE PROCESSAR ===")
-        should_process, reason = ShopifyWebhookService.should_process_order(order_data)
-        safe_print(f"[WEBHOOK SHOPIFY] Should Process: {should_process}")
-        safe_print(f"[WEBHOOK SHOPIFY] Reason: {reason}")
+        # DETECTAR TIPO DE EVENTO
+        safe_print(f"[WEBHOOK SHOPIFY] === DETECTANDO TIPO DE EVENTO ===")
+        is_cancellation = shopify_topic.lower() == 'orders/cancelled'
+        is_creation = shopify_topic.lower() in ['orders/create', 'orders/paid']
         
-        if not should_process:
-            safe_print(f"[WEBHOOK SHOPIFY] SKIP - Pedido NAO sera processado: {reason}")
-            logger.info(f"PERMISSIVE: Pedido {order_data.get('order_number')} não processado: {reason}")
+        safe_print(f"[WEBHOOK SHOPIFY] É cancelamento: {is_cancellation}")
+        safe_print(f"[WEBHOOK SHOPIFY] É criação/pagamento: {is_creation}")
+        
+        if not (is_cancellation or is_creation):
+            safe_print(f"[WEBHOOK SHOPIFY] SKIP - Evento não suportado: {shopify_topic}")
             return JsonResponse({
                 'success': True,
-                'message': f'Pedido não processado: {reason}',
+                'message': f'Evento {shopify_topic} não requer processamento de estoque',
                 'order_number': order_data.get('order_number'),
-                'mode': 'permissive',
-                'hmac_validated': hmac_valid
+                'mode': 'permissive'
             })
+        
+        # VERIFICAR SE DEVE PROCESSAR (apenas para criações)
+        if is_creation:
+            safe_print(f"[WEBHOOK SHOPIFY] === VERIFICANDO SE DEVE PROCESSAR (CRIAÇÃO) ===")
+            should_process, reason = ShopifyWebhookService.should_process_order(order_data)
+            safe_print(f"[WEBHOOK SHOPIFY] Should Process: {should_process}")
+            safe_print(f"[WEBHOOK SHOPIFY] Reason: {reason}")
+            
+            if not should_process:
+                safe_print(f"[WEBHOOK SHOPIFY] SKIP - Pedido NAO sera processado: {reason}")
+                logger.info(f"PERMISSIVE: Pedido {order_data.get('order_number')} não processado: {reason}")
+                return JsonResponse({
+                    'success': True,
+                    'message': f'Pedido não processado: {reason}',
+                    'order_number': order_data.get('order_number'),
+                    'mode': 'permissive',
+                    'hmac_validated': hmac_valid
+                })
         
         safe_print(f"[WEBHOOK SHOPIFY] OK - Pedido sera processado!")
         print("[WEBHOOK SHOPIFY] ===========================================")
         
-        # MODO PERMISSIVO: Processar o pedido mesmo sem validação HMAC
+        # PROCESSAR BASEADO NO TIPO DE EVENTO
         safe_print(f"[WEBHOOK SHOPIFY] === INICIANDO PROCESSAMENTO ===")
         try:
             if hasattr(loja_config, 'id') and loja_config.id:
                 # Loja cadastrada - usar processamento normal
                 safe_print(f"[WEBHOOK SHOPIFY] OK - Loja cadastrada - iniciando processamento completo")
-                safe_print(f"[WEBHOOK SHOPIFY] Chamando EstoqueService.processar_venda_webhook()...")
-                result = EstoqueService.processar_venda_webhook(loja_config, order_data)
+                
+                if is_cancellation:
+                    safe_print(f"[WEBHOOK SHOPIFY] Processando CANCELAMENTO...")
+                    result = EstoqueService.processar_cancelamento_webhook(loja_config, order_data)
+                else:
+                    safe_print(f"[WEBHOOK SHOPIFY] Processando VENDA...")
+                    result = EstoqueService.processar_venda_webhook(loja_config, order_data)
+                
                 safe_print(f"[WEBHOOK SHOPIFY] OK - EstoqueService retornou resultado!")
             else:
                 # Loja não cadastrada - criar resultado básico de sucesso

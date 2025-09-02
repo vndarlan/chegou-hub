@@ -167,6 +167,210 @@ class EstoqueService:
             return result
     
     @staticmethod
+    @transaction.atomic
+    def processar_cancelamento_webhook(loja_config, order_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Processa um cancelamento recebido via webhook para adicionar estoque de volta
+        
+        Args:
+            loja_config: Instância de ShopifyConfig
+            order_data: Dados do pedido cancelado extraídos do webhook
+            
+        Returns:
+            Dict com resultado do processamento
+        """
+        # ===== DEBUG LOG: ENTRADA DO SERVIÇO =====
+        safe_print(f"[CANCELAMENTO SERVICE] === PROCESSAR CANCELAMENTO WEBHOOK ===")
+        safe_print(f"[CANCELAMENTO SERVICE] Loja: {loja_config.nome_loja if hasattr(loja_config, 'nome_loja') else 'N/A'}")
+        safe_print(f"[CANCELAMENTO SERVICE] Order Number: #{order_data.get('order_number', 'N/A')}")
+        safe_print(f"[CANCELAMENTO SERVICE] Order ID: {order_data.get('shopify_order_id', 'N/A')}")
+        safe_print(f"[CANCELAMENTO SERVICE] Line Items: {len(order_data.get('line_items', []))}")
+        print("[CANCELAMENTO SERVICE] =======================================")
+        
+        result = {
+            'success': True,
+            'shopify_order_id': order_data.get('shopify_order_id'),
+            'order_number': order_data.get('order_number'),
+            'items_processados': 0,
+            'items_com_erro': 0,
+            'detalhes': [],
+            'alertas_gerados': []
+        }
+        
+        try:
+            line_items = order_data.get('line_items', [])
+            
+            safe_print(f"[CANCELAMENTO SERVICE] Iniciando loop pelos {len(line_items)} line_items...")
+            
+            for i, item in enumerate(line_items):
+                sku = item.get('sku', 'N/A')
+                quantity = item.get('quantity', 0)
+                
+                safe_print(f"[CANCELAMENTO SERVICE] --- ITEM {i+1}/{len(line_items)} ---")
+                safe_print(f"[CANCELAMENTO SERVICE] SKU: {sku}")
+                safe_print(f"[CANCELAMENTO SERVICE] Quantity: {quantity}")
+                safe_print(f"[CANCELAMENTO SERVICE] Title: {item.get('title', 'N/A')}")
+                
+                safe_print(f"[CANCELAMENTO SERVICE] Chamando _processar_item_cancelamento()...")
+                item_result = EstoqueService._processar_item_cancelamento(
+                    loja_config, item, order_data
+                )
+                
+                safe_print(f"[CANCELAMENTO SERVICE] Resultado para SKU {sku}:")
+                safe_print(f"[CANCELAMENTO SERVICE]   - Success: {item_result['success']}")
+                safe_print(f"[CANCELAMENTO SERVICE]   - Message: {item_result['message']}")
+                if item_result['success']:
+                    safe_print(f"[CANCELAMENTO SERVICE]   - Estoque: {item_result['estoque_anterior']} → {item_result['estoque_posterior']}")
+                
+                result['detalhes'].append(item_result)
+                
+                if item_result['success']:
+                    result['items_processados'] += 1
+                else:
+                    result['items_com_erro'] += 1
+                
+                safe_print(f"[CANCELAMENTO SERVICE] ----------------------------------------")
+            
+            safe_print(f"[CANCELAMENTO SERVICE] === FINALIZANDO PROCESSAMENTO ===")
+            safe_print(f"[CANCELAMENTO SERVICE] Items processados: {result['items_processados']}")
+            safe_print(f"[CANCELAMENTO SERVICE] Items com erro: {result['items_com_erro']}")
+            
+            # Definir sucesso geral
+            if result['items_com_erro'] > 0:
+                if result['items_processados'] == 0:
+                    result['success'] = False
+                    result['message'] = "Nenhum item pôde ter estoque revertido"
+                    safe_print(f"[CANCELAMENTO SERVICE] ERROR FALHA TOTAL - Nenhum item processado")
+                else:
+                    result['message'] = f"Reversão parcial: {result['items_processados']} sucessos, {result['items_com_erro']} erros"
+                    safe_print(f"[CANCELAMENTO SERVICE] WARN PROCESSAMENTO PARCIAL")
+            else:
+                result['message'] = f"Todos os {result['items_processados']} itens tiveram estoque revertido com sucesso"
+                safe_print(f"[CANCELAMENTO SERVICE] OK SUCESSO TOTAL - Todos os itens processados")
+            
+            safe_print(f"[CANCELAMENTO SERVICE] Message final: {result['message']}")
+            print("[CANCELAMENTO SERVICE] ==========================================")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Erro no processamento do cancelamento webhook: {str(e)}")
+            result['success'] = False
+            result['message'] = f"Erro no processamento: {str(e)}"
+            return result
+    
+    @staticmethod
+    def _processar_item_cancelamento(loja_config, item: Dict[str, Any], order_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Processa um item individual do cancelamento (adiciona estoque de volta)
+        
+        Args:
+            loja_config: Configuração da loja
+            item: Dados do item
+            order_data: Dados completos do pedido cancelado
+            
+        Returns:
+            Dict com resultado do processamento do item
+        """
+        item_result = {
+            'sku': item.get('sku'),
+            'title': item.get('title'),
+            'quantity': item.get('quantity', 0),
+            'success': False,
+            'message': '',
+            'produto_id': None,
+            'estoque_anterior': None,
+            'estoque_posterior': None
+        }
+        
+        try:
+            sku = item.get('sku')
+            quantity = int(item.get('quantity', 0))
+            
+            safe_print(f"[CANCELAMENTO PROCESSOR] === PROCESSANDO ITEM CANCELADO ===")
+            safe_print(f"[CANCELAMENTO PROCESSOR] SKU recebido: '{sku}'")
+            safe_print(f"[CANCELAMENTO PROCESSOR] Quantity para ADICIONAR de volta: {quantity}")
+            
+            if not sku:
+                safe_print(f"[CANCELAMENTO PROCESSOR] ERROR SKU vazio ou nulo!")
+                item_result['message'] = "SKU não fornecido"
+                return item_result
+            
+            if quantity <= 0:
+                safe_print(f"[CANCELAMENTO PROCESSOR] ERROR Quantidade inválida: {quantity}")
+                item_result['message'] = f"Quantidade inválida: {quantity}"
+                return item_result
+            
+            # Buscar produto no estoque
+            safe_print(f"[CANCELAMENTO PROCESSOR] Buscando produto no banco de dados...")
+            
+            try:
+                produto = ProdutoEstoque.objects.get(
+                    loja_config=loja_config,
+                    sku=sku,
+                    ativo=True
+                )
+                safe_print(f"[CANCELAMENTO PROCESSOR] OK Produto encontrado!")
+                safe_print(f"[CANCELAMENTO PROCESSOR] ID: {produto.id}")
+                safe_print(f"[CANCELAMENTO PROCESSOR] Nome: {produto.nome}")
+                safe_print(f"[CANCELAMENTO PROCESSOR] Estoque atual: {produto.estoque_atual}")
+                
+            except ProdutoEstoque.DoesNotExist:
+                safe_print(f"[CANCELAMENTO PROCESSOR] ❌ ERROR: Produto NÃO encontrado no banco!")
+                safe_print(f"[CANCELAMENTO PROCESSOR] SKU PROCURADO: '{sku}'")
+                
+                # Listar produtos da mesma loja
+                produtos_loja = ProdutoEstoque.objects.filter(
+                    loja_config=loja_config,
+                    ativo=True
+                ).values_list('id', 'sku', 'nome')
+                
+                safe_print(f"[CANCELAMENTO PROCESSOR] Produtos na loja ({produtos_loja.count()} total):")
+                for prod_id, prod_sku, prod_nome in produtos_loja:
+                    safe_print(f"[CANCELAMENTO PROCESSOR]   ID:{prod_id} | SKU:'{prod_sku}' | Nome:{prod_nome}")
+                
+                item_result['message'] = f"Produto com SKU '{sku}' não encontrado para cancelamento"
+                return item_result
+            
+            # Adicionar estoque de volta
+            safe_print(f"[CANCELAMENTO PROCESSOR] OK Produto encontrado! Adicionando estoque de volta...")
+            
+            estoque_anterior = produto.estoque_atual
+            
+            observacao = f"CANCELAMENTO Shopify - Pedido #{order_data.get('order_number')} - {item.get('title', 'Produto sem título')}"
+            
+            safe_print(f"[CANCELAMENTO PROCESSOR] Chamando produto.adicionar_estoque()...")
+            safe_print(f"[CANCELAMENTO PROCESSOR] Parâmetros:")
+            safe_print(f"[CANCELAMENTO PROCESSOR]   - quantidade: {quantity}")
+            safe_print(f"[CANCELAMENTO PROCESSOR]   - observacao: {observacao}")
+            
+            produto.adicionar_estoque(
+                quantidade=quantity,
+                observacao=observacao,
+                pedido_shopify_id=order_data.get('shopify_order_id')
+            )
+            
+            safe_print(f"[CANCELAMENTO PROCESSOR] OK Estoque adicionado com sucesso!")
+            safe_print(f"[CANCELAMENTO PROCESSOR] Estoque anterior: {estoque_anterior}")
+            safe_print(f"[CANCELAMENTO PROCESSOR] Estoque atual: {produto.estoque_atual}")
+            
+            # Atualizar resultado
+            item_result.update({
+                'success': True,
+                'message': 'Estoque revertido com sucesso',
+                'produto_id': produto.id,
+                'estoque_anterior': estoque_anterior,
+                'estoque_posterior': produto.estoque_atual
+            })
+            
+            return item_result
+            
+        except Exception as e:
+            logger.error(f"Erro ao processar cancelamento do item: {str(e)}")
+            item_result['message'] = f"Erro no processamento: {str(e)}"
+            return item_result
+    
+    @staticmethod
     def _processar_item_venda(loja_config, item: Dict[str, Any], order_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Processa um item individual da venda
