@@ -304,15 +304,42 @@ class PrimeCODClient:
                 if not orders:
                     logger.error(f"[CRITICAL] Campo 'data' vazio ou ausente!")
                     logger.error(f"[CRITICAL] Verificando chaves alternativas na resposta...")
-                    possible_keys = ['orders', 'results', 'items', 'records']
+                    logger.error(f"[CRITICAL] Estrutura completa da resposta: {data}")
+                    
+                    # Lista mais abrangente de chaves possíveis
+                    possible_keys = ['orders', 'results', 'items', 'records', 'order_data', 'order_list', 'content']
+                    chave_encontrada = False
+                    
                     for alt_key in possible_keys:
                         if alt_key in data:
                             alt_orders = data.get(alt_key, [])
                             logger.info(f"[CRITICAL] Chave alternativa '{alt_key}' encontrada com {len(alt_orders)} items")
-                            if alt_orders:
+                            if alt_orders and isinstance(alt_orders, list):
                                 logger.warning(f"[FIX] USANDO CHAVE ALTERNATIVA '{alt_key}' em vez de 'data'")
                                 orders = alt_orders
+                                chave_encontrada = True
                                 break
+                    
+                    # Se ainda não encontrou dados, verificar se a resposta tem estrutura diferente
+                    if not chave_encontrada:
+                        logger.error(f"[CRITICAL] Nenhuma chave alternativa com dados encontrada!")
+                        logger.error(f"[CRITICAL] Chaves disponíveis na resposta: {list(data.keys())}")
+                        
+                        # Verificar se alguma chave contém lista de objetos
+                        for key, value in data.items():
+                            if isinstance(value, list) and value:
+                                logger.warning(f"[EMERGENCY] Tentativa: usando chave '{key}' que contém lista com {len(value)} items")
+                                # Verificar se o primeiro item parece um order
+                                first_item = value[0]
+                                if isinstance(first_item, dict) and any(field in first_item for field in ['id', 'order_id', 'shipping_status', 'products']):
+                                    logger.warning(f"[EMERGENCY] DETECTADO: '{key}' parece conter orders válidos!")
+                                    orders = value
+                                    chave_encontrada = True
+                                    break
+                                    
+                        if not chave_encontrada:
+                            logger.error(f"[CRITICAL] NENHUMA ESTRUTURA DE DADOS VÁLIDA ENCONTRADA!")
+                            logger.error(f"[CRITICAL] Esta página pode estar vazia ou ter formato incompatível")
                 
                 # Log informações de paginação na primeira página
                 if current_page == 1:
@@ -338,9 +365,23 @@ class PrimeCODClient:
                     logger.info(f"   - campos disponíveis: {list(first_order.keys())}")
                 
                 # CONDIÇÃO DE PARADA: página completamente vazia (0 orders)
+                # IMPORTANTE: só parar se realmente não há dados OU se a estrutura indica fim
                 if not orders or len(orders) == 0:
-                    logger.info(f"[FIM] Página {current_page} completamente vazia (0 orders) - finalizando coleta")
-                    break
+                    logger.info(f"[FIM] Página {current_page} sem orders - verificando se é fim real ou erro temporário")
+                    
+                    # Se temos informações de paginação, verificar se realmente chegamos ao fim
+                    if total_pages and current_page >= total_pages:
+                        logger.info(f"[FIM] Confirmado: página {current_page} >= total_pages {total_pages} - fim natural")
+                        break
+                    elif not total_pages and current_page > 1:
+                        logger.info(f"[FIM] Assumindo fim: página {current_page} vazia sem paginação definida")
+                        break
+                    else:
+                        logger.warning(f"[FIM] Página {current_page} vazia mas não temos certeza se é o fim - continuando mais uma...")
+                        # Continuar para próxima página para verificar
+                        current_page += 1
+                        pages_processed += 1
+                        continue
                 
                 # PROTEÇÃO ADICIONAL: Se orders é muito pequeno, pode indicar fim da coleta
                 if len(orders) < 50:   # API POST retorna variável orders por página, menos orders indica fim ou última página
@@ -608,20 +649,62 @@ class PrimeCODClient:
                 # VERIFICAÇÃO CRÍTICA: Se não há 'data', verificar outras chaves possíveis
                 if not orders:
                     logger.error(f"[CRITICAL] ASSÍNCRONO - Campo 'data' vazio ou ausente!")
-                    possible_keys = ['orders', 'results', 'items', 'records']
+                    logger.error(f"[CRITICAL] Verificando chaves alternativas na resposta...")
+                    logger.error(f"[CRITICAL] Estrutura completa da resposta: {data}")
+                    
+                    # Lista mais abrangente de chaves possíveis
+                    possible_keys = ['orders', 'results', 'items', 'records', 'order_data', 'order_list', 'content']
+                    chave_encontrada = False
+                    
                     for alt_key in possible_keys:
                         if alt_key in data:
                             alt_orders = data.get(alt_key, [])
                             logger.info(f"[CRITICAL] Chave alternativa '{alt_key}' encontrada com {len(alt_orders)} items")
-                            if alt_orders:
+                            if alt_orders and isinstance(alt_orders, list):
                                 logger.warning(f"[FIX] USANDO CHAVE ALTERNATIVA '{alt_key}' em vez de 'data'")
                                 orders = alt_orders
+                                chave_encontrada = True
                                 break
+                    
+                    # Se ainda não encontrou dados, verificar se a resposta tem estrutura diferente
+                    if not chave_encontrada:
+                        logger.error(f"[CRITICAL] Nenhuma chave alternativa com dados encontrada!")
+                        logger.error(f"[CRITICAL] Chaves disponíveis na resposta: {list(data.keys())}")
+                        
+                        # Verificar se alguma chave contém lista de objetos
+                        for key, value in data.items():
+                            if isinstance(value, list) and value:
+                                logger.warning(f"[EMERGENCY] Tentativa: usando chave '{key}' que contém lista com {len(value)} items")
+                                # Verificar se o primeiro item parece um order
+                                first_item = value[0]
+                                if isinstance(first_item, dict) and any(field in first_item for field in ['id', 'order_id', 'shipping_status', 'products']):
+                                    logger.warning(f"[EMERGENCY] DETECTADO: '{key}' parece conter orders válidos!")
+                                    orders = value
+                                    chave_encontrada = True
+                                    break
+                                    
+                        if not chave_encontrada:
+                            logger.error(f"[CRITICAL] NENHUMA ESTRUTURA DE DADOS VÁLIDA ENCONTRADA!")
+                            logger.error(f"[CRITICAL] Esta página pode estar vazia ou ter formato incompatível")
                 
-                # CONDIÇÃO DE PARADA: página completamente vazia (0 orders)
+                # CONDIÇÃO DE PARADA: página completamente vazia (0 orders) - VERSÃO ASSÍNCRONA
+                # IMPORTANTE: só parar se realmente não há dados OU se a estrutura indica fim
                 if not orders or len(orders) == 0:
-                    logger.info(f"[FIM] Página {current_page} completamente vazia (0 orders) - finalizando coleta")
-                    break
+                    logger.info(f"[FIM] Página {current_page} sem orders - verificando se é fim real ou erro temporário")
+                    
+                    # Se temos informações de paginação, verificar se realmente chegamos ao fim
+                    if total_pages and current_page >= total_pages:
+                        logger.info(f"[FIM] Confirmado: página {current_page} >= total_pages {total_pages} - fim natural")
+                        break
+                    elif not total_pages and current_page > 1:
+                        logger.info(f"[FIM] Assumindo fim: página {current_page} vazia sem paginação definida")
+                        break
+                    else:
+                        logger.warning(f"[FIM] Página {current_page} vazia mas não temos certeza se é o fim - continuando mais uma...")
+                        # Continuar para próxima página para verificar
+                        current_page += 1
+                        pages_processed += 1
+                        continue
                 
                 # PROTEÇÃO ADICIONAL: Se orders é muito pequeno, pode indicar fim da coleta
                 if len(orders) < 50:   # API POST retorna variável orders por página, menos orders indica fim ou última página
