@@ -353,7 +353,7 @@ function EcomhubPage() {
                             ) : (
                                 <Search className="h-4 w-4 mr-2" />
                             )}
-                            {loadingProcessar ? 'Processando...' : 'Processar'}
+                            {loadingProcessar ? 'Buscando...' : 'Buscar Dados'}
                         </Button>
                     </div>
                 </div>

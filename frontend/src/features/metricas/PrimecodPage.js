@@ -372,10 +372,11 @@ function PrimecodPage() {
         
         if (isNaN(numero)) return '';
         
-        if (numero >= 70) return 'bg-green-600 text-white';
-        if (numero >= 50) return 'bg-yellow-500 text-black';
-        if (numero >= 30) return 'bg-orange-500 text-white';
-        return 'bg-red-500 text-white';
+        // Usando cores que funcionam bem com temas claro/escuro
+        if (numero >= 70) return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border border-green-300 dark:border-green-700';
+        if (numero >= 50) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border border-yellow-300 dark:border-yellow-700';
+        if (numero >= 30) return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 border border-orange-300 dark:border-orange-700';
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border border-red-300 dark:border-red-700';
     };
 
     const sortData = (data, sortBy, sortOrder) => {
@@ -464,7 +465,7 @@ function PrimecodPage() {
                         <Filter className="h-5 w-5 text-primary" />
                         <div>
                             <CardTitle className="text-card-foreground">Configuração</CardTitle>
-                            <CardDescription className="text-muted-foreground">Configure o período e execute a busca na API</CardDescription>
+                            <CardDescription className="text-muted-foreground">Configure o período e execute</CardDescription>
                         </div>
                     </div>
 
@@ -511,7 +512,7 @@ function PrimecodPage() {
                             ) : (
                                 <Search className="h-4 w-4 mr-2" />
                             )}
-                            {!authChecked ? 'Verificando...' : (loadingProcessar ? 'Processando...' : 'Buscar Dados')}
+                            {!authChecked ? 'Verificando...' : (loadingProcessar ? 'Buscando...' : 'Buscar Dados')}
                         </Button>
                     </div>
                 </div>
@@ -535,7 +536,7 @@ function PrimecodPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground">Efetividade Total</p>
-                                    <p className={`text-xl font-bold ${getEfetividadeCor(totalRow.Efetividade_Total || 0)}`}>
+                                    <p className={`text-xl font-bold px-2 py-1 rounded ${getEfetividadeCor(totalRow.Efetividade_Total || 0)}`}>
                                         {totalRow.Efetividade_Total || 0}
                                     </p>
                                 </div>
@@ -549,7 +550,7 @@ function PrimecodPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground">Efetividade Parcial</p>
-                                    <p className={`text-xl font-bold ${getEfetividadeCor(totalRow.Efetividade_Parcial || 0)}`}>
+                                    <p className={`text-xl font-bold px-2 py-1 rounded ${getEfetividadeCor(totalRow.Efetividade_Parcial || 0)}`}>
                                         {totalRow.Efetividade_Parcial || 0}
                                     </p>
                                 </div>
@@ -575,7 +576,7 @@ function PrimecodPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground">% Processamento</p>
-                                    <p className={`text-xl font-bold ${getEfetividadeCor(totalRow['% Processamento'] || 0)}`}>
+                                    <p className={`text-xl font-bold px-2 py-1 rounded ${getEfetividadeCor(totalRow['% Processamento'] || 0)}`}>
                                         {totalRow['% Processamento'] || 0}
                                     </p>
                                 </div>
@@ -678,7 +679,7 @@ function PrimecodPage() {
                     <div className="flex items-center justify-between">
                         <div>
                             <CardTitle className="text-lg text-card-foreground">
-                                {tipoVisualizacao === 'otimizada' ? 'Análise Otimizada: Categorias × Métricas' : 'Tabela Cruzada: Produto × País × Status'}
+                                {tipoVisualizacao === 'otimizada' ? 'Resultados' : 'Resultados'}
                             </CardTitle>
                             <CardDescription className="text-muted-foreground">{dadosResultado.length} registros</CardDescription>
                         </div>
