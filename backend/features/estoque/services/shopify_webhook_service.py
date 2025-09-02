@@ -81,15 +81,21 @@ class ShopifyWebhookService:
             logger.error("SECURITY: Payload vazio no webhook - REJEITADO")
             return False
         
-        # Usar validador de segurança
-        is_valid = WebhookSecurityValidator.validate_hmac_signature(
-            request_body, shopify_signature, webhook_secret
-        )
-        
-        if not is_valid:
-            logger.error("SECURITY: Assinatura HMAC inválida - Possível ataque detectado")
+        try:
+            # Usar validador de segurança com tratamento de encoding
+            is_valid = WebhookSecurityValidator.validate_hmac_signature(
+                request_body, shopify_signature, webhook_secret
+            )
             
-        return is_valid
+            if not is_valid:
+                logger.error("SECURITY: Assinatura HMAC inválida - Possível ataque detectado")
+                
+            return is_valid
+        
+        except Exception as hmac_error:
+            # Se houve erro no HMAC (incluindo encoding), rejeitar por segurança
+            logger.error(f"SECURITY: Erro na verificação HMAC - Webhook rejeitado: {str(hmac_error)}")
+            return False
     
     @staticmethod
     def extract_order_data(webhook_payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -116,19 +122,40 @@ class ShopifyWebhookService:
                 'line_items': []
             }
             
-            # Extrair line items com SKUs
+            # Extrair line items com SKUs (com sanitização para prevenir encoding issues)
             for item in webhook_payload.get('line_items', []):
-                line_item = {
-                    'shopify_product_id': item.get('product_id'),
-                    'shopify_variant_id': item.get('variant_id'),
-                    'sku': item.get('sku'),
-                    'title': item.get('title'),
-                    'name': item.get('name'),
-                    'quantity': item.get('quantity', 0),
-                    'price': item.get('price'),
-                    'variant_title': item.get('variant_title')
-                }
-                order_data['line_items'].append(line_item)
+                try:
+                    # Sanitizar strings que podem conter caracteres problemáticos
+                    sku = item.get('sku')
+                    title = item.get('title')
+                    name = item.get('name')
+                    variant_title = item.get('variant_title')
+                    
+                    # Aplicar sanitização básica se as strings existirem
+                    if sku and isinstance(sku, str):
+                        sku = sku.encode('utf-8', errors='replace').decode('utf-8')
+                    if title and isinstance(title, str):
+                        title = title.encode('utf-8', errors='replace').decode('utf-8')
+                    if name and isinstance(name, str):
+                        name = name.encode('utf-8', errors='replace').decode('utf-8')
+                    if variant_title and isinstance(variant_title, str):
+                        variant_title = variant_title.encode('utf-8', errors='replace').decode('utf-8')
+                    
+                    line_item = {
+                        'shopify_product_id': item.get('product_id'),
+                        'shopify_variant_id': item.get('variant_id'),
+                        'sku': sku,
+                        'title': title,
+                        'name': name,
+                        'quantity': item.get('quantity', 0),
+                        'price': item.get('price'),
+                        'variant_title': variant_title
+                    }
+                    order_data['line_items'].append(line_item)
+                except Exception as item_error:
+                    # Se houver erro em um item específico, logar mas continuar
+                    logger.warning(f"Erro ao processar line_item: {str(item_error)}")
+                    continue
             
             # Log seguro dos dados extraídos (sem dados sensíveis)
             safe_log_data({

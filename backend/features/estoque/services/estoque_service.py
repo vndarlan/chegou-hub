@@ -9,6 +9,16 @@ from ..models import ProdutoEstoque, MovimentacaoEstoque, AlertaEstoque
 
 logger = logging.getLogger(__name__)
 
+# Função para print seguro que não quebra com emojis no Windows
+def safe_print(message):
+    """Print seguro que trata problemas de encoding no Windows"""
+    try:
+        print(message)
+    except UnicodeEncodeError:
+        # Se houver erro de encoding, remover caracteres problemáticos
+        safe_message = message.encode('ascii', errors='replace').decode('ascii')
+        print(safe_message)
+
 # Import para notificações em tempo real (com fallback se não disponível)
 try:
     from features.sync_realtime.services import (
@@ -37,6 +47,14 @@ class EstoqueService:
         Returns:
             Dict com resultado do processamento
         """
+        # ===== DEBUG LOG: ENTRADA DO SERVIÇO =====
+        safe_print(f"[ESTOQUE SERVICE] === PROCESSAR VENDA WEBHOOK ===")
+        safe_print(f"[ESTOQUE SERVICE] Loja: {loja_config.nome_loja if hasattr(loja_config, 'nome_loja') else 'N/A'}")
+        safe_print(f"[ESTOQUE SERVICE] Order Number: #{order_data.get('order_number', 'N/A')}")
+        safe_print(f"[ESTOQUE SERVICE] Order ID: {order_data.get('shopify_order_id', 'N/A')}")
+        safe_print(f"[ESTOQUE SERVICE] Line Items: {len(order_data.get('line_items', []))}")
+        print("[ESTOQUE SERVICE] =======================================")
+        
         result = {
             'success': True,
             'shopify_order_id': order_data.get('shopify_order_id'),
@@ -50,10 +68,27 @@ class EstoqueService:
         try:
             line_items = order_data.get('line_items', [])
             
-            for item in line_items:
+            safe_print(f"[ESTOQUE SERVICE] Iniciando loop pelos {len(line_items)} line_items...")
+            
+            for i, item in enumerate(line_items):
+                sku = item.get('sku', 'N/A')
+                quantity = item.get('quantity', 0)
+                
+                safe_print(f"[ESTOQUE SERVICE] --- ITEM {i+1}/{len(line_items)} ---")
+                safe_print(f"[ESTOQUE SERVICE] SKU: {sku}")
+                safe_print(f"[ESTOQUE SERVICE] Quantity: {quantity}")
+                safe_print(f"[ESTOQUE SERVICE] Title: {item.get('title', 'N/A')}")
+                
+                safe_print(f"[ESTOQUE SERVICE] Chamando _processar_item_venda()...")
                 item_result = EstoqueService._processar_item_venda(
                     loja_config, item, order_data
                 )
+                
+                safe_print(f"[ESTOQUE SERVICE] Resultado para SKU {sku}:")
+                safe_print(f"[ESTOQUE SERVICE]   - Success: {item_result['success']}")
+                safe_print(f"[ESTOQUE SERVICE]   - Message: {item_result['message']}")
+                if item_result['success']:
+                    safe_print(f"[ESTOQUE SERVICE]   - Estoque: {item_result['estoque_anterior']} → {item_result['estoque_posterior']}")
                 
                 result['detalhes'].append(item_result)
                 
@@ -63,18 +98,32 @@ class EstoqueService:
                     # Adicionar alertas se gerados
                     if item_result.get('alertas_gerados'):
                         result['alertas_gerados'].extend(item_result['alertas_gerados'])
+                        safe_print(f"[ESTOQUE SERVICE]   - Alertas gerados: {len(item_result['alertas_gerados'])}")
                 else:
                     result['items_com_erro'] += 1
+                
+                safe_print(f"[ESTOQUE SERVICE] ----------------------------------------")
+            
+            safe_print(f"[ESTOQUE SERVICE] === FINALIZANDO PROCESSAMENTO ===")
+            safe_print(f"[ESTOQUE SERVICE] Items processados: {result['items_processados']}")
+            safe_print(f"[ESTOQUE SERVICE] Items com erro: {result['items_com_erro']}")
+            safe_print(f"[ESTOQUE SERVICE] Total alertas gerados: {len(result['alertas_gerados'])}")
             
             # Definir sucesso geral
             if result['items_com_erro'] > 0:
                 if result['items_processados'] == 0:
                     result['success'] = False
                     result['message'] = "Nenhum item pôde ser processado"
+                    safe_print(f"[ESTOQUE SERVICE] ERROR FALHA TOTAL - Nenhum item processado")
                 else:
                     result['message'] = f"Processamento parcial: {result['items_processados']} sucessos, {result['items_com_erro']} erros"
+                    safe_print(f"[ESTOQUE SERVICE] WARN PROCESSAMENTO PARCIAL")
             else:
                 result['message'] = f"Todos os {result['items_processados']} itens processados com sucesso"
+                safe_print(f"[ESTOQUE SERVICE] OK SUCESSO TOTAL - Todos os itens processados")
+            
+            safe_print(f"[ESTOQUE SERVICE] Message final: {result['message']}")
+            print("[ESTOQUE SERVICE] ==========================================")
             
             # === NOTIFICAÇÃO EM TEMPO REAL ===
             # Enviar notificação WebSocket sobre a venda processada
@@ -146,40 +195,113 @@ class EstoqueService:
             sku = item.get('sku')
             quantity = int(item.get('quantity', 0))
             
+            safe_print(f"[ITEM PROCESSOR] === PROCESSANDO ITEM ===")
+            safe_print(f"[ITEM PROCESSOR] SKU recebido: '{sku}'")
+            safe_print(f"[ITEM PROCESSOR] Quantity recebida: {quantity}")
+            
             if not sku:
+                safe_print(f"[ITEM PROCESSOR] ERROR SKU vazio ou nulo!")
                 item_result['message'] = "SKU não fornecido"
                 return item_result
             
             if quantity <= 0:
+                safe_print(f"[ITEM PROCESSOR] ERROR Quantidade inválida: {quantity}")
                 item_result['message'] = f"Quantidade inválida: {quantity}"
                 return item_result
             
             # Buscar produto no estoque
+            safe_print(f"[ITEM PROCESSOR] Buscando produto no banco de dados...")
+            safe_print(f"[ITEM PROCESSOR] Critérios da busca:")
+            safe_print(f"[ITEM PROCESSOR]   - loja_config: {loja_config.id if hasattr(loja_config, 'id') else 'N/A'}")
+            safe_print(f"[ITEM PROCESSOR]   - sku: '{sku}'")
+            safe_print(f"[ITEM PROCESSOR]   - ativo: True")
+            
             try:
                 produto = ProdutoEstoque.objects.get(
                     loja_config=loja_config,
                     sku=sku,
                     ativo=True
                 )
+                safe_print(f"[ITEM PROCESSOR] OK Produto encontrado!")
+                safe_print(f"[ITEM PROCESSOR] ID: {produto.id}")
+                safe_print(f"[ITEM PROCESSOR] Nome: {produto.nome}")
+                safe_print(f"[ITEM PROCESSOR] Estoque atual: {produto.estoque_atual}")
+                safe_print(f"[ITEM PROCESSOR] Estoque mínimo: {produto.estoque_minimo}")
+                
             except ProdutoEstoque.DoesNotExist:
-                item_result['message'] = f"Produto com SKU '{sku}' não encontrado no estoque da loja"
+                safe_print(f"[ITEM PROCESSOR] ❌ ERROR: Produto NÃO encontrado no banco!")
+                safe_print(f"[ITEM PROCESSOR] ============== DEBUG DETALHADO ==============")
+                safe_print(f"[ITEM PROCESSOR] SKU PROCURADO: '{sku}' (tipo: {type(sku)})")
+                safe_print(f"[ITEM PROCESSOR] Loja ID: {loja_config.id if hasattr(loja_config, 'id') else 'N/A'}")
+                safe_print(f"[ITEM PROCESSOR] Nome da Loja: {loja_config.nome_loja if hasattr(loja_config, 'nome_loja') else 'N/A'}")
+                safe_print(f"[ITEM PROCESSOR] Shop URL: {loja_config.shop_url if hasattr(loja_config, 'shop_url') else 'N/A'}")
+                
+                # Debug: Listar TODOS os produtos da mesma loja para comparação
+                produtos_loja = ProdutoEstoque.objects.filter(
+                    loja_config=loja_config,
+                    ativo=True
+                ).values_list('id', 'sku', 'nome', 'estoque_atual')
+                
+                safe_print(f"[ITEM PROCESSOR] TODOS os produtos cadastrados nesta loja ({produtos_loja.count()} total):")
+                if produtos_loja.count() == 0:
+                    safe_print(f"[ITEM PROCESSOR] ⚠️  NENHUM produto cadastrado nesta loja!")
+                else:
+                    for prod_id, prod_sku, prod_nome, estoque in produtos_loja:
+                        # Comparar caractere por caractere se necessário
+                        sku_match = "✅ EXATO" if prod_sku == sku else "❌ DIFERENTE"
+                        safe_print(f"[ITEM PROCESSOR]   ID:{prod_id} | SKU:'{prod_sku}' | Nome:{prod_nome} | Estoque:{estoque} | {sku_match}")
+                
+                # Verificar se existe produto com esse SKU em outras lojas
+                outros_produtos = ProdutoEstoque.objects.filter(
+                    sku=sku,
+                    ativo=True
+                ).exclude(loja_config=loja_config).values_list('loja_config__nome_loja', 'loja_config__shop_url')
+                
+                if outros_produtos.exists():
+                    safe_print(f"[ITEM PROCESSOR] ⚠️  ATENÇÃO: SKU '{sku}' existe em outras lojas:")
+                    for nome_loja, shop_url in outros_produtos:
+                        safe_print(f"[ITEM PROCESSOR]     - Loja: {nome_loja} ({shop_url})")
+                    safe_print(f"[ITEM PROCESSOR] 💡 POSSÍVEL SOLUÇÃO: Verifique se o webhook está sendo enviado para a loja correta")
+                else:
+                    safe_print(f"[ITEM PROCESSOR] ❌ SKU '{sku}' NÃO EXISTE em nenhuma loja do sistema")
+                
+                safe_print(f"[ITEM PROCESSOR] ============================================")
+                
+                item_result['message'] = f"Produto com SKU '{sku}' não encontrado no estoque da loja '{loja_config.nome_loja if hasattr(loja_config, 'nome_loja') else 'N/A'}'"
                 return item_result
             
             # Verificar se há estoque suficiente
+            safe_print(f"[ITEM PROCESSOR] Verificando estoque suficiente...")
+            safe_print(f"[ITEM PROCESSOR] Estoque disponível: {produto.estoque_atual}")
+            safe_print(f"[ITEM PROCESSOR] Quantidade solicitada: {quantity}")
+            
             if produto.estoque_atual < quantity:
+                safe_print(f"[ITEM PROCESSOR] ERROR Estoque INSUFICIENTE!")
                 item_result['message'] = f"Estoque insuficiente. Disponível: {produto.estoque_atual}, Solicitado: {quantity}"
                 return item_result
+            
+            safe_print(f"[ITEM PROCESSOR] OK Estoque suficiente! Prosseguindo com remoção...")
             
             # Decrementar estoque
             estoque_anterior = produto.estoque_atual
             
             observacao = f"Venda Shopify - Pedido #{order_data.get('order_number')} - {item.get('title', 'Produto sem título')}"
             
+            safe_print(f"[ITEM PROCESSOR] Chamando produto.remover_estoque()...")
+            safe_print(f"[ITEM PROCESSOR] Parâmetros:")
+            safe_print(f"[ITEM PROCESSOR]   - quantidade: {quantity}")
+            safe_print(f"[ITEM PROCESSOR]   - observacao: {observacao}")
+            safe_print(f"[ITEM PROCESSOR]   - pedido_shopify_id: {order_data.get('shopify_order_id')}")
+            
             produto.remover_estoque(
                 quantidade=quantity,
                 observacao=observacao,
                 pedido_shopify_id=order_data.get('shopify_order_id')
             )
+            
+            safe_print(f"[ITEM PROCESSOR] OK Estoque removido com sucesso!")
+            safe_print(f"[ITEM PROCESSOR] Estoque anterior: {estoque_anterior}")
+            safe_print(f"[ITEM PROCESSOR] Estoque atual: {produto.estoque_atual}")
             
             # Atualizar resultado
             item_result.update({

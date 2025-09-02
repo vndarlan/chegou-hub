@@ -46,6 +46,16 @@ from .utils.security_utils import (
 
 logger = logging.getLogger(__name__)
 
+# Função para print seguro que não quebra com emojis no Windows
+def safe_print(message):
+    """Print seguro que trata problemas de encoding no Windows"""
+    try:
+        print(message)
+    except UnicodeEncodeError:
+        # Se houver erro de encoding, remover caracteres problemáticos
+        safe_message = message.encode('ascii', errors='replace').decode('ascii')
+        print(safe_message)
+
 
 class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
     """ViewSet para gerenciar produtos em estoque com segurança aprimorada"""
@@ -608,22 +618,78 @@ def shopify_order_webhook(request):
             'mode': 'permissive'
         }, 'info')
         
-        # Obter dados do payload
+        # Obter dados do payload com decode seguro
         try:
-            webhook_payload = json.loads(request.body.decode('utf-8'))
-        except json.JSONDecodeError as e:
-            logger.error(f"PERMISSIVE: Erro ao decodificar JSON do webhook: {str(e)}")
+            # CORREÇÃO: Decode seguro com tratamento de encoding
+            try:
+                # Tentar UTF-8 primeiro
+                body_text = request.body.decode('utf-8')
+            except UnicodeDecodeError:
+                # Se falhar, usar decode com errors='replace' para substituir caracteres problemáticos
+                body_text = request.body.decode('utf-8', errors='replace')
+                logger.warning(f"ENCODING: Caracteres UTF-8 inválidos substituídos no webhook de {ip_address}")
+            
+            # Parse JSON com tratamento de erro
+            try:
+                webhook_payload = json.loads(body_text)
+            except json.JSONDecodeError as json_error:
+                safe_print(f"[WEBHOOK SHOPIFY] ERROR - Falha ao decodificar JSON: {str(json_error)}")
+                logger.error(f"PERMISSIVE: Erro ao decodificar JSON do webhook: {str(json_error)}")
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'Payload JSON inválido'
+                }, status=400)
+            
+            # ===== DEBUG LOG: PAYLOAD RECEBIDO =====
+            print("[WEBHOOK SHOPIFY] === PAYLOAD RECEBIDO ===")
+            safe_print(f"[WEBHOOK SHOPIFY] IP: {ip_address}")
+            safe_print(f"[WEBHOOK SHOPIFY] Shop Domain: {shopify_shop_domain}")
+            safe_print(f"[WEBHOOK SHOPIFY] Topic: {shopify_topic}")
+            safe_print(f"[WEBHOOK SHOPIFY] Has Signature: {bool(shopify_signature)}")
+            safe_print(f"[WEBHOOK SHOPIFY] Body size: {len(request.body)} bytes")
+            
+            # Log de encoding somente se houver caracteres substituídos
+            encoding_info = "(clean UTF-8)"
+            if '�' in body_text:
+                encoding_info = "(UTF-8 with character replacements)"
+            safe_print(f"[WEBHOOK SHOPIFY] Encoding: {encoding_info}")
+            
+            # Log de informações básicas do pedido (sanitizadas e seguras)
+            try:
+                order_id = webhook_payload.get('id', 'N/A')
+                order_number = webhook_payload.get('order_number', 'N/A')
+                financial_status = webhook_payload.get('financial_status', 'N/A')
+                line_items_count = len(webhook_payload.get('line_items', []))
+                total_price = webhook_payload.get('total_price', 'N/A')
+                
+                safe_print(f"[WEBHOOK SHOPIFY] Order ID: {order_id}")
+                safe_print(f"[WEBHOOK SHOPIFY] Order Number: #{order_number}")
+                safe_print(f"[WEBHOOK SHOPIFY] Financial Status: {financial_status}")
+                safe_print(f"[WEBHOOK SHOPIFY] Line Items Count: {line_items_count}")
+                safe_print(f"[WEBHOOK SHOPIFY] Total Price: {total_price}")
+                print("[WEBHOOK SHOPIFY] =====================")
+            except Exception as log_error:
+                safe_print(f"[WEBHOOK SHOPIFY] ERROR ao exibir dados básicos: {str(log_error)}")
+                print("[WEBHOOK SHOPIFY] Continuando processamento...")
+            
+        except Exception as decode_error:
+            safe_print(f"[WEBHOOK SHOPIFY] ERROR - Falha no decode/parse: {str(decode_error)}")
+            logger.error(f"PERMISSIVE: Erro no decode/parse do webhook: {str(decode_error)}")
             return JsonResponse({
                 'success': False, 
-                'message': 'Payload JSON inválido'
+                'message': f'Erro no processamento do payload: {str(decode_error)}'
             }, status=400)
         
         # MODO PERMISSIVO: Buscar configuração da loja (opcional)
+        safe_print(f"[WEBHOOK SHOPIFY] === BUSCANDO CONFIGURAÇÃO DA LOJA ===")
         loja_config = None
         if shopify_shop_domain:
+            safe_print(f"[WEBHOOK SHOPIFY] Buscando config para domínio: {shopify_shop_domain}")
             loja_config = ShopifyWebhookService.get_shop_config_by_domain(shopify_shop_domain)
             
         if not loja_config:
+            safe_print(f"[WEBHOOK SHOPIFY] ERROR - Loja NAO encontrada no banco de dados")
+            safe_print(f"[WEBHOOK SHOPIFY] Criando config temporária para processamento...")
             logger.info(f"PERMISSIVE: Loja não cadastrada para domínio: {shopify_shop_domain} - Processando mesmo assim")
             # Criar configuração temporária para processamento
             from types import SimpleNamespace
@@ -632,6 +698,13 @@ def shopify_order_webhook(request):
             loja_config.shopify_domain = shopify_shop_domain
             loja_config.webhook_secret = None
             loja_config.id = None
+        else:
+            safe_print(f"[WEBHOOK SHOPIFY] OK - Loja encontrada: {loja_config.nome_loja}")
+            safe_print(f"[WEBHOOK SHOPIFY] ID da Loja: {loja_config.id}")
+            safe_print(f"[WEBHOOK SHOPIFY] Has Webhook Secret: {bool(getattr(loja_config, 'webhook_secret', None))}")
+            safe_print(f"[WEBHOOK SHOPIFY] Usuário: {getattr(loja_config, 'user', 'N/A')}")
+        
+        print("[WEBHOOK SHOPIFY] =========================================")
         
         # MODO PERMISSIVO: Validação HMAC opcional
         webhook_secret = getattr(loja_config, 'webhook_secret', None)
@@ -662,11 +735,43 @@ def shopify_order_webhook(request):
         }, 'info')
         
         # Extrair dados do pedido
+        safe_print(f"[WEBHOOK SHOPIFY] === EXTRAINDO DADOS DO PEDIDO ===")
         order_data = ShopifyWebhookService.extract_order_data(webhook_payload)
         
+        # Log dos line_items extraídos (com sanitização)
+        line_items = order_data.get('line_items', [])
+        safe_print(f"[WEBHOOK SHOPIFY] Total de line_items extraídos: {len(line_items)}")
+        
+        for i, item in enumerate(line_items):
+            try:
+                # Sanitizar dados para logs seguros
+                sku = str(item.get('sku', 'N/A'))[:50]  # Limitar tamanho
+                title = str(item.get('title', 'N/A'))[:100]  # Limitar tamanho
+                quantity = item.get('quantity', 0)
+                price = str(item.get('price', 'N/A'))[:20]  # Limitar tamanho
+                
+                # Remover caracteres que podem quebrar logs
+                sku = ''.join(c if c.isprintable() or c == ' ' else '?' for c in sku)
+                title = ''.join(c if c.isprintable() or c == ' ' else '?' for c in title)
+                
+                safe_print(f"[WEBHOOK SHOPIFY] Item {i+1}:")
+                safe_print(f"[WEBHOOK SHOPIFY]   - SKU: {sku}")
+                safe_print(f"[WEBHOOK SHOPIFY]   - Title: {title}")
+                safe_print(f"[WEBHOOK SHOPIFY]   - Quantity: {quantity}")
+                safe_print(f"[WEBHOOK SHOPIFY]   - Price: {price}")
+            except Exception as item_log_error:
+                safe_print(f"[WEBHOOK SHOPIFY] Item {i+1}: ERROR ao exibir dados do item")
+        
+        print("[WEBHOOK SHOPIFY] ==========================================")
+        
         # MODO PERMISSIVO: Sempre verificar se deve processar, mas ser menos restritivo
+        safe_print(f"[WEBHOOK SHOPIFY] === VERIFICANDO SE DEVE PROCESSAR ===")
         should_process, reason = ShopifyWebhookService.should_process_order(order_data)
+        safe_print(f"[WEBHOOK SHOPIFY] Should Process: {should_process}")
+        safe_print(f"[WEBHOOK SHOPIFY] Reason: {reason}")
+        
         if not should_process:
+            safe_print(f"[WEBHOOK SHOPIFY] SKIP - Pedido NAO sera processado: {reason}")
             logger.info(f"PERMISSIVE: Pedido {order_data.get('order_number')} não processado: {reason}")
             return JsonResponse({
                 'success': True,
@@ -676,13 +781,21 @@ def shopify_order_webhook(request):
                 'hmac_validated': hmac_valid
             })
         
+        safe_print(f"[WEBHOOK SHOPIFY] OK - Pedido sera processado!")
+        print("[WEBHOOK SHOPIFY] ===========================================")
+        
         # MODO PERMISSIVO: Processar o pedido mesmo sem validação HMAC
+        safe_print(f"[WEBHOOK SHOPIFY] === INICIANDO PROCESSAMENTO ===")
         try:
             if hasattr(loja_config, 'id') and loja_config.id:
                 # Loja cadastrada - usar processamento normal
+                safe_print(f"[WEBHOOK SHOPIFY] OK - Loja cadastrada - iniciando processamento completo")
+                safe_print(f"[WEBHOOK SHOPIFY] Chamando EstoqueService.processar_venda_webhook()...")
                 result = EstoqueService.processar_venda_webhook(loja_config, order_data)
+                safe_print(f"[WEBHOOK SHOPIFY] OK - EstoqueService retornou resultado!")
             else:
                 # Loja não cadastrada - criar resultado básico de sucesso
+                safe_print(f"[WEBHOOK SHOPIFY] WARN - Loja nao cadastrada - modo permissivo sem processamento")
                 logger.info(f"PERMISSIVE: Processando pedido de loja não cadastrada: {shopify_shop_domain}")
                 result = {
                     'success': True,
@@ -695,6 +808,12 @@ def shopify_order_webhook(request):
                     'detalhes': []
                 }
         except Exception as processing_error:
+            safe_print(f"[WEBHOOK SHOPIFY] ERROR NO PROCESSAMENTO: {str(processing_error)}")
+            safe_print(f"[WEBHOOK SHOPIFY] Tipo do erro: {type(processing_error).__name__}")
+            import traceback
+            safe_print(f"[WEBHOOK SHOPIFY] Traceback completo:")
+            print(traceback.format_exc())
+            
             logger.error(f"PERMISSIVE: Erro no processamento do pedido: {str(processing_error)}")
             # Em modo permissivo, retornar sucesso mesmo com erro no processamento
             result = {
@@ -713,6 +832,37 @@ def shopify_order_webhook(request):
         items_processados = result.get('items_processados', 0)
         items_com_erro = result.get('items_com_erro', 0)
         alertas_gerados = len(result.get('alertas_gerados', []))
+        
+        safe_print(f"[WEBHOOK SHOPIFY] === RESULTADO FINAL DO PROCESSAMENTO ===")
+        safe_print(f"[WEBHOOK SHOPIFY] Success: {result.get('success', False)}")
+        safe_print(f"[WEBHOOK SHOPIFY] Message: {result.get('message', 'N/A')}")
+        safe_print(f"[WEBHOOK SHOPIFY] Items processados: {items_processados}")
+        safe_print(f"[WEBHOOK SHOPIFY] Items com erro: {items_com_erro}")
+        safe_print(f"[WEBHOOK SHOPIFY] Alertas gerados: {alertas_gerados}")
+        safe_print(f"[WEBHOOK SHOPIFY] HMAC válido: {hmac_valid}")
+        
+        # Log detalhado dos itens se houver detalhes
+        detalhes = result.get('detalhes', [])
+        if detalhes:
+            safe_print(f"[WEBHOOK SHOPIFY] === RESUMO POR ITEM ===")
+            for i, detalhe in enumerate(detalhes):
+                status_emoji = "✅" if detalhe.get('success', False) else "❌"
+                safe_print(f"[WEBHOOK SHOPIFY] Item {i+1} {status_emoji}:")
+                safe_print(f"[WEBHOOK SHOPIFY]   - SKU: {detalhe.get('sku', 'N/A')}")
+                safe_print(f"[WEBHOOK SHOPIFY]   - Success: {detalhe.get('success', False)}")
+                safe_print(f"[WEBHOOK SHOPIFY]   - Message: {detalhe.get('message', 'N/A')}")
+                if detalhe.get('success', False):
+                    safe_print(f"[WEBHOOK SHOPIFY]   - Estoque: {detalhe.get('estoque_anterior', 'N/A')} → {detalhe.get('estoque_posterior', 'N/A')}")
+            safe_print(f"[WEBHOOK SHOPIFY] === DETALHES DOS ITENS ===")
+            for i, detalhe in enumerate(detalhes):
+                safe_print(f"[WEBHOOK SHOPIFY] Item {i+1}:")
+                safe_print(f"[WEBHOOK SHOPIFY]   - SKU: {detalhe.get('sku', 'N/A')}")
+                safe_print(f"[WEBHOOK SHOPIFY]   - Success: {detalhe.get('success', False)}")
+                safe_print(f"[WEBHOOK SHOPIFY]   - Message: {detalhe.get('message', 'N/A')}")
+                if detalhe.get('success'):
+                    safe_print(f"[WEBHOOK SHOPIFY]   - Estoque: {detalhe.get('estoque_anterior')} → {detalhe.get('estoque_posterior')}")
+        
+        print("[WEBHOOK SHOPIFY] ==========================================")
         
         logger.info(f"PERMISSIVE: Webhook processado - Pedido {order_data.get('order_number')} - "
                    f"Sucessos: {items_processados}, Erros: {items_com_erro}, "
@@ -739,7 +889,7 @@ def shopify_order_webhook(request):
             logger.warning(f"PERMISSIVE: Erro ao logar webhook (não crítico): {str(log_error)}")
         
         # Retornar resposta sempre com sucesso em modo permissivo
-        return JsonResponse({
+        response_data = {
             'success': True,  # Sempre True em modo permissivo
             'message': result.get('message', 'Processado em modo permissivo'),
             'order_number': result.get('order_number'),
@@ -760,7 +910,15 @@ def shopify_order_webhook(request):
                     'message': item.get('message', '')
                 } for item in result.get('detalhes', [])
             ][:10]  # Limitar a 10 itens para não sobrecarregar resposta
-        }, status=200)  # Sempre 200 em modo permissivo
+        }
+        
+        safe_print(f"[WEBHOOK SHOPIFY] === RETORNANDO RESPOSTA FINAL ===")
+        safe_print(f"[WEBHOOK SHOPIFY] Status Code: 200")
+        safe_print(f"[WEBHOOK SHOPIFY] Response Success: {response_data['success']}")
+        safe_print(f"[WEBHOOK SHOPIFY] Response Message: {response_data['message']}")
+        print("[WEBHOOK SHOPIFY] === WEBHOOK FINALIZADO COM SUCESSO ===")
+        
+        return JsonResponse(response_data, status=200)  # Sempre 200 em modo permissivo
         
     except Exception as e:
         logger.error(f"PERMISSIVE: Erro geral no webhook do Shopify: {str(e)}")
