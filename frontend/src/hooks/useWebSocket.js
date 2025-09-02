@@ -150,7 +150,8 @@ export function useWebSocket(url, options = {}) {
         connect,
         disconnect,
         reconnectAttempts: reconnectAttempts.current,
-        maxReconnectAttempts
+        maxReconnectAttempts,
+        isConnected: connectionStatus === 'Open'
     };
 }
 
