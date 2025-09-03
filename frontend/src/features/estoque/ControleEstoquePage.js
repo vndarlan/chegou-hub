@@ -78,9 +78,7 @@ function ControleEstoquePage() {
     const [ajustandoEstoque, setAjustandoEstoque] = useState(false);
     const [loadingMovimentacoes, setLoadingMovimentacoes] = useState(false);
     
-    // WebSocket desabilitado - usando apenas atualizações manuais
-    
-    // WebSocket e tempo real
+    // WebSocket e tempo real - habilitado para receber notificações de cancelamento
     // Construir URL do WebSocket baseada na loja selecionada
     const websocketUrl = lojaSelecionada ? `/ws/estoque/?loja_id=${lojaSelecionada}` : null;
     
@@ -93,14 +91,23 @@ function ControleEstoquePage() {
         sendMessage,
         sendJsonMessage,
         connect: reconnectWebSocket
-    } = useWebSocket(null, {
-        shouldReconnect: false,
-        reconnectInterval: 0,
-        maxReconnectAttempts: 0,
-        onOpen: () => {},
-        onClose: () => {},
-        onMessage: () => {},
-        onError: () => {}
+    } = useWebSocket(websocketUrl, {
+        shouldReconnect: true,
+        reconnectInterval: 3000,
+        maxReconnectAttempts: 5,
+        onOpen: (event) => {
+            console.log('WebSocket conectado para estoque em tempo real');
+        },
+        onClose: (event) => {
+            console.log('WebSocket desconectado');
+        },
+        onMessage: (message) => {
+            console.log('Mensagem WebSocket recebida:', message);
+            handleWebSocketMessage(message);
+        },
+        onError: (error) => {
+            console.error('Erro no WebSocket:', error);
+        }
     });
     
     // Sistema de destaque de produtos
@@ -124,7 +131,7 @@ function ControleEstoquePage() {
         }
     }, [lojaSelecionada, clearAllHighlights]);
     
-    // WebSocket desabilitado - sem polling automático
+    // Sistema habilitado para receber atualizações em tempo real via WebSocket
     
     // Enviar identificação quando WebSocket conectar
     useEffect(() => {
@@ -256,7 +263,7 @@ function ControleEstoquePage() {
         console.log(`Notificação [${type}]: ${message}`);
     };
     
-    // WebSocket desabilitado - funções removidas
+    // Funções de notificação em tempo real via WebSocket habilitadas
 
     const loadLojas = async () => {
         try {
