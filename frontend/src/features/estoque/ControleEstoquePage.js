@@ -20,7 +20,7 @@ import {
     Package, AlertCircle, Check, X, RefreshCw, Trash2, 
     Settings, History, Plus, Building, TrendingUp, TrendingDown,
     Edit, Search, Target, Loader2, Eye, PackageOpen,
-    BarChart3, AlertTriangle, ChevronDown, ChevronUp, Zap
+    BarChart3, AlertTriangle, ChevronDown, ChevronUp, Zap, Sliders
 } from 'lucide-react';
 import { getCSRFToken } from '../../utils/csrf';
 
@@ -107,6 +107,22 @@ function ControleEstoquePage() {
         },
         onError: (error) => {
             console.error('Erro no WebSocket:', error);
+            
+            // Melhor tratamento de erro com informações úteis para debug
+            if (error.code) {
+                console.error(`WebSocket Error Code: ${error.code}`);
+            }
+            if (error.reason) {
+                console.error(`WebSocket Error Reason: ${error.reason}`);
+            }
+            
+            // Notificar usuário apenas em casos específicos
+            if (error.code !== 1006) { // 1006 é desconexão normal
+                showNotification(
+                    'Problema na conexão em tempo real. Tentando reconectar...', 
+                    'warning'
+                );
+            }
         }
     });
     
@@ -313,12 +329,21 @@ function ControleEstoquePage() {
             });
             
             if (response.data && Array.isArray(response.data)) {
-                setAlertas(response.data);
+                // Filtrar apenas alertas críticos (sem estoque ou estoque baixo)
+                const alertasCriticos = response.data.filter(alerta => {
+                    const atual = alerta.estoque_atual_produto || 0;
+                    const minimo = alerta.produto?.estoque_minimo || 0;
+                    return atual <= 0 || atual <= minimo;
+                });
+                
+                setAlertas(alertasCriticos);
             } else {
                 console.error('Erro ao carregar alertas:', response.data.error);
+                setAlertas([]);
             }
         } catch (error) {
             console.error('Erro ao carregar alertas:', error);
+            setAlertas([]);
         }
     };
 
@@ -517,6 +542,7 @@ function ControleEstoquePage() {
     const getStatusEstoque = (produto) => {
         const atual = produto.estoque_atual || 0;
         const minimo = produto.estoque_minimo || 0;
+        
         
         if (atual <= 0) {
             return { status: 'Sem Estoque', variant: 'destructive', icon: AlertTriangle };
@@ -736,7 +762,7 @@ function ControleEstoquePage() {
                                                 <p className="text-sm text-muted-foreground">Adicione ou remova quantidades com motivos de movimentação</p>
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
-                                                <h4 className="font-semibold text-sm text-foreground">3. Alertas Automáticos</h4>
+                                                <h4 className="font-semibold text-sm text-foreground">3. Alertas</h4>
                                                 <p className="text-sm text-muted-foreground">Receba alertas quando produtos atingem estoque mínimo</p>
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
@@ -816,25 +842,38 @@ function ControleEstoquePage() {
                             <CardContent className="pt-0">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                     {alertas.map((alerta, index) => {
-                                        const statusInfo = getStatusEstoque(alerta);
+                                        // Normalizar dados do alerta para compatibilidade com getStatusEstoque
+                                        const alertaNormalizado = {
+                                            ...alerta,
+                                            estoque_atual: alerta.estoque_atual_produto || 0,
+                                            estoque_minimo: alerta.produto?.estoque_minimo || 0,
+                                            nome: alerta.produto_nome || 'Produto sem nome',
+                                            sku: alerta.produto_sku || 'N/A'
+                                        };
+                                        
+                                        const statusInfo = getStatusEstoque(alertaNormalizado);
+                                        
+                                        
                                         return (
                                             <div key={`alerta-${alerta.id || index}`} 
                                                  className="p-3 bg-white dark:bg-red-950/10 rounded border border-red-200 dark:border-red-800">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <span className="font-medium text-sm text-foreground">{alerta.nome}</span>
+                                                    <span className="font-medium text-sm text-foreground">
+                                                        {alertaNormalizado.nome}
+                                                    </span>
                                                     <Badge variant={statusInfo.variant} className="text-xs">
                                                         {statusInfo.status}
                                                     </Badge>
                                                 </div>
                                                 <div className="text-xs text-muted-foreground space-y-1">
-                                                    <p>SKU: {alerta.sku}</p>
-                                                    <p>Atual: {alerta.estoque_atual} | Mínimo: {alerta.estoque_minimo}</p>
+                                                    <p>SKU: {alertaNormalizado.sku}</p>
+                                                    <p>Atual: {alertaNormalizado.estoque_atual} | Mínimo: {alertaNormalizado.estoque_minimo}</p>
                                                 </div>
                                                 <div className="flex gap-1 mt-2">
                                                     <Button 
                                                         size="sm" 
                                                         variant="outline"
-                                                        onClick={() => openAjusteEstoque(alerta)}
+                                                        onClick={() => openAjusteEstoque(alertaNormalizado)}
                                                         className="text-xs h-6"
                                                     >
                                                         <TrendingUp className="h-3 w-3 mr-1" />
@@ -997,8 +1036,9 @@ function ControleEstoquePage() {
                                                                 size="sm"
                                                                 onClick={() => openHistorico(produto)}
                                                                 className="text-xs"
+                                                                title="Ver histórico de movimentações"
                                                             >
-                                                                <Eye className="h-3 w-3" />
+                                                                <History className="h-3 w-3" />
                                                             </Button>
                                                             <Button
                                                                 variant="outline"
@@ -1013,8 +1053,9 @@ function ControleEstoquePage() {
                                                                 size="sm"
                                                                 onClick={() => openAjusteEstoque(produto)}
                                                                 className="text-xs text-blue-600 hover:bg-blue-50 hover:text-blue-700 border-blue-200"
+                                                                title="Ajustar estoque"
                                                             >
-                                                                <BarChart3 className="h-3 w-3" />
+                                                                <Sliders className="h-3 w-3" />
                                                             </Button>
                                                             <Button
                                                                 variant="outline"
@@ -1273,13 +1314,36 @@ function ControleEstoquePage() {
                                         <div key={mov.id} className="p-3 border border-border rounded-lg bg-card">
                                             <div className="flex items-center justify-between mb-2">
                                                 <div className="flex items-center space-x-2">
-                                                    {mov.tipo === 'adicionar' ? 
-                                                        <TrendingUp className="h-4 w-4 text-green-600" /> : 
-                                                        <TrendingDown className="h-4 w-4 text-red-600" />
-                                                    }
+                                                    {/* Determinar tipo de movimentação baseado no contexto real */}
+                                                    {(() => {
+                                                        // Lógica melhorada para determinar o tipo de movimentação
+                                                        const isIncreaseMovement = mov.tipo_movimento === 'entrada' || 
+                                                                                   mov.tipo === 'adicionar' || 
+                                                                                   mov.motivo?.includes('Devolução') ||
+                                                                                   mov.motivo?.includes('Cancelamento') ||
+                                                                                   (mov.estoque_posterior > mov.estoque_anterior);
+                                                        
+                                                        return isIncreaseMovement ? 
+                                                            <TrendingUp className="h-4 w-4 text-green-600" /> : 
+                                                            <TrendingDown className="h-4 w-4 text-red-600" />;
+                                                    })()}
                                                     <span className="font-medium text-sm text-foreground">{mov.motivo}</span>
-                                                    <Badge variant={mov.tipo === 'adicionar' ? 'default' : 'secondary'}>
-                                                        {mov.tipo === 'adicionar' ? '+' : '-'}{mov.quantidade}
+                                                    <Badge variant={(() => {
+                                                        const isIncreaseMovement = mov.tipo_movimento === 'entrada' || 
+                                                                                   mov.tipo === 'adicionar' || 
+                                                                                   mov.motivo?.includes('Devolução') ||
+                                                                                   mov.motivo?.includes('Cancelamento') ||
+                                                                                   (mov.estoque_posterior > mov.estoque_anterior);
+                                                        return isIncreaseMovement ? 'default' : 'secondary';
+                                                    })()}>
+                                                        {(() => {
+                                                            const isIncreaseMovement = mov.tipo_movimento === 'entrada' || 
+                                                                                       mov.tipo === 'adicionar' || 
+                                                                                       mov.motivo?.includes('Devolução') ||
+                                                                                       mov.motivo?.includes('Cancelamento') ||
+                                                                                       (mov.estoque_posterior > mov.estoque_anterior);
+                                                            return isIncreaseMovement ? '+' : '-';
+                                                        })()}{mov.quantidade}
                                                     </Badge>
                                                     {mov.produto_nome && (
                                                         <span className="text-sm text-muted-foreground">• {mov.produto_nome}</span>
