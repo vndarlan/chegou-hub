@@ -19,6 +19,7 @@ export function useWebSocket(url, options = {}) {
     const reconnectTimeouts = useRef();
     const reconnectAttempts = useRef(0);
     const socketRef = useRef();
+    const [isReconnecting, setIsReconnecting] = useState(false);
 
     const connect = useCallback(() => {
         try {
@@ -31,7 +32,10 @@ export function useWebSocket(url, options = {}) {
             const host = window.location.host;
             const wsUrl = `${protocol}//${host}${url}`;
 
-            console.log('Conectando ao WebSocket:', wsUrl);
+            console.log('Conectando ao WebSocket:', wsUrl, {
+                tentativa: reconnectAttempts.current + 1,
+                statusAtual: connectionStatus
+            });
 
             const ws = new WebSocket(wsUrl);
             socketRef.current = ws;
@@ -39,6 +43,7 @@ export function useWebSocket(url, options = {}) {
             ws.onopen = (event) => {
                 console.log('WebSocket conectado:', event);
                 setConnectionStatus('Open');
+                setIsReconnecting(false);
                 reconnectAttempts.current = 0;
                 setSocket(ws);
                 onOpen?.(event);
@@ -54,11 +59,16 @@ export function useWebSocket(url, options = {}) {
                 // Tentar reconectar se habilitado
                 if (shouldReconnect && reconnectAttempts.current < maxReconnectAttempts) {
                     reconnectAttempts.current += 1;
+                    setIsReconnecting(true);
                     console.log(`Tentativa de reconexão ${reconnectAttempts.current}/${maxReconnectAttempts}`);
                     
                     reconnectTimeouts.current = setTimeout(() => {
+                        setConnectionStatus('Connecting');
                         connect();
                     }, reconnectInterval);
+                } else if (reconnectAttempts.current >= maxReconnectAttempts) {
+                    setIsReconnecting(false);
+                    console.log('Máximo de tentativas de reconexão excedido');
                 }
             };
 
@@ -103,6 +113,7 @@ export function useWebSocket(url, options = {}) {
         
         setSocket(null);
         setConnectionStatus('Closed');
+        setIsReconnecting(false);
     }, []);
 
     const sendMessage = useCallback((message) => {
@@ -151,7 +162,8 @@ export function useWebSocket(url, options = {}) {
         disconnect,
         reconnectAttempts: reconnectAttempts.current,
         maxReconnectAttempts,
-        isConnected: connectionStatus === 'Open'
+        isConnected: connectionStatus === 'Open',
+        isReconnecting
     };
 }
 

@@ -90,7 +90,8 @@ function ControleEstoquePage() {
         maxReconnectAttempts,
         sendMessage,
         sendJsonMessage,
-        connect: reconnectWebSocket
+        connect: reconnectWebSocket,
+        isReconnecting
     } = useWebSocket(websocketUrl, {
         shouldReconnect: true,
         reconnectInterval: 3000,
@@ -116,13 +117,9 @@ function ControleEstoquePage() {
                 console.error(`WebSocket Error Reason: ${error.reason}`);
             }
             
-            // Notificar usuário apenas em casos específicos
-            if (error.code !== 1006) { // 1006 é desconexão normal
-                showNotification(
-                    'Problema na conexão em tempo real. Tentando reconectar...', 
-                    'warning'
-                );
-            }
+            // REMOVIDO: Notificação automática de erro
+            // A reconexão será gerenciada pelo useEffect específico
+            // Evita notificações duplicadas e confusas
         }
     });
     
@@ -163,22 +160,31 @@ function ControleEstoquePage() {
                 }
             });
             
-            // Notificar conexão bem-sucedida
-            if (reconnectAttempts > 0) {
+            // Notificar conexão bem-sucedida APENAS após reconexão (não na conexão inicial)
+            if (reconnectAttempts > 0 && isReconnecting) {
                 showNotification('Conexão em tempo real restaurada!', 'success');
             }
         }
     }, [connectionStatus, sendJsonMessage, lojaSelecionada, reconnectAttempts]);
     
-    // Mostrar progresso de reconexão
+    // Mostrar progresso de reconexão - APENAS quando realmente tentando reconectar
     useEffect(() => {
-        if (reconnectAttempts > 0 && connectionStatus !== 'Open') {
+        // Só notificar se está REALMENTE tentando reconectar (isReconnecting = true)
+        // E o estado não é 'Open' (já conectado)
+        if (isReconnecting && reconnectAttempts > 0 && connectionStatus !== 'Open') {
+            console.log('Mostrando notificação de reconexão:', {
+                reconnectAttempts,
+                connectionStatus,
+                maxReconnectAttempts,
+                isReconnecting
+            });
+            
             showNotification(
                 `Tentativa de reconexão ${reconnectAttempts}/${maxReconnectAttempts}...`,
                 'info'
             );
         }
-    }, [reconnectAttempts, maxReconnectAttempts, connectionStatus]);
+    }, [isReconnecting, reconnectAttempts, maxReconnectAttempts, connectionStatus]);
 
     useEffect(() => {
         // Filtrar produtos baseado no termo de busca
@@ -329,12 +335,50 @@ function ControleEstoquePage() {
             });
             
             if (response.data && Array.isArray(response.data)) {
+                console.log('=== DEBUG ALERTAS ===');
+                console.log('Total alertas recebidos:', response.data?.length);
+                console.log('Dados completos:', response.data);
+                
+                // Debug individual de cada alerta
+                response.data?.forEach((alerta, index) => {
+                    console.log(`Alerta ${index + 1}:`, {
+                        id: alerta.id,
+                        nome: alerta.produto_nome,
+                        sku: alerta.produto_sku,
+                        atual: alerta.estoque_atual_produto,
+                        minimo: alerta.produto?.estoque_minimo,
+                        produto_completo: alerta.produto,
+                        objeto_completo: alerta
+                    });
+                });
+                
                 // Filtrar apenas alertas críticos (sem estoque ou estoque baixo)
                 const alertasCriticos = response.data.filter(alerta => {
                     const atual = alerta.estoque_atual_produto || 0;
-                    const minimo = alerta.produto?.estoque_minimo || 0;
-                    return atual <= 0 || atual <= minimo;
+                    // Tentar múltiplas fontes para o estoque mínimo
+                    const minimo = alerta.produto?.estoque_minimo || 
+                                  alerta.estoque_minimo || 
+                                  alerta.produto_estoque_minimo || 
+                                  0;
+                    const isCritico = atual <= 0 || atual <= minimo;
+                    
+                    console.log(`Filtro para ${alerta.produto_nome}:`, {
+                        atual,
+                        minimo,
+                        fonte_minimo: alerta.produto?.estoque_minimo ? 'produto.estoque_minimo' : 
+                                     alerta.estoque_minimo ? 'estoque_minimo' :
+                                     alerta.produto_estoque_minimo ? 'produto_estoque_minimo' : 'default(0)',
+                        condicao_sem_estoque: atual <= 0,
+                        condicao_baixo: atual <= minimo,
+                        isCritico
+                    });
+                    
+                    return isCritico;
                 });
+                
+                console.log('Alertas críticos após filtro:', alertasCriticos);
+                console.log('Quantidade final de alertas críticos:', alertasCriticos.length);
+                console.log('=== FIM DEBUG ALERTAS ===');
                 
                 setAlertas(alertasCriticos);
             } else {
