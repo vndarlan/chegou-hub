@@ -72,23 +72,34 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         """Definir usuário automaticamente na criação e configurar estoque inicial"""
-        # Salvar o produto primeiro - o modelo já configurará o estoque inicial
-        produto = serializer.save(user=self.request.user)
-        
-        # Atualizar a movimentação inicial se foi criada pelo modelo
-        # para incluir o usuário que criou via API
-        if produto.estoque_inicial > 0:
-            movimentacao_inicial = MovimentacaoEstoque.objects.filter(
-                produto=produto,
-                tipo_movimento='entrada',
-                observacoes='Estoque inicial do produto',
-                usuario__isnull=True
-            ).first()
+        try:
+            # Log detalhado para debug
+            logger.info(f"Criando produto - Usuário: {self.request.user.username} - Dados: {serializer.validated_data}")
             
-            if movimentacao_inicial:
-                movimentacao_inicial.usuario = self.request.user
-                movimentacao_inicial.origem_sync = 'manual'
-                movimentacao_inicial.save()
+            # Salvar o produto primeiro - o modelo já configurará o estoque inicial
+            produto = serializer.save(user=self.request.user)
+            
+            logger.info(f"Produto criado com sucesso: {produto}")
+            
+            # Atualizar a movimentação inicial se foi criada pelo modelo
+            # para incluir o usuário que criou via API
+            if produto.estoque_inicial > 0:
+                movimentacao_inicial = MovimentacaoEstoque.objects.filter(
+                    produto=produto,
+                    tipo_movimento='entrada',
+                    observacoes='Estoque inicial do produto',
+                    usuario__isnull=True
+                ).first()
+                
+                if movimentacao_inicial:
+                    movimentacao_inicial.usuario = self.request.user
+                    movimentacao_inicial.origem_sync = 'manual'
+                    movimentacao_inicial.save()
+                    logger.info(f"Movimentação inicial atualizada para produto {produto.sku}")
+                    
+        except Exception as e:
+            logger.error(f"Erro ao criar produto: {str(e)} - Usuário: {self.request.user.username}")
+            raise
     
     def get_queryset(self):
         """Filtros avançados via query parameters"""
@@ -275,6 +286,41 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
         
         serializer = ProdutoEstoqueResumoSerializer(produtos, many=True)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def debug_info(self, request):
+        """Endpoint temporário para debug - informações do usuário e lojas"""
+        try:
+            from features.processamento.models import ShopifyConfig
+            
+            user_info = {
+                'id': request.user.id,
+                'username': request.user.username,
+                'is_authenticated': request.user.is_authenticated,
+                'is_staff': request.user.is_staff
+            }
+            
+            lojas_user = ShopifyConfig.objects.filter(user=request.user).values(
+                'id', 'nome_loja', 'shopify_domain', 'ativo'
+            )
+            
+            produtos_count = ProdutoEstoque.objects.filter(user=request.user).count()
+            
+            return Response({
+                'usuario': user_info,
+                'lojas': list(lojas_user),
+                'total_produtos': produtos_count,
+                'csrf_token_presente': bool(request.META.get('HTTP_X_CSRFTOKEN')),
+                'method': request.method,
+                'content_type': request.content_type,
+                'timestamp': timezone.now().isoformat()
+            })
+        except Exception as e:
+            logger.error(f"Erro no debug_info: {str(e)}")
+            return Response({
+                'erro': str(e),
+                'timestamp': timezone.now().isoformat()
+            }, status=500)
 
 
 class MovimentacaoEstoqueViewSet(viewsets.ModelViewSet):

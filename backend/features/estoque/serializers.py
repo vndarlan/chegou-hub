@@ -78,6 +78,23 @@ class ProdutoEstoqueSerializer(serializers.ModelSerializer):
                 'preco_venda': 'Preço de venda não pode ser negativo.'
             })
         
+        # Validar unicidade de SKU por loja (só para criação)
+        if not self.instance:  # Apenas na criação
+            sku = data.get('sku')
+            loja_config = data.get('loja_config')
+            
+            if sku and loja_config:
+                # Verificar se já existe produto com mesmo SKU na mesma loja
+                produto_existente = ProdutoEstoque.objects.filter(
+                    sku=sku, 
+                    loja_config=loja_config
+                ).exists()
+                
+                if produto_existente:
+                    raise serializers.ValidationError({
+                        'sku': f'Já existe um produto com o SKU "{sku}" nesta loja.'
+                    })
+        
         return data
     
     def validate_loja_config(self, value):

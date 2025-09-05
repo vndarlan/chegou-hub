@@ -1,9 +1,32 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
+// 🔥 CIRCUIT BREAKER GLOBAL para WebSocket
+const WEBSOCKET_CIRCUIT_BREAKER = {
+    isDisabled: false,
+    failureCount: 0,
+    lastFailure: null,
+    disable() {
+        this.isDisabled = true;
+        console.warn('🚫 WebSocket PERMANENTLY DISABLED para esta sessão');
+    },
+    shouldTryConnection() {
+        return !this.isDisabled;
+    },
+    recordFailure() {
+        this.failureCount++;
+        this.lastFailure = Date.now();
+        
+        // Desabilitar PERMANENTEMENTE após 3 falhas rápidas (menos de 15 seg)
+        if (this.failureCount >= 3) {
+            this.disable();
+        }
+    }
+};
+
 export function useWebSocket(url, options = {}) {
     const [socket, setSocket] = useState(null);
     const [lastMessage, setLastMessage] = useState(null);
-    const [connectionStatus, setConnectionStatus] = useState('Connecting');
+    const [connectionStatus, setConnectionStatus] = useState('Disabled');
     const [messageHistory, setMessageHistory] = useState([]);
     
     const {
@@ -13,77 +36,89 @@ export function useWebSocket(url, options = {}) {
         onError,
         shouldReconnect = true,
         reconnectInterval = 3000,
-        maxReconnectAttempts = 5
+        maxReconnectAttempts = 3 // Reduzido para 3
     } = options;
 
     const reconnectTimeouts = useRef();
     const reconnectAttempts = useRef(0);
     const socketRef = useRef();
     const [isReconnecting, setIsReconnecting] = useState(false);
-    const hasExceededMaxAttempts = useRef(false);
-    const isConnecting = useRef(false);
+    const hasShownDisabledNotification = useRef(false);
 
     const connect = useCallback(() => {
         try {
-            // Não conectar se já conectado, excedeu tentativas ou já está conectando
-            if (socketRef.current?.readyState === WebSocket.OPEN || 
-                hasExceededMaxAttempts.current || 
-                isConnecting.current) {
+            // 🔥 CIRCUIT BREAKER - Se desabilitado, NÃO TENTAR
+            if (!WEBSOCKET_CIRCUIT_BREAKER.shouldTryConnection()) {
+                setConnectionStatus('Disabled');
+                if (!hasShownDisabledNotification.current) {
+                    console.warn('🚫 WebSocket desabilitado permanentemente - funcionando sem tempo real');
+                    onError?.({ 
+                        code: 'CIRCUIT_BREAKER', 
+                        reason: 'WebSocket desabilitado após múltiplas falhas' 
+                    });
+                    hasShownDisabledNotification.current = true;
+                }
                 return;
             }
 
-            isConnecting.current = true;
+            // Não conectar se já conectado
+            if (socketRef.current?.readyState === WebSocket.OPEN) {
+                return;
+            }
 
             // Construir URL do WebSocket
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const host = window.location.host;
             const wsUrl = `${protocol}//${host}${url}`;
 
-            console.log('Conectando ao WebSocket:', wsUrl, {
-                tentativa: reconnectAttempts.current + 1,
-                statusAtual: connectionStatus
-            });
+            setConnectionStatus('Connecting');
 
             const ws = new WebSocket(wsUrl);
             socketRef.current = ws;
 
+            const connectionTimeout = setTimeout(() => {
+                if (ws.readyState !== WebSocket.OPEN) {
+                    console.warn('⏱️ WebSocket timeout - fechando conexão');
+                    ws.close();
+                }
+            }, 5000); // Timeout de 5 segundos
+
             ws.onopen = (event) => {
-                console.log('WebSocket conectado:', event);
+                clearTimeout(connectionTimeout);
                 setConnectionStatus('Open');
                 setIsReconnecting(false);
                 reconnectAttempts.current = 0;
-                hasExceededMaxAttempts.current = false;
-                isConnecting.current = false;
+                WEBSOCKET_CIRCUIT_BREAKER.failureCount = 0; // Reset contador
                 setSocket(ws);
                 onOpen?.(event);
             };
 
             ws.onclose = (event) => {
-                console.log('WebSocket desconectado:', event.code);
+                clearTimeout(connectionTimeout);
                 setConnectionStatus('Closed');
                 setSocket(null);
                 socketRef.current = null;
-                isConnecting.current = false;
                 onClose?.(event);
 
-                // Tentar reconectar apenas se habilitado e não excedeu limite
+                // Registrar falha no circuit breaker
+                WEBSOCKET_CIRCUIT_BREAKER.recordFailure();
+
+                // Tentar reconectar APENAS se circuit breaker permitir
                 if (shouldReconnect && 
-                    reconnectAttempts.current < maxReconnectAttempts && 
-                    !hasExceededMaxAttempts.current) {
+                    reconnectAttempts.current < maxReconnectAttempts &&
+                    WEBSOCKET_CIRCUIT_BREAKER.shouldTryConnection()) {
                     
                     reconnectAttempts.current += 1;
                     setIsReconnecting(true);
-                    console.log(`Tentativa de reconexão ${reconnectAttempts.current}/${maxReconnectAttempts}`);
                     
                     reconnectTimeouts.current = setTimeout(() => {
-                        setConnectionStatus('Connecting');
                         connect();
                     }, reconnectInterval);
                 } else {
-                    // Excedeu limite - parar definitivamente
-                    hasExceededMaxAttempts.current = true;
                     setIsReconnecting(false);
-                    console.log('Máximo de tentativas de reconexão excedido - parando tentativas');
+                    if (WEBSOCKET_CIRCUIT_BREAKER.isDisabled) {
+                        console.warn('🚫 WebSocket circuit breaker ATIVADO - sem mais tentativas');
+                    }
                 }
             };
 
@@ -93,7 +128,6 @@ export function useWebSocket(url, options = {}) {
                 try {
                     messageData = JSON.parse(event.data);
                 } catch (error) {
-                    console.error('Erro ao parsear mensagem WebSocket:', error);
                     messageData = { type: 'error', data: event.data };
                 }
 
@@ -103,23 +137,23 @@ export function useWebSocket(url, options = {}) {
             };
 
             ws.onerror = (error) => {
-                console.error('Erro no WebSocket:', error);
+                clearTimeout(connectionTimeout);
                 setConnectionStatus('Error');
-                isConnecting.current = false;
                 
-                const errorWithCode = {
-                    ...error,
-                    code: error.code || (ws.readyState === WebSocket.CLOSED ? 1006 : null),
-                    reason: error.reason || 'Conexão fechada inesperadamente'
-                };
-                
-                onError?.(errorWithCode);
+                // SÓ reportar erro se circuit breaker não estiver ativo
+                if (WEBSOCKET_CIRCUIT_BREAKER.shouldTryConnection()) {
+                    const errorWithCode = {
+                        ...error,
+                        code: 1006,
+                        reason: 'Conexão WebSocket falhou'
+                    };
+                    onError?.(errorWithCode);
+                }
             };
 
         } catch (error) {
-            console.error('Erro ao criar WebSocket:', error);
             setConnectionStatus('Error');
-            isConnecting.current = false;
+            WEBSOCKET_CIRCUIT_BREAKER.recordFailure();
             onError?.(error);
         }
     }, [url, onOpen, onClose, onMessage, onError, shouldReconnect, reconnectInterval, maxReconnectAttempts]);
@@ -137,8 +171,6 @@ export function useWebSocket(url, options = {}) {
         setSocket(null);
         setConnectionStatus('Closed');
         setIsReconnecting(false);
-        isConnecting.current = false;
-        hasExceededMaxAttempts.current = false;
         reconnectAttempts.current = 0;
     }, []);
 
@@ -147,19 +179,17 @@ export function useWebSocket(url, options = {}) {
             const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
             socketRef.current.send(messageStr);
             return true;
-        } else {
-            console.warn('WebSocket não está conectado. Estado:', socketRef.current?.readyState);
-            return false;
         }
+        return false;
     }, []);
 
     const sendJsonMessage = useCallback((object) => {
         return sendMessage(JSON.stringify(object));
     }, [sendMessage]);
 
-    // Conectar ao montar e desconectar ao desmontar
+    // Tentar conectar APENAS se circuit breaker permitir
     useEffect(() => {
-        if (url) {
+        if (url && WEBSOCKET_CIRCUIT_BREAKER.shouldTryConnection()) {
             connect();
         }
 
@@ -189,7 +219,8 @@ export function useWebSocket(url, options = {}) {
         reconnectAttempts: reconnectAttempts.current,
         maxReconnectAttempts,
         isConnected: connectionStatus === 'Open',
-        isReconnecting
+        isReconnecting,
+        isDisabled: WEBSOCKET_CIRCUIT_BREAKER.isDisabled
     };
 }
 

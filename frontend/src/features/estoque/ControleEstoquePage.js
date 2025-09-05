@@ -108,15 +108,13 @@ function ControleEstoquePage() {
             handleWebSocketMessage(message);
         },
         onError: (error) => {
-            // Log simplificado para erros de WebSocket
-            console.warn('WebSocket error:', {
-                code: error.code,
-                type: error.type || 'connection_error',
-                attempts: reconnectAttempts
-            });
+            // Circuit breaker ativado - mostrar notificação única e parar
+            if (error.code === 'CIRCUIT_BREAKER') {
+                showNotification('Sistema funcionando normalmente sem tempo real', 'info');
+                return;
+            }
             
             // Não mostrar notificações para erros temporários (1006, 1000)
-            // Estes são esperados durante reconexões e desconexões normais
             if (error.code === 1006 || error.code === 1000) {
                 return;
             }
