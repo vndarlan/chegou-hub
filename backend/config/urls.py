@@ -5,16 +5,16 @@ from django.conf.urls.static import static
 from django.http import JsonResponse
 from django.views.generic import TemplateView
 from django.views.static import serve
+from django.views import View
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from core.views_debug import DebugCorsView
 import os
 
-def simple_health(request):
-    return JsonResponse({'status': 'ok', 'health': 'Railway OK'})
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('mapa/', include('features.mapa.urls')),
-    path('health/', simple_health, name='simple_health'),
     path('api/debug/cors/', DebugCorsView.as_view(), name='debug_cors'),
     path('api/', include('core.urls')),
     
