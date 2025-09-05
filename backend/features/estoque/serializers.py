@@ -39,7 +39,8 @@ class ProdutoEstoqueSerializer(serializers.ModelSerializer):
             'shopify_product_id', 'shopify_variant_id', 'erro_sincronizacao',
             'estoque_disponivel', 'estoque_baixo', 'necessita_reposicao',
             'valor_total_estoque', 'loja_nome', 'loja_url',
-            'total_movimentacoes', 'alertas_ativos'
+            'total_movimentacoes', 'alertas_ativos',
+            'loja_config'  # Loja não pode ser alterada após criação
         ]
     
     def get_total_movimentacoes(self, obj):

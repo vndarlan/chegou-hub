@@ -822,9 +822,9 @@ function ControleEstoquePage() {
                                             <SelectItem value="Dropi">Dropi</SelectItem>
                                             <SelectItem value="PrimeCod">PrimeCod</SelectItem>
                                             <SelectItem value="Ecomhub">Ecomhub</SelectItem>
-                                            <SelectItem value="N1 Italia">N1 Italia</SelectItem>
-                                            <SelectItem value="N1 Romania">N1 Romania</SelectItem>
-                                            <SelectItem value="N1 Polonia">N1 Polonia</SelectItem>
+                                            <SelectItem value="N1 Italia">N1 Itália</SelectItem>
+                                            <SelectItem value="N1 Romania">N1 Romênia</SelectItem>
+                                            <SelectItem value="N1 Polonia">N1 Polônia</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -1316,9 +1316,9 @@ function ControleEstoquePage() {
                                         <SelectItem value="Dropi">Dropi</SelectItem>
                                         <SelectItem value="PrimeCod">PrimeCod</SelectItem>
                                         <SelectItem value="Ecomhub">Ecomhub</SelectItem>
-                                        <SelectItem value="N1 Italia">N1 Italia</SelectItem>
-                                        <SelectItem value="N1 Romania">N1 Romania</SelectItem>
-                                        <SelectItem value="N1 Polonia">N1 Polonia</SelectItem>
+                                        <SelectItem value="N1 Italia">N1 Itália</SelectItem>
+                                        <SelectItem value="N1 Romania">N1 Romênia</SelectItem>
+                                        <SelectItem value="N1 Polonia">N1 Polônia</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

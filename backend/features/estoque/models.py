@@ -90,10 +90,9 @@ class ProdutoEstoque(models.Model):
             not getattr(self, '_skip_initial_movement', False)):
             self._create_initial_movement()
         
-        # ===== NOVA FUNCIONALIDADE: ALERTAS PARA PRODUTOS CRIADOS COM ESTOQUE ZERO =====
-        # Verificar se é um produto novo com estoque zerado e gerar alerta
-        if (is_new and self.estoque_atual == 0 and self.alerta_estoque_zero and
-            not getattr(self, '_skip_initial_alerts', False)):
+        # ===== NOVA FUNCIONALIDADE: ALERTAS PARA PRODUTOS CRIADOS COM ESTOQUE ZERO OU BAIXO =====
+        # Verificar se é um produto novo que precisa de alerta inicial
+        if (is_new and not getattr(self, '_skip_initial_alerts', False)):
             self._create_initial_alert_if_needed()
     
     def _create_initial_movement(self):
@@ -114,10 +113,16 @@ class ProdutoEstoque(models.Model):
             pass
     
     def _create_initial_alert_if_needed(self):
-        """Cria alerta inicial para produtos criados com estoque zero"""
+        """Cria alerta inicial para produtos criados com estoque zero ou baixo"""
         try:
-            # Gerar alerta de estoque zero para produto recém-criado
-            AlertaEstoque.gerar_alerta_estoque_zero(self)
+            # Verificar se precisa gerar alerta de estoque zero
+            if self.estoque_atual == 0 and self.alerta_estoque_zero:
+                AlertaEstoque.gerar_alerta_estoque_zero(self)
+            
+            # Verificar se precisa gerar alerta de estoque baixo (mas não zero)
+            elif self.estoque_atual > 0 and self.estoque_baixo and self.alerta_estoque_baixo:
+                AlertaEstoque.gerar_alerta_estoque_baixo(self)
+                
         except Exception:
             # Em caso de erro (ex: durante migrações), continuar sem bloquear
             pass

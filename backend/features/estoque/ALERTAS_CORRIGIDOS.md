@@ -1,12 +1,13 @@
-# Correção dos Alertas de Estoque - Produtos com Estoque Zero
+# Correção dos Alertas de Estoque - Produtos com Estoque Zero ou Baixo
 
 ## **Problema Identificado**
 
-Produtos cadastrados com `estoque_inicial = 0` não apareciam nos alertas porque:
+Produtos cadastrados com `estoque_inicial = 0` ou `estoque_inicial <= estoque_minimo` não apareciam nos alertas porque:
 
-1. **Alertas são gerados apenas após movimentações de estoque** (vendas, remoções)
-2. **Produtos criados com estoque zero nunca passam por essas operações**
+1. **Alertas eram gerados apenas após movimentações de estoque** (vendas, remoções)
+2. **Produtos criados com estoque zero ou baixo nunca passavam por essas operações**
 3. **Não existia verificação automática no momento da criação**
+4. **Sistema só detectava estoque baixo APÓS decremento, não na criação inicial**
 
 ## **Soluções Implementadas**
 
@@ -15,15 +16,27 @@ Produtos cadastrados com `estoque_inicial = 0` não apareciam nos alertas porque
 **Arquivo**: `backend/features/estoque/models.py`
 
 - ✅ Modificado método `save()` do modelo `ProdutoEstoque`
-- ✅ Adicionada verificação para produtos novos com `estoque_atual = 0`
-- ✅ Criado método `_create_initial_alert_if_needed()`
-- ✅ Alerta gerado automaticamente respeitando configuração `alerta_estoque_zero`
+- ✅ Adicionada verificação para produtos novos com `estoque_atual = 0` OU `estoque_baixo = True`
+- ✅ Criado método `_create_initial_alert_if_needed()` MELHORADO
+- ✅ Alertas gerados automaticamente respeitando configurações `alerta_estoque_zero` e `alerta_estoque_baixo`
 
 ```python
-# Novo código no save()
-if (is_new and self.estoque_atual == 0 and self.alerta_estoque_zero and
-    not getattr(self, '_skip_initial_alerts', False)):
+# Novo código no save() - ATUALIZADO
+if (is_new and not getattr(self, '_skip_initial_alerts', False)):
     self._create_initial_alert_if_needed()
+
+# Método _create_initial_alert_if_needed() - MELHORADO
+def _create_initial_alert_if_needed(self):
+    try:
+        # Verificar se precisa gerar alerta de estoque zero
+        if self.estoque_atual == 0 and self.alerta_estoque_zero:
+            AlertaEstoque.gerar_alerta_estoque_zero(self)
+        
+        # Verificar se precisa gerar alerta de estoque baixo (mas não zero)
+        elif self.estoque_atual > 0 and self.estoque_baixo and self.alerta_estoque_baixo:
+            AlertaEstoque.gerar_alerta_estoque_baixo(self)
+    except Exception:
+        pass
 ```
 
 ### 2. **Endpoints para Alertas Retroativos**
@@ -71,16 +84,17 @@ python manage.py gerar_alertas_estoque --usuario=nome_usuario
 ## **Comportamento Corrigido**
 
 ### **ANTES** ❌
-1. Usuário cria produto com `estoque_inicial = 0`
-2. Produto fica com `estoque_atual = 0` 
+1. Usuário cria produto com `estoque_inicial = 0` ou `estoque_inicial = 3, estoque_minimo = 5`
+2. Produto fica com `estoque_atual = 0` ou `estoque_atual = 3` (baixo)
 3. **NENHUM alerta é gerado**
-4. Produto "invisível" no sistema de alertas
+4. Produto "invisível" no sistema de alertas até haver movimentação
 
 ### **AGORA** ✅
 1. Usuário cria produto com `estoque_inicial = 0`
-2. Produto fica com `estoque_atual = 0`
-3. **Alerta "Estoque Zerado" é gerado AUTOMATICAMENTE**
-4. Produto aparece imediatamente nos alertas como "Sem Estoque"
+2. **Alerta "Estoque Zerado" é gerado AUTOMATICAMENTE** (Prioridade: CRÍTICA)
+3. Usuário cria produto com `estoque_inicial = 3, estoque_minimo = 5`
+4. **Alerta "Estoque Baixo" é gerado AUTOMATICAMENTE** (Prioridade: ALTA)
+5. Produtos aparecem **IMEDIATAMENTE** nos alertas conforme sua situação
 
 ## **Tipos de Alertas**
 
@@ -141,11 +155,32 @@ curl -X POST http://localhost:8000/api/estoque/produtos/gerar_alertas_estoque_ze
 
 ## **Status da Implementação**
 
-- ✅ **Correção automática para novos produtos**
+- ✅ **Correção automática para novos produtos** (estoque zero E baixo)
 - ✅ **Endpoints para correção retroativa** 
 - ✅ **Comando Django para administração**
-- ✅ **Documentação atualizada**
-- ✅ **Testes básicos realizados**
+- ✅ **Documentação atualizada e melhorada**
+- ✅ **Testes realizados e aprovados**
 - ✅ **Logs e auditoria implementados**
+- ✅ **Melhoria aplicada na lógica de detecção**
 
-**PROBLEMA RESOLVIDO** ✅
+## **Testes de Validação Realizados**
+
+### **Teste 1: Produto com Estoque Baixo na Criação**
+```
+Produto: SKU=TESTE-ESTOQUE-BAIXO-001, estoque_atual=3, estoque_minimo=5
+Resultado: ✅ Alerta "estoque_baixo" criado automaticamente
+```
+
+### **Teste 2: Produto com Estoque Zero na Criação**
+```
+Produto: SKU=TESTE-ESTOQUE-ZERO-001, estoque_atual=0, estoque_minimo=5  
+Resultado: ✅ Alerta "estoque_zero" (prioridade crítica) criado automaticamente
+```
+
+### **Teste 3: Comando Retroativo**
+```
+Comando: python manage.py gerar_alertas_estoque
+Resultado: ✅ 1 produto existente com estoque baixo teve alerta criado
+```
+
+**PROBLEMA RESOLVIDO COMPLETAMENTE** ✅

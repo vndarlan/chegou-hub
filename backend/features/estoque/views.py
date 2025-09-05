@@ -102,20 +102,23 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
             raise
     
     def get_queryset(self):
-        """Filtros avançados via query parameters"""
+        """Filtros avançados via query parameters com tratamento seguro de request"""
         queryset = ProdutoEstoque.objects.filter(user=self.request.user)
         
+        # Verificar se o request tem query_params (DRF) ou GET (Django padrão)
+        query_params = getattr(self.request, 'query_params', self.request.GET)
+        
         # Filtros básicos
-        loja_id = self.request.query_params.get('loja_id')
+        loja_id = query_params.get('loja_id')
         if loja_id:
             queryset = queryset.filter(loja_config_id=loja_id)
         
-        ativo = self.request.query_params.get('ativo')
+        ativo = query_params.get('ativo')
         if ativo is not None:
             queryset = queryset.filter(ativo=ativo.lower() == 'true')
         
         # Filtros de estoque
-        status_estoque = self.request.query_params.get('status_estoque')
+        status_estoque = query_params.get('status_estoque')
         if status_estoque == 'zerado':
             queryset = queryset.filter(estoque_atual=0)
         elif status_estoque == 'baixo':
@@ -124,18 +127,18 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(estoque_atual__gt=F('estoque_minimo'))
         
         # Busca textual
-        search = self.request.query_params.get('search')
+        search = query_params.get('search')
         if search:
             queryset = queryset.filter(
                 Q(sku__icontains=search) | Q(nome__icontains=search)
             )
         
         # Filtros de sincronização
-        sync_enabled = self.request.query_params.get('sync_enabled')
+        sync_enabled = query_params.get('sync_enabled')
         if sync_enabled is not None:
             queryset = queryset.filter(sync_shopify_enabled=sync_enabled.lower() == 'true')
         
-        com_erro_sync = self.request.query_params.get('com_erro_sync')
+        com_erro_sync = query_params.get('com_erro_sync')
         if com_erro_sync == 'true':
             queryset = queryset.exclude(erro_sincronizacao='')
         
