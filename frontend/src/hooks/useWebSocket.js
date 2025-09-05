@@ -91,7 +91,15 @@ export function useWebSocket(url, options = {}) {
             ws.onerror = (error) => {
                 console.error('Erro no WebSocket:', error);
                 setConnectionStatus('Error');
-                onError?.(error);
+                
+                // Melhorar tratamento de erro com código específico
+                const errorWithCode = {
+                    ...error,
+                    code: error.code || (ws.readyState === WebSocket.CLOSED ? 1006 : null),
+                    reason: error.reason || 'Conexão fechada inesperadamente'
+                };
+                
+                onError?.(errorWithCode);
             };
 
         } catch (error) {

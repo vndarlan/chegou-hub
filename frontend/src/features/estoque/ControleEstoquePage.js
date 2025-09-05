@@ -55,7 +55,7 @@ function ControleEstoquePage() {
     const [novoProduto, setNovoProduto] = useState({ 
         sku: '', 
         nome: '', 
-        fornecedor: 'N1',
+        fornecedor: 'N1 Itália',
         estoque_inicial: 0, 
         estoque_minimo: 5
     });
@@ -117,9 +117,16 @@ function ControleEstoquePage() {
                 console.error(`WebSocket Error Reason: ${error.reason}`);
             }
             
-            // REMOVIDO: Notificação automática de erro
-            // A reconexão será gerenciada pelo useEffect específico
-            // Evita notificações duplicadas e confusas
+            // Filtrar erro 1006 (desconexão comum) para evitar confusão no UX
+            if (error.code === 1006) {
+                console.warn('Desconexão WebSocket temporária (1006) - reconectando automaticamente...');
+                return; // Não mostrar notificação para erro comum de reconexão
+            }
+            
+            // Só mostrar erro se não for erro temporário de reconexão
+            if (error.code && error.code !== 1006 && error.code !== 1000) {
+                showNotification(`Erro de conexão WebSocket: ${error.code}`, 'warning');
+            }
         }
     });
     
@@ -335,52 +342,66 @@ function ControleEstoquePage() {
             });
             
             if (response.data && Array.isArray(response.data)) {
-                console.log('=== DEBUG ALERTAS ===');
-                console.log('Total alertas recebidos:', response.data?.length);
-                console.log('Dados completos:', response.data);
+                console.log('=== DEBUG ALERTAS CRÍTICOS ===');
+                console.log('Total alertas recebidos do servidor:', response.data?.length || 0);
+                console.log('Dados brutos recebidos:', response.data);
                 
-                // Debug individual de cada alerta
-                response.data?.forEach((alerta, index) => {
-                    console.log(`Alerta ${index + 1}:`, {
-                        id: alerta.id,
-                        nome: alerta.produto_nome,
-                        sku: alerta.produto_sku,
-                        atual: alerta.estoque_atual_produto,
-                        minimo: alerta.produto?.estoque_minimo,
-                        produto_completo: alerta.produto,
-                        objeto_completo: alerta
-                    });
+                if (!response.data || !Array.isArray(response.data)) {
+                    console.error('ERRO: Dados de alertas inválidos:', response.data);
+                    setAlertas([]);
+                    return;
+                }
+                
+                // Debug individual de cada alerta recebido
+                response.data.forEach((alerta, index) => {
+                    console.log(`\n--- Alerta ${index + 1} ---`);
+                    console.log('ID:', alerta.id);
+                    console.log('Nome produto:', alerta.produto_nome);
+                    console.log('SKU produto:', alerta.produto_sku);
+                    console.log('Estoque atual:', alerta.estoque_atual_produto);
+                    console.log('Estoque mínimo (produto.estoque_minimo):', alerta.produto?.estoque_minimo);
+                    console.log('Estoque mínimo (direto):', alerta.estoque_minimo);
+                    console.log('Produto completo:', alerta.produto);
+                    console.log('Objeto completo do alerta:', alerta);
                 });
                 
                 // Filtrar apenas alertas críticos (sem estoque ou estoque baixo)
                 const alertasCriticos = response.data.filter(alerta => {
-                    const atual = alerta.estoque_atual_produto || 0;
+                    const atual = parseInt(alerta.estoque_atual_produto) || 0;
                     // Tentar múltiplas fontes para o estoque mínimo
-                    const minimo = alerta.produto?.estoque_minimo || 
-                                  alerta.estoque_minimo || 
-                                  alerta.produto_estoque_minimo || 
-                                  0;
-                    const isCritico = atual <= 0 || atual <= minimo;
+                    const minimo = parseInt(alerta.produto?.estoque_minimo) || 
+                                  parseInt(alerta.estoque_minimo) || 
+                                  parseInt(alerta.produto_estoque_minimo) || 
+                                  5; // Default mais realista
                     
-                    console.log(`Filtro para ${alerta.produto_nome}:`, {
-                        atual,
-                        minimo,
-                        fonte_minimo: alerta.produto?.estoque_minimo ? 'produto.estoque_minimo' : 
-                                     alerta.estoque_minimo ? 'estoque_minimo' :
-                                     alerta.produto_estoque_minimo ? 'produto_estoque_minimo' : 'default(0)',
-                        condicao_sem_estoque: atual <= 0,
-                        condicao_baixo: atual <= minimo,
-                        isCritico
-                    });
+                    const semEstoque = atual <= 0;
+                    const estoqueBaixo = atual > 0 && atual <= minimo;
+                    const isCritico = semEstoque || estoqueBaixo;
+                    
+                    console.log(`\n🔍 FILTRO para "${alerta.produto_nome}":`);
+                    console.log('   - Estoque atual:', atual, '(tipo:', typeof atual, ')');
+                    console.log('   - Estoque mínimo:', minimo, '(tipo:', typeof minimo, ')');
+                    console.log('   - Fonte do mínimo:', 
+                        alerta.produto?.estoque_minimo ? 'produto.estoque_minimo' : 
+                        alerta.estoque_minimo ? 'estoque_minimo' :
+                        alerta.produto_estoque_minimo ? 'produto_estoque_minimo' : 'default(5)');
+                    console.log('   - Sem estoque (atual <= 0):', semEstoque);
+                    console.log('   - Estoque baixo (atual > 0 && atual <= min):', estoqueBaixo);
+                    console.log('   - É CRÍTICO?', isCritico ? '✅ SIM' : '❌ NÃO');
                     
                     return isCritico;
                 });
                 
-                console.log('Alertas críticos após filtro:', alertasCriticos);
-                console.log('Quantidade final de alertas críticos:', alertasCriticos.length);
-                console.log('=== FIM DEBUG ALERTAS ===');
+                console.log('\n📊 RESULTADO FINAL:');
+                console.log('   - Total alertas recebidos:', response.data.length);
+                console.log('   - Alertas críticos filtrados:', alertasCriticos.length);
+                console.log('   - Alertas críticos:', alertasCriticos.map(a => `${a.produto_nome} (${a.estoque_atual_produto}/${a.produto?.estoque_minimo || a.estoque_minimo || 5})`));
+                console.log('=== FIM DEBUG ALERTAS CRÍTICOS ===');
                 
-                setAlertas(alertasCriticos);
+                // Garantir que sempre temos um array válido
+                const alertasFinais = Array.isArray(alertasCriticos) ? alertasCriticos : [];
+                console.log('\n🎯 SETANDO ALERTAS:', alertasFinais.length, 'alertas');
+                setAlertas(alertasFinais);
             } else {
                 console.error('Erro ao carregar alertas:', response.data.error);
                 setAlertas([]);
@@ -443,7 +464,7 @@ function ControleEstoquePage() {
                 setNovoProduto({ 
                     sku: '', 
                     nome: '', 
-                    fornecedor: 'N1',
+                    fornecedor: 'N1 Itália',
                     estoque_inicial: 0, 
                     estoque_minimo: 5
                 });
@@ -615,6 +636,10 @@ function ControleEstoquePage() {
             'Dropi': { variant: 'default', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' },
             'PrimeCod': { variant: 'default', className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' },
             'Ecomhub': { variant: 'default', className: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300' },
+            'N1 Itália': { variant: 'default', className: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300' },
+            'N1 Romênia': { variant: 'default', className: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300' },
+            'N1 Polônia': { variant: 'default', className: 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-300' },
+            // Backward compatibility
             'N1': { variant: 'default', className: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300' }
         };
         return fornecedorMap[fornecedor] || { variant: 'outline', className: '' };
@@ -735,7 +760,9 @@ function ControleEstoquePage() {
                                             <SelectItem value="Dropi">Dropi</SelectItem>
                                             <SelectItem value="PrimeCod">PrimeCod</SelectItem>
                                             <SelectItem value="Ecomhub">Ecomhub</SelectItem>
-                                            <SelectItem value="N1">N1</SelectItem>
+                                            <SelectItem value="N1 Itália">N1 Itália</SelectItem>
+                                            <SelectItem value="N1 Romênia">N1 Romênia</SelectItem>
+                                            <SelectItem value="N1 Polônia">N1 Polônia</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -863,7 +890,8 @@ function ControleEstoquePage() {
 
 
             {/* Alertas de Estoque Baixo */}
-            {alertas.length > 0 && (
+            {/* DEBUG: Alertas = {alertas?.length || 0} */}
+            {alertas && alertas.length > 0 && (
                 <Collapsible open={showAlertas} onOpenChange={setShowAlertas}>
                     <Card className="bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800">
                         <CollapsibleTrigger className="w-full">
@@ -1166,7 +1194,9 @@ function ControleEstoquePage() {
                                         <SelectItem value="Dropi">Dropi</SelectItem>
                                         <SelectItem value="PrimeCod">PrimeCod</SelectItem>
                                         <SelectItem value="Ecomhub">Ecomhub</SelectItem>
-                                        <SelectItem value="N1">N1</SelectItem>
+                                        <SelectItem value="N1 Itália">N1 Itália</SelectItem>
+                                        <SelectItem value="N1 Romênia">N1 Romênia</SelectItem>
+                                        <SelectItem value="N1 Polônia">N1 Polônia</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
