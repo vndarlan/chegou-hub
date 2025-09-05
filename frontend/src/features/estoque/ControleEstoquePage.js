@@ -516,9 +516,26 @@ function ControleEstoquePage() {
     };
 
     const ajustarEstoque = async () => {
-        if (!selectedProduto?.id) return;
+        // === DEBUG AJUSTE ESTOQUE ===
+        console.log('=== DEBUG AJUSTE ESTOQUE ===');
+        console.log('selectedProduto:', selectedProduto);
+        console.log('lojaSelecionada:', lojaSelecionada);
+        console.log('ajusteEstoque:', ajusteEstoque);
+        
+        // Validações robustas antes de enviar
+        if (!selectedProduto?.id) {
+            console.error('selectedProduto.id ausente:', selectedProduto);
+            showNotification('Produto não selecionado ou inválido', 'error');
+            return;
+        }
 
-        if (!ajusteEstoque.quantidade || ajusteEstoque.quantidade <= 0) {
+        if (!lojaSelecionada) {
+            console.error('lojaSelecionada ausente:', lojaSelecionada);
+            showNotification('Loja não selecionada', 'error');
+            return;
+        }
+
+        if (!ajusteEstoque.quantidade || parseInt(ajusteEstoque.quantidade) <= 0) {
             showNotification('Quantidade deve ser maior que zero', 'error');
             return;
         }
@@ -537,9 +554,14 @@ function ControleEstoquePage() {
                 observacoes: `${ajusteEstoque.motivo}${ajusteEstoque.observacoes ? ': ' + ajusteEstoque.observacoes : ''}`
             };
 
+            console.log('dados enviados para o backend:', dados);
+            console.log('=== FIM DEBUG ===');
+
             const response = await axios.post('/estoque/movimentacoes/', dados, {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
+
+            console.log('resposta do backend:', response.data);
 
             if (response.data && response.data.id) {
                 const acao = ajusteEstoque.tipo === 'adicionar' ? 'adicionado' : 'removido';
@@ -558,8 +580,41 @@ function ControleEstoquePage() {
                 showNotification(response.data.error || 'Erro ao ajustar estoque', 'error');
             }
         } catch (error) {
-            console.error('Erro ao ajustar estoque:', error);
-            showNotification(error.response?.data?.error || 'Erro ao ajustar estoque', 'error');
+            console.error('Erro detalhado ao ajustar estoque:', error);
+            
+            // Log detalhado do erro
+            if (error.response) {
+                console.error('Status do erro:', error.response.status);
+                console.error('Dados do erro:', error.response.data);
+                console.error('Headers do erro:', error.response.headers);
+                
+                // Exibir mensagem específica baseada no tipo de erro
+                if (error.response.status === 400 && error.response.data) {
+                    const errorData = error.response.data;
+                    if (typeof errorData === 'object') {
+                        // Se há campos específicos com erro
+                        const errorMessages = [];
+                        for (const [field, messages] of Object.entries(errorData)) {
+                            if (Array.isArray(messages)) {
+                                errorMessages.push(`${field}: ${messages.join(', ')}`);
+                            } else {
+                                errorMessages.push(`${field}: ${messages}`);
+                            }
+                        }
+                        showNotification(`Erro de validação: ${errorMessages.join(' | ')}`, 'error');
+                    } else {
+                        showNotification(`Erro: ${errorData}`, 'error');
+                    }
+                } else {
+                    showNotification(error.response?.data?.error || 'Erro ao ajustar estoque', 'error');
+                }
+            } else if (error.request) {
+                console.error('Erro de rede - sem resposta do servidor:', error.request);
+                showNotification('Erro de conexão com o servidor', 'error');
+            } else {
+                console.error('Erro na configuração da requisição:', error.message);
+                showNotification('Erro interno', 'error');
+            }
         } finally {
             setAjustandoEstoque(false);
         }
