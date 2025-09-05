@@ -1278,16 +1278,12 @@ function ControleEstoquePage() {
                                                 <SelectItem value="Compra">Compra</SelectItem>
                                                 <SelectItem value="Devolução">Devolução de Cliente</SelectItem>
                                                 <SelectItem value="Ajuste de Inventário">Ajuste de Inventário</SelectItem>
-                                                <SelectItem value="Transferência">Transferência de Loja</SelectItem>
                                                 <SelectItem value="Outro">Outro</SelectItem>
                                             </>
                                         ) : (
                                             <>
                                                 <SelectItem value="Venda">Venda</SelectItem>
-                                                <SelectItem value="Avaria">Avaria/Defeito</SelectItem>
-                                                <SelectItem value="Perda">Perda</SelectItem>
                                                 <SelectItem value="Ajuste de Inventário">Ajuste de Inventário</SelectItem>
-                                                <SelectItem value="Transferência">Transferência para Loja</SelectItem>
                                                 <SelectItem value="Outro">Outro</SelectItem>
                                             </>
                                         )}
