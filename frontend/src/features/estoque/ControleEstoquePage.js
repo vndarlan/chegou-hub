@@ -97,13 +97,12 @@ function ControleEstoquePage() {
         reconnectInterval: 3000,
         maxReconnectAttempts: 5,
         onOpen: (event) => {
-            console.log('WebSocket conectado para estoque em tempo real');
+            // WebSocket conectado
         },
         onClose: (event) => {
-            console.log('WebSocket desconectado');
+            // WebSocket desconectado
         },
         onMessage: (message) => {
-            console.log('Mensagem WebSocket recebida:', message);
             handleWebSocketMessage(message);
         },
         onError: (error) => {
@@ -156,7 +155,6 @@ function ControleEstoquePage() {
     // Enviar identificação quando WebSocket conectar
     useEffect(() => {
         if (connectionStatus === 'Open' && sendJsonMessage && lojaSelecionada) {
-            console.log('Enviando identificação para o WebSocket');
             sendJsonMessage({
                 type: 'identify',
                 data: {
@@ -179,13 +177,6 @@ function ControleEstoquePage() {
         // Só notificar se está REALMENTE tentando reconectar (isReconnecting = true)
         // E o estado não é 'Open' (já conectado)
         if (isReconnecting && reconnectAttempts > 0 && connectionStatus !== 'Open') {
-            console.log('Mostrando notificação de reconexão:', {
-                reconnectAttempts,
-                connectionStatus,
-                maxReconnectAttempts,
-                isReconnecting
-            });
-            
             showNotification(
                 `Tentativa de reconexão ${reconnectAttempts}/${maxReconnectAttempts}...`,
                 'info'
@@ -209,18 +200,12 @@ function ControleEstoquePage() {
     
     // Handlers para notificações em tempo real
     const handleStockUpdate = async (data) => {
-        console.log('Handler: atualização de estoque recebida:', data);
-        
         try {
             // Destacar produto atualizado com animação visual
             if (data.produto?.id) {
                 const highlightType = data.estoque_atual > data.estoque_anterior ? 
                     'stock_increase' : 'stock_decrease';
                 highlightProduct(data.produto.id, highlightType, 6000); // 6 segundos de destaque
-                
-                // Log detalhado da alteração
-                console.log(`Produto ${data.produto.nome} (ID: ${data.produto.id}):`, 
-                           `${data.estoque_anterior} → ${data.estoque_atual}`);
             }
             
             // Recarregar dados para manter sincronização
@@ -240,8 +225,6 @@ function ControleEstoquePage() {
     };
     
     const handleProductUpdate = async () => {
-        console.log('Handler: atualização geral de produtos recebida');
-        
         try {
             await Promise.all([loadProdutos(), loadAlertas()]);
             showNotification('Produtos atualizados automaticamente', 'success');
@@ -253,8 +236,6 @@ function ControleEstoquePage() {
     
     // Handler adicional para mensagens WebSocket diretas
     const handleWebSocketMessage = (message) => {
-        console.log('Mensagem WebSocket processada:', message.type, message.data);
-        
         // Processar mensagens específicas que requerem ação imediata
         switch (message.type) {
             case 'ping':
@@ -265,7 +246,6 @@ function ControleEstoquePage() {
                 break;
             
             case 'connection_acknowledged':
-                console.log('Conexão WebSocket confirmada pelo servidor');
                 showNotification('Sincronização em tempo real ativada!', 'success');
                 break;
                 
@@ -287,9 +267,6 @@ function ControleEstoquePage() {
         
         const duration = typeConfig[type]?.duration || 4000;
         setTimeout(() => setNotification(null), duration);
-        
-        // Log para debug
-        console.log(`Notificação [${type}]: ${message}`);
     };
     
     // Funções de notificação em tempo real via WebSocket habilitadas
@@ -342,29 +319,6 @@ function ControleEstoquePage() {
             });
             
             if (response.data && Array.isArray(response.data)) {
-                console.log('=== DEBUG ALERTAS CRÍTICOS ===');
-                console.log('Total alertas recebidos do servidor:', response.data?.length || 0);
-                console.log('Dados brutos recebidos:', response.data);
-                
-                if (!response.data || !Array.isArray(response.data)) {
-                    console.error('ERRO: Dados de alertas inválidos:', response.data);
-                    setAlertas([]);
-                    return;
-                }
-                
-                // Debug individual de cada alerta recebido
-                response.data.forEach((alerta, index) => {
-                    console.log(`\n--- Alerta ${index + 1} ---`);
-                    console.log('ID:', alerta.id);
-                    console.log('Nome produto:', alerta.produto_nome);
-                    console.log('SKU produto:', alerta.produto_sku);
-                    console.log('Estoque atual:', alerta.estoque_atual_produto);
-                    console.log('Estoque mínimo (produto.estoque_minimo):', alerta.produto?.estoque_minimo);
-                    console.log('Estoque mínimo (direto):', alerta.estoque_minimo);
-                    console.log('Produto completo:', alerta.produto);
-                    console.log('Objeto completo do alerta:', alerta);
-                });
-                
                 // Filtrar apenas alertas críticos (sem estoque ou estoque baixo)
                 const alertasCriticos = response.data.filter(alerta => {
                     const atual = parseInt(alerta.estoque_atual_produto) || 0;
@@ -372,36 +326,14 @@ function ControleEstoquePage() {
                     const minimo = parseInt(alerta.produto?.estoque_minimo) || 
                                   parseInt(alerta.estoque_minimo) || 
                                   parseInt(alerta.produto_estoque_minimo) || 
-                                  5; // Default mais realista
+                                  5;
                     
                     const semEstoque = atual <= 0;
                     const estoqueBaixo = atual > 0 && atual <= minimo;
-                    const isCritico = semEstoque || estoqueBaixo;
-                    
-                    console.log(`\n🔍 FILTRO para "${alerta.produto_nome}":`);
-                    console.log('   - Estoque atual:', atual, '(tipo:', typeof atual, ')');
-                    console.log('   - Estoque mínimo:', minimo, '(tipo:', typeof minimo, ')');
-                    console.log('   - Fonte do mínimo:', 
-                        alerta.produto?.estoque_minimo ? 'produto.estoque_minimo' : 
-                        alerta.estoque_minimo ? 'estoque_minimo' :
-                        alerta.produto_estoque_minimo ? 'produto_estoque_minimo' : 'default(5)');
-                    console.log('   - Sem estoque (atual <= 0):', semEstoque);
-                    console.log('   - Estoque baixo (atual > 0 && atual <= min):', estoqueBaixo);
-                    console.log('   - É CRÍTICO?', isCritico ? '✅ SIM' : '❌ NÃO');
-                    
-                    return isCritico;
+                    return semEstoque || estoqueBaixo;
                 });
                 
-                console.log('\n📊 RESULTADO FINAL:');
-                console.log('   - Total alertas recebidos:', response.data.length);
-                console.log('   - Alertas críticos filtrados:', alertasCriticos.length);
-                console.log('   - Alertas críticos:', alertasCriticos.map(a => `${a.produto_nome} (${a.estoque_atual_produto}/${a.produto?.estoque_minimo || a.estoque_minimo || 5})`));
-                console.log('=== FIM DEBUG ALERTAS CRÍTICOS ===');
-                
-                // Garantir que sempre temos um array válido
-                const alertasFinais = Array.isArray(alertasCriticos) ? alertasCriticos : [];
-                console.log('\n🎯 SETANDO ALERTAS:', alertasFinais.length, 'alertas');
-                setAlertas(alertasFinais);
+                setAlertas(alertasCriticos);
             } else {
                 console.error('Erro ao carregar alertas:', response.data.error);
                 setAlertas([]);
@@ -516,21 +448,13 @@ function ControleEstoquePage() {
     };
 
     const ajustarEstoque = async () => {
-        // === DEBUG AJUSTE ESTOQUE ===
-        console.log('=== DEBUG AJUSTE ESTOQUE ===');
-        console.log('selectedProduto:', selectedProduto);
-        console.log('lojaSelecionada:', lojaSelecionada);
-        console.log('ajusteEstoque:', ajusteEstoque);
-        
         // Validações robustas antes de enviar
         if (!selectedProduto?.id) {
-            console.error('selectedProduto.id ausente:', selectedProduto);
             showNotification('Produto não selecionado ou inválido', 'error');
             return;
         }
 
         if (!lojaSelecionada) {
-            console.error('lojaSelecionada ausente:', lojaSelecionada);
             showNotification('Loja não selecionada', 'error');
             return;
         }
@@ -554,18 +478,16 @@ function ControleEstoquePage() {
                 observacoes: `${ajusteEstoque.motivo}${ajusteEstoque.observacoes ? ': ' + ajusteEstoque.observacoes : ''}`
             };
 
-            console.log('dados enviados para o backend:', dados);
-            console.log('=== FIM DEBUG ===');
-
             const response = await axios.post('/estoque/movimentacoes/', dados, {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
 
-            console.log('resposta do backend:', response.data);
-
-            if (response.data && response.data.id) {
+            // ✅ CORREÇÃO: Status 200/201 = sucesso, independente da estrutura dos dados
+            if (response.status === 200 || response.status === 201) {
                 const acao = ajusteEstoque.tipo === 'adicionar' ? 'adicionado' : 'removido';
                 showNotification(`Estoque ${acao} com sucesso!`);
+                
+                // Reset completo do formulário
                 setAjusteEstoque({
                     tipo: 'adicionar',
                     quantidade: 0,
@@ -574,10 +496,11 @@ function ControleEstoquePage() {
                 });
                 setShowAjusteEstoque(false);
                 setSelectedProduto(null);
-                await loadProdutos();
-                await loadAlertas();
+                
+                // Recarregar dados atualizados
+                await Promise.all([loadProdutos(), loadAlertas()]);
             } else {
-                showNotification(response.data.error || 'Erro ao ajustar estoque', 'error');
+                showNotification(response.data?.error || 'Erro ao ajustar estoque', 'error');
             }
         } catch (error) {
             console.error('Erro detalhado ao ajustar estoque:', error);
@@ -945,7 +868,6 @@ function ControleEstoquePage() {
 
 
             {/* Alertas de Estoque Baixo */}
-            {/* DEBUG: Alertas = {alertas?.length || 0} */}
             {alertas && alertas.length > 0 && (
                 <Collapsible open={showAlertas} onOpenChange={setShowAlertas}>
                     <Card className="bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800">
