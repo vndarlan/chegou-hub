@@ -18,7 +18,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../compo
 import { Toaster } from '../../components/ui/toaster';
 import {
     Package, AlertCircle, Check, X, RefreshCw, Trash2, 
-    Settings, History, Plus, Building, TrendingUp, TrendingDown,
+    Info, History, Plus, Building, TrendingUp, TrendingDown,
     Edit, Search, Target, Loader2, Eye, PackageOpen,
     BarChart3, AlertTriangle, ChevronDown, ChevronUp, Zap, Sliders
 } from 'lucide-react';
@@ -88,9 +88,11 @@ function ControleEstoquePage() {
         messageHistory,
         reconnectAttempts,
         maxReconnectAttempts,
+        hasExceededMaxAttempts,
         sendMessage,
         sendJsonMessage,
         connect: reconnectWebSocket,
+        retryConnection,
         isReconnecting
     } = useWebSocket(websocketUrl, {
         shouldReconnect: true,
@@ -106,25 +108,22 @@ function ControleEstoquePage() {
             handleWebSocketMessage(message);
         },
         onError: (error) => {
-            console.error('Erro no WebSocket:', error);
+            // Log simplificado para erros de WebSocket
+            console.warn('WebSocket error:', {
+                code: error.code,
+                type: error.type || 'connection_error',
+                attempts: reconnectAttempts
+            });
             
-            // Melhor tratamento de erro com informações úteis para debug
-            if (error.code) {
-                console.error(`WebSocket Error Code: ${error.code}`);
-            }
-            if (error.reason) {
-                console.error(`WebSocket Error Reason: ${error.reason}`);
-            }
-            
-            // Filtrar erro 1006 (desconexão comum) para evitar confusão no UX
-            if (error.code === 1006) {
-                console.warn('Desconexão WebSocket temporária (1006) - reconectando automaticamente...');
-                return; // Não mostrar notificação para erro comum de reconexão
+            // Não mostrar notificações para erros temporários (1006, 1000)
+            // Estes são esperados durante reconexões e desconexões normais
+            if (error.code === 1006 || error.code === 1000) {
+                return;
             }
             
-            // Só mostrar erro se não for erro temporário de reconexão
-            if (error.code && error.code !== 1006 && error.code !== 1000) {
-                showNotification(`Erro de conexão WebSocket: ${error.code}`, 'warning');
+            // Só mostrar notificação para erros realmente problemáticos
+            if (error.code && ![1006, 1000, 1001].includes(error.code)) {
+                showNotification(`Erro de conexão: ${error.code}`, 'warning');
             }
         }
     });
@@ -165,24 +164,31 @@ function ControleEstoquePage() {
                 }
             });
             
-            // Notificar conexão bem-sucedida APENAS após reconexão (não na conexão inicial)
-            if (reconnectAttempts > 0 && isReconnecting) {
-                showNotification('Conexão em tempo real restaurada!', 'success');
+            // Notificar restauração de conexão apenas se houve reconexão
+            if (reconnectAttempts > 0) {
+                showNotification('✨ Conexão em tempo real restaurada!', 'success');
             }
         }
     }, [connectionStatus, sendJsonMessage, lojaSelecionada, reconnectAttempts]);
     
-    // Mostrar progresso de reconexão - APENAS quando realmente tentando reconectar
+    // Mostrar progresso de reconexão e estado final
     useEffect(() => {
-        // Só notificar se está REALMENTE tentando reconectar (isReconnecting = true)
-        // E o estado não é 'Open' (já conectado)
         if (isReconnecting && reconnectAttempts > 0 && connectionStatus !== 'Open') {
+            // Só mostrar a partir da segunda tentativa para reduzir spam
+            if (reconnectAttempts >= 2) {
+                showNotification(
+                    `Tentativa ${reconnectAttempts}/${maxReconnectAttempts} - Reconectando...`,
+                    'info'
+                );
+            }
+        } else if (hasExceededMaxAttempts && !isReconnecting) {
+            // Notificar quando parar de tentar reconectar
             showNotification(
-                `Tentativa de reconexão ${reconnectAttempts}/${maxReconnectAttempts}...`,
-                'info'
+                'Conexão em tempo real indisponível. Funcionalidade básica mantida.',
+                'warning'
             );
         }
-    }, [isReconnecting, reconnectAttempts, maxReconnectAttempts, connectionStatus]);
+    }, [isReconnecting, reconnectAttempts, maxReconnectAttempts, hasExceededMaxAttempts, connectionStatus]);
 
     useEffect(() => {
         // Filtrar produtos baseado no termo de busca
@@ -367,6 +373,18 @@ function ControleEstoquePage() {
         }
     };
 
+    const debugConexao = async () => {
+        try {
+            console.log('=== TESTE DE DEBUG ===');
+            const response = await axios.get('/estoque/produtos/debug_info/');
+            console.log('Debug info:', response.data);
+            showNotification('Debug executado - verificar console', 'success');
+        } catch (error) {
+            console.error('Erro no debug:', error);
+            showNotification(`Erro no debug: ${error.response?.status} ${error.response?.statusText}`, 'error');
+        }
+    };
+
     const salvarProduto = async () => {
         if (!lojaSelecionada) {
             showNotification('Selecione uma loja primeiro', 'error');
@@ -375,6 +393,13 @@ function ControleEstoquePage() {
 
         if (!novoProduto.sku || !novoProduto.nome || !novoProduto.fornecedor) {
             showNotification('SKU, nome e fornecedor são obrigatórios', 'error');
+            return;
+        }
+
+        // Validar se a loja selecionada existe na lista de lojas
+        const lojaValida = lojas.find(loja => loja.id === lojaSelecionada);
+        if (!lojaValida) {
+            showNotification('Loja selecionada não é válida', 'error');
             return;
         }
 
@@ -387,9 +412,16 @@ function ControleEstoquePage() {
                 estoque_minimo: parseInt(novoProduto.estoque_minimo) || 5
             };
 
+            console.log('=== DEBUG CRIAÇÃO PRODUTO ===');
+            console.log('Dados enviados:', dados);
+            console.log('Loja selecionada:', lojaValida);
+            console.log('CSRF Token:', getCSRFToken()?.substring(0, 10) + '...');
+
             const response = await axios.post('/estoque/produtos/', dados, {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
+
+            console.log('Resposta do servidor:', response.data);
 
             if (response.data && response.data.id) {
                 showNotification('Produto adicionado com sucesso!');
@@ -404,11 +436,49 @@ function ControleEstoquePage() {
                 await loadProdutos();
                 await loadAlertas();
             } else {
+                console.error('Resposta inválida do servidor:', response.data);
                 showNotification(response.data.error || 'Erro ao salvar produto', 'error');
             }
         } catch (error) {
-            console.error('Erro ao salvar produto:', error);
-            showNotification(error.response?.data?.error || 'Erro ao salvar produto', 'error');
+            console.error('=== ERRO DETALHADO ===');
+            console.error('Status:', error.response?.status);
+            console.error('Status Text:', error.response?.statusText);
+            console.error('Headers:', error.response?.headers);
+            console.error('Data:', error.response?.data);
+            console.error('Erro completo:', error);
+            
+            let mensagemErro = 'Erro ao salvar produto';
+            
+            if (error.response?.status === 400) {
+                // Erro 400 - Bad Request
+                if (error.response?.data) {
+                    if (typeof error.response.data === 'string') {
+                        mensagemErro = error.response.data;
+                    } else if (error.response.data.error) {
+                        mensagemErro = error.response.data.error;
+                    } else if (error.response.data.detail) {
+                        mensagemErro = error.response.data.detail;
+                    } else {
+                        // Mostrar erros de validação específicos
+                        const erros = Object.entries(error.response.data)
+                            .map(([campo, mensagens]) => {
+                                if (Array.isArray(mensagens)) {
+                                    return `${campo}: ${mensagens.join(', ')}`;
+                                }
+                                return `${campo}: ${mensagens}`;
+                            }).join('; ');
+                        mensagemErro = `Erro de validação: ${erros}`;
+                    }
+                }
+            } else if (error.response?.status === 401) {
+                mensagemErro = 'Não autorizado. Faça login novamente.';
+            } else if (error.response?.status === 403) {
+                mensagemErro = 'Acesso negado. Verificar permissões.';
+            } else if (error.response?.status === 500) {
+                mensagemErro = 'Erro interno do servidor. Tente novamente.';
+            }
+            
+            showNotification(mensagemErro, 'error');
         } finally {
             setSavingProduto(false);
         }
@@ -669,9 +739,34 @@ function ControleEstoquePage() {
                     <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                         <Package className="h-6 w-6 text-primary" />
                         Controle de Estoque
+                        {/* Indicador de status WebSocket */}
+                        <div className="flex items-center gap-2 ml-3">
+                            <div className={`w-2 h-2 rounded-full ${
+                                connectionStatus === 'Open' ? 'bg-green-500 animate-pulse' :
+                                connectionStatus === 'Connecting' ? 'bg-yellow-500 animate-pulse' :
+                                hasExceededMaxAttempts ? 'bg-red-500' :
+                                'bg-gray-400'
+                            }`} />
+                            <span className={`text-xs font-normal ${
+                                connectionStatus === 'Open' ? 'text-green-600 dark:text-green-400' :
+                                connectionStatus === 'Connecting' ? 'text-yellow-600 dark:text-yellow-400' :
+                                hasExceededMaxAttempts ? 'text-red-600 dark:text-red-400' :
+                                'text-gray-500'
+                            }`}>
+                                {connectionStatus === 'Open' ? 'Em tempo real' :
+                                 connectionStatus === 'Connecting' ? 'Conectando...' :
+                                 hasExceededMaxAttempts ? 'Offline' :
+                                 'Desconectado'}
+                            </span>
+                        </div>
                     </h1>
                     <p className="text-muted-foreground">
                         Gestão completa do estoque de produtos
+                        {hasExceededMaxAttempts && (
+                            <span className="text-orange-600 dark:text-orange-400 ml-2">
+                                • Funcionando sem atualizações automáticas
+                            </span>
+                        )}
                     </p>
                 </div>
                 
@@ -787,7 +882,7 @@ function ControleEstoquePage() {
                     <Dialog open={showInstructions} onOpenChange={setShowInstructions}>
                         <DialogTrigger asChild>
                             <Button variant="outline" size="icon">
-                                <Settings className="h-4 w-4" />
+                                <Info className="h-4 w-4" />
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[95vh] bg-background border-border">
@@ -821,6 +916,47 @@ function ControleEstoquePage() {
                                             <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                                                 <h4 className="font-semibold text-sm text-blue-700 dark:text-blue-400">5. Atualizações Manuais</h4>
                                                 <p className="text-sm text-blue-600 dark:text-blue-300">Use o botão "Atualizar" para buscar os dados mais recentes do servidor</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                    
+                                    <Card className="bg-card border-border">
+                                        <CardHeader>
+                                            <CardTitle className="text-sm text-foreground">Configuração de Webhooks Shopify</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-3">
+                                            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                                <h4 className="font-semibold text-sm text-blue-700 dark:text-blue-400">⚡ Sincronização em Tempo Real</h4>
+                                                <p className="text-sm text-blue-600 dark:text-blue-300">Configure webhooks para atualizar o estoque automaticamente quando houver pedidos na Shopify</p>
+                                            </div>
+                                            
+                                            <div className="space-y-2">
+                                                <h4 className="font-semibold text-sm text-foreground">Passo 1: No Shopify Admin</h4>
+                                                <div className="text-sm text-muted-foreground space-y-1">
+                                                    <p>1. Vá em <strong>Settings → Notifications → Webhooks</strong></p>
+                                                    <p>2. Clique em <strong>"Create webhook"</strong></p>
+                                                    <p>3. Configure:</p>
+                                                    <ul className="ml-4 list-disc space-y-1">
+                                                        <li><strong>Event:</strong> Order payment</li>
+                                                        <li><strong>Format:</strong> JSON</li>
+                                                        <li><strong>URL:</strong> <code className="bg-muted px-1 rounded">https://api.chegouhub.com/api/estoque/webhook/order-created/</code></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <h4 className="font-semibold text-sm text-foreground">Passo 2: SKUs Idênticos</h4>
+                                                <p className="text-sm text-muted-foreground">Os produtos aqui devem ter exatamente o mesmo SKU dos produtos na Shopify</p>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <h4 className="font-semibold text-sm text-foreground">Benefícios dos Webhooks</h4>
+                                                <ul className="text-sm text-muted-foreground space-y-1 list-disc ml-4">
+                                                    <li>Atualização automática de estoque após pedidos</li>
+                                                    <li>Notificações em tempo real na interface</li>
+                                                    <li>Alertas automáticos de estoque baixo</li>
+                                                    <li>Sincronização sem necessidade de refresh manual</li>
+                                                </ul>
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -976,6 +1112,32 @@ function ControleEstoquePage() {
                                 )}
                                 Atualizar
                             </Button>
+                            
+                            {/* Botão de reconexão manual quando WebSocket falha */}
+                            {hasExceededMaxAttempts && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={retryConnection}
+                                    className="bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100"
+                                >
+                                    <Zap className="h-4 w-4 mr-2" />
+                                    Reconectar
+                                </Button>
+                            )}
+                            
+                            {/* Botão de debug - apenas em desenvolvimento */}
+                            {process.env.NODE_ENV === 'development' && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={debugConexao}
+                                    className="bg-yellow-50 border-yellow-200 text-yellow-800 hover:bg-yellow-100"
+                                >
+                                    <Info className="h-4 w-4 mr-2" />
+                                    Debug
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </CardHeader>
