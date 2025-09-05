@@ -11,7 +11,10 @@ class ProdutoEstoque(models.Model):
         ('Dropi', 'Dropi'),
         ('PrimeCod', 'PrimeCod'),
         ('Ecomhub', 'Ecomhub'),
-        ('N1', 'N1'),
+        ('N1', 'N1'),  # Manter para compatibilidade
+        ('N1 Itália', 'N1 Itália'),
+        ('N1 Romênia', 'N1 Romênia'),
+        ('N1 Polônia', 'N1 Polônia'),
     ]
     
     # Relacionamentos
@@ -23,7 +26,7 @@ class ProdutoEstoque(models.Model):
     shopify_variant_id = models.BigIntegerField(help_text="ID da variação no Shopify", null=True, blank=True)
     sku = models.CharField(max_length=100, help_text="SKU único do produto")
     nome = models.CharField(max_length=255, verbose_name="Nome do produto")
-    fornecedor = models.CharField(max_length=20, choices=FORNECEDOR_CHOICES, verbose_name="Fornecedor", default='N1')
+    fornecedor = models.CharField(max_length=30, choices=FORNECEDOR_CHOICES, verbose_name="Fornecedor", default='N1 Itália')
     
     # Controle de estoque
     estoque_inicial = models.IntegerField(default=0, verbose_name="Estoque inicial")
@@ -81,6 +84,12 @@ class ProdutoEstoque(models.Model):
         if (is_new and self.estoque_inicial > 0 and 
             not getattr(self, '_skip_initial_movement', False)):
             self._create_initial_movement()
+        
+        # ===== NOVA FUNCIONALIDADE: ALERTAS PARA PRODUTOS CRIADOS COM ESTOQUE ZERO =====
+        # Verificar se é um produto novo com estoque zerado e gerar alerta
+        if (is_new and self.estoque_atual == 0 and self.alerta_estoque_zero and
+            not getattr(self, '_skip_initial_alerts', False)):
+            self._create_initial_alert_if_needed()
     
     def _create_initial_movement(self):
         """Cria movimentação inicial de estoque"""
@@ -95,6 +104,15 @@ class ProdutoEstoque(models.Model):
                 observacoes='Estoque inicial do produto',
                 origem_sync='sistema'
             )
+        except Exception:
+            # Em caso de erro (ex: durante migrações), continuar sem bloquear
+            pass
+    
+    def _create_initial_alert_if_needed(self):
+        """Cria alerta inicial para produtos criados com estoque zero"""
+        try:
+            # Gerar alerta de estoque zero para produto recém-criado
+            AlertaEstoque.gerar_alerta_estoque_zero(self)
         except Exception:
             # Em caso de erro (ex: durante migrações), continuar sem bloquear
             pass

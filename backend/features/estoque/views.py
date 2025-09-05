@@ -287,6 +287,101 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
         serializer = ProdutoEstoqueResumoSerializer(produtos, many=True)
         return Response(serializer.data)
     
+    @action(detail=False, methods=['post'])
+    def gerar_alertas_estoque_zero(self, request):
+        """Gera alertas retroativos para todos os produtos com estoque zero"""
+        try:
+            # Buscar produtos com estoque zero que não possuem alerta ativo
+            produtos_sem_alerta = self.get_queryset().filter(
+                estoque_atual=0,
+                alerta_estoque_zero=True,
+                ativo=True
+            ).exclude(
+                alertas__tipo_alerta='estoque_zero',
+                alertas__status='ativo'
+            )
+            
+            alertas_criados = 0
+            alertas_detalhes = []
+            
+            for produto in produtos_sem_alerta:
+                alerta = AlertaEstoque.gerar_alerta_estoque_zero(produto)
+                if alerta:
+                    alertas_criados += 1
+                    alertas_detalhes.append({
+                        'produto_id': produto.id,
+                        'sku': produto.sku,
+                        'nome': produto.nome,
+                        'loja': produto.loja_config.nome_loja,
+                        'alerta_id': alerta.id
+                    })
+            
+            logger.info(f"Gerados {alertas_criados} alertas retroativos de estoque zero para usuário {request.user.username}")
+            
+            return Response({
+                'sucesso': True,
+                'mensagem': f'{alertas_criados} alertas de estoque zero criados',
+                'alertas_criados': alertas_criados,
+                'produtos_processados': len(produtos_sem_alerta),
+                'detalhes': alertas_detalhes
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar alertas retroativos: {str(e)}")
+            return Response({
+                'sucesso': False,
+                'erro': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['post'])
+    def gerar_alertas_estoque_baixo(self, request):
+        """Gera alertas retroativos para todos os produtos com estoque baixo"""
+        try:
+            # Buscar produtos com estoque baixo que não possuem alerta ativo
+            produtos_sem_alerta = self.get_queryset().filter(
+                estoque_atual__lte=F('estoque_minimo'),
+                estoque_atual__gt=0,  # Estoque baixo mas não zero
+                alerta_estoque_baixo=True,
+                ativo=True
+            ).exclude(
+                alertas__tipo_alerta='estoque_baixo',
+                alertas__status='ativo'
+            )
+            
+            alertas_criados = 0
+            alertas_detalhes = []
+            
+            for produto in produtos_sem_alerta:
+                alerta = AlertaEstoque.gerar_alerta_estoque_baixo(produto)
+                if alerta:
+                    alertas_criados += 1
+                    alertas_detalhes.append({
+                        'produto_id': produto.id,
+                        'sku': produto.sku,
+                        'nome': produto.nome,
+                        'loja': produto.loja_config.nome_loja,
+                        'estoque_atual': produto.estoque_atual,
+                        'estoque_minimo': produto.estoque_minimo,
+                        'alerta_id': alerta.id
+                    })
+            
+            logger.info(f"Gerados {alertas_criados} alertas retroativos de estoque baixo para usuário {request.user.username}")
+            
+            return Response({
+                'sucesso': True,
+                'mensagem': f'{alertas_criados} alertas de estoque baixo criados',
+                'alertas_criados': alertas_criados,
+                'produtos_processados': len(produtos_sem_alerta),
+                'detalhes': alertas_detalhes
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar alertas de estoque baixo retroativos: {str(e)}")
+            return Response({
+                'sucesso': False,
+                'erro': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
     @action(detail=False, methods=['get'])
     def debug_info(self, request):
         """Endpoint temporário para debug - informações do usuário e lojas"""

@@ -55,7 +55,7 @@ function ControleEstoquePage() {
     const [novoProduto, setNovoProduto] = useState({ 
         sku: '', 
         nome: '', 
-        fornecedor: 'N1 Itália',
+        fornecedor: 'N1 Italia',
         estoque_inicial: 0, 
         estoque_minimo: 5
     });
@@ -371,17 +371,6 @@ function ControleEstoquePage() {
         }
     };
 
-    const debugConexao = async () => {
-        try {
-            console.log('=== TESTE DE DEBUG ===');
-            const response = await axios.get('/estoque/produtos/debug_info/');
-            console.log('Debug info:', response.data);
-            showNotification('Debug executado - verificar console', 'success');
-        } catch (error) {
-            console.error('Erro no debug:', error);
-            showNotification(`Erro no debug: ${error.response?.status} ${error.response?.statusText}`, 'error');
-        }
-    };
 
     const salvarProduto = async () => {
         if (!lojaSelecionada) {
@@ -426,7 +415,7 @@ function ControleEstoquePage() {
                 setNovoProduto({ 
                     sku: '', 
                     nome: '', 
-                    fornecedor: 'N1 Itália',
+                    fornecedor: 'N1 Italia',
                     estoque_inicial: 0, 
                     estoque_minimo: 5
                 });
@@ -487,10 +476,16 @@ function ControleEstoquePage() {
 
         setSavingProduto(true);
         try {
+            // Normalizar fornecedores com acentos para sem acentos
+            const fornecedorNormalizado = selectedProduto.fornecedor
+                ?.replace('N1 Itália', 'N1 Italia')
+                ?.replace('N1 Romênia', 'N1 Romania')
+                ?.replace('N1 Polônia', 'N1 Polonia') || selectedProduto.fornecedor;
+
             const dados = {
                 sku: selectedProduto.sku,
                 nome: selectedProduto.nome,
-                fornecedor: selectedProduto.fornecedor,
+                fornecedor: fornecedorNormalizado,
                 estoque_minimo: parseInt(selectedProduto.estoque_minimo) || 5
             };
 
@@ -682,10 +677,13 @@ function ControleEstoquePage() {
             'Dropi': { variant: 'default', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' },
             'PrimeCod': { variant: 'default', className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' },
             'Ecomhub': { variant: 'default', className: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300' },
+            'N1 Italia': { variant: 'default', className: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300' },
+            'N1 Romania': { variant: 'default', className: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300' },
+            'N1 Polonia': { variant: 'default', className: 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-300' },
+            // Backward compatibility - fornecedores COM acento (legacy)
             'N1 Itália': { variant: 'default', className: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300' },
             'N1 Romênia': { variant: 'default', className: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300' },
             'N1 Polônia': { variant: 'default', className: 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-300' },
-            // Backward compatibility
             'N1': { variant: 'default', className: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300' }
         };
         return fornecedorMap[fornecedor] || { variant: 'outline', className: '' };
@@ -753,8 +751,7 @@ function ControleEstoquePage() {
                             }`}>
                                 {connectionStatus === 'Open' ? 'Em tempo real' :
                                  connectionStatus === 'Connecting' ? 'Conectando...' :
-                                 hasExceededMaxAttempts ? 'Offline' :
-                                 'Desconectado'}
+                                 'Offline'}
                             </span>
                         </div>
                     </h1>
@@ -831,9 +828,9 @@ function ControleEstoquePage() {
                                             <SelectItem value="Dropi">Dropi</SelectItem>
                                             <SelectItem value="PrimeCod">PrimeCod</SelectItem>
                                             <SelectItem value="Ecomhub">Ecomhub</SelectItem>
-                                            <SelectItem value="N1 Itália">N1 Itália</SelectItem>
-                                            <SelectItem value="N1 Romênia">N1 Romênia</SelectItem>
-                                            <SelectItem value="N1 Polônia">N1 Polônia</SelectItem>
+                                            <SelectItem value="N1 Italia">N1 Italia</SelectItem>
+                                            <SelectItem value="N1 Romania">N1 Romania</SelectItem>
+                                            <SelectItem value="N1 Polonia">N1 Polonia</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -932,13 +929,25 @@ function ControleEstoquePage() {
                                                 <h4 className="font-semibold text-sm text-foreground">Passo 1: No Shopify Admin</h4>
                                                 <div className="text-sm text-muted-foreground space-y-1">
                                                     <p>1. Vá em <strong>Settings → Notifications → Webhooks</strong></p>
-                                                    <p>2. Clique em <strong>"Create webhook"</strong></p>
-                                                    <p>3. Configure:</p>
-                                                    <ul className="ml-4 list-disc space-y-1">
-                                                        <li><strong>Event:</strong> Order payment</li>
-                                                        <li><strong>Format:</strong> JSON</li>
-                                                        <li><strong>URL:</strong> <code className="bg-muted px-1 rounded">https://api.chegouhub.com/api/estoque/webhook/order-created/</code></li>
-                                                    </ul>
+                                                    <p>2. <strong>Crie 2 webhooks separados</strong> clicando em "Create webhook":</p>
+                                                    
+                                                    <div className="bg-muted/30 p-2 rounded mt-2">
+                                                        <p><strong>Webhook 1 - Criação de pedido:</strong></p>
+                                                        <ul className="ml-4 list-disc space-y-1">
+                                                            <li><strong>Event:</strong> Order creation</li>
+                                                            <li><strong>Format:</strong> JSON</li>
+                                                            <li><strong>URL:</strong> <code className="bg-muted px-1 rounded text-xs">https://chegou-hubb-production.up.railway.app/api/estoque/webhook/shopify/</code></li>
+                                                        </ul>
+                                                    </div>
+                                                    
+                                                    <div className="bg-muted/30 p-2 rounded mt-2">
+                                                        <p><strong>Webhook 2 - Cancelamento de pedido:</strong></p>
+                                                        <ul className="ml-4 list-disc space-y-1">
+                                                            <li><strong>Event:</strong> Order cancellation</li>
+                                                            <li><strong>Format:</strong> JSON</li>
+                                                            <li><strong>URL:</strong> <code className="bg-muted px-1 rounded text-xs">https://chegou-hubb-production.up.railway.app/api/estoque/webhook/shopify/</code></li>
+                                                        </ul>
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -1124,18 +1133,6 @@ function ControleEstoquePage() {
                                 </Button>
                             )}
                             
-                            {/* Botão de debug - apenas em desenvolvimento */}
-                            {process.env.NODE_ENV === 'development' && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={debugConexao}
-                                    className="bg-yellow-50 border-yellow-200 text-yellow-800 hover:bg-yellow-100"
-                                >
-                                    <Info className="h-4 w-4 mr-2" />
-                                    Debug
-                                </Button>
-                            )}
                         </div>
                     </div>
                 </CardHeader>
@@ -1331,9 +1328,9 @@ function ControleEstoquePage() {
                                         <SelectItem value="Dropi">Dropi</SelectItem>
                                         <SelectItem value="PrimeCod">PrimeCod</SelectItem>
                                         <SelectItem value="Ecomhub">Ecomhub</SelectItem>
-                                        <SelectItem value="N1 Itália">N1 Itália</SelectItem>
-                                        <SelectItem value="N1 Romênia">N1 Romênia</SelectItem>
-                                        <SelectItem value="N1 Polônia">N1 Polônia</SelectItem>
+                                        <SelectItem value="N1 Italia">N1 Italia</SelectItem>
+                                        <SelectItem value="N1 Romania">N1 Romania</SelectItem>
+                                        <SelectItem value="N1 Polonia">N1 Polonia</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

@@ -43,6 +43,8 @@ urlpatterns = [
 # GET /api/estoque/produtos/{id}/alertas/ - Alertas do produto
 # GET /api/estoque/produtos/resumo_geral/ - Resumo geral do estoque
 # GET /api/estoque/produtos/produtos_reposicao/ - Produtos que precisam reposição
+# POST /api/estoque/produtos/gerar_alertas_estoque_zero/ - Gera alertas retroativos para produtos com estoque zero
+# POST /api/estoque/produtos/gerar_alertas_estoque_baixo/ - Gera alertas retroativos para produtos com estoque baixo
 
 # === MOVIMENTAÇÕES ===
 # GET /api/estoque/movimentacoes/ - Lista movimentações
