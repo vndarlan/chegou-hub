@@ -83,7 +83,10 @@
       "Bash(railway shell:*)",
       "Bash(cross-env:*)",
       "Bash(cat:*)",
-      "Bash(wmic:*)"
+      "Bash(wmic:*)",
+      "Read(C:\\Users\\Vinic\\OneDrive\\Documentos\\Screenshots/**)",
+      "Read(C:\\Users\\Vinic\\OneDrive\\Documentos\\Screenshots/**)",
+      "Bash(uvicorn:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",
