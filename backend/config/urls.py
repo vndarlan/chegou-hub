@@ -11,8 +11,12 @@ from django.views.decorators.csrf import csrf_exempt
 from core.views_debug import DebugCorsView
 import os
 
+def health_check(request):
+    return JsonResponse({"status": "healthy"})
+
 
 urlpatterns = [
+    path('health/', health_check, name='health_check'),
     path('admin/', admin.site.urls),
     path('mapa/', include('features.mapa.urls')),
     path('api/debug/cors/', DebugCorsView.as_view(), name='debug_cors'),
