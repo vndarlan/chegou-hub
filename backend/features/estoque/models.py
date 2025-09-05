@@ -12,6 +12,11 @@ class ProdutoEstoque(models.Model):
         ('PrimeCod', 'PrimeCod'),
         ('Ecomhub', 'Ecomhub'),
         ('N1', 'N1'),  # Manter para compatibilidade
+        # Versões SEM acento (principal - usado pelo frontend)
+        ('N1 Italia', 'N1 Italia'),
+        ('N1 Romania', 'N1 Romania'),
+        ('N1 Polonia', 'N1 Polonia'),
+        # Versões COM acento (compatibilidade com dados existentes)
         ('N1 Itália', 'N1 Itália'),
         ('N1 Romênia', 'N1 Romênia'),
         ('N1 Polônia', 'N1 Polônia'),
@@ -26,7 +31,7 @@ class ProdutoEstoque(models.Model):
     shopify_variant_id = models.BigIntegerField(help_text="ID da variação no Shopify", null=True, blank=True)
     sku = models.CharField(max_length=100, help_text="SKU único do produto")
     nome = models.CharField(max_length=255, verbose_name="Nome do produto")
-    fornecedor = models.CharField(max_length=30, choices=FORNECEDOR_CHOICES, verbose_name="Fornecedor", default='N1 Itália')
+    fornecedor = models.CharField(max_length=30, choices=FORNECEDOR_CHOICES, verbose_name="Fornecedor", default='N1 Italia')
     
     # Controle de estoque
     estoque_inicial = models.IntegerField(default=0, verbose_name="Estoque inicial")

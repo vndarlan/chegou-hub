@@ -476,16 +476,10 @@ function ControleEstoquePage() {
 
         setSavingProduto(true);
         try {
-            // Normalizar fornecedores com acentos para sem acentos
-            const fornecedorNormalizado = selectedProduto.fornecedor
-                ?.replace('N1 Itália', 'N1 Italia')
-                ?.replace('N1 Romênia', 'N1 Romania')
-                ?.replace('N1 Polônia', 'N1 Polonia') || selectedProduto.fornecedor;
-
             const dados = {
                 sku: selectedProduto.sku,
                 nome: selectedProduto.nome,
-                fornecedor: fornecedorNormalizado,
+                fornecedor: selectedProduto.fornecedor,
                 estoque_minimo: parseInt(selectedProduto.estoque_minimo) || 5
             };
 
@@ -751,7 +745,7 @@ function ControleEstoquePage() {
                             }`}>
                                 {connectionStatus === 'Open' ? 'Em tempo real' :
                                  connectionStatus === 'Connecting' ? 'Conectando...' :
-                                 'Offline'}
+                                 ''}
                             </span>
                         </div>
                     </h1>
@@ -926,7 +920,7 @@ function ControleEstoquePage() {
                                             </div>
                                             
                                             <div className="space-y-2">
-                                                <h4 className="font-semibold text-sm text-foreground">Passo 1: No Shopify Admin</h4>
+                                                <h4 className="font-semibold text-sm text-foreground">No Shopify Admin</h4>
                                                 <div className="text-sm text-muted-foreground space-y-1">
                                                     <p>1. Vá em <strong>Settings → Notifications → Webhooks</strong></p>
                                                     <p>2. <strong>Crie 2 webhooks separados</strong> clicando em "Create webhook":</p>
@@ -952,17 +946,11 @@ function ControleEstoquePage() {
                                             </div>
 
                                             <div className="space-y-2">
-                                                <h4 className="font-semibold text-sm text-foreground">Passo 2: SKUs Idênticos</h4>
-                                                <p className="text-sm text-muted-foreground">Os produtos aqui devem ter exatamente o mesmo SKU dos produtos na Shopify</p>
-                                            </div>
-
-                                            <div className="space-y-2">
                                                 <h4 className="font-semibold text-sm text-foreground">Benefícios dos Webhooks</h4>
                                                 <ul className="text-sm text-muted-foreground space-y-1 list-disc ml-4">
                                                     <li>Atualização automática de estoque após pedidos</li>
                                                     <li>Notificações em tempo real na interface</li>
                                                     <li>Alertas automáticos de estoque baixo</li>
-                                                    <li>Sincronização sem necessidade de refresh manual</li>
                                                 </ul>
                                             </div>
                                         </CardContent>
