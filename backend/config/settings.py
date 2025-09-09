@@ -395,6 +395,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://www.chegouhub.com.br",
     "https://chegouhub.up.railway.app",
     "https://chegou-hubb-production.up.railway.app",
+    "https://chegouhubteste.up.railway.app",
 ]
 
 # Adicionar origens do ambiente variável para CORS
@@ -445,7 +446,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://chegouhub.com.br",
     "https://www.chegouhub.com.br",
     "https://chegouhub.up.railway.app",
-    "https://chegou-hubb-production.up.railway.app"
+    "https://chegou-hubb-production.up.railway.app",
+    "https://chegouhubteste.up.railway.app"
 ]
 
 # Adicionar origens do ambiente variável
@@ -473,11 +475,21 @@ if DEBUG:
 print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
 
 SESSION_COOKIE_SAMESITE = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax')
-SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
+SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', str(not DEBUG).lower()).lower() == 'true'
 CSRF_COOKIE_SAMESITE = os.getenv('CSRF_COOKIE_SAMESITE', 'Lax')
-CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', 'False').lower() == 'true'
+CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', str(not DEBUG).lower()).lower() == 'true'
 
 CSRF_COOKIE_HTTPONLY = False
+
+# Configurações adicionais de CSRF para produção
+if not DEBUG:
+    CSRF_COOKIE_AGE = 3600  # 1 hora em produção
+    SESSION_COOKIE_AGE = 86400  # 24 horas em produção
+    CSRF_COOKIE_DOMAIN = None  # Usar domínio padrão
+    SESSION_COOKIE_DOMAIN = None  # Usar domínio padrão
+
+print(f"CSRF Config - Secure: {CSRF_COOKIE_SECURE}, SameSite: {CSRF_COOKIE_SAMESITE}, HTTPOnly: {CSRF_COOKIE_HTTPONLY}")
+print(f"Session Config - Secure: {SESSION_COOKIE_SECURE}, SameSite: {SESSION_COOKIE_SAMESITE}")
 
 # --- Configuração REST Framework ---
 REST_FRAMEWORK = {

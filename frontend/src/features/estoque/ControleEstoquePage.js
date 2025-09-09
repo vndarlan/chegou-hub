@@ -689,15 +689,43 @@ function ControleEstoquePage() {
         const atual = produto.estoque_atual || 0;
         const minimo = produto.estoque_minimo || 0;
         
-        
-        if (atual <= 0) {
-            return { status: 'Sem Estoque', variant: 'destructive', icon: AlertTriangle };
+        // Suporte para estoque negativo
+        if (atual < 0) {
+            const pedidosPendentes = Math.abs(atual);
+            return { 
+                status: `${pedidosPendentes} Pedidos Pendentes`, 
+                variant: 'destructive', 
+                icon: AlertTriangle,
+                className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 animate-pulse'
+            };
+        } else if (atual === 0) {
+            return { 
+                status: 'Sem Estoque', 
+                variant: 'destructive', 
+                icon: AlertTriangle,
+                className: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300'
+            };
         } else if (atual <= minimo) {
-            return { status: 'Estoque Baixo', variant: 'secondary', icon: AlertCircle };
+            return { 
+                status: 'Estoque Baixo', 
+                variant: 'secondary', 
+                icon: AlertCircle,
+                className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+            };
         } else if (atual <= minimo * 2) {
-            return { status: 'Estoque Médio', variant: 'outline', icon: Package };
+            return { 
+                status: 'Estoque Médio', 
+                variant: 'outline', 
+                icon: Package,
+                className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+            };
         } else {
-            return { status: 'Estoque Normal', variant: 'default', icon: Check };
+            return { 
+                status: 'Estoque Normal', 
+                variant: 'default', 
+                icon: Check,
+                className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+            };
         }
     };
 
@@ -977,6 +1005,10 @@ function ControleEstoquePage() {
                                         </CardHeader>
                                         <CardContent className="space-y-3">
                                             <div className="flex items-center gap-3">
+                                                <Badge variant="destructive" className="animate-pulse">Pedidos Pendentes</Badge>
+                                                <span className="text-sm text-muted-foreground">Quantidade negativa - pedidos aguardando reposição</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
                                                 <Badge variant="destructive">Sem Estoque</Badge>
                                                 <span className="text-sm text-muted-foreground">Quantidade igual a 0</span>
                                             </div>
@@ -1219,8 +1251,14 @@ function ControleEstoquePage() {
                                                     </TableCell>
                                                     <TableCell className="text-center">
                                                         <div className="space-y-1">
-                                                            <Badge variant="outline" className="font-mono">
+                                                            <Badge 
+                                                                variant="outline" 
+                                                                className={`font-mono ${produto.estoque_atual < 0 ? 'border-red-500 text-red-700 bg-red-50 dark:border-red-400 dark:text-red-300 dark:bg-red-950/20 animate-pulse' : ''}`}
+                                                            >
                                                                 {produto.estoque_atual || 0}
+                                                                {produto.estoque_atual < 0 && (
+                                                                    <span className="ml-1 text-xs">(pendentes)</span>
+                                                                )}
                                                             </Badge>
                                                             <p className="text-xs text-muted-foreground">
                                                                 Min: {produto.estoque_minimo || 0}
@@ -1229,7 +1267,10 @@ function ControleEstoquePage() {
                                                     </TableCell>
                                                     <TableCell className="text-center">
                                                         <div className="flex flex-col items-center gap-1">
-                                                            <Badge variant={statusInfo.variant} className="text-xs">
+                                                            <Badge 
+                                                                variant={statusInfo.variant} 
+                                                                className={`text-xs ${statusInfo.className || ''}`}
+                                                            >
                                                                 {statusInfo.status}
                                                             </Badge>
                                                             <ProductHighlightBadge 
@@ -1471,6 +1512,23 @@ function ControleEstoquePage() {
                                                 ? (selectedProduto.estoque_atual || 0) + parseInt(ajusteEstoque.quantidade || 0)
                                                 : (selectedProduto.estoque_atual || 0) - parseInt(ajusteEstoque.quantidade || 0)
                                         } unidades
+                                        {(() => {
+                                            const resultado = ajusteEstoque.tipo === 'adicionar' 
+                                                ? (selectedProduto.estoque_atual || 0) + parseInt(ajusteEstoque.quantidade || 0)
+                                                : (selectedProduto.estoque_atual || 0) - parseInt(ajusteEstoque.quantidade || 0);
+                                            
+                                            if (resultado < 0) {
+                                                return (
+                                                    <div className="mt-2 p-2 bg-red-100 dark:bg-red-900/30 rounded border-l-4 border-red-500">
+                                                        <strong className="text-red-700 dark:text-red-300">⚠️ Estoque Negativo:</strong>
+                                                        <div className="text-red-600 dark:text-red-400 text-sm">
+                                                            {Math.abs(resultado)} pedidos ficarão aguardando reposição
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
                                     </AlertDescription>
                                 </Alert>
                             )}

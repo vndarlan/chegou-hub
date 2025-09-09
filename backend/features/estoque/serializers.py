@@ -1,6 +1,10 @@
 # backend/features/estoque/serializers.py
 from rest_framework import serializers
-from .models import ProdutoEstoque, MovimentacaoEstoque, AlertaEstoque
+from .models import (
+    ProdutoEstoque, MovimentacaoEstoque, AlertaEstoque,
+    Produto, ProdutoSKU, ProdutoLoja, 
+    MovimentacaoEstoqueCompartilhado, AlertaEstoqueCompartilhado
+)
 from features.processamento.models import ShopifyConfig
 
 
@@ -12,6 +16,10 @@ class ProdutoEstoqueSerializer(serializers.ModelSerializer):
     estoque_baixo = serializers.ReadOnlyField()
     necessita_reposicao = serializers.ReadOnlyField()
     valor_total_estoque = serializers.ReadOnlyField()
+    
+    # Novos campos para estoque negativo
+    estoque_negativo = serializers.ReadOnlyField()
+    pedidos_pendentes = serializers.ReadOnlyField()
     
     # Informações da loja
     loja_nome = serializers.CharField(source='loja_config.nome_loja', read_only=True)
@@ -28,6 +36,7 @@ class ProdutoEstoqueSerializer(serializers.ModelSerializer):
             'shopify_product_id', 'shopify_variant_id',
             'estoque_inicial', 'estoque_atual', 'estoque_minimo', 'estoque_maximo',
             'estoque_disponivel', 'estoque_baixo', 'necessita_reposicao',
+            'estoque_negativo', 'pedidos_pendentes',
             'alerta_estoque_baixo', 'alerta_estoque_zero',
             'sync_shopify_enabled', 'ultima_sincronizacao', 'erro_sincronizacao',
             'ativo', 'custo_unitario', 'preco_venda', 'valor_total_estoque',
@@ -38,6 +47,7 @@ class ProdutoEstoqueSerializer(serializers.ModelSerializer):
             'id', 'data_criacao', 'data_atualizacao', 'ultima_sincronizacao',
             'shopify_product_id', 'shopify_variant_id', 'erro_sincronizacao',
             'estoque_disponivel', 'estoque_baixo', 'necessita_reposicao',
+            'estoque_negativo', 'pedidos_pendentes',
             'valor_total_estoque', 'loja_nome', 'loja_url',
             'total_movimentacoes', 'alertas_ativos'
         ]
@@ -113,16 +123,12 @@ class ProdutoEstoqueSerializer(serializers.ModelSerializer):
         return data
     
     def validate_loja_config(self, value):
-        """Validar se a loja pertence ao usuário"""
+        """Validar se a loja existe"""
         if value is None:
             return value
             
-        request = self.context.get('request')
-        if request and hasattr(request, 'user'):
-            if value.user != request.user:
-                raise serializers.ValidationError(
-                    'Você não tem permissão para usar esta configuração de loja.'
-                )
+        # Permitir qualquer usuário cadastrar produtos em qualquer loja
+        # A validação de permissão foi removida para permitir maior flexibilidade
         return value
 
 
@@ -283,13 +289,10 @@ class MovimentacaoEstoqueCreateSerializer(serializers.Serializer):
             
             logger.info(f"Validação movimentação: produto {produto.sku}, tipo {tipo}, quantidade {quantidade}, estoque_atual {produto.estoque_atual}")
             
-            # Validar se há estoque suficiente para saídas
+            # REMOVIDO: Validação que impedia estoque negativo
+            # Agora permite vendas mesmo sem estoque para visualizar pedidos pendentes
             if tipo in ['saida', 'venda', 'perda', 'transferencia']:
-                if quantidade > produto.estoque_atual:
-                    logger.error(f"Estoque insuficiente: solicitado {quantidade}, disponível {produto.estoque_atual}")
-                    raise serializers.ValidationError({
-                        'quantidade': f'Quantidade insuficiente em estoque. Disponível: {produto.estoque_atual}'
-                    })
+                logger.info(f"Movimentação de saída permitida - pode gerar estoque negativo para rastreamento de pedidos pendentes")
             
             return data
         except Exception as e:
@@ -371,7 +374,491 @@ class ProdutoEstoqueResumoSerializer(serializers.ModelSerializer):
     
     def get_status_estoque(self, obj):
         """Status simplificado do estoque"""
-        if obj.estoque_atual == 0:
+        if obj.estoque_atual < 0:
+            return 'negativo'
+        elif obj.estoque_atual == 0:
+            return 'zerado'
+        elif obj.estoque_baixo:
+            return 'baixo'
+        else:
+            return 'ok'
+
+
+# ======= NOVOS SERIALIZERS PARA ESTOQUE COMPARTILHADO =======
+
+class ProdutoSKUSerializer(serializers.ModelSerializer):
+    """Serializer para SKUs de produtos"""
+    
+    class Meta:
+        model = ProdutoSKU
+        fields = [
+            'id', 'sku', 'descricao_variacao', 'ativo',
+            'data_criacao', 'data_atualizacao'
+        ]
+        read_only_fields = ['id', 'data_criacao', 'data_atualizacao']
+    
+    def validate_sku(self, value):
+        """Validar se SKU é único"""
+        # Se está editando, excluir o próprio registro da validação
+        if self.instance:
+            existing = ProdutoSKU.objects.filter(sku=value).exclude(id=self.instance.id)
+        else:
+            existing = ProdutoSKU.objects.filter(sku=value)
+        
+        if existing.exists():
+            raise serializers.ValidationError(f'SKU "{value}" já existe.')
+        
+        return value
+
+
+class ProdutoLojaSerializer(serializers.ModelSerializer):
+    """Serializer para relacionamento produto-loja"""
+    
+    # Informações da loja
+    loja_nome = serializers.CharField(source='loja.nome_loja', read_only=True)
+    loja_url = serializers.CharField(source='loja.shop_url', read_only=True)
+    
+    class Meta:
+        model = ProdutoLoja
+        fields = [
+            'id', 'loja', 'loja_nome', 'loja_url',
+            'shopify_product_id', 'shopify_variant_id',
+            'sync_shopify_enabled', 'ultima_sincronizacao', 'erro_sincronizacao',
+            'preco_venda', 'ativo',
+            'data_criacao', 'data_atualizacao'
+        ]
+        read_only_fields = [
+            'id', 'loja_nome', 'loja_url', 
+            'shopify_product_id', 'shopify_variant_id',
+            'ultima_sincronizacao', 'erro_sincronizacao',
+            'data_criacao', 'data_atualizacao'
+        ]
+
+
+class ProdutoSerializer(serializers.ModelSerializer):
+    """Serializer principal para produtos com estoque compartilhado"""
+    
+    # Campos calculados
+    estoque_disponivel = serializers.ReadOnlyField()
+    estoque_baixo = serializers.ReadOnlyField()
+    necessita_reposicao = serializers.ReadOnlyField()
+    valor_total_estoque = serializers.ReadOnlyField()
+    
+    # Novos campos para estoque negativo
+    estoque_negativo = serializers.ReadOnlyField()
+    pedidos_pendentes = serializers.ReadOnlyField()
+    
+    # Campos relacionados
+    total_lojas = serializers.ReadOnlyField()
+    todos_skus = serializers.ReadOnlyField()
+    
+    # SKUs aninhados
+    skus = ProdutoSKUSerializer(many=True, read_only=True)
+    skus_data = serializers.ListField(
+        child=serializers.DictField(),
+        write_only=True,
+        required=False,
+        help_text="Lista de SKUs para criar/atualizar"
+    )
+    
+    # Lojas associadas
+    lojas_associadas = ProdutoLojaSerializer(
+        source='produtoloja_set',
+        many=True,
+        read_only=True
+    )
+    lojas_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        help_text="IDs das lojas para associar ao produto"
+    )
+    
+    # Contadores relacionados
+    total_movimentacoes = serializers.SerializerMethodField()
+    alertas_ativos = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Produto
+        fields = [
+            'id', 'nome', 'descricao', 'fornecedor',
+            'estoque_compartilhado', 'estoque_minimo', 'estoque_maximo',
+            'estoque_disponivel', 'estoque_baixo', 'necessita_reposicao',
+            'estoque_negativo', 'pedidos_pendentes',
+            'alerta_estoque_baixo', 'alerta_estoque_zero',
+            'ativo', 'custo_unitario', 'valor_total_estoque',
+            'data_criacao', 'data_atualizacao', 'observacoes',
+            'total_lojas', 'todos_skus',
+            'skus', 'skus_data',
+            'lojas_associadas', 'lojas_ids',
+            'total_movimentacoes', 'alertas_ativos'
+        ]
+        read_only_fields = [
+            'id', 'data_criacao', 'data_atualizacao',
+            'estoque_disponivel', 'estoque_baixo', 'necessita_reposicao',
+            'estoque_negativo', 'pedidos_pendentes', 'valor_total_estoque',
+            'total_lojas', 'todos_skus', 'skus', 'lojas_associadas',
+            'total_movimentacoes', 'alertas_ativos'
+        ]
+    
+    def get_total_movimentacoes(self, obj):
+        """Retorna o total de movimentações do produto"""
+        return obj.movimentacoes.count()
+    
+    def get_alertas_ativos(self, obj):
+        """Retorna o número de alertas ativos para o produto"""
+        return obj.alertas.filter(status='ativo').count()
+    
+    def validate_lojas_ids(self, value):
+        """Validar se todas as lojas existem e pertencem ao usuário"""
+        if not value:
+            return value
+        
+        request = self.context.get('request')
+        if not request:
+            return value
+        
+        # Verificar se todas as lojas existem e pertencem ao usuário
+        lojas_validas = ShopifyConfig.objects.filter(
+            id__in=value,
+            user=request.user
+        ).count()
+        
+        if lojas_validas != len(value):
+            raise serializers.ValidationError('Uma ou mais lojas são inválidas ou não pertencem ao usuário.')
+        
+        return value
+    
+    def create(self, validated_data):
+        """Criar produto com SKUs e lojas associadas"""
+        # Extrair dados aninhados
+        skus_data = validated_data.pop('skus_data', [])
+        lojas_ids = validated_data.pop('lojas_ids', [])
+        
+        # Definir usuário
+        request = self.context.get('request')
+        if request and request.user:
+            validated_data['user'] = request.user
+        
+        # Criar produto
+        produto = Produto.objects.create(**validated_data)
+        
+        # Criar SKUs
+        for sku_data in skus_data:
+            ProdutoSKU.objects.create(produto=produto, **sku_data)
+        
+        # Associar lojas
+        for loja_id in lojas_ids:
+            try:
+                loja = ShopifyConfig.objects.get(id=loja_id, user=request.user)
+                ProdutoLoja.objects.create(produto=produto, loja=loja)
+            except ShopifyConfig.DoesNotExist:
+                pass  # Loja já foi validada, não deveria acontecer
+        
+        return produto
+    
+    def update(self, instance, validated_data):
+        """Atualizar produto com SKUs e lojas associadas"""
+        # Extrair dados aninhados
+        skus_data = validated_data.pop('skus_data', None)
+        lojas_ids = validated_data.pop('lojas_ids', None)
+        
+        # Atualizar campos do produto
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Atualizar SKUs se fornecidos
+        if skus_data is not None:
+            # Remover SKUs existentes não incluídos na atualização
+            skus_para_manter = []
+            for sku_data in skus_data:
+                if 'id' in sku_data:
+                    # Atualizar SKU existente
+                    try:
+                        sku = instance.skus.get(id=sku_data['id'])
+                        for attr, value in sku_data.items():
+                            if attr != 'id':
+                                setattr(sku, attr, value)
+                        sku.save()
+                        skus_para_manter.append(sku.id)
+                    except ProdutoSKU.DoesNotExist:
+                        pass
+                else:
+                    # Criar novo SKU
+                    novo_sku = ProdutoSKU.objects.create(produto=instance, **sku_data)
+                    skus_para_manter.append(novo_sku.id)
+            
+            # Remover SKUs não incluídos
+            instance.skus.exclude(id__in=skus_para_manter).delete()
+        
+        # Atualizar lojas associadas se fornecidas
+        if lojas_ids is not None:
+            # Remover associações existentes
+            instance.produtoloja_set.all().delete()
+            
+            # Criar novas associações
+            request = self.context.get('request')
+            for loja_id in lojas_ids:
+                try:
+                    loja = ShopifyConfig.objects.get(id=loja_id, user=request.user)
+                    ProdutoLoja.objects.create(produto=instance, loja=loja)
+                except ShopifyConfig.DoesNotExist:
+                    pass
+        
+        return instance
+
+
+class MovimentacaoEstoqueCompartilhadoSerializer(serializers.ModelSerializer):
+    """Serializer para movimentações do estoque compartilhado"""
+    
+    # Informações do produto
+    produto_nome = serializers.CharField(source='produto.nome', read_only=True)
+    
+    # Informações da loja de origem
+    loja_origem_nome = serializers.CharField(source='loja_origem.nome_loja', read_only=True)
+    
+    # Informações do usuário
+    usuario_nome = serializers.CharField(source='usuario.username', read_only=True)
+    
+    # Campo para exibir o sinal da quantidade
+    quantidade_formatada = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = MovimentacaoEstoqueCompartilhado
+        fields = [
+            'id', 'produto', 'produto_nome', 'loja_origem', 'loja_origem_nome',
+            'usuario', 'usuario_nome', 'tipo_movimento',
+            'quantidade', 'quantidade_formatada', 'estoque_anterior', 'estoque_posterior',
+            'observacoes', 'pedido_shopify_id', 'custo_unitario', 'valor_total',
+            'origem_sync', 'dados_sync', 'data_movimentacao', 'ip_origem'
+        ]
+        read_only_fields = [
+            'id', 'produto_nome', 'loja_origem_nome',
+            'usuario_nome', 'estoque_anterior', 'estoque_posterior',
+            'valor_total', 'data_movimentacao', 'quantidade_formatada'
+        ]
+    
+    def get_quantidade_formatada(self, obj):
+        """Retorna quantidade com sinal para melhor visualização"""
+        if obj.tipo_movimento in ['entrada', 'devolucao', 'ajuste']:
+            return f"+{obj.quantidade}"
+        else:
+            return f"-{obj.quantidade}"
+
+
+class AlertaEstoqueCompartilhadoSerializer(serializers.ModelSerializer):
+    """Serializer para alertas do estoque compartilhado"""
+    
+    # Informações do produto
+    produto_nome = serializers.CharField(source='produto.nome', read_only=True)
+    estoque_atual_produto = serializers.IntegerField(source='produto.estoque_compartilhado', read_only=True)
+    estoque_minimo_produto = serializers.IntegerField(source='produto.estoque_minimo', read_only=True)
+    
+    # Informações dos usuários
+    responsavel_nome = serializers.CharField(source='usuario_responsavel.username', read_only=True)
+    resolvido_por_nome = serializers.CharField(source='usuario_resolucao.username', read_only=True)
+    
+    # Campos de tempo calculados
+    tempo_ativo = serializers.SerializerMethodField()
+    esta_vencido = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = AlertaEstoqueCompartilhado
+        fields = [
+            'id', 'produto', 'produto_nome',
+            'estoque_atual_produto', 'estoque_minimo_produto', 'usuario_responsavel', 'responsavel_nome',
+            'tipo_alerta', 'status', 'prioridade', 'titulo', 'descricao',
+            'dados_contexto', 'valor_atual', 'valor_limite',
+            'acao_sugerida', 'pode_resolver_automaticamente',
+            'data_criacao', 'data_leitura', 'data_resolucao',
+            'usuario_resolucao', 'resolvido_por_nome',
+            'primeira_ocorrencia', 'ultima_ocorrencia', 'contador_ocorrencias',
+            'tempo_ativo', 'esta_vencido'
+        ]
+        read_only_fields = [
+            'id', 'produto_nome', 'estoque_atual_produto', 'estoque_minimo_produto', 
+            'responsavel_nome', 'resolvido_por_nome',
+            'data_criacao', 'data_leitura', 'data_resolucao',
+            'primeira_ocorrencia', 'ultima_ocorrencia', 'contador_ocorrencias',
+            'tempo_ativo', 'esta_vencido'
+        ]
+    
+    def get_tempo_ativo(self, obj):
+        """Calcula há quanto tempo o alerta está ativo"""
+        from django.utils import timezone
+        if obj.status == 'resolvido' and obj.data_resolucao:
+            delta = obj.data_resolucao - obj.data_criacao
+        else:
+            delta = timezone.now() - obj.data_criacao
+        
+        days = delta.days
+        hours = delta.seconds // 3600
+        
+        if days > 0:
+            return f"{days}d {hours}h"
+        elif hours > 0:
+            return f"{hours}h"
+        else:
+            minutes = delta.seconds // 60
+            return f"{minutes}m"
+    
+    def get_esta_vencido(self, obj):
+        """Verifica se o alerta está há muito tempo ativo"""
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        if obj.status in ['resolvido', 'ignorado']:
+            return False
+        
+        # Definir limites por prioridade
+        limites = {
+            'critica': timedelta(hours=2),
+            'alta': timedelta(hours=12),
+            'media': timedelta(days=2),
+            'baixa': timedelta(days=7)
+        }
+        
+        limite = limites.get(obj.prioridade, timedelta(days=2))
+        tempo_ativo = timezone.now() - obj.data_criacao
+        
+        return tempo_ativo > limite
+
+
+class MovimentacaoEstoqueCompartilhadoCreateSerializer(serializers.Serializer):
+    """Serializer especializado para criar movimentações do estoque compartilhado"""
+    
+    produto_id = serializers.IntegerField()
+    tipo_movimento = serializers.ChoiceField(choices=MovimentacaoEstoqueCompartilhado.TIPO_MOVIMENTO_CHOICES)
+    quantidade = serializers.IntegerField(min_value=1)
+    observacoes = serializers.CharField(max_length=1000, required=False, allow_blank=True)
+    custo_unitario = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
+    loja_origem_id = serializers.IntegerField(required=False, allow_null=True)
+    
+    def validate_produto_id(self, value):
+        """Validar se o produto existe e pertence ao usuário"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        request = self.context.get('request')
+        if not request or not hasattr(request, 'user'):
+            logger.error(f"Validação produto_id {value}: usuário não autenticado")
+            raise serializers.ValidationError('Usuário não autenticado.')
+        
+        try:
+            produto = Produto.objects.get(id=value, user=request.user)
+            logger.info(f"Validação produto_id {value}: produto válido - {produto.nome}")
+            return value
+        except Produto.DoesNotExist:
+            logger.error(f"Validação produto_id {value}: produto não encontrado para usuário {request.user.id}")
+            raise serializers.ValidationError('Produto não encontrado ou não pertence ao usuário.')
+    
+    def validate_loja_origem_id(self, value):
+        """Validar se a loja existe e pertence ao usuário"""
+        if value is None:
+            return value
+        
+        request = self.context.get('request')
+        if not request or not hasattr(request, 'user'):
+            raise serializers.ValidationError('Usuário não autenticado.')
+        
+        try:
+            ShopifyConfig.objects.get(id=value, user=request.user)
+            return value
+        except ShopifyConfig.DoesNotExist:
+            raise serializers.ValidationError('Loja não encontrada ou não pertence ao usuário.')
+    
+    def create(self, validated_data):
+        """Criar movimentação e atualizar estoque compartilhado"""
+        request = self.context.get('request')
+        produto = Produto.objects.get(id=validated_data['produto_id'])
+        
+        tipo_movimento = validated_data['tipo_movimento']
+        quantidade = validated_data['quantidade']
+        observacoes = validated_data.get('observacoes', '')
+        custo_unitario = validated_data.get('custo_unitario')
+        loja_origem_id = validated_data.get('loja_origem_id')
+        
+        # Obter loja de origem se fornecida
+        loja_origem = None
+        if loja_origem_id:
+            try:
+                loja_origem = ShopifyConfig.objects.get(id=loja_origem_id, user=request.user)
+            except ShopifyConfig.DoesNotExist:
+                pass  # Loja já foi validada
+        
+        # Executar movimentação baseada no tipo
+        if tipo_movimento in ['entrada', 'devolucao']:
+            produto.adicionar_estoque(
+                quantidade=quantidade,
+                observacao=observacoes,
+                loja_origem=loja_origem
+            )
+        elif tipo_movimento in ['saida', 'venda', 'perda', 'transferencia']:
+            produto.remover_estoque(
+                quantidade=quantidade,
+                observacao=observacoes,
+                loja_origem=loja_origem
+            )
+        elif tipo_movimento == 'ajuste':
+            # Para ajustes, calcular diferença
+            diferenca = quantidade - produto.estoque_compartilhado
+            if diferenca > 0:
+                produto.adicionar_estoque(
+                    quantidade=diferenca,
+                    observacao=f"Ajuste: {observacoes}",
+                    loja_origem=loja_origem
+                )
+            elif diferenca < 0:
+                produto.remover_estoque(
+                    quantidade=abs(diferenca),
+                    observacao=f"Ajuste: {observacoes}",
+                    loja_origem=loja_origem
+                )
+        
+        # Buscar a movimentação criada (última do produto)
+        movimentacao = produto.movimentacoes.latest('data_movimentacao')
+        
+        # Atualizar dados adicionais
+        if custo_unitario:
+            movimentacao.custo_unitario = custo_unitario
+            movimentacao.save()
+        
+        if request:
+            movimentacao.usuario = request.user
+            # Capturar IP se disponível
+            ip = request.META.get('HTTP_X_FORWARDED_FOR') or request.META.get('REMOTE_ADDR')
+            if ip:
+                movimentacao.ip_origem = ip.split(',')[0].strip()
+            movimentacao.origem_sync = 'manual'
+            movimentacao.save()
+        
+        return movimentacao
+
+
+class ProdutoResumoSerializer(serializers.ModelSerializer):
+    """Serializer resumido para listagens rápidas de produtos compartilhados"""
+    
+    total_skus = serializers.SerializerMethodField()
+    status_estoque = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Produto
+        fields = [
+            'id', 'nome', 'fornecedor', 'estoque_compartilhado',
+            'estoque_minimo', 'total_lojas', 'total_skus',
+            'status_estoque', 'ativo'
+        ]
+    
+    def get_total_skus(self, obj):
+        """Retorna número total de SKUs ativos"""
+        return obj.skus.filter(ativo=True).count()
+    
+    def get_status_estoque(self, obj):
+        """Status simplificado do estoque"""
+        if obj.estoque_compartilhado < 0:
+            return 'negativo'
+        elif obj.estoque_compartilhado == 0:
             return 'zerado'
         elif obj.estoque_baixo:
             return 'baixo'

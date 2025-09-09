@@ -59,8 +59,23 @@ export const WEBSOCKET_CONFIG = {
 
 // Helper functions
 export const getWebSocketUrl = (path) => {
+    // Configuração específica para produção
+    if (window.location.hostname === 'www.chegouhub.com.br' || window.location.hostname === 'chegouhub.com.br') {
+        // Em produção, usar o backend Railway diretamente
+        return `wss://chegou-hubb-production.up.railway.app${path}`;
+    }
+    
+    // Para ambientes de teste e desenvolvimento
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
+    let host = window.location.host;
+    
+    // Se estamos no frontend hospedado e não é produção final
+    if (host.includes('railway.app') || process.env.REACT_APP_WS_URL) {
+        const backendUrl = process.env.REACT_APP_API_BASE_URL || 'https://chegou-hubb-production.up.railway.app/api';
+        const baseUrl = backendUrl.replace('/api', '').replace('https://', '').replace('http://', '');
+        return `wss://${baseUrl}${path}`;
+    }
+    
     return `${protocol}//${host}${path}`;
 };
 

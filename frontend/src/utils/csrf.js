@@ -37,8 +37,12 @@ export function setupCSRF() {
                     console.warn('Token CSRF não encontrado! Tentando obter do servidor...');
                     
                     try {
-                        // Tenta obter o token antes de continuar
-                        await axios.get('/current-state/');
+                        // Tenta obter o token antes de continuar usando URL absoluta
+                        const baseURL = axios.defaults.baseURL || '';
+                        await axios.get('/api/current-state/', {
+                            withCredentials: true,
+                            baseURL: baseURL
+                        });
                         
                         // Tenta novamente obter o token
                         const newToken = getCSRFToken();
@@ -47,6 +51,20 @@ export function setupCSRF() {
                             config.headers['X-CSRFToken'] = newToken;
                         } else {
                             console.error('Não foi possível obter o token CSRF mesmo após chamar current-state');
+                            // Tentativa alternativa usando endpoint específico
+                            try {
+                                await axios.get('/api/ensure-csrf/', {
+                                    withCredentials: true,
+                                    baseURL: baseURL
+                                });
+                                const retryToken = getCSRFToken();
+                                if (retryToken) {
+                                    console.log(`Token CSRF obtido via ensure-csrf: ${retryToken.substring(0, 10)}...`);
+                                    config.headers['X-CSRFToken'] = retryToken;
+                                }
+                            } catch (ensureError) {
+                                console.error('Erro ao tentar ensure-csrf:', ensureError);
+                            }
                         }
                     } catch (error) {
                         console.error('Erro ao tentar obter token CSRF:', error);
