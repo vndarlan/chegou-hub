@@ -5,7 +5,8 @@ import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Textarea } from '../../../components/ui/textarea';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
-import { Plus, Building2, AlertCircle } from 'lucide-react';
+import { Plus, Building2, AlertCircle, HelpCircle } from 'lucide-react';
+import InstructionsModal from './InstructionsModal';
 
 const AddBusinessManagerModal = ({ 
   onAdd, 
@@ -13,6 +14,7 @@ const AddBusinessManagerModal = ({
   trigger = null 
 }) => {
   const [open, setOpen] = useState(false);
+  const [instructionsOpen, setInstructionsOpen] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
     business_manager_id: '',
@@ -56,25 +58,30 @@ const AddBusinessManagerModal = ({
     } else {
       const token = formData.access_token.trim();
       
-      // Verificar tamanho mínimo
-      if (token.length < 50) {
-        newErrors.access_token = 'Token muito curto - verifique se está completo';
+      // Verificar tamanho mínimo (tokens Meta são bem longos)
+      if (token.length < 100) {
+        newErrors.access_token = 'Token muito curto - verifique se copiou completamente';
       }
       
-      // Verificar tamanho máximo (tokens Meta normalmente < 500 chars)
-      if (token.length > 1000) {
-        newErrors.access_token = 'Token muito longo - verifique se está correto';
+      // Verificar tamanho máximo (tokens Meta normalmente < 1000 chars)
+      if (token.length > 1500) {
+        newErrors.access_token = 'Token muito longo - verifique se copiou apenas o token';
       }
       
-      // Verificar caracteres válidos
-      if (!/^[A-Za-z0-9_\-|.]+$/.test(token)) {
-        newErrors.access_token = 'Token contém caracteres inválidos';
+      // Verificar caracteres válidos (tokens Meta podem ter | e outros caracteres especiais)
+      if (!/^[A-Za-z0-9_\-|.%]+$/.test(token)) {
+        newErrors.access_token = 'Token contém caracteres inválidos ou espaços em branco';
       }
       
       // Detectar padrões suspeitos
-      const suspiciousPatterns = ['test', 'fake', 'dummy', 'example', 'sample', '123456', 'abcdef'];
+      const suspiciousPatterns = ['test', 'fake', 'dummy', 'example', 'sample', '123456789', 'abcdefghij'];
       if (suspiciousPatterns.some(pattern => token.toLowerCase().includes(pattern))) {
-        newErrors.access_token = 'Token parece ser de teste ou inválido';
+        newErrors.access_token = 'Token parece ser de teste ou inválido - use um token real';
+      }
+
+      // Verificar se não está usando um User Access Token por engano
+      if (token.startsWith('EAAG') && !token.includes('|')) {
+        newErrors.access_token = 'Este parece ser um User Access Token - use um System User Token';
       }
     }
 
@@ -203,6 +210,20 @@ const AddBusinessManagerModal = ({
             </AlertDescription>
           </Alert>
 
+          {/* Link de ajuda */}
+          <div className="flex justify-center">
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              onClick={() => setInstructionsOpen(true)}
+              className="text-blue-600 hover:text-blue-800"
+            >
+              <HelpCircle className="h-4 w-4 mr-2" />
+              Precisa de ajuda? Veja o guia completo
+            </Button>
+          </div>
+
           {/* Botões */}
           <div className="flex justify-end gap-3 pt-4">
             <Button 
@@ -221,6 +242,12 @@ const AddBusinessManagerModal = ({
             </Button>
           </div>
         </form>
+        
+        {/* Modal de instruções */}
+        <InstructionsModal
+          open={instructionsOpen}
+          onOpenChange={setInstructionsOpen}
+        />
       </DialogContent>
     </Dialog>
   );

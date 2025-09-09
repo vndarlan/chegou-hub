@@ -7,16 +7,11 @@ from django.utils import timezone
 from django.conf import settings
 from django.db import transaction
 from datetime import datetime, timedelta
-# from cryptography.fernet import Fernet
 import base64
 import os
 
-# Importação temporária para permitir migrations
-try:
-    from cryptography.fernet import Fernet
-except ImportError:
-    print("AVISO: cryptography não instalado. Install: pip install cryptography")
-    Fernet = None
+# Importar gerenciador de criptografia robusto
+from config.whatsapp_config import get_whatsapp_encryption_manager
 
 from .models import (
     BusinessManager, WhatsAppPhoneNumber, QualityHistory, QualityAlert,
@@ -34,62 +29,69 @@ class WhatsAppMetaAPIService:
         self.timeout = 30
         self._request_cache = {}  # Cache para rate limiting
         self._last_request_time = {}  # Controle de tempo entre requests
+        self._encryption_manager = get_whatsapp_encryption_manager()
         
-    def _get_encryption_key(self) -> bytes:
-        """Obtém chave de criptografia para tokens - VERSÃO SEGURA CORRIGIDA"""
-        if not Fernet:
-            raise ImportError("cryptography não instalado. Execute: pip install cryptography")
-            
-        key = getattr(settings, 'WHATSAPP_ENCRYPTION_KEY', None)
-        if not key:
-            # CORREÇÃO CRÍTICA: Gerar chave temporária se não existir
-            logger.error("WHATSAPP_ENCRYPTION_KEY não configurada! Usando chave temporária.")
-            # Em produção, DEVE estar nas variáveis de ambiente
-            temp_key = Fernet.generate_key()
-            logger.warning(f"Chave temporária gerada. CONFIGURE: export WHATSAPP_ENCRYPTION_KEY={temp_key.decode()}")
-            return temp_key
-        
-        try:
-            # Tentar decodificar como base64 primeiro
-            if isinstance(key, str):
-                return base64.urlsafe_b64decode(key.encode())
-            return base64.urlsafe_b64decode(key)
-        except Exception as e:
-            logger.error(f"Erro ao decodificar chave de criptografia: {e}")
-            # CORREÇÃO: Não falhar, usar chave temporária
-            temp_key = Fernet.generate_key()
-            logger.warning("Usando chave temporária devido a erro na configuração")
-            return temp_key
-    
     def _encrypt_token(self, token: str) -> str:
-        """Criptografa o token de acesso - VERSÃO SEGURA"""
+        """Criptografa o token de acesso - VERSÃO ROBUSTA"""
         if not token or not isinstance(token, str):
             raise ValueError("Token deve ser uma string não vazia")
             
-        try:
-            key = self._get_encryption_key()
-            f = Fernet(key)
-            encrypted = f.encrypt(token.encode('utf-8'))
-            return base64.urlsafe_b64encode(encrypted).decode('utf-8')
-        except Exception as e:
-            # NUNCA logar o token real - apenas o tipo de erro
-            logger.error(f"Erro ao criptografar token: {type(e).__name__}")
-            raise ValueError("Erro na criptografia do token - verifique a configuração da chave")
+        sucesso, resultado = self._encryption_manager.encrypt_token(token)
+        if sucesso:
+            return resultado
+        else:
+            logger.error(f"Erro ao criptografar token: {resultado}")
+            raise ValueError(f"Erro na criptografia do token: {resultado}")
     
-    def _decrypt_token(self, encrypted_token: str) -> str:
-        """Descriptografa o token de acesso - VERSÃO SEGURA"""
+    def _decrypt_token(self, encrypted_token: str) -> Tuple[bool, str]:
+        """
+        Descriptografa o token de acesso - VERSÃO ROBUSTA
+        Returns: (sucesso, token_ou_erro)
+        """
         if not encrypted_token or not isinstance(encrypted_token, str):
-            raise ValueError("Token criptografado inválido")
+            return False, "Token criptografado inválido"
+        
+        # Tentar migração automática se necessário
+        sucesso_migracao, token_final, foi_migrado = self._encryption_manager.migrate_token_if_needed(encrypted_token)
+        
+        if not sucesso_migracao:
+            return False, token_final  # token_final contém a mensagem de erro
+        
+        if foi_migrado:
+            logger.info("Token foi migrado para formato criptografado")
+            # TODO: Salvar token migrado no banco (será feito na view)
+            return True, token_final
+        
+        # Se não foi migrado, então já estava criptografado
+        if self._encryption_manager.is_token_encrypted(token_final):
+            sucesso, resultado = self._encryption_manager.decrypt_token(token_final)
+            return sucesso, resultado
+        else:
+            # Token não criptografado
+            return True, token_final
+    
+    def _get_access_token_safe(self, business_manager: 'BusinessManager') -> Tuple[bool, str, bool]:
+        """
+        Obtém token de acesso de forma segura
+        Returns: (sucesso, token_ou_erro, precisa_atualizar_banco)
+        """
+        sucesso, resultado = self._decrypt_token(business_manager.access_token_encrypted)
+        
+        if sucesso:
+            # Verificar se houve migração
+            sucesso_migracao, token_migrado, foi_migrado = self._encryption_manager.migrate_token_if_needed(
+                business_manager.access_token_encrypted
+            )
             
-        try:
-            key = self._get_encryption_key()
-            f = Fernet(key)
-            decrypted_bytes = f.decrypt(base64.urlsafe_b64decode(encrypted_token.encode('utf-8')))
-            return decrypted_bytes.decode('utf-8')
-        except Exception as e:
-            # NUNCA logar o token - apenas o tipo de erro
-            logger.error(f"Erro ao descriptografar token: {type(e).__name__}")
-            raise ValueError("Erro na descriptografia do token - verifique se o token está correto")
+            if foi_migrado and sucesso_migracao:
+                # Token foi criptografado, precisa atualizar no banco
+                return True, resultado, True
+            else:
+                return True, resultado, False
+        else:
+            # Marcar Business Manager como requerendo re-cadastro
+            logger.warning(f"Token corrompido para BM {business_manager.nome}: {resultado}")
+            return False, f"Token corrompido - necessário re-cadastrar credenciais: {resultado}", False
     
     def _check_rate_limit(self, business_manager_id: str) -> bool:
         """Verifica rate limiting por Business Manager"""
@@ -163,21 +165,60 @@ class WhatsAppMetaAPIService:
             return {'error': str(e)}
     
     def listar_numeros_whatsapp(self, business_manager: BusinessManager) -> Tuple[bool, Dict]:
-        """Lista números WhatsApp de uma Business Manager específica"""
+        """Lista números WhatsApp de uma Business Manager específica - VERSÃO ROBUSTA"""
         try:
             logger.info(f"Listando números da Business Manager {business_manager.nome}")
             
-            # Descriptografar token
-            access_token = self._decrypt_token(business_manager.access_token_encrypted)
+            # Obter token de forma segura
+            sucesso_token, token_ou_erro, precisa_atualizar = self._get_access_token_safe(business_manager)
+            
+            if not sucesso_token:
+                # Token corrompido - marcar BM como requerendo re-cadastro
+                business_manager.erro_ultima_sincronizacao = token_ou_erro
+                business_manager.save()
+                
+                logger.error(f"Token corrompido para BM {business_manager.nome}: {token_ou_erro}")
+                return False, {
+                    'error': token_ou_erro,
+                    'error_type': 'token_corrupted',
+                    'action_required': 'recadastrar_credenciais',
+                    'business_manager_id': business_manager.id
+                }
+            
+            access_token = token_ou_erro
+            
+            # Se token foi migrado, atualizar no banco
+            if precisa_atualizar:
+                try:
+                    business_manager.access_token_encrypted = self._encrypt_token(access_token)
+                    business_manager.save()
+                    logger.info(f"Token migrado e salvo para BM {business_manager.nome}")
+                except Exception as e:
+                    logger.warning(f"Erro ao salvar token migrado: {e}")
             
             # URL para listar números
             url = f"{self.base_url}/{business_manager.business_manager_id}/phone_numbers"
             
             # Fazer requisição
-            response = self._make_request(url, access_token)
+            response = self._make_request(url, access_token, business_manager_id=str(business_manager.id))
             
             if 'error' in response:
-                logger.error(f"Erro ao listar números: {response['error']}")
+                error_msg = response['error']
+                logger.error(f"Erro ao listar números: {error_msg}")
+                
+                # Verificar se é erro de token inválido
+                if isinstance(error_msg, dict) and 'error' in error_msg:
+                    api_error = error_msg['error']
+                    if 'code' in api_error and api_error['code'] in [190, 102]:  # Token inválido/expirado
+                        business_manager.erro_ultima_sincronizacao = "Token de acesso expirado ou inválido"
+                        business_manager.save()
+                        return False, {
+                            'error': 'Token de acesso expirado ou inválido',
+                            'error_type': 'token_expired',
+                            'action_required': 'recadastrar_credenciais',
+                            'business_manager_id': business_manager.id
+                        }
+                
                 return False, response
             
             # Verificar se tem dados
@@ -188,11 +229,26 @@ class WhatsAppMetaAPIService:
             numeros = response['data']
             logger.info(f"Encontrados {len(numeros)} números na Business Manager {business_manager.nome}")
             
+            # Limpar erro anterior se houve sucesso
+            if business_manager.erro_ultima_sincronizacao:
+                business_manager.erro_ultima_sincronizacao = ""
+                business_manager.save()
+            
             return True, {'numeros': numeros, 'total': len(numeros)}
             
         except Exception as e:
-            logger.error(f"Erro inesperado ao listar números: {e}")
-            return False, {'error': str(e)}
+            error_msg = f"Erro inesperado ao listar números: {str(e)}"
+            logger.error(error_msg)
+            
+            # Salvar erro no Business Manager
+            business_manager.erro_ultima_sincronizacao = error_msg
+            business_manager.save()
+            
+            return False, {
+                'error': error_msg,
+                'error_type': 'unexpected_error',
+                'business_manager_id': business_manager.id
+            }
     
     def obter_detalhes_numero(self, phone_number_id: str, access_token: str) -> Tuple[bool, Dict]:
         """Obtém detalhes específicos de um número WhatsApp"""
@@ -257,7 +313,12 @@ class WhatsAppMetaAPIService:
                 return resultado
             
             numeros_api = response_data.get('numeros', [])
-            access_token = self._decrypt_token(business_manager.access_token_encrypted)
+            
+            # Obter token seguro (já foi validado no listar_numeros_whatsapp)
+            sucesso_token, access_token, _ = self._get_access_token_safe(business_manager)
+            if not sucesso_token:
+                resultado['erro'] = f"Token inválido: {access_token}"
+                return resultado
             
             # Processar cada número
             with transaction.atomic():

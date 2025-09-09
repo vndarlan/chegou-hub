@@ -29,6 +29,7 @@ urlpatterns = [
     path('sincronizar-meta-api/', views.sincronizar_meta_api, name='sincronizar-meta-api'),
     path('dashboard-whatsapp-stats/', views.dashboard_whatsapp_stats, name='dashboard-whatsapp-stats'),
     path('verificar-mudancas-qualidade/', views.verificar_mudancas_qualidade, name='verificar-mudancas-qualidade'),
+    path('verificar-saude-criptografia/', views.verificar_saude_criptografia, name='verificar-saude-criptografia'),
     
     # === ENDPOINTS TEMPORÁRIOS - REMOVER APÓS USO ===
     path('fix-whatsapp-tokens-temp/', views.fix_whatsapp_tokens_temp, name='fix-whatsapp-tokens-temp'),

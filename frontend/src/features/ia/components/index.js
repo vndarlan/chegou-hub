@@ -5,3 +5,4 @@ export { default as PhoneNumberTable } from './PhoneNumberTable';
 export { default as AlertPanel } from './AlertPanel';
 export { default as QualityChart } from './QualityChart';
 export { default as AddBusinessManagerModal } from './AddBusinessManagerModal';
+export { default as InstructionsModal } from './InstructionsModal';

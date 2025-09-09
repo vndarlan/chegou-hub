@@ -1504,3 +1504,57 @@ def apply_migrations_temp(request):
             'success': False,
             'error': f'ERRO ao aplicar migrations: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def verificar_saude_criptografia(request):
+    """Verifica saúde do sistema de criptografia WhatsApp"""
+    
+    # Verificar permissões
+    if not (request.user.is_superuser or 
+            request.user.groups.filter(name__in=['Diretoria', 'Gestão']).exists()):
+        return Response(
+            {'error': 'Sem permissão para verificar configurações de criptografia'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    try:
+        from config.whatsapp_config import check_encryption_health
+        
+        # Verificar saúde da criptografia
+        health_status = check_encryption_health()
+        
+        # Verificar Business Managers com problemas
+        problematic_bms = []
+        for bm in BusinessManager.objects.filter(ativo=True):
+            if bm.access_token_encrypted:
+                whatsapp_service = WhatsAppMetaAPIService()
+                sucesso, erro, _ = whatsapp_service._get_access_token_safe(bm)
+                if not sucesso:
+                    problematic_bms.append({
+                        'id': bm.id,
+                        'nome': bm.nome,
+                        'business_manager_id': bm.business_manager_id,
+                        'erro': erro,
+                        'ultimo_erro': bm.erro_ultima_sincronizacao
+                    })
+        
+        # Preparar resposta
+        response_data = {
+            'encryption_health': health_status,
+            'problematic_business_managers': problematic_bms,
+            'total_bms': BusinessManager.objects.filter(ativo=True).count(),
+            'bms_com_problema': len(problematic_bms),
+            'status_geral': 'OK' if health_status.get('can_decrypt', False) and len(problematic_bms) == 0 else 'PROBLEMAS',
+            'timestamp': timezone.now().isoformat()
+        }
+        
+        return Response(response_data)
+        
+    except Exception as e:
+        logger.error(f"Erro ao verificar saúde da criptografia: {e}")
+        return Response(
+            {'error': f'Erro ao verificar criptografia: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

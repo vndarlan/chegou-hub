@@ -9,7 +9,8 @@ import {
   TrendingUp,
   RefreshCw,
   Plus,
-  BarChart3
+  BarChart3,
+  Info
 } from 'lucide-react';
 import axios from 'axios';
 import { getCSRFToken } from '../../utils/csrf';
@@ -21,6 +22,7 @@ import QualityBadge from './components/QualityBadge';
 import AlertPanel from './components/AlertPanel';
 import QualityChart from './components/QualityChart';
 import AddBusinessManagerModal from './components/AddBusinessManagerModal';
+import InstructionsModal from './components/InstructionsModal';
 
 const NicochatPage = () => {
   // Estados principais
@@ -34,6 +36,7 @@ const NicochatPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState(null);
+  const [instructionsOpen, setInstructionsOpen] = useState(false);
 
   // Função para buscar dados do dashboard
   const fetchDashboardData = async () => {
@@ -191,7 +194,18 @@ const NicochatPage = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Dashboard WhatsApp Business</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold">Dashboard WhatsApp Business</h1>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setInstructionsOpen(true)}
+                className="p-2 hover:bg-blue-50 hover:text-blue-600"
+                title="Ver guia de configuração"
+              >
+                <Info className="h-5 w-5" />
+              </Button>
+            </div>
             <p className="text-muted-foreground">
               Monitoramento de qualidade dos números WhatsApp Business
             </p>
@@ -359,6 +373,12 @@ const NicochatPage = () => {
         <QualityChart
           data={chartData}
           title="Evolução da Qualidade (Últimos 7 dias)"
+        />
+
+        {/* Modal de Instruções */}
+        <InstructionsModal
+          open={instructionsOpen}
+          onOpenChange={setInstructionsOpen}
         />
 
       </div>
