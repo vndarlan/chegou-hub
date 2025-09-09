@@ -73,13 +73,8 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Definir usuário automaticamente na criação e configurar estoque inicial"""
         try:
-            # Log dos dados RAW recebidos na requisição
-            logger.info(f"DEBUG TEMPORÁRIO - Dados RAW da requisição: {self.request.data}")
-            logger.info(f"DEBUG TEMPORÁRIO - Content-Type: {self.request.content_type}")
-            logger.info(f"DEBUG TEMPORÁRIO - User: {self.request.user.username}")
-            
             # Log detalhado para debug
-            logger.info(f"Criando produto - Usuário: {self.request.user.username} - Dados validados: {serializer.validated_data}")
+            logger.info(f"Criando produto - Usuário: {self.request.user.username} - Dados: {serializer.validated_data}")
             
             # Salvar o produto primeiro - o modelo já configurará o estoque inicial
             produto = serializer.save(user=self.request.user)
@@ -103,9 +98,7 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
                     logger.info(f"Movimentação inicial atualizada para produto {produto.sku}")
                     
         except Exception as e:
-            logger.error(f"ERRO DETALHADO ao criar produto: {str(e)} - Tipo: {type(e).__name__} - Usuário: {self.request.user.username}")
-            import traceback
-            logger.error(f"TRACEBACK: {traceback.format_exc()}")
+            logger.error(f"Erro ao criar produto: {str(e)} - Usuário: {self.request.user.username}")
             raise
     
     def get_queryset(self):
