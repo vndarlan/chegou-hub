@@ -1,0 +1,1 @@
+# Management commands package for estoque app
