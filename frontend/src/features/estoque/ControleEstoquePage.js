@@ -318,33 +318,64 @@ function ControleEstoquePage() {
         if (!lojaSelecionada) return;
         
         try {
-            const response = await axios.get('/estoque/alertas/', {
+            // Usar o novo endpoint que verifica alertas em tempo real
+            const response = await axios.get('/estoque/alertas/verificar_alertas_tempo_real/', {
                 params: { loja_id: lojaSelecionada }
             });
             
-            if (response.data && Array.isArray(response.data)) {
-                // Filtrar apenas alertas críticos (sem estoque ou estoque baixo)
-                const alertasCriticos = response.data.filter(alerta => {
-                    const atual = parseInt(alerta.estoque_atual_produto) || 0;
-                    // Tentar múltiplas fontes para o estoque mínimo
-                    const minimo = parseInt(alerta.produto?.estoque_minimo) || 
-                                  parseInt(alerta.estoque_minimo) || 
-                                  parseInt(alerta.produto_estoque_minimo) || 
-                                  5;
-                    
-                    const semEstoque = atual <= 0;
-                    const estoqueBaixo = atual > 0 && atual <= minimo;
-                    return semEstoque || estoqueBaixo;
+            if (response.data && response.data.alertas && Array.isArray(response.data.alertas)) {
+                const alertasAtivos = response.data.alertas;
+                const alertasCriados = response.data.alertas_criados_agora || [];
+                
+                // DEBUG: Log para investigar os alertas retornados
+                console.log('🔍 DEBUG Alertas - Total recebidos:', alertasAtivos.length);
+                console.log('🆕 Alertas criados agora:', alertasCriados.length);
+                
+                if (alertasCriados.length > 0) {
+                    console.log('🆕 Novos alertas criados:', alertasCriados);
+                    showNotification(
+                        `${alertasCriados.length} novo(s) alerta(s) de estoque detectado(s)!`, 
+                        'warning'
+                    );
+                }
+                
+                alertasAtivos.forEach((alerta, index) => {
+                    console.log(`🔍 Alerta ${index + 1}:`, {
+                        sku: alerta.produto_sku,
+                        tipo: alerta.tipo_alerta,
+                        estoque_atual: alerta.estoque_atual_produto,
+                        estoque_minimo: alerta.estoque_minimo_produto,
+                        status: alerta.status
+                    });
                 });
                 
-                setAlertas(alertasCriticos);
+                console.log('✅ Alertas ativos finais:', alertasAtivos.length);
+                setAlertas(alertasAtivos);
             } else {
-                console.error('Erro ao carregar alertas:', response.data.error);
+                console.error('Erro ao carregar alertas:', response.data?.erro || 'Resposta inválida');
                 setAlertas([]);
             }
         } catch (error) {
             console.error('Erro ao carregar alertas:', error);
-            setAlertas([]);
+            
+            // Fallback para o endpoint antigo caso o novo falhe
+            console.log('⚠️ Tentando fallback para endpoint antigo de alertas...');
+            try {
+                const fallbackResponse = await axios.get('/estoque/alertas/', {
+                    params: { loja_id: lojaSelecionada }
+                });
+                
+                if (fallbackResponse.data && Array.isArray(fallbackResponse.data)) {
+                    const alertasAtivos = fallbackResponse.data.filter(alerta => alerta.status === 'ativo');
+                    console.log('✅ Fallback - Alertas carregados:', alertasAtivos.length);
+                    setAlertas(alertasAtivos);
+                } else {
+                    setAlertas([]);
+                }
+            } catch (fallbackError) {
+                console.error('Erro no fallback dos alertas:', fallbackError);
+                setAlertas([]);
+            }
         }
     };
 
@@ -548,7 +579,10 @@ function ControleEstoquePage() {
             };
 
             const response = await axios.post('/estoque/movimentacoes/', dados, {
-                headers: { 'X-CSRFToken': getCSRFToken() }
+                headers: { 
+                    'X-CSRFToken': getCSRFToken(),
+                    'Content-Type': 'application/json'
+                }
             });
 
             // ✅ CORREÇÃO: Status 200/201 = sucesso, independente da estrutura dos dados
@@ -920,7 +954,7 @@ function ControleEstoquePage() {
                                                         <ul className="ml-4 list-disc space-y-1 text-green-600 dark:text-green-300">
                                                             <li><strong>Event:</strong> Order creation</li>
                                                             <li><strong>Format:</strong> JSON</li>
-                                                            <li><strong>URL:</strong> <code className="bg-green-100 dark:bg-green-900/30 px-1 rounded">https://chegou-hubb-production.up.railway.app/estoque/webhook/shopify/</code></li>
+                                                            <li><strong>URL:</strong> <code className="bg-green-100 dark:bg-green-900/30 px-1 rounded">https://chegou-hubb-production.up.railway.app/api/estoque/webhook/shopify/</code></li>
                                                         </ul>
                                                     </div>
 
@@ -929,27 +963,10 @@ function ControleEstoquePage() {
                                                         <ul className="ml-4 list-disc space-y-1 text-orange-600 dark:text-orange-300">
                                                             <li><strong>Event:</strong> Order cancelled</li>
                                                             <li><strong>Format:</strong> JSON</li>
-                                                            <li><strong>URL:</strong> <code className="bg-orange-100 dark:bg-orange-900/30 px-1 rounded">https://chegou-hubb-production.up.railway.app/estoque/webhook/shopify/</code></li>
+                                                            <li><strong>URL:</strong> <code className="bg-orange-100 dark:bg-orange-900/30 px-1 rounded">https://chegou-hubb-production.up.railway.app/api/estoque/webhook/shopify/</code></li>
                                                         </ul>
                                                     </div>
                                                 </div>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <h4 className="font-semibold text-sm text-foreground">Passo 2: SKUs Idênticos</h4>
-                                                <p className="text-sm text-muted-foreground">Os produtos aqui devem ter exatamente o mesmo SKU dos produtos na Shopify</p>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <h4 className="font-semibold text-sm text-foreground">Benefícios dos Webhooks</h4>
-                                                <ul className="text-sm text-muted-foreground space-y-1 list-disc ml-4">
-                                                    <li>Redução automática de estoque quando pedidos são criados</li>
-                                                    <li>Restauração automática de estoque quando pedidos são cancelados</li>
-                                                    <li>Notificações em tempo real na interface</li>
-                                                    <li>Alertas automáticos de estoque baixo</li>
-                                                    <li>Sincronização sem necessidade de refresh manual</li>
-                                                    <li>Controle preciso do estoque em tempo real</li>
-                                                </ul>
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -1020,8 +1037,11 @@ function ControleEstoquePage() {
                                         // Normalizar dados do alerta para compatibilidade com getStatusEstoque
                                         const alertaNormalizado = {
                                             ...alerta,
+                                            id: alerta.produto, // O ID do produto para ajustes
                                             estoque_atual: alerta.estoque_atual_produto || 0,
-                                            estoque_minimo: alerta.produto?.estoque_minimo || 0,
+                                            estoque_minimo: alerta.estoque_minimo_produto || 
+                                                           alerta.produto?.estoque_minimo || 
+                                                           alerta.estoque_minimo || 0,
                                             nome: alerta.produto_nome || 'Produto sem nome',
                                             sku: alerta.produto_sku || 'N/A'
                                         };

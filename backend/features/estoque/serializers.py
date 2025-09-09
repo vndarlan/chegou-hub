@@ -171,6 +171,7 @@ class AlertaEstoqueSerializer(serializers.ModelSerializer):
     produto_nome = serializers.CharField(source='produto.nome', read_only=True)
     loja_nome = serializers.CharField(source='produto.loja_config.nome_loja', read_only=True)
     estoque_atual_produto = serializers.IntegerField(source='produto.estoque_atual', read_only=True)
+    estoque_minimo_produto = serializers.IntegerField(source='produto.estoque_minimo', read_only=True)
     
     # Informações dos usuários
     responsavel_nome = serializers.CharField(source='usuario_responsavel.username', read_only=True)
@@ -184,7 +185,7 @@ class AlertaEstoqueSerializer(serializers.ModelSerializer):
         model = AlertaEstoque
         fields = [
             'id', 'produto', 'produto_sku', 'produto_nome', 'loja_nome',
-            'estoque_atual_produto', 'usuario_responsavel', 'responsavel_nome',
+            'estoque_atual_produto', 'estoque_minimo_produto', 'usuario_responsavel', 'responsavel_nome',
             'tipo_alerta', 'status', 'prioridade', 'titulo', 'descricao',
             'dados_contexto', 'valor_atual', 'valor_limite',
             'acao_sugerida', 'pode_resolver_automaticamente',
@@ -195,7 +196,7 @@ class AlertaEstoqueSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'id', 'produto_sku', 'produto_nome', 'loja_nome',
-            'estoque_atual_produto', 'responsavel_nome', 'resolvido_por_nome',
+            'estoque_atual_produto', 'estoque_minimo_produto', 'responsavel_nome', 'resolvido_por_nome',
             'data_criacao', 'data_leitura', 'data_resolucao',
             'primeira_ocorrencia', 'ultima_ocorrencia', 'contador_ocorrencias',
             'tempo_ativo', 'esta_vencido'
@@ -254,30 +255,46 @@ class MovimentacaoEstoqueCreateSerializer(serializers.Serializer):
     
     def validate_produto_id(self, value):
         """Validar se o produto existe e pertence ao usuário"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         request = self.context.get('request')
         if not request or not hasattr(request, 'user'):
+            logger.error(f"Validação produto_id {value}: usuário não autenticado")
             raise serializers.ValidationError('Usuário não autenticado.')
         
         try:
             produto = ProdutoEstoque.objects.get(id=value, user=request.user)
+            logger.info(f"Validação produto_id {value}: produto válido - {produto.sku}")
             return value
         except ProdutoEstoque.DoesNotExist:
+            logger.error(f"Validação produto_id {value}: produto não encontrado para usuário {request.user.id}")
             raise serializers.ValidationError('Produto não encontrado ou não pertence ao usuário.')
     
     def validate(self, data):
         """Validações específicas por tipo de movimento"""
-        produto = ProdutoEstoque.objects.get(id=data['produto_id'])
-        tipo = data['tipo_movimento']
-        quantidade = data['quantidade']
+        import logging
+        logger = logging.getLogger(__name__)
         
-        # Validar se há estoque suficiente para saídas
-        if tipo in ['saida', 'venda', 'perda', 'transferencia']:
-            if quantidade > produto.estoque_atual:
-                raise serializers.ValidationError({
-                    'quantidade': f'Quantidade insuficiente em estoque. Disponível: {produto.estoque_atual}'
-                })
-        
-        return data
+        try:
+            produto = ProdutoEstoque.objects.get(id=data['produto_id'])
+            tipo = data['tipo_movimento']
+            quantidade = data['quantidade']
+            
+            logger.info(f"Validação movimentação: produto {produto.sku}, tipo {tipo}, quantidade {quantidade}, estoque_atual {produto.estoque_atual}")
+            
+            # Validar se há estoque suficiente para saídas
+            if tipo in ['saida', 'venda', 'perda', 'transferencia']:
+                if quantidade > produto.estoque_atual:
+                    logger.error(f"Estoque insuficiente: solicitado {quantidade}, disponível {produto.estoque_atual}")
+                    raise serializers.ValidationError({
+                        'quantidade': f'Quantidade insuficiente em estoque. Disponível: {produto.estoque_atual}'
+                    })
+            
+            return data
+        except Exception as e:
+            logger.error(f"Erro na validação da movimentação: {str(e)}")
+            raise
     
     def create(self, validated_data):
         """Criar movimentação e atualizar estoque"""

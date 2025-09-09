@@ -625,6 +625,101 @@ class AlertaEstoqueViewSet(viewsets.ModelViewSet):
             'por_prioridade': list(por_prioridade),
             'por_tipo': list(por_tipo)
         })
+    
+    @action(detail=False, methods=['get'])
+    def verificar_alertas_tempo_real(self, request):
+        """
+        Verifica e cria alertas em tempo real para produtos com estoque baixo/zerado
+        que podem não ter alertas ativos. Usado pelo frontend para garantir que
+        todos os alertas necessários sejam exibidos.
+        """
+        # Filtro por loja
+        loja_id = request.query_params.get('loja_id')
+        if not loja_id:
+            return Response(
+                {'erro': 'loja_id é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from features.processamento.models import ShopifyConfig
+            
+            # Validar acesso à loja
+            loja_config = ShopifyConfig.objects.filter(id=loja_id, user=request.user).first()
+            if not loja_config:
+                return Response(
+                    {'erro': 'Loja não encontrada ou sem permissão'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            alertas_criados = []
+            
+            # Buscar produtos com estoque zerado sem alertas ativos
+            produtos_estoque_zero = ProdutoEstoque.objects.filter(
+                loja_config=loja_config,
+                user=request.user,
+                ativo=True,
+                estoque_atual=0,
+                alerta_estoque_zero=True
+            ).exclude(
+                alertas__tipo_alerta='estoque_zero',
+                alertas__status='ativo'
+            )
+            
+            for produto in produtos_estoque_zero:
+                alerta = AlertaEstoque.gerar_alerta_estoque_zero(produto)
+                if alerta:
+                    alertas_criados.append({
+                        'id': alerta.id,
+                        'tipo': 'estoque_zero',
+                        'sku': produto.sku,
+                        'nome': produto.nome
+                    })
+            
+            # Buscar produtos com estoque baixo sem alertas ativos
+            produtos_estoque_baixo = ProdutoEstoque.objects.filter(
+                loja_config=loja_config,
+                user=request.user,
+                ativo=True,
+                estoque_atual__gt=0,
+                estoque_atual__lte=F('estoque_minimo'),
+                alerta_estoque_baixo=True
+            ).exclude(
+                alertas__tipo_alerta='estoque_baixo',
+                alertas__status='ativo'
+            )
+            
+            for produto in produtos_estoque_baixo:
+                alerta = AlertaEstoque.gerar_alerta_estoque_baixo(produto)
+                if alerta:
+                    alertas_criados.append({
+                        'id': alerta.id,
+                        'tipo': 'estoque_baixo',
+                        'sku': produto.sku,
+                        'nome': produto.nome
+                    })
+            
+            # Retornar alertas ativos atualizados
+            alertas_ativos = AlertaEstoque.objects.filter(
+                produto__loja_config=loja_config,
+                produto__user=request.user,
+                status='ativo'
+            ).select_related('produto').order_by('-prioridade', '-data_criacao')
+            
+            serializer = AlertaEstoqueSerializer(alertas_ativos, many=True)
+            
+            return Response({
+                'alertas': serializer.data,
+                'alertas_criados_agora': alertas_criados,
+                'total_alertas_criados': len(alertas_criados)
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro ao verificar alertas em tempo real: {str(e)}")
+            return Response(
+                {'erro': f'Erro interno: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 # ===== WEBHOOK ENDPOINTS =====

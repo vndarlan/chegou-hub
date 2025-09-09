@@ -59,6 +59,7 @@ urlpatterns = [
 # POST /api/estoque/alertas/{id}/resolver/ - Resolve alerta
 # POST /api/estoque/alertas/resolver_multiplos/ - Resolve múltiplos alertas
 # GET /api/estoque/alertas/resumo/ - Resumo dos alertas
+# GET /api/estoque/alertas/verificar_alertas_tempo_real/ - Verifica e cria alertas em tempo real
 
 # === WEBHOOKS SHOPIFY (MODO PERMISSIVO) ===
 # POST /api/estoque/webhook/order-created/ - Recebe pedidos do Shopify (público, CSRF exempt, MODO PERMISSIVO)
