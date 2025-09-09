@@ -737,26 +737,6 @@ function ControleEstoquePage() {
                     <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                         <Package className="h-6 w-6 text-primary" />
                         Controle de Estoque
-                        {/* Indicador de status WebSocket */}
-                        <div className="flex items-center gap-2 ml-3">
-                            <div className={`w-2 h-2 rounded-full ${
-                                connectionStatus === 'Open' ? 'bg-green-500 animate-pulse' :
-                                connectionStatus === 'Connecting' ? 'bg-yellow-500 animate-pulse' :
-                                hasExceededMaxAttempts ? 'bg-red-500' :
-                                'bg-gray-400'
-                            }`} />
-                            <span className={`text-xs font-normal ${
-                                connectionStatus === 'Open' ? 'text-green-600 dark:text-green-400' :
-                                connectionStatus === 'Connecting' ? 'text-yellow-600 dark:text-yellow-400' :
-                                hasExceededMaxAttempts ? 'text-red-600 dark:text-red-400' :
-                                'text-gray-500'
-                            }`}>
-                                {connectionStatus === 'Open' ? 'Em tempo real' :
-                                 connectionStatus === 'Connecting' ? 'Conectando...' :
-                                 hasExceededMaxAttempts ? 'Offline' :
-                                 'Desconectado'}
-                            </span>
-                        </div>
                     </h1>
                     <p className="text-muted-foreground">
                         Gestão completa do estoque de produtos
@@ -1124,18 +1104,6 @@ function ControleEstoquePage() {
                                 </Button>
                             )}
                             
-                            {/* Botão de debug - apenas em desenvolvimento */}
-                            {process.env.NODE_ENV === 'development' && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={debugConexao}
-                                    className="bg-yellow-50 border-yellow-200 text-yellow-800 hover:bg-yellow-100"
-                                >
-                                    <Info className="h-4 w-4 mr-2" />
-                                    Debug
-                                </Button>
-                            )}
                         </div>
                     </div>
                 </CardHeader>

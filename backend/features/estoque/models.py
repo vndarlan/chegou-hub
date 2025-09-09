@@ -12,6 +12,9 @@ class ProdutoEstoque(models.Model):
         ('PrimeCod', 'PrimeCod'),
         ('Ecomhub', 'Ecomhub'),
         ('N1', 'N1'),
+        ('N1 Itália', 'N1 Itália'),
+        ('N1 Romênia', 'N1 Romênia'),
+        ('N1 Polônia', 'N1 Polônia'),
     ]
     
     # Relacionamentos
