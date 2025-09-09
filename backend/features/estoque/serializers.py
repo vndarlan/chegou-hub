@@ -52,6 +52,12 @@ class ProdutoEstoqueSerializer(serializers.ModelSerializer):
     
     def validate(self, data):
         """Validações customizadas"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Log de debug temporário para capturar dados recebidos
+        logger.info(f"DEBUG TEMPORÁRIO - Dados recebidos no validate: {data}")
+        
         # Validar estoque mínimo
         if data.get('estoque_minimo', 0) < 0:
             raise serializers.ValidationError({
