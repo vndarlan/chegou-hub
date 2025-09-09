@@ -94,11 +94,29 @@ class ProdutoEstoqueSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError({
                         'sku': f'Já existe um produto com o SKU "{sku}" nesta loja.'
                     })
+        else:  # Edição - validar SKU se mudou
+            sku = data.get('sku')
+            loja_config = data.get('loja_config', self.instance.loja_config)
+            
+            if sku and sku != self.instance.sku:
+                # Verificar se já existe produto com mesmo SKU na mesma loja (exceto o atual)
+                produto_existente = ProdutoEstoque.objects.filter(
+                    sku=sku, 
+                    loja_config=loja_config
+                ).exclude(id=self.instance.id).exists()
+                
+                if produto_existente:
+                    raise serializers.ValidationError({
+                        'sku': f'Já existe um produto com o SKU "{sku}" nesta loja.'
+                    })
         
         return data
     
     def validate_loja_config(self, value):
         """Validar se a loja pertence ao usuário"""
+        if value is None:
+            return value
+            
         request = self.context.get('request')
         if request and hasattr(request, 'user'):
             if value.user != request.user:

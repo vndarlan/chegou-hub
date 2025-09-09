@@ -491,7 +491,8 @@ function ControleEstoquePage() {
                 sku: selectedProduto.sku,
                 nome: selectedProduto.nome,
                 fornecedor: selectedProduto.fornecedor,
-                estoque_minimo: parseInt(selectedProduto.estoque_minimo) || 5
+                estoque_minimo: parseInt(selectedProduto.estoque_minimo) || 5,
+                loja_config: selectedProduto.loja_config || lojaSelecionada
             };
 
             const response = await axios.put(`/estoque/produtos/${selectedProduto.id}/`, dados, {
@@ -981,9 +982,6 @@ function ControleEstoquePage() {
                         </DialogContent>
                     </Dialog>
                     
-                    <Button variant="outline" size="icon" onClick={() => openHistorico()}>
-                        <History className="h-4 w-4" />
-                    </Button>
                 </div>
             </div>
 

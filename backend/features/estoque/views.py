@@ -101,6 +101,21 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
             logger.error(f"Erro ao criar produto: {str(e)} - Usuário: {self.request.user.username}")
             raise
     
+    def perform_update(self, serializer):
+        """Personalizar atualização do produto"""
+        try:
+            # Log detalhado para debug
+            logger.info(f"Editando produto ID {self.get_object().id} - Usuário: {self.request.user.username} - Dados: {serializer.validated_data}")
+            
+            # Salvar as alterações
+            produto = serializer.save()
+            
+            logger.info(f"Produto editado com sucesso: {produto.sku}")
+                    
+        except Exception as e:
+            logger.error(f"Erro ao editar produto: {str(e)} - Usuário: {self.request.user.username}")
+            raise
+    
     def get_queryset(self):
         """Filtros avançados via query parameters"""
         queryset = ProdutoEstoque.objects.filter(user=self.request.user)
