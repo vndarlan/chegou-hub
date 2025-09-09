@@ -3,6 +3,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     ProdutoEstoqueViewSet, MovimentacaoEstoqueViewSet, AlertaEstoqueViewSet,
+    ProdutoViewSet, MovimentacaoEstoqueCompartilhadoViewSet, AlertaEstoqueCompartilhadoViewSet,
     shopify_order_webhook, webhook_status, webhook_stats, webhook_permissive_info
 )
 
@@ -11,6 +12,11 @@ router = DefaultRouter()
 router.register(r'produtos', ProdutoEstoqueViewSet, basename='produto-estoque')
 router.register(r'movimentacoes', MovimentacaoEstoqueViewSet, basename='movimentacao-estoque')
 router.register(r'alertas', AlertaEstoqueViewSet, basename='alerta-estoque')
+
+# Novos endpoints para produtos compartilhados
+router.register(r'produtos-compartilhados', ProdutoViewSet, basename='produto-compartilhado')
+router.register(r'movimentacoes-compartilhadas', MovimentacaoEstoqueCompartilhadoViewSet, basename='movimentacao-compartilhada')
+router.register(r'alertas-compartilhados', AlertaEstoqueCompartilhadoViewSet, basename='alerta-compartilhado')
 
 urlpatterns = [
     # URLs dos ViewSets via router

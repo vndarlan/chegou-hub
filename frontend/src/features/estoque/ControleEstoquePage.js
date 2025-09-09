@@ -16,11 +16,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { Textarea } from '../../components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../components/ui/collapsible';
 import { Toaster } from '../../components/ui/toaster';
+import { Checkbox } from '../../components/ui/checkbox';
 import {
     Package, AlertCircle, Check, X, RefreshCw, Trash2, 
     Info, History, Plus, Building, TrendingUp, TrendingDown,
     Edit, Search, Target, Loader2, Eye, PackageOpen,
-    BarChart3, AlertTriangle, ChevronDown, ChevronUp, Zap, Sliders
+    BarChart3, AlertTriangle, ChevronDown, ChevronUp, Zap, Sliders,
+    Layers, Archive, ShoppingCart, ChevronRight
 } from 'lucide-react';
 import { getCSRFToken } from '../../utils/csrf';
 
@@ -51,6 +53,10 @@ function ControleEstoquePage() {
     const [showInstructions, setShowInstructions] = useState(false);
     const [selectedProduto, setSelectedProduto] = useState(null);
     
+    // Novos estados para produtos compartilhados
+    const [showTipoProduto, setShowTipoProduto] = useState(false);
+    const [showAddProdutoCompartilhado, setShowAddProdutoCompartilhado] = useState(false);
+    
     // Formulários
     const [novoProduto, setNovoProduto] = useState({ 
         sku: '', 
@@ -58,6 +64,16 @@ function ControleEstoquePage() {
         fornecedor: 'N1 Itália',
         estoque_inicial: 0, 
         estoque_minimo: 5
+    });
+    
+    // Formulário para produto compartilhado
+    const [novoProdutoCompartilhado, setNovoProdutoCompartilhado] = useState({
+        nome: '',
+        descricao: '',
+        fornecedor: 'N1 Itália',
+        skus: [{ sku: '', descricao_variacao: '' }],
+        lojas_selecionadas: [],
+        estoque_compartilhado: 0
     });
     const [ajusteEstoque, setAjusteEstoque] = useState({
         tipo: 'adicionar', // 'adicionar' ou 'remover'
@@ -75,6 +91,7 @@ function ControleEstoquePage() {
     const [loading, setLoading] = useState(true);
     const [notification, setNotification] = useState(null);
     const [savingProduto, setSavingProduto] = useState(false);
+    const [savingProdutoCompartilhado, setSavingProdutoCompartilhado] = useState(false);
     const [ajustandoEstoque, setAjustandoEstoque] = useState(false);
     const [loadingMovimentacoes, setLoadingMovimentacoes] = useState(false);
     
@@ -411,6 +428,127 @@ function ControleEstoquePage() {
         } catch (error) {
             console.error('Erro no debug:', error);
             showNotification(`Erro no debug: ${error.response?.status} ${error.response?.statusText}`, 'error');
+        }
+    };
+
+    // Funções para gerenciar SKUs no produto compartilhado
+    const adicionarSKU = () => {
+        setNovoProdutoCompartilhado(prev => ({
+            ...prev,
+            skus: [...prev.skus, { sku: '', descricao_variacao: '' }]
+        }));
+    };
+    
+    const removerSKU = (index) => {
+        setNovoProdutoCompartilhado(prev => ({
+            ...prev,
+            skus: prev.skus.filter((_, i) => i !== index)
+        }));
+    };
+    
+    const atualizarSKU = (index, campo, valor) => {
+        setNovoProdutoCompartilhado(prev => ({
+            ...prev,
+            skus: prev.skus.map((sku, i) => 
+                i === index ? { ...sku, [campo]: valor } : sku
+            )
+        }));
+    };
+    
+    const toggleLoja = (lojaId) => {
+        setNovoProdutoCompartilhado(prev => ({
+            ...prev,
+            lojas_selecionadas: prev.lojas_selecionadas.includes(lojaId)
+                ? prev.lojas_selecionadas.filter(id => id !== lojaId)
+                : [...prev.lojas_selecionadas, lojaId]
+        }));
+    };
+    
+    const salvarProdutoCompartilhado = async () => {
+        if (!novoProdutoCompartilhado.nome.trim()) {
+            showNotification('Nome do produto é obrigatório', 'error');
+            return;
+        }
+        
+        if (novoProdutoCompartilhado.skus.length === 0) {
+            showNotification('Adicione pelo menos um SKU', 'error');
+            return;
+        }
+        
+        // Validar SKUs
+        const skusValidos = novoProdutoCompartilhado.skus.filter(sku => sku.sku.trim());
+        if (skusValidos.length === 0) {
+            showNotification('Adicione pelo menos um SKU válido', 'error');
+            return;
+        }
+        
+        if (novoProdutoCompartilhado.lojas_selecionadas.length === 0) {
+            showNotification('Selecione pelo menos uma loja', 'error');
+            return;
+        }
+        
+        setSavingProdutoCompartilhado(true);
+        try {
+            const dados = {
+                nome: novoProdutoCompartilhado.nome,
+                descricao: novoProdutoCompartilhado.descricao || '',
+                fornecedor: novoProdutoCompartilhado.fornecedor,
+                estoque_compartilhado: parseInt(novoProdutoCompartilhado.estoque_compartilhado) || 0,
+                skus_data: skusValidos.map(sku => ({
+                    sku: sku.sku.trim(),
+                    descricao_variacao: sku.descricao_variacao || ''
+                })),
+                lojas_ids: novoProdutoCompartilhado.lojas_selecionadas
+            };
+            
+            console.log('=== DEBUG CRIAÇÃO PRODUTO COMPARTILHADO ===');
+            console.log('Dados enviados:', dados);
+            
+            const response = await axios.post('/estoque/produtos/', dados, {
+                headers: { 
+                    'X-CSRFToken': getCSRFToken(),
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            console.log('Resposta do servidor:', response.data);
+            
+            if (response.data && (response.data.id || response.data.success)) {
+                showNotification('Produto compartilhado criado com sucesso!');
+                
+                // Reset do formulário
+                setNovoProdutoCompartilhado({
+                    nome: '',
+                    descricao: '',
+                    fornecedor: 'N1 Itália',
+                    skus: [{ sku: '', descricao_variacao: '' }],
+                    lojas_selecionadas: [],
+                    estoque_compartilhado: 0
+                });
+                
+                setShowAddProdutoCompartilhado(false);
+                await loadProdutos();
+                await loadAlertas();
+            } else {
+                showNotification(response.data.error || 'Erro ao criar produto compartilhado', 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao criar produto compartilhado:', error);
+            
+            let mensagemErro = 'Erro ao criar produto compartilhado';
+            if (error.response?.data) {
+                if (typeof error.response.data === 'string') {
+                    mensagemErro = error.response.data;
+                } else if (error.response.data.error) {
+                    mensagemErro = error.response.data.error;
+                } else if (error.response.data.detail) {
+                    mensagemErro = error.response.data.detail;
+                }
+            }
+            
+            showNotification(mensagemErro, 'error');
+        } finally {
+            setSavingProdutoCompartilhado(false);
         }
     };
 
@@ -826,13 +964,60 @@ function ControleEstoquePage() {
                         </SelectContent>
                     </Select>
                     
-                    <Dialog open={showAddProduto} onOpenChange={setShowAddProduto}>
+                    <Dialog open={showTipoProduto} onOpenChange={setShowTipoProduto}>
                         <DialogTrigger asChild>
                             <Button variant="default">
                                 <Plus className="h-4 w-4 mr-2" />
                                 Novo Produto
                             </Button>
                         </DialogTrigger>
+                        <DialogContent className="bg-background border-border max-w-[95vw] sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle className="text-foreground">Tipo de Produto</DialogTitle>
+                                <DialogDescription className="text-muted-foreground">
+                                    Escolha o tipo de produto que deseja criar
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                                <Button 
+                                    variant="outline" 
+                                    className="w-full h-auto p-4 flex flex-col items-start gap-2"
+                                    onClick={() => {
+                                        setShowTipoProduto(false);
+                                        setShowAddProduto(true);
+                                    }}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Package className="h-5 w-5 text-blue-600" />
+                                        <span className="font-medium">Produto Individual</span>
+                                    </div>
+                                    <span className="text-sm text-muted-foreground text-left">
+                                        Produto específico para uma loja com SKU único
+                                    </span>
+                                </Button>
+                                
+                                <Button 
+                                    variant="outline" 
+                                    className="w-full h-auto p-4 flex flex-col items-start gap-2"
+                                    onClick={() => {
+                                        setShowTipoProduto(false);
+                                        setShowAddProdutoCompartilhado(true);
+                                    }}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Layers className="h-5 w-5 text-purple-600" />
+                                        <span className="font-medium">Produto Compartilhado</span>
+                                        <Badge variant="secondary" className="text-xs">Novo</Badge>
+                                    </div>
+                                    <span className="text-sm text-muted-foreground text-left">
+                                        Produto com múltiplos SKUs e estoque compartilhado entre lojas
+                                    </span>
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                    
+                    <Dialog open={showAddProduto} onOpenChange={setShowAddProduto}>
                         <DialogContent className="bg-background border-border max-w-[95vw] sm:max-w-lg">
                             <DialogHeader>
                                 <DialogTitle className="text-foreground">Adicionar Novo Produto</DialogTitle>
@@ -919,6 +1104,215 @@ function ControleEstoquePage() {
                         </DialogContent>
                     </Dialog>
                     
+                    {/* Modal de Produto Compartilhado */}
+                    <Dialog open={showAddProdutoCompartilhado} onOpenChange={setShowAddProdutoCompartilhado}>
+                        <DialogContent className="bg-background border-border max-w-[95vw] sm:max-w-2xl max-h-[95vh]">
+                            <DialogHeader>
+                                <DialogTitle className="text-foreground flex items-center gap-2">
+                                    <Layers className="h-5 w-5 text-purple-600" />
+                                    Novo Produto Compartilhado
+                                </DialogTitle>
+                                <DialogDescription className="text-muted-foreground">
+                                    Crie um produto com múltiplos SKUs e estoque compartilhado entre lojas
+                                </DialogDescription>
+                            </DialogHeader>
+                            
+                            <ScrollArea className="max-h-[70vh] pr-4">
+                                <div className="space-y-6">
+                                    {/* Informações Básicas */}
+                                    <div className="space-y-4">
+                                        <h4 className="font-medium text-foreground flex items-center gap-2">
+                                            <Archive className="h-4 w-4" />
+                                            Informações Básicas
+                                        </h4>
+                                        
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <Label htmlFor="nome-compartilhado" className="text-foreground">Nome do Produto *</Label>
+                                                <Input
+                                                    id="nome-compartilhado"
+                                                    placeholder="Ex: Relógio Smartwatch"
+                                                    value={novoProdutoCompartilhado.nome}
+                                                    onChange={(e) => setNovoProdutoCompartilhado(prev => ({ ...prev, nome: e.target.value }))}
+                                                    className="bg-background border-input text-foreground"
+                                                />
+                                            </div>
+                                            
+                                            <div>
+                                                <Label htmlFor="fornecedor-compartilhado" className="text-foreground">Fornecedor *</Label>
+                                                <Select 
+                                                    value={novoProdutoCompartilhado.fornecedor} 
+                                                    onValueChange={(value) => setNovoProdutoCompartilhado(prev => ({ ...prev, fornecedor: value }))}
+                                                >
+                                                    <SelectTrigger className="bg-background border-input text-foreground">
+                                                        <SelectValue placeholder="Selecione o fornecedor" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="Dropi">Dropi</SelectItem>
+                                                        <SelectItem value="PrimeCod">PrimeCod</SelectItem>
+                                                        <SelectItem value="Ecomhub">Ecomhub</SelectItem>
+                                                        <SelectItem value="N1 Itália">N1 Itália</SelectItem>
+                                                        <SelectItem value="N1 Romênia">N1 Romênia</SelectItem>
+                                                        <SelectItem value="N1 Polônia">N1 Polônia</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <Label htmlFor="descricao-compartilhado" className="text-foreground">Descrição</Label>
+                                            <Textarea
+                                                id="descricao-compartilhado"
+                                                placeholder="Descrição detalhada do produto..."
+                                                value={novoProdutoCompartilhado.descricao}
+                                                onChange={(e) => setNovoProdutoCompartilhado(prev => ({ ...prev, descricao: e.target.value }))}
+                                                className="bg-background border-input text-foreground"
+                                                rows={2}
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    <Separator />
+                                    
+                                    {/* SKUs */}
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="font-medium text-foreground flex items-center gap-2">
+                                                <Package className="h-4 w-4" />
+                                                SKUs e Variações
+                                            </h4>
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                size="sm"
+                                                onClick={adicionarSKU}
+                                                className="text-xs"
+                                            >
+                                                <Plus className="h-3 w-3 mr-1" />
+                                                Adicionar SKU
+                                            </Button>
+                                        </div>
+                                        
+                                        <div className="space-y-3">
+                                            {novoProdutoCompartilhado.skus.map((sku, index) => (
+                                                <div key={index} className="flex gap-2 items-end p-3 border border-border rounded-lg bg-muted/20">
+                                                    <div className="flex-1">
+                                                        <Label htmlFor={`sku-${index}`} className="text-foreground text-xs">SKU *</Label>
+                                                        <Input
+                                                            id={`sku-${index}`}
+                                                            placeholder="SKU-REL-001"
+                                                            value={sku.sku}
+                                                            onChange={(e) => atualizarSKU(index, 'sku', e.target.value)}
+                                                            className="bg-background border-input text-foreground h-8 text-sm"
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <Label htmlFor={`variacao-${index}`} className="text-foreground text-xs">Variação</Label>
+                                                        <Input
+                                                            id={`variacao-${index}`}
+                                                            placeholder="Preto, Branco, etc."
+                                                            value={sku.descricao_variacao}
+                                                            onChange={(e) => atualizarSKU(index, 'descricao_variacao', e.target.value)}
+                                                            className="bg-background border-input text-foreground h-8 text-sm"
+                                                        />
+                                                    </div>
+                                                    {novoProdutoCompartilhado.skus.length > 1 && (
+                                                        <Button 
+                                                            type="button" 
+                                                            variant="outline" 
+                                                            size="sm"
+                                                            onClick={() => removerSKU(index)}
+                                                            className="text-red-600 hover:bg-red-50 border-red-200 h-8 w-8 p-0"
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    <Separator />
+                                    
+                                    {/* Seleção de Lojas */}
+                                    <div className="space-y-4">
+                                        <h4 className="font-medium text-foreground flex items-center gap-2">
+                                            <Building className="h-4 w-4" />
+                                            Lojas ({novoProdutoCompartilhado.lojas_selecionadas.length} selecionadas)
+                                        </h4>
+                                        
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {lojas.map(loja => (
+                                                <div key={loja.id} className="flex items-center space-x-2 p-2 border border-border rounded hover:bg-muted/50">
+                                                    <Checkbox
+                                                        id={`loja-${loja.id}`}
+                                                        checked={novoProdutoCompartilhado.lojas_selecionadas.includes(loja.id)}
+                                                        onCheckedChange={() => toggleLoja(loja.id)}
+                                                    />
+                                                    <Label 
+                                                        htmlFor={`loja-${loja.id}`} 
+                                                        className="text-sm text-foreground cursor-pointer flex-1"
+                                                    >
+                                                        {loja.nome_loja}
+                                                    </Label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        
+                                        {novoProdutoCompartilhado.lojas_selecionadas.length === 0 && (
+                                            <Alert className="bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800">
+                                                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                                                <AlertDescription className="text-yellow-700 dark:text-yellow-300">
+                                                    Selecione pelo menos uma loja para o produto
+                                                </AlertDescription>
+                                            </Alert>
+                                        )}
+                                    </div>
+                                    
+                                    <Separator />
+                                    
+                                    {/* Estoque Compartilhado */}
+                                    <div className="space-y-4">
+                                        <h4 className="font-medium text-foreground flex items-center gap-2">
+                                            <ShoppingCart className="h-4 w-4" />
+                                            Estoque Compartilhado
+                                        </h4>
+                                        
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <Label htmlFor="estoque-compartilhado" className="text-foreground">Quantidade Inicial</Label>
+                                                <Input
+                                                    id="estoque-compartilhado"
+                                                    type="number"
+                                                    min="0"
+                                                    value={novoProdutoCompartilhado.estoque_compartilhado}
+                                                    onChange={(e) => setNovoProdutoCompartilhado(prev => ({ ...prev, estoque_compartilhado: e.target.value }))}
+                                                    className="bg-background border-input text-foreground"
+                                                />
+                                            </div>
+                                        </div>
+                                        
+                                        <Alert className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+                                            <Package className="h-4 w-4 text-blue-600" />
+                                            <AlertDescription className="text-blue-700 dark:text-blue-300">
+                                                <strong>Estoque Compartilhado:</strong> O estoque será único e compartilhado entre todas as lojas selecionadas. Vendas em qualquer loja diminuirão o estoque total.
+                                            </AlertDescription>
+                                        </Alert>
+                                    </div>
+                                </div>
+                            </ScrollArea>
+                            
+                            <div className="flex justify-end space-x-2 pt-4 border-t">
+                                <Button variant="outline" onClick={() => setShowAddProdutoCompartilhado(false)}>
+                                    Cancelar
+                                </Button>
+                                <Button onClick={salvarProdutoCompartilhado} disabled={savingProdutoCompartilhado}>
+                                    {savingProdutoCompartilhado ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+                                    Criar Produto Compartilhado
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                     
                     <Dialog open={showInstructions} onOpenChange={setShowInstructions}>
                         <DialogTrigger asChild>
@@ -939,24 +1333,67 @@ function ControleEstoquePage() {
                                         </CardHeader>
                                         <CardContent className="space-y-3">
                                             <div className="p-3 bg-muted rounded-lg">
-                                                <h4 className="font-semibold text-sm text-foreground">1. Cadastro de Produtos</h4>
-                                                <p className="text-sm text-muted-foreground">Adicione produtos com SKU, nome, estoque inicial e mínimo</p>
+                                                <h4 className="font-semibold text-sm text-foreground">1. Produtos Individuais</h4>
+                                                <p className="text-sm text-muted-foreground">Produtos específicos para uma loja com SKU único</p>
+                                            </div>
+                                            <div className="p-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                                                <h4 className="font-semibold text-sm text-purple-700 dark:text-purple-400 flex items-center gap-1">
+                                                    <Layers className="h-3 w-3" />
+                                                    2. Produtos Compartilhados
+                                                    <Badge variant="secondary" className="text-xs">Novo</Badge>
+                                                </h4>
+                                                <p className="text-sm text-purple-600 dark:text-purple-300">Produtos com múltiplos SKUs e estoque compartilhado entre lojas</p>
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
-                                                <h4 className="font-semibold text-sm text-foreground">2. Ajustes de Estoque</h4>
+                                                <h4 className="font-semibold text-sm text-foreground">3. Ajustes de Estoque</h4>
                                                 <p className="text-sm text-muted-foreground">Adicione ou remova quantidades com motivos de movimentação</p>
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
-                                                <h4 className="font-semibold text-sm text-foreground">3. Alertas</h4>
+                                                <h4 className="font-semibold text-sm text-foreground">4. Alertas</h4>
                                                 <p className="text-sm text-muted-foreground">Receba alertas quando produtos atingem estoque mínimo</p>
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
-                                                <h4 className="font-semibold text-sm text-foreground">4. Histórico Completo</h4>
+                                                <h4 className="font-semibold text-sm text-foreground">5. Histórico Completo</h4>
                                                 <p className="text-sm text-muted-foreground">Visualize todas as movimentações de estoque por produto</p>
                                             </div>
                                             <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                                <h4 className="font-semibold text-sm text-blue-700 dark:text-blue-400">5. Atualizações Manuais</h4>
+                                                <h4 className="font-semibold text-sm text-blue-700 dark:text-blue-400">6. Atualizações Manuais</h4>
                                                 <p className="text-sm text-blue-600 dark:text-blue-300">Use o botão "Atualizar" para buscar os dados mais recentes do servidor</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                    
+                                    <Card className="bg-card border-border">
+                                        <CardHeader>
+                                            <CardTitle className="text-sm text-foreground flex items-center gap-2">
+                                                <Layers className="h-4 w-4 text-purple-600" />
+                                                Produtos Compartilhados
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-3">
+                                            <div className="p-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                                                <h4 className="font-semibold text-sm text-purple-700 dark:text-purple-400">✨ Nova Funcionalidade</h4>
+                                                <p className="text-sm text-purple-600 dark:text-purple-300">Crie produtos com estoque único compartilhado entre múltiplas lojas</p>
+                                            </div>
+                                            
+                                            <div className="space-y-2">
+                                                <h4 className="font-semibold text-sm text-foreground">Características:</h4>
+                                                <div className="text-sm text-muted-foreground space-y-1">
+                                                    <p>• <strong>Múltiplos SKUs:</strong> Adicione quantos SKUs precisar para diferentes variações</p>
+                                                    <p>• <strong>Seleção de Lojas:</strong> Escolha quais lojas terão acesso ao produto</p>
+                                                    <p>• <strong>Estoque Único:</strong> Estoque compartilhado entre todas as lojas selecionadas</p>
+                                                    <p>• <strong>Sincronização Automática:</strong> Vendas em qualquer loja atualizam o estoque total</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="p-2 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded">
+                                                <h5 className="font-medium text-green-700 dark:text-green-400 text-sm">Exemplo de Uso:</h5>
+                                                <div className="text-sm text-green-600 dark:text-green-300 space-y-1">
+                                                    <p><strong>Produto:</strong> Relógio Smartwatch</p>
+                                                    <p><strong>SKUs:</strong> REL-001 (Preto), REL-002 (Branco)</p>
+                                                    <p><strong>Lojas:</strong> Loja A, Loja B</p>
+                                                    <p><strong>Estoque:</strong> 100 unidades (compartilhadas)</p>
+                                                </div>
                                             </div>
                                         </CardContent>
                                     </Card>
