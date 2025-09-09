@@ -84,6 +84,10 @@ class ProdutoEstoque(models.Model):
         if (is_new and self.estoque_inicial > 0 and 
             not getattr(self, '_skip_initial_movement', False)):
             self._create_initial_movement()
+        
+        # CORREÇÃO: Gerar alertas automáticos para produtos recém-criados
+        if (is_new and not getattr(self, '_skip_initial_alerts', False)):
+            self._check_and_create_initial_alerts()
     
     def _create_initial_movement(self):
         """Cria movimentação inicial de estoque"""
@@ -100,6 +104,27 @@ class ProdutoEstoque(models.Model):
             )
         except Exception:
             # Em caso de erro (ex: durante migrações), continuar sem bloquear
+            pass
+    
+    def _check_and_create_initial_alerts(self):
+        """Verifica e cria alertas necessários para produto recém-criado"""
+        try:
+            # Importar aqui para evitar importação circular
+            from .models import AlertaEstoque
+            
+            # Verificar se produto tem estoque zerado e deve alertar
+            if self.estoque_atual == 0 and self.alerta_estoque_zero:
+                AlertaEstoque.gerar_alerta_estoque_zero(self)
+            
+            # Verificar se produto tem estoque baixo e deve alertar 
+            elif self.estoque_atual <= self.estoque_minimo and self.alerta_estoque_baixo and self.estoque_atual > 0:
+                AlertaEstoque.gerar_alerta_estoque_baixo(self)
+                
+        except Exception as e:
+            # Em caso de erro (ex: durante migrações), continuar sem bloquear
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Erro ao criar alertas iniciais para produto {self.sku}: {str(e)}")
             pass
     
     @property

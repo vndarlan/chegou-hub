@@ -912,13 +912,25 @@ function ControleEstoquePage() {
                                                 <h4 className="font-semibold text-sm text-foreground">Passo 1: No Shopify Admin</h4>
                                                 <div className="text-sm text-muted-foreground space-y-1">
                                                     <p>1. Vá em <strong>Settings → Notifications → Webhooks</strong></p>
-                                                    <p>2. Clique em <strong>"Create webhook"</strong></p>
-                                                    <p>3. Configure:</p>
-                                                    <ul className="ml-4 list-disc space-y-1">
-                                                        <li><strong>Event:</strong> Order payment</li>
-                                                        <li><strong>Format:</strong> JSON</li>
-                                                        <li><strong>URL:</strong> <code className="bg-muted px-1 rounded">https://api.chegouhub.com/api/estoque/webhook/order-created/</code></li>
-                                                    </ul>
+                                                    <p>2. Configure <strong>DOIS webhooks</strong>:</p>
+                                                    
+                                                    <div className="mt-3 p-2 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded">
+                                                        <h5 className="font-medium text-green-700 dark:text-green-400">Webhook 1: Criação de Pedido</h5>
+                                                        <ul className="ml-4 list-disc space-y-1 text-green-600 dark:text-green-300">
+                                                            <li><strong>Event:</strong> Order creation</li>
+                                                            <li><strong>Format:</strong> JSON</li>
+                                                            <li><strong>URL:</strong> <code className="bg-green-100 dark:bg-green-900/30 px-1 rounded">https://chegou-hubb-production.up.railway.app/estoque/webhook/shopify/</code></li>
+                                                        </ul>
+                                                    </div>
+
+                                                    <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded">
+                                                        <h5 className="font-medium text-orange-700 dark:text-orange-400">Webhook 2: Cancelamento de Pedido</h5>
+                                                        <ul className="ml-4 list-disc space-y-1 text-orange-600 dark:text-orange-300">
+                                                            <li><strong>Event:</strong> Order cancelled</li>
+                                                            <li><strong>Format:</strong> JSON</li>
+                                                            <li><strong>URL:</strong> <code className="bg-orange-100 dark:bg-orange-900/30 px-1 rounded">https://chegou-hubb-production.up.railway.app/estoque/webhook/shopify/</code></li>
+                                                        </ul>
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -930,10 +942,12 @@ function ControleEstoquePage() {
                                             <div className="space-y-2">
                                                 <h4 className="font-semibold text-sm text-foreground">Benefícios dos Webhooks</h4>
                                                 <ul className="text-sm text-muted-foreground space-y-1 list-disc ml-4">
-                                                    <li>Atualização automática de estoque após pedidos</li>
+                                                    <li>Redução automática de estoque quando pedidos são criados</li>
+                                                    <li>Restauração automática de estoque quando pedidos são cancelados</li>
                                                     <li>Notificações em tempo real na interface</li>
                                                     <li>Alertas automáticos de estoque baixo</li>
                                                     <li>Sincronização sem necessidade de refresh manual</li>
+                                                    <li>Controle preciso do estoque em tempo real</li>
                                                 </ul>
                                             </div>
                                         </CardContent>
