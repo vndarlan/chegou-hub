@@ -350,6 +350,10 @@ class EstoqueService:
                 pedido_shopify_id=order_data.get('shopify_order_id')
             )
             
+            # CORREÇÃO: Verificar alertas automaticamente após cancelamento
+            safe_print(f"[CANCELAMENTO PROCESSOR] Verificando alertas após cancelamento...")
+            produto._check_and_resolve_alerts_after_adjustment()
+            
             safe_print(f"[CANCELAMENTO PROCESSOR] OK Estoque adicionado com sucesso!")
             safe_print(f"[CANCELAMENTO PROCESSOR] Estoque anterior: {estoque_anterior}")
             safe_print(f"[CANCELAMENTO PROCESSOR] Estoque atual: {produto.estoque_atual}")
@@ -502,6 +506,10 @@ class EstoqueService:
                 observacao=observacao,
                 pedido_shopify_id=order_data.get('shopify_order_id')
             )
+            
+            # CORREÇÃO: Verificar alertas automaticamente após movimentação webhook
+            safe_print(f"[ITEM PROCESSOR] Verificando alertas após movimentação...")
+            produto._check_and_resolve_alerts_after_adjustment()
             
             safe_print(f"[ITEM PROCESSOR] OK Estoque removido com sucesso!")
             safe_print(f"[ITEM PROCESSOR] Estoque anterior: {estoque_anterior}")

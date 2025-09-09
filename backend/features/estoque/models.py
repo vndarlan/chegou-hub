@@ -169,6 +169,9 @@ class ProdutoEstoque(models.Model):
             pedido_shopify_id=pedido_shopify_id
         )
         
+        # CORREÇÃO: Verificar e resolver alertas automaticamente após adicionar estoque
+        self._check_and_resolve_alerts_after_adjustment()
+        
         # Notificar atualização de estoque em tempo real
         self._notify_estoque_update(estoque_anterior, 'entrada', observacao)
     
@@ -209,6 +212,9 @@ class ProdutoEstoque(models.Model):
             if alerta:
                 alertas_gerados.append(alerta)
         
+        # CORREÇÃO: Verificar e resolver alertas automaticamente após remover estoque
+        self._check_and_resolve_alerts_after_adjustment()
+        
         # Notificar alertas gerados
         self._notify_alertas_gerados(alertas_gerados)
     
@@ -243,6 +249,71 @@ class ProdutoEstoque(models.Model):
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Erro ao notificar alertas gerados: {str(e)}")
+    
+    def _check_and_resolve_alerts_after_adjustment(self):
+        """Verifica e resolve alertas automaticamente após ajuste de estoque"""
+        try:
+            import logging
+            logger = logging.getLogger(__name__)
+            
+            # Buscar alertas ativos para este produto
+            alertas_ativos = AlertaEstoque.objects.filter(
+                produto=self,
+                status='ativo'
+            )
+            
+            alertas_resolvidos = []
+            
+            for alerta in alertas_ativos:
+                deve_resolver = False
+                motivo_resolucao = ""
+                
+                # Verificar se alerta de estoque zero deve ser resolvido
+                if alerta.tipo_alerta == 'estoque_zero' and self.estoque_atual > 0:
+                    deve_resolver = True
+                    motivo_resolucao = f"Estoque ajustado para {self.estoque_atual} unidades"
+                
+                # Verificar se alerta de estoque baixo deve ser resolvido
+                elif alerta.tipo_alerta == 'estoque_baixo' and self.estoque_atual > self.estoque_minimo:
+                    deve_resolver = True
+                    motivo_resolucao = f"Estoque ajustado para {self.estoque_atual} unidades (acima do mínimo de {self.estoque_minimo})"
+                
+                # Verificar se alerta de estoque negativo deve ser resolvido
+                elif alerta.tipo_alerta == 'estoque_negativo' and self.estoque_atual >= 0:
+                    deve_resolver = True
+                    motivo_resolucao = f"Estoque corrigido para {self.estoque_atual} unidades"
+                
+                # Resolver alerta se necessário
+                if deve_resolver:
+                    alerta.resolver(
+                        observacao=f"Resolvido automaticamente: {motivo_resolucao}"
+                    )
+                    alertas_resolvidos.append(alerta)
+                    
+                    logger.info(f"Alerta {alerta.tipo_alerta} resolvido automaticamente para produto {self.sku}: {motivo_resolucao}")
+            
+            # Notificar alertas resolvidos em tempo real
+            if alertas_resolvidos:
+                self._notify_alertas_resolvidos(alertas_resolvidos)
+                
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Erro ao verificar e resolver alertas automaticamente para produto {self.sku}: {str(e)}")
+    
+    def _notify_alertas_resolvidos(self, alertas_resolvidos: list):
+        """Notifica alertas resolvidos via WebSocket"""
+        try:
+            from features.sync_realtime.services import notify_alerta_resolvido
+            for alerta in alertas_resolvidos:
+                notify_alerta_resolvido(alerta)
+        except ImportError:
+            # Notificações em tempo real não disponíveis
+            pass
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Erro ao notificar alertas resolvidos: {str(e)}")
 
 
 class MovimentacaoEstoque(models.Model):

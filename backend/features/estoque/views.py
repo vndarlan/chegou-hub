@@ -170,14 +170,31 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
             )
         
         try:
+            # Capturar alertas ativos antes do ajuste
+            alertas_antes = list(AlertaEstoque.objects.filter(
+                produto=produto,
+                status='ativo'
+            ).values_list('id', 'tipo_alerta'))
+            
             produto.adicionar_estoque(
                 quantidade=int(quantidade),
                 observacao=observacao
             )
+            
+            # Verificar alertas após o ajuste
+            alertas_depois = AlertaEstoque.objects.filter(
+                produto=produto,
+                status='ativo'
+            ).count()
+            
+            alertas_resolvidos = len(alertas_antes) - alertas_depois
+            
             return Response({
                 'sucesso': True,
                 'mensagem': f'Estoque adicionado com sucesso. Novo total: {produto.estoque_atual}',
-                'estoque_atual': produto.estoque_atual
+                'estoque_atual': produto.estoque_atual,
+                'alertas_resolvidos': alertas_resolvidos,
+                'situacao_estoque': 'adequado' if produto.estoque_atual > produto.estoque_minimo else 'baixo' if produto.estoque_atual > 0 else 'zerado'
             })
         except ValueError as e:
             return Response(
@@ -199,14 +216,34 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
             )
         
         try:
+            # Capturar alertas ativos antes do ajuste
+            alertas_antes = list(AlertaEstoque.objects.filter(
+                produto=produto,
+                status='ativo'
+            ).values_list('id', 'tipo_alerta'))
+            
             produto.remover_estoque(
                 quantidade=int(quantidade),
                 observacao=observacao
             )
+            
+            # Verificar alertas após o ajuste
+            alertas_depois_count = AlertaEstoque.objects.filter(
+                produto=produto,
+                status='ativo'
+            ).count()
+            
+            # Contar novos alertas gerados
+            novos_alertas = max(0, alertas_depois_count - len(alertas_antes))
+            alertas_resolvidos = max(0, len(alertas_antes) - alertas_depois_count + novos_alertas)
+            
             return Response({
                 'sucesso': True,
                 'mensagem': f'Estoque removido com sucesso. Novo total: {produto.estoque_atual}',
-                'estoque_atual': produto.estoque_atual
+                'estoque_atual': produto.estoque_atual,
+                'alertas_resolvidos': alertas_resolvidos,
+                'novos_alertas': novos_alertas,
+                'situacao_estoque': 'adequado' if produto.estoque_atual > produto.estoque_minimo else 'baixo' if produto.estoque_atual > 0 else 'zerado'
             })
         except ValueError as e:
             return Response(
@@ -301,6 +338,64 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
         
         serializer = ProdutoEstoqueResumoSerializer(produtos, many=True)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def verificar_alertas(self, request, pk=None):
+        """Força verificação e resolução de alertas para um produto"""
+        produto = self.get_object()
+        
+        # Capturar estado antes
+        alertas_antes = AlertaEstoque.objects.filter(
+            produto=produto,
+            status='ativo'
+        ).count()
+        
+        # Forçar verificação de alertas
+        produto._check_and_resolve_alerts_after_adjustment()
+        
+        # Capturar estado depois
+        alertas_depois = AlertaEstoque.objects.filter(
+            produto=produto,
+            status='ativo'
+        ).count()
+        
+        alertas_resolvidos = alertas_antes - alertas_depois
+        
+        # Verificar se precisa criar novos alertas
+        novos_alertas_criados = 0
+        if produto.estoque_atual == 0 and produto.alerta_estoque_zero:
+            # Verificar se já existe alerta ativo de estoque zero
+            if not AlertaEstoque.objects.filter(
+                produto=produto,
+                tipo_alerta='estoque_zero',
+                status='ativo'
+            ).exists():
+                AlertaEstoque.gerar_alerta_estoque_zero(produto)
+                novos_alertas_criados += 1
+        elif produto.estoque_atual <= produto.estoque_minimo and produto.estoque_atual > 0 and produto.alerta_estoque_baixo:
+            # Verificar se já existe alerta ativo de estoque baixo
+            if not AlertaEstoque.objects.filter(
+                produto=produto,
+                tipo_alerta='estoque_baixo',
+                status='ativo'
+            ).exists():
+                AlertaEstoque.gerar_alerta_estoque_baixo(produto)
+                novos_alertas_criados += 1
+        
+        return Response({
+            'sucesso': True,
+            'mensagem': f'Verificação de alertas concluída para produto {produto.sku}',
+            'produto_sku': produto.sku,
+            'estoque_atual': produto.estoque_atual,
+            'estoque_minimo': produto.estoque_minimo,
+            'alertas_resolvidos': alertas_resolvidos,
+            'novos_alertas_criados': novos_alertas_criados,
+            'alertas_ativos_total': AlertaEstoque.objects.filter(
+                produto=produto,
+                status='ativo'
+            ).count(),
+            'situacao_estoque': 'adequado' if produto.estoque_atual > produto.estoque_minimo else 'baixo' if produto.estoque_atual > 0 else 'zerado'
+        })
     
     @action(detail=False, methods=['get'])
     def debug_info(self, request):
@@ -653,6 +748,30 @@ class AlertaEstoqueViewSet(viewsets.ModelViewSet):
                 )
             
             alertas_criados = []
+            alertas_resolvidos_total = 0
+            
+            # CORREÇÃO: Primeiro verificar e resolver alertas desnecessários
+            produtos_da_loja = ProdutoEstoque.objects.filter(
+                loja_config=loja_config,
+                user=request.user,
+                ativo=True
+            )
+            
+            for produto in produtos_da_loja:
+                alertas_antes = AlertaEstoque.objects.filter(
+                    produto=produto,
+                    status='ativo'
+                ).count()
+                
+                # Forçar verificação de alertas para cada produto
+                produto._check_and_resolve_alerts_after_adjustment()
+                
+                alertas_depois = AlertaEstoque.objects.filter(
+                    produto=produto,
+                    status='ativo'
+                ).count()
+                
+                alertas_resolvidos_total += max(0, alertas_antes - alertas_depois)
             
             # Buscar produtos com estoque zerado sem alertas ativos
             produtos_estoque_zero = ProdutoEstoque.objects.filter(
@@ -711,7 +830,8 @@ class AlertaEstoqueViewSet(viewsets.ModelViewSet):
             return Response({
                 'alertas': serializer.data,
                 'alertas_criados_agora': alertas_criados,
-                'total_alertas_criados': len(alertas_criados)
+                'total_alertas_criados': len(alertas_criados),
+                'alertas_resolvidos_automaticamente': alertas_resolvidos_total
             })
             
         except Exception as e:
