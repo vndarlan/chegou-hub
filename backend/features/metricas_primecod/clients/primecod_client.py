@@ -197,13 +197,17 @@ class PrimeCODClient:
             "page": 1,  # Será atualizado no loop
         }
         
-        # CORREÇÃO DEFINITIVA: API PrimeCOD NÃO aceita filtros de data
-        # Filtros via API foram testados e ignorados completamente
-        # Solução: Coletar todos os dados e aplicar filtro local
+        # CORREÇÃO DEFINITIVA: Formato creationDatesRange FUNCIONA!
+        # Testado e confirmado - único formato que a API aceita para filtros de data
         date_filter_applied = False
         if date_range and date_range.get('start') and date_range.get('end'):
-            logger.info(f"[FILTRO_LOCAL] API PrimeCOD ignora filtros de data via payload")
-            logger.info(f"[FILTRO_LOCAL] Coletaremos todos os dados e filtraremos localmente: {date_range['start']} até {date_range['end']}")
+            # Usar formato correto: creationDatesRange com ISO timestamps
+            payload["creationDatesRange"] = {
+                "startDate": f"{date_range['start']}T00:00:00.000Z",
+                "endDate": f"{date_range['end']}T23:59:59.999Z"
+            }
+            date_filter_applied = True
+            logger.info(f"[FILTRO_API] Usando creationDatesRange (FUNCIONA): {date_range['start']} até {date_range['end']}")
         else:
             logger.info(f"[SEM_FILTRO] Nenhum filtro de data especificado")
         
@@ -421,12 +425,14 @@ class PrimeCODClient:
             
             # [RAPIDO] FILTROS INTELIGENTES: Data via payload JSON ou localmente
             logger.info(f"[DEBUG] Aplicando filtros inteligentes aos {len(all_orders)} orders")
-            logger.info(f"[DEBUG] Filtro de data aplicado via API: NUNCA (API ignora filtros)")
+            logger.info(f"[DEBUG] Filtro de data aplicado via API (creationDatesRange): {date_filter_applied}")
             
-            # SEMPRE aplicar filtro localmente - API nunca aceita filtros de data
-            date_range_local = date_range
+            # Se filtro foi aplicado via API, NÃO aplicar localmente
+            date_range_local = None if date_filter_applied else date_range
             
-            if date_range_local and date_range_local.get('start'):
+            if date_filter_applied:
+                logger.info(f"[FILTRO_API] Filtro já aplicado via creationDatesRange - NÃO aplicar localmente")
+            elif date_range_local and date_range_local.get('start'):
                 logger.info(f"[FILTRO_LOCAL] Aplicando filtro de DATA localmente: {date_range_local['start']} - {date_range_local['end']}")
             else:
                 logger.info(f"[SEM_FILTRO] Nenhum filtro de data especificado")
@@ -443,16 +449,18 @@ class PrimeCODClient:
                 'country_filter_applied': country_filter,
                 'status': 'success',
                 'data_source': 'api_optimized',
-                'filtros_payload_json_aplicados': False  # API nunca aceita filtros
+                'filtros_payload_json_aplicados': date_filter_applied  # creationDatesRange funciona!
             }
             
             logger.info(f"[SUCCESS] Busca OTIMIZADA finalizada com sucesso:")
             logger.info(f"[DATA] Orders coletados (bruto): {len(all_orders)}")
             logger.info(f"[DEBUG] Orders após filtros aplicados: {len(filtered_orders)}")
             logger.info(f"[PAGE] Páginas processadas: {pages_processed}")
-            logger.info(f"[FILTROS] API PrimeCOD: NUNCA aceita filtros de data (testado e confirmado)")
-            if date_range and date_range.get('start'):
-                logger.info(f"[FILTRO_LOCAL] Filtro de data aplicado LOCALMENTE após coleta: {date_range['start']} - {date_range['end']}")
+            logger.info(f"[FILTROS] API PrimeCOD: creationDatesRange FUNCIONA (testado e confirmado)")
+            if date_filter_applied:
+                logger.info(f"[FILTRO_API] Filtro de data aplicado via API: {date_range['start']} - {date_range['end']}")
+            elif date_range and date_range.get('start'):
+                logger.info(f"[FILTRO_LOCAL] Filtro de data aplicado LOCALMENTE: {date_range['start']} - {date_range['end']}")
             logger.info(f"[COUNTRY] Filtro de país aplicado localmente: {'Não (Todos os países)' if not country_filter or country_filter.lower().strip() in ['todos', 'todos os países', 'all', 'all countries'] else f'Sim ({country_filter})'}")
             
             return result
@@ -532,10 +540,16 @@ class PrimeCODClient:
             "page": 1,  # Será atualizado no loop
         }
         
-        # API PrimeCOD NÃO aceita filtros de data (testado e confirmado)
-        # Filtros serão aplicados localmente após coleta completa
+        # CORREÇÃO: Formato creationDatesRange FUNCIONA para filtros via API
+        date_filter_applied = False
         if date_range and date_range.get('start') and date_range.get('end'):
-            logger.info(f"[FILTRO_LOCAL] API ignora filtros de data - aplicaremos localmente: {date_range['start']} até {date_range['end']}")
+            # Usar formato correto: creationDatesRange com ISO timestamps
+            payload["creationDatesRange"] = {
+                "startDate": f"{date_range['start']}T00:00:00.000Z",
+                "endDate": f"{date_range['end']}T23:59:59.999Z"
+            }
+            date_filter_applied = True
+            logger.info(f"[FILTRO_API] Usando creationDatesRange (FUNCIONA): {date_range['start']} até {date_range['end']}")
         else:
             logger.info(f"[SEM_FILTRO] Nenhum filtro de data especificado")
         
@@ -771,8 +785,8 @@ class PrimeCODClient:
             
             # [RAPIDO] FILTROS ASSÍNCRONOS: Data via payload JSON, país localmente
             logger.info(f"[DEBUG] Aplicando filtro de PAÍS localmente aos {len(all_orders)} orders ASSÍNCRONOS (data via payload JSON)")
-            # SEMPRE aplicar filtro localmente - API nunca aceita filtros de data
-            date_range_local = date_range
+            # Se filtro foi aplicado via API, NÃO aplicar localmente
+            date_range_local = None if date_filter_applied else date_range
             filtered_orders = self._apply_local_filters(all_orders, date_range_local, country_filter)
             
             result = {
@@ -785,7 +799,7 @@ class PrimeCODClient:
                 'country_filter_applied': country_filter,
                 'status': 'success',
                 'data_source': 'async_api_optimized',
-                'filtros_payload_json_aplicados': False,  # API nunca aceita filtros
+                'filtros_payload_json_aplicados': date_filter_applied,  # creationDatesRange funciona!
                 'timeout_aplicado': timeout_limite and loop_duration > timeout_limite,
                 'tempo_total': loop_duration
             }
