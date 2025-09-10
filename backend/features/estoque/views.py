@@ -73,9 +73,17 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
     throttle_classes = [EstoqueUserRateThrottle]
     
     def get_serializer_class(self):
-        """Usar serializer resumido para listagem"""
+        """Usar serializer resumido para listagem e detectar tipo de produto"""
         if self.action == 'list':
             return ProdutoEstoqueResumoSerializer
+        
+        # Para operações de create/update, detectar se são dados de produto compartilhado
+        if self.action in ['create', 'update', 'partial_update']:
+            data = getattr(self.request, 'data', {})
+            # Se contém skus_data ou lojas_ids, é produto compartilhado
+            if 'skus_data' in data or 'lojas_ids' in data:
+                return ProdutoSerializer
+        
         return ProdutoEstoqueSerializer
     
     def perform_create(self, serializer):
@@ -83,27 +91,34 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
         try:
             # Log detalhado para debug
             logger.info(f"Criando produto - Usuário: {self.request.user.username} - Dados: {serializer.validated_data}")
+            logger.info(f"Serializer usado: {type(serializer).__name__}")
             
-            # Salvar o produto primeiro - o modelo já configurará o estoque inicial
-            produto = serializer.save(user=self.request.user)
+            # Verificar se é produto compartilhado ou produto por loja
+            is_produto_compartilhado = isinstance(serializer, ProdutoSerializer)
             
-            logger.info(f"Produto criado com sucesso: {produto}")
-            
-            # Atualizar a movimentação inicial se foi criada pelo modelo
-            # para incluir o usuário que criou via API
-            if produto.estoque_inicial > 0:
-                movimentacao_inicial = MovimentacaoEstoque.objects.filter(
-                    produto=produto,
-                    tipo_movimento='entrada',
-                    observacoes='Estoque inicial do produto',
-                    usuario__isnull=True
-                ).first()
+            if is_produto_compartilhado:
+                # Para produtos compartilhados, o serializer já trata tudo
+                produto = serializer.save()
+                logger.info(f"Produto compartilhado criado com sucesso: {produto.nome}")
+            else:
+                # Para produtos por loja (ProdutoEstoque)
+                produto = serializer.save(user=self.request.user)
+                logger.info(f"Produto por loja criado com sucesso: {produto.sku}")
                 
-                if movimentacao_inicial:
-                    movimentacao_inicial.usuario = self.request.user
-                    movimentacao_inicial.origem_sync = 'manual'
-                    movimentacao_inicial.save()
-                    logger.info(f"Movimentação inicial atualizada para produto {produto.sku}")
+                # Atualizar a movimentação inicial se foi criada pelo modelo
+                if hasattr(produto, 'estoque_inicial') and produto.estoque_inicial > 0:
+                    movimentacao_inicial = MovimentacaoEstoque.objects.filter(
+                        produto=produto,
+                        tipo_movimento='entrada',
+                        observacoes='Estoque inicial do produto',
+                        usuario__isnull=True
+                    ).first()
+                    
+                    if movimentacao_inicial:
+                        movimentacao_inicial.usuario = self.request.user
+                        movimentacao_inicial.origem_sync = 'manual'
+                        movimentacao_inicial.save()
+                        logger.info(f"Movimentação inicial atualizada para produto {produto.sku}")
                     
         except Exception as e:
             logger.error(f"Erro ao criar produto: {str(e)} - Usuário: {self.request.user.username}")
