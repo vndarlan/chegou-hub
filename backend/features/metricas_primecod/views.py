@@ -272,20 +272,51 @@ def buscar_orders_primecod(request):
                 country_filter=pais_filtro  # Aplicar filtro de país no cliente
             )
             
-            # LOG DE DEBUG: Verificar o que retornou da API
-            logger.info(f"[DEBUG] Resultado da API: {type(resultado)}")
-            logger.info(f"[DEBUG] Keys do resultado: {list(resultado.keys()) if isinstance(resultado, dict) else 'Não é dict'}")
+            # LOG DE DEBUG DETALHADO: Verificar o que retornou da API
+            logger.info(f"[DEBUG] RESULTADO DA API PrimeCOD:")
+            logger.info(f"[DEBUG]   - Tipo: {type(resultado)}")
+            logger.info(f"[DEBUG]   - Keys: {list(resultado.keys()) if isinstance(resultado, dict) else 'Não é dict'}")
+            
             if isinstance(resultado, dict):
-                logger.info(f"[DEBUG] Total orders na resposta: {resultado.get('total_orders', 'N/A')}")
-                logger.info(f"[DEBUG] Status da resposta: {resultado.get('status', 'N/A')}")
+                logger.info(f"[DEBUG]   - Total orders brutos: {resultado.get('total_orders_raw', 'N/A')}")
+                logger.info(f"[DEBUG]   - Total orders filtrados: {resultado.get('total_orders', 'N/A')}")
+                logger.info(f"[DEBUG]   - Status da resposta: {resultado.get('status', 'N/A')}")
+                logger.info(f"[DEBUG]   - Páginas processadas: {resultado.get('pages_processed', 'N/A')}")
+                logger.info(f"[DEBUG]   - Filtros aplicados via JSON: {resultado.get('filtros_payload_json_aplicados', 'N/A')}")
+                logger.info(f"[DEBUG]   - Filtro de data aplicado: {resultado.get('date_range_applied', 'N/A')}")
+                logger.info(f"[DEBUG]   - Filtro de país aplicado: {resultado.get('country_filter_applied', 'N/A')}")
+                
                 if 'orders' in resultado:
-                    logger.info(f"[DEBUG] Número de orders retornados: {len(resultado['orders'])}")
+                    orders_count = len(resultado['orders'])
+                    logger.info(f"[DEBUG]   - Número de orders retornados: {orders_count}")
+                    
                     if resultado['orders']:
                         first_order = resultado['orders'][0]
-                        logger.info(f"[DEBUG] Primeiro order - ID: {first_order.get('id', 'N/A')}")
-                        logger.info(f"[DEBUG] Primeiro order - shipping_status: {first_order.get('shipping_status', 'N/A')}")
-                        logger.info(f"[DEBUG] Primeiro order - country: {first_order.get('country', 'N/A')}")
-                        logger.info(f"[DEBUG] Primeiro order - produtos: {len(first_order.get('products', []))}")
+                        logger.info(f"[DEBUG]   - Primeiro order:")
+                        logger.info(f"[DEBUG]     * ID: {first_order.get('id', 'N/A')}")
+                        logger.info(f"[DEBUG]     * Status: {first_order.get('shipping_status', 'N/A')}")
+                        logger.info(f"[DEBUG]     * País: {first_order.get('country', {}).get('name', 'N/A') if isinstance(first_order.get('country'), dict) else first_order.get('country', 'N/A')}")
+                        logger.info(f"[DEBUG]     * Produtos: {len(first_order.get('products', []))}")
+                        if first_order.get('products'):
+                            first_product = first_order['products'][0]
+                            logger.info(f"[DEBUG]     * Primeiro produto: {first_product.get('name', 'N/A')}")
+                    
+                    # Verificação crítica: Se período grande retornou 0 orders
+                    if orders_count == 0 and data_inicio and data_fim:
+                        from datetime import datetime
+                        try:
+                            start_date = datetime.strptime(data_inicio, '%Y-%m-%d')
+                            end_date = datetime.strptime(data_fim, '%Y-%m-%d')
+                            days_diff = (end_date - start_date).days
+                            
+                            if days_diff > 7:
+                                logger.error(f"[CRITICAL] PROBLEMA DETECTADO:")
+                                logger.error(f"[CRITICAL]   - Período solicitado: {days_diff} dias")
+                                logger.error(f"[CRITICAL]   - Orders retornados: 0")
+                                logger.error(f"[CRITICAL]   - Filtro via JSON aplicado: {resultado.get('filtros_payload_json_aplicados', False)}")
+                                logger.error(f"[CRITICAL]   - Possível causa: API não aceita filtros de data para períodos grandes")
+                        except Exception as e:
+                            logger.warning(f"[DEBUG] Erro ao calcular diferença de dias: {str(e)}")
                 else:
                     logger.warning(f"[WARNING] Chave 'orders' não encontrada no resultado!")
             
@@ -350,7 +381,7 @@ def buscar_orders_primecod(request):
                 'dados_processados': orders_processados['dados_processados'],
                 'estatisticas': orders_processados['estatisticas'],
                 'status_nao_mapeados': orders_processados['status_nao_mapeados'],
-                'message': f"Busca concluída em {duration:.1f}s: {resultado.get('total_orders_raw', resultado['total_orders'])} orders coletados, {resultado['total_orders']} após filtros"
+                'message': f"Busca concluída em {duration:.1f}s: {resultado.get('total_orders_raw', resultado['total_orders'])} orders coletados, {resultado['total_orders']} após filtros" + (f" (filtro de data aplicado {'via API' if resultado.get('filtros_payload_json_aplicados') else 'localmente'})" if resultado.get('date_range_applied') else "")
             }
             
             logger.info(f"Busca PrimeCOD concluída para {request.user.username}: {resultado['total_orders']} orders")
