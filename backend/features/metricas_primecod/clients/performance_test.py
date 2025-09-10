@@ -160,7 +160,7 @@ class PrimeCODPerformanceTest:
 def add_performance_methods():
     """Adiciona métodos de teste ao PrimeCODClient"""
     
-    def get_orders_paginated_with_filters(self, date_range=None, max_pages=500):
+    def get_orders_paginated_with_filters(self, date_range=None, max_pages=200):
         """Método de paginação com filtros - versão corrigida"""
         
         url = f"{self.base_url}/orders"
@@ -192,9 +192,14 @@ def add_performance_methods():
                 
                 logger.info(f"[PAGINAÇÃO] Página {current_page}: current_page={current_page_api}, last_page={last_page}, total={total}")
                 
-                # CORREÇÃO CRÍTICA: Parar se current_page > last_page
+                # CORREÇÃO CRÍTICA: Múltiplas verificações de parada
                 if current_page_api > last_page:
                     logger.info(f"[PAGINAÇÃO] FIM: Página {current_page_api} > last_page {last_page}")
+                    break
+                
+                # CORREÇÃO ADICIONAL: Parar se current_page (nossa variável) > last_page
+                if current_page > last_page:
+                    logger.info(f"[PAGINAÇÃO] FIM: current_page {current_page} > last_page {last_page} - fim por limite de paginação")
                     break
                 
                 # Extrair orders
@@ -203,6 +208,11 @@ def add_performance_methods():
                 if not orders:
                     consecutive_empty_pages += 1
                     logger.info(f"[PAGINAÇÃO] Página {current_page} vazia ({consecutive_empty_pages} consecutivas)")
+                    
+                    # CORREÇÃO CRÍTICA: Parar se chegamos ao fim da paginação
+                    if current_page_api >= last_page or current_page > last_page:
+                        logger.info(f"[PAGINAÇÃO] FIM: Página vazia E chegou ao fim (página {current_page_api}/{last_page})")
+                        break
                     
                     # Se 3 páginas vazias consecutivas, parar
                     if consecutive_empty_pages >= 3:
@@ -213,12 +223,18 @@ def add_performance_methods():
                     all_orders.extend(orders)
                     logger.info(f"[PAGINAÇÃO] Página {current_page}: +{len(orders)} orders (total: {len(all_orders)})")
                 
-                current_page += 1
                 pages_processed += 1
                 
-                # Parar se atingiu última página conhecida
-                if current_page > last_page:
-                    logger.info(f"[PAGINAÇÃO] FIM: Atingiu última página {last_page}")
+                # CORREÇÃO CRÍTICA: Parar ANTES de incrementar se já atingiu última página
+                if current_page >= last_page:
+                    logger.info(f"[PAGINAÇÃO] FIM: Atingiu última página {last_page} - PARANDO")
+                    break
+                
+                current_page += 1
+                
+                # PROTEÇÃO FINAL: Nunca passar do max_pages
+                if current_page > max_pages:
+                    logger.info(f"[PAGINAÇÃO] FIM: Atingiu max_pages {max_pages}")
                     break
                 
             except Exception as e:
@@ -232,7 +248,7 @@ def add_performance_methods():
             'method': 'paginated_with_filters'
         }
     
-    def get_orders_complete_no_filters(self, max_pages=500):
+    def get_orders_complete_no_filters(self, max_pages=200):
         """Método de coleta completa sem filtros - versão corrigida"""
         
         url = f"{self.base_url}/orders"

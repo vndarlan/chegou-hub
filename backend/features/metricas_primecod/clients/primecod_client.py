@@ -132,7 +132,7 @@ class PrimeCODClient:
     def get_orders(self, 
                    page: int = 1, 
                    date_range: Optional[Dict[str, str]] = None,
-                   max_pages: int = 1000,  # [RAPIDO] ULTRA-OTIMIZADO: Suporta 1000+ páginas (50k+ orders)
+                   max_pages: Optional[int] = None,  # SEM LIMITE - para automaticamente quando API acabar
                    country_filter: Optional[str] = None) -> Dict:
         """
         [RAPIDO] ULTRA-OTIMIZADO: Suporte completo a 1000+ páginas sem timeout!
@@ -246,36 +246,20 @@ class PrimeCODClient:
             
             consecutive_empty_pages = 0  # Contador de páginas vazias consecutivas
             
-            while current_page <= max_pages:
+            while True:  # SEM LIMITE - para quando API acabar
                 # Apenas monitorar progresso (SEM interromper por tempo)
                 loop_duration = time.time() - loop_start_time
                 
-                # CORREÇÃO CRÍTICA 1: Parar ANTES da requisição se já sabemos o total de páginas
-                if total_pages and current_page > total_pages:
-                    logger.info(f"[FIM] Parando ANTES da requisição: página {current_page} > total_pages {total_pages}")
-                    break
-                
                 logger.info(f"[PAGE] Processando página {current_page} (tempo: {loop_duration:.1f}s)")
                 
-                # [RAPIDO] HEARTBEAT LOG: Manter worker "vivo" no Railway + Timeout check
-                if pages_processed % 5 == 0 and pages_processed > 0:  # Heartbeat mais frequente
-                    logger.info(f"[HEARTBEAT] HEARTBEAT: {pages_processed} páginas processadas, {len(all_orders)} orders coletados")
+                # [RAPIDO] HEARTBEAT LOG: Manter worker "vivo" no Railway
+                if pages_processed % 10 == 0 and pages_processed > 0:
+                    logger.info(f"[HEARTBEAT] {pages_processed} páginas processadas, {len(all_orders)} orders coletados")
                     logger.info(f"[ALIVE] Worker ativo - tempo: {loop_duration:.1f}s")
-                    
-                    # Aviso prévio de timeout próximo (5 min antes do limite)
-                    if loop_duration > 20 * 60:  # 20 minutos
-                        logger.warning(f"[TIMEOUT] Aviso: Tempo elevado {loop_duration/60:.1f}min - considere parar em breve")
                 
-                # CORREÇÃO CRÍTICA 2: Proteção contra loop infinito melhorada
-                if pages_processed >= max_pages:
-                    logger.warning(f"[SUCCESS] Limite de {max_pages} páginas atingido - interrompendo coleta")
-                    break
-                    
-                # Timeout preventivo inteligente (parar 3 min antes do limite do Railway)
-                if loop_duration > 27 * 60:  # 27 minutos (3 min antes dos 30 min do Railway)
-                    logger.warning(f"[TIMEOUT] Timeout preventivo ativado aos {loop_duration/60:.1f} min")
-                    logger.warning(f"[TIMEOUT] Dados coletados: {len(all_orders)} orders em {pages_processed} páginas")
-                    logger.warning(f"[TIMEOUT] Parando para evitar timeout do Railway")
+                # Proteção de segurança: timeout depois de 25 minutos (evitar timeout Railway)
+                if loop_duration > 25 * 60:  # 25 minutos
+                    logger.warning(f"[TIMEOUT] Timeout de segurança aos {loop_duration/60:.1f} min - salvando {len(all_orders)} orders coletados")
                     break
                 
                 # [RAPIDO] CORREÇÃO CRÍTICA: Usar POST com payload JSON + TIMEOUT HANDLING
@@ -305,20 +289,17 @@ class PrimeCODClient:
                 data = response.json()
                 logger.info(f"[INFO] Estrutura da resposta: {list(data.keys()) if isinstance(data, dict) else type(data)}")
                 
-                # VERIFICAÇÃO CRÍTICA DE PAGINAÇÃO: Verificar ANTES de processar dados
+                # VERIFICAÇÃO CRÍTICA DE PAGINAÇÃO: Baseada na estrutura real da API
                 current_page_api = data.get('current_page', current_page)
                 last_page = data.get('last_page', 1)
+                from_value = data.get('from')
+                to_value = data.get('to')
                 
-                logger.info(f"[PAGINATION] Página {current_page}: current_page={current_page_api}, last_page={last_page}")
+                logger.info(f"[PAGINATION] Página {current_page}: current_page={current_page_api}, last_page={last_page}, from={from_value}, to={to_value}")
                 
-                # CORREÇÃO CRÍTICA 3: Múltiplas verificações de parada
-                if current_page_api > last_page:
-                    logger.info(f"[FIM] Página {current_page_api} > last_page {last_page} - fim natural da paginação")
-                    break
-                
-                # CORREÇÃO ADICIONAL: Parar se current_page (nossa variável) > last_page
-                if current_page > last_page:
-                    logger.info(f"[FIM] current_page {current_page} > last_page {last_page} - fim por limite de paginação")
+                # CORREÇÃO DEFINITIVA: Parar quando API indica fim real dos dados
+                if from_value is None and to_value is None:
+                    logger.info(f"[FIM] Página {current_page_api} sem range (from/to = None) - fim dos dados")
                     break
                 
                 # Log informações de paginação na primeira página
@@ -416,21 +397,10 @@ class PrimeCODClient:
                         logger.info(f"   - primeiro produto: {first_order['products'][0].get('name', 'N/A')}")
                     logger.info(f"   - campos disponíveis: {list(first_order.keys())}")
                 
-                # CORREÇÃO CRÍTICA 4: Melhor condição de parada com páginas vazias consecutivas
+                # CORREÇÃO DEFINITIVA: Parar quando não há orders (fim real dos dados)
                 if not orders or len(orders) == 0:
-                    consecutive_empty_pages += 1
-                    logger.info(f"[FIM] Página {current_page} sem orders ({consecutive_empty_pages} consecutivas)")
-                    
-                    # Se chegamos ao fim da paginação ou não há dados, parar
-                    if current_page_api >= last_page:
-                        logger.info(f"[FIM] Confirmado: página {current_page_api} >= last_page {last_page} - fim natural")
-                        break
-                    elif consecutive_empty_pages >= 3:  # 3 páginas vazias consecutivas = parar
-                        logger.info(f"[FIM] 3 páginas vazias consecutivas - assumindo fim da coleta")
-                        break
-                    elif current_page == 1 and consecutive_empty_pages >= 1:
-                        logger.warning(f"[FIM] Primeira página sem dados - possível problema na API")
-                        break
+                    logger.info(f"[FIM] Página {current_page} sem orders - fim dos dados")
+                    break
                 else:
                     # Resetar contador se encontrou dados
                     consecutive_empty_pages = 0
@@ -469,19 +439,16 @@ class PrimeCODClient:
             # [RAPIDO] RESULTADO ULTRA-RÁPIDO: Performance final
             pages_per_second = pages_processed / final_duration if final_duration > 0 else 0
             orders_per_second = len(all_orders) / final_duration if final_duration > 0 else 0
+            orders_per_page = len(all_orders) / pages_processed if pages_processed > 0 else 0
             
-            logger.info(f"[CACHE] [RAPIDO] COLETA ULTRA-RÁPIDA FINALIZADA:")
+            logger.info(f"[CACHE] [RAPIDO] COLETA FINALIZADA:")
             logger.info(f"[TIME] Duração total: {final_duration:.1f}s ({final_duration/60:.1f}min)")
             logger.info(f"[INICIO] VELOCIDADE: {pages_per_second:.1f} páginas/s, {orders_per_second:.1f} orders/s")
-            logger.info(f"[RAPIDO] RESULTADO: {pages_processed} páginas × {len(all_orders)/pages_processed if pages_processed > 0 else 0:.1f} = {len(all_orders)} orders!")
+            logger.info(f"[RAPIDO] RESULTADO: {pages_processed} páginas × {orders_per_page:.1f} = {len(all_orders)} orders!")
             logger.info(f"[PAGE] Última página: {current_page - 1}/{total_pages or '?'}")
-            logger.info(f"[CRITICO] OTIMIZAÇÃO: Rate limit 50ms (4x mais rápido) + Heartbeat logs")
+            logger.info(f"[CRITICO] OTIMIZAÇÃO: Para automaticamente quando API acabar")
             
-            if pages_processed >= max_pages:
-                logger.warning(f"[SUCCESS]️ Coleta interrompida: atingiu limite máximo de {max_pages} páginas")
-                logger.warning(f"[SUCCESS]️ Se você esperava mais dados, aumente o parâmetro max_pages ou remova o limite")
-            else:
-                logger.info(f"[SUCCESS] Coleta finalizada normalmente: encontrou página vazia na página {current_page}")
+            logger.info(f"[SUCCESS] Coleta finalizada normalmente: encontrou página vazia na página {current_page}")
             
             # Salvar dados completos no cache ANTES de aplicar filtros
             if cache_key:
