@@ -312,16 +312,32 @@ function ControleEstoquePage() {
         
         setSearchingProdutos(true);
         try {
-            const response = await axios.get('/estoque/produtos/', {
-                params: { loja_id: lojaSelecionada }
+            // Carregar produtos por loja E produtos compartilhados em paralelo
+            const [produtosLojaResponse, produtosCompartilhadosResponse] = await Promise.all([
+                // Produtos específicos da loja
+                axios.get('/estoque/produtos/', {
+                    params: { loja_id: lojaSelecionada }
+                }),
+                // Produtos compartilhados (endpoint específico)
+                axios.get('/estoque/produtos-compartilhados/')
+            ]);
+            
+            const produtosLoja = produtosLojaResponse.data || [];
+            const produtosCompartilhados = produtosCompartilhadosResponse.data || [];
+            
+            // Combinar produtos evitando duplicatas
+            const produtosCombinados = [...produtosLoja];
+            
+            // Adicionar produtos compartilhados que não estão já incluídos
+            produtosCompartilhados.forEach(produto => {
+                if (!produtosCombinados.find(p => p.id === produto.id)) {
+                    produtosCombinados.push(produto);
+                }
             });
             
-            if (response.data && Array.isArray(response.data)) {
-                setProdutos(response.data);
-                showNotification(`${response.data.length || 0} produtos carregados`);
-            } else {
-                showNotification(response.data.error || 'Erro ao carregar produtos', 'error');
-            }
+            setProdutos(produtosCombinados);
+            showNotification(`${produtosCombinados.length || 0} produtos carregados (${produtosLoja.length} da loja + ${produtosCompartilhados.length} compartilhados)`);
+            
         } catch (error) {
             console.error('Erro ao carregar produtos:', error);
             showNotification('Erro ao carregar produtos', 'error');
@@ -487,6 +503,10 @@ function ControleEstoquePage() {
             return;
         }
         
+        // Garantir que a loja atual esteja incluída nas associações
+        const lojasParaAssociar = [...new Set([...novoProdutoCompartilhado.lojas_selecionadas, lojaSelecionada])];
+        console.log('Lojas que serão associadas:', lojasParaAssociar);
+        
         setSavingProdutoCompartilhado(true);
         try {
             const dados = {
@@ -498,13 +518,13 @@ function ControleEstoquePage() {
                     sku: sku.sku.trim(),
                     descricao_variacao: sku.descricao_variacao || ''
                 })),
-                lojas_ids: novoProdutoCompartilhado.lojas_selecionadas
+                lojas_ids: lojasParaAssociar
             };
             
             console.log('=== DEBUG CRIAÇÃO PRODUTO COMPARTILHADO ===');
             console.log('Dados enviados:', dados);
             
-            const response = await axios.post('/estoque/produtos/', dados, {
+            const response = await axios.post('/estoque/produtos-compartilhados/', dados, {
                 headers: { 
                     'X-CSRFToken': getCSRFToken(),
                     'Content-Type': 'application/json'

@@ -1811,7 +1811,7 @@ class ProdutoViewSet(viewsets.ModelViewSet):
         if sku:
             queryset = queryset.filter(skus__sku__icontains=sku).distinct()
         
-        # Filtro por loja
+        # Filtro por loja (produtos compartilhados podem estar associados a múltiplas lojas)
         loja_id = self.request.query_params.get('loja_id')
         if loja_id:
             queryset = queryset.filter(produtoloja_set__loja_id=loja_id).distinct()
