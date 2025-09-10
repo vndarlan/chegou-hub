@@ -505,6 +505,61 @@ def processar_dados_primecod(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def testar_performance_primecod(request):
+    """
+    Testa performance comparativa: Paginação vs Coleta Completa
+    Período de teste: 2025-08-01 a 2025-09-10 (como solicitado)
+    """
+    try:
+        # Extrair período do request ou usar padrão
+        data_inicio = request.data.get('data_inicio', '2025-08-01')
+        data_fim = request.data.get('data_fim', '2025-09-10')
+        
+        logger.info(f"=== TESTE DE PERFORMANCE PRIMECOD ===")
+        logger.info(f"Usuário: {request.user.username}")
+        logger.info(f"Período: {data_inicio} até {data_fim}")
+        
+        # Verificar configuração do token
+        from django.conf import settings
+        token = getattr(settings, 'PRIMECOD_API_TOKEN', None)
+        
+        if not token or token == 'your_primecod_api_token_here':
+            return Response({
+                'status': 'error',
+                'message': 'Token PrimeCOD não configurado'
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        
+        # Importar teste de performance
+        from .clients.performance_test import PrimeCODPerformanceTest
+        
+        # Executar teste comparativo
+        teste = PrimeCODPerformanceTest()
+        
+        date_range = {
+            'start': data_inicio,
+            'end': data_fim
+        }
+        
+        resultado_comparacao = teste.run_performance_comparison(date_range)
+        
+        return Response({
+            'status': 'success',
+            'periodo_testado': f"{data_inicio} até {data_fim}",
+            'usuario': request.user.username,
+            'resultado': resultado_comparacao,
+            'message': f'Teste de performance concluído para período {data_inicio} - {data_fim}'
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro em testar_performance_primecod: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Erro no teste de performance: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def testar_conexao_primecod(request):

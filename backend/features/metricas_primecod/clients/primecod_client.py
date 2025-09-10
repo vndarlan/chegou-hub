@@ -244,11 +244,13 @@ class PrimeCODClient:
             import time
             loop_start_time = time.time()
             
+            consecutive_empty_pages = 0  # Contador de páginas vazias consecutivas
+            
             while current_page <= max_pages:
                 # Apenas monitorar progresso (SEM interromper por tempo)
                 loop_duration = time.time() - loop_start_time
                 
-                # VERIFICAÇÃO CRÍTICA: Parar ANTES da requisição se já sabemos o total de páginas
+                # CORREÇÃO CRÍTICA 1: Parar ANTES da requisição se já sabemos o total de páginas
                 if total_pages and current_page > total_pages:
                     logger.info(f"[FIM] Parando ANTES da requisição: página {current_page} > total_pages {total_pages}")
                     break
@@ -264,7 +266,7 @@ class PrimeCODClient:
                     if loop_duration > 20 * 60:  # 20 minutos
                         logger.warning(f"[TIMEOUT] Aviso: Tempo elevado {loop_duration/60:.1f}min - considere parar em breve")
                 
-                # Proteção contra loop infinito e timeout inteligente
+                # CORREÇÃO CRÍTICA 2: Proteção contra loop infinito melhorada
                 if pages_processed >= max_pages:
                     logger.warning(f"[SUCCESS] Limite de {max_pages} páginas atingido - interrompendo coleta")
                     break
@@ -309,9 +311,14 @@ class PrimeCODClient:
                 
                 logger.info(f"[PAGINATION] Página {current_page}: current_page={current_page_api}, last_page={last_page}")
                 
-                # CORREÇÃO CRÍTICA: Parar quando ultrapassar last_page
+                # CORREÇÃO CRÍTICA 3: Múltiplas verificações de parada
                 if current_page_api > last_page:
                     logger.info(f"[FIM] Página {current_page_api} > last_page {last_page} - fim natural da paginação")
+                    break
+                
+                # CORREÇÃO ADICIONAL: Parar se current_page (nossa variável) > last_page
+                if current_page > last_page:
+                    logger.info(f"[FIM] current_page {current_page} > last_page {last_page} - fim por limite de paginação")
                     break
                 
                 # Log informações de paginação na primeira página
@@ -409,20 +416,24 @@ class PrimeCODClient:
                         logger.info(f"   - primeiro produto: {first_order['products'][0].get('name', 'N/A')}")
                     logger.info(f"   - campos disponíveis: {list(first_order.keys())}")
                 
-                # CONDIÇÃO DE PARADA: página vazia ou fim da paginação
+                # CORREÇÃO CRÍTICA 4: Melhor condição de parada com páginas vazias consecutivas
                 if not orders or len(orders) == 0:
-                    logger.info(f"[FIM] Página {current_page} sem orders")
+                    consecutive_empty_pages += 1
+                    logger.info(f"[FIM] Página {current_page} sem orders ({consecutive_empty_pages} consecutivas)")
                     
                     # Se chegamos ao fim da paginação ou não há dados, parar
                     if current_page_api >= last_page:
                         logger.info(f"[FIM] Confirmado: página {current_page_api} >= last_page {last_page} - fim natural")
                         break
-                    elif current_page > 1:
-                        logger.info(f"[FIM] Página vazia encontrada - assumindo fim da coleta")
+                    elif consecutive_empty_pages >= 3:  # 3 páginas vazias consecutivas = parar
+                        logger.info(f"[FIM] 3 páginas vazias consecutivas - assumindo fim da coleta")
                         break
-                    else:
+                    elif current_page == 1 and consecutive_empty_pages >= 1:
                         logger.warning(f"[FIM] Primeira página sem dados - possível problema na API")
                         break
+                else:
+                    # Resetar contador se encontrou dados
+                    consecutive_empty_pages = 0
                 
                 # PROTEÇÃO ADICIONAL: Se orders é muito pequeno, pode indicar fim da coleta
                 if len(orders) < 50:   # API POST retorna variável orders por página, menos orders indica fim ou última página

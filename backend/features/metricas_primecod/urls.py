@@ -5,6 +5,7 @@ from .views import (
     StatusMappingPrimeCODViewSet,
     buscar_orders_primecod,
     processar_dados_primecod,
+    testar_performance_primecod,
     testar_conexao_primecod,
     iniciar_coleta_async_primecod,
     status_job_primecod
@@ -20,6 +21,7 @@ urlpatterns = [
     # Endpoints Proxy para API PrimeCOD (NOVOS)
     path('buscar-orders/', buscar_orders_primecod, name='buscar_orders_primecod'),
     path('processar-dados/', processar_dados_primecod, name='processar_dados_primecod'),
+    path('testar-performance/', testar_performance_primecod, name='testar_performance_primecod'),
     path('testar-conexao/', testar_conexao_primecod, name='testar_conexao_primecod'),
     
     # Endpoints Assíncronos (OTIMIZAÇÃO CRÍTICA!)
