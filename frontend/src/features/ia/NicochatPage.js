@@ -104,36 +104,18 @@ const NicochatPage = () => {
   // Adicionar Business Manager
   const handleAddBusinessManager = async (formData) => {
     try {
-      console.log('🔄 Enviando dados para adicionar Business Manager:', {
-        nome: formData.nome,
-        whatsapp_business_account_id: formData.whatsapp_business_account_id,
-        access_token: formData.access_token ? '[TOKEN PRESENTE]' : '[TOKEN AUSENTE]'
-      });
-      
-      console.log('📦 PAYLOAD COMPLETO ENVIADO:', JSON.stringify(formData, null, 2));
-      
       const response = await axios.post('/ia/business-managers/', formData);
-      
-      console.log('✅ Business Manager adicionado com sucesso:', response.status);
       
       // Recarregar dados
       await fetchDashboardData();
       
     } catch (err) {
-      console.error('❌ Erro ao adicionar Business Manager:', {
-        status: err.response?.status,
-        data: err.response?.data,
-        message: err.message
-      });
+      console.error('Erro ao adicionar Business Manager:', err);
       
       if (err.response?.status === 500) {
         throw new Error('Erro interno do servidor. Verifique os logs do backend.');
       } else if (err.response?.status === 400) {
-        // DEBUG: Mostrar erro detalhado do servidor
-        console.error('🔍 ERRO 400 DETALHADO:', err.response?.data);
-        const errorDetail = JSON.stringify(err.response?.data, null, 2);
-        alert('ERRO 400 DETALHADO: ' + errorDetail);
-        throw new Error(err.response?.data?.detail || errorDetail || 'Dados inválidos fornecidos.');
+        throw new Error(err.response?.data?.detail || 'Dados inválidos fornecidos.');
       } else if (err.response?.status === 403) {
         throw new Error('Erro de autenticação. Tente recarregar a página.');
       } else {

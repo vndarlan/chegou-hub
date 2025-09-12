@@ -1062,6 +1062,7 @@ BusinessManagerSerializer = WhatsAppBusinessAccountSerializer
 
 class WhatsAppPhoneNumberSerializer(serializers.ModelSerializer):
     """Serializer para números WhatsApp"""
+    whatsapp_business_account_id = serializers.IntegerField(source='whatsapp_business_account.id', read_only=True)
     whatsapp_business_account_nome = serializers.CharField(source='whatsapp_business_account.nome', read_only=True)
     business_manager_nome = serializers.CharField(source='business_manager.nome', read_only=True)  # Compatibilidade
     quality_rating_display = serializers.CharField(source='get_quality_rating_display', read_only=True)
@@ -1073,8 +1074,8 @@ class WhatsAppPhoneNumberSerializer(serializers.ModelSerializer):
     class Meta:
         model = WhatsAppPhoneNumber
         fields = [
-            'id', 'whatsapp_business_account', 'whatsapp_business_account_nome', 
-            'business_manager', 'business_manager_nome',  # Compatibilidade
+            'id', 'whatsapp_business_account_id', 'whatsapp_business_account_nome', 
+            'business_manager_nome',  # Compatibilidade
             'phone_number_id', 'display_phone_number', 'verified_name', 'quality_rating',
             'quality_rating_display', 'messaging_limit_tier', 'messaging_limit_display',
             'status', 'status_display', 'monitoramento_ativo', 
@@ -1083,9 +1084,8 @@ class WhatsAppPhoneNumberSerializer(serializers.ModelSerializer):
             'alertas_pendentes'
         ]
         read_only_fields = ['criado_em', 'atualizado_em', 'ultima_verificacao',
-                           'whatsapp_business_account_nome', 'business_manager_nome',
-                           'business_manager', 'quality_rating_display',
-                           'messaging_limit_display', 'status_display',
+                           'whatsapp_business_account_id', 'whatsapp_business_account_nome', 'business_manager_nome',
+                           'quality_rating_display', 'messaging_limit_display', 'status_display',
                            'tempo_sem_verificacao', 'alertas_pendentes']
     
     def get_tempo_sem_verificacao(self, obj):
