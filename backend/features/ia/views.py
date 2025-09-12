@@ -1063,17 +1063,17 @@ class WhatsAppPhoneNumberViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_queryset(self):
         """Filtrar por permissões do usuário"""
-        queryset = WhatsAppPhoneNumber.objects.select_related('business_manager')
+        queryset = WhatsAppPhoneNumber.objects.select_related('whatsapp_business_account')
         
         # Filtrar por Business Manager se usuário não for admin
         if not (self.request.user.is_superuser or 
                 self.request.user.groups.filter(name__in=['Diretoria', 'Gestão']).exists()):
-            queryset = queryset.filter(business_manager__responsavel=self.request.user)
+            queryset = queryset.filter(whatsapp_business_account__responsavel=self.request.user)
         
         # Filtros por query params
         business_manager_id = self.request.query_params.get('business_manager')
         if business_manager_id:
-            queryset = queryset.filter(business_manager_id=business_manager_id)
+            queryset = queryset.filter(whatsapp_business_account_id=business_manager_id)
         
         quality_rating = self.request.query_params.get('quality_rating')
         if quality_rating:
@@ -1093,7 +1093,7 @@ class WhatsAppPhoneNumberViewSet(viewsets.ReadOnlyModelViewSet):
         # Verificar permissão
         if not (request.user.is_superuser or 
                 request.user.groups.filter(name__in=['Diretoria', 'Gestão']).exists() or
-                numero.business_manager.responsavel == request.user):
+                numero.whatsapp_business_account.responsavel == request.user):
             return Response(
                 {'error': 'Sem permissão para modificar este número'},
                 status=status.HTTP_403_FORBIDDEN
@@ -1119,13 +1119,13 @@ class QualityHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         """Filtrar por permissões e parâmetros"""
         queryset = QualityHistory.objects.select_related(
-            'phone_number', 'phone_number__business_manager'
+            'phone_number', 'phone_number__whatsapp_business_account'
         )
         
         # Filtrar por permissões
         if not (self.request.user.is_superuser or 
                 self.request.user.groups.filter(name__in=['Diretoria', 'Gestão']).exists()):
-            queryset = queryset.filter(phone_number__business_manager__responsavel=self.request.user)
+            queryset = queryset.filter(phone_number__whatsapp_business_account__responsavel=self.request.user)
         
         # Filtros por query params
         phone_number_id = self.request.query_params.get('phone_number')
@@ -1134,7 +1134,7 @@ class QualityHistoryViewSet(viewsets.ReadOnlyModelViewSet):
         
         business_manager_id = self.request.query_params.get('business_manager')
         if business_manager_id:
-            queryset = queryset.filter(phone_number__business_manager_id=business_manager_id)
+            queryset = queryset.filter(phone_number__whatsapp_business_account_id=business_manager_id)
         
         # Filtrar apenas mudanças
         apenas_mudancas = self.request.query_params.get('apenas_mudancas')
@@ -1171,14 +1171,14 @@ class QualityAlertViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Filtrar por permissões e parâmetros"""
         queryset = QualityAlert.objects.select_related(
-            'phone_number', 'phone_number__business_manager', 
+            'phone_number', 'phone_number__whatsapp_business_account', 
             'usuario_que_visualizou', 'usuario_que_resolveu'
         )
         
         # Filtrar por permissões
         if not (self.request.user.is_superuser or 
                 self.request.user.groups.filter(name__in=['Diretoria', 'Gestão']).exists()):
-            queryset = queryset.filter(phone_number__business_manager__responsavel=self.request.user)
+            queryset = queryset.filter(phone_number__whatsapp_business_account__responsavel=self.request.user)
         
         # Filtros por query params
         resolvido = self.request.query_params.get('resolvido')
@@ -1322,8 +1322,8 @@ def dashboard_whatsapp_stats(request):
         else:
             # Usuário comum vê apenas suas Business Managers
             business_managers = BusinessManager.objects.filter(responsavel=request.user, ativo=True)
-            numeros = WhatsAppPhoneNumber.objects.filter(business_manager__responsavel=request.user)
-            alertas = QualityAlert.objects.filter(phone_number__business_manager__responsavel=request.user)
+            numeros = WhatsAppPhoneNumber.objects.filter(whatsapp_business_account__responsavel=request.user)
+            alertas = QualityAlert.objects.filter(phone_number__whatsapp_business_account__responsavel=request.user)
         
         # Estatísticas básicas
         total_business_managers = business_managers.count()
