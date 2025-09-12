@@ -1061,7 +1061,7 @@ BusinessManagerSerializer = WhatsAppBusinessAccountSerializer
 
 
 class WhatsAppPhoneNumberSerializer(serializers.ModelSerializer):
-    """Serializer para números WhatsApp"""
+    """Serializer para números WhatsApp - VERSÃO CORRIGIDA PARA COMPATIBILIDADE FRONTEND"""
     whatsapp_business_account_id = serializers.IntegerField(source='whatsapp_business_account.id', read_only=True)
     whatsapp_business_account_nome = serializers.CharField(source='whatsapp_business_account.nome', read_only=True)
     business_manager_nome = serializers.CharField(source='business_manager.nome', read_only=True)  # Compatibilidade
@@ -1071,6 +1071,12 @@ class WhatsAppPhoneNumberSerializer(serializers.ModelSerializer):
     tempo_sem_verificacao = serializers.SerializerMethodField()
     alertas_pendentes = serializers.SerializerMethodField()
     
+    # ===== CAMPOS ADICIONAIS PARA COMPATIBILIDADE COM FRONTEND =====
+    country_flag = serializers.SerializerMethodField()
+    country_name = serializers.SerializerMethodField()  
+    messaging_limit = serializers.CharField(source='messaging_limit_tier', read_only=True)
+    business_manager = serializers.SerializerMethodField()
+    
     class Meta:
         model = WhatsAppPhoneNumber
         fields = [
@@ -1079,14 +1085,19 @@ class WhatsAppPhoneNumberSerializer(serializers.ModelSerializer):
             'phone_number_id', 'display_phone_number', 'verified_name', 'quality_rating',
             'quality_rating_display', 'messaging_limit_tier', 'messaging_limit_display',
             'status', 'status_display', 'monitoramento_ativo', 
-            'frequencia_verificacao_minutos', 'detalhes_api', 'criado_em',
-            'atualizado_em', 'ultima_verificacao', 'tempo_sem_verificacao',
-            'alertas_pendentes'
+            'frequencia_verificacao_minutos', 'detalhes_api', 
+            # Campos customizados
+            'bm_nome_customizado', 'pais_nome_customizado', 'perfil', 'token_expira_em',
+            'criado_em', 'atualizado_em', 'ultima_verificacao', 'tempo_sem_verificacao',
+            'alertas_pendentes',
+            # NOVOS CAMPOS PARA COMPATIBILIDADE COM FRONTEND
+            'country_flag', 'country_name', 'messaging_limit', 'business_manager'
         ]
         read_only_fields = ['criado_em', 'atualizado_em', 'ultima_verificacao',
                            'whatsapp_business_account_id', 'whatsapp_business_account_nome', 'business_manager_nome',
                            'quality_rating_display', 'messaging_limit_display', 'status_display',
-                           'tempo_sem_verificacao', 'alertas_pendentes']
+                           'tempo_sem_verificacao', 'alertas_pendentes', 'country_flag', 'country_name', 
+                           'messaging_limit', 'business_manager']
     
     def get_tempo_sem_verificacao(self, obj):
         """Calcula tempo desde última verificação em minutos"""
@@ -1099,6 +1110,159 @@ class WhatsAppPhoneNumberSerializer(serializers.ModelSerializer):
     def get_alertas_pendentes(self, obj):
         """Conta alertas não resolvidos"""
         return obj.alerts.filter(resolvido=False).count()
+    
+    # ===== MÉTODOS PARA COMPATIBILIDADE COM FRONTEND =====
+    
+    def get_country_flag(self, obj):
+        """Retorna emoji da bandeira do país baseado no nome customizado ou número"""
+        try:
+            # Mapeamento de países para emojis de bandeira
+            pais_flags = {
+                'colombia': '🇨🇴',
+                'colômbia': '🇨🇴',
+                'chile': '🇨🇱',
+                'mexico': '🇲🇽',
+                'méxico': '🇲🇽',
+                'polonia': '🇵🇱',
+                'polônia': '🇵🇱',
+                'romenia': '🇷🇴',
+                'romênia': '🇷🇴',
+                'espanha': '🇪🇸',
+                'italia': '🇮🇹',
+                'itália': '🇮🇹',
+                'brasil': '🇧🇷',
+                'argentina': '🇦🇷',
+                'peru': '🇵🇪',
+                'equador': '🇪🇨',
+                'uruguai': '🇺🇾',
+                'paraguai': '🇵🇾',
+                'bolivia': '🇧🇴',
+                'bolívia': '🇧🇴',
+                'venezuela': '🇻🇪'
+            }
+            
+            # Se tiver nome customizado, usar primeiro
+            if obj.pais_nome_customizado:
+                nome_lower = obj.pais_nome_customizado.lower().strip()
+                flag = pais_flags.get(nome_lower)
+                if flag:
+                    return flag
+            
+            # Fallback: tentar detectar pelo código do país no número
+            numero = obj.display_phone_number.replace('+', '').replace('-', '').replace(' ', '').replace('(', '').replace(')', '')
+            
+            # Códigos de país comuns
+            if numero.startswith('57'):  # Colombia
+                return '🇨🇴'
+            elif numero.startswith('56'):  # Chile
+                return '🇨🇱'
+            elif numero.startswith('52'):  # Mexico
+                return '🇲🇽'
+            elif numero.startswith('48'):  # Polonia
+                return '🇵🇱'
+            elif numero.startswith('40'):  # Romenia
+                return '🇷🇴'
+            elif numero.startswith('34'):  # Espanha
+                return '🇪🇸'
+            elif numero.startswith('39'):  # Italia
+                return '🇮🇹'
+            elif numero.startswith('55'):  # Brasil
+                return '🇧🇷'
+            elif numero.startswith('54'):  # Argentina
+                return '🇦🇷'
+            elif numero.startswith('51'):  # Peru
+                return '🇵🇪'
+            elif numero.startswith('593'):  # Equador
+                return '🇪🇨'
+            elif numero.startswith('598'):  # Uruguai
+                return '🇺🇾'
+            elif numero.startswith('595'):  # Paraguai
+                return '🇵🇾'
+            elif numero.startswith('591'):  # Bolivia
+                return '🇧🇴'
+            elif numero.startswith('58'):  # Venezuela
+                return '🇻🇪'
+            else:
+                return '🌍'  # Emoji genérico para países não identificados
+                
+        except Exception as e:
+            print(f"Erro em get_country_flag para numero {obj.id}: {e}")
+            return '🌍'
+    
+    def get_country_name(self, obj):
+        """Retorna nome do país (usa customizado se disponível)"""
+        try:
+            # Se tiver nome customizado, usar primeiro
+            if obj.pais_nome_customizado and obj.pais_nome_customizado.strip():
+                return obj.pais_nome_customizado.strip()
+            
+            # Fallback: detectar pelo código do país no número
+            numero = obj.display_phone_number.replace('+', '').replace('-', '').replace(' ', '').replace('(', '').replace(')', '')
+            
+            # Códigos de país comuns para nomes
+            if numero.startswith('57'):
+                return 'Colômbia'
+            elif numero.startswith('56'):
+                return 'Chile'
+            elif numero.startswith('52'):
+                return 'México'
+            elif numero.startswith('48'):
+                return 'Polônia'
+            elif numero.startswith('40'):
+                return 'Romênia'
+            elif numero.startswith('34'):
+                return 'Espanha'
+            elif numero.startswith('39'):
+                return 'Itália'
+            elif numero.startswith('55'):
+                return 'Brasil'
+            elif numero.startswith('54'):
+                return 'Argentina'
+            elif numero.startswith('51'):
+                return 'Peru'
+            elif numero.startswith('593'):
+                return 'Equador'
+            elif numero.startswith('598'):
+                return 'Uruguai'
+            elif numero.startswith('595'):
+                return 'Paraguai'
+            elif numero.startswith('591'):
+                return 'Bolívia'
+            elif numero.startswith('58'):
+                return 'Venezuela'
+            else:
+                return 'País não identificado'
+                
+        except Exception as e:
+            print(f"Erro em get_country_name para numero {obj.id}: {e}")
+            return 'País não identificado'
+    
+    def get_business_manager(self, obj):
+        """Retorna dados da business manager para compatibilidade"""
+        try:
+            waba = obj.whatsapp_business_account
+            
+            # Se tiver nome customizado, usar ele para bm_nome_customizado
+            bm_nome_customizado = obj.bm_nome_customizado if obj.bm_nome_customizado else waba.nome
+            
+            return {
+                'id': waba.id,
+                'nome': waba.nome,
+                'bm_nome_customizado': bm_nome_customizado,
+                'whatsapp_business_account_id': waba.whatsapp_business_account_id,
+                'ativo': waba.ativo,
+                'ultima_sincronizacao': waba.ultima_sincronizacao.isoformat() if waba.ultima_sincronizacao else None
+            }
+        except Exception as e:
+            print(f"Erro em get_business_manager para numero {obj.id}: {e}")
+            return {
+                'id': None,
+                'nome': 'Erro ao carregar',
+                'bm_nome_customizado': 'Erro ao carregar',
+                'whatsapp_business_account_id': None,
+                'ativo': False,
+                'ultima_sincronizacao': None
+            }
 
 
 class QualityHistorySerializer(serializers.ModelSerializer):

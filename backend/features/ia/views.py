@@ -991,7 +991,7 @@ class BusinessManagerViewSet(viewsets.ModelViewSet):
             
         except Exception as e:
             # Log de auditoria - criação falhada
-            business_manager_id = serializer.validated_data.get('business_manager_id', 'unknown')
+            business_manager_id = serializer.validated_data.get('whatsapp_business_account_id', 'unknown')
             security_audit.log_token_operation(
                 user=self.request.user,
                 operation='create',
@@ -1267,7 +1267,7 @@ def sincronizar_meta_api(request):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        business_manager_id = serializer.validated_data.get('business_manager_id')
+        business_manager_id = serializer.validated_data.get('whatsapp_business_account_id') or serializer.validated_data.get('business_manager_id')
         force_update = serializer.validated_data.get('force_update', False)
         
         # Executar sincronização

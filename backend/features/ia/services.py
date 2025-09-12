@@ -668,7 +668,7 @@ class WhatsAppMetaAPIService:
             
             mudancas_recentes = QualityHistory.objects.filter(
                 capturado_em__gte=desde
-            ).select_related('phone_number', 'phone_number__business_manager')
+            ).select_related('phone_number', 'phone_number__whatsapp_business_account')
             
             # Agrupar por tipo de mudança
             resultado = {

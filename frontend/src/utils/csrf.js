@@ -39,7 +39,7 @@ export function setupCSRF() {
                     try {
                         // Tenta obter o token antes de continuar usando URL absoluta
                         const baseURL = axios.defaults.baseURL || '';
-                        await axios.get('/api/current-state/', {
+                        await axios.get('/current-state/', {
                             withCredentials: true,
                             baseURL: baseURL
                         });
@@ -53,7 +53,7 @@ export function setupCSRF() {
                             console.error('Não foi possível obter o token CSRF mesmo após chamar current-state');
                             // Tentativa alternativa usando endpoint específico
                             try {
-                                await axios.get('/api/ensure-csrf/', {
+                                await axios.get('/ensure-csrf/', {
                                     withCredentials: true,
                                     baseURL: baseURL
                                 });

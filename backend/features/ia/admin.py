@@ -288,7 +288,7 @@ class WhatsAppPhoneNumberAdmin(admin.ModelAdmin):
         'whatsapp_business_account', 'quality_rating', 'messaging_limit_tier',
         'status', 'monitoramento_ativo', 'ultima_verificacao'
     ]
-    search_fields = ['display_phone_number', 'verified_name', 'phone_number_id']
+    search_fields = ['display_phone_number', 'verified_name', 'phone_number_id', 'bm_nome_customizado', 'pais_nome_customizado', 'perfil']
     list_editable = ['monitoramento_ativo']
     readonly_fields = ['phone_number_id', 'criado_em', 'atualizado_em', 'ultima_verificacao']
     
@@ -298,6 +298,10 @@ class WhatsAppPhoneNumberAdmin(admin.ModelAdmin):
         }),
         ('Status Atual', {
             'fields': ('quality_rating', 'messaging_limit_tier', 'status')
+        }),
+        ('Campos Customizados', {
+            'fields': ('bm_nome_customizado', 'pais_nome_customizado', 'perfil', 'token_expira_em'),
+            'description': 'Campos personalizáveis pelo usuário para melhor identificação'
         }),
         ('Monitoramento', {
             'fields': ('monitoramento_ativo', 'frequencia_verificacao_minutos')

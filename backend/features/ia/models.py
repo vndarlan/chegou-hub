@@ -944,6 +944,34 @@ class WhatsAppPhoneNumber(models.Model):
         help_text="Dados completos retornados pela API do WhatsApp"
     )
     
+    # Campos customizados pelo usuário
+    bm_nome_customizado = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        verbose_name="Nome Customizado da Business Manager",
+        help_text="Nome personalizado para identificar a Business Manager"
+    )
+    pais_nome_customizado = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Nome Customizado do País",
+        help_text="Nome personalizado para identificar o país"
+    )
+    perfil = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Perfil",
+        help_text="Descrição livre do perfil do número WhatsApp"
+    )
+    token_expira_em = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name="Data de Expiração do Token",
+        help_text="Data em que o token de acesso expira"
+    )
+    
     # Campos de auditoria
     criado_em = models.DateTimeField(
         auto_now_add=True,

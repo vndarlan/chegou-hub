@@ -10,13 +10,13 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
-import { Phone, ExternalLink, RefreshCw } from 'lucide-react';
-import QualityBadge from './QualityBadge';
+import { Phone, RefreshCw, Plus } from 'lucide-react';
 
 const PhoneNumberTable = ({ 
   phoneNumbers = [], 
   onRefresh, 
-  isLoading = false 
+  isLoading = false,
+  onAddNumber 
 }) => {
   const getStatusBadge = (status) => {
     switch (status?.toUpperCase()) {
@@ -36,6 +36,26 @@ const PhoneNumberTable = ({
     return number.replace(/(\d{2})(\d{5})(\d{4})/, '+$1 ($2) $3-');
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    try {
+      return new Date(dateString).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return '-';
+    }
+  };
+
+  const formatMessageLimit = (limit) => {
+    if (!limit) return '-';
+    return limit.toLocaleString('pt-BR');
+  };
+
   if (phoneNumbers.length === 0) {
     return (
       <Card>
@@ -45,15 +65,25 @@ const PhoneNumberTable = ({
               <Phone className="h-5 w-5" />
               Números WhatsApp Business
             </CardTitle>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={onRefresh}
-              disabled={isLoading}
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Atualizar
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="default" 
+                size="sm"
+                onClick={onAddNumber}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Adicionar Número
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={onRefresh}
+                disabled={isLoading}
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                Atualizar
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -75,15 +105,25 @@ const PhoneNumberTable = ({
             <Phone className="h-5 w-5" />
             Números WhatsApp Business ({phoneNumbers.length})
           </CardTitle>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={onRefresh}
-            disabled={isLoading}
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="default" 
+              size="sm"
+              onClick={onAddNumber}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Adicionar Número
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={onRefresh}
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -94,10 +134,11 @@ const PhoneNumberTable = ({
                 <TableHead>Número</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Business Manager</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Qualidade</TableHead>
                 <TableHead>País</TableHead>
-                <TableHead className="w-[100px]">Ações</TableHead>
+                <TableHead>Perfil</TableHead>
+                <TableHead>Token Expira</TableHead>
+                <TableHead>Limite Mensagens</TableHead>
+                <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -111,29 +152,32 @@ const PhoneNumberTable = ({
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm">{numero.business_manager?.nome || 'N/A'}</span>
+                      <span className="text-sm">
+                        {numero.business_manager?.bm_nome_customizado || 
+                         numero.business_manager?.nome || 'N/A'}
+                      </span>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    {getStatusBadge(numero.status)}
-                  </TableCell>
-                  <TableCell>
-                    <QualityBadge quality={numero.quality_rating} />
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">{numero.country_flag}</span>
-                      <span>{numero.country_name}</span>
+                      <span>
+                        {numero.pais_nome_customizado || 
+                         numero.country_name || 'N/A'}
+                      </span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => window.open(`https://business.facebook.com/wa/manage/phone-numbers/${numero.whatsapp_business_account_id}`, '_blank')}
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
+                    {numero.perfil || 'N/A'}
+                  </TableCell>
+                  <TableCell>
+                    {formatDate(numero.token_expira_em)}
+                  </TableCell>
+                  <TableCell>
+                    {formatMessageLimit(numero.messaging_limit)}
+                  </TableCell>
+                  <TableCell>
+                    {getStatusBadge(numero.status)}
                   </TableCell>
                 </TableRow>
               ))}
