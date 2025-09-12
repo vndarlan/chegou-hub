@@ -17,7 +17,7 @@ const AddBusinessManagerModal = ({
   const [instructionsOpen, setInstructionsOpen] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
-    business_manager_id: '',
+    whatsapp_business_account_id: '',
     access_token: '',
     descricao: ''
   });
@@ -42,13 +42,13 @@ const AddBusinessManagerModal = ({
     }
     
     // Validar Business Manager ID
-    if (!formData.business_manager_id.trim()) {
-      newErrors.business_manager_id = 'ID do Business Manager é obrigatório';
+    if (!formData.whatsapp_business_account_id.trim()) {
+      newErrors.whatsapp_business_account_id = 'WABA ID é obrigatório';
     } else {
-      const bmId = formData.business_manager_id.trim();
+      const bmId = formData.whatsapp_business_account_id.trim();
       // Deve conter apenas números e ter entre 15-20 dígitos
       if (!/^\d{15,20}$/.test(bmId)) {
-        newErrors.business_manager_id = 'ID deve conter apenas números e ter entre 15-20 dígitos';
+        newErrors.whatsapp_business_account_id = 'WABA ID deve conter apenas números e ter entre 15-20 dígitos';
       }
     }
     
@@ -97,7 +97,7 @@ const AddBusinessManagerModal = ({
     try {
       console.log('📋 Validação passou, enviando dados:', {
         nome: formData.nome,
-        business_manager_id: formData.business_manager_id,
+        whatsapp_business_account_id: formData.whatsapp_business_account_id,
         descricao: formData.descricao,
         access_token_length: formData.access_token?.length || 0
       });
@@ -107,7 +107,7 @@ const AddBusinessManagerModal = ({
       // Resetar form e fechar modal em caso de sucesso
       setFormData({
         nome: '',
-        business_manager_id: '',
+        whatsapp_business_account_id: '',
         access_token: '',
         descricao: ''
       });
@@ -137,7 +137,7 @@ const AddBusinessManagerModal = ({
     setErrors({});
     setFormData({
       nome: '',
-      business_manager_id: '',
+      whatsapp_business_account_id: '',
       access_token: '',
       descricao: ''
     });
@@ -181,16 +181,16 @@ const AddBusinessManagerModal = ({
 
           {/* Business Manager ID */}
           <div className="space-y-2">
-            <Label htmlFor="business_manager_id">ID do Business Manager *</Label>
+            <Label htmlFor="whatsapp_business_account_id">WABA ID (WhatsApp Business Account) *</Label>
             <Input
-              id="business_manager_id"
+              id="whatsapp_business_account_id"
               placeholder="Ex: 123456789012345"
-              value={formData.business_manager_id}
-              onChange={(e) => handleInputChange('business_manager_id', e.target.value)}
-              className={errors.business_manager_id ? 'border-red-300' : ''}
+              value={formData.whatsapp_business_account_id}
+              onChange={(e) => handleInputChange('whatsapp_business_account_id', e.target.value)}
+              className={errors.whatsapp_business_account_id ? 'border-red-300' : ''}
             />
-            {errors.business_manager_id && (
-              <p className="text-sm text-red-600">{errors.business_manager_id}</p>
+            {errors.whatsapp_business_account_id && (
+              <p className="text-sm text-red-600">{errors.whatsapp_business_account_id}</p>
             )}
           </div>
 
