@@ -106,7 +106,7 @@ const NicochatPage = () => {
     try {
       console.log('🔄 Enviando dados para adicionar Business Manager:', {
         nome: formData.nome,
-        business_manager_id: formData.business_manager_id,
+        whatsapp_business_account_id: formData.whatsapp_business_account_id,
         access_token: formData.access_token ? '[TOKEN PRESENTE]' : '[TOKEN AUSENTE]'
       });
       

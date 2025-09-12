@@ -18,8 +18,7 @@ const AddBusinessManagerModal = ({
   const [formData, setFormData] = useState({
     nome: '',
     whatsapp_business_account_id: '',
-    access_token: '',
-    descricao: ''
+    access_token: ''
   });
   const [errors, setErrors] = useState({});
 
@@ -98,7 +97,6 @@ const AddBusinessManagerModal = ({
       console.log('📋 Validação passou, enviando dados:', {
         nome: formData.nome,
         whatsapp_business_account_id: formData.whatsapp_business_account_id,
-        descricao: formData.descricao,
         access_token_length: formData.access_token?.length || 0
       });
       
@@ -108,8 +106,7 @@ const AddBusinessManagerModal = ({
       setFormData({
         nome: '',
         whatsapp_business_account_id: '',
-        access_token: '',
-        descricao: ''
+        access_token: ''
       });
       setErrors({});
       setOpen(false);
@@ -138,8 +135,7 @@ const AddBusinessManagerModal = ({
     setFormData({
       nome: '',
       whatsapp_business_account_id: '',
-      access_token: '',
-      descricao: ''
+      access_token: ''
     });
   };
 
@@ -208,18 +204,6 @@ const AddBusinessManagerModal = ({
             {errors.access_token && (
               <p className="text-sm text-red-600">{errors.access_token}</p>
             )}
-          </div>
-
-          {/* Descrição (opcional) */}
-          <div className="space-y-2">
-            <Label htmlFor="descricao">Descrição (opcional)</Label>
-            <Textarea
-              id="descricao"
-              placeholder="Descrição ou observações sobre este Business Manager"
-              value={formData.descricao}
-              onChange={(e) => handleInputChange('descricao', e.target.value)}
-              rows={2}
-            />
           </div>
 
           {/* Erro de submit */}
