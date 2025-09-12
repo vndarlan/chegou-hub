@@ -44,10 +44,10 @@ const NicochatPage = () => {
       setError(null);
 
       const [statsRes, bmRes, numbersRes, alertsRes] = await Promise.all([
-        axios.get('/api/ia/dashboard-whatsapp-stats/'),
-        axios.get('/api/ia/business-managers/'),
-        axios.get('/api/ia/whatsapp-numeros/'),
-        axios.get('/api/ia/quality-alerts/')
+        axios.get('/ia/dashboard-whatsapp-stats/'),
+        axios.get('/ia/business-managers/'),
+        axios.get('/ia/whatsapp-numeros/'),
+        axios.get('/ia/quality-alerts/')
       ]);
 
       setDashboardStats(statsRes.data);
@@ -88,7 +88,7 @@ const NicochatPage = () => {
   const handleSyncMetaAPI = async () => {
     try {
       setIsSyncing(true);
-      await axios.post('/api/ia/sincronizar-meta-api/', {});
+      await axios.post('/ia/sincronizar-meta-api/', {});
       
       // Recarregar dados após sincronização
       await fetchDashboardData();
@@ -110,7 +110,7 @@ const NicochatPage = () => {
         access_token: formData.access_token ? '[TOKEN PRESENTE]' : '[TOKEN AUSENTE]'
       });
       
-      const response = await axios.post('/api/ia/business-managers/', formData);
+      const response = await axios.post('/ia/business-managers/', formData);
       
       console.log('✅ Business Manager adicionado com sucesso:', response.status);
       
@@ -140,7 +140,7 @@ const NicochatPage = () => {
   const handleSyncBusinessManager = async (bmId) => {
     try {
       setIsSyncing(true);
-      await axios.post(`/api/ia/business-managers/${bmId}/sincronizar/`, {});
+      await axios.post(`/ia/business-managers/${bmId}/sincronizar/`, {});
       
       await fetchDashboardData();
       
@@ -159,7 +159,7 @@ const NicochatPage = () => {
     }
     
     try {
-      await axios.delete(`/api/ia/business-managers/${bmId}/`);
+      await axios.delete(`/ia/business-managers/${bmId}/`);
       
       await fetchDashboardData();
       
@@ -172,7 +172,7 @@ const NicochatPage = () => {
   // Dismiss alert
   const handleDismissAlert = async (alertId) => {
     try {
-      await axios.patch(`/api/ia/quality-alerts/${alertId}/`, 
+      await axios.patch(`/ia/quality-alerts/${alertId}/`, 
         { status: 'dismissed' }
       );
       
