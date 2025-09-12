@@ -28,7 +28,7 @@ from .serializers import (
     VersaoProjetoSerializer, NovaVersaoSerializer, DashboardStatsSerializer,
     FiltrosProjetosSerializer,
     # WhatsApp Business serializers
-    BusinessManagerSerializer, WhatsAppPhoneNumberSerializer, 
+    WhatsAppBusinessAccountSerializer, WhatsAppPhoneNumberSerializer, 
     QualityHistorySerializer, QualityAlertSerializer,
     MarcarAlertaResolvidoSerializer, SincronizarMetaAPISerializer
 )
@@ -956,7 +956,7 @@ class BusinessManagerViewSet(viewsets.ModelViewSet):
     """ViewSet para CRUD de Business Managers"""
     
     queryset = BusinessManager.objects.all()
-    serializer_class = BusinessManagerSerializer
+    serializer_class = WhatsAppBusinessAccountSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
