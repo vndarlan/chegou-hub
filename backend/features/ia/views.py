@@ -984,7 +984,7 @@ class BusinessManagerViewSet(viewsets.ModelViewSet):
             security_audit.log_token_operation(
                 user=self.request.user,
                 operation='create',
-                business_manager_id=instance.business_manager_id,
+                business_manager_id=instance.whatsapp_business_account_id,
                 success=True,
                 ip_address=ip_address
             )
@@ -1454,7 +1454,7 @@ def fix_whatsapp_tokens_temp(request):
                 cleaned_bms.append({
                     'id': bm.id,
                     'nome': bm.nome,
-                    'business_manager_id': bm.business_manager_id
+                    'business_manager_id': bm.whatsapp_business_account_id
                 })
                 bm.access_token_encrypted = ''
                 bm.erro_ultima_sincronizacao = 'Token limpo - re-cadastre o access token'
@@ -1535,7 +1535,7 @@ def verificar_saude_criptografia(request):
                     problematic_bms.append({
                         'id': bm.id,
                         'nome': bm.nome,
-                        'business_manager_id': bm.business_manager_id,
+                        'business_manager_id': bm.whatsapp_business_account_id,
                         'erro': erro,
                         'ultimo_erro': bm.erro_ultima_sincronizacao
                     })
