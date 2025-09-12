@@ -797,19 +797,19 @@ class AlertPriorityChoices(models.TextChoices):
 
 # ===== MODELS PARA WHATSAPP BUSINESS MONITORING =====
 
-class BusinessManager(models.Model):
-    """Gerenciar múltiplas Business Managers do Facebook"""
+class WhatsAppBusinessAccount(models.Model):
+    """Gerenciar múltiplas WhatsApp Business Accounts (WABA)"""
     
     nome = models.CharField(
         max_length=200,
-        verbose_name="Nome da Business Manager",
-        help_text="Nome identificador da Business Manager"
+        verbose_name="Nome da WhatsApp Business Account",
+        help_text="Nome identificador da WhatsApp Business Account"
     )
-    business_manager_id = models.CharField(
+    whatsapp_business_account_id = models.CharField(
         max_length=50,
         unique=True,
-        verbose_name="ID da Business Manager",
-        help_text="ID único da Business Manager no Facebook"
+        verbose_name="WhatsApp Business Account ID (WABA ID)",
+        help_text="ID único da WhatsApp Business Account (WABA ID)"
     )
     access_token_encrypted = models.TextField(
         verbose_name="Token de Acesso (Criptografado)",
@@ -824,7 +824,7 @@ class BusinessManager(models.Model):
     ativo = models.BooleanField(
         default=True,
         verbose_name="Ativo",
-        help_text="Se esta Business Manager está ativa para monitoramento"
+        help_text="Se esta WhatsApp Business Account está ativa para monitoramento"
     )
     ultima_sincronizacao = models.DateTimeField(
         null=True,
@@ -840,9 +840,9 @@ class BusinessManager(models.Model):
     responsavel = models.ForeignKey(
         User,
         on_delete=models.PROTECT,
-        related_name='business_managers',
+        related_name='whatsapp_business_accounts',
         verbose_name="Responsável",
-        help_text="Usuário responsável por esta Business Manager"
+        help_text="Usuário responsável por esta WhatsApp Business Account"
     )
     
     # Campos de auditoria
@@ -856,12 +856,12 @@ class BusinessManager(models.Model):
     )
     
     class Meta:
-        verbose_name = "Business Manager"
-        verbose_name_plural = "Business Managers"
+        verbose_name = "WhatsApp Business Account"
+        verbose_name_plural = "WhatsApp Business Accounts"
         ordering = ['nome']
         indexes = [
             models.Index(fields=['ativo', 'ultima_sincronizacao']),
-            models.Index(fields=['business_manager_id']),
+            models.Index(fields=['whatsapp_business_account_id']),
         ]
     
     def __str__(self):
@@ -869,15 +869,24 @@ class BusinessManager(models.Model):
         return f"{status} {self.nome}"
 
 
+# Manter compatibilidade temporária
+BusinessManager = WhatsAppBusinessAccount
+
+
 class WhatsAppPhoneNumber(models.Model):
     """Armazenar dados dos números WhatsApp Business"""
     
-    business_manager = models.ForeignKey(
-        BusinessManager,
+    whatsapp_business_account = models.ForeignKey(
+        WhatsAppBusinessAccount,
         on_delete=models.CASCADE,
         related_name='phone_numbers',
-        verbose_name="Business Manager"
+        verbose_name="WhatsApp Business Account"
     )
+    
+    # Manter compatibilidade temporária
+    @property
+    def business_manager(self):
+        return self.whatsapp_business_account
     phone_number_id = models.CharField(
         max_length=50,
         unique=True,

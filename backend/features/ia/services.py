@@ -14,7 +14,7 @@ import os
 from config.whatsapp_config import get_whatsapp_encryption_manager
 
 from .models import (
-    BusinessManager, WhatsAppPhoneNumber, QualityHistory, QualityAlert,
+    WhatsAppBusinessAccount, BusinessManager, WhatsAppPhoneNumber, QualityHistory, QualityAlert,
     QualityRatingChoices, MessagingLimitTierChoices, PhoneNumberStatusChoices,
     AlertTypeChoices, AlertPriorityChoices
 )
@@ -70,17 +70,17 @@ class WhatsAppMetaAPIService:
             # Token não criptografado
             return True, token_final
     
-    def _get_access_token_safe(self, business_manager: 'BusinessManager') -> Tuple[bool, str, bool]:
+    def _get_access_token_safe(self, whatsapp_business_account: 'WhatsAppBusinessAccount') -> Tuple[bool, str, bool]:
         """
         Obtém token de acesso de forma segura
         Returns: (sucesso, token_ou_erro, precisa_atualizar_banco)
         """
-        sucesso, resultado = self._decrypt_token(business_manager.access_token_encrypted)
+        sucesso, resultado = self._decrypt_token(whatsapp_business_account.access_token_encrypted)
         
         if sucesso:
             # Verificar se houve migração
             sucesso_migracao, token_migrado, foi_migrado = self._encryption_manager.migrate_token_if_needed(
-                business_manager.access_token_encrypted
+                whatsapp_business_account.access_token_encrypted
             )
             
             if foi_migrado and sucesso_migracao:
@@ -89,8 +89,8 @@ class WhatsAppMetaAPIService:
             else:
                 return True, resultado, False
         else:
-            # Marcar Business Manager como requerendo re-cadastro
-            logger.warning(f"Token corrompido para BM {business_manager.nome}: {resultado}")
+            # Marcar WhatsApp Business Account como requerendo re-cadastro
+            logger.warning(f"Token corrompido para WABA {whatsapp_business_account.nome}: {resultado}")
             return False, f"Token corrompido - necessário re-cadastrar credenciais: {resultado}", False
     
     def _check_rate_limit(self, business_manager_id: str) -> bool:
@@ -164,25 +164,25 @@ class WhatsAppMetaAPIService:
             logger.error(f"Erro inesperado na requisição: {e}")
             return {'error': str(e)}
     
-    def listar_numeros_whatsapp(self, business_manager: BusinessManager) -> Tuple[bool, Dict]:
-        """Lista números WhatsApp de uma Business Manager específica - VERSÃO ROBUSTA"""
+    def listar_numeros_whatsapp(self, whatsapp_business_account: WhatsAppBusinessAccount) -> Tuple[bool, Dict]:
+        """Lista números WhatsApp de uma WABA específica - VERSÃO ROBUSTA"""
         try:
-            logger.info(f"Listando números da Business Manager {business_manager.nome}")
+            logger.info(f"Listando números da WABA {whatsapp_business_account.nome}")
             
             # Obter token de forma segura
-            sucesso_token, token_ou_erro, precisa_atualizar = self._get_access_token_safe(business_manager)
+            sucesso_token, token_ou_erro, precisa_atualizar = self._get_access_token_safe(whatsapp_business_account)
             
             if not sucesso_token:
-                # Token corrompido - marcar BM como requerendo re-cadastro
-                business_manager.erro_ultima_sincronizacao = token_ou_erro
-                business_manager.save()
+                # Token corrompido - marcar WABA como requerendo re-cadastro
+                whatsapp_business_account.erro_ultima_sincronizacao = token_ou_erro
+                whatsapp_business_account.save()
                 
-                logger.error(f"Token corrompido para BM {business_manager.nome}: {token_ou_erro}")
+                logger.error(f"Token corrompido para WABA {whatsapp_business_account.nome}: {token_ou_erro}")
                 return False, {
                     'error': token_ou_erro,
                     'error_type': 'token_corrupted',
                     'action_required': 'recadastrar_credenciais',
-                    'business_manager_id': business_manager.id
+                    'whatsapp_business_account_id': whatsapp_business_account.id
                 }
             
             access_token = token_ou_erro
@@ -190,17 +190,17 @@ class WhatsAppMetaAPIService:
             # Se token foi migrado, atualizar no banco
             if precisa_atualizar:
                 try:
-                    business_manager.access_token_encrypted = self._encrypt_token(access_token)
-                    business_manager.save()
-                    logger.info(f"Token migrado e salvo para BM {business_manager.nome}")
+                    whatsapp_business_account.access_token_encrypted = self._encrypt_token(access_token)
+                    whatsapp_business_account.save()
+                    logger.info(f"Token migrado e salvo para WABA {whatsapp_business_account.nome}")
                 except Exception as e:
                     logger.warning(f"Erro ao salvar token migrado: {e}")
             
-            # URL para listar números
-            url = f"{self.base_url}/{business_manager.business_manager_id}/phone_numbers"
+            # URL CORRIGIDA para listar números - usando WABA ID
+            url = f"{self.base_url}/{whatsapp_business_account.whatsapp_business_account_id}/phone_numbers"
             
             # Fazer requisição
-            response = self._make_request(url, access_token, business_manager_id=str(business_manager.id))
+            response = self._make_request(url, access_token, business_manager_id=str(whatsapp_business_account.id))
             
             if 'error' in response:
                 error_msg = response['error']
@@ -210,13 +210,13 @@ class WhatsAppMetaAPIService:
                 if isinstance(error_msg, dict) and 'error' in error_msg:
                     api_error = error_msg['error']
                     if 'code' in api_error and api_error['code'] in [190, 102]:  # Token inválido/expirado
-                        business_manager.erro_ultima_sincronizacao = "Token de acesso expirado ou inválido"
-                        business_manager.save()
+                        whatsapp_business_account.erro_ultima_sincronizacao = "Token de acesso expirado ou inválido"
+                        whatsapp_business_account.save()
                         return False, {
                             'error': 'Token de acesso expirado ou inválido',
                             'error_type': 'token_expired',
                             'action_required': 'recadastrar_credenciais',
-                            'business_manager_id': business_manager.id
+                            'whatsapp_business_account_id': whatsapp_business_account.id
                         }
                 
                 return False, response
@@ -227,12 +227,12 @@ class WhatsAppMetaAPIService:
                 return False, {'error': 'Resposta inválida da API'}
             
             numeros = response['data']
-            logger.info(f"Encontrados {len(numeros)} números na Business Manager {business_manager.nome}")
+            logger.info(f"Encontrados {len(numeros)} números na WABA {whatsapp_business_account.nome}")
             
             # Limpar erro anterior se houve sucesso
-            if business_manager.erro_ultima_sincronizacao:
-                business_manager.erro_ultima_sincronizacao = ""
-                business_manager.save()
+            if whatsapp_business_account.erro_ultima_sincronizacao:
+                whatsapp_business_account.erro_ultima_sincronizacao = ""
+                whatsapp_business_account.save()
             
             return True, {'numeros': numeros, 'total': len(numeros)}
             
@@ -240,14 +240,14 @@ class WhatsAppMetaAPIService:
             error_msg = f"Erro inesperado ao listar números: {str(e)}"
             logger.error(error_msg)
             
-            # Salvar erro no Business Manager
-            business_manager.erro_ultima_sincronizacao = error_msg
-            business_manager.save()
+            # Salvar erro na WhatsApp Business Account
+            whatsapp_business_account.erro_ultima_sincronizacao = error_msg
+            whatsapp_business_account.save()
             
             return False, {
                 'error': error_msg,
                 'error_type': 'unexpected_error',
-                'business_manager_id': business_manager.id
+                'whatsapp_business_account_id': whatsapp_business_account.id
             }
     
     def obter_detalhes_numero(self, phone_number_id: str, access_token: str) -> Tuple[bool, Dict]:
@@ -277,14 +277,14 @@ class WhatsAppMetaAPIService:
             logger.error(f"Erro inesperado ao obter detalhes: {e}")
             return False, {'error': str(e)}
     
-    def sincronizar_numeros_business_manager(self, business_manager: BusinessManager, 
+    def sincronizar_numeros_whatsapp_business_account(self, whatsapp_business_account: WhatsAppBusinessAccount, 
                                            force_update: bool = False) -> Dict:
-        """Sincroniza todos os números de uma Business Manager"""
-        logger.info(f"Iniciando sincronização da Business Manager {business_manager.nome}")
+        """Sincroniza todos os números de uma WhatsApp Business Account"""
+        logger.info(f"Iniciando sincronização da WABA {whatsapp_business_account.nome}")
         
         resultado = {
-            'business_manager_id': business_manager.id,
-            'business_manager_nome': business_manager.nome,
+            'whatsapp_business_account_id': whatsapp_business_account.id,
+            'whatsapp_business_account_nome': whatsapp_business_account.nome,
             'sucesso': False,
             'numeros_processados': 0,
             'numeros_atualizados': 0,
@@ -296,26 +296,26 @@ class WhatsAppMetaAPIService:
         
         try:
             # Verificar se precisa sincronizar
-            if not force_update and business_manager.ultima_sincronizacao:
-                delta = timezone.now() - business_manager.ultima_sincronizacao
+            if not force_update and whatsapp_business_account.ultima_sincronizacao:
+                delta = timezone.now() - whatsapp_business_account.ultima_sincronizacao
                 if delta.total_seconds() < 900:  # 15 minutos
                     resultado['erro'] = 'Sincronização muito recente (menos de 15 minutos)'
                     return resultado
             
             # Listar números da API
-            sucesso, response_data = self.listar_numeros_whatsapp(business_manager)
+            sucesso, response_data = self.listar_numeros_whatsapp(whatsapp_business_account)
             
             if not sucesso:
                 resultado['erro'] = response_data.get('error', 'Erro desconhecido')
-                # Atualizar erro na Business Manager
-                business_manager.erro_ultima_sincronizacao = str(resultado['erro'])
-                business_manager.save()
+                # Atualizar erro na WhatsApp Business Account
+                whatsapp_business_account.erro_ultima_sincronizacao = str(resultado['erro'])
+                whatsapp_business_account.save()
                 return resultado
             
             numeros_api = response_data.get('numeros', [])
             
             # Obter token seguro (já foi validado no listar_numeros_whatsapp)
-            sucesso_token, access_token, _ = self._get_access_token_safe(business_manager)
+            sucesso_token, access_token, _ = self._get_access_token_safe(whatsapp_business_account)
             if not sucesso_token:
                 resultado['erro'] = f"Token inválido: {access_token}"
                 return resultado
@@ -339,7 +339,7 @@ class WhatsAppMetaAPIService:
                         
                         # Processar o número
                         numero_resultado = self._processar_numero_whatsapp(
-                            business_manager, detalhes
+                            whatsapp_business_account, detalhes
                         )
                         
                         resultado['numeros_processados'] += 1
@@ -356,10 +356,10 @@ class WhatsAppMetaAPIService:
                         logger.error(f"Erro ao processar número {numero_data.get('id', 'N/A')}: {e}")
                         continue
             
-            # Atualizar status da Business Manager
-            business_manager.ultima_sincronizacao = timezone.now()
-            business_manager.erro_ultima_sincronizacao = ""
-            business_manager.save()
+            # Atualizar status da WhatsApp Business Account
+            whatsapp_business_account.ultima_sincronizacao = timezone.now()
+            whatsapp_business_account.erro_ultima_sincronizacao = ""
+            whatsapp_business_account.save()
             
             resultado['sucesso'] = True
             logger.info(f"Sincronização concluída: {resultado['numeros_processados']} processados")
@@ -367,12 +367,12 @@ class WhatsAppMetaAPIService:
         except Exception as e:
             logger.error(f"Erro geral na sincronização: {e}")
             resultado['erro'] = str(e)
-            business_manager.erro_ultima_sincronizacao = str(e)
-            business_manager.save()
+            whatsapp_business_account.erro_ultima_sincronizacao = str(e)
+            whatsapp_business_account.save()
         
         return resultado
     
-    def _processar_numero_whatsapp(self, business_manager: BusinessManager, 
+    def _processar_numero_whatsapp(self, whatsapp_business_account: WhatsAppBusinessAccount, 
                                   dados_api: Dict) -> Dict:
         """Processa um número específico e suas mudanças de qualidade"""
         resultado = {
@@ -398,7 +398,7 @@ class WhatsAppMetaAPIService:
             numero, criado = WhatsAppPhoneNumber.objects.get_or_create(
                 phone_number_id=phone_number_id,
                 defaults={
-                    'business_manager': business_manager,
+                    'whatsapp_business_account': whatsapp_business_account,
                     'display_phone_number': display_phone_number,
                     'verified_name': verified_name,
                     'quality_rating': quality_rating,
@@ -592,57 +592,57 @@ class WhatsAppMetaAPIService:
         
         return alertas
     
-    def sincronizar_qualidade_numeros(self, business_manager_id: Optional[int] = None, 
+    def sincronizar_qualidade_numeros(self, whatsapp_business_account_id: Optional[int] = None, 
                                      force_update: bool = False) -> Dict:
-        """Sincroniza qualidade de todos os números ou de uma Business Manager específica"""
+        """Sincroniza qualidade de todos os números ou de uma WABA específica"""
         logger.info("Iniciando sincronização geral de qualidade")
         
         resultado = {
             'sucesso': True,
-            'business_managers_processadas': 0,
+            'whatsapp_business_accounts_processadas': 0,
             'total_numeros_processados': 0,
             'total_numeros_atualizados': 0,
             'total_numeros_criados': 0,
             'total_alertas_criados': 0,
             'erros': [],
-            'detalhes_por_bm': []
+            'detalhes_por_waba': []
         }
         
         try:
-            # Definir quais Business Managers processar
-            if business_manager_id:
-                business_managers = BusinessManager.objects.filter(id=business_manager_id, ativo=True)
+            # Definir quais WABAs processar
+            if whatsapp_business_account_id:
+                whatsapp_business_accounts = WhatsAppBusinessAccount.objects.filter(id=whatsapp_business_account_id, ativo=True)
             else:
-                business_managers = BusinessManager.objects.filter(ativo=True)
+                whatsapp_business_accounts = WhatsAppBusinessAccount.objects.filter(ativo=True)
             
-            if not business_managers.exists():
+            if not whatsapp_business_accounts.exists():
                 resultado['sucesso'] = False
-                resultado['erros'].append('Nenhuma Business Manager ativa encontrada')
+                resultado['erros'].append('Nenhuma WhatsApp Business Account ativa encontrada')
                 return resultado
             
-            # Processar cada Business Manager
-            for bm in business_managers:
+            # Processar cada WhatsApp Business Account
+            for waba in whatsapp_business_accounts:
                 try:
-                    resultado_bm = self.sincronizar_numeros_business_manager(bm, force_update)
+                    resultado_waba = self.sincronizar_numeros_whatsapp_business_account(waba, force_update)
                     
-                    resultado['business_managers_processadas'] += 1
-                    resultado['total_numeros_processados'] += resultado_bm['numeros_processados']
-                    resultado['total_numeros_atualizados'] += resultado_bm['numeros_atualizados']
-                    resultado['total_numeros_criados'] += resultado_bm['numeros_criados']
-                    resultado['total_alertas_criados'] += resultado_bm['alertas_criados']
+                    resultado['whatsapp_business_accounts_processadas'] += 1
+                    resultado['total_numeros_processados'] += resultado_waba['numeros_processados']
+                    resultado['total_numeros_atualizados'] += resultado_waba['numeros_atualizados']
+                    resultado['total_numeros_criados'] += resultado_waba['numeros_criados']
+                    resultado['total_alertas_criados'] += resultado_waba['alertas_criados']
                     
-                    resultado['detalhes_por_bm'].append(resultado_bm)
+                    resultado['detalhes_por_waba'].append(resultado_waba)
                     
-                    if resultado_bm['erro']:
-                        resultado['erros'].append(f"BM {bm.nome}: {resultado_bm['erro']}")
+                    if resultado_waba['erro']:
+                        resultado['erros'].append(f"WABA {waba.nome}: {resultado_waba['erro']}")
                 
                 except Exception as e:
-                    erro = f"Erro ao processar Business Manager {bm.nome}: {str(e)}"
+                    erro = f"Erro ao processar WABA {waba.nome}: {str(e)}"
                     logger.error(erro)
                     resultado['erros'].append(erro)
             
             if resultado['erros']:
-                resultado['sucesso'] = len(resultado['erros']) < len(business_managers)
+                resultado['sucesso'] = len(resultado['erros']) < len(whatsapp_business_accounts)
             
             logger.info(f"Sincronização geral concluída: {resultado['total_numeros_processados']} números processados")
             
@@ -652,6 +652,11 @@ class WhatsAppMetaAPIService:
             resultado['erros'].append(str(e))
         
         return resultado
+    
+    # Função de compatibilidade temporária
+    def sincronizar_numeros_business_manager(self, business_manager, force_update=False):
+        """Função de compatibilidade - usar sincronizar_numeros_whatsapp_business_account"""
+        return self.sincronizar_numeros_whatsapp_business_account(business_manager, force_update)
     
     def verificar_mudancas_qualidade(self) -> Dict:
         """Verifica mudanças recentes na qualidade dos números"""

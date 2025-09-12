@@ -7,7 +7,7 @@ from .models import (
     DepartamentoChoices, PrioridadeChoices, ComplexidadeChoices,
     FrequenciaUsoChoices, NivelAutonomiaChoices,
     # WhatsApp Business models
-    BusinessManager, WhatsAppPhoneNumber, QualityHistory, QualityAlert,
+    WhatsAppBusinessAccount, BusinessManager, WhatsAppPhoneNumber, QualityHistory, QualityAlert,
     QualityRatingChoices, MessagingLimitTierChoices, PhoneNumberStatusChoices,
     AlertTypeChoices, AlertPriorityChoices
 )
@@ -932,8 +932,8 @@ class FiltrosProjetosSerializer(serializers.Serializer):
 
 # ===== SERIALIZERS PARA WHATSAPP BUSINESS =====
 
-class BusinessManagerSerializer(serializers.ModelSerializer):
-    """Serializer para Business Manager - VERSÃO SEGURA"""
+class WhatsAppBusinessAccountSerializer(serializers.ModelSerializer):
+    """Serializer para WhatsApp Business Account (WABA) - VERSÃO SEGURA"""
     responsavel_nome = serializers.CharField(source='responsavel.get_full_name', read_only=True)
     total_numeros = serializers.SerializerMethodField()
     numeros_monitorados = serializers.SerializerMethodField()
@@ -943,9 +943,9 @@ class BusinessManagerSerializer(serializers.ModelSerializer):
     access_token = serializers.CharField(write_only=True, required=True, help_text="Token original da Meta API")
     
     class Meta:
-        model = BusinessManager
+        model = WhatsAppBusinessAccount
         fields = [
-            'id', 'nome', 'business_manager_id', 'access_token_encrypted', 'access_token',
+            'id', 'nome', 'whatsapp_business_account_id', 'access_token_encrypted', 'access_token',
             'webhook_verify_token', 'ativo', 'ultima_sincronizacao',
             'erro_ultima_sincronizacao', 'responsavel', 'responsavel_nome',
             'criado_em', 'atualizado_em', 'total_numeros', 'numeros_monitorados',
@@ -958,7 +958,7 @@ class BusinessManagerSerializer(serializers.ModelSerializer):
         }
     
     def validate_nome(self, value):
-        """Validar nome do Business Manager"""
+        """Validar nome da WhatsApp Business Account"""
         if not value or not value.strip():
             raise serializers.ValidationError("Nome é obrigatório")
         if len(value.strip()) < 3:
@@ -967,16 +967,16 @@ class BusinessManagerSerializer(serializers.ModelSerializer):
         import html
         return html.escape(value.strip())
     
-    def validate_business_manager_id(self, value):
-        """Validar ID do Business Manager"""
+    def validate_whatsapp_business_account_id(self, value):
+        """Validar WABA ID"""
         if not value or not value.strip():
-            raise serializers.ValidationError("ID do Business Manager é obrigatório")
+            raise serializers.ValidationError("WhatsApp Business Account ID (WABA ID) é obrigatório")
         
         # Validar formato (apenas números e tamanho esperado)
         import re
         if not re.match(r'^\d{15,20}$', value.strip()):
             raise serializers.ValidationError(
-                "ID do Business Manager deve conter apenas números e ter entre 15-20 dígitos"
+                "WABA ID deve conter apenas números e ter entre 15-20 dígitos"
             )
         return value.strip()
     
@@ -1007,7 +1007,7 @@ class BusinessManagerSerializer(serializers.ModelSerializer):
         return value
     
     def create(self, validated_data):
-        """Criar Business Manager com criptografia de token"""
+        """Criar WhatsApp Business Account com criptografia de token"""
         access_token = validated_data.pop('access_token', None)
         
         if access_token:
@@ -1021,7 +1021,7 @@ class BusinessManagerSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
     
     def update(self, instance, validated_data):
-        """Atualizar Business Manager com recriptografia se necessário"""
+        """Atualizar WhatsApp Business Account com recriptografia se necessário"""
         access_token = validated_data.pop('access_token', None)
         
         if access_token:
@@ -1056,9 +1056,14 @@ class BusinessManagerSerializer(serializers.ModelSerializer):
             return 'ok'
 
 
+# Compatibilidade temporária
+BusinessManagerSerializer = WhatsAppBusinessAccountSerializer
+
+
 class WhatsAppPhoneNumberSerializer(serializers.ModelSerializer):
     """Serializer para números WhatsApp"""
-    business_manager_nome = serializers.CharField(source='business_manager.nome', read_only=True)
+    whatsapp_business_account_nome = serializers.CharField(source='whatsapp_business_account.nome', read_only=True)
+    business_manager_nome = serializers.CharField(source='business_manager.nome', read_only=True)  # Compatibilidade
     quality_rating_display = serializers.CharField(source='get_quality_rating_display', read_only=True)
     messaging_limit_display = serializers.CharField(source='get_messaging_limit_tier_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
@@ -1068,8 +1073,9 @@ class WhatsAppPhoneNumberSerializer(serializers.ModelSerializer):
     class Meta:
         model = WhatsAppPhoneNumber
         fields = [
-            'id', 'business_manager', 'business_manager_nome', 'phone_number_id',
-            'display_phone_number', 'verified_name', 'quality_rating',
+            'id', 'whatsapp_business_account', 'whatsapp_business_account_nome', 
+            'business_manager', 'business_manager_nome',  # Compatibilidade
+            'phone_number_id', 'display_phone_number', 'verified_name', 'quality_rating',
             'quality_rating_display', 'messaging_limit_tier', 'messaging_limit_display',
             'status', 'status_display', 'monitoramento_ativo', 
             'frequencia_verificacao_minutos', 'detalhes_api', 'criado_em',
@@ -1077,7 +1083,8 @@ class WhatsAppPhoneNumberSerializer(serializers.ModelSerializer):
             'alertas_pendentes'
         ]
         read_only_fields = ['criado_em', 'atualizado_em', 'ultima_verificacao',
-                           'business_manager_nome', 'quality_rating_display',
+                           'whatsapp_business_account_nome', 'business_manager_nome',
+                           'business_manager', 'quality_rating_display',
                            'messaging_limit_display', 'status_display',
                            'tempo_sem_verificacao', 'alertas_pendentes']
     
@@ -1167,11 +1174,22 @@ class MarcarAlertaResolvidoSerializer(serializers.Serializer):
 
 class SincronizarMetaAPISerializer(serializers.Serializer):
     """Serializer para sincronização com Meta API"""
+    whatsapp_business_account_id = serializers.IntegerField(
+        required=False,
+        help_text="ID da WhatsApp Business Account específica. Se não fornecido, sincroniza todas ativas"
+    )
+    # Mantém compatibilidade
     business_manager_id = serializers.IntegerField(
         required=False,
-        help_text="ID da Business Manager específica. Se não fornecido, sincroniza todas ativas"
+        help_text="(LEGADO) ID da Business Manager específica. Use whatsapp_business_account_id"
     )
     force_update = serializers.BooleanField(
         default=False,
         help_text="Força atualização mesmo que tenha sido sincronizada recentemente"
     )
+    
+    def validate(self, data):
+        # Se business_manager_id for fornecido mas whatsapp_business_account_id não, usar o primeiro
+        if data.get('business_manager_id') and not data.get('whatsapp_business_account_id'):
+            data['whatsapp_business_account_id'] = data['business_manager_id']
+        return data

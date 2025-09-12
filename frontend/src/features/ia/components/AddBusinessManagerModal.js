@@ -95,7 +95,15 @@ const AddBusinessManagerModal = ({
     if (!validateForm()) return;
 
     try {
+      console.log('📋 Validação passou, enviando dados:', {
+        nome: formData.nome,
+        business_manager_id: formData.business_manager_id,
+        descricao: formData.descricao,
+        access_token_length: formData.access_token?.length || 0
+      });
+      
       await onAdd(formData);
+      
       // Resetar form e fechar modal em caso de sucesso
       setFormData({
         nome: '',
@@ -105,9 +113,22 @@ const AddBusinessManagerModal = ({
       });
       setErrors({});
       setOpen(false);
+      
+      console.log('✅ Business Manager adicionado com sucesso');
+      
     } catch (error) {
-      // Erros serão tratados pelo componente pai
-      console.error('Erro ao adicionar Business Manager:', error);
+      console.error('❌ Erro capturado no modal:', error);
+      
+      // Mostrar erro específico para o usuário
+      if (error.message.includes('servidor')) {
+        setErrors({ submit: 'Erro interno do servidor. Verifique os logs do backend.' });
+      } else if (error.message.includes('inválidos')) {
+        setErrors({ submit: 'Dados fornecidos são inválidos. Verifique os campos.' });
+      } else if (error.message.includes('autenticação')) {
+        setErrors({ submit: 'Erro de autenticação. Recarregue a página e tente novamente.' });
+      } else {
+        setErrors({ submit: error.message || 'Erro desconhecido. Tente novamente.' });
+      }
     }
   };
 
@@ -200,6 +221,14 @@ const AddBusinessManagerModal = ({
               rows={2}
             />
           </div>
+
+          {/* Erro de submit */}
+          {errors.submit && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errors.submit}</AlertDescription>
+            </Alert>
+          )}
 
           {/* Alerta informativo */}
           <Alert>

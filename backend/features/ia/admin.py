@@ -6,7 +6,7 @@ from django.utils.safestring import mark_safe
 from .models import (
     LogEntry, ProjetoIA, VersaoProjeto,
     # WhatsApp Business models
-    BusinessManager, WhatsAppPhoneNumber, QualityHistory, QualityAlert
+    WhatsAppBusinessAccount, BusinessManager, WhatsAppPhoneNumber, QualityHistory, QualityAlert
 )
 
 # ===== ADMIN DE LOGS (EXISTENTE) =====
@@ -214,20 +214,20 @@ class VersaoProjetoAdmin(admin.ModelAdmin):
 
 # ===== ADMIN DE WHATSAPP BUSINESS =====
 
-@admin.register(BusinessManager)
-class BusinessManagerAdmin(admin.ModelAdmin):
+@admin.register(WhatsAppBusinessAccount)
+class WhatsAppBusinessAccountAdmin(admin.ModelAdmin):
     list_display = [
-        'nome', 'business_manager_id', 'responsavel',
+        'nome', 'whatsapp_business_account_id', 'responsavel',
         'ativo', 'total_numeros', 'status_sincronizacao',
         'ultima_sincronizacao'
     ]
     list_filter = ['ativo', 'responsavel', 'ultima_sincronizacao']
-    search_fields = ['nome', 'business_manager_id', 'responsavel__first_name', 'responsavel__last_name']
+    search_fields = ['nome', 'whatsapp_business_account_id', 'responsavel__first_name', 'responsavel__last_name']
     readonly_fields = ['ultima_sincronizacao', 'erro_ultima_sincronizacao', 'criado_em', 'atualizado_em']
     
     fieldsets = (
         ('Informações Básicas', {
-            'fields': ('nome', 'business_manager_id', 'responsavel', 'ativo')
+            'fields': ('nome', 'whatsapp_business_account_id', 'responsavel', 'ativo')
         }),
         ('Configuração API', {
             'fields': ('access_token_encrypted', 'webhook_verify_token'),
@@ -244,7 +244,7 @@ class BusinessManagerAdmin(admin.ModelAdmin):
     )
     
     def total_numeros(self, obj):
-        """Conta total de números desta Business Manager"""
+        """Conta total de números desta WABA"""
         count = obj.phone_numbers.count()
         monitorados = obj.phone_numbers.filter(monitoramento_ativo=True).count()
         return f"{count} ({monitorados} monitorados)"
@@ -280,12 +280,12 @@ class QualityAlertInline(admin.TabularInline):
 @admin.register(WhatsAppPhoneNumber)
 class WhatsAppPhoneNumberAdmin(admin.ModelAdmin):
     list_display = [
-        'display_phone_number', 'verified_name', 'business_manager',
+        'display_phone_number', 'verified_name', 'whatsapp_business_account',
         'quality_badge', 'limit_badge', 'status_badge',
         'monitoramento_ativo', 'alertas_pendentes', 'ultima_verificacao'
     ]
     list_filter = [
-        'business_manager', 'quality_rating', 'messaging_limit_tier',
+        'whatsapp_business_account', 'quality_rating', 'messaging_limit_tier',
         'status', 'monitoramento_ativo', 'ultima_verificacao'
     ]
     search_fields = ['display_phone_number', 'verified_name', 'phone_number_id']
@@ -294,7 +294,7 @@ class WhatsAppPhoneNumberAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Informações do Número', {
-            'fields': ('phone_number_id', 'display_phone_number', 'verified_name', 'business_manager')
+            'fields': ('phone_number_id', 'display_phone_number', 'verified_name', 'whatsapp_business_account')
         }),
         ('Status Atual', {
             'fields': ('quality_rating', 'messaging_limit_tier', 'status')
@@ -428,7 +428,7 @@ class QualityAlertAdmin(admin.ModelAdmin):
     ]
     list_filter = [
         'alert_type', 'priority', 'visualizado', 'resolvido',
-        'phone_number__business_manager', 'criado_em'
+        'phone_number__whatsapp_business_account', 'criado_em'
     ]
     search_fields = [
         'titulo', 'descricao', 'phone_number__display_phone_number',

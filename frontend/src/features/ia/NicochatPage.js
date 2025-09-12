@@ -13,7 +13,6 @@ import {
   Info
 } from 'lucide-react';
 import axios from 'axios';
-import { getCSRFToken } from '../../utils/csrf';
 
 // Importar componentes criados
 import BusinessManagerCard from './components/BusinessManagerCard';
@@ -45,10 +44,10 @@ const NicochatPage = () => {
       setError(null);
 
       const [statsRes, bmRes, numbersRes, alertsRes] = await Promise.all([
-        axios.get('/ia/dashboard-whatsapp-stats/'),
-        axios.get('/ia/business-managers/'),
-        axios.get('/ia/whatsapp-numeros/'),
-        axios.get('/ia/quality-alerts/')
+        axios.get('/api/ia/dashboard-whatsapp-stats/'),
+        axios.get('/api/ia/business-managers/'),
+        axios.get('/api/ia/whatsapp-numeros/'),
+        axios.get('/api/ia/quality-alerts/')
       ]);
 
       setDashboardStats(statsRes.data);
@@ -57,8 +56,24 @@ const NicochatPage = () => {
       setAlerts(alertsRes.data.results || alertsRes.data);
 
     } catch (err) {
-      console.error('Erro ao carregar dados do dashboard:', err);
-      setError('Erro ao carregar dados. Tente novamente.');
+      console.error('❌ Erro ao carregar dados do dashboard:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+        url: err.config?.url
+      });
+      
+      if (err.response?.status === 404) {
+        setError('Endpoints da API não encontrados. Verifique se o backend está rodando.');
+      } else if (err.response?.status === 403) {
+        setError('Acesso negado. Faça login novamente.');
+      } else if (err.response?.status === 500) {
+        setError('Erro interno do servidor. Contate o suporte técnico.');
+      } else if (!err.response) {
+        setError('Erro de conexão. Verifique sua internet e se o backend está ativo.');
+      } else {
+        setError('Erro ao carregar dados. Tente novamente.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -73,12 +88,7 @@ const NicochatPage = () => {
   const handleSyncMetaAPI = async () => {
     try {
       setIsSyncing(true);
-      await axios.post('/ia/sincronizar-meta-api/', {}, {
-        headers: {
-          'X-CSRFToken': getCSRFToken(),
-          'Content-Type': 'application/json'
-        }
-      });
+      await axios.post('/api/ia/sincronizar-meta-api/', {});
       
       // Recarregar dados após sincronização
       await fetchDashboardData();
@@ -94,19 +104,35 @@ const NicochatPage = () => {
   // Adicionar Business Manager
   const handleAddBusinessManager = async (formData) => {
     try {
-      await axios.post('/ia/business-managers/', formData, {
-        headers: {
-          'X-CSRFToken': getCSRFToken(),
-          'Content-Type': 'application/json'
-        }
+      console.log('🔄 Enviando dados para adicionar Business Manager:', {
+        nome: formData.nome,
+        business_manager_id: formData.business_manager_id,
+        access_token: formData.access_token ? '[TOKEN PRESENTE]' : '[TOKEN AUSENTE]'
       });
+      
+      const response = await axios.post('/api/ia/business-managers/', formData);
+      
+      console.log('✅ Business Manager adicionado com sucesso:', response.status);
       
       // Recarregar dados
       await fetchDashboardData();
       
     } catch (err) {
-      console.error('Erro ao adicionar Business Manager:', err);
-      throw new Error('Erro ao adicionar Business Manager');
+      console.error('❌ Erro ao adicionar Business Manager:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message
+      });
+      
+      if (err.response?.status === 500) {
+        throw new Error('Erro interno do servidor. Verifique os logs do backend.');
+      } else if (err.response?.status === 400) {
+        throw new Error(err.response?.data?.detail || 'Dados inválidos fornecidos.');
+      } else if (err.response?.status === 403) {
+        throw new Error('Erro de autenticação. Tente recarregar a página.');
+      } else {
+        throw new Error('Erro ao adicionar Business Manager. Tente novamente.');
+      }
     }
   };
 
@@ -114,11 +140,7 @@ const NicochatPage = () => {
   const handleSyncBusinessManager = async (bmId) => {
     try {
       setIsSyncing(true);
-      await axios.post(`/ia/business-managers/${bmId}/sincronizar/`, {}, {
-        headers: {
-          'X-CSRFToken': getCSRFToken()
-        }
-      });
+      await axios.post(`/api/ia/business-managers/${bmId}/sincronizar/`, {});
       
       await fetchDashboardData();
       
@@ -137,11 +159,7 @@ const NicochatPage = () => {
     }
     
     try {
-      await axios.delete(`/ia/business-managers/${bmId}/`, {
-        headers: {
-          'X-CSRFToken': getCSRFToken()
-        }
-      });
+      await axios.delete(`/api/ia/business-managers/${bmId}/`);
       
       await fetchDashboardData();
       
@@ -155,13 +173,7 @@ const NicochatPage = () => {
   const handleDismissAlert = async (alertId) => {
     try {
       await axios.patch(`/api/ia/quality-alerts/${alertId}/`, 
-        { status: 'dismissed' },
-        {
-          headers: {
-            'X-CSRFToken': getCSRFToken(),
-            'Content-Type': 'application/json'
-          }
-        }
+        { status: 'dismissed' }
       );
       
       setAlerts(prev => prev.filter(alert => alert.id !== alertId));
