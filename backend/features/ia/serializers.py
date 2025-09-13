@@ -1060,6 +1060,35 @@ class WhatsAppBusinessAccountSerializer(serializers.ModelSerializer):
 BusinessManagerSerializer = WhatsAppBusinessAccountSerializer
 
 
+class WhatsAppPhoneNumberCreateSerializer(serializers.ModelSerializer):
+    """Serializer para criação de números WhatsApp"""
+    whatsapp_business_account_id = serializers.IntegerField(write_only=True)
+    
+    class Meta:
+        model = WhatsAppPhoneNumber
+        fields = [
+            'whatsapp_business_account_id', 'phone_number_id', 'display_phone_number', 
+            'verified_name', 'bm_nome_customizado', 'pais_nome_customizado', 
+            'perfil', 'token_expira_em', 'monitoramento_ativo', 
+            'frequencia_verificacao_minutos'
+        ]
+    
+    def create(self, validated_data):
+        """Criar número WhatsApp com Business Manager"""
+        whatsapp_business_account_id = validated_data.pop('whatsapp_business_account_id')
+        
+        try:
+            # Importar o modelo BusinessManager (alias para WhatsAppBusinessAccount)
+            from .models import BusinessManager
+            business_manager = BusinessManager.objects.get(id=whatsapp_business_account_id)
+            validated_data['whatsapp_business_account'] = business_manager
+            return super().create(validated_data)
+        except BusinessManager.DoesNotExist:
+            raise serializers.ValidationError({
+                'whatsapp_business_account_id': 'Business Manager não encontrada'
+            })
+
+
 class WhatsAppPhoneNumberSerializer(serializers.ModelSerializer):
     """Serializer para números WhatsApp - VERSÃO CORRIGIDA PARA COMPATIBILIDADE FRONTEND"""
     whatsapp_business_account_id = serializers.IntegerField(source='whatsapp_business_account.id', read_only=True)

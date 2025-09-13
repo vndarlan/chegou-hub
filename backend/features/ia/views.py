@@ -29,7 +29,7 @@ from .serializers import (
     FiltrosProjetosSerializer,
     # WhatsApp Business serializers
     WhatsAppBusinessAccountSerializer, WhatsAppPhoneNumberSerializer, 
-    QualityHistorySerializer, QualityAlertSerializer,
+    WhatsAppPhoneNumberCreateSerializer, QualityHistorySerializer, QualityAlertSerializer,
     MarcarAlertaResolvidoSerializer, SincronizarMetaAPISerializer
 )
 
@@ -1054,12 +1054,18 @@ class BusinessManagerViewSet(viewsets.ModelViewSet):
             )
 
 
-class WhatsAppPhoneNumberViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet para visualização de números WhatsApp (read-only)"""
+class WhatsAppPhoneNumberViewSet(viewsets.ModelViewSet):
+    """ViewSet para CRUD completo de números WhatsApp"""
     
     queryset = WhatsAppPhoneNumber.objects.all()
     serializer_class = WhatsAppPhoneNumberSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get_serializer_class(self):
+        """Usar serializer específico para criação"""
+        if self.action == 'create':
+            return WhatsAppPhoneNumberCreateSerializer
+        return WhatsAppPhoneNumberSerializer
     
     def get_queryset(self):
         """Filtrar por permissões do usuário"""
@@ -1084,6 +1090,51 @@ class WhatsAppPhoneNumberViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(monitoramento_ativo=monitoramento_ativo.lower() == 'true')
         
         return queryset.order_by('display_phone_number')
+    
+    def create(self, request, *args, **kwargs):
+        """Criar novo número WhatsApp"""
+        try:
+            print(f"CREATE WHATSAPP NUMBER - usuario: {request.user.username}")
+            print(f"CREATE WHATSAPP NUMBER - dados recebidos: {request.data}")
+            
+            # Verificar se o usuário tem permissão para criar números
+            if not (request.user.is_superuser or 
+                    request.user.groups.filter(name__in=['Diretoria', 'Gestão']).exists()):
+                return Response(
+                    {'error': 'Sem permissão para criar números WhatsApp'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Verificar acesso à Business Manager antes de criar
+            whatsapp_business_account_id = request.data.get('whatsapp_business_account_id')
+            if whatsapp_business_account_id:
+                try:
+                    business_manager = BusinessManager.objects.get(id=whatsapp_business_account_id)
+                    # Verificar se o usuário tem acesso a essa Business Manager
+                    if not (request.user.is_superuser or 
+                            request.user.groups.filter(name__in=['Diretoria', 'Gestão']).exists() or
+                            business_manager.responsavel == request.user):
+                        return Response(
+                            {'error': 'Sem permissão para criar números nesta Business Manager'},
+                            status=status.HTTP_403_FORBIDDEN
+                        )
+                except BusinessManager.DoesNotExist:
+                    return Response(
+                        {'error': 'Business Manager não encontrada'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+            
+            # Usar serializer padrão para criação
+            return super().create(request, *args, **kwargs)
+                
+        except Exception as e:
+            print(f"CREATE WHATSAPP NUMBER - erro: {e}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {'error': f'Erro interno ao criar número: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @action(detail=True, methods=['patch'])
     def toggle_monitoramento(self, request, pk=None):
