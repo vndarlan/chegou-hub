@@ -38,7 +38,6 @@ import {
 function ControleEstoquePage() {
     // Estados principais
     const [lojas, setLojas] = useState([]);
-    const [lojaSelecionada, setLojaSelecionada] = useState(null);
     const [produtos, setProdutos] = useState([]);
     const [produtosFiltrados, setProdutosFiltrados] = useState([]);
     const [searchingProdutos, setSearchingProdutos] = useState(false);
@@ -88,7 +87,7 @@ function ControleEstoquePage() {
     
     // WebSocket e tempo real - habilitado para receber notificações de cancelamento
     // Construir URL do WebSocket baseada na loja selecionada
-    const websocketUrl = lojaSelecionada ? `/ws/estoque/?loja_id=${lojaSelecionada}` : null;
+    const websocketUrl = null; // WebSocket desabilitado no modo unificado
     
     const {
         connectionStatus,
@@ -97,7 +96,6 @@ function ControleEstoquePage() {
         maxReconnectAttempts,
         hasExceededMaxAttempts,
         sendMessage,
-        sendJsonMessage,
         retryConnection,
         isReconnecting
     } = useWebSocket(websocketUrl, {
@@ -145,33 +143,27 @@ function ControleEstoquePage() {
         try {
             const response = await axios.get('/processamento/lojas/');
             setLojas(response.data.lojas || []);
-            if (response.data.lojas?.length > 0 && !lojaSelecionada) {
-                setLojaSelecionada(response.data.lojas[0].id);
-            }
         } catch (error) {
             console.error('Erro ao carregar lojas:', error);
             showNotification('Erro ao carregar lojas', 'error');
         } finally {
             setLoading(false);
         }
-    }, [lojaSelecionada]);
+    }, []);
 
     const loadProdutos = useCallback(async () => {
-        if (!lojaSelecionada) return;
-        
         setSearchingProdutos(true);
         try {
-            // Usar nova API unificada
-            const response = await axios.get('/estoque/produtos-unificados/', {
-                params: { loja_id: lojaSelecionada }
-            });
+            // Usar nova API unificada - carrega TODOS os produtos
+            const response = await axios.get('/estoque/produtos-unificados/');
 
             if (response.data && response.data.results) {
                 setProdutos(response.data.results);
+                showNotification(`${response.data.results.length || 0} produtos carregados`);
             } else {
                 setProdutos([]);
+                showNotification('Nenhum produto encontrado');
             }
-            showNotification(`${response.data.results.length || 0} produtos carregados`);
             
         } catch (error) {
             console.error('Erro ao carregar produtos:', error);
@@ -180,16 +172,12 @@ function ControleEstoquePage() {
         } finally {
             setSearchingProdutos(false);
         }
-    }, [lojaSelecionada]);
+    }, []);
 
     const loadAlertas = useCallback(async () => {
-        if (!lojaSelecionada) return;
-        
         try {
-            // Usar o novo endpoint que verifica alertas em tempo real
-            const response = await axios.get('/estoque/alertas/verificar_alertas_tempo_real/', {
-                params: { loja_id: lojaSelecionada }
-            });
+            // Usar o novo endpoint que verifica alertas em tempo real - modo unificado
+            const response = await axios.get('/estoque/alertas/verificar_alertas_tempo_real/');
             
             if (response.data && response.data.alertas && Array.isArray(response.data.alertas)) {
                 const alertasAtivos = response.data.alertas;
@@ -229,9 +217,7 @@ function ControleEstoquePage() {
             // Fallback para o endpoint antigo caso o novo falhe
             console.log('⚠️ Tentando fallback para endpoint antigo de alertas...');
             try {
-                const fallbackResponse = await axios.get('/estoque/alertas/', {
-                    params: { loja_id: lojaSelecionada }
-                });
+                const fallbackResponse = await axios.get('/estoque/alertas/');
                 
                 if (fallbackResponse.data && Array.isArray(fallbackResponse.data)) {
                     const alertasAtivos = fallbackResponse.data.filter(alerta => alerta.status === 'ativo');
@@ -245,42 +231,25 @@ function ControleEstoquePage() {
                 setAlertas([]);
             }
         }
-    }, [lojaSelecionada]);
+    }, []);
 
     useEffect(() => {
         loadLojas();
     }, [loadLojas]);
 
     useEffect(() => {
-        if (lojaSelecionada) {
-            loadProdutos();
-            loadAlertas();
-            // Limpar destaques quando trocar de loja
-            clearAllHighlights();
-        }
-    }, [lojaSelecionada, clearAllHighlights, loadProdutos, loadAlertas]);
+        loadProdutos();
+        loadAlertas();
+        // Limpar destaques no carregamento inicial
+        clearAllHighlights();
+    }, [clearAllHighlights, loadProdutos, loadAlertas]);
     
     // Sistema habilitado para receber atualizações em tempo real via WebSocket
     
-    // Enviar identificação quando WebSocket conectar
-    useEffect(() => {
-        if (connectionStatus === 'Open' && sendJsonMessage && lojaSelecionada) {
-            sendJsonMessage({
-                type: 'identify',
-                data: {
-                    loja_id: lojaSelecionada,
-                    user_agent: navigator.userAgent,
-                    timestamp: Date.now(),
-                    client_type: 'controle_estoque'
-                }
-            });
-            
-            // Notificar restauração de conexão apenas se houve reconexão
-            if (reconnectAttempts > 0) {
-                showNotification('✨ Conexão em tempo real restaurada!', 'success');
-            }
-        }
-    }, [connectionStatus, sendJsonMessage, lojaSelecionada, reconnectAttempts]);
+    // WebSocket desabilitado no modo unificado
+    // useEffect(() => {
+    //     // WebSocket identification disabled for unified mode
+    // }, []);
     
     // Mostrar progresso de reconexão e estado final
     useEffect(() => {
@@ -400,11 +369,9 @@ function ControleEstoquePage() {
     // Funções de notificação em tempo real via WebSocket habilitadas
 
     const loadMovimentacoes = async (produtoId = null) => {
-        if (!lojaSelecionada) return;
-        
         setLoadingMovimentacoes(true);
         try {
-            const params = { loja_id: lojaSelecionada };
+            const params = {}; // Sem filtro por loja no modo unificado
             if (produtoId) params.produto_id = produtoId;
             
             const response = await axios.get('/estoque/movimentacoes/', { params });
@@ -480,8 +447,8 @@ function ControleEstoquePage() {
             return;
         }
         
-        // Garantir que a loja atual esteja incluída nas associações
-        const lojasParaAssociar = [...new Set([...novoProdutoCompartilhado.lojas_selecionadas, lojaSelecionada])];
+        // Usar apenas as lojas selecionadas no formulário
+        const lojasParaAssociar = [...new Set(novoProdutoCompartilhado.lojas_selecionadas)];
         console.log('Lojas que serão associadas:', lojasParaAssociar);
         
         setSavingProdutoCompartilhado(true);
@@ -560,7 +527,7 @@ function ControleEstoquePage() {
                 nome: selectedProduto.nome,
                 fornecedor: selectedProduto.fornecedor,
                 estoque_minimo: parseInt(selectedProduto.estoque_minimo) || 5,
-                loja_config: selectedProduto.loja_config || lojaSelecionada
+                loja_config: selectedProduto.loja_config
             };
 
             const response = await axios.put(`/estoque/produtos/${selectedProduto.id}/`, dados, {
@@ -591,10 +558,7 @@ function ControleEstoquePage() {
             return;
         }
 
-        if (!lojaSelecionada) {
-            showNotification('Loja não selecionada', 'error');
-            return;
-        }
+        // Modo unificado não requer seleção de loja
 
         if (!ajusteEstoque.quantidade || parseInt(ajusteEstoque.quantidade) <= 0) {
             showNotification('Quantidade deve ser maior que zero', 'error');
@@ -849,19 +813,6 @@ function ControleEstoquePage() {
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-2">
-                    <Select value={lojaSelecionada?.toString()} onValueChange={(value) => setLojaSelecionada(parseInt(value))}>
-                        <SelectTrigger className="w-full sm:w-48 bg-background border-input text-foreground">
-                            <Building className="h-4 w-4 mr-2" />
-                            <SelectValue placeholder="Selecionar loja" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-popover border-border">
-                            {lojas.map(loja => (
-                                <SelectItem key={loja.id} value={loja.id.toString()} className="text-foreground hover:bg-accent">
-                                    {loja.nome_loja}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
                     
                     <Button 
                         variant="default"
@@ -1396,7 +1347,7 @@ function ControleEstoquePage() {
                 </CardHeader>
                 
                 <CardContent>
-                    {!lojaSelecionada && (
+                    {false && (
                         <Alert>
                             <AlertCircle className="h-4 w-4" />
                             <AlertDescription className="text-foreground">Selecione uma loja no header para visualizar produtos</AlertDescription>

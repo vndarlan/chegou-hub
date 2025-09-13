@@ -9,7 +9,11 @@
       "Bash(npm run build:*)",
       "Bash(npx react-scripts build:*)",
       "Bash(npx eslint:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(npx kill-port:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": [],
