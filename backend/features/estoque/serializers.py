@@ -25,6 +25,14 @@ class ProdutoEstoqueSerializer(serializers.ModelSerializer):
     loja_nome = serializers.CharField(source='loja_config.nome_loja', read_only=True)
     loja_url = serializers.CharField(source='loja_config.shop_url', read_only=True)
     
+    # Campos para compatibilidade com interface unificada
+    tipo_produto = serializers.SerializerMethodField(
+        help_text="Tipo do produto: 'compartilhado' ou 'individual'"
+    )
+    lojas_conectadas = serializers.SerializerMethodField(
+        help_text="Lista das lojas onde o produto está conectado"
+    )
+    
     # Contadores relacionados
     total_movimentacoes = serializers.SerializerMethodField()
     alertas_ativos = serializers.SerializerMethodField()
@@ -41,6 +49,7 @@ class ProdutoEstoqueSerializer(serializers.ModelSerializer):
             'sync_shopify_enabled', 'ultima_sincronizacao', 'erro_sincronizacao',
             'ativo', 'custo_unitario', 'preco_venda', 'valor_total_estoque',
             'data_criacao', 'data_atualizacao', 'observacoes',
+            'tipo_produto', 'lojas_conectadas',
             'total_movimentacoes', 'alertas_ativos'
         ]
         read_only_fields = [
@@ -49,6 +58,7 @@ class ProdutoEstoqueSerializer(serializers.ModelSerializer):
             'estoque_disponivel', 'estoque_baixo', 'necessita_reposicao',
             'estoque_negativo', 'pedidos_pendentes',
             'valor_total_estoque', 'loja_nome', 'loja_url',
+            'tipo_produto', 'lojas_conectadas',
             'total_movimentacoes', 'alertas_ativos'
         ]
     
@@ -59,6 +69,20 @@ class ProdutoEstoqueSerializer(serializers.ModelSerializer):
     def get_alertas_ativos(self, obj):
         """Retorna o número de alertas ativos para o produto"""
         return obj.alertas.filter(status='ativo').count()
+    
+    def get_tipo_produto(self, obj):
+        """Retorna o tipo do produto para interface unificada"""
+        return 'individual'
+    
+    def get_lojas_conectadas(self, obj):
+        """Retorna lista das lojas onde o produto está conectado"""
+        return [
+            {
+                'id': obj.loja_config.id,
+                'nome_loja': obj.loja_config.nome_loja,
+                'shop_url': obj.loja_config.shop_url
+            }
+        ]
     
     def validate(self, data):
         """Validações customizadas"""
@@ -452,6 +476,16 @@ class ProdutoSerializer(serializers.ModelSerializer):
     total_lojas = serializers.ReadOnlyField()
     todos_skus = serializers.ReadOnlyField()
     
+    # Indicador de tipo para interface unificada
+    tipo_produto = serializers.SerializerMethodField(
+        help_text="Tipo do produto: 'compartilhado' ou 'individual'"
+    )
+    
+    # Lojas conectadas de forma simples
+    lojas_conectadas = serializers.SerializerMethodField(
+        help_text="Lista simplificada das lojas onde o produto está conectado"
+    )
+    
     # SKUs aninhados
     skus = ProdutoSKUSerializer(many=True, read_only=True)
     skus_data = serializers.ListField(
@@ -461,7 +495,7 @@ class ProdutoSerializer(serializers.ModelSerializer):
         help_text="Lista de SKUs para criar/atualizar"
     )
     
-    # Lojas associadas
+    # Lojas associadas (formato completo)
     lojas_associadas = ProdutoLojaSerializer(
         source='produtoloja_set',
         many=True,
@@ -488,7 +522,7 @@ class ProdutoSerializer(serializers.ModelSerializer):
             'alerta_estoque_baixo', 'alerta_estoque_zero',
             'ativo', 'custo_unitario', 'valor_total_estoque',
             'data_criacao', 'data_atualizacao', 'observacoes',
-            'total_lojas', 'todos_skus',
+            'total_lojas', 'todos_skus', 'tipo_produto', 'lojas_conectadas',
             'skus', 'skus_data',
             'lojas_associadas', 'lojas_ids',
             'total_movimentacoes', 'alertas_ativos'
@@ -497,7 +531,8 @@ class ProdutoSerializer(serializers.ModelSerializer):
             'id', 'data_criacao', 'data_atualizacao',
             'estoque_disponivel', 'estoque_baixo', 'necessita_reposicao',
             'estoque_negativo', 'pedidos_pendentes', 'valor_total_estoque',
-            'total_lojas', 'todos_skus', 'skus', 'lojas_associadas',
+            'total_lojas', 'todos_skus', 'tipo_produto', 'lojas_conectadas',
+            'skus', 'lojas_associadas',
             'total_movimentacoes', 'alertas_ativos'
         ]
     
@@ -508,6 +543,22 @@ class ProdutoSerializer(serializers.ModelSerializer):
     def get_alertas_ativos(self, obj):
         """Retorna o número de alertas ativos para o produto"""
         return obj.alertas.filter(status='ativo').count()
+    
+    def get_tipo_produto(self, obj):
+        """Retorna o tipo do produto para interface unificada"""
+        return 'compartilhado'
+    
+    def get_lojas_conectadas(self, obj):
+        """Retorna lista simplificada das lojas conectadas"""
+        lojas = obj.lojas.filter(produtoloja__ativo=True).select_related()
+        return [
+            {
+                'id': loja.id,
+                'nome_loja': loja.nome_loja,
+                'shop_url': loja.shop_url
+            }
+            for loja in lojas
+        ]
     
     def validate_lojas_ids(self, value):
         """Validar se todas as lojas existem e pertencem ao usuário"""
@@ -864,3 +915,114 @@ class ProdutoResumoSerializer(serializers.ModelSerializer):
             return 'baixo'
         else:
             return 'ok'
+
+
+class ProdutoUnificadoSerializer(serializers.Serializer):
+    """Serializer unificado para listar produtos individuais e compartilhados juntos"""
+    
+    id = serializers.IntegerField(read_only=True)
+    nome = serializers.CharField(max_length=255)
+    fornecedor = serializers.CharField(max_length=50)
+    sku = serializers.SerializerMethodField()
+    
+    # Campos de estoque unificados
+    estoque_atual = serializers.SerializerMethodField()
+    estoque_minimo = serializers.IntegerField()
+    estoque_disponivel = serializers.SerializerMethodField()
+    estoque_baixo = serializers.SerializerMethodField()
+    estoque_negativo = serializers.SerializerMethodField()
+    pedidos_pendentes = serializers.SerializerMethodField()
+    
+    # Campos para interface unificada
+    tipo_produto = serializers.SerializerMethodField()
+    lojas_conectadas = serializers.SerializerMethodField()
+    
+    # Status e controle
+    ativo = serializers.BooleanField()
+    custo_unitario = serializers.DecimalField(max_digits=10, decimal_places=2, allow_null=True)
+    valor_total_estoque = serializers.SerializerMethodField()
+    
+    # Contadores
+    total_movimentacoes = serializers.SerializerMethodField()
+    alertas_ativos = serializers.SerializerMethodField()
+    
+    # Metadados
+    data_criacao = serializers.DateTimeField()
+    data_atualizacao = serializers.DateTimeField()
+    
+    def get_sku(self, obj):
+        """Retorna SKU principal do produto"""
+        if hasattr(obj, 'sku'):  # ProdutoEstoque
+            return obj.sku
+        else:  # Produto compartilhado
+            primeiro_sku = obj.skus.filter(ativo=True).first()
+            return primeiro_sku.sku if primeiro_sku else 'N/A'
+    
+    def get_estoque_atual(self, obj):
+        """Retorna estoque atual unificado"""
+        if hasattr(obj, 'estoque_atual'):  # ProdutoEstoque
+            return obj.estoque_atual
+        else:  # Produto compartilhado
+            return obj.estoque_compartilhado
+    
+    def get_estoque_disponivel(self, obj):
+        """Retorna se há estoque disponível"""
+        estoque_atual = self.get_estoque_atual(obj)
+        return estoque_atual > 0
+    
+    def get_estoque_baixo(self, obj):
+        """Verifica se o estoque está baixo"""
+        estoque_atual = self.get_estoque_atual(obj)
+        return estoque_atual <= obj.estoque_minimo
+    
+    def get_estoque_negativo(self, obj):
+        """Verifica se o estoque está negativo"""
+        estoque_atual = self.get_estoque_atual(obj)
+        return estoque_atual < 0
+    
+    def get_pedidos_pendentes(self, obj):
+        """Retorna quantidade de pedidos pendentes"""
+        estoque_atual = self.get_estoque_atual(obj)
+        return abs(estoque_atual) if estoque_atual < 0 else 0
+    
+    def get_tipo_produto(self, obj):
+        """Retorna o tipo do produto"""
+        if hasattr(obj, 'estoque_atual'):  # ProdutoEstoque
+            return 'individual'
+        else:  # Produto compartilhado
+            return 'compartilhado'
+    
+    def get_lojas_conectadas(self, obj):
+        """Retorna lojas conectadas"""
+        if hasattr(obj, 'loja_config'):  # ProdutoEstoque
+            return [
+                {
+                    'id': obj.loja_config.id,
+                    'nome_loja': obj.loja_config.nome_loja,
+                    'shop_url': obj.loja_config.shop_url
+                }
+            ]
+        else:  # Produto compartilhado
+            lojas = obj.lojas.filter(produtoloja__ativo=True).select_related()
+            return [
+                {
+                    'id': loja.id,
+                    'nome_loja': loja.nome_loja,
+                    'shop_url': loja.shop_url
+                }
+                for loja in lojas
+            ]
+    
+    def get_valor_total_estoque(self, obj):
+        """Calcula valor total do estoque"""
+        estoque_atual = self.get_estoque_atual(obj)
+        custo = obj.custo_unitario
+        return estoque_atual * custo if custo else 0
+    
+    def get_total_movimentacoes(self, obj):
+        """Retorna total de movimentações"""
+        return obj.movimentacoes.count()
+    
+    def get_alertas_ativos(self, obj):
+        """Retorna número de alertas ativos"""
+        return obj.alertas.filter(status='ativo').count()

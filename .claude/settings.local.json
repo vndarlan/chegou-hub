@@ -3,7 +3,13 @@
     "allow": [
       "Bash(railway variables set:*)",
       "Bash(railway variables:*)",
-      "Bash(railway redeploy:*)"
+      "Bash(railway redeploy:*)",
+      "Bash(python:*)",
+      "Bash(npm start)",
+      "Bash(npm run build:*)",
+      "Bash(npx react-scripts build:*)",
+      "Bash(npx eslint:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": [],

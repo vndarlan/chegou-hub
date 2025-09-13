@@ -1794,7 +1794,7 @@ class ProdutoViewSet(viewsets.ModelViewSet):
         return ProdutoSerializer
     
     def get_queryset(self):
-        """Filtrar produtos por usuário com filtros avançados"""
+        """Filtrar produtos por usuário com filtros avançados e otimização de queries"""
         queryset = Produto.objects.filter(user=self.request.user)
         
         # Aplicar filtros dos query parameters
@@ -1831,8 +1831,12 @@ class ProdutoViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(ativo=True)
         
         return queryset.select_related().prefetch_related(
-            'skus', 'produtoloja_set__loja', 'movimentacoes', 'alertas'
-        )
+            'skus', 
+            'lojas',
+            'produtoloja_set__loja', 
+            'movimentacoes', 
+            'alertas'
+        ).distinct()
     
     def perform_create(self, serializer):
         """Definir usuário automaticamente na criação"""

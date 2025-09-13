@@ -6,6 +6,7 @@ from .views import (
     ProdutoViewSet, MovimentacaoEstoqueCompartilhadoViewSet, AlertaEstoqueCompartilhadoViewSet,
     shopify_order_webhook, webhook_status, webhook_stats, webhook_permissive_info
 )
+from .produto_unificado_view import ProdutoUnificadoViewSet
 
 # Criar router para os ViewSets
 router = DefaultRouter()
@@ -17,6 +18,9 @@ router.register(r'alertas', AlertaEstoqueViewSet, basename='alerta-estoque')
 router.register(r'produtos-compartilhados', ProdutoViewSet, basename='produto-compartilhado')
 router.register(r'movimentacoes-compartilhadas', MovimentacaoEstoqueCompartilhadoViewSet, basename='movimentacao-compartilhada')
 router.register(r'alertas-compartilhados', AlertaEstoqueCompartilhadoViewSet, basename='alerta-compartilhado')
+
+# Endpoint unificado para interface nova
+router.register(r'produtos-unificados', ProdutoUnificadoViewSet, basename='produto-unificado')
 
 urlpatterns = [
     # URLs dos ViewSets via router
@@ -49,6 +53,10 @@ urlpatterns = [
 # GET /api/estoque/produtos/{id}/alertas/ - Alertas do produto
 # GET /api/estoque/produtos/resumo_geral/ - Resumo geral do estoque
 # GET /api/estoque/produtos/produtos_reposicao/ - Produtos que precisam reposição
+
+# === PRODUTOS UNIFICADOS (NOVA INTERFACE) ===
+# GET /api/estoque/produtos-unificados/ - Lista TODOS os produtos (individuais + compartilhados)
+# GET /api/estoque/produtos-unificados/estatisticas_unificadas/ - Estatísticas de todos os produtos
 
 # === MOVIMENTAÇÕES ===
 # GET /api/estoque/movimentacoes/ - Lista movimentações

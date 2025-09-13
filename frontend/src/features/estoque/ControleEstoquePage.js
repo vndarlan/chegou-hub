@@ -1,5 +1,5 @@
 // frontend/src/features/estoque/ControleEstoquePage.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Separator } from '../../components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+// Tabs components removed as they are not used
 import { Textarea } from '../../components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../components/ui/collapsible';
 import { Toaster } from '../../components/ui/toaster';
@@ -20,9 +20,9 @@ import { Checkbox } from '../../components/ui/checkbox';
 import {
     Package, AlertCircle, Check, X, RefreshCw, Trash2, 
     Info, History, Plus, Building, TrendingUp, TrendingDown,
-    Edit, Search, Target, Loader2, Eye, PackageOpen,
-    BarChart3, AlertTriangle, ChevronDown, ChevronUp, Zap, Sliders,
-    Layers, Archive, ShoppingCart, ChevronRight
+    Edit, Search, Target, Loader2, PackageOpen,
+    AlertTriangle, ChevronDown, ChevronUp, Zap, Sliders,
+    Layers, Archive, ShoppingCart
 } from 'lucide-react';
 import { getCSRFToken } from '../../utils/csrf';
 
@@ -32,8 +32,7 @@ import RealtimeNotifications from './components/RealtimeNotifications';
 import { 
     useProductHighlight, 
     ProductHighlightBadge, 
-    HighlightedTableRow, 
-    UpdateAnimation 
+    HighlightedTableRow
 } from './components/ProductHighlight';
 
 function ControleEstoquePage() {
@@ -46,25 +45,17 @@ function ControleEstoquePage() {
     const [searchTerm, setSearchTerm] = useState('');
     
     // Estados modais/formulários
-    const [showAddProduto, setShowAddProduto] = useState(false);
     const [showEditProduto, setShowEditProduto] = useState(false);
     const [showAjusteEstoque, setShowAjusteEstoque] = useState(false);
     const [showHistorico, setShowHistorico] = useState(false);
     const [showInstructions, setShowInstructions] = useState(false);
     const [selectedProduto, setSelectedProduto] = useState(null);
     
-    // Novos estados para produtos compartilhados
-    const [showTipoProduto, setShowTipoProduto] = useState(false);
+    // Estados para produtos compartilhados
     const [showAddProdutoCompartilhado, setShowAddProdutoCompartilhado] = useState(false);
     
-    // Formulários
-    const [novoProduto, setNovoProduto] = useState({ 
-        sku: '', 
-        nome: '', 
-        fornecedor: 'N1 Itália',
-        estoque_inicial: 0, 
-        estoque_minimo: 5
-    });
+    // Estados para filtros
+    const [filtroLoja, setFiltroLoja] = useState('');
     
     // Formulário para produto compartilhado
     const [novoProdutoCompartilhado, setNovoProdutoCompartilhado] = useState({
@@ -90,8 +81,8 @@ function ControleEstoquePage() {
     // Estados interface
     const [loading, setLoading] = useState(true);
     const [notification, setNotification] = useState(null);
-    const [savingProduto, setSavingProduto] = useState(false);
     const [savingProdutoCompartilhado, setSavingProdutoCompartilhado] = useState(false);
+    const [editingProduto, setEditingProduto] = useState(false);
     const [ajustandoEstoque, setAjustandoEstoque] = useState(false);
     const [loadingMovimentacoes, setLoadingMovimentacoes] = useState(false);
     
@@ -102,13 +93,11 @@ function ControleEstoquePage() {
     const {
         connectionStatus,
         lastMessage,
-        messageHistory,
         reconnectAttempts,
         maxReconnectAttempts,
         hasExceededMaxAttempts,
         sendMessage,
         sendJsonMessage,
-        connect: reconnectWebSocket,
         retryConnection,
         isReconnecting
     } = useWebSocket(websocketUrl, {
@@ -151,9 +140,116 @@ function ControleEstoquePage() {
         clearAllHighlights
     } = useProductHighlight();
 
+    // Definir funções com useCallback antes dos useEffect
+    const loadLojas = useCallback(async () => {
+        try {
+            const response = await axios.get('/processamento/lojas/');
+            setLojas(response.data.lojas || []);
+            if (response.data.lojas?.length > 0 && !lojaSelecionada) {
+                setLojaSelecionada(response.data.lojas[0].id);
+            }
+        } catch (error) {
+            console.error('Erro ao carregar lojas:', error);
+            showNotification('Erro ao carregar lojas', 'error');
+        } finally {
+            setLoading(false);
+        }
+    }, [lojaSelecionada]);
+
+    const loadProdutos = useCallback(async () => {
+        if (!lojaSelecionada) return;
+        
+        setSearchingProdutos(true);
+        try {
+            // Usar nova API unificada
+            const response = await axios.get('/estoque/produtos-unificados/', {
+                params: { loja_id: lojaSelecionada }
+            });
+
+            if (response.data && response.data.results) {
+                setProdutos(response.data.results);
+            } else {
+                setProdutos([]);
+            }
+            showNotification(`${response.data.results.length || 0} produtos carregados`);
+            
+        } catch (error) {
+            console.error('Erro ao carregar produtos:', error);
+            showNotification('Erro ao carregar produtos', 'error');
+            setProdutos([]);
+        } finally {
+            setSearchingProdutos(false);
+        }
+    }, [lojaSelecionada]);
+
+    const loadAlertas = useCallback(async () => {
+        if (!lojaSelecionada) return;
+        
+        try {
+            // Usar o novo endpoint que verifica alertas em tempo real
+            const response = await axios.get('/estoque/alertas/verificar_alertas_tempo_real/', {
+                params: { loja_id: lojaSelecionada }
+            });
+            
+            if (response.data && response.data.alertas && Array.isArray(response.data.alertas)) {
+                const alertasAtivos = response.data.alertas;
+                const alertasCriados = response.data.alertas_criados_agora || [];
+                
+                // DEBUG: Log para investigar os alertas retornados
+                console.log('🔍 DEBUG Alertas - Total recebidos:', alertasAtivos.length);
+                console.log('🆕 Alertas criados agora:', alertasCriados.length);
+                
+                if (alertasCriados.length > 0) {
+                    console.log('🆕 Novos alertas criados:', alertasCriados);
+                    showNotification(
+                        `${alertasCriados.length} novo(s) alerta(s) de estoque detectado(s)!`, 
+                        'warning'
+                    );
+                }
+                
+                alertasAtivos.forEach((alerta, index) => {
+                    console.log(`🔍 Alerta ${index + 1}:`, {
+                        sku: alerta.produto_sku,
+                        tipo: alerta.tipo_alerta,
+                        estoque_atual: alerta.estoque_atual_produto,
+                        estoque_minimo: alerta.estoque_minimo_produto,
+                        status: alerta.status
+                    });
+                });
+                
+                console.log('✅ Alertas ativos finais:', alertasAtivos.length);
+                setAlertas(alertasAtivos);
+            } else {
+                console.error('Erro ao carregar alertas:', response.data?.erro || 'Resposta inválida');
+                setAlertas([]);
+            }
+        } catch (error) {
+            console.error('Erro ao carregar alertas:', error);
+            
+            // Fallback para o endpoint antigo caso o novo falhe
+            console.log('⚠️ Tentando fallback para endpoint antigo de alertas...');
+            try {
+                const fallbackResponse = await axios.get('/estoque/alertas/', {
+                    params: { loja_id: lojaSelecionada }
+                });
+                
+                if (fallbackResponse.data && Array.isArray(fallbackResponse.data)) {
+                    const alertasAtivos = fallbackResponse.data.filter(alerta => alerta.status === 'ativo');
+                    console.log('✅ Fallback - Alertas carregados:', alertasAtivos.length);
+                    setAlertas(alertasAtivos);
+                } else {
+                    setAlertas([]);
+                }
+            } catch (fallbackError) {
+                console.error('Erro no fallback dos alertas:', fallbackError);
+                setAlertas([]);
+            }
+        }
+    }, [lojaSelecionada]);
+
     useEffect(() => {
         loadLojas();
-    }, []);
+    }, [loadLojas]);
 
     useEffect(() => {
         if (lojaSelecionada) {
@@ -162,7 +258,7 @@ function ControleEstoquePage() {
             // Limpar destaques quando trocar de loja
             clearAllHighlights();
         }
-    }, [lojaSelecionada, clearAllHighlights]);
+    }, [lojaSelecionada, clearAllHighlights, loadProdutos, loadAlertas]);
     
     // Sistema habilitado para receber atualizações em tempo real via WebSocket
     
@@ -206,18 +302,29 @@ function ControleEstoquePage() {
     }, [isReconnecting, reconnectAttempts, maxReconnectAttempts, hasExceededMaxAttempts, connectionStatus]);
 
     useEffect(() => {
-        // Filtrar produtos baseado no termo de busca
-        if (searchTerm.trim() === '') {
-            setProdutosFiltrados(produtos);
-        } else {
-            const filtered = produtos.filter(produto => 
+        // Filtrar produtos baseado no termo de busca e filtro de loja
+        let filtered = produtos;
+        
+        // Filtro por texto
+        if (searchTerm.trim()) {
+            filtered = filtered.filter(produto => 
                 produto.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 produto.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 produto.fornecedor?.toLowerCase().includes(searchTerm.toLowerCase())
             );
-            setProdutosFiltrados(filtered);
         }
-    }, [produtos, searchTerm]);
+        
+        // Filtro por loja conectada
+        if (filtroLoja) {
+            filtered = filtered.filter(produto => 
+                produto.lojas_conectadas?.some(loja => 
+                    loja.nome_loja?.toLowerCase().includes(filtroLoja.toLowerCase())
+                )
+            );
+        }
+        
+        setProdutosFiltrados(filtered);
+    }, [produtos, searchTerm, filtroLoja]);
     
     // Handlers para notificações em tempo real
     const handleStockUpdate = async (data) => {
@@ -292,126 +399,6 @@ function ControleEstoquePage() {
     
     // Funções de notificação em tempo real via WebSocket habilitadas
 
-    const loadLojas = async () => {
-        try {
-            const response = await axios.get('/processamento/lojas/');
-            setLojas(response.data.lojas || []);
-            if (response.data.lojas?.length > 0 && !lojaSelecionada) {
-                setLojaSelecionada(response.data.lojas[0].id);
-            }
-        } catch (error) {
-            console.error('Erro ao carregar lojas:', error);
-            showNotification('Erro ao carregar lojas', 'error');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const loadProdutos = async () => {
-        if (!lojaSelecionada) return;
-        
-        setSearchingProdutos(true);
-        try {
-            // Carregar produtos por loja E produtos compartilhados em paralelo
-            const [produtosLojaResponse, produtosCompartilhadosResponse] = await Promise.all([
-                // Produtos específicos da loja
-                axios.get('/estoque/produtos/', {
-                    params: { loja_id: lojaSelecionada }
-                }),
-                // Produtos compartilhados (endpoint específico)
-                axios.get('/estoque/produtos-compartilhados/')
-            ]);
-            
-            const produtosLoja = produtosLojaResponse.data || [];
-            const produtosCompartilhados = produtosCompartilhadosResponse.data || [];
-            
-            // Combinar produtos evitando duplicatas
-            const produtosCombinados = [...produtosLoja];
-            
-            // Adicionar produtos compartilhados que não estão já incluídos
-            produtosCompartilhados.forEach(produto => {
-                if (!produtosCombinados.find(p => p.id === produto.id)) {
-                    produtosCombinados.push(produto);
-                }
-            });
-            
-            setProdutos(produtosCombinados);
-            showNotification(`${produtosCombinados.length || 0} produtos carregados (${produtosLoja.length} da loja + ${produtosCompartilhados.length} compartilhados)`);
-            
-        } catch (error) {
-            console.error('Erro ao carregar produtos:', error);
-            showNotification('Erro ao carregar produtos', 'error');
-            setProdutos([]);
-        } finally {
-            setSearchingProdutos(false);
-        }
-    };
-
-    const loadAlertas = async () => {
-        if (!lojaSelecionada) return;
-        
-        try {
-            // Usar o novo endpoint que verifica alertas em tempo real
-            const response = await axios.get('/estoque/alertas/verificar_alertas_tempo_real/', {
-                params: { loja_id: lojaSelecionada }
-            });
-            
-            if (response.data && response.data.alertas && Array.isArray(response.data.alertas)) {
-                const alertasAtivos = response.data.alertas;
-                const alertasCriados = response.data.alertas_criados_agora || [];
-                
-                // DEBUG: Log para investigar os alertas retornados
-                console.log('🔍 DEBUG Alertas - Total recebidos:', alertasAtivos.length);
-                console.log('🆕 Alertas criados agora:', alertasCriados.length);
-                
-                if (alertasCriados.length > 0) {
-                    console.log('🆕 Novos alertas criados:', alertasCriados);
-                    showNotification(
-                        `${alertasCriados.length} novo(s) alerta(s) de estoque detectado(s)!`, 
-                        'warning'
-                    );
-                }
-                
-                alertasAtivos.forEach((alerta, index) => {
-                    console.log(`🔍 Alerta ${index + 1}:`, {
-                        sku: alerta.produto_sku,
-                        tipo: alerta.tipo_alerta,
-                        estoque_atual: alerta.estoque_atual_produto,
-                        estoque_minimo: alerta.estoque_minimo_produto,
-                        status: alerta.status
-                    });
-                });
-                
-                console.log('✅ Alertas ativos finais:', alertasAtivos.length);
-                setAlertas(alertasAtivos);
-            } else {
-                console.error('Erro ao carregar alertas:', response.data?.erro || 'Resposta inválida');
-                setAlertas([]);
-            }
-        } catch (error) {
-            console.error('Erro ao carregar alertas:', error);
-            
-            // Fallback para o endpoint antigo caso o novo falhe
-            console.log('⚠️ Tentando fallback para endpoint antigo de alertas...');
-            try {
-                const fallbackResponse = await axios.get('/estoque/alertas/', {
-                    params: { loja_id: lojaSelecionada }
-                });
-                
-                if (fallbackResponse.data && Array.isArray(fallbackResponse.data)) {
-                    const alertasAtivos = fallbackResponse.data.filter(alerta => alerta.status === 'ativo');
-                    console.log('✅ Fallback - Alertas carregados:', alertasAtivos.length);
-                    setAlertas(alertasAtivos);
-                } else {
-                    setAlertas([]);
-                }
-            } catch (fallbackError) {
-                console.error('Erro no fallback dos alertas:', fallbackError);
-                setAlertas([]);
-            }
-        }
-    };
-
     const loadMovimentacoes = async (produtoId = null) => {
         if (!lojaSelecionada) return;
         
@@ -435,17 +422,7 @@ function ControleEstoquePage() {
         }
     };
 
-    const debugConexao = async () => {
-        try {
-            console.log('=== TESTE DE DEBUG ===');
-            const response = await axios.get('/estoque/produtos/debug_info/');
-            console.log('Debug info:', response.data);
-            showNotification('Debug executado - verificar console', 'success');
-        } catch (error) {
-            console.error('Erro no debug:', error);
-            showNotification(`Erro no debug: ${error.response?.status} ${error.response?.statusText}`, 'error');
-        }
-    };
+// debugConexao function removed as it was not being used
 
     // Funções para gerenciar SKUs no produto compartilhado
     const adicionarSKU = () => {
@@ -572,109 +549,11 @@ function ControleEstoquePage() {
         }
     };
 
-    const salvarProduto = async () => {
-        if (!lojaSelecionada) {
-            showNotification('Selecione uma loja primeiro', 'error');
-            return;
-        }
-
-        if (!novoProduto.sku || !novoProduto.nome || !novoProduto.fornecedor) {
-            showNotification('SKU, nome e fornecedor são obrigatórios', 'error');
-            return;
-        }
-
-        // Validar se a loja selecionada existe na lista de lojas
-        const lojaValida = lojas.find(loja => loja.id === lojaSelecionada);
-        if (!lojaValida) {
-            showNotification('Loja selecionada não é válida', 'error');
-            return;
-        }
-
-        setSavingProduto(true);
-        try {
-            const dados = {
-                ...novoProduto,
-                loja_config: lojaSelecionada,
-                estoque_inicial: parseInt(novoProduto.estoque_inicial) || 0,
-                estoque_minimo: parseInt(novoProduto.estoque_minimo) || 5
-            };
-
-            console.log('=== DEBUG CRIAÇÃO PRODUTO ===');
-            console.log('Dados enviados:', dados);
-            console.log('Loja selecionada:', lojaValida);
-            console.log('CSRF Token:', getCSRFToken()?.substring(0, 10) + '...');
-
-            const response = await axios.post('/estoque/produtos/', dados, {
-                headers: { 'X-CSRFToken': getCSRFToken() }
-            });
-
-            console.log('Resposta do servidor:', response.data);
-
-            if (response.data && response.data.id) {
-                showNotification('Produto adicionado com sucesso!');
-                setNovoProduto({ 
-                    sku: '', 
-                    nome: '', 
-                    fornecedor: 'N1 Itália',
-                    estoque_inicial: 0, 
-                    estoque_minimo: 5
-                });
-                setShowAddProduto(false);
-                await loadProdutos();
-                await loadAlertas();
-            } else {
-                console.error('Resposta inválida do servidor:', response.data);
-                showNotification(response.data.error || 'Erro ao salvar produto', 'error');
-            }
-        } catch (error) {
-            console.error('=== ERRO DETALHADO ===');
-            console.error('Status:', error.response?.status);
-            console.error('Status Text:', error.response?.statusText);
-            console.error('Headers:', error.response?.headers);
-            console.error('Data:', error.response?.data);
-            console.error('Erro completo:', error);
-            
-            let mensagemErro = 'Erro ao salvar produto';
-            
-            if (error.response?.status === 400) {
-                // Erro 400 - Bad Request
-                if (error.response?.data) {
-                    if (typeof error.response.data === 'string') {
-                        mensagemErro = error.response.data;
-                    } else if (error.response.data.error) {
-                        mensagemErro = error.response.data.error;
-                    } else if (error.response.data.detail) {
-                        mensagemErro = error.response.data.detail;
-                    } else {
-                        // Mostrar erros de validação específicos
-                        const erros = Object.entries(error.response.data)
-                            .map(([campo, mensagens]) => {
-                                if (Array.isArray(mensagens)) {
-                                    return `${campo}: ${mensagens.join(', ')}`;
-                                }
-                                return `${campo}: ${mensagens}`;
-                            }).join('; ');
-                        mensagemErro = `Erro de validação: ${erros}`;
-                    }
-                }
-            } else if (error.response?.status === 401) {
-                mensagemErro = 'Não autorizado. Faça login novamente.';
-            } else if (error.response?.status === 403) {
-                mensagemErro = 'Acesso negado. Verificar permissões.';
-            } else if (error.response?.status === 500) {
-                mensagemErro = 'Erro interno do servidor. Tente novamente.';
-            }
-            
-            showNotification(mensagemErro, 'error');
-        } finally {
-            setSavingProduto(false);
-        }
-    };
 
     const editarProduto = async () => {
         if (!selectedProduto?.id) return;
 
-        setSavingProduto(true);
+        setEditingProduto(true);
         try {
             const dados = {
                 sku: selectedProduto.sku,
@@ -701,7 +580,7 @@ function ControleEstoquePage() {
             console.error('Erro ao atualizar produto:', error);
             showNotification(error.response?.data?.error || 'Erro ao atualizar produto', 'error');
         } finally {
-            setSavingProduto(false);
+            setEditingProduto(false);
         }
     };
 
@@ -984,145 +863,13 @@ function ControleEstoquePage() {
                         </SelectContent>
                     </Select>
                     
-                    <Dialog open={showTipoProduto} onOpenChange={setShowTipoProduto}>
-                        <DialogTrigger asChild>
-                            <Button variant="default">
-                                <Plus className="h-4 w-4 mr-2" />
-                                Novo Produto
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="bg-background border-border max-w-[95vw] sm:max-w-md">
-                            <DialogHeader>
-                                <DialogTitle className="text-foreground">Tipo de Produto</DialogTitle>
-                                <DialogDescription className="text-muted-foreground">
-                                    Escolha o tipo de produto que deseja criar
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                                <Button 
-                                    variant="outline" 
-                                    className="w-full h-auto p-4 flex flex-col items-start gap-2"
-                                    onClick={() => {
-                                        setShowTipoProduto(false);
-                                        setShowAddProduto(true);
-                                    }}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <Package className="h-5 w-5 text-blue-600" />
-                                        <span className="font-medium">Produto Individual</span>
-                                    </div>
-                                    <span className="text-sm text-muted-foreground text-left">
-                                        Produto específico para uma loja com SKU único
-                                    </span>
-                                </Button>
-                                
-                                <Button 
-                                    variant="outline" 
-                                    className="w-full h-auto p-4 flex flex-col items-start gap-2"
-                                    onClick={() => {
-                                        setShowTipoProduto(false);
-                                        setShowAddProdutoCompartilhado(true);
-                                    }}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <Layers className="h-5 w-5 text-purple-600" />
-                                        <span className="font-medium">Produto Compartilhado</span>
-                                        <Badge variant="secondary" className="text-xs">Novo</Badge>
-                                    </div>
-                                    <span className="text-sm text-muted-foreground text-left">
-                                        Produto com múltiplos SKUs e estoque compartilhado entre lojas
-                                    </span>
-                                </Button>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-                    
-                    <Dialog open={showAddProduto} onOpenChange={setShowAddProduto}>
-                        <DialogContent className="bg-background border-border max-w-[95vw] sm:max-w-lg">
-                            <DialogHeader>
-                                <DialogTitle className="text-foreground">Adicionar Novo Produto</DialogTitle>
-                                <DialogDescription className="text-muted-foreground">
-                                    Cadastre um novo produto no estoque
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4 max-h-[70vh] overflow-y-auto">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <Label htmlFor="sku" className="text-foreground">SKU *</Label>
-                                        <Input
-                                            id="sku"
-                                            placeholder="Ex: PROD-001"
-                                            value={novoProduto.sku}
-                                            onChange={(e) => setNovoProduto(prev => ({ ...prev, sku: e.target.value }))}
-                                            className="bg-background border-input text-foreground"
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="nome" className="text-foreground">Nome do Produto *</Label>
-                                        <Input
-                                            id="nome"
-                                            placeholder="Ex: Camiseta Branca"
-                                            value={novoProduto.nome}
-                                            onChange={(e) => setNovoProduto(prev => ({ ...prev, nome: e.target.value }))}
-                                            className="bg-background border-input text-foreground"
-                                        />
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <Label htmlFor="fornecedor" className="text-foreground">Fornecedor *</Label>
-                                    <Select value={novoProduto.fornecedor} onValueChange={(value) => setNovoProduto(prev => ({ ...prev, fornecedor: value }))}>
-                                        <SelectTrigger className="bg-background border-input text-foreground">
-                                            <SelectValue placeholder="Selecione o fornecedor" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Dropi">Dropi</SelectItem>
-                                            <SelectItem value="PrimeCod">PrimeCod</SelectItem>
-                                            <SelectItem value="Ecomhub">Ecomhub</SelectItem>
-                                            <SelectItem value="N1 Itália">N1 Itália</SelectItem>
-                                            <SelectItem value="N1 Romênia">N1 Romênia</SelectItem>
-                                            <SelectItem value="N1 Polônia">N1 Polônia</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <Label htmlFor="estoque_inicial" className="text-foreground">Estoque Inicial</Label>
-                                        <Input
-                                            id="estoque_inicial"
-                                            type="number"
-                                            min="0"
-                                            value={novoProduto.estoque_inicial}
-                                            onChange={(e) => setNovoProduto(prev => ({ ...prev, estoque_inicial: e.target.value }))}
-                                            className="bg-background border-input text-foreground"
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="estoque_minimo" className="text-foreground">Estoque Mínimo</Label>
-                                        <Input
-                                            id="estoque_minimo"
-                                            type="number"
-                                            min="0"
-                                            value={novoProduto.estoque_minimo}
-                                            onChange={(e) => setNovoProduto(prev => ({ ...prev, estoque_minimo: e.target.value }))}
-                                            className="bg-background border-input text-foreground"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="flex justify-end space-x-2 pt-4">
-                                    <Button variant="outline" onClick={() => setShowAddProduto(false)}>
-                                        Cancelar
-                                    </Button>
-                                    <Button onClick={salvarProduto} disabled={savingProduto}>
-                                        {savingProduto ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
-                                        Salvar Produto
-                                    </Button>
-                                </div>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
+                    <Button 
+                        variant="default"
+                        onClick={() => setShowAddProdutoCompartilhado(true)}
+                    >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Novo Produto
+                    </Button>
                     
                     {/* Modal de Produto Compartilhado */}
                     <Dialog open={showAddProdutoCompartilhado} onOpenChange={setShowAddProdutoCompartilhado}>
@@ -1598,6 +1345,25 @@ function ControleEstoquePage() {
                                     className="w-64 h-8 bg-background border-input text-foreground"
                                 />
                             </div>
+                            <div className="flex items-center gap-2">
+                                <Building className="h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Filtrar por loja..."
+                                    value={filtroLoja}
+                                    onChange={(e) => setFiltroLoja(e.target.value)}
+                                    className="w-48 h-8 bg-background border-input text-foreground"
+                                />
+                                {filtroLoja && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setFiltroLoja('')}
+                                        className="h-8 px-2"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </Button>
+                                )}
+                            </div>
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -1656,12 +1422,13 @@ function ControleEstoquePage() {
                         </div>
                     ) : produtosFiltrados.length > 0 ? (
                         <div className="w-full max-w-[calc(100vw-280px)] overflow-x-auto">
-                            <div className="rounded-md border border-border" style={{ minWidth: '900px' }}>
+                            <div className="rounded-md border border-border" style={{ minWidth: '1200px' }}>
                                 <Table className="w-full">
                                     <TableHeader>
                                         <TableRow className="border-border">
                                             <TableHead className="text-foreground">Produto</TableHead>
                                             <TableHead className="text-foreground text-center">Fornecedor</TableHead>
+                                            <TableHead className="text-foreground text-center">Lojas Conectadas</TableHead>
                                             <TableHead className="text-foreground text-center">Estoque</TableHead>
                                             <TableHead className="text-foreground text-center">Status</TableHead>
                                             <TableHead className="text-right text-foreground">Ações</TableHead>
@@ -1705,6 +1472,23 @@ function ControleEstoquePage() {
                                                         >
                                                             {produto.fornecedor || 'N/A'}
                                                         </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <div className="flex flex-wrap gap-1 justify-center max-w-[180px]">
+                                                            {produto.lojas_conectadas && produto.lojas_conectadas.length > 0 ? (
+                                                                produto.lojas_conectadas.map((loja, index) => (
+                                                                    <Badge 
+                                                                        key={index}
+                                                                        variant="secondary" 
+                                                                        className="text-xs px-2 py-1"
+                                                                    >
+                                                                        {loja.nome_loja}
+                                                                    </Badge>
+                                                                ))
+                                                            ) : (
+                                                                <span className="text-muted-foreground text-xs">Nenhuma</span>
+                                                            )}
+                                                        </div>
                                                     </TableCell>
                                                     <TableCell className="text-center">
                                                         <div className="space-y-1">
@@ -1861,8 +1645,8 @@ function ControleEstoquePage() {
                                 <Button variant="outline" onClick={() => setShowEditProduto(false)}>
                                     Cancelar
                                 </Button>
-                                <Button onClick={editarProduto} disabled={savingProduto}>
-                                    {savingProduto ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+                                <Button onClick={editarProduto} disabled={editingProduto}>
+                                    {editingProduto ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
                                     Salvar Alterações
                                 </Button>
                             </div>
