@@ -251,16 +251,16 @@ class WhatsAppMetaAPIService:
             }
     
     def obter_detalhes_numero(self, phone_number_id: str, access_token: str) -> Tuple[bool, Dict]:
-        """Obtém detalhes específicos de um número WhatsApp"""
+        """Obtém detalhes específicos de um número WhatsApp - VERSÃO COMPLETA"""
         try:
             logger.info(f"Obtendo detalhes do número {phone_number_id}")
             
             # URL para obter detalhes do número
             url = f"{self.base_url}/{phone_number_id}"
             
-            # Campos específicos que queremos
+            # CORREÇÃO: Buscar TODOS os campos necessários incluindo whatsapp_business_account_id
             params = {
-                'fields': 'id,display_phone_number,verified_name,quality_rating,messaging_limit_tier,status'
+                'fields': 'id,display_phone_number,verified_name,quality_rating,messaging_limit_tier,status,whatsapp_business_account_id'
             }
             
             # Fazer requisição
@@ -270,7 +270,31 @@ class WhatsAppMetaAPIService:
                 logger.error(f"Erro ao obter detalhes do número {phone_number_id}: {response['error']}")
                 return False, response
             
-            logger.info(f"Detalhes obtidos com sucesso para número {phone_number_id}")
+            # CORREÇÃO: Se whatsapp_business_account_id não veio na resposta, tentar obter via businesses
+            if 'whatsapp_business_account_id' not in response:
+                logger.info(f"WABA ID não retornado para {phone_number_id}, tentando obter via businesses...")
+                try:
+                    url_businesses = f"{self.base_url}/me/businesses"
+                    params_businesses = {
+                        'fields': 'whatsapp_business_accounts{id}'
+                    }
+                    
+                    business_response = self._make_request(url_businesses, access_token, params=params_businesses)
+                    
+                    if 'data' in business_response and len(business_response['data']) > 0:
+                        for business in business_response['data']:
+                            if 'whatsapp_business_accounts' in business:
+                                wabas = business['whatsapp_business_accounts'].get('data', [])
+                                if wabas:
+                                    # Usar o primeiro WABA encontrado
+                                    response['whatsapp_business_account_id'] = wabas[0]['id']
+                                    logger.info(f"WABA ID obtido via businesses: {wabas[0]['id']}")
+                                    break
+                
+                except Exception as business_error:
+                    logger.warning(f"Não foi possível obter WABA ID via businesses: {business_error}")
+            
+            logger.info(f"Detalhes obtidos com sucesso para número {phone_number_id}: {response}")
             return True, response
             
         except Exception as e:

@@ -1,6 +1,8 @@
 # backend/features/ia/serializers.py - VERSO CORRIGIDA COMPLETA
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from django.utils import timezone
+import logging
 from .models import (
     LogEntry, TipoFerramenta, NivelLog, PaisNicochat,
     ProjetoIA, VersaoProjeto, StatusProjeto, TipoProjeto,
@@ -11,6 +13,9 @@ from .models import (
     QualityRatingChoices, MessagingLimitTierChoices, PhoneNumberStatusChoices,
     AlertTypeChoices, AlertPriorityChoices
 )
+
+# Configurar logger
+logger = logging.getLogger(__name__)
 
 # ===== CAMPOS CUSTOMIZADOS =====
 class FlexibleDateField(serializers.DateField):
@@ -1123,101 +1128,150 @@ class WhatsAppPhoneNumberCreateSerializer(serializers.ModelSerializer):
             )
     
     def create(self, validated_data):
-        """Criar número WhatsApp - VERSÃO SIMPLIFICADA E ROBUSTA"""
+        """Criar número WhatsApp - BUSCA DADOS REAIS DA API"""
         access_token = validated_data.pop('access_token')
         phone_number_id = validated_data.get('phone_number_id')
         
         try:
-            # 1. Criar ou buscar WhatsAppBusinessAccount temporária
             from .models import WhatsAppBusinessAccount
             from .services import WhatsAppMetaAPIService
             api_service = WhatsAppMetaAPIService()
             
-            # Usar nome customizado ou gerar um temporário
-            nome_waba = validated_data.get('bm_nome_customizado', f'WABA para {phone_number_id}')
+            logger.info(f"🚀 CRIANDO NÚMERO: {phone_number_id}")
             
-            # Buscar WABA existente ou criar uma temporária
-            # A WABA será preenchida corretamente durante a sincronização
-            waba, created = WhatsAppBusinessAccount.objects.get_or_create(
-                nome=nome_waba,
-                defaults={
-                    'whatsapp_business_account_id': f'temp_{phone_number_id}',  # Temporário
-                    'access_token_encrypted': api_service._encrypt_token(access_token),
-                    'responsavel': self.context['request'].user,
-                    'ativo': True
-                }
-            )
+            # ===== 1. BUSCAR DADOS REAIS DA API PRIMEIRO =====
+            logger.info(f"📡 Buscando dados reais da WhatsApp API para {phone_number_id}...")
             
-            # 2. Definir campos obrigatórios do modelo
+            sucesso, dados_api = api_service.obter_detalhes_numero(phone_number_id, access_token)
+            
+            if not sucesso:
+                error_msg = dados_api.get('error', 'Erro desconhecido ao buscar dados da API')
+                logger.error(f"❌ Erro na API: {error_msg}")
+                raise serializers.ValidationError({
+                    'phone_number_id': f'Erro ao buscar dados do WhatsApp: {error_msg}',
+                    'api_error': dados_api
+                })
+            
+            logger.info(f"✅ Dados obtidos da API: {dados_api}")
+            
+            # ===== 2. EXTRAIR DADOS REAIS DA API =====
+            display_phone_number = dados_api.get('display_phone_number', phone_number_id)
+            verified_name = dados_api.get('verified_name', '')
+            quality_rating = api_service._mapear_quality_rating(dados_api.get('quality_rating'))
+            messaging_limit_tier = api_service._mapear_messaging_limit(dados_api.get('messaging_limit_tier'))
+            status_numero = api_service._mapear_status(dados_api.get('status'))
+            
+            logger.info(f"📋 Dados processados:")
+            logger.info(f"   - Número formatado: {display_phone_number}")
+            logger.info(f"   - Nome verificado: {verified_name}")
+            logger.info(f"   - Qualidade: {quality_rating}")
+            logger.info(f"   - Limite: {messaging_limit_tier}")
+            logger.info(f"   - Status: {status_numero}")
+            
+            # ===== 3. BUSCAR OU OBTER WABA ID REAL DA API =====
+            # Primeiro vamos tentar obter o WABA ID real da API
+            waba_id_real = None
+            
+            # Se a API retornou um WABA ID, usá-lo
+            if 'whatsapp_business_account_id' in dados_api:
+                waba_id_real = dados_api['whatsapp_business_account_id']
+                logger.info(f"🏢 WABA ID obtido da API: {waba_id_real}")
+            else:
+                # Tentar obter WABA ID através de uma segunda chamada à API (listar WAbAs do token)
+                try:
+                    url_wabas = f"{api_service.base_url}/me/businesses"
+                    response_wabas = api_service._make_request(url_wabas, access_token)
+                    
+                    if 'data' in response_wabas and len(response_wabas['data']) > 0:
+                        # Pegar o primeiro business account
+                        primeiro_business = response_wabas['data'][0]
+                        if 'whatsapp_business_accounts' in primeiro_business:
+                            wabas = primeiro_business['whatsapp_business_accounts'].get('data', [])
+                            if wabas:
+                                waba_id_real = wabas[0]['id']
+                                logger.info(f"🏢 WABA ID obtido via businesses: {waba_id_real}")
+                except Exception as waba_error:
+                    logger.warning(f"⚠️ Não foi possível obter WABA ID: {waba_error}")
+            
+            # Se ainda não temos WABA ID, usar um temporário
+            if not waba_id_real:
+                waba_id_real = f'temp_{phone_number_id}'
+                logger.info(f"🔄 Usando WABA ID temporário: {waba_id_real}")
+            
+            # ===== 4. CRIAR OU BUSCAR WHATSAPP BUSINESS ACCOUNT =====
+            nome_waba = validated_data.get('bm_nome_customizado', f'WABA para {display_phone_number}')
+            
+            # Tentar buscar por WABA ID real primeiro
+            waba = None
+            if waba_id_real and not waba_id_real.startswith('temp_'):
+                try:
+                    waba = WhatsAppBusinessAccount.objects.get(
+                        whatsapp_business_account_id=waba_id_real
+                    )
+                    logger.info(f"🔍 WABA encontrada existente: {waba.nome}")
+                except WhatsAppBusinessAccount.DoesNotExist:
+                    pass
+            
+            # Se não encontrou, criar nova
+            if not waba:
+                waba, created = WhatsAppBusinessAccount.objects.get_or_create(
+                    nome=nome_waba,
+                    defaults={
+                        'whatsapp_business_account_id': waba_id_real,
+                        'access_token_encrypted': api_service._encrypt_token(access_token),
+                        'responsavel': self.context['request'].user,
+                        'ativo': True
+                    }
+                )
+                logger.info(f"🆕 WABA {'criada' if created else 'reutilizada'}: {waba.nome}")
+            
+            # ===== 5. PREPARAR DADOS COMPLETOS COM INFORMAÇÕES REAIS DA API =====
             validated_data['whatsapp_business_account'] = waba
+            validated_data['display_phone_number'] = display_phone_number  # ✅ NÚMERO REAL
+            validated_data['verified_name'] = verified_name  # ✅ NOME REAL
+            validated_data['quality_rating'] = quality_rating  # ✅ QUALIDADE REAL
+            validated_data['messaging_limit_tier'] = messaging_limit_tier  # ✅ LIMITE REAL
+            validated_data['status'] = status_numero  # ✅ STATUS REAL
+            validated_data['detalhes_api'] = dados_api  # ✅ DADOS COMPLETOS DA API
+            validated_data['ultima_verificacao'] = timezone.now()  # ✅ TIMESTAMP ATUAL
             
-            # display_phone_number é obrigatório - usar phone_number_id como fallback
-            validated_data['display_phone_number'] = phone_number_id
-            
-            # Campos opcionais com valores padrão seguros
-            validated_data.setdefault('verified_name', '')
+            # Campos de configuração
             validated_data.setdefault('monitoramento_ativo', True)
             validated_data.setdefault('frequencia_verificacao_minutos', 60)
             
-            # 3. Criar o número WhatsApp
+            logger.info(f"💾 Criando número com dados reais da API...")
+            
+            # ===== 6. CRIAR O NÚMERO COM DADOS REAIS =====
             numero = super().create(validated_data)
             
-            # 4. Tentar sincronizar com a API em background (não bloqueia a criação)
-            try:
-                from django_rq import get_queue
-                queue = get_queue('default')
-                
-                # Agendar sincronização dos dados da API
-                queue.enqueue(
-                    'backend.features.ia.tasks.sincronizar_numero_whatsapp_task',
-                    numero.id,
-                    access_token,
-                    timeout=300
-                )
-                
-                print(f"Número {numero.id} criado e sincronização agendada em background")
-                
-            except Exception as sync_error:
-                # Se o job em background falhar, tentar sincronização síncrona simples
-                print(f"Erro ao agendar sincronização: {sync_error}. Tentando sincronização síncrona...")
-                
-                try:
-                    # Sincronização síncrona básica (sem bloquear se falhar)
-                    sucesso, info = api_service.obter_detalhes_numero(phone_number_id, access_token)
-                    
-                    if sucesso and isinstance(info, dict):
-                        # Atualizar apenas campos básicos
-                        if 'display_phone_number' in info:
-                            numero.display_phone_number = info['display_phone_number']
-                        if 'verified_name' in info:
-                            numero.verified_name = info['verified_name']
-                        if 'whatsapp_business_account_id' in info:
-                            # Atualizar WABA ID real
-                            waba.whatsapp_business_account_id = info['whatsapp_business_account_id']
-                            waba.save()
-                        
-                        numero.detalhes_api = info
-                        numero.save()
-                        
-                        print(f"Sincronização síncrona básica concluída para número {numero.id}")
-                    
-                except Exception as fallback_error:
-                    print(f"Erro na sincronização síncrona: {fallback_error}")
-                    # Continua sem falhar - número foi criado com sucesso
+            logger.info(f"✅ NÚMERO CRIADO COM SUCESSO:")
+            logger.info(f"   - ID: {numero.id}")
+            logger.info(f"   - Phone Number ID: {numero.phone_number_id}")
+            logger.info(f"   - Número formatado: {numero.display_phone_number}")
+            logger.info(f"   - Nome verificado: {numero.verified_name}")
+            logger.info(f"   - Qualidade: {numero.get_quality_rating_display()}")
+            logger.info(f"   - Limite: {numero.get_messaging_limit_tier_display()}")
+            logger.info(f"   - Status: {numero.get_status_display()}")
             
             return numero
             
-        except Exception as e:
-            if isinstance(e, serializers.ValidationError):
-                raise
+        except serializers.ValidationError:
+            # Re-raise validation errors
+            raise
             
-            # Log do erro para debugging
+        except Exception as e:
+            # Log detalhado do erro
             import traceback
-            print(f"Erro ao criar número WhatsApp: {e}")
-            traceback.print_exc()
+            error_trace = traceback.format_exc()
+            logger.error(f"❌ ERRO AO CRIAR NÚMERO WHATSAPP:")
+            logger.error(f"   - Phone Number ID: {phone_number_id}")
+            logger.error(f"   - Erro: {str(e)}")
+            logger.error(f"   - Stack trace: {error_trace}")
             
             raise serializers.ValidationError({
-                'non_field_errors': f'Erro interno: {str(e)}'
+                'non_field_errors': f'Erro ao criar número WhatsApp: {str(e)}',
+                'phone_number_id': phone_number_id,
+                'error_details': str(e)
             })
 
 
