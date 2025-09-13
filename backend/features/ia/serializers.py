@@ -1061,31 +1061,163 @@ BusinessManagerSerializer = WhatsAppBusinessAccountSerializer
 
 
 class WhatsAppPhoneNumberCreateSerializer(serializers.ModelSerializer):
-    """Serializer para criação de números WhatsApp"""
-    whatsapp_business_account_id = serializers.IntegerField(write_only=True)
+    """Serializer para criação de números WhatsApp - CORRIGIDO PARA O FRONTEND"""
+    
+    # Campo para access_token (será usado para criar/buscar WABA)
+    access_token = serializers.CharField(write_only=True, help_text="Token de acesso da Meta API")
+    
+    # Campo para converter datetime-local para date
+    token_expira_em = serializers.CharField(
+        required=False, 
+        allow_blank=True, 
+        help_text="Data de expiração do token no formato datetime-local ou YYYY-MM-DD"
+    )
     
     class Meta:
         model = WhatsAppPhoneNumber
         fields = [
-            'whatsapp_business_account_id', 'phone_number_id', 'display_phone_number', 
-            'verified_name', 'bm_nome_customizado', 'pais_nome_customizado', 
-            'perfil', 'token_expira_em', 'monitoramento_ativo', 
-            'frequencia_verificacao_minutos'
+            # Campos que o frontend realmente envia
+            'phone_number_id', 'access_token', 'bm_nome_customizado', 
+            'pais_nome_customizado', 'perfil', 'token_expira_em'
         ]
     
-    def create(self, validated_data):
-        """Criar número WhatsApp com Business Manager"""
-        whatsapp_business_account_id = validated_data.pop('whatsapp_business_account_id')
+    def validate_phone_number_id(self, value):
+        """Validar phone_number_id"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Phone Number ID é obrigatório")
+        
+        # Verificar se já existe
+        if WhatsAppPhoneNumber.objects.filter(phone_number_id=value.strip()).exists():
+            raise serializers.ValidationError("Este Phone Number ID já está cadastrado")
+        
+        return value.strip()
+    
+    def validate_access_token(self, value):
+        """Validar access token"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Access Token é obrigatório")
+        
+        if len(value.strip()) < 10:  # Mais flexível para desenvolvimento
+            raise serializers.ValidationError("Access Token muito curto - verifique se está completo")
+        
+        return value.strip()
+    
+    def validate_token_expira_em(self, value):
+        """Converter datetime-local para date"""
+        if not value or value.strip() == '':
+            return None
+        
+        from datetime import datetime, date
         
         try:
-            # Importar o modelo BusinessManager (alias para WhatsAppBusinessAccount)
-            from .models import BusinessManager
-            business_manager = BusinessManager.objects.get(id=whatsapp_business_account_id)
-            validated_data['whatsapp_business_account'] = business_manager
-            return super().create(validated_data)
-        except BusinessManager.DoesNotExist:
+            # Tentar formato datetime-local primeiro (2025-09-11T21:55)
+            if 'T' in value:
+                datetime_obj = datetime.fromisoformat(value.replace('T', ' '))
+                return datetime_obj.date()
+            # Tentar formato date (2025-09-11)
+            else:
+                return datetime.strptime(value, '%Y-%m-%d').date()
+        except ValueError as e:
+            raise serializers.ValidationError(
+                f"Formato de data inválido. Use YYYY-MM-DD ou YYYY-MM-DDTHH:MM. Erro: {str(e)}"
+            )
+    
+    def create(self, validated_data):
+        """Criar número WhatsApp - VERSÃO SIMPLIFICADA E ROBUSTA"""
+        access_token = validated_data.pop('access_token')
+        phone_number_id = validated_data.get('phone_number_id')
+        
+        try:
+            # 1. Criar ou buscar WhatsAppBusinessAccount temporária
+            from .models import WhatsAppBusinessAccount
+            from .services import WhatsAppMetaAPIService
+            api_service = WhatsAppMetaAPIService()
+            
+            # Usar nome customizado ou gerar um temporário
+            nome_waba = validated_data.get('bm_nome_customizado', f'WABA para {phone_number_id}')
+            
+            # Buscar WABA existente ou criar uma temporária
+            # A WABA será preenchida corretamente durante a sincronização
+            waba, created = WhatsAppBusinessAccount.objects.get_or_create(
+                nome=nome_waba,
+                defaults={
+                    'whatsapp_business_account_id': f'temp_{phone_number_id}',  # Temporário
+                    'access_token_encrypted': api_service._encrypt_token(access_token),
+                    'responsavel': self.context['request'].user,
+                    'ativo': True
+                }
+            )
+            
+            # 2. Definir campos obrigatórios do modelo
+            validated_data['whatsapp_business_account'] = waba
+            
+            # display_phone_number é obrigatório - usar phone_number_id como fallback
+            validated_data['display_phone_number'] = phone_number_id
+            
+            # Campos opcionais com valores padrão seguros
+            validated_data.setdefault('verified_name', '')
+            validated_data.setdefault('monitoramento_ativo', True)
+            validated_data.setdefault('frequencia_verificacao_minutos', 60)
+            
+            # 3. Criar o número WhatsApp
+            numero = super().create(validated_data)
+            
+            # 4. Tentar sincronizar com a API em background (não bloqueia a criação)
+            try:
+                from django_rq import get_queue
+                queue = get_queue('default')
+                
+                # Agendar sincronização dos dados da API
+                queue.enqueue(
+                    'backend.features.ia.tasks.sincronizar_numero_whatsapp_task',
+                    numero.id,
+                    access_token,
+                    timeout=300
+                )
+                
+                print(f"Número {numero.id} criado e sincronização agendada em background")
+                
+            except Exception as sync_error:
+                # Se o job em background falhar, tentar sincronização síncrona simples
+                print(f"Erro ao agendar sincronização: {sync_error}. Tentando sincronização síncrona...")
+                
+                try:
+                    # Sincronização síncrona básica (sem bloquear se falhar)
+                    sucesso, info = api_service.obter_detalhes_numero(phone_number_id, access_token)
+                    
+                    if sucesso and isinstance(info, dict):
+                        # Atualizar apenas campos básicos
+                        if 'display_phone_number' in info:
+                            numero.display_phone_number = info['display_phone_number']
+                        if 'verified_name' in info:
+                            numero.verified_name = info['verified_name']
+                        if 'whatsapp_business_account_id' in info:
+                            # Atualizar WABA ID real
+                            waba.whatsapp_business_account_id = info['whatsapp_business_account_id']
+                            waba.save()
+                        
+                        numero.detalhes_api = info
+                        numero.save()
+                        
+                        print(f"Sincronização síncrona básica concluída para número {numero.id}")
+                    
+                except Exception as fallback_error:
+                    print(f"Erro na sincronização síncrona: {fallback_error}")
+                    # Continua sem falhar - número foi criado com sucesso
+            
+            return numero
+            
+        except Exception as e:
+            if isinstance(e, serializers.ValidationError):
+                raise
+            
+            # Log do erro para debugging
+            import traceback
+            print(f"Erro ao criar número WhatsApp: {e}")
+            traceback.print_exc()
+            
             raise serializers.ValidationError({
-                'whatsapp_business_account_id': 'Business Manager não encontrada'
+                'non_field_errors': f'Erro interno: {str(e)}'
             })
 
 
