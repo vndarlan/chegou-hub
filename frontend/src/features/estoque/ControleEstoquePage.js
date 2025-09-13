@@ -63,7 +63,8 @@ function ControleEstoquePage() {
         fornecedor: 'N1 Itália',
         skus: [{ sku: '', descricao_variacao: '' }],
         lojas_selecionadas: [],
-        estoque_compartilhado: 0
+        estoque_compartilhado: 0,
+        estoque_minimo: 5
     });
     const [ajusteEstoque, setAjusteEstoque] = useState({
         tipo: 'adicionar', // 'adicionar' ou 'remover'
@@ -458,6 +459,7 @@ function ControleEstoquePage() {
                 descricao: novoProdutoCompartilhado.descricao || '',
                 fornecedor: novoProdutoCompartilhado.fornecedor,
                 estoque_compartilhado: parseInt(novoProdutoCompartilhado.estoque_compartilhado) || 0,
+                estoque_minimo: parseInt(novoProdutoCompartilhado.estoque_minimo) || 5,
                 skus_data: skusValidos.map(sku => ({
                     sku: sku.sku.trim(),
                     descricao_variacao: sku.descricao_variacao || ''
@@ -487,7 +489,8 @@ function ControleEstoquePage() {
                     fornecedor: 'N1 Itália',
                     skus: [{ sku: '', descricao_variacao: '' }],
                     lojas_selecionadas: [],
-                    estoque_compartilhado: 0
+                    estoque_compartilhado: 0,
+                    estoque_minimo: 5
                 });
                 
                 setShowAddProdutoCompartilhado(false);
@@ -522,15 +525,33 @@ function ControleEstoquePage() {
 
         setEditingProduto(true);
         try {
-            const dados = {
-                sku: selectedProduto.sku,
-                nome: selectedProduto.nome,
-                fornecedor: selectedProduto.fornecedor,
-                estoque_minimo: parseInt(selectedProduto.estoque_minimo) || 5,
-                loja_config: selectedProduto.loja_config
-            };
+            // Usar endpoint correto baseado no tipo do produto
+            const isCompartilhado = selectedProduto.tipo_produto === 'compartilhado';
+            
+            let dados, endpoint;
+            
+            if (isCompartilhado) {
+                // Para produtos compartilhados
+                dados = {
+                    nome: selectedProduto.nome,
+                    fornecedor: selectedProduto.fornecedor,
+                    estoque_minimo: parseInt(selectedProduto.estoque_minimo) || 5,
+                    lojas_ids: selectedProduto.lojas_conectadas?.map(l => l.id) || []
+                };
+                endpoint = `/estoque/produtos-compartilhados/${selectedProduto.id}/`;
+            } else {
+                // Para produtos individuais
+                dados = {
+                    sku: selectedProduto.sku,
+                    nome: selectedProduto.nome,
+                    fornecedor: selectedProduto.fornecedor,
+                    estoque_minimo: parseInt(selectedProduto.estoque_minimo) || 5,
+                    loja_config: selectedProduto.loja_config
+                };
+                endpoint = `/estoque/produtos/${selectedProduto.id}/`;
+            }
 
-            const response = await axios.put(`/estoque/produtos/${selectedProduto.id}/`, dados, {
+            const response = await axios.put(endpoint, dados, {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
 
@@ -653,7 +674,13 @@ function ControleEstoquePage() {
         }
 
         try {
-            const response = await axios.delete(`/estoque/produtos/${produto.id}/`, {
+            // Usar endpoint correto baseado no tipo do produto
+            const isCompartilhado = produto.tipo_produto === 'compartilhado';
+            const endpoint = isCompartilhado 
+                ? `/estoque/produtos-compartilhados/${produto.id}/`
+                : `/estoque/produtos/${produto.id}/`;
+
+            const response = await axios.delete(endpoint, {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
 
@@ -1005,6 +1032,17 @@ function ControleEstoquePage() {
                                                     min="0"
                                                     value={novoProdutoCompartilhado.estoque_compartilhado}
                                                     onChange={(e) => setNovoProdutoCompartilhado(prev => ({ ...prev, estoque_compartilhado: e.target.value }))}
+                                                    className="bg-background border-input text-foreground"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="estoque-minimo-novo" className="text-foreground">Estoque Mínimo</Label>
+                                                <Input
+                                                    id="estoque-minimo-novo"
+                                                    type="number"
+                                                    min="0"
+                                                    value={novoProdutoCompartilhado.estoque_minimo}
+                                                    onChange={(e) => setNovoProdutoCompartilhado(prev => ({ ...prev, estoque_minimo: e.target.value }))}
                                                     className="bg-background border-input text-foreground"
                                                 />
                                             </div>
@@ -1582,6 +1620,34 @@ function ControleEstoquePage() {
                                     className="bg-background border-input text-foreground"
                                 />
                             </div>
+                            
+                            {/* Edição de lojas para produtos compartilhados */}
+                            {selectedProduto.tipo_produto === 'compartilhado' && (
+                                <div>
+                                    <Label className="text-foreground">Lojas Conectadas</Label>
+                                    <div className="space-y-2 mt-2">
+                                        {lojas.map(loja => (
+                                            <div key={loja.id} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id={`edit-loja-${loja.id}`}
+                                                    checked={selectedProduto.lojas_conectadas?.some(l => l.id === loja.id) || false}
+                                                    onCheckedChange={(checked) => {
+                                                        setSelectedProduto(prev => ({
+                                                            ...prev,
+                                                            lojas_conectadas: checked 
+                                                                ? [...(prev.lojas_conectadas || []), loja]
+                                                                : (prev.lojas_conectadas || []).filter(l => l.id !== loja.id)
+                                                        }));
+                                                    }}
+                                                />
+                                                <Label htmlFor={`edit-loja-${loja.id}`} className="text-sm">
+                                                    {loja.nome_loja}
+                                                </Label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             
                             <Alert className="bg-muted/30 border-border">
                                 <AlertCircle className="h-4 w-4" />
