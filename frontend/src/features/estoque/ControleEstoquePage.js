@@ -438,6 +438,19 @@ function ControleEstoquePage() {
         
         // Validar SKUs
         const skusValidos = novoProdutoCompartilhado.skus.filter(sku => sku.sku.trim());
+        const skusVazios = novoProdutoCompartilhado.skus.filter(sku => !sku.sku.trim());
+        
+        console.log('=== DEBUG VALIDAÇÃO SKUs ===');
+        console.log('SKUs totais:', novoProdutoCompartilhado.skus.length);
+        console.log('SKUs válidos:', skusValidos.length);
+        console.log('SKUs vazios:', skusVazios.length);
+        console.log('SKUs:', novoProdutoCompartilhado.skus);
+        
+        if (skusVazios.length > 0) {
+            showNotification(`${skusVazios.length} SKU(s) estão vazios. Preencha todos os SKUs ou remova os campos vazios.`, 'error');
+            return;
+        }
+        
         if (skusValidos.length === 0) {
             showNotification('Adicione pelo menos um SKU válido', 'error');
             return;
@@ -942,14 +955,18 @@ function ControleEstoquePage() {
                                             {novoProdutoCompartilhado.skus.map((sku, index) => (
                                                 <div key={index} className="flex gap-2 items-end p-3 border border-border rounded-lg bg-muted/20">
                                                     <div className="flex-1">
-                                                        <Label htmlFor={`sku-${index}`} className="text-foreground text-xs">SKU *</Label>
+                                                        <Label htmlFor={`sku-${index}`} className="text-foreground text-xs">SKU * (obrigatório)</Label>
                                                         <Input
                                                             id={`sku-${index}`}
-                                                            placeholder="SKU-REL-001"
+                                                            placeholder="Ex: SKU-REL-001"
                                                             value={sku.sku}
                                                             onChange={(e) => atualizarSKU(index, 'sku', e.target.value)}
-                                                            className="bg-background border-input text-foreground h-8 text-sm"
+                                                            className={`bg-background border-input text-foreground h-8 text-sm ${!sku.sku.trim() ? 'border-red-300 focus:border-red-500' : ''}`}
+                                                            required
                                                         />
+                                                        {!sku.sku.trim() && (
+                                                            <p className="text-xs text-red-500 mt-1">SKU é obrigatório</p>
+                                                        )}
                                                     </div>
                                                     <div className="flex-1">
                                                         <Label htmlFor={`variacao-${index}`} className="text-foreground text-xs">Variação</Label>
@@ -1088,33 +1105,29 @@ function ControleEstoquePage() {
                                             <CardTitle className="text-sm text-foreground">Funcionalidades Principais</CardTitle>
                                         </CardHeader>
                                         <CardContent className="space-y-3">
-                                            <div className="p-3 bg-muted rounded-lg">
-                                                <h4 className="font-semibold text-sm text-foreground">1. Produtos Individuais</h4>
-                                                <p className="text-sm text-muted-foreground">Produtos específicos para uma loja com SKU único</p>
-                                            </div>
-                                            <div className="p-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-                                                <h4 className="font-semibold text-sm text-purple-700 dark:text-purple-400 flex items-center gap-1">
-                                                    <Layers className="h-3 w-3" />
-                                                    2. Produtos Compartilhados
-                                                    <Badge variant="secondary" className="text-xs">Novo</Badge>
-                                                </h4>
-                                                <p className="text-sm text-purple-600 dark:text-purple-300">Produtos com múltiplos SKUs e estoque compartilhado entre lojas</p>
+                                            <div className="p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                                                <h4 className="font-semibold text-sm text-green-700 dark:text-green-400">✅ Sistema Unificado</h4>
+                                                <p className="text-sm text-green-600 dark:text-green-300">Visualize todos os produtos (individuais e compartilhados) em uma única tabela</p>
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
-                                                <h4 className="font-semibold text-sm text-foreground">3. Ajustes de Estoque</h4>
-                                                <p className="text-sm text-muted-foreground">Adicione ou remova quantidades com motivos de movimentação</p>
+                                                <h4 className="font-semibold text-sm text-foreground">1. Criar Produtos</h4>
+                                                <p className="text-sm text-muted-foreground">Cadastre produtos com múltiplos SKUs e conecte às lojas desejadas</p>
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
-                                                <h4 className="font-semibold text-sm text-foreground">4. Alertas</h4>
-                                                <p className="text-sm text-muted-foreground">Receba alertas quando produtos atingem estoque mínimo</p>
+                                                <h4 className="font-semibold text-sm text-foreground">2. Gerenciar Lojas</h4>
+                                                <p className="text-sm text-muted-foreground">Conecte/desconecte produtos de diferentes lojas na edição</p>
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
-                                                <h4 className="font-semibold text-sm text-foreground">5. Histórico Completo</h4>
-                                                <p className="text-sm text-muted-foreground">Visualize todas as movimentações de estoque por produto</p>
+                                                <h4 className="font-semibold text-sm text-foreground">3. Ajustar Estoque</h4>
+                                                <p className="text-sm text-muted-foreground">Modifique quantidades com motivos e observações detalhadas</p>
                                             </div>
-                                            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                                <h4 className="font-semibold text-sm text-blue-700 dark:text-blue-400">6. Atualizações Manuais</h4>
-                                                <p className="text-sm text-blue-600 dark:text-blue-300">Use o botão "Atualizar" para buscar os dados mais recentes do servidor</p>
+                                            <div className="p-3 bg-muted rounded-lg">
+                                                <h4 className="font-semibold text-sm text-foreground">4. Alertas Automáticos</h4>
+                                                <p className="text-sm text-muted-foreground">Monitoramento inteligente do estoque mínimo</p>
+                                            </div>
+                                            <div className="p-3 bg-muted rounded-lg">
+                                                <h4 className="font-semibold text-sm text-foreground">5. Filtros e Busca</h4>
+                                                <p className="text-sm text-muted-foreground">Filtre por loja, nome, SKU e status de estoque</p>
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -1577,9 +1590,8 @@ function ControleEstoquePage() {
                                         value={selectedProduto.sku}
                                         onChange={(e) => setSelectedProduto(prev => ({ ...prev, sku: e.target.value }))}
                                         className="bg-background border-input text-foreground"
-                                        disabled
                                     />
-                                    <p className="text-xs text-muted-foreground">SKU não pode ser alterado</p>
+                                    <p className="text-xs text-muted-foreground">SKU pode ser editado conforme necessário</p>
                                 </div>
                                 <div>
                                     <Label htmlFor="edit-nome" className="text-foreground">Nome do Produto</Label>
