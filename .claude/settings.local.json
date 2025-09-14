@@ -15,7 +15,16 @@
       "Bash(npx kill-port:*)",
       "Bash(findstr:*)",
       "Bash(git push:*)",
-      "Bash(git tag:*)"
+      "Bash(git tag:*)",
+      "Bash(curl:*)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebSearch",
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)",
+      "Bash(set CI=false)",
+      "Bash(set DISABLE_ESLINT_PLUGIN=true)",
+      "Bash(set GENERATE_SOURCEMAP=false)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": [],

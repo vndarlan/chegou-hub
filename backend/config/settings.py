@@ -100,8 +100,6 @@ INSTALLED_APPS = [
     # Sistema de Feedback
     'features.feedback.apps.FeedbackConfig',
     
-    # Chatbot IA
-    'features.chatbot_ia.apps.ChatbotIaConfig',
     
     # Cloudinary para storage de imagens
     'cloudinary_storage',
