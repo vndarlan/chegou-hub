@@ -610,53 +610,100 @@ class ProdutoSerializer(serializers.ModelSerializer):
     
     def update(self, instance, validated_data):
         """Atualizar produto com SKUs e lojas associadas"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        logger.info(f"Atualizando produto {instance.id} - {instance.nome}")
+        logger.info(f"Dados recebidos: {validated_data}")
+
         # Extrair dados aninhados
         skus_data = validated_data.pop('skus_data', None)
         lojas_ids = validated_data.pop('lojas_ids', None)
-        
+
+        logger.info(f"SKUs data: {skus_data}")
+        logger.info(f"Lojas IDs: {lojas_ids}")
+
         # Atualizar campos do produto
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+            logger.info(f"Atualizando campo {attr} = {value}")
         instance.save()
-        
+
         # Atualizar SKUs se fornecidos
         if skus_data is not None:
-            # Remover SKUs existentes não incluídos na atualização
+            logger.info(f"Processando atualização de SKUs: {len(skus_data)} SKUs fornecidos")
             skus_para_manter = []
+
             for sku_data in skus_data:
-                if 'id' in sku_data:
+                logger.info(f"Processando SKU: {sku_data}")
+
+                if 'id' in sku_data and sku_data['id']:
                     # Atualizar SKU existente
                     try:
                         sku = instance.skus.get(id=sku_data['id'])
+                        logger.info(f"Atualizando SKU existente ID {sku.id}: {sku.sku}")
+
                         for attr, value in sku_data.items():
                             if attr != 'id':
                                 setattr(sku, attr, value)
+                                logger.info(f"SKU {sku.id}: {attr} = {value}")
                         sku.save()
                         skus_para_manter.append(sku.id)
+                        logger.info(f"SKU {sku.id} atualizado com sucesso")
+
                     except ProdutoSKU.DoesNotExist:
+                        logger.warning(f"SKU com ID {sku_data['id']} não encontrado, será ignorado")
                         pass
                 else:
                     # Criar novo SKU
-                    novo_sku = ProdutoSKU.objects.create(produto=instance, **sku_data)
-                    skus_para_manter.append(novo_sku.id)
-            
-            # Remover SKUs não incluídos
-            instance.skus.exclude(id__in=skus_para_manter).delete()
-        
+                    logger.info(f"Criando novo SKU: {sku_data}")
+                    try:
+                        novo_sku = ProdutoSKU.objects.create(produto=instance, **sku_data)
+                        skus_para_manter.append(novo_sku.id)
+                        logger.info(f"Novo SKU criado: ID {novo_sku.id} - {novo_sku.sku}")
+                    except Exception as e:
+                        logger.error(f"Erro ao criar novo SKU: {str(e)}")
+                        # Continua processando outros SKUs mesmo se um falhar
+
+            logger.info(f"SKUs para manter: {skus_para_manter}")
+
+            # Remover apenas SKUs que não estão na lista de manter
+            skus_para_remover = instance.skus.exclude(id__in=skus_para_manter)
+            if skus_para_remover.exists():
+                logger.info(f"Removendo {skus_para_remover.count()} SKUs não incluídos na atualização")
+                for sku in skus_para_remover:
+                    logger.info(f"Removendo SKU: {sku.id} - {sku.sku}")
+                skus_para_remover.delete()
+            else:
+                logger.info("Nenhum SKU para remover")
+        else:
+            logger.info("Nenhum dado de SKU fornecido - mantendo SKUs existentes")
+
         # Atualizar lojas associadas se fornecidas
         if lojas_ids is not None:
+            logger.info(f"Processando atualização de lojas associadas: {lojas_ids}")
+
             # Remover associações existentes
+            associacoes_removidas = instance.produtoloja_set.count()
             instance.produtoloja_set.all().delete()
-            
+            logger.info(f"Removidas {associacoes_removidas} associações existentes")
+
             # Criar novas associações
             request = self.context.get('request')
             for loja_id in lojas_ids:
                 try:
                     loja = ShopifyConfig.objects.get(id=loja_id, user=request.user)
                     ProdutoLoja.objects.create(produto=instance, loja=loja)
+                    logger.info(f"Associação criada com loja: {loja.nome_loja}")
                 except ShopifyConfig.DoesNotExist:
+                    logger.warning(f"Loja ID {loja_id} não encontrada ou não pertence ao usuário")
                     pass
-        
+        else:
+            logger.info("Nenhuma alteração de lojas fornecida - mantendo associações existentes")
+
+        # Log final do estado do produto
+        logger.info(f"Produto atualizado - SKUs atuais: {instance.skus.count()}, Lojas: {instance.produtoloja_set.count()}")
+
         return instance
 
 

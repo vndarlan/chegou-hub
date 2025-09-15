@@ -1055,17 +1055,27 @@ class AlertaEstoqueViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def verificar_alertas_tempo_real(self, request):
         """
-        Verifica e cria alertas em tempo real para produtos com estoque baixo/zerado
-        que podem não ter alertas ativos. Usado pelo frontend para garantir que
-        todos os alertas necessários sejam exibidos.
+        Verifica e cria alertas em tempo real para produtos com estoque baixo/zerado.
+        Funciona tanto para produtos individuais quanto compartilhados.
         """
-        # Filtro por loja
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # Filtro por loja (opcional para produtos compartilhados)
         loja_id = request.query_params.get('loja_id')
-        if not loja_id:
-            return Response(
-                {'erro': 'loja_id é obrigatório'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+
+        logger.info(f"verificar_alertas_tempo_real chamado - usuário: {request.user.username}, loja_id: {loja_id}")
+
+        # Modo para produtos individuais por loja (mantém compatibilidade)
+        if loja_id:
+            try:
+                loja_id = int(loja_id)
+            except (ValueError, TypeError):
+                logger.warning(f"loja_id inválido: {loja_id}")
+                return Response(
+                    {'erro': 'loja_id deve ser um número válido'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         
         try:
             from features.processamento.models import ShopifyConfig

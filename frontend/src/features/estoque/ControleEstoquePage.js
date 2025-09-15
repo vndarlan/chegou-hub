@@ -49,6 +49,8 @@ function ControleEstoquePage() {
     const [showHistorico, setShowHistorico] = useState(false);
     const [showInstructions, setShowInstructions] = useState(false);
     const [selectedProduto, setSelectedProduto] = useState(null);
+    const [editingSkus, setEditingSkus] = useState([]);
+    const [loadingSkus, setLoadingSkus] = useState(false);
     
     // Estados para produtos compartilhados
     const [showAddProdutoCompartilhado, setShowAddProdutoCompartilhado] = useState(false);
@@ -533,6 +535,41 @@ function ControleEstoquePage() {
     };
 
 
+    // Função para carregar todos os SKUs de um produto
+    const loadProdutoSKUs = async (produtoId) => {
+        setLoadingSkus(true);
+        try {
+            const response = await axios.get(`/estoque/produtos-compartilhados/${produtoId}/`);
+            if (response.data && response.data.skus) {
+                setEditingSkus(response.data.skus.map(sku => ({
+                    id: sku.id,
+                    sku: sku.sku,
+                    descricao_variacao: sku.descricao_variacao || ''
+                })));
+            }
+        } catch (error) {
+            console.error('Erro ao carregar SKUs:', error);
+            showNotification('Erro ao carregar SKUs do produto', 'error');
+        } finally {
+            setLoadingSkus(false);
+        }
+    };
+
+    // Funções para gerenciar SKUs na edição
+    const adicionarSkuEdicao = () => {
+        setEditingSkus(prev => [...prev, { sku: '', descricao_variacao: '' }]);
+    };
+
+    const removerSkuEdicao = (index) => {
+        setEditingSkus(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const atualizarSkuEdicao = (index, campo, valor) => {
+        setEditingSkus(prev => prev.map((sku, i) =>
+            i === index ? { ...sku, [campo]: valor } : sku
+        ));
+    };
+
     const editarProduto = async () => {
         if (!selectedProduto?.id) return;
 
@@ -544,18 +581,42 @@ function ControleEstoquePage() {
             let dados, endpoint;
             
             if (isCompartilhado) {
+                // Validar SKUs para produtos compartilhados
+                const skusValidos = editingSkus.filter(sku => sku.sku.trim());
+                const skusVazios = editingSkus.filter(sku => !sku.sku.trim());
+
+                if (skusVazios.length > 0) {
+                    showNotification(`${skusVazios.length} SKU(s) estão vazios. Preencha todos os SKUs ou remova os campos vazios.`, 'error');
+                    return;
+                }
+
+                if (skusValidos.length === 0) {
+                    showNotification('Adicione pelo menos um SKU válido', 'error');
+                    return;
+                }
+
                 // Para produtos compartilhados
                 dados = {
                     nome: selectedProduto.nome,
                     fornecedor: selectedProduto.fornecedor,
                     estoque_minimo: parseInt(selectedProduto.estoque_minimo) || 5,
-                    lojas_ids: selectedProduto.lojas_conectadas?.map(l => l.id) || []
+                    lojas_ids: selectedProduto.lojas_conectadas?.map(l => l.id) || [],
+                    skus_data: skusValidos.map(sku => ({
+                        id: sku.id || null,
+                        sku: sku.sku.trim(),
+                        descricao_variacao: sku.descricao_variacao || ''
+                    }))
                 };
                 endpoint = `/estoque/produtos-compartilhados/${selectedProduto.id}/`;
             } else {
-                // Para produtos individuais
+                // Para produtos individuais - validar SKU único
+                if (editingSkus.length > 0 && !editingSkus[0].sku.trim()) {
+                    showNotification('SKU é obrigatório', 'error');
+                    return;
+                }
+
                 dados = {
-                    sku: selectedProduto.sku,
+                    sku: editingSkus[0]?.sku?.trim() || selectedProduto.sku,
                     nome: selectedProduto.nome,
                     fornecedor: selectedProduto.fornecedor,
                     estoque_minimo: parseInt(selectedProduto.estoque_minimo) || 5,
@@ -569,9 +630,17 @@ function ControleEstoquePage() {
             });
 
             if (response.data && response.data.id) {
-                showNotification('Produto atualizado com sucesso!');
+                // Feedback específico baseado no tipo de produto
+                let mensagem = 'Produto atualizado com sucesso!';
+                if (isCompartilhado) {
+                    const totalSkus = editingSkus.filter(sku => sku.sku.trim()).length;
+                    mensagem += ` ${totalSkus} SKU${totalSkus !== 1 ? 's' : ''} salvo${totalSkus !== 1 ? 's' : ''}.`;
+                }
+
+                showNotification(mensagem);
                 setShowEditProduto(false);
                 setSelectedProduto(null);
+                setEditingSkus([]);
                 await loadProdutos();
                 await loadAlertas();
             } else {
@@ -710,8 +779,20 @@ function ControleEstoquePage() {
         }
     };
 
-    const openEditProduto = (produto) => {
+    const openEditProduto = async (produto) => {
         setSelectedProduto({ ...produto });
+
+        // Carregar SKUs completos se for produto compartilhado
+        if (produto.tipo_produto === 'compartilhado') {
+            await loadProdutoSKUs(produto.id);
+        } else {
+            // Para produtos individuais, usar SKU único
+            setEditingSkus([{
+                sku: produto.sku,
+                descricao_variacao: produto.descricao_variacao || ''
+            }]);
+        }
+
         setShowEditProduto(true);
     };
 
@@ -1572,7 +1653,15 @@ function ControleEstoquePage() {
             </Card>
 
             {/* Modal de Edição de Produto */}
-            <Dialog open={showEditProduto} onOpenChange={setShowEditProduto}>
+            <Dialog open={showEditProduto} onOpenChange={(open) => {
+                setShowEditProduto(open);
+                if (!open) {
+                    // Limpar estados ao fechar modal
+                    setSelectedProduto(null);
+                    setEditingSkus([]);
+                    setLoadingSkus(false);
+                }
+            }}>
                 <DialogContent className="bg-background border-border max-w-[95vw] sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle className="text-foreground">Editar Produto</DialogTitle>
@@ -1582,26 +1671,98 @@ function ControleEstoquePage() {
                     </DialogHeader>
                     {selectedProduto && (
                         <div className="space-y-4 max-h-[70vh] overflow-y-auto">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Seção de SKUs baseada no tipo do produto */}
+                            {selectedProduto.tipo_produto === 'compartilhado' ? (
                                 <div>
-                                    <Label htmlFor="edit-sku" className="text-foreground">SKU</Label>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <Label className="text-foreground font-medium">SKUs do Produto</Label>
+                                        <div className="flex items-center space-x-2">
+                                            {loadingSkus && (
+                                                <div className="flex items-center text-sm text-muted-foreground">
+                                                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                                    Carregando...
+                                                </div>
+                                            )}
+                                            <Badge variant="outline" className="text-xs">
+                                                {editingSkus.length} SKU{editingSkus.length !== 1 ? 's' : ''}
+                                            </Badge>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3 max-h-40 overflow-y-auto">
+                                        {editingSkus.map((sku, index) => (
+                                            <div key={index} className="flex gap-2 items-end p-3 border border-border rounded-lg bg-muted/20">
+                                                <div className="flex-1">
+                                                    <Label htmlFor={`edit-sku-${index}`} className="text-foreground text-xs">SKU * (obrigatório)</Label>
+                                                    <Input
+                                                        id={`edit-sku-${index}`}
+                                                        placeholder="Ex: ABC123"
+                                                        value={sku.sku}
+                                                        onChange={(e) => atualizarSkuEdicao(index, 'sku', e.target.value)}
+                                                        className="bg-background border-input text-foreground h-8 text-sm"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <Label htmlFor={`edit-variacao-${index}`} className="text-foreground text-xs">Variação</Label>
+                                                    <Input
+                                                        id={`edit-variacao-${index}`}
+                                                        placeholder="Preto, Branco, etc."
+                                                        value={sku.descricao_variacao}
+                                                        onChange={(e) => atualizarSkuEdicao(index, 'descricao_variacao', e.target.value)}
+                                                        className="bg-background border-input text-foreground h-8 text-sm"
+                                                    />
+                                                </div>
+                                                {editingSkus.length > 1 && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => removerSkuEdicao(index)}
+                                                        className="h-8 w-8 p-0"
+                                                    >
+                                                        <X className="h-3 w-3" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={adicionarSkuEdicao}
+                                        className="w-full mt-3"
+                                    >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Adicionar SKU
+                                    </Button>
+                                </div>
+                            ) : (
+                                // Para produtos individuais - SKU único
+                                <div>
+                                    <Label htmlFor="edit-sku-individual" className="text-foreground">SKU</Label>
                                     <Input
-                                        id="edit-sku"
-                                        value={selectedProduto.sku}
-                                        onChange={(e) => setSelectedProduto(prev => ({ ...prev, sku: e.target.value }))}
+                                        id="edit-sku-individual"
+                                        value={editingSkus[0]?.sku || selectedProduto.sku}
+                                        onChange={(e) => atualizarSkuEdicao(0, 'sku', e.target.value)}
                                         className="bg-background border-input text-foreground"
+                                        placeholder="Ex: ABC123"
                                     />
                                     <p className="text-xs text-muted-foreground">SKU pode ser editado conforme necessário</p>
                                 </div>
-                                <div>
-                                    <Label htmlFor="edit-nome" className="text-foreground">Nome do Produto</Label>
-                                    <Input
-                                        id="edit-nome"
-                                        value={selectedProduto.nome}
-                                        onChange={(e) => setSelectedProduto(prev => ({ ...prev, nome: e.target.value }))}
-                                        className="bg-background border-input text-foreground"
-                                    />
-                                </div>
+                            )}
+
+                            {/* Nome do Produto */}
+                            <div>
+                                <Label htmlFor="edit-nome" className="text-foreground">Nome do Produto</Label>
+                                <Input
+                                    id="edit-nome"
+                                    value={selectedProduto.nome}
+                                    onChange={(e) => setSelectedProduto(prev => ({ ...prev, nome: e.target.value }))}
+                                    className="bg-background border-input text-foreground"
+                                />
                             </div>
                             
                             <div>
@@ -1661,6 +1822,20 @@ function ControleEstoquePage() {
                                 </div>
                             )}
                             
+                            {/* Resumo de alterações para produtos compartilhados */}
+                            {selectedProduto.tipo_produto === 'compartilhado' && editingSkus.length > 0 && (
+                                <Alert className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+                                    <Info className="h-4 w-4" />
+                                    <AlertDescription className="text-foreground text-sm">
+                                        <strong>Resumo das alterações:</strong>
+                                        <br />
+                                        • Total de SKUs: <Badge variant="secondary" className="mx-1">{editingSkus.filter(s => s.sku.trim()).length}</Badge>
+                                        <br />
+                                        • SKUs válidos: {editingSkus.filter(s => s.sku.trim()).map(s => s.sku).join(', ') || 'Nenhum'}
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+
                             <Alert className="bg-muted/30 border-border">
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertDescription className="text-foreground text-sm">
@@ -1671,7 +1846,12 @@ function ControleEstoquePage() {
                             </Alert>
 
                             <div className="flex justify-end space-x-2 pt-4">
-                                <Button variant="outline" onClick={() => setShowEditProduto(false)}>
+                                <Button variant="outline" onClick={() => {
+                                    setShowEditProduto(false);
+                                    setSelectedProduto(null);
+                                    setEditingSkus([]);
+                                    setLoadingSkus(false);
+                                }}>
                                     Cancelar
                                 </Button>
                                 <Button onClick={editarProduto} disabled={editingProduto}>
