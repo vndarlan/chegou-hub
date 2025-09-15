@@ -49,10 +49,8 @@ const SimpleN8nWidget = () => {
           mode: 'window',
           loadPreviousSession: true,
           initialMessages: [
-            {
-              role: 'assistant',
-              message: '👋 Olá! Sou o assistente do Chegou Hub.\n\nComo posso ajudá-lo hoje?'
-            }
+            '👋 Olá! Sou o assistente do Chegou Hub.',
+            'Como posso ajudá-lo hoje?'
           ],
           i18n: {
             en: {
