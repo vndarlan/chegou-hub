@@ -35,7 +35,7 @@ import DetectorIPPage from '../features/processamento/DetectorIPPage';
 import ControleEstoquePage from '../features/estoque/ControleEstoquePage';
 import FeedbackButton from '../components/FeedbackButton';
 import FeedbackNotificationButton from '../components/FeedbackNotificationButton';
-import N8nChatWidget from '../components/N8nChatWidget';
+import SimpleN8nWidget from '../components/SimpleN8nWidget';
 
 // Mapeamento de breadcrumbs simplificado
 const breadcrumbMap = {
@@ -175,8 +175,8 @@ function WorkspacePage({ setIsLoggedIn }) {
           </main>
         </SidebarInset>
 
-        {/* N8n Chat Widget - assistente IA sempre visível */}
-        <N8nChatWidget />
+        {/* N8n Chat Widget - assistente IA SEMPRE VISÍVEL */}
+        <SimpleN8nWidget />
       </div>
     </SidebarProvider>
   );

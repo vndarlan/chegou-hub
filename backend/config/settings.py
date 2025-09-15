@@ -394,6 +394,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://chegouhub.up.railway.app",
     "https://chegou-hubb-production.up.railway.app",
     "https://chegouhubteste.up.railway.app",
+    "https://n8ngc.up.railway.app",  # Assistente N8N
 ]
 
 # Adicionar origens do ambiente variável para CORS
@@ -436,7 +437,8 @@ CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
 CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
 CORS_ALLOW_HEADERS = [
     "accept", "accept-encoding", "authorization", "content-type", "dnt", "origin",
-    "user-agent", "x-csrftoken", "x-requested-with",
+    "user-agent", "x-csrftoken", "x-requested-with", "cache-control", "pragma",
+    "sec-fetch-dest", "sec-fetch-mode", "sec-fetch-site",  # Headers para widgets
 ]
 
 # --- Configuração CSRF ---
@@ -445,7 +447,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://www.chegouhub.com.br",
     "https://chegouhub.up.railway.app",
     "https://chegou-hubb-production.up.railway.app",
-    "https://chegouhubteste.up.railway.app"
+    "https://chegouhubteste.up.railway.app",
+    "https://n8ngc.up.railway.app"  # Assistente N8N
 ]
 
 # Adicionar origens do ambiente variável
@@ -488,6 +491,11 @@ if not DEBUG:
 
 print(f"CSRF Config - Secure: {CSRF_COOKIE_SECURE}, SameSite: {CSRF_COOKIE_SAMESITE}, HTTPOnly: {CSRF_COOKIE_HTTPONLY}")
 print(f"Session Config - Secure: {SESSION_COOKIE_SECURE}, SameSite: {SESSION_COOKIE_SAMESITE}")
+
+# --- Configuração X-Frame-Options para permitir widgets ---
+# Permitir embedding de widgets de terceiros confiáveis como N8N
+X_FRAME_OPTIONS = 'SAMEORIGIN' if not DEBUG else 'SAMEORIGIN'
+print(f"X-Frame-Options configurado para: {X_FRAME_OPTIONS}")
 
 # --- Configuração REST Framework ---
 REST_FRAMEWORK = {

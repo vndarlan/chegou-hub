@@ -5,11 +5,18 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
 }
 
-/* Widget container */
-.n8n-chat-widget-container {
+/* Widget container - z-index mais alto para sobrepor tudo */
+#n8n-chat-widget,
+#n8n-chat-widget-debug,
+#n8n-chat-widget-production,
+.n8n-chat-widget-container,
+[data-n8n-chat],
+[class*="n8n-chat"] {
+  position: fixed !important;
   bottom: 24px !important;
   right: 24px !important;
-  z-index: 1000 !important;
+  z-index: 2147483647 !important; /* Valor máximo do z-index */
+  pointer-events: auto !important;
 }
 
 /* Botão flutuante minimalista */
@@ -48,6 +55,18 @@
   0% { opacity: 1; }
   50% { opacity: 0.5; }
   100% { opacity: 1; }
+}
+
+/* Animação slideUp para o SimpleN8nWidget */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Chat window minimalista */

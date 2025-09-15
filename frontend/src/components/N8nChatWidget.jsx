@@ -1,7 +1,5 @@
 import { useEffect, useRef } from 'react'
-import '@n8n/chat/style.css'
 import './N8nChatWidget.css'
-import { createChat } from '@n8n/chat'
 
 const N8nChatWidget = ({
   webhookUrl = process.env.REACT_APP_N8N_WEBHOOK_URL,
@@ -14,14 +12,26 @@ const N8nChatWidget = ({
     // Evita múltiplas inicializações
     if (chatInitialized.current) return
 
-    const initializeChat = () => {
-      // Validação de segurança
-      if (!webhookUrl) {
-        console.error('N8n Chat Widget: Webhook URL não configurada')
-        return
-      }
-
+    const initializeChat = async () => {
       try {
+        // Validação de segurança
+        if (!webhookUrl) {
+          console.error('N8n Chat Widget: Webhook URL não configurada')
+          console.log('Variáveis de ambiente disponíveis:', Object.keys(process.env).filter(key => key.startsWith('REACT_APP_')))
+          return
+        }
+
+        // Importar dinamicamente para evitar erros de SSR
+        const { createChat } = await import('@n8n/chat')
+        await import('@n8n/chat/style.css')
+
+        // Verificar se o elemento DOM existe
+        const targetElement = document.getElementById('n8n-chat-widget')
+        if (!targetElement) {
+          console.error('Elemento DOM #n8n-chat-widget não encontrado')
+          return
+        }
+
         createChat({
           webhookUrl,
           target: '#n8n-chat-widget',
@@ -45,7 +55,6 @@ const N8nChatWidget = ({
           },
           theme: {
             primaryColor: 'hsl(25, 95%, 53%)'
-            // CSS movido para arquivo separado: N8nChatWidget.css
           }
         })
 
@@ -55,8 +64,8 @@ const N8nChatWidget = ({
       }
     }
 
-    // Pequeno delay para garantir que o DOM esteja pronto
-    const timer = setTimeout(initializeChat, 100)
+    // Aguardar DOM e CSS carregarem
+    const timer = setTimeout(initializeChat, 300)
 
     return () => {
       clearTimeout(timer)
