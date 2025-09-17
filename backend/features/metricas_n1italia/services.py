@@ -412,13 +412,18 @@ class N1ItaliaProcessor:
         # Log simples para debug
         logger.info(f"Processando {len(colunas_originais)} colunas: {colunas_originais}")
 
-        # Mapear cada campo obrigatório
-        for campo_padrao, variacoes in mapeamentos.items():
-            for coluna_original in colunas_originais:
-                # Normalizar coluna para comparação (remover espaços extras, minúsculas)
-                coluna_normalizada = ' '.join(coluna_original.lower().strip().split())
+        # Mapear cada coluna para seu campo correspondente
+        for coluna_original in colunas_originais:
+            # Normalizar coluna para comparação (remover espaços extras, minúsculas)
+            coluna_normalizada = ' '.join(coluna_original.lower().strip().split())
 
-                # Testar cada variação
+            # Testar contra cada campo obrigatório
+            for campo_padrao, variacoes in mapeamentos.items():
+                # Se esta coluna já foi mapeada, pular
+                if coluna_original in mapeamento_final:
+                    break
+
+                # Testar cada variação do campo
                 for variacao in variacoes:
                     variacao_normalizada = ' '.join(variacao.lower().strip().split())
 
@@ -427,10 +432,6 @@ class N1ItaliaProcessor:
                         mapeamento_final[coluna_original] = campo_padrao
                         logger.info(f"MAPEADO: '{coluna_original}' → '{campo_padrao}'")
                         break
-
-                # Se encontrou mapeamento para esta coluna, parar
-                if coluna_original in mapeamento_final:
-                    break
 
         logger.info(f"Mapeamento final: {mapeamento_final}")
         return mapeamento_final
