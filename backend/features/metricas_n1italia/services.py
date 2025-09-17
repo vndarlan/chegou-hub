@@ -408,37 +408,31 @@ class N1ItaliaProcessor:
         }
 
         mapeamento_final = {}
-        colunas_lower = [col.lower().strip() for col in colunas_originais]
 
-        logger.info(f"DEBUG: Colunas originais: {colunas_originais}")
-        logger.info(f"DEBUG: Colunas em minúsculo: {colunas_lower}")
+        # Log simples para debug
+        logger.info(f"Processando {len(colunas_originais)} colunas: {colunas_originais}")
 
+        # Mapear cada campo obrigatório
         for campo_padrao, variacoes in mapeamentos.items():
-            logger.info(f"DEBUG: Processando campo '{campo_padrao}' com variações: {variacoes}")
+            for coluna_original in colunas_originais:
+                # Normalizar coluna para comparação (remover espaços extras, minúsculas)
+                coluna_normalizada = ' '.join(coluna_original.lower().strip().split())
 
-            for i, coluna_original in enumerate(colunas_originais):
-                coluna_lower = coluna_original.lower().strip()
-                logger.info(f"DEBUG: Testando coluna original '{coluna_original}' (lower: '{coluna_lower}')")
-
-                # Buscar correspondência exata ou similar
+                # Testar cada variação
                 for variacao in variacoes:
-                    variacao_lower = variacao.lower()
-                    condicao1 = coluna_lower == variacao_lower
-                    condicao2 = variacao_lower in coluna_lower
-                    condicao3 = coluna_lower in variacao_lower
+                    variacao_normalizada = ' '.join(variacao.lower().strip().split())
 
-                    logger.info(f"DEBUG: Comparando '{coluna_lower}' com '{variacao_lower}': "
-                              f"igual={condicao1}, var_in_col={condicao2}, col_in_var={condicao3}")
-
-                    if (condicao1 or condicao2 or condicao3):
+                    # Comparação exata após normalização
+                    if coluna_normalizada == variacao_normalizada:
                         mapeamento_final[coluna_original] = campo_padrao
-                        logger.info(f"DEBUG: MATCH! '{coluna_original}' → '{campo_padrao}'")
+                        logger.info(f"MAPEADO: '{coluna_original}' → '{campo_padrao}'")
                         break
 
+                # Se encontrou mapeamento para esta coluna, parar
                 if coluna_original in mapeamento_final:
                     break
 
-        logger.info(f"DEBUG: Mapeamento final completo: {mapeamento_final}")
+        logger.info(f"Mapeamento final: {mapeamento_final}")
         return mapeamento_final
 
     def _converter_tipos_python(self, obj):
