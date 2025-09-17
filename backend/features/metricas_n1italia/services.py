@@ -392,16 +392,18 @@ class N1ItaliaProcessor:
             'order_number': [
                 'order_number', 'order', 'numero_pedido', 'numero do pedido',
                 'pedido', 'order_id', 'orderid', 'order id', 'nº pedido',
-                'numero', 'number', 'id', 'ref', 'referencia'
+                'numero', 'number', 'id', 'ref', 'referencia', 'order #',
+                'order#', '#order', 'order_num', 'order num'
             ],
             'status': [
                 'status', 'estado', 'situacao', 'situação', 'state',
-                'condition', 'order_status', 'pedido_status', 'entrega_status'
+                'condition', 'order_status', 'pedido_status', 'entrega_status',
+                'order status', 'shipping_status', 'shipping status'
             ],
             'product_name': [
                 'product_name', 'produto', 'product', 'nome_produto',
                 'nome do produto', 'item', 'descricao', 'description',
-                'produto_nome', 'nome', 'name'
+                'produto_nome', 'nome', 'name', 'product name'
             ]
         }
 
