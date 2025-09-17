@@ -78,7 +78,8 @@ function N1ItaliaPage() {
             const response = await axios.get('/metricas/n1italia/analise-n1italia/', {
                 headers: {
                     'X-CSRFToken': getCSRFToken()
-                }
+                },
+                withCredentials: true
             });
             setAnalisesSalvas(response.data);
         } catch (error) {
@@ -131,7 +132,8 @@ function N1ItaliaPage() {
                     headers: {
                         'Content-Type': 'multipart/form-data',
                         'X-CSRFToken': getCSRFToken()
-                    }
+                    },
+                    withCredentials: true
                 }
             );
 
@@ -151,7 +153,8 @@ function N1ItaliaPage() {
                     {
                         headers: {
                             'X-CSRFToken': getCSRFToken()
-                        }
+                        },
+                        withCredentials: true
                     }
                 );
 
@@ -199,7 +202,8 @@ function N1ItaliaPage() {
             }, {
                 headers: {
                     'X-CSRFToken': getCSRFToken()
-                }
+                },
+                withCredentials: true
             });
 
             if (response.data.id) {
@@ -230,7 +234,8 @@ function N1ItaliaPage() {
             await axios.delete(`/metricas/n1italia/analise-n1italia/${id}/`, {
                 headers: {
                     'X-CSRFToken': getCSRFToken()
-                }
+                },
+                withCredentials: true
             });
             showNotification('success', 'Análise deletada!');
             fetchAnalises();
