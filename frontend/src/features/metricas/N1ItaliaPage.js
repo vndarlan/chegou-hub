@@ -116,8 +116,13 @@ function N1ItaliaPage() {
         setProgressoAtual({ etapa: 'Fazendo upload...', porcentagem: 30 });
 
         try {
+            // Gerar nome automático se não houver
+            const nomeAutomatico = `N1 Itália ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+
             const formData = new FormData();
             formData.append('arquivo', arquivoSelecionado);
+            formData.append('nome_analise', nomeAutomatico);
+            formData.append('descricao', 'Análise de efetividade N1 Itália por upload de Excel');
 
             const uploadResponse = await axios.post(
                 '/metricas/n1italia/analise-n1italia/upload_excel/',
@@ -133,11 +138,15 @@ function N1ItaliaPage() {
             if (uploadResponse.data.status === 'success') {
                 setProgressoAtual({ etapa: 'Processando dados...', porcentagem: 70 });
 
-                // Processar dados
+                // Processar dados usando os dados retornados do upload
+                const dadosParaProcessamento = uploadResponse.data.dados_para_processamento;
+
                 const processResponse = await axios.post(
                     '/metricas/n1italia/analise-n1italia/processar/',
                     {
-                        arquivo_id: uploadResponse.data.arquivo_id
+                        nome_analise: dadosParaProcessamento.nome_analise,
+                        descricao: dadosParaProcessamento.descricao,
+                        dados_excel: dadosParaProcessamento.dados_excel
                     },
                     {
                         headers: {
