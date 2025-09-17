@@ -53,16 +53,19 @@ class AnaliseN1ItaliaViewSet(viewsets.ModelViewSet):
                         'message': 'Arquivo Excel está vazio ou não pôde ser lido'
                     }, status=status.HTTP_400_BAD_REQUEST)
 
-                # Verificar campos obrigatórios
+                # Verificar campos obrigatórios após mapeamento
                 primeiro_registro = dados_excel[0]
                 campos_obrigatorios = ['order_number', 'status']
+
+                # Os campos já foram mapeados pelo processador, então devem estar presentes
+                # Se não estiverem, significa que o mapeamento não conseguiu identificá-los
                 campos_faltando = [campo for campo in campos_obrigatorios if campo not in primeiro_registro]
 
                 if campos_faltando:
                     return Response({
                         'status': 'error',
-                        'message': f'Campos obrigatórios não encontrados no Excel: {", ".join(campos_faltando)}',
-                        'campos_necessarios': campos_obrigatorios,
+                        'message': f'Não foi possível identificar as colunas obrigatórias no Excel: {", ".join(campos_faltando)}',
+                        'detalhes': 'Verifique se o arquivo contém colunas com nomes similares a: "order_number" (ou "pedido", "numero"), "status" (ou "estado", "situação"), "product_name" (ou "produto", "nome")',
                         'campos_encontrados': list(primeiro_registro.keys())
                     }, status=status.HTTP_400_BAD_REQUEST)
 

@@ -328,13 +328,13 @@ class N1ItaliaProcessor:
 
     def processar_arquivo_excel(self, arquivo) -> List[Dict]:
         """
-        Processa arquivo Excel e extrai dados
+        Processa arquivo Excel e extrai dados com mapeamento flexível de colunas
 
         Args:
             arquivo: Arquivo Excel enviado
 
         Returns:
-            Lista de dicionários com dados extraídos
+            Lista de dicionários com dados extraídos e padronizados
         """
         try:
             logger.info(f"Processando arquivo Excel: {arquivo.name}")
@@ -342,8 +342,22 @@ class N1ItaliaProcessor:
             # Ler Excel
             df = pd.read_excel(arquivo)
 
+            # Mapeamento flexível de colunas
+            mapeamento_colunas = self._mapear_colunas(df.columns.tolist())
+
+            # Renomear colunas para padrão esperado
+            df_mapeado = df.rename(columns=mapeamento_colunas)
+
+            # Verificar se as colunas obrigatórias estão presentes após mapeamento
+            campos_obrigatorios = ['order_number', 'status']
+            campos_faltando = [campo for campo in campos_obrigatorios if campo not in df_mapeado.columns]
+
+            if campos_faltando:
+                colunas_disponiveis = list(df.columns)
+                raise ValueError(f"Campos obrigatórios não encontrados: {campos_faltando}. Colunas disponíveis: {colunas_disponiveis}")
+
             # Converter para lista de dicts
-            dados = df.to_dict('records')
+            dados = df_mapeado.to_dict('records')
 
             # Limpar valores NaN
             dados_limpos = []
@@ -356,12 +370,61 @@ class N1ItaliaProcessor:
                         registro_limpo[key] = value
                 dados_limpos.append(registro_limpo)
 
-            logger.info(f"Excel processado: {len(dados_limpos)} registros extraídos")
+            logger.info(f"Excel processado: {len(dados_limpos)} registros extraídos com colunas mapeadas")
             return dados_limpos
 
         except Exception as e:
             logger.error(f"Erro processando Excel: {e}")
             raise
+
+    def _mapear_colunas(self, colunas_originais: List[str]) -> Dict[str, str]:
+        """
+        Mapeia colunas do Excel para o padrão esperado
+
+        Args:
+            colunas_originais: Lista de nomes de colunas do Excel
+
+        Returns:
+            Dict mapeando nomes originais para nomes padronizados
+        """
+        # Possíveis variações de nomes para cada campo obrigatório
+        mapeamentos = {
+            'order_number': [
+                'order_number', 'order', 'numero_pedido', 'numero do pedido',
+                'pedido', 'order_id', 'orderid', 'order id', 'nº pedido',
+                'numero', 'number', 'id', 'ref', 'referencia'
+            ],
+            'status': [
+                'status', 'estado', 'situacao', 'situação', 'state',
+                'condition', 'order_status', 'pedido_status', 'entrega_status'
+            ],
+            'product_name': [
+                'product_name', 'produto', 'product', 'nome_produto',
+                'nome do produto', 'item', 'descricao', 'description',
+                'produto_nome', 'nome', 'name'
+            ]
+        }
+
+        mapeamento_final = {}
+        colunas_lower = [col.lower().strip() for col in colunas_originais]
+
+        for campo_padrao, variacoes in mapeamentos.items():
+            for i, coluna_original in enumerate(colunas_originais):
+                coluna_lower = coluna_original.lower().strip()
+
+                # Buscar correspondência exata ou similar
+                for variacao in variacoes:
+                    if (coluna_lower == variacao.lower() or
+                        variacao.lower() in coluna_lower or
+                        coluna_lower in variacao.lower()):
+                        mapeamento_final[coluna_original] = campo_padrao
+                        break
+
+                if coluna_original in mapeamento_final:
+                    break
+
+        logger.info(f"Mapeamento de colunas: {mapeamento_final}")
+        return mapeamento_final
 
     def _converter_tipos_python(self, obj):
         """
