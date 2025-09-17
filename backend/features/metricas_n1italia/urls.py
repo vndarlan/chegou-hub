@@ -8,5 +8,5 @@ router = DefaultRouter()
 router.register(r'analise-n1italia', AnaliseN1ItaliaViewSet, basename='analise-n1italia')
 
 urlpatterns = [
-    path('api/', include(router.urls)),
+    path('', include(router.urls)),
 ]
