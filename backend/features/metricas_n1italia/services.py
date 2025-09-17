@@ -398,12 +398,12 @@ class N1ItaliaProcessor:
             'status': [
                 'status', 'estado', 'situacao', 'situação', 'state',
                 'condition', 'order_status', 'pedido_status', 'entrega_status',
-                'order status', 'shipping_status', 'shipping status'
+                'order status', 'Order status', 'shipping_status', 'shipping status'
             ],
             'product_name': [
                 'product_name', 'produto', 'product', 'nome_produto',
                 'nome do produto', 'item', 'descricao', 'description',
-                'produto_nome', 'nome', 'name', 'product name'
+                'produto_nome', 'nome', 'name', 'product name', 'Product name'
             ]
         }
 
