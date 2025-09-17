@@ -564,20 +564,32 @@ class ProdutoSerializer(serializers.ModelSerializer):
         """Validar se todas as lojas existem e pertencem ao usuário"""
         if not value:
             return value
-        
+
         request = self.context.get('request')
         if not request:
             return value
-        
+
         # Verificar se todas as lojas existem e pertencem ao usuário
         lojas_validas = ShopifyConfig.objects.filter(
             id__in=value,
             user=request.user
         ).count()
-        
+
         if lojas_validas != len(value):
             raise serializers.ValidationError('Uma ou mais lojas são inválidas ou não pertencem ao usuário.')
-        
+
+        return value
+
+    def validate_skus_data(self, value):
+        """Validar SKUs únicos dentro do mesmo produto"""
+        if not value:
+            return value
+
+        # Verificar se há SKUs duplicados na mesma requisição
+        skus_list = [sku_data.get('sku') for sku_data in value if sku_data.get('sku')]
+        if len(skus_list) != len(set(skus_list)):
+            raise serializers.ValidationError('SKUs duplicados não são permitidos no mesmo produto.')
+
         return value
     
     def create(self, validated_data):
@@ -594,9 +606,16 @@ class ProdutoSerializer(serializers.ModelSerializer):
         # Criar produto
         produto = Produto.objects.create(**validated_data)
         
-        # Criar SKUs
+        # Criar SKUs - usar get_or_create para evitar problemas de integridade
         for sku_data in skus_data:
-            ProdutoSKU.objects.create(produto=produto, **sku_data)
+            ProdutoSKU.objects.get_or_create(
+                produto=produto,
+                sku=sku_data.get('sku'),
+                defaults={
+                    'descricao_variacao': sku_data.get('descricao_variacao', ''),
+                    'ativo': sku_data.get('ativo', True)
+                }
+            )
         
         # Associar lojas
         for loja_id in lojas_ids:

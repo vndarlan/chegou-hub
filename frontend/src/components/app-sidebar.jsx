@@ -202,6 +202,11 @@ export function AppSidebar({
           url: "/workspace/metricas/ecomhub",
           isActive: location.pathname === "/workspace/metricas/ecomhub",
         },
+        {
+          title: "N1 Itália",
+          url: "/workspace/metricas/n1italia",
+          isActive: location.pathname === "/workspace/metricas/n1italia",
+        },
       ],
     },
     {

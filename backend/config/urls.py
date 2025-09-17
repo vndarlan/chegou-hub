@@ -39,6 +39,7 @@ urlpatterns = [
     path('api/metricas/primecod/', include('features.metricas_primecod.urls')),
     path('api/metricas/ecomhub/', include('features.metricas_ecomhub.urls')),
     path('api/metricas/dropi/', include('features.metricas_dropi.urls')),
+    path('api/metricas/n1italia/', include('features.metricas_n1italia.urls')),
     
     # URLs do Sistema de Feedback
     path('api/feedback/', include('features.feedback.urls')),

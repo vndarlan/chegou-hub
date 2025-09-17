@@ -27,6 +27,7 @@ import OpenAIAnalytics from '../features/ia/OpenAIAnalytics';
 import PrimecodPage from '../features/metricas/PrimecodPage';
 import EcomhubPage from '../features/metricas/EcomhubPage';
 import DropiPage from '../features/metricas/DropiPage';
+import N1ItaliaPage from '../features/metricas/N1ItaliaPage';
 import EcomhubStatusPage from '../features/status/EcomhubStatusPage';
 import EngajamentoPage from '../features/engajamento/EngajamentoPage';
 import NoveltiesPage from '../features/novelties/NoveltiesPage';
@@ -48,6 +49,7 @@ const breadcrumbMap = {
   '/workspace/metricas/primecod': [{ label: 'Efetividade', href: '#' }, { label: 'PRIMECOD' }],
   '/workspace/metricas/ecomhub': [{ label: 'Efetividade', href: '#' }, { label: 'ECOMHUB' }],
   '/workspace/metricas/dropi': [{ label: 'Efetividade', href: '#' }, { label: 'Dropi' }],
+  '/workspace/metricas/n1italia': [{ label: 'Efetividade', href: '#' }, { label: 'N1 Itália' }],
   '/workspace/status/ecomhub': [{ label: 'Métricas', href: '#' }, { label: 'Status', href: '#' }, { label: 'Ecomhub' }],
   '/workspace/engajamento': [{ label: 'Operacional', href: '#' }, { label: 'Engajamento' }],
   '/workspace/novelties': [{ label: 'Operacional', href: '#' }, { label: 'Novelties' }],
@@ -157,6 +159,7 @@ function WorkspacePage({ setIsLoggedIn }) {
               <Route path="metricas/primecod" element={<PrimecodPage />} />
               <Route path="metricas/ecomhub" element={<EcomhubPage />} />
               <Route path="metricas/dropi" element={<DropiPage />} />
+              <Route path="metricas/n1italia" element={<N1ItaliaPage />} />
               <Route path="status/ecomhub" element={<EcomhubStatusPage />} />
               <Route path="engajamento" element={<EngajamentoPage />} />
               <Route path="novelties" element={<NoveltiesPage />} />

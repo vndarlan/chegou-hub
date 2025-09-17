@@ -274,23 +274,24 @@ class Produto(models.Model):
 
 class ProdutoSKU(models.Model):
     """Modelo para múltiplos SKUs por produto"""
-    
+
     # Relacionamentos
     produto = models.ForeignKey(Produto, on_delete=models.CASCADE, related_name='skus')
-    
+
     # Dados do SKU
-    sku = models.CharField(max_length=100, unique=True, help_text="SKU único")
+    sku = models.CharField(max_length=100, help_text="SKU único por produto")
     descricao_variacao = models.CharField(max_length=255, blank=True, verbose_name="Descrição da variação")
     ativo = models.BooleanField(default=True, verbose_name="SKU ativo")
-    
+
     # Metadados
     data_criacao = models.DateTimeField(auto_now_add=True)
     data_atualizacao = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         verbose_name = "SKU do Produto"
         verbose_name_plural = "SKUs dos Produtos"
         ordering = ['produto', 'sku']
+        unique_together = ['produto', 'sku']  # SKU único por produto, mas pode repetir entre produtos diferentes
         indexes = [
             models.Index(fields=['sku']),
             models.Index(fields=['produto', 'ativo']),

@@ -96,6 +96,7 @@ INSTALLED_APPS = [
     'features.metricas_primecod',
     'features.metricas_ecomhub',
     'features.metricas_dropi',
+    'features.metricas_n1italia.apps.MetricasN1ItaliaConfig',
     
     # Sistema de Feedback
     'features.feedback.apps.FeedbackConfig',
