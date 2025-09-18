@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import logging
 from typing import Dict, List, Any
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -235,19 +235,20 @@ class N1ItaliaProcessor:
             pct_a_caminho = round((em_transito / total * 100) if total > 0 else 0, 2)
             pct_devolvidos = round((devolucao / total * 100) if total > 0 else 0, 2)
 
-            item = {
-                'Produto': produto,
-                'Total_Pedidos': total,
-                'Entregues': entregues,  # Só Delivered
-                'Finalizados': dados['Finalizados'],  # Delivered + Return + Invalid + Out of stock + Deleted + Rejected + Duplicate
-                'Em_Transito': em_transito,  # To prepare + Waiting for carrier + Assigned to carrier + Shipped
-                'Devolucao': devolucao,  # Return
-                'Cancelados': dados['Cancelados'],  # Deleted + Rejected + Duplicate
-                '% A Caminho': f"{pct_a_caminho}%",
-                '% Devolvidos': f"{pct_devolvidos}%",
-                'Efetividade Parcial': f"{efetividade_parcial}%",
-                'Efetividade': f"{efetividade}%"
-            }
+            # Usar OrderedDict para manter ordem específica das colunas
+            item = OrderedDict([
+                ('Produto', produto),
+                ('Total_Pedidos', total),
+                ('Entregues', entregues),  # Só Delivered
+                ('Finalizados', dados['Finalizados']),  # Delivered + Return + Invalid + Out of stock + Deleted + Rejected + Duplicate
+                ('Em_Transito', em_transito),  # To prepare + Waiting for carrier + Assigned to carrier + Shipped
+                ('Devolucao', devolucao),  # Return
+                ('Cancelados', dados['Cancelados']),  # Deleted + Rejected + Duplicate
+                ('% A Caminho', f"{pct_a_caminho}%"),
+                ('% Devolvidos', f"{pct_devolvidos}%"),
+                ('Efetividade Parcial', f"{efetividade_parcial}%"),
+                ('Efetividade', f"{efetividade}%")
+            ])
             visualizacao.append(item)
 
         # Filtrar linha "Total" se existir
@@ -278,14 +279,15 @@ class N1ItaliaProcessor:
         ]
 
         for produto, dados in metricas.items():
-            item = {
-                'Produto': produto,
-                'Total_Pedidos': dados['Total']
-            }
+            # Usar OrderedDict para manter ordem específica das colunas na visualização total
+            item = OrderedDict([
+                ('Produto', produto),
+                ('Total_Pedidos', dados['Total'])
+            ])
 
-            # Adicionar colunas para cada status individual
+            # Adicionar colunas para cada status individual em ordem específica
             if 'status_detalhado' in dados:
-                # Inicializar todos os status esperados com 0
+                # Inicializar todos os status esperados com 0 em ordem
                 for status in status_esperados:
                     status_key = status.replace(' ', '_').replace('-', '_')
                     item[status_key] = 0
@@ -294,7 +296,8 @@ class N1ItaliaProcessor:
                 for status, count in dados['status_detalhado'].items():
                     if status is not None:
                         status_limpo = str(status).replace(' ', '_').replace('-', '_')
-                        item[status_limpo] = count
+                        if status_limpo in item:
+                            item[status_limpo] = count
                     else:
                         item['Status_Nulo'] = count
 

@@ -345,7 +345,7 @@ function N1ItaliaPage() {
     };
 
     const detectarKits = (nomeProduto) => {
-        if (!nomeProduto) return { isKit: false, icon: '🎁', display: nomeProduto };
+        if (!nomeProduto) return { isKit: false, icon: '🎁', display: nomeProduto, produtos: [] };
 
         // Limpar nome do produto removendo "Kit (" e ")" se existir
         let nomeTexto = nomeProduto;
@@ -357,17 +357,22 @@ function N1ItaliaPage() {
         const hasMultipleProducts = nomeTexto.includes(',') || nomeTexto.includes(' e ') || nomeTexto.includes(' + ');
 
         if (hasMultipleProducts) {
+            // Separar produtos por vírgula e limpar espaços
+            const produtos = nomeTexto.split(',').map(p => p.trim()).filter(p => p.length > 0);
+
             return {
                 isKit: true,
                 icon: '📦',
-                display: nomeTexto
+                display: nomeTexto,
+                produtos: produtos
             };
         }
 
         return {
             isKit: false,
             icon: '🎁',
-            display: nomeTexto
+            display: nomeTexto,
+            produtos: [nomeTexto]
         };
     };
 
@@ -616,7 +621,52 @@ function N1ItaliaPage() {
         // Filtrar linha "Total" se existir
         const dadosFiltrados = dados.filter(item => item.Produto !== 'Total');
 
-        let colunas = Object.keys(dadosFiltrados[0] || {});
+        // Definir ordem específica das colunas
+        const ordemColunasOtimizada = [
+            'Produto',
+            'Total_Pedidos',
+            'Entregues',
+            'Finalizados',
+            'Em_Transito',
+            'Devolucao',
+            'Cancelados',
+            '% A Caminho',
+            '% Devolvidos',
+            'Efetividade Parcial',
+            'Efetividade'
+        ];
+
+        const ordemColunasTotal = [
+            'Produto',
+            'Total_Pedidos',
+            'Unprocessed',
+            'To_prepare',
+            'Waiting_for_carrier',
+            'Assigned_to_carrier',
+            'Shipped',
+            'Delivered',
+            'Return',
+            'Invalid',
+            'Out_of_stock',
+            'Duplicate',
+            'Lead',
+            'Deleted',
+            'Rejected'
+        ];
+
+        // Obter colunas disponíveis nos dados
+        const colunasDisponiveis = Object.keys(dadosFiltrados[0] || {});
+
+        // Usar ordem específica baseada no tipo de visualização
+        const ordemEsperada = tipoVisualizacao === 'otimizada' ? ordemColunasOtimizada : ordemColunasTotal;
+
+        // Filtrar apenas colunas que existem nos dados e manter ordem
+        let colunas = ordemEsperada.filter(col => colunasDisponiveis.includes(col));
+
+        // Adicionar colunas extras não previstas (caso existam)
+        const colunasExtras = colunasDisponiveis.filter(col => !ordemEsperada.includes(col));
+        colunas = [...colunas, ...colunasExtras];
+
         const dadosOrdenados = sortData(dadosFiltrados, sortBy, sortOrder);
 
         const colunasEssenciais = ['Produto', 'Total_Pedidos', 'Entregues', 'Efetividade'];
@@ -665,7 +715,7 @@ function N1ItaliaPage() {
                                         let classesHeader = 'whitespace-nowrap px-2 py-2 text-xs text-muted-foreground';
 
                                         if (isProduto) {
-                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border min-w-[350px]';
+                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border min-w-[400px] max-w-[400px]';
                                         }
 
                                         return (
@@ -709,7 +759,7 @@ function N1ItaliaPage() {
                                             }
 
                                             if (isProduto) {
-                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border min-w-[350px]';
+                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border min-w-[400px] max-w-[400px]';
                                             }
 
                                             return (
@@ -718,14 +768,29 @@ function N1ItaliaPage() {
                                                     className={classesCelula}
                                                 >
                                                     {col === 'Produto' ? (
-                                                        <div className="flex items-start gap-2 min-w-[300px] max-w-[400px]">
+                                                        <div className="flex items-start gap-2 w-full max-w-[380px]">
                                                             {(() => {
                                                                 const kitInfo = detectarKits(row[col]);
                                                                 return (
                                                                     <>
                                                                         <span className="text-lg mt-0.5 flex-shrink-0">{kitInfo.icon}</span>
-                                                                        <div className="whitespace-normal break-words text-sm leading-tight">
-                                                                            {kitInfo.display}
+                                                                        <div className="flex-1 min-w-0">
+                                                                            {kitInfo.isKit ? (
+                                                                                <div className="space-y-1">
+                                                                                    {kitInfo.produtos.map((produto, index) => (
+                                                                                        <div
+                                                                                            key={index}
+                                                                                            className="text-xs leading-tight break-words"
+                                                                                        >
+                                                                                            • {produto}
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            ) : (
+                                                                                <div className="text-sm leading-tight break-words">
+                                                                                    {kitInfo.display}
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                         {kitInfo.isKit && <Badge variant="secondary" className="text-xs flex-shrink-0 mt-0.5">Kit</Badge>}
                                                                     </>
