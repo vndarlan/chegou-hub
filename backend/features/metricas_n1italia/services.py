@@ -11,14 +11,14 @@ logger = logging.getLogger(__name__)
 class N1ItaliaProcessor:
     """Processador principal para métricas N1 Itália"""
 
-    # Mapeamento de status N1 para categorias (baseado nos status reais do arquivo)
+    # Mapeamento de status N1 para categorias (suporte completo a todos os status possíveis)
     STATUS_MAPPING = {
         'entregues': ['Delivered'],
-        'finalizados': ['Delivered', 'Return', 'Out of stock'],
-        'transito': ['Shipped', 'Waiting for carrier', 'Unprocessed'],
-        'problemas': ['Out of stock', 'Unprocessed'],
+        'finalizados': ['Delivered', 'Return', 'Invalid', 'Out of stock', 'Deleted', 'Rejected', 'Duplicate'],
+        'transito': ['To prepare', 'Waiting for carrier', 'Assigned to carrier', 'Shipped', 'Unprocessed'],
+        'problemas': ['Invalid', 'Out of stock', 'Rejected', 'Unprocessed'],
         'devolucao': ['Return'],
-        'cancelados': []  # Não há status de cancelamento no arquivo atual
+        'cancelados': ['Deleted', 'Rejected', 'Duplicate']
     }
 
     def __init__(self):
@@ -166,119 +166,40 @@ class N1ItaliaProcessor:
             DataFrame com kits processados e agrupados por similaridade
         """
         try:
-            logger.info("Detectando kits com agrupamento inteligente...")
+            logger.info("Detectando kits (método simplificado)...")
 
             # Agrupar por order_number
             grouped = df.groupby('order_number')
 
-            # Primeiro passo: extrair todos os kits individuais
-            kits_individuais = []
-            produtos_individuais = []
+            registros_processados = []
 
             for order_num, group in grouped:
                 if len(group) > 1:
-                    # É um kit
+                    # É um kit - usar método original simplificado
                     produtos = [str(p).strip() for p in group['product_name'].tolist() if pd.notna(p)]
                     produtos = [p for p in produtos if p]  # Remover strings vazias
 
                     if produtos:  # Só processar se há produtos válidos
+                        kit_name = f"Kit ({', '.join(produtos)})"
+
+                        # Pegar dados do primeiro registro
                         registro_kit = group.iloc[0].copy()
-                        registro_kit['produtos_originais'] = produtos
-                        registro_kit['order_original'] = order_num
-                        kits_individuais.append(registro_kit)
+                        registro_kit['product_name'] = kit_name
+                        registro_kit['is_kit'] = True
+                        registro_kit['kit_produtos'] = produtos
+
+                        registros_processados.append(registro_kit)
                 else:
                     # Produto individual
                     registro = group.iloc[0].copy()
                     registro['is_kit'] = False
                     registro['kit_produtos'] = []
-                    produtos_individuais.append(registro)
-
-            # Segundo passo: agrupar kits similares
-            registros_processados = []
-            kits_agrupados = {}  # {nome_kit_principal: [lista_de_registros]}
-            threshold_similaridade = 0.5  # 50% de similaridade mínima (mais flexível)
-
-            for kit in kits_individuais:
-                produtos_kit = kit['produtos_originais']
-                kit_agrupado = False
-
-                # Verificar se este kit é similar a algum já agrupado
-                for nome_kit_principal, grupo_kits in kits_agrupados.items():
-                    try:
-                        # Comparar com o primeiro kit do grupo
-                        produtos_referencia = grupo_kits[0]['produtos_originais']
-                        similaridade = self._calcular_similaridade_kits(produtos_kit, produtos_referencia)
-
-                        if similaridade >= threshold_similaridade:
-                            # Kit similar encontrado, adicionar ao grupo
-                            grupo_kits.append(kit)
-                            kit_agrupado = True
-                            logger.info(f"Kit agrupado com similaridade {similaridade:.2f}")
-                            break
-                    except Exception as e:
-                        logger.warning(f"Erro comparando kits: {e}")
-                        continue
-
-                if not kit_agrupado:
-                    # Novo kit, criar novo grupo
-                    try:
-                        nome_kit_principal = self._identificar_kit_principal(produtos_kit)
-                        kits_agrupados[nome_kit_principal] = [kit]
-                    except Exception as e:
-                        logger.warning(f"Erro criando kit principal: {e}")
-                        # Fallback para método original
-                        nome_kit_original = f"Kit ({', '.join(produtos_kit)})"
-                        kits_agrupados[nome_kit_original] = [kit]
-
-            # Terceiro passo: processar kits agrupados
-            for nome_kit_principal, grupo_kits in kits_agrupados.items():
-                try:
-                    # Usar dados do primeiro kit como base
-                    registro_base = grupo_kits[0].copy()
-
-                    # Coletar todos os produtos únicos do grupo
-                    todos_produtos = []
-                    for kit in grupo_kits:
-                        todos_produtos.extend(kit['produtos_originais'])
-
-                    produtos_unicos = list(dict.fromkeys(todos_produtos))  # Remove duplicatas mantendo ordem
-
-                    registro_base['product_name'] = nome_kit_principal
-                    registro_base['is_kit'] = True
-                    registro_base['kit_produtos'] = produtos_unicos
-
-                    # Adicionar contador de pedidos agrupados com fallback
-                    try:
-                        registro_base['total_pedidos_agrupados'] = len(grupo_kits)
-                    except:
-                        pass
-
-                    # Remover colunas temporárias com fallback
-                    try:
-                        if 'produtos_originais' in registro_base:
-                            del registro_base['produtos_originais']
-                        if 'order_original' in registro_base:
-                            del registro_base['order_original']
-                    except:
-                        pass
-
-                    registros_processados.append(registro_base)
-                except Exception as e:
-                    logger.warning(f"Erro processando kit agrupado: {e}")
-                    # Fallback: usar primeiro kit do grupo sem modificações
-                    primeiro_kit = grupo_kits[0].copy()
-                    primeiro_kit['product_name'] = f"Kit ({', '.join(primeiro_kit.get('produtos_originais', []))})"
-                    primeiro_kit['is_kit'] = True
-                    primeiro_kit['kit_produtos'] = primeiro_kit.get('produtos_originais', [])
-                    registros_processados.append(primeiro_kit)
-
-            # Adicionar produtos individuais
-            registros_processados.extend(produtos_individuais)
+                    registros_processados.append(registro)
 
             df_processado = pd.DataFrame(registros_processados)
 
             kits_detectados = df_processado['is_kit'].sum() if 'is_kit' in df_processado.columns else 0
-            logger.info(f"Kits detectados e agrupados: {kits_detectados} (de {len(kits_individuais)} kits originais)")
+            logger.info(f"Kits detectados: {kits_detectados}")
 
             return df_processado
 
@@ -355,7 +276,11 @@ class N1ItaliaProcessor:
                 produto = row['product_name']
                 status = row['status']
 
-                dados_agrupados[produto][status] += 1
+                # Tratar status None/NaN adequadamente
+                if status is not None and pd.notna(status):
+                    dados_agrupados[produto][str(status)] += 1
+                else:
+                    dados_agrupados[produto]['Status_Nulo'] += 1
 
             logger.info(f"Produtos agrupados: {len(dados_agrupados)}")
             return dict(dados_agrupados)

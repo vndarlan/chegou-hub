@@ -29,8 +29,8 @@ import { getCSRFToken } from '../../utils/csrf';
 const STATUS_N1_MAPPING = {
     entregues: ['Delivered'],
     finalizados: ['Delivered', 'Return', 'Invalid', 'Out of stock', 'Deleted', 'Rejected', 'Duplicate'],
-    transito: ['To prepare', 'Waiting for carrier', 'Assigned to carrier', 'Shipped'],
-    problemas: ['Invalid', 'Out of stock', 'Rejected'],
+    transito: ['To prepare', 'Waiting for carrier', 'Assigned to carrier', 'Shipped', 'Unprocessed'],
+    problemas: ['Invalid', 'Out of stock', 'Rejected', 'Unprocessed'],
     devolucao: ['Return'],
     cancelados: ['Deleted', 'Rejected', 'Duplicate']
 };
