@@ -76,7 +76,10 @@
       "Bash(git reset:*)",
       "Bash(git pull:*)",
       "Bash(touch:*)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(git checkout:*)",
+      "Bash(railway --version)",
+      "Bash(railway link:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",
