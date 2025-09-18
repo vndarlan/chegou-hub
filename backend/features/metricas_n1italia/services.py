@@ -80,47 +80,178 @@ class N1ItaliaProcessor:
             logger.error(f"Erro no processamento N1 Itália: {e}")
             raise
 
+    def _calcular_similaridade_kits(self, produtos1: List[str], produtos2: List[str]) -> float:
+        """
+        Calcula similaridade entre dois kits baseada nos produtos em comum
+
+        Args:
+            produtos1: Lista de produtos do primeiro kit
+            produtos2: Lista de produtos do segundo kit
+
+        Returns:
+            Float entre 0 e 1 representando a similaridade
+        """
+        if not produtos1 or not produtos2:
+            return 0.0
+
+        # Normalizar nomes de produtos (remover espaços extras, converter para minúsculas)
+        def normalizar_produto(produto):
+            return produto.strip().lower() if produto else ""
+
+        set1 = set(normalizar_produto(p) for p in produtos1)
+        set2 = set(normalizar_produto(p) for p in produtos2)
+
+        # Remover produtos que são comumente variáveis (caixas, embalagens)
+        produtos_variaveis = {'carton box', 'gift box', 'box', 'caixa', 'embalagem'}
+        set1 = set1 - produtos_variaveis
+        set2 = set2 - produtos_variaveis
+
+        if not set1 or not set2:
+            return 0.0
+
+        # Calcular similaridade usando Jaccard Index
+        intersecao = set1.intersection(set2)
+        uniao = set1.union(set2)
+
+        return len(intersecao) / len(uniao) if uniao else 0.0
+
+    def _identificar_kit_principal(self, produtos: List[str]) -> str:
+        """
+        Identifica e gera nome do kit principal baseado nos produtos mais importantes
+
+        Args:
+            produtos: Lista de produtos do kit
+
+        Returns:
+            Nome normalizado do kit
+        """
+        if not produtos:
+            return "Kit Vazio"
+
+        # Filtrar produtos que não são caixas/embalagens
+        produtos_principais = []
+        for produto in produtos:
+            produto_norm = produto.strip().lower()
+            if not any(termo in produto_norm for termo in ['carton box', 'gift box', 'box', 'caixa', 'embalagem']):
+                produtos_principais.append(produto.strip())
+
+        # Se só sobrou caixa, usar todos os produtos
+        if not produtos_principais:
+            produtos_principais = [p.strip() for p in produtos]
+
+        # Ordenar produtos para consistência
+        produtos_principais.sort()
+
+        # Pegar os primeiros 2 produtos principais como "assinatura" do kit
+        if len(produtos_principais) >= 2:
+            assinatura = produtos_principais[:2]
+            extras = len(produtos_principais) - 2
+            if extras > 0:
+                return f"Kit: {', '.join(assinatura)} (+{extras} variações)"
+            else:
+                return f"Kit: {', '.join(assinatura)}"
+        elif len(produtos_principais) == 1:
+            return f"Kit: {produtos_principais[0]} (produto único)"
+        else:
+            return f"Kit: {', '.join(produtos)}"
+
     def detectar_kits(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Detecta kits (pedidos com mesmo order_number) e os consolida
+        Detecta kits (pedidos com mesmo order_number) e os consolida com agrupamento inteligente
 
         Args:
             df: DataFrame com dados originais
 
         Returns:
-            DataFrame com kits processados
+            DataFrame com kits processados e agrupados por similaridade
         """
         try:
-            logger.info("Detectando kits...")
+            logger.info("Detectando kits com agrupamento inteligente...")
 
             # Agrupar por order_number
             grouped = df.groupby('order_number')
 
-            registros_processados = []
+            # Primeiro passo: extrair todos os kits individuais
+            kits_individuais = []
+            produtos_individuais = []
 
             for order_num, group in grouped:
                 if len(group) > 1:
-                    # É um kit - consolidar produtos
-                    produtos = group['product_name'].tolist()
-                    kit_name = f"Kit ({', '.join(produtos)})"
+                    # É um kit
+                    produtos = [str(p).strip() for p in group['product_name'].tolist() if pd.notna(p)]
+                    produtos = [p for p in produtos if p]  # Remover strings vazias
 
-                    # Pegar dados do primeiro registro (assumindo que pedidos de kit têm mesmo status)
-                    registro_kit = group.iloc[0].copy()
-                    registro_kit['product_name'] = kit_name
-                    registro_kit['is_kit'] = True
-                    registro_kit['kit_produtos'] = produtos
-
-                    registros_processados.append(registro_kit)
+                    if produtos:  # Só processar se há produtos válidos
+                        registro_kit = group.iloc[0].copy()
+                        registro_kit['produtos_originais'] = produtos
+                        registro_kit['order_original'] = order_num
+                        kits_individuais.append(registro_kit)
                 else:
                     # Produto individual
                     registro = group.iloc[0].copy()
                     registro['is_kit'] = False
                     registro['kit_produtos'] = []
+                    produtos_individuais.append(registro)
 
-                    registros_processados.append(registro)
+            # Segundo passo: agrupar kits similares
+            registros_processados = []
+            kits_agrupados = {}  # {nome_kit_principal: [lista_de_registros]}
+            threshold_similaridade = 0.5  # 50% de similaridade mínima (mais flexível)
+
+            for kit in kits_individuais:
+                produtos_kit = kit['produtos_originais']
+                kit_agrupado = False
+
+                # Verificar se este kit é similar a algum já agrupado
+                for nome_kit_principal, grupo_kits in kits_agrupados.items():
+                    # Comparar com o primeiro kit do grupo
+                    produtos_referencia = grupo_kits[0]['produtos_originais']
+                    similaridade = self._calcular_similaridade_kits(produtos_kit, produtos_referencia)
+
+                    if similaridade >= threshold_similaridade:
+                        # Kit similar encontrado, adicionar ao grupo
+                        grupo_kits.append(kit)
+                        kit_agrupado = True
+                        logger.info(f"Kit agrupado com similaridade {similaridade:.2f}: {produtos_kit} -> {nome_kit_principal}")
+                        break
+
+                if not kit_agrupado:
+                    # Novo kit, criar novo grupo
+                    nome_kit_principal = self._identificar_kit_principal(produtos_kit)
+                    kits_agrupados[nome_kit_principal] = [kit]
+
+            # Terceiro passo: processar kits agrupados
+            for nome_kit_principal, grupo_kits in kits_agrupados.items():
+                # Usar dados do primeiro kit como base
+                registro_base = grupo_kits[0].copy()
+
+                # Coletar todos os produtos únicos do grupo
+                todos_produtos = []
+                for kit in grupo_kits:
+                    todos_produtos.extend(kit['produtos_originais'])
+
+                produtos_unicos = list(dict.fromkeys(todos_produtos))  # Remove duplicatas mantendo ordem
+
+                registro_base['product_name'] = nome_kit_principal
+                registro_base['is_kit'] = True
+                registro_base['kit_produtos'] = produtos_unicos
+                registro_base['total_pedidos_agrupados'] = len(grupo_kits)
+
+                # Remover colunas temporárias
+                if 'produtos_originais' in registro_base:
+                    del registro_base['produtos_originais']
+                if 'order_original' in registro_base:
+                    del registro_base['order_original']
+
+                registros_processados.append(registro_base)
+
+            # Adicionar produtos individuais
+            registros_processados.extend(produtos_individuais)
 
             df_processado = pd.DataFrame(registros_processados)
-            logger.info(f"Kits detectados: {df_processado['is_kit'].sum()}")
+
+            kits_detectados = df_processado['is_kit'].sum() if 'is_kit' in df_processado.columns else 0
+            logger.info(f"Kits detectados e agrupados: {kits_detectados} (de {len(kits_individuais)} kits originais)")
 
             return df_processado
 
