@@ -212,27 +212,42 @@ class N1ItaliaProcessor:
 
     def gerar_visualizacao_otimizada(self, metricas: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Gera visualização otimizada (campos agrupados conforme instruções)
+        Gera visualização otimizada (campos agrupados + métricas calculadas conforme instruções)
 
         Args:
             metricas: Métricas calculadas
 
         Returns:
-            Lista com visualização otimizada (campos agrupados)
+            Lista com visualização otimizada (campos agrupados + métricas)
         """
         visualizacao = []
 
         for produto, dados in metricas.items():
+            total = dados['Total']
+            entregues = dados['Entregues']
+            problemas = dados['Problemas']
+            em_transito = dados['Em Trânsito']
+            devolucao = dados['Devolução']
+
+            # Calcular métricas conforme instruções
+            efetividade = round((entregues / total * 100) if total > 0 else 0, 2)
+            taxa_problemas = round((problemas / total * 100) if total > 0 else 0, 2)
+            taxa_em_transito = round((em_transito / total * 100) if total > 0 else 0, 2)
+            taxa_devolucao = round((devolucao / total * 100) if total > 0 else 0, 2)
+
             item = {
                 'Produto': produto,
-                'Total_Pedidos': dados['Total'],
-                'Entregues': dados['Entregues'],  # Só Delivered
+                'Total_Pedidos': total,
+                'Entregues': entregues,  # Só Delivered
                 'Finalizados': dados['Finalizados'],  # Delivered + Return + Invalid + Out of stock + Deleted + Rejected + Duplicate
-                'Em_Transito': dados['Em Trânsito'],  # To prepare + Waiting for carrier + Assigned to carrier + Shipped
-                'Problemas': dados['Problemas'],  # Invalid + Out of stock + Rejected
-                'Devolucao': dados['Devolução'],  # Return
+                'Em_Transito': em_transito,  # To prepare + Waiting for carrier + Assigned to carrier + Shipped
+                'Problemas': problemas,  # Invalid + Out of stock + Rejected
+                'Devolucao': devolucao,  # Return
                 'Cancelados': dados['Cancelados'],  # Deleted + Rejected + Duplicate
-                'Efetividade': f"{dados['Efetividade Total (%)']}%"
+                'Efetividade': f"{efetividade}%",
+                'Taxa_Problemas': f"{taxa_problemas}%",
+                'Taxa_Em_Transito': f"{taxa_em_transito}%",
+                'Taxa_Devolucao': f"{taxa_devolucao}%"
             }
             visualizacao.append(item)
 
@@ -263,8 +278,7 @@ class N1ItaliaProcessor:
         for produto, dados in metricas.items():
             item = {
                 'Produto': produto,
-                'Total_Pedidos': dados['Total'],
-                'Efetividade': f"{dados['Efetividade Total (%)']}%"
+                'Total_Pedidos': dados['Total']
             }
 
             # Adicionar colunas para cada status individual
