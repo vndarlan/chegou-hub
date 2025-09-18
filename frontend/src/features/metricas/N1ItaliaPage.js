@@ -428,10 +428,10 @@ function N1ItaliaPage() {
 
             <CardContent>
                 <div className="space-y-4">
-                    {/* Área de drag & drop */}
+                    {/* Área de drag & drop - MINIMALISTA */}
                     <div
                         className={`
-                            border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer
+                            border border-dashed rounded p-2 text-center transition-colors cursor-pointer text-xs
                             ${dragActive
                                 ? 'border-primary bg-primary/5'
                                 : 'border-border bg-background hover:bg-accent/50'
@@ -453,26 +453,20 @@ function N1ItaliaPage() {
                             disabled={loadingUpload}
                         />
 
-                        <div className="space-y-2">
+                        <div className="flex items-center gap-2 justify-center">
                             {arquivoSelecionado ? (
                                 <>
-                                    <FileSpreadsheet className="h-8 w-8 text-green-500 mx-auto" />
-                                    <p className="text-green-600 font-medium text-sm">
+                                    <FileSpreadsheet className="h-4 w-4 text-green-500" />
+                                    <span className="text-green-600 font-medium text-xs truncate max-w-[200px]">
                                         {arquivoSelecionado.name}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {(arquivoSelecionado.size / 1024 / 1024).toFixed(2)} MB
-                                    </p>
+                                    </span>
                                 </>
                             ) : (
                                 <>
-                                    <FileSpreadsheet className="h-8 w-8 text-muted-foreground mx-auto" />
-                                    <p className="text-foreground font-medium text-sm">
-                                        Arraste um arquivo Excel aqui ou clique para selecionar
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        Formatos: .xlsx, .xls (máx. 10MB)
-                                    </p>
+                                    <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-foreground text-xs">
+                                        Clique ou arraste Excel aqui
+                                    </span>
                                 </>
                             )}
                         </div>

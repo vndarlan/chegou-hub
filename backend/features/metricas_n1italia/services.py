@@ -210,75 +210,82 @@ class N1ItaliaProcessor:
             logger.error(f"Erro calculando métricas: {e}")
             raise
 
-    def gerar_visualizacao_total(self, metricas: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def gerar_visualizacao_otimizada(self, metricas: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Gera visualização completa com TODOS os status individuais detalhados
+        Gera visualização otimizada (campos agrupados conforme instruções)
 
         Args:
             metricas: Métricas calculadas
 
         Returns:
-            Lista com visualização total (todos os status)
+            Lista com visualização otimizada (campos agrupados)
         """
         visualizacao = []
 
         for produto, dados in metricas.items():
-            # Incluir todos os status individuais da análise
             item = {
                 'Produto': produto,
                 'Total_Pedidos': dados['Total'],
-                'Entregues': dados['Entregues'],
-                'Finalizados': dados['Finalizados'],
-                'Em_Transito': dados['Em Trânsito'],
-                'Problemas': dados['Problemas'],
-                'Devolucao': dados['Devolução'],
-                'Cancelados': dados['Cancelados'],
-                'Efetividade': f"{dados['Efetividade Total (%)']}%",
+                'Entregues': dados['Entregues'],  # Só Delivered
+                'Finalizados': dados['Finalizados'],  # Delivered + Return + Invalid + Out of stock + Deleted + Rejected + Duplicate
+                'Em_Transito': dados['Em Trânsito'],  # To prepare + Waiting for carrier + Assigned to carrier + Shipped
+                'Problemas': dados['Problemas'],  # Invalid + Out of stock + Rejected
+                'Devolucao': dados['Devolução'],  # Return
+                'Cancelados': dados['Cancelados'],  # Deleted + Rejected + Duplicate
+                'Efetividade': f"{dados['Efetividade Total (%)']}%"
+            }
+            visualizacao.append(item)
+
+        # Ordenar por efetividade total (maior primeiro)
+        visualizacao.sort(key=lambda x: float(x['Efetividade'].replace('%', '')), reverse=True)
+
+        return visualizacao
+
+    def gerar_visualizacao_total(self, metricas: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Gera visualização total (colunas individuais para cada status)
+
+        Args:
+            metricas: Métricas calculadas
+
+        Returns:
+            Lista com visualização total (todos os status individuais)
+        """
+        visualizacao = []
+
+        # Status individuais esperados conforme instruções
+        status_esperados = [
+            'Unprocessed', 'To prepare', 'Waiting for carrier', 'Assigned to carrier',
+            'Shipped', 'Delivered', 'Return', 'Invalid', 'Out of stock',
+            'Duplicate', 'Lead', 'Deleted', 'Rejected'
+        ]
+
+        for produto, dados in metricas.items():
+            item = {
+                'Produto': produto,
+                'Total_Pedidos': dados['Total'],
+                'Efetividade': f"{dados['Efetividade Total (%)']}%"
             }
 
-            # Adicionar todos os status detalhados individuais se disponíveis
+            # Adicionar colunas para cada status individual
             if 'status_detalhado' in dados:
+                # Inicializar todos os status esperados com 0
+                for status in status_esperados:
+                    status_key = status.replace(' ', '_').replace('-', '_')
+                    item[status_key] = 0
+
+                # Preencher com os dados reais
                 for status, count in dados['status_detalhado'].items():
-                    # Verificar se status não é None antes de fazer replace
                     if status is not None:
-                        # Limpar nome do status para usar como coluna
                         status_limpo = str(status).replace(' ', '_').replace('-', '_')
                         item[status_limpo] = count
                     else:
-                        # Se status for None, usar nome padrão
                         item['Status_Nulo'] = count
 
             visualizacao.append(item)
 
         # Ordenar por total (maior primeiro)
         visualizacao.sort(key=lambda x: x['Total_Pedidos'], reverse=True)
-
-        return visualizacao
-
-    def gerar_visualizacao_otimizada(self, metricas: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        Gera visualização otimizada (apenas campos principais resumidos)
-
-        Args:
-            metricas: Métricas calculadas
-
-        Returns:
-            Lista com visualização otimizada (resumida)
-        """
-        visualizacao = []
-
-        for produto, dados in metricas.items():
-            efetividade_valor = dados['Efetividade Total (%)']
-            item = {
-                'Produto': produto,
-                'Total_Pedidos': dados['Total'],
-                'Entregues': dados['Entregues'],
-                'Efetividade': f"{efetividade_valor}%"
-            }
-            visualizacao.append(item)
-
-        # Ordenar por efetividade total (maior primeiro)
-        visualizacao.sort(key=lambda x: float(x['Efetividade'].replace('%', '')), reverse=True)
 
         return visualizacao
 
