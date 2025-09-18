@@ -715,7 +715,7 @@ function N1ItaliaPage() {
                                         let classesHeader = 'whitespace-nowrap px-2 py-2 text-xs text-muted-foreground';
 
                                         if (isProduto) {
-                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border min-w-[400px] max-w-[400px]';
+                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border min-w-[500px] max-w-[500px]';
                                         }
 
                                         return (
@@ -759,7 +759,7 @@ function N1ItaliaPage() {
                                             }
 
                                             if (isProduto) {
-                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border min-w-[400px] max-w-[400px]';
+                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border min-w-[500px] max-w-[500px]';
                                             }
 
                                             return (
@@ -768,31 +768,18 @@ function N1ItaliaPage() {
                                                     className={classesCelula}
                                                 >
                                                     {col === 'Produto' ? (
-                                                        <div className="flex items-start gap-2 w-full max-w-[380px]">
+                                                        <div className="flex items-center gap-2 w-full max-w-[480px]">
                                                             {(() => {
                                                                 const kitInfo = detectarKits(row[col]);
                                                                 return (
                                                                     <>
-                                                                        <span className="text-lg mt-0.5 flex-shrink-0">{kitInfo.icon}</span>
+                                                                        <span className="text-lg flex-shrink-0">{kitInfo.icon}</span>
                                                                         <div className="flex-1 min-w-0">
-                                                                            {kitInfo.isKit ? (
-                                                                                <div className="space-y-1">
-                                                                                    {kitInfo.produtos.map((produto, index) => (
-                                                                                        <div
-                                                                                            key={index}
-                                                                                            className="text-xs leading-tight break-words"
-                                                                                        >
-                                                                                            • {produto}
-                                                                                        </div>
-                                                                                    ))}
-                                                                                </div>
-                                                                            ) : (
-                                                                                <div className="text-sm leading-tight break-words">
-                                                                                    {kitInfo.display}
-                                                                                </div>
-                                                                            )}
+                                                                            <div className="text-sm leading-relaxed break-words">
+                                                                                {kitInfo.display}
+                                                                            </div>
                                                                         </div>
-                                                                        {kitInfo.isKit && <Badge variant="secondary" className="text-xs flex-shrink-0 mt-0.5">Kit</Badge>}
+                                                                        {kitInfo.isKit && <Badge variant="secondary" className="text-xs flex-shrink-0">Kit</Badge>}
                                                                     </>
                                                                 );
                                                             })()}
