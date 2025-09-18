@@ -715,7 +715,7 @@ function N1ItaliaPage() {
                                         let classesHeader = 'whitespace-nowrap px-2 py-2 text-xs text-muted-foreground';
 
                                         if (isProduto) {
-                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border min-w-[500px] max-w-[500px]';
+                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border min-w-[600px] max-w-[600px]';
                                         }
 
                                         return (
@@ -759,7 +759,7 @@ function N1ItaliaPage() {
                                             }
 
                                             if (isProduto) {
-                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border min-w-[500px] max-w-[500px]';
+                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border min-w-[600px] max-w-[600px]';
                                             }
 
                                             return (
@@ -768,14 +768,14 @@ function N1ItaliaPage() {
                                                     className={classesCelula}
                                                 >
                                                     {col === 'Produto' ? (
-                                                        <div className="flex items-center gap-2 w-full max-w-[480px]">
+                                                        <div className="flex items-center gap-3 w-full">
                                                             {(() => {
                                                                 const kitInfo = detectarKits(row[col]);
                                                                 return (
                                                                     <>
                                                                         <span className="text-lg flex-shrink-0">{kitInfo.icon}</span>
-                                                                        <div className="flex-1 min-w-0">
-                                                                            <div className="text-sm leading-relaxed break-words">
+                                                                        <div className="flex-1 overflow-hidden">
+                                                                            <div className="text-sm whitespace-nowrap overflow-hidden text-ellipsis pr-2">
                                                                                 {kitInfo.display}
                                                                             </div>
                                                                         </div>
