@@ -263,11 +263,12 @@ class N1ItaliaProcessor:
         visualizacao = []
 
         for produto, dados in metricas.items():
+            efetividade_valor = dados['Efetividade Total (%)']
             item = {
                 'Produto': produto,
                 'Total_Pedidos': dados['Total'],
                 'Entregues': dados['Entregues'],
-                'Efetividade': f"{dados['Efetividade Total (%)']}%"
+                'Efetividade': f"{efetividade_valor}%"
             }
             visualizacao.append(item)
 
