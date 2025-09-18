@@ -239,9 +239,14 @@ class N1ItaliaProcessor:
             # Adicionar todos os status detalhados individuais se disponíveis
             if 'status_detalhado' in dados:
                 for status, count in dados['status_detalhado'].items():
-                    # Limpar nome do status para usar como coluna
-                    status_limpo = status.replace(' ', '_').replace('-', '_')
-                    item[status_limpo] = count
+                    # Verificar se status não é None antes de fazer replace
+                    if status is not None:
+                        # Limpar nome do status para usar como coluna
+                        status_limpo = str(status).replace(' ', '_').replace('-', '_')
+                        item[status_limpo] = count
+                    else:
+                        # Se status for None, usar nome padrão
+                        item['Status_Nulo'] = count
 
             visualizacao.append(item)
 
