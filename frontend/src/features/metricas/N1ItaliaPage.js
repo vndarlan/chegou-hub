@@ -70,6 +70,13 @@ function N1ItaliaPage() {
     const [sortBy, setSortBy] = useState(null);
     const [sortOrder, setSortOrder] = useState('asc');
 
+    // Estados para agrupamento de kits
+    const [linhasSelecionadas, setLinhasSelecionadas] = useState(new Set());
+    const [agrupamentos, setAgrupamentos] = useState([]);
+    const [mostrarAgrupados, setMostrarAgrupados] = useState(false);
+    const [modalAgrupamento, setModalAgrupamento] = useState(false);
+    const [nomeAgrupamento, setNomeAgrupamento] = useState('');
+
     // ======================== FUNÇÕES DE API ========================
 
     const fetchAnalises = async () => {
@@ -374,6 +381,103 @@ function N1ItaliaPage() {
             display: nomeTexto,
             produtos: [nomeTexto]
         };
+    };
+
+    // ======================== FUNÇÕES DE AGRUPAMENTO ========================
+
+    const handleSelecionarLinha = (index) => {
+        const novaSelecao = new Set(linhasSelecionadas);
+        if (novaSelecao.has(index)) {
+            novaSelecao.delete(index);
+        } else {
+            novaSelecao.add(index);
+        }
+        setLinhasSelecionadas(novaSelecao);
+    };
+
+    const handleSelecionarTodos = () => {
+        const dados = getDadosVisualizacao();
+        if (!dados) return;
+
+        const dadosFiltrados = dados.filter(item => item.Produto !== 'Total');
+
+        if (linhasSelecionadas.size === dadosFiltrados.length) {
+            setLinhasSelecionadas(new Set());
+        } else {
+            const todosIndices = new Set(dadosFiltrados.map((_, index) => index));
+            setLinhasSelecionadas(todosIndices);
+        }
+    };
+
+    const calcularMetricasAgrupadas = (indicesSelecionados) => {
+        const dados = getDadosVisualizacao();
+        if (!dados) return null;
+
+        const dadosFiltrados = dados.filter(item => item.Produto !== 'Total');
+        const itensSelecionados = indicesSelecionados.map(index => dadosFiltrados[index]);
+
+        // Somar valores numéricos
+        const total_pedidos = itensSelecionados.reduce((sum, item) => sum + (item.Total_Pedidos || 0), 0);
+        const entregues = itensSelecionados.reduce((sum, item) => sum + (item.Entregues || 0), 0);
+        const finalizados = itensSelecionados.reduce((sum, item) => sum + (item.Finalizados || 0), 0);
+        const em_transito = itensSelecionados.reduce((sum, item) => sum + (item.Em_Transito || 0), 0);
+        const devolucao = itensSelecionados.reduce((sum, item) => sum + (item.Devolucao || 0), 0);
+        const cancelados = itensSelecionados.reduce((sum, item) => sum + (item.Cancelados || 0), 0);
+
+        // Recalcular percentuais
+        const pct_caminho = total_pedidos > 0 ? ((em_transito / total_pedidos) * 100).toFixed(1) : '0.0';
+        const pct_devolvidos = total_pedidos > 0 ? ((devolucao / total_pedidos) * 100).toFixed(1) : '0.0';
+        const efetividade_parcial = finalizados > 0 ? ((entregues / finalizados) * 100).toFixed(1) : '0.0';
+        const efetividade_total = total_pedidos > 0 ? ((entregues / total_pedidos) * 100).toFixed(1) : '0.0';
+
+        return {
+            Total_Pedidos: total_pedidos,
+            Entregues: entregues,
+            Finalizados: finalizados,
+            Em_Transito: em_transito,
+            Devolucao: devolucao,
+            Cancelados: cancelados,
+            '% A Caminho': `${pct_caminho}%`,
+            '% Devolvidos': `${pct_devolvidos}%`,
+            'Efetividade Parcial': `${efetividade_parcial}%`,
+            'Efetividade': `${efetividade_total}%`,
+            produtos_originais: itensSelecionados.map(item => item.Produto),
+            indices_originais: Array.from(indicesSelecionados)
+        };
+    };
+
+    const handleCriarAgrupamento = () => {
+        if (linhasSelecionadas.size < 2) {
+            showNotification('error', 'Selecione pelo menos 2 itens para agrupar');
+            return;
+        }
+
+        const metricas = calcularMetricasAgrupadas(Array.from(linhasSelecionadas));
+        if (!metricas) return;
+
+        const novoAgrupamento = {
+            id: Date.now(),
+            nome: nomeAgrupamento || `Agrupamento ${agrupamentos.length + 1}`,
+            metricas: metricas,
+            quantidade_itens: linhasSelecionadas.size,
+            criado_em: new Date().toISOString()
+        };
+
+        setAgrupamentos([...agrupamentos, novoAgrupamento]);
+        setLinhasSelecionadas(new Set());
+        setModalAgrupamento(false);
+        setNomeAgrupamento('');
+        setMostrarAgrupados(true);
+        showNotification('success', `Agrupamento "${novoAgrupamento.nome}" criado com sucesso!`);
+    };
+
+    const handleDesfazerAgrupamento = (agrupamentoId) => {
+        setAgrupamentos(agrupamentos.filter(ag => ag.id !== agrupamentoId));
+        showNotification('success', 'Agrupamento removido');
+    };
+
+    const limparSelecao = () => {
+        setLinhasSelecionadas(new Set());
     };
 
     // ======================== HANDLERS DE DRAG & DROP ========================
@@ -682,7 +786,10 @@ function N1ItaliaPage() {
                     <div className="flex items-center justify-between">
                         <div>
                             <CardTitle className="text-lg text-card-foreground">Resultados N1 Itália</CardTitle>
-                            <CardDescription className="text-muted-foreground">{dadosFiltrados.length} registros</CardDescription>
+                            <CardDescription className="text-muted-foreground">
+                                {dadosFiltrados.length} registros
+                                {agrupamentos.length > 0 && ` • ${agrupamentos.length} agrupamento(s)`}
+                            </CardDescription>
                         </div>
                         <div className="flex items-center gap-2">
                             <Tabs value={tipoVisualizacao} onValueChange={setTipoVisualizacao}>
@@ -702,6 +809,60 @@ function N1ItaliaPage() {
                             </Button>
                         </div>
                     </div>
+
+                    {/* Toolbar de Agrupamento */}
+                    {tipoVisualizacao === 'otimizada' && (
+                        <div className="flex items-center gap-2 mt-3 p-2 bg-muted/50 rounded-lg">
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={linhasSelecionadas.size === dadosFiltrados.length && dadosFiltrados.length > 0}
+                                    onChange={handleSelecionarTodos}
+                                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                                />
+                                <span className="text-sm text-muted-foreground">
+                                    {linhasSelecionadas.size > 0 ? `${linhasSelecionadas.size} selecionado(s)` : 'Selecionar todos'}
+                                </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 ml-auto">
+                                {linhasSelecionadas.size >= 2 && (
+                                    <Button
+                                        size="sm"
+                                        onClick={() => setModalAgrupamento(true)}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                                    >
+                                        <Package className="h-4 w-4 mr-2" />
+                                        Agrupar {linhasSelecionadas.size} itens
+                                    </Button>
+                                )}
+
+                                {linhasSelecionadas.size > 0 && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={limparSelecao}
+                                        className="border-border bg-background text-foreground hover:bg-accent"
+                                    >
+                                        <X className="h-4 w-4 mr-2" />
+                                        Limpar
+                                    </Button>
+                                )}
+
+                                {agrupamentos.length > 0 && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setMostrarAgrupados(!mostrarAgrupados)}
+                                        className="border-border bg-background text-foreground hover:bg-accent"
+                                    >
+                                        <Eye className="h-4 w-4 mr-2" />
+                                        {mostrarAgrupados ? 'Ocultar' : 'Mostrar'} Agrupados
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </CardHeader>
 
                 <CardContent className="p-0">
@@ -709,13 +870,27 @@ function N1ItaliaPage() {
                         <Table className="w-full table-fixed" style={{ minWidth: '1800px' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
+                                    {/* Coluna de checkbox apenas na visualização otimizada */}
+                                    {tipoVisualizacao === 'otimizada' && (
+                                        <TableHead className="w-[50px] px-2 py-2 text-xs text-muted-foreground sticky left-0 z-20 bg-background border-r border-border">
+                                            <input
+                                                type="checkbox"
+                                                checked={linhasSelecionadas.size === dadosOrdenados.length && dadosOrdenados.length > 0}
+                                                onChange={handleSelecionarTodos}
+                                                className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                                            />
+                                        </TableHead>
+                                    )}
+
                                     {colunas.map(col => {
                                         const isProduto = col === 'Produto';
 
                                         let classesHeader = 'whitespace-nowrap px-2 py-2 text-xs text-muted-foreground';
 
                                         if (isProduto) {
-                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border min-w-[600px] max-w-[600px]';
+                                            const leftOffset = tipoVisualizacao === 'otimizada' ? '50px' : '0px';
+                                            classesHeader += ` sticky z-10 bg-background border-r border-border min-w-[600px] max-w-[600px]`;
+                                            classesHeader += tipoVisualizacao === 'otimizada' ? ' left-[50px]' : ' left-0';
                                         }
 
                                         return (
@@ -741,58 +916,150 @@ function N1ItaliaPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {dadosOrdenados.map((row, idx) => (
-                                    <TableRow key={idx} className={`border-border ${row.Produto === 'Total' ? 'bg-muted/20 font-medium' : ''}`}>
+                                {/* Exibir agrupamentos primeiro se ativado */}
+                                {mostrarAgrupados && agrupamentos.map(agrupamento => (
+                                    <TableRow key={`agrupamento-${agrupamento.id}`} className="border-border bg-blue-50 dark:bg-blue-900/20">
+                                        {/* Checkbox para agrupamento */}
+                                        {tipoVisualizacao === 'otimizada' && (
+                                            <TableCell className="w-[50px] px-2 py-2 sticky left-0 z-10 bg-blue-50 dark:bg-blue-900/20 border-r border-border">
+                                                <div className="text-blue-600">🔗</div>
+                                            </TableCell>
+                                        )}
+
                                         {colunas.map(col => {
                                             const isProduto = col === 'Produto';
+                                            const value = agrupamento.metricas[col];
 
                                             let classesCelula = 'px-2 py-2 text-xs text-card-foreground';
 
                                             if (col === 'Efetividade') {
-                                                classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center`;
-                                            } else if (col.includes('Efetividade Parcial') || col === 'Efetividade Parcial') {
-                                                classesCelula += ` font-bold ${getEfetividadeParcialCor(row[col])} px-2 py-1 rounded text-center`;
-                                            } else if (col.includes('% A Caminho') || col === '% A Caminho') {
-                                                classesCelula += ` font-bold ${getTaxaTransitoCor(row[col])} px-2 py-1 rounded text-center`;
-                                            } else if (col.includes('% Devolvidos') || col === '% Devolvidos') {
-                                                classesCelula += ` font-bold ${getTaxaDevolucaoCor(row[col])} px-2 py-1 rounded text-center`;
+                                                classesCelula += ` font-bold ${getEfetividadeCor(value)} px-2 py-1 rounded text-center`;
+                                            } else if (col.includes('Efetividade Parcial')) {
+                                                classesCelula += ` font-bold ${getEfetividadeParcialCor(value)} px-2 py-1 rounded text-center`;
+                                            } else if (col.includes('% A Caminho')) {
+                                                classesCelula += ` font-bold ${getTaxaTransitoCor(value)} px-2 py-1 rounded text-center`;
+                                            } else if (col.includes('% Devolvidos')) {
+                                                classesCelula += ` font-bold ${getTaxaDevolucaoCor(value)} px-2 py-1 rounded text-center`;
                                             }
 
                                             if (isProduto) {
-                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border min-w-[600px] max-w-[600px]';
+                                                classesCelula += tipoVisualizacao === 'otimizada' ?
+                                                    ' sticky left-[50px] z-10 bg-blue-50 dark:bg-blue-900/20 border-r border-border min-w-[600px] max-w-[600px]' :
+                                                    ' sticky left-0 z-10 bg-blue-50 dark:bg-blue-900/20 border-r border-border min-w-[600px] max-w-[600px]';
                                             }
 
                                             return (
-                                                <TableCell
-                                                    key={col}
-                                                    className={classesCelula}
-                                                >
+                                                <TableCell key={col} className={classesCelula}>
                                                     {col === 'Produto' ? (
                                                         <div className="flex items-center gap-3 w-full">
-                                                            {(() => {
-                                                                const kitInfo = detectarKits(row[col]);
-                                                                return (
-                                                                    <>
-                                                                        <span className="text-lg flex-shrink-0">{kitInfo.icon}</span>
-                                                                        <div className="flex-1 overflow-hidden">
-                                                                            <div
-                                                                                className="text-sm whitespace-nowrap overflow-hidden text-ellipsis pr-2 cursor-help"
-                                                                                title={kitInfo.display}
-                                                                            >
-                                                                                {kitInfo.display}
-                                                                            </div>
-                                                                        </div>
-                                                                        {kitInfo.isKit && <Badge variant="secondary" className="text-xs flex-shrink-0">Kit</Badge>}
-                                                                    </>
-                                                                );
-                                                            })()}
+                                                            <span className="text-lg flex-shrink-0">🔗</span>
+                                                            <div className="flex-1 overflow-hidden">
+                                                                <div className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                                                                    {agrupamento.nome}
+                                                                </div>
+                                                                <div className="text-xs text-muted-foreground">
+                                                                    {agrupamento.quantidade_itens} itens agrupados
+                                                                </div>
+                                                            </div>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => handleDesfazerAgrupamento(agrupamento.id)}
+                                                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                                                                title="Desfazer agrupamento"
+                                                            >
+                                                                <X className="h-3 w-3" />
+                                                            </Button>
                                                         </div>
                                                     ) : (
-                                                        typeof row[col] === 'number' ? row[col].toLocaleString() : row[col]
+                                                        typeof value === 'number' ? value.toLocaleString() : value
                                                     )}
                                                 </TableCell>
                                             );
                                         })}
+                                    </TableRow>
+                                ))}
+
+                                {/* Exibir dados originais */}
+                                {dadosOrdenados.map((row, idx) => {
+                                    // Pular linhas que estão agrupadas
+                                    if (mostrarAgrupados && agrupamentos.some(ag =>
+                                        ag.metricas.indices_originais.includes(idx)
+                                    )) {
+                                        return null;
+                                    }
+
+                                    const isSelected = linhasSelecionadas.has(idx);
+
+                                    return (
+                                        <TableRow
+                                            key={idx}
+                                            className={`border-border ${row.Produto === 'Total' ? 'bg-muted/20 font-medium' : ''} ${isSelected ? 'bg-primary/10' : ''}`}
+                                        >
+                                            {/* Checkbox apenas na visualização otimizada */}
+                                            {tipoVisualizacao === 'otimizada' && (
+                                                <TableCell className="w-[50px] px-2 py-2 sticky left-0 z-10 bg-background border-r border-border">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => handleSelecionarLinha(idx)}
+                                                        className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                                                    />
+                                                </TableCell>
+                                            )}
+
+                                            {colunas.map(col => {
+                                                const isProduto = col === 'Produto';
+
+                                                let classesCelula = 'px-2 py-2 text-xs text-card-foreground';
+
+                                                if (col === 'Efetividade') {
+                                                    classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center`;
+                                                } else if (col.includes('Efetividade Parcial') || col === 'Efetividade Parcial') {
+                                                    classesCelula += ` font-bold ${getEfetividadeParcialCor(row[col])} px-2 py-1 rounded text-center`;
+                                                } else if (col.includes('% A Caminho') || col === '% A Caminho') {
+                                                    classesCelula += ` font-bold ${getTaxaTransitoCor(row[col])} px-2 py-1 rounded text-center`;
+                                                } else if (col.includes('% Devolvidos') || col === '% Devolvidos') {
+                                                    classesCelula += ` font-bold ${getTaxaDevolucaoCor(row[col])} px-2 py-1 rounded text-center`;
+                                                }
+
+                                                if (isProduto) {
+                                                    classesCelula += tipoVisualizacao === 'otimizada' ?
+                                                        ' sticky left-[50px] z-10 bg-background border-r border-border min-w-[600px] max-w-[600px]' :
+                                                        ' sticky left-0 z-10 bg-background border-r border-border min-w-[600px] max-w-[600px]';
+                                                }
+
+                                                return (
+                                                    <TableCell
+                                                        key={col}
+                                                        className={classesCelula}
+                                                    >
+                                                        {col === 'Produto' ? (
+                                                            <div className="flex items-center gap-3 w-full">
+                                                                {(() => {
+                                                                    const kitInfo = detectarKits(row[col]);
+                                                                    return (
+                                                                        <>
+                                                                            <span className="text-lg flex-shrink-0">{kitInfo.icon}</span>
+                                                                            <div className="flex-1 overflow-hidden">
+                                                                                <div
+                                                                                    className="text-sm whitespace-nowrap overflow-hidden text-ellipsis pr-2 cursor-help"
+                                                                                    title={kitInfo.display}
+                                                                                >
+                                                                                    {kitInfo.display}
+                                                                                </div>
+                                                                            </div>
+                                                                            {kitInfo.isKit && <Badge variant="secondary" className="text-xs flex-shrink-0">Kit</Badge>}
+                                                                        </>
+                                                                    );
+                                                                })()}
+                                                            </div>
+                                                        ) : (
+                                                            typeof row[col] === 'number' ? row[col].toLocaleString() : row[col]
+                                                        )}
+                                                    </TableCell>
+                                                );
+                                            })}
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -1137,6 +1404,87 @@ function N1ItaliaPage() {
                         >
                             {loadingSalvar ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
                             {loadingSalvar ? 'Salvando...' : 'Salvar'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal de agrupamento */}
+            <Dialog open={modalAgrupamento} onOpenChange={setModalAgrupamento}>
+                <DialogContent className="border-border bg-popover max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="text-popover-foreground">Agrupar Itens Selecionados</DialogTitle>
+                        <DialogDescription className="text-muted-foreground">
+                            Digite um nome para o agrupamento dos {linhasSelecionadas.size} itens selecionados
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-4 space-y-4">
+                        {/* Lista dos itens selecionados */}
+                        <div className="max-h-32 overflow-y-auto border rounded p-2 bg-muted/50">
+                            <div className="text-xs font-medium text-muted-foreground mb-2">Itens a serem agrupados:</div>
+                            {Array.from(linhasSelecionadas).map(index => {
+                                const dados = getDadosVisualizacao();
+                                if (!dados) return null;
+                                const dadosFiltrados = dados.filter(item => item.Produto !== 'Total');
+                                const item = dadosFiltrados[index];
+                                if (!item) return null;
+
+                                return (
+                                    <div key={index} className="text-xs text-foreground py-1 border-b border-border last:border-b-0">
+                                        • {item.Produto} ({item.Total_Pedidos} pedidos)
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Campo nome do agrupamento */}
+                        <div className="space-y-2">
+                            <Label htmlFor="nome-agrupamento" className="text-foreground">Nome do Agrupamento</Label>
+                            <Input
+                                id="nome-agrupamento"
+                                placeholder="Ex: Kits Similares de Perfume"
+                                value={nomeAgrupamento}
+                                onChange={(e) => setNomeAgrupamento(e.target.value)}
+                                className="border-border bg-background text-foreground"
+                            />
+                        </div>
+
+                        {/* Prévia das métricas */}
+                        {linhasSelecionadas.size >= 2 && (
+                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded border">
+                                <div className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">Prévia das métricas agrupadas:</div>
+                                {(() => {
+                                    const metricas = calcularMetricasAgrupadas(Array.from(linhasSelecionadas));
+                                    if (!metricas) return null;
+
+                                    return (
+                                        <div className="text-xs text-blue-600 dark:text-blue-400 space-y-1">
+                                            <div>Total Pedidos: {metricas.Total_Pedidos.toLocaleString()}</div>
+                                            <div>Entregues: {metricas.Entregues.toLocaleString()}</div>
+                                            <div>Efetividade: {metricas.Efetividade}</div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setModalAgrupamento(false)}
+                            className="border-border bg-background text-foreground hover:bg-accent"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleCriarAgrupamento}
+                            disabled={!nomeAgrupamento.trim()}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                            <Package className="h-4 w-4 mr-2" />
+                            Criar Agrupamento
                         </Button>
                     </DialogFooter>
                 </DialogContent>
