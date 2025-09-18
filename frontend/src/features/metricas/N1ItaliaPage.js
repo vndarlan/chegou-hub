@@ -194,8 +194,13 @@ function N1ItaliaPage() {
 
         setLoadingSalvar(true);
         try {
+            // Adicionar prefixo se não existir
+            const nomeComPrefixo = nomeAnalise.startsWith('[N1 ITÁLIA]')
+                ? nomeAnalise
+                : `[N1 ITÁLIA] ${nomeAnalise}`;
+
             const response = await axios.post('/metricas/n1italia/analise-n1italia/', {
-                nome: nomeAnalise,
+                nome: nomeComPrefixo,
                 dados_processados: dadosResultado,
                 tipo_metrica: 'n1_italia',
                 descricao: 'Análise de efetividade N1 Itália por upload de Excel'
@@ -426,7 +431,7 @@ function N1ItaliaPage() {
                     {/* Área de drag & drop */}
                     <div
                         className={`
-                            border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
+                            border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer
                             ${dragActive
                                 ? 'border-primary bg-primary/5'
                                 : 'border-border bg-background hover:bg-accent/50'
@@ -451,21 +456,21 @@ function N1ItaliaPage() {
                         <div className="space-y-2">
                             {arquivoSelecionado ? (
                                 <>
-                                    <FileSpreadsheet className="h-12 w-12 text-green-500 mx-auto" />
-                                    <p className="text-green-600 font-medium">
+                                    <FileSpreadsheet className="h-8 w-8 text-green-500 mx-auto" />
+                                    <p className="text-green-600 font-medium text-sm">
                                         {arquivoSelecionado.name}
                                     </p>
-                                    <p className="text-sm text-muted-foreground">
+                                    <p className="text-xs text-muted-foreground">
                                         {(arquivoSelecionado.size / 1024 / 1024).toFixed(2)} MB
                                     </p>
                                 </>
                             ) : (
                                 <>
-                                    <FileSpreadsheet className="h-12 w-12 text-muted-foreground mx-auto" />
-                                    <p className="text-foreground font-medium">
+                                    <FileSpreadsheet className="h-8 w-8 text-muted-foreground mx-auto" />
+                                    <p className="text-foreground font-medium text-sm">
                                         Arraste um arquivo Excel aqui ou clique para selecionar
                                     </p>
-                                    <p className="text-sm text-muted-foreground">
+                                    <p className="text-xs text-muted-foreground">
                                         Formatos: .xlsx, .xls (máx. 10MB)
                                     </p>
                                 </>
@@ -636,7 +641,7 @@ function N1ItaliaPage() {
                                         let classesHeader = 'whitespace-nowrap px-2 py-2 text-xs text-muted-foreground';
 
                                         if (isProduto) {
-                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border min-w-[200px]';
+                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border min-w-[250px]';
                                         }
 
                                         return (
@@ -674,7 +679,7 @@ function N1ItaliaPage() {
                                             }
 
                                             if (isProduto) {
-                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border min-w-[200px]';
+                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border min-w-[250px]';
                                             }
 
                                             return (
@@ -683,16 +688,16 @@ function N1ItaliaPage() {
                                                     className={classesCelula}
                                                 >
                                                     {col === 'Produto' ? (
-                                                        <div className="flex items-center gap-2 max-w-[180px]">
+                                                        <div className="flex items-start gap-2 min-w-[200px] max-w-[300px]">
                                                             {(() => {
                                                                 const kitInfo = detectarKits(row[col]);
                                                                 return (
                                                                     <>
-                                                                        <span className="text-lg">{kitInfo.icon}</span>
-                                                                        <div className="truncate" title={kitInfo.display}>
+                                                                        <span className="text-lg mt-0.5 flex-shrink-0">{kitInfo.icon}</span>
+                                                                        <div className="whitespace-normal break-words text-sm leading-tight">
                                                                             {kitInfo.display}
                                                                         </div>
-                                                                        {kitInfo.isKit && <Badge variant="secondary" className="text-xs">Kit</Badge>}
+                                                                        {kitInfo.isKit && <Badge variant="secondary" className="text-xs flex-shrink-0 mt-0.5">Kit</Badge>}
                                                                     </>
                                                                 );
                                                             })()}

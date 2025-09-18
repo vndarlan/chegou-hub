@@ -212,62 +212,67 @@ class N1ItaliaProcessor:
 
     def gerar_visualizacao_total(self, metricas: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Gera visualização completa dos dados
+        Gera visualização completa com TODOS os status individuais detalhados
 
         Args:
             metricas: Métricas calculadas
 
         Returns:
-            Lista com visualização total
+            Lista com visualização total (todos os status)
         """
         visualizacao = []
 
         for produto, dados in metricas.items():
+            # Incluir todos os status individuais da análise
             item = {
                 'Produto': produto,
-                'Total': dados['Total'],
+                'Total_Pedidos': dados['Total'],
                 'Entregues': dados['Entregues'],
                 'Finalizados': dados['Finalizados'],
-                'Em Trânsito': dados['Em Trânsito'],
+                'Em_Transito': dados['Em Trânsito'],
                 'Problemas': dados['Problemas'],
-                'Devolução': dados['Devolução'],
+                'Devolucao': dados['Devolução'],
                 'Cancelados': dados['Cancelados'],
-                'Efetividade Parcial (%)': dados['Efetividade Parcial (%)'],
-                'Efetividade Total (%)': dados['Efetividade Total (%)'],
-                '% A Caminho': dados['% A Caminho'],
-                '% Devolvidos': dados['% Devolvidos']
+                'Efetividade': f"{dados['Efetividade Total (%)']}%",
             }
+
+            # Adicionar todos os status detalhados individuais se disponíveis
+            if 'status_detalhado' in dados:
+                for status, count in dados['status_detalhado'].items():
+                    # Limpar nome do status para usar como coluna
+                    status_limpo = status.replace(' ', '_').replace('-', '_')
+                    item[status_limpo] = count
+
             visualizacao.append(item)
 
         # Ordenar por total (maior primeiro)
-        visualizacao.sort(key=lambda x: x['Total'], reverse=True)
+        visualizacao.sort(key=lambda x: x['Total_Pedidos'], reverse=True)
 
         return visualizacao
 
     def gerar_visualizacao_otimizada(self, metricas: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Gera visualização otimizada (apenas campos principais)
+        Gera visualização otimizada (apenas campos principais resumidos)
 
         Args:
             metricas: Métricas calculadas
 
         Returns:
-            Lista com visualização otimizada
+            Lista com visualização otimizada (resumida)
         """
         visualizacao = []
 
         for produto, dados in metricas.items():
             item = {
                 'Produto': produto,
-                'Total': dados['Total'],
+                'Total_Pedidos': dados['Total'],
                 'Entregues': dados['Entregues'],
-                'Efetividade Parcial (%)': dados['Efetividade Parcial (%)'],
-                'Efetividade Total (%)': dados['Efetividade Total (%)']
+                'Efetividade': f"{dados['Efetividade Total (%)']}%"
             }
             visualizacao.append(item)
 
         # Ordenar por efetividade total (maior primeiro)
-        visualizacao.sort(key=lambda x: x['Efetividade Total (%)'], reverse=True)
+        visualizacao.sort(key=lambda x: float(x['Efetividade'].replace('%', '')), reverse=True)
 
         return visualizacao
 
