@@ -231,9 +231,9 @@ class N1ItaliaProcessor:
 
             # Calcular métricas conforme instruções
             efetividade = round((entregues / total * 100) if total > 0 else 0, 2)
-            taxa_problemas = round((problemas / total * 100) if total > 0 else 0, 2)
-            taxa_em_transito = round((em_transito / total * 100) if total > 0 else 0, 2)
-            taxa_devolucao = round((devolucao / total * 100) if total > 0 else 0, 2)
+            efetividade_parcial = round((entregues / dados['Finalizados'] * 100) if dados['Finalizados'] > 0 else 0, 2)
+            pct_a_caminho = round((em_transito / total * 100) if total > 0 else 0, 2)
+            pct_devolvidos = round((devolucao / total * 100) if total > 0 else 0, 2)
 
             item = {
                 'Produto': produto,
@@ -241,13 +241,12 @@ class N1ItaliaProcessor:
                 'Entregues': entregues,  # Só Delivered
                 'Finalizados': dados['Finalizados'],  # Delivered + Return + Invalid + Out of stock + Deleted + Rejected + Duplicate
                 'Em_Transito': em_transito,  # To prepare + Waiting for carrier + Assigned to carrier + Shipped
-                'Problemas': problemas,  # Invalid + Out of stock + Rejected
                 'Devolucao': devolucao,  # Return
                 'Cancelados': dados['Cancelados'],  # Deleted + Rejected + Duplicate
                 'Efetividade': f"{efetividade}%",
-                'Taxa_Problemas': f"{taxa_problemas}%",
-                'Taxa_Em_Transito': f"{taxa_em_transito}%",
-                'Taxa_Devolucao': f"{taxa_devolucao}%"
+                'Efetividade_Parcial': f"{efetividade_parcial}%",
+                'A_Caminho': f"{pct_a_caminho}%",
+                'Devolvidos': f"{pct_devolvidos}%"
             }
             visualizacao.append(item)
 

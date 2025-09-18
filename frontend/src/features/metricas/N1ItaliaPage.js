@@ -117,12 +117,9 @@ function N1ItaliaPage() {
         setProgressoAtual({ etapa: 'Fazendo upload...', porcentagem: 30 });
 
         try {
-            // Gerar nome automático se não houver
-            const nomeAutomatico = `N1 Itália ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-
             const formData = new FormData();
             formData.append('arquivo', arquivoSelecionado);
-            formData.append('nome_analise', nomeAutomatico);
+            formData.append('nome_analise', 'Análise N1 Itália');
             formData.append('descricao', 'Análise de efetividade N1 Itália por upload de Excel');
 
             const uploadResponse = await axios.post(
@@ -162,14 +159,11 @@ function N1ItaliaPage() {
                     setDadosResultado(processResponse.data.dados_processados);
                     showNotification('success', 'Arquivo processado com sucesso!');
 
-                    // Gerar nome automático
-                    const agora = new Date();
-                    const dataStr = agora.toLocaleDateString('pt-BR');
-                    const horaStr = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                    setNomeAnalise(`N1 Itália ${dataStr} ${horaStr}`);
-
                     // Limpar arquivo após processar
                     setArquivoSelecionado(null);
+
+                    // Limpar nome da análise para que o usuário defina manualmente
+                    setNomeAnalise('');
                 } else {
                     throw new Error(processResponse.data.message || 'Erro no processamento');
                 }
@@ -273,6 +267,42 @@ function N1ItaliaPage() {
         return 'bg-red-500 text-white';
     };
 
+    const getEfetividadeParcialCor = (valor) => {
+        if (!valor || typeof valor !== 'string') return '';
+
+        const numero = parseFloat(valor.replace('%', '').replace('(Média)', ''));
+
+        // Para efetividade parcial: quanto maior, melhor
+        if (numero >= 70) return 'bg-green-600 text-white';
+        if (numero >= 60) return 'bg-green-500 text-white';
+        if (numero >= 50) return 'bg-yellow-500 text-black';
+        return 'bg-red-500 text-white';
+    };
+
+    const getTaxaTransitoCor = (valor) => {
+        if (!valor || typeof valor !== 'string') return '';
+
+        const numero = parseFloat(valor.replace('%', '').replace('(Média)', ''));
+
+        // Para trânsito: valores médios são aceitáveis
+        if (numero <= 15) return 'bg-green-600 text-white';
+        if (numero <= 25) return 'bg-green-500 text-white';
+        if (numero <= 35) return 'bg-yellow-500 text-black';
+        return 'bg-red-500 text-white';
+    };
+
+    const getTaxaDevolucaoCor = (valor) => {
+        if (!valor || typeof valor !== 'string') return '';
+
+        const numero = parseFloat(valor.replace('%', '').replace('(Média)', ''));
+
+        // Para devolução: quanto menor, melhor (cores invertidas)
+        if (numero <= 3) return 'bg-green-600 text-white';
+        if (numero <= 6) return 'bg-green-500 text-white';
+        if (numero <= 10) return 'bg-yellow-500 text-black';
+        return 'bg-red-500 text-white';
+    };
+
     const getDadosVisualizacao = () => {
         if (!dadosResultado) return null;
         return tipoVisualizacao === 'otimizada' ?
@@ -317,21 +347,27 @@ function N1ItaliaPage() {
     const detectarKits = (nomeProduto) => {
         if (!nomeProduto) return { isKit: false, icon: '🎁', display: nomeProduto };
 
+        // Limpar nome do produto removendo "Kit (" e ")" se existir
+        let nomeTexto = nomeProduto;
+        if (nomeTexto.startsWith('Kit (') && nomeTexto.endsWith(')')) {
+            nomeTexto = nomeTexto.replace(/^Kit \(/, '').replace(/\)$/, '');
+        }
+
         // Detectar se é um kit (contém múltiplos produtos separados por vírgula ou "e")
-        const hasMultipleProducts = nomeProduto.includes(',') || nomeProduto.includes(' e ') || nomeProduto.includes(' + ');
+        const hasMultipleProducts = nomeTexto.includes(',') || nomeTexto.includes(' e ') || nomeTexto.includes(' + ');
 
         if (hasMultipleProducts) {
             return {
                 isKit: true,
                 icon: '📦',
-                display: `Kit (${nomeProduto})`
+                display: nomeTexto
             };
         }
 
         return {
             isKit: false,
             icon: '🎁',
-            display: nomeProduto
+            display: nomeTexto
         };
     };
 
@@ -668,8 +704,14 @@ function N1ItaliaPage() {
 
                                             let classesCelula = 'px-2 py-2 text-xs text-card-foreground';
 
-                                            if (col.includes('Efetividade') || col.includes('efetividade')) {
+                                            if (col.includes('Efetividade') && !col.includes('Parcial')) {
                                                 classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center`;
+                                            } else if (col.includes('Efetividade_Parcial') || col.includes('Parcial')) {
+                                                classesCelula += ` font-bold ${getEfetividadeParcialCor(row[col])} px-2 py-1 rounded text-center`;
+                                            } else if (col.includes('A_Caminho') || col.includes('Caminho') || col.includes('Taxa_Transito') || col.includes('Transito') || col.includes('Trânsito')) {
+                                                classesCelula += ` font-bold ${getTaxaTransitoCor(row[col])} px-2 py-1 rounded text-center`;
+                                            } else if (col.includes('Devolvidos') || col.includes('Taxa_Devolucao') || col.includes('Devolucao') || col.includes('Devolução')) {
+                                                classesCelula += ` font-bold ${getTaxaDevolucaoCor(row[col])} px-2 py-1 rounded text-center`;
                                             }
 
                                             if (isProduto) {
