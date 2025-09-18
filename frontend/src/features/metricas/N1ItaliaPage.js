@@ -1060,8 +1060,9 @@ function N1ItaliaPage() {
                                                     </TableCell>
                                                 );
                                             })}
-                                    </TableRow>
-                                ))}
+                                        </TableRow>
+                                    );
+                                })}
                             </TableBody>
                         </Table>
                     </div>
