@@ -204,46 +204,73 @@ class N1ItaliaProcessor:
 
                 # Verificar se este kit é similar a algum já agrupado
                 for nome_kit_principal, grupo_kits in kits_agrupados.items():
-                    # Comparar com o primeiro kit do grupo
-                    produtos_referencia = grupo_kits[0]['produtos_originais']
-                    similaridade = self._calcular_similaridade_kits(produtos_kit, produtos_referencia)
+                    try:
+                        # Comparar com o primeiro kit do grupo
+                        produtos_referencia = grupo_kits[0]['produtos_originais']
+                        similaridade = self._calcular_similaridade_kits(produtos_kit, produtos_referencia)
 
-                    if similaridade >= threshold_similaridade:
-                        # Kit similar encontrado, adicionar ao grupo
-                        grupo_kits.append(kit)
-                        kit_agrupado = True
-                        logger.info(f"Kit agrupado com similaridade {similaridade:.2f}: {produtos_kit} -> {nome_kit_principal}")
-                        break
+                        if similaridade >= threshold_similaridade:
+                            # Kit similar encontrado, adicionar ao grupo
+                            grupo_kits.append(kit)
+                            kit_agrupado = True
+                            logger.info(f"Kit agrupado com similaridade {similaridade:.2f}")
+                            break
+                    except Exception as e:
+                        logger.warning(f"Erro comparando kits: {e}")
+                        continue
 
                 if not kit_agrupado:
                     # Novo kit, criar novo grupo
-                    nome_kit_principal = self._identificar_kit_principal(produtos_kit)
-                    kits_agrupados[nome_kit_principal] = [kit]
+                    try:
+                        nome_kit_principal = self._identificar_kit_principal(produtos_kit)
+                        kits_agrupados[nome_kit_principal] = [kit]
+                    except Exception as e:
+                        logger.warning(f"Erro criando kit principal: {e}")
+                        # Fallback para método original
+                        nome_kit_original = f"Kit ({', '.join(produtos_kit)})"
+                        kits_agrupados[nome_kit_original] = [kit]
 
             # Terceiro passo: processar kits agrupados
             for nome_kit_principal, grupo_kits in kits_agrupados.items():
-                # Usar dados do primeiro kit como base
-                registro_base = grupo_kits[0].copy()
+                try:
+                    # Usar dados do primeiro kit como base
+                    registro_base = grupo_kits[0].copy()
 
-                # Coletar todos os produtos únicos do grupo
-                todos_produtos = []
-                for kit in grupo_kits:
-                    todos_produtos.extend(kit['produtos_originais'])
+                    # Coletar todos os produtos únicos do grupo
+                    todos_produtos = []
+                    for kit in grupo_kits:
+                        todos_produtos.extend(kit['produtos_originais'])
 
-                produtos_unicos = list(dict.fromkeys(todos_produtos))  # Remove duplicatas mantendo ordem
+                    produtos_unicos = list(dict.fromkeys(todos_produtos))  # Remove duplicatas mantendo ordem
 
-                registro_base['product_name'] = nome_kit_principal
-                registro_base['is_kit'] = True
-                registro_base['kit_produtos'] = produtos_unicos
-                registro_base['total_pedidos_agrupados'] = len(grupo_kits)
+                    registro_base['product_name'] = nome_kit_principal
+                    registro_base['is_kit'] = True
+                    registro_base['kit_produtos'] = produtos_unicos
 
-                # Remover colunas temporárias
-                if 'produtos_originais' in registro_base:
-                    del registro_base['produtos_originais']
-                if 'order_original' in registro_base:
-                    del registro_base['order_original']
+                    # Adicionar contador de pedidos agrupados com fallback
+                    try:
+                        registro_base['total_pedidos_agrupados'] = len(grupo_kits)
+                    except:
+                        pass
 
-                registros_processados.append(registro_base)
+                    # Remover colunas temporárias com fallback
+                    try:
+                        if 'produtos_originais' in registro_base:
+                            del registro_base['produtos_originais']
+                        if 'order_original' in registro_base:
+                            del registro_base['order_original']
+                    except:
+                        pass
+
+                    registros_processados.append(registro_base)
+                except Exception as e:
+                    logger.warning(f"Erro processando kit agrupado: {e}")
+                    # Fallback: usar primeiro kit do grupo sem modificações
+                    primeiro_kit = grupo_kits[0].copy()
+                    primeiro_kit['product_name'] = f"Kit ({', '.join(primeiro_kit.get('produtos_originais', []))})"
+                    primeiro_kit['is_kit'] = True
+                    primeiro_kit['kit_produtos'] = primeiro_kit.get('produtos_originais', [])
+                    registros_processados.append(primeiro_kit)
 
             # Adicionar produtos individuais
             registros_processados.extend(produtos_individuais)
@@ -257,6 +284,56 @@ class N1ItaliaProcessor:
 
         except Exception as e:
             logger.error(f"Erro detectando kits: {e}")
+            # Fallback completo para método original
+            logger.info("Usando método original como fallback...")
+            return self._detectar_kits_original(df)
+
+    def _detectar_kits_original(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Método original de detecção de kits como fallback
+
+        Args:
+            df: DataFrame com dados originais
+
+        Returns:
+            DataFrame com kits processados pelo método original
+        """
+        try:
+            logger.info("Usando detecção de kits original (fallback)...")
+
+            # Agrupar por order_number
+            grouped = df.groupby('order_number')
+
+            registros_processados = []
+
+            for order_num, group in grouped:
+                if len(group) > 1:
+                    # É um kit - consolidar produtos
+                    produtos = group['product_name'].tolist()
+                    kit_name = f"Kit ({', '.join(produtos)})"
+
+                    # Pegar dados do primeiro registro (assumindo que pedidos de kit têm mesmo status)
+                    registro_kit = group.iloc[0].copy()
+                    registro_kit['product_name'] = kit_name
+                    registro_kit['is_kit'] = True
+                    registro_kit['kit_produtos'] = produtos
+
+                    registros_processados.append(registro_kit)
+                else:
+                    # Produto individual
+                    registro = group.iloc[0].copy()
+                    registro['is_kit'] = False
+                    registro['kit_produtos'] = []
+
+                    registros_processados.append(registro)
+
+            df_processado = pd.DataFrame(registros_processados)
+            logger.info(f"Kits detectados (método original): {df_processado['is_kit'].sum()}")
+
+            return df_processado
+
+        except Exception as e:
+            logger.error(f"Erro no método original de kits: {e}")
             return df
 
     def agrupar_por_produto(self, df: pd.DataFrame) -> Dict[str, Dict[str, int]]:
