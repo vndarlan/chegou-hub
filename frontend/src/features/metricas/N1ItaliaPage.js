@@ -432,39 +432,29 @@ function N1ItaliaPage() {
         </div>
     );
 
-    // Upload Section
+    // Upload Section - COMPACTA E MINIMALISTA
     const renderUploadSection = () => (
-        <Card className="mb-6 relative border-border bg-card">
+        <div className="mb-4 max-w-md ml-auto relative">
             {(loadingUpload || loadingProcessar) && (
                 <div className="absolute inset-0 bg-background/95 backdrop-blur flex flex-col items-center justify-center z-10 rounded-lg">
-                    <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
-                    <p className="font-medium mb-2 text-foreground">
-                        {loadingUpload ? 'Fazendo upload...' : 'Processando dados...'}
+                    <Loader2 className="h-5 w-5 animate-spin mb-2 text-primary" />
+                    <p className="text-xs text-foreground">
+                        {loadingUpload ? 'Upload...' : 'Processando...'}
                     </p>
                     {progressoAtual && (
-                        <>
-                            <Progress value={progressoAtual.porcentagem} className="w-60 mb-2" />
-                            <p className="text-sm text-muted-foreground">{progressoAtual.etapa}</p>
-                        </>
+                        <Progress value={progressoAtual.porcentagem} className="w-32 mt-2" />
                     )}
                 </div>
             )}
 
-            <CardHeader>
-                <div className="flex items-center gap-3">
-                    <Upload className="h-5 w-5 text-primary" />
-                    <div>
-                        <CardTitle className="text-card-foreground">Upload de Excel</CardTitle>
-                        <CardDescription className="text-muted-foreground">
-                            Faça upload do arquivo Excel com dados N1 Itália
-                        </CardDescription>
+            <Card className="border-border bg-card p-3">
+                <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Upload className="h-3 w-3" />
+                        <span>Upload Excel N1</span>
                     </div>
-                </div>
-            </CardHeader>
 
-            <CardContent>
-                <div className="space-y-4">
-                    {/* Área de drag & drop - MINIMALISTA */}
+                    {/* Área de drag & drop compacta */}
                     <div
                         className={`
                             border border-dashed rounded p-2 text-center transition-colors cursor-pointer text-xs
@@ -489,57 +479,57 @@ function N1ItaliaPage() {
                             disabled={loadingUpload}
                         />
 
-                        <div className="flex items-center gap-2 justify-center">
+                        <div className="flex items-center gap-2 justify-center py-1">
                             {arquivoSelecionado ? (
                                 <>
-                                    <FileSpreadsheet className="h-4 w-4 text-green-500" />
-                                    <span className="text-green-600 font-medium text-xs truncate max-w-[200px]">
+                                    <FileSpreadsheet className="h-3 w-3 text-green-500" />
+                                    <span className="text-green-600 font-medium text-xs truncate max-w-[120px]">
                                         {arquivoSelecionado.name}
                                     </span>
                                 </>
                             ) : (
                                 <>
-                                    <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
+                                    <FileSpreadsheet className="h-3 w-3 text-muted-foreground" />
                                     <span className="text-foreground text-xs">
-                                        Clique ou arraste Excel aqui
+                                        Arraste ou clique
                                     </span>
                                 </>
                             )}
                         </div>
                     </div>
 
-                    {/* Botões de ação */}
-                    <div className="flex justify-between items-center">
+                    {/* Botões compactos */}
+                    <div className="flex gap-2">
                         {arquivoSelecionado && (
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setArquivoSelecionado(null)}
                                 disabled={loadingUpload}
-                                className="border-border bg-background text-foreground hover:bg-accent"
+                                className="border-border bg-background text-foreground hover:bg-accent text-xs px-2 py-1 h-6"
                             >
-                                <X className="h-4 w-4 mr-2" />
-                                Remover Arquivo
+                                <X className="h-3 w-3 mr-1" />
+                                Remover
                             </Button>
                         )}
 
                         <Button
                             onClick={uploadExcel}
                             disabled={!arquivoSelecionado || loadingUpload}
-                            size="lg"
-                            className="ml-auto bg-primary text-primary-foreground hover:bg-primary/90"
+                            size="sm"
+                            className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs px-2 py-1 h-6 flex-1"
                         >
                             {loadingUpload ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                             ) : (
-                                <Upload className="h-4 w-4 mr-2" />
+                                <Upload className="h-3 w-3 mr-1" />
                             )}
-                            {loadingUpload ? 'Processando...' : 'Processar Arquivo'}
+                            {loadingUpload ? 'Processando...' : 'Processar'}
                         </Button>
                     </div>
                 </div>
-            </CardContent>
-        </Card>
+            </Card>
+        </div>
     );
 
     // Estatísticas
@@ -547,6 +537,7 @@ function N1ItaliaPage() {
         const dados = getDadosVisualizacao();
         if (tipoVisualizacao === 'total' || !dados || !Array.isArray(dados)) return null;
 
+        // Filtrar linha "Total" se existir
         const produtos = dados.filter(item => item.Produto !== 'Total');
         const totalProdutos = produtos.length;
         const kits = produtos.filter(item => detectarKits(item.Produto).isKit);
@@ -622,8 +613,11 @@ function N1ItaliaPage() {
         const dados = getDadosVisualizacao();
         if (!dados || !Array.isArray(dados)) return null;
 
-        let colunas = Object.keys(dados[0] || {});
-        const dadosOrdenados = sortData(dados, sortBy, sortOrder);
+        // Filtrar linha "Total" se existir
+        const dadosFiltrados = dados.filter(item => item.Produto !== 'Total');
+
+        let colunas = Object.keys(dadosFiltrados[0] || {});
+        const dadosOrdenados = sortData(dadosFiltrados, sortBy, sortOrder);
 
         const colunasEssenciais = ['Produto', 'Total_Pedidos', 'Entregues', 'Efetividade'];
         const isMobile = window.innerWidth < 768;
@@ -638,7 +632,7 @@ function N1ItaliaPage() {
                     <div className="flex items-center justify-between">
                         <div>
                             <CardTitle className="text-lg text-card-foreground">Resultados N1 Itália</CardTitle>
-                            <CardDescription className="text-muted-foreground">{dados.length} registros</CardDescription>
+                            <CardDescription className="text-muted-foreground">{dadosFiltrados.length} registros</CardDescription>
                         </div>
                         <div className="flex items-center gap-2">
                             <Tabs value={tipoVisualizacao} onValueChange={setTipoVisualizacao}>
@@ -671,7 +665,7 @@ function N1ItaliaPage() {
                                         let classesHeader = 'whitespace-nowrap px-2 py-2 text-xs text-muted-foreground';
 
                                         if (isProduto) {
-                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border min-w-[250px]';
+                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border min-w-[350px]';
                                         }
 
                                         return (
@@ -704,18 +698,18 @@ function N1ItaliaPage() {
 
                                             let classesCelula = 'px-2 py-2 text-xs text-card-foreground';
 
-                                            if (col.includes('Efetividade') && !col.includes('Parcial')) {
+                                            if (col === 'Efetividade') {
                                                 classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center`;
-                                            } else if (col.includes('Efetividade_Parcial') || col.includes('Parcial')) {
+                                            } else if (col.includes('Efetividade Parcial') || col === 'Efetividade Parcial') {
                                                 classesCelula += ` font-bold ${getEfetividadeParcialCor(row[col])} px-2 py-1 rounded text-center`;
-                                            } else if (col.includes('A_Caminho') || col.includes('Caminho') || col.includes('Taxa_Transito') || col.includes('Transito') || col.includes('Trânsito')) {
+                                            } else if (col.includes('% A Caminho') || col === '% A Caminho') {
                                                 classesCelula += ` font-bold ${getTaxaTransitoCor(row[col])} px-2 py-1 rounded text-center`;
-                                            } else if (col.includes('Devolvidos') || col.includes('Taxa_Devolucao') || col.includes('Devolucao') || col.includes('Devolução')) {
+                                            } else if (col.includes('% Devolvidos') || col === '% Devolvidos') {
                                                 classesCelula += ` font-bold ${getTaxaDevolucaoCor(row[col])} px-2 py-1 rounded text-center`;
                                             }
 
                                             if (isProduto) {
-                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border min-w-[250px]';
+                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border min-w-[350px]';
                                             }
 
                                             return (
@@ -724,7 +718,7 @@ function N1ItaliaPage() {
                                                     className={classesCelula}
                                                 >
                                                     {col === 'Produto' ? (
-                                                        <div className="flex items-start gap-2 min-w-[200px] max-w-[300px]">
+                                                        <div className="flex items-start gap-2 min-w-[300px] max-w-[400px]">
                                                             {(() => {
                                                                 const kitInfo = detectarKits(row[col]);
                                                                 return (

@@ -115,26 +115,16 @@ class AnaliseN1ItaliaViewSet(viewsets.ModelViewSet):
                 # Processar dados com o service
                 dados_processados = n1_italia_processor.processar_excel(dados_excel)
 
-                # Criar análise no banco
-                with transaction.atomic():
-                    analise = AnaliseN1Italia.objects.create(
-                        nome=nome_analise,
-                        descricao=descricao,
-                        dados_processados=dados_processados,
-                        criado_por=request.user
-                    )
-
                 tempo_processamento = time.time() - inicio
 
-                logger.info(f"Análise N1 criada com sucesso: ID {analise.id}")
+                logger.info(f"Análise N1 processada com sucesso (sem salvar no banco)")
 
                 # Preparar estatísticas para resposta
                 estatisticas = dados_processados.get('stats_total', {})
 
                 resultado = {
                     'status': 'success',
-                    'message': f'Análise "{nome_analise}" processada com sucesso!',
-                    'analise_id': analise.id,
+                    'message': f'Análise "{nome_analise}" processada com sucesso! Use o botão "Salvar" para armazenar.',
                     'dados_processados': dados_processados,
                     'estatisticas': estatisticas,
                     'tempo_processamento': round(tempo_processamento, 2)

@@ -243,12 +243,15 @@ class N1ItaliaProcessor:
                 'Em_Transito': em_transito,  # To prepare + Waiting for carrier + Assigned to carrier + Shipped
                 'Devolucao': devolucao,  # Return
                 'Cancelados': dados['Cancelados'],  # Deleted + Rejected + Duplicate
-                'Efetividade': f"{efetividade}%",
-                'Efetividade_Parcial': f"{efetividade_parcial}%",
-                'A_Caminho': f"{pct_a_caminho}%",
-                'Devolvidos': f"{pct_devolvidos}%"
+                '% A Caminho': f"{pct_a_caminho}%",
+                '% Devolvidos': f"{pct_devolvidos}%",
+                'Efetividade Parcial': f"{efetividade_parcial}%",
+                'Efetividade': f"{efetividade}%"
             }
             visualizacao.append(item)
+
+        # Filtrar linha "Total" se existir
+        visualizacao = [item for item in visualizacao if item['Produto'] != 'Total']
 
         # Ordenar por efetividade total (maior primeiro)
         visualizacao.sort(key=lambda x: float(x['Efetividade'].replace('%', '')), reverse=True)
@@ -296,6 +299,9 @@ class N1ItaliaProcessor:
                         item['Status_Nulo'] = count
 
             visualizacao.append(item)
+
+        # Filtrar linha "Total" se existir
+        visualizacao = [item for item in visualizacao if item['Produto'] != 'Total']
 
         # Ordenar por total (maior primeiro)
         visualizacao.sort(key=lambda x: x['Total_Pedidos'], reverse=True)
@@ -357,6 +363,68 @@ class N1ItaliaProcessor:
         # Converter para int nativo do Python
         return int(kits_count)
 
+    def _filtrar_linhas_totais(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Remove linhas de totais do DataFrame
+
+        Detecta linhas onde:
+        - Product name é NaN/vazio
+        - Order status é NaN/vazio
+        - Mas há valores em campos numéricos (como Total revenues)
+
+        Args:
+            df: DataFrame original
+
+        Returns:
+            DataFrame sem linhas de totais
+        """
+        try:
+            if df.empty:
+                return df
+
+            # Detectar colunas relevantes flexivelmente
+            product_col = None
+            status_col = None
+
+            # Buscar coluna de produto
+            for col in df.columns:
+                if any(term in col.lower() for term in ['product', 'produto', 'name', 'nome']):
+                    product_col = col
+                    break
+
+            # Buscar coluna de status
+            for col in df.columns:
+                if any(term in col.lower() for term in ['status', 'estado', 'situation']):
+                    status_col = col
+                    break
+
+            if not product_col and not status_col:
+                logger.warning("Colunas de produto/status não encontradas para filtrar totais")
+                return df
+
+            # Filtrar linhas de totais
+            mask = pd.Series([True] * len(df))
+
+            if product_col:
+                # Remover linhas onde produto está vazio/NaN
+                mask = mask & (~df[product_col].isna())
+
+            if status_col:
+                # Remover linhas onde status está vazio/NaN
+                mask = mask & (~df[status_col].isna())
+
+            df_filtrado = df[mask].copy()
+
+            linhas_removidas = len(df) - len(df_filtrado)
+            if linhas_removidas > 0:
+                logger.info(f"Removidas {linhas_removidas} linhas de totais")
+
+            return df_filtrado
+
+        except Exception as e:
+            logger.warning(f"Erro filtrando linhas de totais: {e}. Retornando dados originais")
+            return df
+
     def processar_arquivo_excel(self, arquivo) -> List[Dict]:
         """
         Processa arquivo Excel e extrai dados com mapeamento flexível de colunas
@@ -373,18 +441,21 @@ class N1ItaliaProcessor:
             # Ler Excel
             df = pd.read_excel(arquivo)
 
+            # Remover linhas de totais (última linha geralmente é total)
+            df_filtrado = self._filtrar_linhas_totais(df)
+
             # Mapeamento flexível de colunas
-            mapeamento_colunas = self._mapear_colunas(df.columns.tolist())
+            mapeamento_colunas = self._mapear_colunas(df_filtrado.columns.tolist())
 
             # Renomear colunas para padrão esperado
-            df_mapeado = df.rename(columns=mapeamento_colunas)
+            df_mapeado = df_filtrado.rename(columns=mapeamento_colunas)
 
             # Verificar se as colunas obrigatórias estão presentes após mapeamento
             campos_obrigatorios = ['order_number', 'status']
             campos_faltando = [campo for campo in campos_obrigatorios if campo not in df_mapeado.columns]
 
             if campos_faltando:
-                colunas_disponiveis = list(df.columns)
+                colunas_disponiveis = list(df_filtrado.columns)
                 raise ValueError(f"Campos obrigatórios não encontrados: {campos_faltando}. Colunas disponíveis: {colunas_disponiveis}")
 
             # Converter para lista de dicts
@@ -401,7 +472,7 @@ class N1ItaliaProcessor:
                         registro_limpo[key] = value
                 dados_limpos.append(registro_limpo)
 
-            logger.info(f"Excel processado: {len(dados_limpos)} registros extraídos com colunas mapeadas")
+            logger.info(f"Excel processado: {len(dados_limpos)} registros extraídos (linhas de totais removidas)")
             return dados_limpos
 
         except Exception as e:
