@@ -775,7 +775,10 @@ function N1ItaliaPage() {
                                                                     <>
                                                                         <span className="text-lg flex-shrink-0">{kitInfo.icon}</span>
                                                                         <div className="flex-1 overflow-hidden">
-                                                                            <div className="text-sm whitespace-nowrap overflow-hidden text-ellipsis pr-2">
+                                                                            <div
+                                                                                className="text-sm whitespace-nowrap overflow-hidden text-ellipsis pr-2 cursor-help"
+                                                                                title={kitInfo.display}
+                                                                            >
                                                                                 {kitInfo.display}
                                                                             </div>
                                                                         </div>
