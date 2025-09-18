@@ -11,14 +11,14 @@ logger = logging.getLogger(__name__)
 class N1ItaliaProcessor:
     """Processador principal para métricas N1 Itália"""
 
-    # Mapeamento de status N1 para categorias
+    # Mapeamento de status N1 para categorias (baseado nos status reais do arquivo)
     STATUS_MAPPING = {
         'entregues': ['Delivered'],
-        'finalizados': ['Delivered', 'Return', 'Invalid', 'Out of stock', 'Deleted', 'Rejected', 'Duplicate'],
-        'transito': ['To prepare', 'Waiting for carrier', 'Assigned to carrier', 'Shipped'],
-        'problemas': ['Invalid', 'Out of stock', 'Rejected'],
+        'finalizados': ['Delivered', 'Return', 'Out of stock'],
+        'transito': ['Shipped', 'Waiting for carrier', 'Unprocessed'],
+        'problemas': ['Out of stock', 'Unprocessed'],
         'devolucao': ['Return'],
-        'cancelados': ['Deleted', 'Rejected', 'Duplicate']
+        'cancelados': []  # Não há status de cancelamento no arquivo atual
     }
 
     def __init__(self):
