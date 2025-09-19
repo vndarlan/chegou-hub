@@ -24,7 +24,8 @@
       "Bash(set CI=false)",
       "Bash(set DISABLE_ESLINT_PLUGIN=true)",
       "Bash(set GENERATE_SOURCEMAP=false)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": [],

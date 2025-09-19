@@ -12,36 +12,6 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 #### 🚨 PÁGINA COMPLETAMENTE NOVA
 - **[📊 N1 Efetividade - NOVA PÁGINA]** Sistema completo de análise de dados de efetividade do mercado italiano com processamento inteligente de arquivos Excel. Inclui upload otimizado de dados, visualização em dois modos (Otimizada e Total), detecção automática de kits por número do pedido, agrupamento inteligente de produtos, e métricas coloridas por performance de status (Delivered, Return, etc.).
 
-### 🔧 Melhorias
-- **[N1 Efetividade]** Interface moderna idêntica ao EcomHub com duas visualizações: Otimizada (dados agrupados) e Total (dados completos)
-- **[N1 Efetividade]** Sistema robusto de mapeamento flexível de colunas Excel com fallbacks automáticos
-- **[N1 Efetividade]** Detecção inteligente de kits com agrupamento por similaridade de nomes de produtos
-- **[N1 Efetividade]** Tooltips informativos para visualização completa de produtos em kits
-- **[N1 Efetividade]** Layout responsivo otimizado com scroll horizontal e colunas expandidas
-- **[N1 Efetividade]** Sistema de salvamento e carregamento de análises para reutilização
-- **[Controle de Estoque]** Correção de constraints únicos para SKUs evitando duplicações
-- **[PrimeCOD]** Sistema de produtos compartilhados implementado com criptografia de tokens
-- **[PrimeCOD]** Correções críticas de performance em períodos grandes de análise
-- **[Sistema]** Resolução automática de alertas e detecção aprimorada de problemas
-
-### 🐛 Correções
-- **[N1 Efetividade]** Corrigido mapeamento completo de status e categorização adequada
-- **[N1 Efetividade]** Corrigidos erros críticos de sintaxe JSX e NoneType em visualizações
-- **[N1 Efetividade]** Corrigido agrupamento manual de kits com sistema robusto de fallbacks
-- **[N1 Efetividade]** Corrigidas URLs duplicadas e problemas de autenticação da API
-- **[N1 Efetividade]** Corrigidos problemas de escopo de visualização e campos obrigatórios
-- **[PrimeCOD]** Corrigido loop infinito em filtros e problemas de performance críticos
-- **[PrimeCOD]** Corrigido bug crítico retornando 0 orders em períodos grandes
-- **[Controle de Estoque]** Corrigidos erros 400 na criação e edição de produtos
-- **[Sistema]** Corrigidos problemas de fornecedores N1 e compatibilidade de campos
-
-### ⚠️ Importante
-- **🚨 FUNCIONALIDADE INÉDITA**: **N1 Efetividade** - Primeira ferramenta dedicada à análise de dados de efetividade do mercado italiano
-- **📊 PROCESSAMENTO AVANÇADO**: Sistema inteligente de detecção automática de kits e agrupamento de produtos
-- **🎯 MÉTRICAS VISUAIS**: Interface com códigos de cores para performance de status facilitando análise rápida
-- **💾 REUTILIZAÇÃO**: Sistema de salvamento permite análises contínuas sem reprocessamento
-- **🔧 ROBUSTEZ**: Implementação com múltiplas correções críticas garantindo estabilidade em produção
-
 ## [v1.2.0] - 09/09/2025
 
 ### ✨ Novidades
