@@ -16,9 +16,9 @@ class N1ItaliaProcessor:
         'entregues': ['Delivered'],
         'finalizados': ['Delivered', 'Return', 'Invalid', 'Out of stock', 'Deleted', 'Rejected', 'Duplicate'],
         'transito': ['To prepare', 'Waiting for carrier', 'Assigned to carrier', 'Shipped', 'Unprocessed'],
-        'problemas': ['Invalid', 'Out of stock', 'Rejected', 'Unprocessed'],
-        'devolucao': ['Return'],
-        'cancelados': ['Deleted', 'Rejected', 'Duplicate']
+        'problemas': ['Invalid', 'Out of stock'],
+        'devolucao': ['Return', 'Rejected'],
+        'cancelados': ['Deleted']
     }
 
     def __init__(self):
@@ -375,8 +375,9 @@ class N1ItaliaProcessor:
                 ('Entregues', entregues),  # Só Delivered
                 ('Finalizados', dados['Finalizados']),  # Delivered + Return + Invalid + Out of stock + Deleted + Rejected + Duplicate
                 ('Em_Transito', em_transito),  # To prepare + Waiting for carrier + Assigned to carrier + Shipped
-                ('Devolucao', devolucao),  # Return
-                ('Cancelados', dados['Cancelados']),  # Deleted + Rejected + Duplicate
+                ('Problemas', problemas),  # Invalid + Out of stock
+                ('Devolucao', devolucao),  # Return + Rejected
+                ('Cancelados', dados['Cancelados']),  # Deleted
                 ('% A Caminho', f"{pct_a_caminho}%"),
                 ('% Devolvidos', f"{pct_devolvidos}%"),
                 ('Efetividade Parcial', f"{efetividade_parcial}%"),

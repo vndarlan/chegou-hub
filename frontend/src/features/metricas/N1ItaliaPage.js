@@ -30,9 +30,9 @@ const STATUS_N1_MAPPING = {
     entregues: ['Delivered'],
     finalizados: ['Delivered', 'Return', 'Invalid', 'Out of stock', 'Deleted', 'Rejected', 'Duplicate'],
     transito: ['To prepare', 'Waiting for carrier', 'Assigned to carrier', 'Shipped', 'Unprocessed'],
-    problemas: ['Invalid', 'Out of stock', 'Rejected', 'Unprocessed'],
-    devolucao: ['Return'],
-    cancelados: ['Deleted', 'Rejected', 'Duplicate']
+    problemas: ['Invalid', 'Out of stock'],
+    devolucao: ['Return', 'Rejected'],
+    cancelados: ['Deleted']
 };
 
 const STATUS_N1_TOTAL = [
@@ -732,6 +732,7 @@ function N1ItaliaPage() {
             'Entregues',
             'Finalizados',
             'Em_Transito',
+            'Problemas',
             'Devolucao',
             'Cancelados',
             '% A Caminho',
@@ -1276,24 +1277,24 @@ function N1ItaliaPage() {
                                         <div className="flex items-center gap-2">
                                             <div className="w-4 h-4 bg-orange-500 rounded"></div>
                                             <span className="text-sm font-medium">Em Trânsito:</span>
-                                            <span className="text-sm text-muted-foreground">To prepare + Waiting for carrier + Assigned to carrier + Shipped</span>
+                                            <span className="text-sm text-muted-foreground">To prepare + Waiting for carrier + Assigned to carrier + Shipped + Unprocessed</span>
                                         </div>
                                     </div>
                                     <div className="space-y-2">
                                         <div className="flex items-center gap-2">
                                             <div className="w-4 h-4 bg-red-500 rounded"></div>
                                             <span className="text-sm font-medium">Problemas:</span>
-                                            <span className="text-sm text-muted-foreground">Invalid + Out of stock + Rejected</span>
+                                            <span className="text-sm text-muted-foreground">Invalid + Out of stock</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <div className="w-4 h-4 bg-yellow-500 rounded"></div>
                                             <span className="text-sm font-medium">Devolução:</span>
-                                            <span className="text-sm text-muted-foreground">Return</span>
+                                            <span className="text-sm text-muted-foreground">Return + Rejected</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <div className="w-4 h-4 bg-gray-500 rounded"></div>
                                             <span className="text-sm font-medium">Cancelados:</span>
-                                            <span className="text-sm text-muted-foreground">Deleted + Rejected + Duplicate</span>
+                                            <span className="text-sm text-muted-foreground">Deleted</span>
                                         </div>
                                     </div>
                                 </div>
