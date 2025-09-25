@@ -61,7 +61,7 @@ if not ALLOWED_HOSTS and not DEBUG:
     print("ALERTA DE SEGURANÇA: ALLOWED_HOSTS está vazia em produção. Adicionando '*' como último recurso.")
     ALLOWED_HOSTS.append('*')
 
-# Application definition ⭐ ATUALIZADO COM SEPARAÇÃO DE MÉTRICAS ⭐
+# Application definition - ATUALIZADO COM SEPARACAO DE METRICAS
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -485,7 +485,7 @@ if DEBUG:
 
 print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
 
-# ⭐ CONFIGURAÇÕES CRÍTICAS PARA CROSS-DOMAIN AUTHENTICATION ⭐
+# CONFIGURACOES CRITICAS PARA CROSS-DOMAIN AUTHENTICATION
 # Para funcionar entre domínios diferentes (frontend e backend Railway)
 SESSION_COOKIE_SAMESITE = 'None'  # OBRIGATÓRIO para cross-domain
 SESSION_COOKIE_SECURE = True       # HTTPS obrigatório com SameSite=None
@@ -504,9 +504,9 @@ SESSION_COOKIE_DOMAIN = None  # Não definir domínio específico para cross-dom
 SESSION_SAVE_EVERY_REQUEST = True  # Renovar sessão a cada request
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Manter sessão ativa
 
-print(f"⭐ CSRF Config CROSS-DOMAIN - Secure: {CSRF_COOKIE_SECURE}, SameSite: {CSRF_COOKIE_SAMESITE}, HTTPOnly: {CSRF_COOKIE_HTTPONLY}")
-print(f"⭐ Session Config CROSS-DOMAIN - Secure: {SESSION_COOKIE_SECURE}, SameSite: {SESSION_COOKIE_SAMESITE}")
-print(f"🔗 Cross-domain auth configurado para: chegouhubteste.up.railway.app → backendchegouhubteste.up.railway.app")
+print(f"CSRF Config CROSS-DOMAIN - Secure: {CSRF_COOKIE_SECURE}, SameSite: {CSRF_COOKIE_SAMESITE}, HTTPOnly: {CSRF_COOKIE_HTTPONLY}")
+print(f"Session Config CROSS-DOMAIN - Secure: {SESSION_COOKIE_SECURE}, SameSite: {SESSION_COOKIE_SAMESITE}")
+print(f"Cross-domain auth configurado para: chegouhubteste.up.railway.app -> backendchegouhubteste.up.railway.app")
 
 # --- Configuração X-Frame-Options para permitir widgets ---
 # Permitir embedding de widgets de terceiros confiáveis como N8N
@@ -557,7 +557,7 @@ def create_test_superuser():
                     email='admin@teste.com', 
                     password='123456'
                 )
-                print("✅ SUPERUSUÁRIO CRIADO AUTOMATICAMENTE:")
+                print("SUPERUSUARIO CRIADO AUTOMATICAMENTE:")
                 print("   Username: admin")
                 print("   Password: 123456")
                 print("   Email: admin@teste.com")

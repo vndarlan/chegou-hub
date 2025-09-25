@@ -25,7 +25,11 @@
       "Bash(set DISABLE_ESLINT_PLUGIN=true)",
       "Bash(set GENERATE_SOURCEMAP=false)",
       "Bash(node:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(timeout 10 curl -s http://localhost:8000/api/estoque/alertas/verificar_alertas_tempo_real/)",
+      "Bash(pkill:*)",
+      "Bash(echo:*)",
+      "Bash(git init:*)"
     ],
     "deny": [],
     "ask": [],

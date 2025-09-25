@@ -464,7 +464,15 @@ function ControleEstoquePage() {
     };
     
     const salvarProdutoCompartilhado = async () => {
+        console.log('🚀 INICIANDO CRIAÇÃO DE PRODUTO COMPARTILHADO');
+        console.log('📊 DEBUG INFO:');
+        console.log('- BaseURL atual:', axios.defaults.baseURL);
+        console.log('- CSRF Token:', getCSRFToken()?.substring(0, 10) + '...');
+        console.log('- Cookies:', document.cookie.split(';').map(c => c.trim().split('=')[0]));
+        console.log('- URL completa será:', axios.defaults.baseURL + '/estoque/produtos-compartilhados/');
+
         if (!novoProdutoCompartilhado.nome.trim()) {
+            console.log('❌ ERRO: Nome do produto vazio');
             showNotification('Nome do produto é obrigatório', 'error');
             return;
         }
@@ -519,16 +527,28 @@ function ControleEstoquePage() {
             };
             
             console.log('=== DEBUG CRIAÇÃO PRODUTO COMPARTILHADO ===');
-            console.log('Dados enviados:', dados);
-            
+            console.log('📤 Dados sendo enviados:', JSON.stringify(dados, null, 2));
+            console.log('📍 URL de destino:', axios.defaults.baseURL + '/estoque/produtos-compartilhados/');
+            console.log('🔒 Headers:', {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json'
+            });
+
+            console.log('⏱️ Fazendo requisição POST...');
+            const startTime = Date.now();
+
             const response = await axios.post('/estoque/produtos-compartilhados/', dados, {
-                headers: { 
+                headers: {
                     'X-CSRFToken': getCSRFToken(),
                     'Content-Type': 'application/json'
                 }
             });
-            
-            console.log('Resposta do servidor:', response.data);
+
+            const endTime = Date.now();
+            console.log(`✅ Resposta recebida em ${endTime - startTime}ms`);
+            console.log('📥 Status:', response.status);
+            console.log('📥 Headers da resposta:', response.headers);
+            console.log('📥 Dados da resposta:', JSON.stringify(response.data, null, 2));
             
             if (response.data && (response.data.id || response.data.success)) {
                 showNotification('Produto compartilhado criado com sucesso!');
@@ -551,8 +571,24 @@ function ControleEstoquePage() {
                 showNotification(response.data.error || 'Erro ao criar produto compartilhado', 'error');
             }
         } catch (error) {
-            console.error('Erro ao criar produto compartilhado:', error);
-            
+            console.error('❌ ERRO AO CRIAR PRODUTO COMPARTILHADO:');
+            console.error('🔍 Tipo do erro:', error.name);
+            console.error('📄 Mensagem:', error.message);
+            console.error('🌐 URL tentada:', error.config?.url);
+            console.error('📡 Método:', error.config?.method);
+            console.error('📤 Dados enviados:', error.config?.data);
+            console.error('🔒 Headers enviados:', error.config?.headers);
+
+            if (error.response) {
+                console.error('📥 Status da resposta:', error.response.status);
+                console.error('📥 Headers da resposta:', error.response.headers);
+                console.error('📥 Dados da resposta:', error.response.data);
+            } else if (error.request) {
+                console.error('🚫 Sem resposta do servidor:', error.request);
+            } else {
+                console.error('⚙️ Erro de configuração:', error.message);
+            }
+
             let mensagemErro = 'Erro ao criar produto compartilhado';
             if (error.response?.data) {
                 if (typeof error.response.data === 'string') {
@@ -562,8 +598,9 @@ function ControleEstoquePage() {
                 } else if (error.response.data.detail) {
                     mensagemErro = error.response.data.detail;
                 }
+                console.error('💬 Mensagem de erro final:', mensagemErro);
             }
-            
+
             showNotification(mensagemErro, 'error');
         } finally {
             setSavingProdutoCompartilhado(false);

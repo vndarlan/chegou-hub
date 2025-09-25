@@ -23,7 +23,7 @@ console.log("REACT_APP_API_BASE_URL env var:", process.env.REACT_APP_API_BASE_UR
 axios.defaults.xsrfCookieName = 'csrftoken';
 axios.defaults.xsrfHeaderName = 'X-CSRFToken';
 
-const DEBUG_MODE = false;
+const DEBUG_MODE = true; // TEMPORÁRIO: Habilitado para investigação
 
 if (DEBUG_MODE) {
   axios.interceptors.request.use(config => {
