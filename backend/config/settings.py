@@ -394,7 +394,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://www.chegouhub.com.br",
     "https://chegouhub.up.railway.app",
     "https://chegou-hubb-production.up.railway.app",
-    "https://chegouhubteste.up.railway.app",
+    "https://chegouhubteste.up.railway.app",  # URL FRONTEND RAILWAY
     "https://n8ngc.up.railway.app",  # Assistente N8N
 ]
 
@@ -423,13 +423,18 @@ if DEBUG:
 # CORS deve sempre permitir credentials, nunca usar wildcard
 CORS_ALLOW_CREDENTIALS = True
 
-# Para ambiente de teste, forçar a inclusão da URL de teste
-if DEBUG and os.getenv('DISABLE_CSRF', 'False').lower() == 'true':
+# Para ambiente Railway, SEMPRE incluir as URLs de teste
+# Esta configuração é crítica para o funcionamento cross-domain
+if IS_RAILWAY_DEPLOYMENT:
     CORS_ALLOWED_ORIGINS.extend([
         "https://chegouhubteste.up.railway.app",
         "http://chegouhubteste.up.railway.app"
     ])
-    print("URLs de teste adicionadas ao CORS automaticamente!")
+    CSRF_TRUSTED_ORIGINS.extend([
+        "https://chegouhubteste.up.railway.app",
+        "http://chegouhubteste.up.railway.app"
+    ])
+    print("🚀 URLs Railway adicionadas automaticamente ao CORS e CSRF!")
 
 print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
 print(f"CORS_ALLOWED_ORIGINS_ENV lida: '{CORS_ALLOWED_ORIGINS_ENV}'")
@@ -448,7 +453,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://www.chegouhub.com.br",
     "https://chegouhub.up.railway.app",
     "https://chegou-hubb-production.up.railway.app",
-    "https://chegouhubteste.up.railway.app",
+    "https://chegouhubteste.up.railway.app",  # URL FRONTEND RAILWAY
     "https://n8ngc.up.railway.app"  # Assistente N8N
 ]
 
@@ -476,22 +481,28 @@ if DEBUG:
 
 print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
 
-SESSION_COOKIE_SAMESITE = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax')
-SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', str(not DEBUG).lower()).lower() == 'true'
-CSRF_COOKIE_SAMESITE = os.getenv('CSRF_COOKIE_SAMESITE', 'Lax')
-CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', str(not DEBUG).lower()).lower() == 'true'
+# ⭐ CONFIGURAÇÕES CRÍTICAS PARA CROSS-DOMAIN AUTHENTICATION ⭐
+# Para funcionar entre domínios diferentes (frontend e backend Railway)
+SESSION_COOKIE_SAMESITE = 'None'  # OBRIGATÓRIO para cross-domain
+SESSION_COOKIE_SECURE = True       # HTTPS obrigatório com SameSite=None
+CSRF_COOKIE_SAMESITE = 'None'      # OBRIGATÓRIO para cross-domain
+CSRF_COOKIE_SECURE = True          # HTTPS obrigatório com SameSite=None
 
 CSRF_COOKIE_HTTPONLY = False
 
-# Configurações adicionais de CSRF para produção
-if not DEBUG:
-    CSRF_COOKIE_AGE = 3600  # 1 hora em produção
-    SESSION_COOKIE_AGE = 86400  # 24 horas em produção
-    CSRF_COOKIE_DOMAIN = None  # Usar domínio padrão
-    SESSION_COOKIE_DOMAIN = None  # Usar domínio padrão
+# Configurações adicionais de CSRF e SESSION para cross-domain
+CSRF_COOKIE_AGE = 3600  # 1 hora
+SESSION_COOKIE_AGE = 86400  # 24 horas
+CSRF_COOKIE_DOMAIN = None  # Não definir domínio específico para cross-domain
+SESSION_COOKIE_DOMAIN = None  # Não definir domínio específico para cross-domain
 
-print(f"CSRF Config - Secure: {CSRF_COOKIE_SECURE}, SameSite: {CSRF_COOKIE_SAMESITE}, HTTPOnly: {CSRF_COOKIE_HTTPONLY}")
-print(f"Session Config - Secure: {SESSION_COOKIE_SECURE}, SameSite: {SESSION_COOKIE_SAMESITE}")
+# Configurações adicionais para cross-domain authentication
+SESSION_SAVE_EVERY_REQUEST = True  # Renovar sessão a cada request
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Manter sessão ativa
+
+print(f"⭐ CSRF Config CROSS-DOMAIN - Secure: {CSRF_COOKIE_SECURE}, SameSite: {CSRF_COOKIE_SAMESITE}, HTTPOnly: {CSRF_COOKIE_HTTPONLY}")
+print(f"⭐ Session Config CROSS-DOMAIN - Secure: {SESSION_COOKIE_SECURE}, SameSite: {SESSION_COOKIE_SAMESITE}")
+print(f"🔗 Cross-domain auth configurado para: chegouhubteste.up.railway.app → backendchegouhubteste.up.railway.app")
 
 # --- Configuração X-Frame-Options para permitir widgets ---
 # Permitir embedding de widgets de terceiros confiáveis como N8N
@@ -520,9 +531,7 @@ REST_FRAMEWORK = {
     }
 }
 
-# Aumentar timeout da sessão
-SESSION_COOKIE_AGE = 86400 * 7
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+# ⚠️ REMOVIDO - configuração duplicada movida para cima com cross-domain settings
 
 print(f"--- Django Settings Loaded ---")
 

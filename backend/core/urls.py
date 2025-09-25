@@ -13,7 +13,7 @@ from .views import (
     RegisterView,
     EnsureCSRFView,
 )
-from .views_debug import DebugCorsView
+from .views_debug import DebugCorsView, CrossDomainAuthTestView
 from features.feedback.views import FeedbackNotificationsView
 
 urlpatterns = [
@@ -28,6 +28,7 @@ urlpatterns = [
     # Debug
     path('debug/cors/', DebugCorsView.as_view(), name='debug_cors'),
     path('cors-debug/', DebugCorsView.as_view(), name='cors_debug'),
+    path('debug/cross-domain-auth/', CrossDomainAuthTestView.as_view(), name='debug_cross_domain_auth'),
     
     # Notificações centralizadas
     path('notifications/feedbacks/', FeedbackNotificationsView.as_view(), name='notifications_feedbacks'),
