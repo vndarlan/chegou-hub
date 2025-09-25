@@ -180,7 +180,13 @@ function ControleEstoquePage() {
     const loadAlertas = useCallback(async () => {
         try {
             // Usar o novo endpoint que verifica alertas em tempo real - modo unificado
-            const response = await axios.get('/estoque/alertas/verificar_alertas_tempo_real/');
+            const response = await axios.get('/estoque/alertas/verificar_alertas_tempo_real/', {
+                headers: {
+                    'X-CSRFToken': getCSRFToken(),
+                    'Content-Type': 'application/json'
+                },
+                withCredentials: true
+            });
             
             if (response.data && response.data.alertas && Array.isArray(response.data.alertas)) {
                 const alertasAtivos = response.data.alertas;
@@ -216,12 +222,26 @@ function ControleEstoquePage() {
             }
         } catch (error) {
             console.error('Erro ao carregar alertas:', error);
-            
+
+            // Tratamento específico para erros de autenticação
+            if (error.response?.status === 401 || error.response?.status === 403) {
+                console.error('⚠️ Erro de autenticação ao carregar alertas');
+                showNotification('Erro de autenticação. Faça login novamente.', 'error');
+                setAlertas([]);
+                return;
+            }
+
             // Fallback para o endpoint antigo caso o novo falhe
             console.log('⚠️ Tentando fallback para endpoint antigo de alertas...');
             try {
-                const fallbackResponse = await axios.get('/estoque/alertas/');
-                
+                const fallbackResponse = await axios.get('/estoque/alertas/', {
+                    headers: {
+                        'X-CSRFToken': getCSRFToken(),
+                        'Content-Type': 'application/json'
+                    },
+                    withCredentials: true
+                });
+
                 if (fallbackResponse.data && Array.isArray(fallbackResponse.data)) {
                     const alertasAtivos = fallbackResponse.data.filter(alerta => alerta.status === 'ativo');
                     console.log('✅ Fallback - Alertas carregados:', alertasAtivos.length);
@@ -231,6 +251,13 @@ function ControleEstoquePage() {
                 }
             } catch (fallbackError) {
                 console.error('Erro no fallback dos alertas:', fallbackError);
+
+                // Tratamento específico para erro de autenticação no fallback
+                if (fallbackError.response?.status === 401 || fallbackError.response?.status === 403) {
+                    showNotification('Erro de autenticação. Faça login novamente.', 'error');
+                } else {
+                    showNotification('Erro ao carregar alertas de estoque', 'error');
+                }
                 setAlertas([]);
             }
         }
