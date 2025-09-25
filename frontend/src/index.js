@@ -8,8 +8,13 @@ import reportWebVitals from './reportWebVitals';
 
 // Configuração base do Axios - agora usando variável de ambiente
 const API_URL = process.env.REACT_APP_API_BASE_URL || 'https://chegou-hubb-production.up.railway.app/api';
-axios.defaults.baseURL = API_URL;
+
+// Garantir que a URL sempre tenha protocolo https://
+const normalizedURL = API_URL.startsWith('http') ? API_URL : `https://${API_URL}`;
+axios.defaults.baseURL = normalizedURL;
 axios.defaults.withCredentials = true;
+console.log("API Base URL original:", API_URL);
+console.log("API Base URL normalizada:", normalizedURL);
 console.log("API Base URL configurada:", axios.defaults.baseURL);
 console.log("REACT_APP_API_BASE_URL env var:", process.env.REACT_APP_API_BASE_URL);
 
