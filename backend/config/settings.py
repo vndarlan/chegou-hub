@@ -430,11 +430,7 @@ if IS_RAILWAY_DEPLOYMENT:
         "https://chegouhubteste.up.railway.app",
         "http://chegouhubteste.up.railway.app"
     ])
-    CSRF_TRUSTED_ORIGINS.extend([
-        "https://chegouhubteste.up.railway.app",
-        "http://chegouhubteste.up.railway.app"
-    ])
-    print("🚀 URLs Railway adicionadas automaticamente ao CORS e CSRF!")
+    print("🚀 URLs Railway adicionadas automaticamente ao CORS!")
 
 print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
 print(f"CORS_ALLOWED_ORIGINS_ENV lida: '{CORS_ALLOWED_ORIGINS_ENV}'")
@@ -461,6 +457,14 @@ CSRF_TRUSTED_ORIGINS = [
 CSRF_TRUSTED_ORIGINS_ENV = os.getenv('CSRF_TRUSTED_ORIGINS')
 if CSRF_TRUSTED_ORIGINS_ENV:
     CSRF_TRUSTED_ORIGINS.extend([origin.strip() for origin in CSRF_TRUSTED_ORIGINS_ENV.split(',')])
+
+# Adicionar URLs Railway para ambiente de produção
+if IS_RAILWAY_DEPLOYMENT:
+    CSRF_TRUSTED_ORIGINS.extend([
+        "https://chegouhubteste.up.railway.app",
+        "http://chegouhubteste.up.railway.app"
+    ])
+    print("🚀 URLs Railway adicionadas automaticamente ao CSRF!")
 
 # Adicionar origens locais para desenvolvimento
 if DEBUG:
