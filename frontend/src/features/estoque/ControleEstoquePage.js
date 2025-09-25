@@ -550,9 +550,10 @@ function ControleEstoquePage() {
             console.log('📥 Headers da resposta:', response.headers);
             console.log('📥 Dados da resposta:', JSON.stringify(response.data, null, 2));
             
-            if (response.data && (response.data.id || response.data.success)) {
+            // Sucesso baseado no status HTTP (200/201) OU presença de dados
+            if (response.status === 200 || response.status === 201 || (response.data && (response.data.id || response.data.success))) {
                 showNotification('Produto compartilhado criado com sucesso!');
-                
+
                 // Reset do formulário
                 setNovoProdutoCompartilhado({
                     nome: '',
@@ -563,12 +564,18 @@ function ControleEstoquePage() {
                     estoque_compartilhado: 0,
                     estoque_minimo: 5
                 });
-                
+
                 setShowAddProdutoCompartilhado(false);
+                console.log('🔄 Atualizando listagem de produtos...');
                 await loadProdutos();
                 await loadAlertas();
+                console.log('✅ Listagem atualizada!');
             } else {
-                showNotification(response.data.error || 'Erro ao criar produto compartilhado', 'error');
+                console.log('❌ Condição de sucesso não atendida:', {
+                    status: response.status,
+                    data: response.data
+                });
+                showNotification(response.data?.error || 'Erro ao criar produto compartilhado', 'error');
             }
         } catch (error) {
             console.error('❌ ERRO AO CRIAR PRODUTO COMPARTILHADO:');
