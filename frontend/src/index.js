@@ -7,7 +7,9 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 
 // Configuração base do Axios - agora usando variável de ambiente
-const API_URL = process.env.REACT_APP_API_BASE_URL || 'https://chegou-hubb-production.up.railway.app/api';
+// TEMPORÁRIO: Forçar Railway para teste
+const API_URL = 'https://backendchegouhubteste.up.railway.app/api';
+// const API_URL = process.env.REACT_APP_API_BASE_URL || 'https://chegou-hubb-production.up.railway.app/api';
 
 // Garantir que a URL sempre tenha protocolo https://
 const normalizedURL = API_URL.startsWith('http') ? API_URL : `https://${API_URL}`;
