@@ -1851,11 +1851,27 @@ class ProdutoViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Definir usuário automaticamente na criação"""
         try:
-            logger.info(f"Criando produto compartilhado - Usuário: {self.request.user.username}")
+            logger.info(f"=== INICIANDO CRIAÇÃO PRODUTO COMPARTILHADO ===")
+            logger.info(f"Usuário: {self.request.user.username}")
+            logger.info(f"Dados validados: {serializer.validated_data}")
+            logger.info(f"Dados brutos da request: {self.request.data}")
+
             produto = serializer.save(user=self.request.user)
-            logger.info(f"Produto compartilhado criado com sucesso: {produto.nome}")
+
+            logger.info(f"=== PRODUTO COMPARTILHADO CRIADO COM SUCESSO ===")
+            logger.info(f"ID: {produto.id}")
+            logger.info(f"Nome: {produto.nome}")
+            logger.info(f"SKUs criados: {produto.skus.count()}")
+            logger.info(f"Lojas associadas: {produto.produtoloja_set.count()}")
+
+            return produto
         except Exception as e:
-            logger.error(f"Erro ao criar produto compartilhado: {str(e)}")
+            logger.error(f"=== ERRO AO CRIAR PRODUTO COMPARTILHADO ===")
+            logger.error(f"Erro: {str(e)}")
+            logger.error(f"Tipo do erro: {type(e).__name__}")
+            logger.error(f"Dados da request: {self.request.data}")
+            import traceback
+            logger.error(f"Traceback completo: {traceback.format_exc()}")
             raise
 
 

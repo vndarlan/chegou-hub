@@ -594,38 +594,104 @@ class ProdutoSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         """Criar produto com SKUs e lojas associadas"""
-        # Extrair dados aninhados
-        skus_data = validated_data.pop('skus_data', [])
-        lojas_ids = validated_data.pop('lojas_ids', [])
-        
-        # Definir usuário
-        request = self.context.get('request')
-        if request and request.user:
-            validated_data['user'] = request.user
-        
-        # Criar produto
-        produto = Produto.objects.create(**validated_data)
-        
-        # Criar SKUs - usar get_or_create para evitar problemas de integridade
-        for sku_data in skus_data:
-            ProdutoSKU.objects.get_or_create(
-                produto=produto,
-                sku=sku_data.get('sku'),
-                defaults={
-                    'descricao_variacao': sku_data.get('descricao_variacao', ''),
-                    'ativo': sku_data.get('ativo', True)
-                }
-            )
-        
-        # Associar lojas
-        for loja_id in lojas_ids:
-            try:
-                loja = ShopifyConfig.objects.get(id=loja_id, user=request.user)
-                ProdutoLoja.objects.create(produto=produto, loja=loja)
-            except ShopifyConfig.DoesNotExist:
-                pass  # Loja já foi validada, não deveria acontecer
-        
-        return produto
+        import logging
+        from django.db import transaction
+
+        logger = logging.getLogger(__name__)
+
+        try:
+            logger.info(f"=== INICIANDO SERIALIZER CREATE ===")
+            logger.info(f"Dados validados recebidos: {validated_data}")
+
+            # Extrair dados aninhados
+            skus_data = validated_data.pop('skus_data', [])
+            lojas_ids = validated_data.pop('lojas_ids', [])
+
+            logger.info(f"SKUs extraídos: {skus_data}")
+            logger.info(f"Lojas IDs extraídos: {lojas_ids}")
+
+            # Definir usuário
+            request = self.context.get('request')
+            if request and request.user:
+                validated_data['user'] = request.user
+                logger.info(f"Usuário definido: {request.user.username}")
+            else:
+                logger.error("Usuário não encontrado no contexto!")
+                raise serializers.ValidationError("Usuário não encontrado")
+
+            # Usar transação para garantir atomicidade
+            with transaction.atomic():
+                # Criar produto
+                logger.info(f"Criando produto com dados: {validated_data}")
+                produto = Produto.objects.create(**validated_data)
+                logger.info(f"Produto criado - ID: {produto.id}, Nome: {produto.nome}")
+
+                # Criar SKUs
+                skus_criados = 0
+                for i, sku_data in enumerate(skus_data):
+                    logger.info(f"Processando SKU {i+1}: {sku_data}")
+
+                    sku_obj, created = ProdutoSKU.objects.get_or_create(
+                        produto=produto,
+                        sku=sku_data.get('sku'),
+                        defaults={
+                            'descricao_variacao': sku_data.get('descricao_variacao', ''),
+                            'ativo': sku_data.get('ativo', True)
+                        }
+                    )
+
+                    if created:
+                        skus_criados += 1
+                        logger.info(f"SKU criado: {sku_obj.sku}")
+                    else:
+                        logger.warning(f"SKU já existia: {sku_obj.sku}")
+
+                logger.info(f"Total de SKUs criados: {skus_criados}")
+
+                # Associar lojas
+                lojas_associadas = 0
+                for loja_id in lojas_ids:
+                    try:
+                        logger.info(f"Associando loja ID: {loja_id}")
+                        loja = ShopifyConfig.objects.get(id=loja_id, user=request.user)
+
+                        produto_loja, created = ProdutoLoja.objects.get_or_create(
+                            produto=produto,
+                            loja=loja,
+                            defaults={'ativo': True}
+                        )
+
+                        if created:
+                            lojas_associadas += 1
+                            logger.info(f"Loja associada: {loja.nome_loja}")
+                        else:
+                            logger.warning(f"Produto já estava associado à loja: {loja.nome_loja}")
+
+                    except ShopifyConfig.DoesNotExist:
+                        logger.error(f"Loja ID {loja_id} não encontrada para usuário {request.user.username}")
+
+                logger.info(f"Total de lojas associadas: {lojas_associadas}")
+
+                # Verificar resultado final
+                produto.refresh_from_db()
+                skus_final = produto.skus.count()
+                lojas_final = produto.produtoloja_set.count()
+
+                logger.info(f"=== PRODUTO CRIADO COM SUCESSO ===")
+                logger.info(f"ID: {produto.id}")
+                logger.info(f"Nome: {produto.nome}")
+                logger.info(f"SKUs no banco: {skus_final}")
+                logger.info(f"Lojas no banco: {lojas_final}")
+
+                return produto
+
+        except Exception as e:
+            logger.error(f"=== ERRO NO SERIALIZER CREATE ===")
+            logger.error(f"Erro: {str(e)}")
+            logger.error(f"Tipo: {type(e).__name__}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
     
     def update(self, instance, validated_data):
         """Atualizar produto com SKUs e lojas associadas"""
@@ -990,6 +1056,7 @@ class ProdutoUnificadoSerializer(serializers.Serializer):
     nome = serializers.CharField(max_length=255)
     fornecedor = serializers.CharField(max_length=50)
     sku = serializers.SerializerMethodField()
+    todos_skus = serializers.SerializerMethodField()
     
     # Campos de estoque unificados
     estoque_atual = serializers.SerializerMethodField()
@@ -1023,6 +1090,14 @@ class ProdutoUnificadoSerializer(serializers.Serializer):
         else:  # Produto compartilhado
             primeiro_sku = obj.skus.filter(ativo=True).first()
             return primeiro_sku.sku if primeiro_sku else 'N/A'
+
+    def get_todos_skus(self, obj):
+        """Retorna todos os SKUs do produto formatados"""
+        if hasattr(obj, 'sku'):  # ProdutoEstoque
+            return obj.sku
+        else:  # Produto compartilhado
+            skus = obj.skus.filter(ativo=True).values_list('sku', flat=True)
+            return ', '.join(skus) if skus else 'N/A'
     
     def get_estoque_atual(self, obj):
         """Retorna estoque atual unificado"""

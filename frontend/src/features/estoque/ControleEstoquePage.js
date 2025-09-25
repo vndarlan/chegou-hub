@@ -279,8 +279,9 @@ function ControleEstoquePage() {
         
         // Filtro por texto
         if (searchTerm.trim()) {
-            filtered = filtered.filter(produto => 
+            filtered = filtered.filter(produto =>
                 produto.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                produto.todos_skus?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 produto.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 produto.fornecedor?.toLowerCase().includes(searchTerm.toLowerCase())
             );
@@ -374,11 +375,19 @@ function ControleEstoquePage() {
     const loadMovimentacoes = async (produtoId = null) => {
         setLoadingMovimentacoes(true);
         try {
-            const params = {}; // Sem filtro por loja no modo unificado
+            const params = {};
             if (produtoId) params.produto_id = produtoId;
-            
-            const response = await axios.get('/estoque/movimentacoes/', { params });
-            
+
+            // Determinar tipo do produto se temos um produto selecionado
+            let endpoint = '/estoque/movimentacoes/';
+            if (selectedProduto && selectedProduto.tipo_produto === 'compartilhado') {
+                endpoint = '/estoque/movimentacoes-compartilhadas/';
+            }
+
+            console.log(`Carregando movimentações usando endpoint: ${endpoint}`);
+
+            const response = await axios.get(endpoint, { params });
+
             if (response.data && Array.isArray(response.data)) {
                 setMovimentacoes(response.data);
             } else {
@@ -682,8 +691,15 @@ function ControleEstoquePage() {
                 observacoes: `${ajusteEstoque.motivo}${ajusteEstoque.observacoes ? ': ' + ajusteEstoque.observacoes : ''}`
             };
 
-            const response = await axios.post('/estoque/movimentacoes/', dados, {
-                headers: { 
+            // Usar endpoint correto baseado no tipo de produto
+            const endpoint = selectedProduto.tipo_produto === 'compartilhado'
+                ? '/estoque/movimentacoes-compartilhadas/'
+                : '/estoque/movimentacoes/';
+
+            console.log(`Usando endpoint: ${endpoint} para produto tipo: ${selectedProduto.tipo_produto}`);
+
+            const response = await axios.post(endpoint, dados, {
+                headers: {
                     'X-CSRFToken': getCSRFToken(),
                     'Content-Type': 'application/json'
                 }
@@ -1544,7 +1560,7 @@ function ControleEstoquePage() {
                                                             </div>
                                                             <div>
                                                                 <p className="font-medium text-sm text-foreground">{produto.nome}</p>
-                                                                <p className="text-xs text-muted-foreground font-mono">SKU: {produto.sku}</p>
+                                                                <p className="text-xs text-muted-foreground font-mono">SKU: {produto.todos_skus || produto.sku}</p>
                                                             </div>
                                                         </div>
                                                     </TableCell>
