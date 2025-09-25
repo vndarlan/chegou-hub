@@ -301,70 +301,124 @@ class EstoqueService:
                 item_result['message'] = f"Quantidade inválida: {quantity}"
                 return item_result
             
-            # Buscar produto no estoque
+            # Buscar produto no estoque (CORRIGIDO: busca em produtos individuais E compartilhados)
             safe_print(f"[CANCELAMENTO PROCESSOR] Buscando produto no banco de dados...")
-            
+
+            produto = None
+            tipo_produto = None
+
+            # Primeiro, tentar buscar em produtos individuais por loja (ProdutoEstoque)
             try:
                 produto = ProdutoEstoque.objects.get(
                     loja_config=loja_config,
                     sku=sku,
                     ativo=True
                 )
-                safe_print(f"[CANCELAMENTO PROCESSOR] OK Produto encontrado!")
+                tipo_produto = "individual"
+                safe_print(f"[CANCELAMENTO PROCESSOR] ✅ Produto INDIVIDUAL encontrado!")
                 safe_print(f"[CANCELAMENTO PROCESSOR] ID: {produto.id}")
                 safe_print(f"[CANCELAMENTO PROCESSOR] Nome: {produto.nome}")
                 safe_print(f"[CANCELAMENTO PROCESSOR] Estoque atual: {produto.estoque_atual}")
-                
+
             except ProdutoEstoque.DoesNotExist:
+                safe_print(f"[CANCELAMENTO PROCESSOR] Produto individual não encontrado, tentando produtos compartilhados...")
+
+                # Buscar em produtos compartilhados
+                from features.estoque.models import Produto, ProdutoSKU, ProdutoLoja
+
+                try:
+                    # Buscar SKU em produtos compartilhados associados à loja
+                    produto_sku = ProdutoSKU.objects.select_related('produto').get(
+                        sku=sku,
+                        ativo=True,
+                        produto__ativo=True,
+                        produto__lojas=loja_config
+                    )
+
+                    produto = produto_sku.produto
+                    tipo_produto = "compartilhado"
+                    safe_print(f"[CANCELAMENTO PROCESSOR] ✅ Produto COMPARTILHADO encontrado!")
+                    safe_print(f"[CANCELAMENTO PROCESSOR] ID: {produto.id}")
+                    safe_print(f"[CANCELAMENTO PROCESSOR] Nome: {produto.nome}")
+                    safe_print(f"[CANCELAMENTO PROCESSOR] Estoque atual: {produto.estoque_compartilhado}")
+                    safe_print(f"[CANCELAMENTO PROCESSOR] SKU: {produto_sku.sku}")
+
+                except ProdutoSKU.DoesNotExist:
+                    safe_print(f"[CANCELAMENTO PROCESSOR] ❌ PRODUTO NÃO ENCONTRADO em nenhum modelo!")
+
+            if produto is None:
                 safe_print(f"[CANCELAMENTO PROCESSOR] ❌ ERROR: Produto NÃO encontrado no banco!")
                 safe_print(f"[CANCELAMENTO PROCESSOR] SKU PROCURADO: '{sku}'")
-                
-                # Listar produtos da mesma loja
-                produtos_loja = ProdutoEstoque.objects.filter(
+
+                # Debug: Listar produtos de ambos os tipos
+                produtos_individuais = ProdutoEstoque.objects.filter(
                     loja_config=loja_config,
                     ativo=True
                 ).values_list('id', 'sku', 'nome')
-                
-                safe_print(f"[CANCELAMENTO PROCESSOR] Produtos na loja ({produtos_loja.count()} total):")
-                for prod_id, prod_sku, prod_nome in produtos_loja:
+
+                safe_print(f"[CANCELAMENTO PROCESSOR] Produtos INDIVIDUAIS na loja ({produtos_individuais.count()} total):")
+                for prod_id, prod_sku, prod_nome in produtos_individuais:
                     safe_print(f"[CANCELAMENTO PROCESSOR]   ID:{prod_id} | SKU:'{prod_sku}' | Nome:{prod_nome}")
-                
+
+                from features.estoque.models import ProdutoSKU
+                produtos_compartilhados = ProdutoSKU.objects.filter(
+                    ativo=True,
+                    produto__ativo=True,
+                    produto__produtoloja_set__loja=loja_config,
+                    produto__produtoloja_set__ativo=True
+                ).select_related('produto').values_list('produto__id', 'sku', 'produto__nome')
+
+                safe_print(f"[CANCELAMENTO PROCESSOR] Produtos COMPARTILHADOS na loja ({produtos_compartilhados.count()} total):")
+                for prod_id, prod_sku, prod_nome in produtos_compartilhados:
+                    safe_print(f"[CANCELAMENTO PROCESSOR]   ID:{prod_id} | SKU:'{prod_sku}' | Nome:{prod_nome}")
+
                 item_result['message'] = f"Produto com SKU '{sku}' não encontrado para cancelamento"
                 return item_result
             
-            # Adicionar estoque de volta
+            # Adicionar estoque de volta (adaptado para ambos os tipos)
             safe_print(f"[CANCELAMENTO PROCESSOR] OK Produto encontrado! Adicionando estoque de volta...")
-            
-            estoque_anterior = produto.estoque_atual
-            
+            safe_print(f"[CANCELAMENTO PROCESSOR] Tipo produto: {tipo_produto}")
+
+            estoque_anterior = produto.estoque_atual if tipo_produto == "individual" else produto.estoque_compartilhado
             observacao = f"CANCELAMENTO Shopify - Pedido #{order_data.get('order_number')} - {item.get('title', 'Produto sem título')}"
-            
+
             safe_print(f"[CANCELAMENTO PROCESSOR] Chamando produto.adicionar_estoque()...")
             safe_print(f"[CANCELAMENTO PROCESSOR] Parâmetros:")
             safe_print(f"[CANCELAMENTO PROCESSOR]   - quantidade: {quantity}")
             safe_print(f"[CANCELAMENTO PROCESSOR]   - observacao: {observacao}")
-            
-            produto.adicionar_estoque(
-                quantidade=quantity,
-                observacao=observacao,
-                pedido_shopify_id=order_data.get('shopify_order_id')
-            )
-            
-            # CORREÇÃO: Verificar alertas automaticamente após cancelamento
+
+            if tipo_produto == "individual":
+                # Para produtos individuais (ProdutoEstoque)
+                produto.adicionar_estoque(
+                    quantidade=quantity,
+                    observacao=observacao,
+                    pedido_shopify_id=order_data.get('shopify_order_id')
+                )
+                estoque_posterior = produto.estoque_atual
+            else:  # tipo_produto == "compartilhado"
+                # Para produtos compartilhados (Produto)
+                produto.adicionar_estoque(
+                    quantidade=quantity,
+                    observacao=observacao,
+                    loja_origem=loja_config
+                )
+                estoque_posterior = produto.estoque_compartilhado
+
+            # Verificar alertas automaticamente após cancelamento
             safe_print(f"[CANCELAMENTO PROCESSOR] Verificando alertas após cancelamento...")
             produto._check_and_resolve_alerts_after_adjustment()
-            
+
             safe_print(f"[CANCELAMENTO PROCESSOR] OK Estoque adicionado com sucesso!")
             safe_print(f"[CANCELAMENTO PROCESSOR] Estoque anterior: {estoque_anterior}")
-            safe_print(f"[CANCELAMENTO PROCESSOR] Estoque atual: {produto.estoque_atual}")
-            
+            safe_print(f"[CANCELAMENTO PROCESSOR] Estoque atual: {estoque_posterior}")
+
             # Atualizar resultado
             item_result.update({
                 'success': True,
-                'message': 'Estoque revertido com sucesso',
+                'message': f'Estoque revertido com sucesso ({tipo_produto})',
                 'produto_id': produto.id,
                 'estoque_anterior': estoque_anterior,
-                'estoque_posterior': produto.estoque_atual
+                'estoque_posterior': estoque_posterior
             })
             
             return item_result
@@ -417,127 +471,184 @@ class EstoqueService:
                 item_result['message'] = f"Quantidade inválida: {quantity}"
                 return item_result
             
-            # Buscar produto no estoque
+            # Buscar produto no estoque (CORRIGIDO: busca em produtos individuais E compartilhados)
             safe_print(f"[ITEM PROCESSOR] Buscando produto no banco de dados...")
             safe_print(f"[ITEM PROCESSOR] Critérios da busca:")
             safe_print(f"[ITEM PROCESSOR]   - loja_config: {loja_config.id if hasattr(loja_config, 'id') else 'N/A'}")
             safe_print(f"[ITEM PROCESSOR]   - sku: '{sku}'")
             safe_print(f"[ITEM PROCESSOR]   - ativo: True")
-            
+
+            produto = None
+            tipo_produto = None
+
+            # Primeiro, tentar buscar em produtos individuais por loja (ProdutoEstoque)
             try:
                 produto = ProdutoEstoque.objects.get(
                     loja_config=loja_config,
                     sku=sku,
                     ativo=True
                 )
-                safe_print(f"[ITEM PROCESSOR] OK Produto encontrado!")
+                tipo_produto = "individual"
+                safe_print(f"[ITEM PROCESSOR] ✅ Produto INDIVIDUAL encontrado!")
                 safe_print(f"[ITEM PROCESSOR] ID: {produto.id}")
                 safe_print(f"[ITEM PROCESSOR] Nome: {produto.nome}")
                 safe_print(f"[ITEM PROCESSOR] Estoque atual: {produto.estoque_atual}")
                 safe_print(f"[ITEM PROCESSOR] Estoque mínimo: {produto.estoque_minimo}")
-                
+
             except ProdutoEstoque.DoesNotExist:
+                safe_print(f"[ITEM PROCESSOR] Produto individual não encontrado, tentando produtos compartilhados...")
+
+                # Buscar em produtos compartilhados (Produto + ProdutoSKU + ProdutoLoja)
+                from features.estoque.models import Produto, ProdutoSKU, ProdutoLoja
+
+                try:
+                    # Buscar SKU em produtos compartilhados associados à loja
+                    produto_sku = ProdutoSKU.objects.select_related('produto').get(
+                        sku=sku,
+                        ativo=True,
+                        produto__ativo=True,
+                        produto__lojas=loja_config
+                    )
+
+                    produto = produto_sku.produto
+                    tipo_produto = "compartilhado"
+                    safe_print(f"[ITEM PROCESSOR] ✅ Produto COMPARTILHADO encontrado!")
+                    safe_print(f"[ITEM PROCESSOR] ID: {produto.id}")
+                    safe_print(f"[ITEM PROCESSOR] Nome: {produto.nome}")
+                    safe_print(f"[ITEM PROCESSOR] Estoque atual: {produto.estoque_compartilhado}")
+                    safe_print(f"[ITEM PROCESSOR] Estoque mínimo: {produto.estoque_minimo}")
+                    safe_print(f"[ITEM PROCESSOR] SKU: {produto_sku.sku}")
+
+                except ProdutoSKU.DoesNotExist:
+                    safe_print(f"[ITEM PROCESSOR] ❌ PRODUTO NÃO ENCONTRADO em nenhum modelo!")
+
+            if produto is None:
                 safe_print(f"[ITEM PROCESSOR] ❌ ERROR: Produto NÃO encontrado no banco!")
                 safe_print(f"[ITEM PROCESSOR] ============== DEBUG DETALHADO ==============")
                 safe_print(f"[ITEM PROCESSOR] SKU PROCURADO: '{sku}' (tipo: {type(sku)})")
                 safe_print(f"[ITEM PROCESSOR] Loja ID: {loja_config.id if hasattr(loja_config, 'id') else 'N/A'}")
                 safe_print(f"[ITEM PROCESSOR] Nome da Loja: {loja_config.nome_loja if hasattr(loja_config, 'nome_loja') else 'N/A'}")
                 safe_print(f"[ITEM PROCESSOR] Shop URL: {loja_config.shop_url if hasattr(loja_config, 'shop_url') else 'N/A'}")
-                
-                # Debug: Listar TODOS os produtos da mesma loja para comparação
-                produtos_loja = ProdutoEstoque.objects.filter(
+
+                # Debug: Listar produtos individuais da loja
+                produtos_individuais = ProdutoEstoque.objects.filter(
                     loja_config=loja_config,
                     ativo=True
                 ).values_list('id', 'sku', 'nome', 'estoque_atual')
-                
-                safe_print(f"[ITEM PROCESSOR] TODOS os produtos cadastrados nesta loja ({produtos_loja.count()} total):")
-                if produtos_loja.count() == 0:
-                    safe_print(f"[ITEM PROCESSOR] ⚠️  NENHUM produto cadastrado nesta loja!")
+
+                safe_print(f"[ITEM PROCESSOR] PRODUTOS INDIVIDUAIS nesta loja ({produtos_individuais.count()} total):")
+                if produtos_individuais.count() == 0:
+                    safe_print(f"[ITEM PROCESSOR] ⚠️ NENHUM produto individual cadastrado nesta loja!")
                 else:
-                    for prod_id, prod_sku, prod_nome, estoque in produtos_loja:
-                        # Comparar caractere por caractere se necessário
+                    for prod_id, prod_sku, prod_nome, estoque in produtos_individuais:
                         sku_match = "✅ EXATO" if prod_sku == sku else "❌ DIFERENTE"
                         safe_print(f"[ITEM PROCESSOR]   ID:{prod_id} | SKU:'{prod_sku}' | Nome:{prod_nome} | Estoque:{estoque} | {sku_match}")
-                
-                # Verificar se existe produto com esse SKU em outras lojas
-                outros_produtos = ProdutoEstoque.objects.filter(
-                    sku=sku,
-                    ativo=True
-                ).exclude(loja_config=loja_config).values_list('loja_config__nome_loja', 'loja_config__shop_url')
-                
-                if outros_produtos.exists():
-                    safe_print(f"[ITEM PROCESSOR] ⚠️  ATENÇÃO: SKU '{sku}' existe em outras lojas:")
-                    for nome_loja, shop_url in outros_produtos:
-                        safe_print(f"[ITEM PROCESSOR]     - Loja: {nome_loja} ({shop_url})")
-                    safe_print(f"[ITEM PROCESSOR] 💡 POSSÍVEL SOLUÇÃO: Verifique se o webhook está sendo enviado para a loja correta")
+
+                # Debug: Listar produtos compartilhados associados à loja
+                from features.estoque.models import Produto, ProdutoSKU
+                produtos_compartilhados = ProdutoSKU.objects.filter(
+                    ativo=True,
+                    produto__ativo=True,
+                    produto__lojas=loja_config
+                ).select_related('produto').values_list('produto__id', 'sku', 'produto__nome', 'produto__estoque_compartilhado')
+
+                safe_print(f"[ITEM PROCESSOR] PRODUTOS COMPARTILHADOS nesta loja ({produtos_compartilhados.count()} total):")
+                if produtos_compartilhados.count() == 0:
+                    safe_print(f"[ITEM PROCESSOR] ⚠️ NENHUM produto compartilhado associado a esta loja!")
                 else:
-                    safe_print(f"[ITEM PROCESSOR] ❌ SKU '{sku}' NÃO EXISTE em nenhuma loja do sistema")
-                
+                    for prod_id, prod_sku, prod_nome, estoque in produtos_compartilhados:
+                        sku_match = "✅ EXATO" if prod_sku == sku else "❌ DIFERENTE"
+                        safe_print(f"[ITEM PROCESSOR]   ID:{prod_id} | SKU:'{prod_sku}' | Nome:{prod_nome} | Estoque:{estoque} | {sku_match}")
+
                 safe_print(f"[ITEM PROCESSOR] ============================================")
-                
+
                 item_result['message'] = f"Produto com SKU '{sku}' não encontrado no estoque da loja '{loja_config.nome_loja if hasattr(loja_config, 'nome_loja') else 'N/A'}'"
                 return item_result
             
-            # Verificar se há estoque suficiente
+            # Verificar se há estoque suficiente (adaptado para ambos os tipos)
             safe_print(f"[ITEM PROCESSOR] Verificando estoque suficiente...")
-            safe_print(f"[ITEM PROCESSOR] Estoque disponível: {produto.estoque_atual}")
+            estoque_atual = produto.estoque_atual if tipo_produto == "individual" else produto.estoque_compartilhado
+            safe_print(f"[ITEM PROCESSOR] Tipo produto: {tipo_produto}")
+            safe_print(f"[ITEM PROCESSOR] Estoque disponível: {estoque_atual}")
             safe_print(f"[ITEM PROCESSOR] Quantidade solicitada: {quantity}")
-            
-            if produto.estoque_atual < quantity:
+
+            if estoque_atual < quantity:
                 safe_print(f"[ITEM PROCESSOR] ERROR Estoque INSUFICIENTE!")
-                item_result['message'] = f"Estoque insuficiente. Disponível: {produto.estoque_atual}, Solicitado: {quantity}"
+                item_result['message'] = f"Estoque insuficiente. Disponível: {estoque_atual}, Solicitado: {quantity}"
                 return item_result
-            
+
             safe_print(f"[ITEM PROCESSOR] OK Estoque suficiente! Prosseguindo com remoção...")
-            
-            # Decrementar estoque
-            estoque_anterior = produto.estoque_atual
-            
+
+            # Decrementar estoque (adaptado para ambos os tipos)
+            estoque_anterior = estoque_atual
             observacao = f"Venda Shopify - Pedido #{order_data.get('order_number')} - {item.get('title', 'Produto sem título')}"
-            
+
             safe_print(f"[ITEM PROCESSOR] Chamando produto.remover_estoque()...")
             safe_print(f"[ITEM PROCESSOR] Parâmetros:")
             safe_print(f"[ITEM PROCESSOR]   - quantidade: {quantity}")
             safe_print(f"[ITEM PROCESSOR]   - observacao: {observacao}")
             safe_print(f"[ITEM PROCESSOR]   - pedido_shopify_id: {order_data.get('shopify_order_id')}")
-            
-            produto.remover_estoque(
-                quantidade=quantity,
-                observacao=observacao,
-                pedido_shopify_id=order_data.get('shopify_order_id')
-            )
-            
-            # CORREÇÃO: Verificar alertas automaticamente após movimentação webhook
-            safe_print(f"[ITEM PROCESSOR] Verificando alertas após movimentação...")
-            produto._check_and_resolve_alerts_after_adjustment()
-            
+
+            if tipo_produto == "individual":
+                # Para produtos individuais (ProdutoEstoque)
+                produto.remover_estoque(
+                    quantidade=quantity,
+                    observacao=observacao,
+                    pedido_shopify_id=order_data.get('shopify_order_id')
+                )
+                estoque_posterior = produto.estoque_atual
+
+                # Verificar alertas para produto individual
+                produto._check_and_resolve_alerts_after_adjustment()
+
+                # Buscar alertas recentes para produto individual
+                from features.estoque.models import AlertaEstoque
+                alertas_recentes = AlertaEstoque.objects.filter(
+                    produto=produto,
+                    data_criacao__gte=timezone.now().replace(second=0, microsecond=0)
+                )
+
+            else:  # tipo_produto == "compartilhado"
+                # Para produtos compartilhados (Produto)
+                produto.remover_estoque(
+                    quantidade=quantity,
+                    observacao=observacao,
+                    loja_origem=loja_config
+                )
+                estoque_posterior = produto.estoque_compartilhado
+
+                # Verificar alertas para produto compartilhado
+                produto._check_and_resolve_alerts_after_adjustment()
+
+                # Buscar alertas recentes para produto compartilhado
+                from features.estoque.models import AlertaEstoqueCompartilhado
+                alertas_recentes = AlertaEstoqueCompartilhado.objects.filter(
+                    produto=produto,
+                    data_criacao__gte=timezone.now().replace(second=0, microsecond=0)
+                )
+
             safe_print(f"[ITEM PROCESSOR] OK Estoque removido com sucesso!")
             safe_print(f"[ITEM PROCESSOR] Estoque anterior: {estoque_anterior}")
-            safe_print(f"[ITEM PROCESSOR] Estoque atual: {produto.estoque_atual}")
-            
+            safe_print(f"[ITEM PROCESSOR] Estoque atual: {estoque_posterior}")
+
             # Atualizar resultado
             item_result.update({
                 'success': True,
-                'message': 'Estoque decrementado com sucesso',
+                'message': f'Estoque decrementado com sucesso ({tipo_produto})',
                 'produto_id': produto.id,
                 'estoque_anterior': estoque_anterior,
-                'estoque_posterior': produto.estoque_atual
+                'estoque_posterior': estoque_posterior
             })
-            
+
             # Verificar se foram gerados alertas
-            alertas_recentes = AlertaEstoque.objects.filter(
-                produto=produto,
-                data_criacao__gte=timezone.now().replace(second=0, microsecond=0)
-            )
-            
             for alerta in alertas_recentes:
                 item_result['alertas_gerados'].append({
                     'tipo': alerta.tipo_alerta,
                     'titulo': alerta.titulo,
                     'prioridade': alerta.prioridade
                 })
-            
-            logger.info(f"Estoque decrementado: SKU {sku}, Quantidade: {quantity}, Estoque: {estoque_anterior} → {produto.estoque_atual}")
+
+            logger.info(f"Estoque decrementado ({tipo_produto}): SKU {sku}, Quantidade: {quantity}, Estoque: {estoque_anterior} → {estoque_posterior}")
             
             return item_result
             
