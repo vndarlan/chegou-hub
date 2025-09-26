@@ -70,49 +70,91 @@ class RealtimeNotificationService:
             logger.error(f"Erro ao enviar notificação de venda: {str(e)}")
             return False
     
-    def notify_estoque_atualizado(self, produto, quantidade_anterior: int, 
+    def notify_estoque_atualizado(self, produto, quantidade_anterior: int,
                                  tipo_movimento: str, observacao: str = "") -> bool:
         """
         Notifica atualização de estoque de um produto
-        
+
         Args:
-            produto: Instância de ProdutoEstoque
+            produto: Instância de ProdutoEstoque ou Produto (compartilhado)
             quantidade_anterior: Quantidade anterior do estoque
             tipo_movimento: Tipo da movimentação
             observacao: Observação da movimentação
         """
         try:
+            # Verificar se é produto compartilhado ou individual
+            if hasattr(produto, 'estoque_compartilhado'):
+                # Produto compartilhado
+                produto_id = produto.id
+                nome_produto = produto.nome
+                estoque_atual = produto.estoque_compartilhado
+
+                # Para produtos compartilhados, usar primeiro SKU disponível
+                primeiro_sku = produto.skus.filter(ativo=True).first()
+                sku = primeiro_sku.sku if primeiro_sku else f"COMPARTILHADO-{produto.id}"
+
+                # Para produtos compartilhados, usar primeira loja associada
+                primeira_loja = produto.lojas.filter(ativo=True).first()
+                if primeira_loja:
+                    loja_nome = primeira_loja.nome_loja
+                    loja_id = primeira_loja.id
+                else:
+                    loja_nome = "Multi-Loja"
+                    loja_id = None
+
+                tipo_produto = "compartilhado"
+            else:
+                # Produto individual (ProdutoEstoque)
+                produto_id = produto.id
+                sku = produto.sku
+                nome_produto = produto.nome
+                loja_nome = produto.loja_config.nome_loja
+                loja_id = produto.loja_config.id
+                estoque_atual = produto.estoque_atual
+                tipo_produto = "individual"
+
             notification_data = {
-                'produto_id': produto.id,
-                'sku': produto.sku,
-                'nome_produto': produto.nome,
-                'loja_nome': produto.loja_config.nome_loja,
-                'loja_id': produto.loja_config.id,
+                'produto_id': produto_id,
+                'sku': sku,
+                'nome_produto': nome_produto,
+                'loja_nome': loja_nome,
+                'loja_id': loja_id,
                 'estoque_anterior': quantidade_anterior,
-                'estoque_atual': produto.estoque_atual,
-                'diferenca': produto.estoque_atual - quantidade_anterior,
+                'estoque_atual': estoque_atual,
+                'diferenca': estoque_atual - quantidade_anterior,
+                'tipo_produto': tipo_produto,
                 'tipo_movimento': tipo_movimento,
                 'observacao': observacao,
-                'estoque_baixo': produto.estoque_baixo,
-                'estoque_disponivel': produto.estoque_disponivel,
+                'estoque_baixo': produto.estoque_baixo if hasattr(produto, 'estoque_baixo') else False,
+                'estoque_disponivel': getattr(produto, 'estoque_disponivel', estoque_atual),
                 'updated_at': timezone.now().isoformat()
             }
-            
+
             # Enviar para usuário proprietário
             self._send_to_user_group(
-                produto.user.id, 
-                'estoque_atualizado', 
+                produto.user.id,
+                'estoque_atualizado',
                 notification_data
             )
-            
-            # Enviar para grupo da loja
-            self._send_to_store_group(
-                produto.loja_config.id, 
-                produto.user.id, 
-                'estoque_atualizado', 
-                notification_data
-            )
-            
+
+            # Enviar para grupo da loja (apenas se for produto individual)
+            if tipo_produto == "individual":
+                self._send_to_store_group(
+                    produto.loja_config.id,
+                    produto.user.id,
+                    'estoque_atualizado',
+                    notification_data
+                )
+            else:
+                # Para produtos compartilhados, enviar para todas as lojas associadas
+                for loja in produto.lojas.filter(ativo=True):
+                    self._send_to_store_group(
+                        loja.id,
+                        produto.user.id,
+                        'estoque_atualizado',
+                        notification_data
+                    )
+
             return True
             
         except Exception as e:
@@ -122,21 +164,44 @@ class RealtimeNotificationService:
     def notify_alerta_estoque_gerado(self, alerta) -> bool:
         """
         Notifica que um novo alerta de estoque foi gerado
-        
+
         Args:
-            alerta: Instância de AlertaEstoque
+            alerta: Instância de AlertaEstoque ou AlertaEstoqueCompartilhado
         """
         try:
+            # Determinar se é alerta de produto compartilhado ou individual
+            if hasattr(alerta.produto, 'estoque_compartilhado'):
+                # Produto compartilhado
+                primeiro_sku = alerta.produto.skus.filter(ativo=True).first()
+                produto_sku = primeiro_sku.sku if primeiro_sku else f"COMPARTILHADO-{alerta.produto.id}"
+                tipo_produto = "compartilhado"
+
+                # Para produtos compartilhados, usar primeira loja
+                primeira_loja = alerta.produto.lojas.filter(ativo=True).first()
+                if primeira_loja:
+                    loja_nome = primeira_loja.nome_loja
+                    loja_id = primeira_loja.id
+                else:
+                    loja_nome = "Multi-Loja"
+                    loja_id = None
+            else:
+                # Produto individual
+                produto_sku = alerta.produto.sku
+                tipo_produto = "individual"
+                loja_nome = alerta.produto.loja_config.nome_loja
+                loja_id = alerta.produto.loja_config.id
+
             notification_data = {
                 'alerta_id': alerta.id,
                 'tipo_alerta': alerta.tipo_alerta,
                 'prioridade': alerta.prioridade,
                 'titulo': alerta.titulo,
                 'descricao': alerta.descricao,
-                'produto_sku': alerta.produto.sku,
+                'produto_sku': produto_sku,
                 'produto_nome': alerta.produto.nome,
-                'loja_nome': alerta.produto.loja_config.nome_loja,
-                'loja_id': alerta.produto.loja_config.id,
+                'tipo_produto': tipo_produto,
+                'loja_nome': loja_nome,
+                'loja_id': loja_id,
                 'valor_atual': alerta.valor_atual,
                 'valor_limite': alerta.valor_limite,
                 'acao_sugerida': alerta.acao_sugerida,
@@ -151,20 +216,30 @@ class RealtimeNotificationService:
             
             # Enviar para usuário proprietário
             self._send_to_user_group(
-                alerta.produto.user.id, 
-                event_type, 
+                alerta.produto.user.id,
+                event_type,
                 notification_data
             )
-            
-            # Enviar para grupo da loja
-            self._send_to_store_group(
-                alerta.produto.loja_config.id, 
-                alerta.produto.user.id, 
-                event_type, 
-                notification_data
-            )
-            
-            logger.info(f"Notificação de alerta enviada: {alerta.tipo_alerta} para produto {alerta.produto.sku}")
+
+            # Enviar para grupo da loja (diferente para cada tipo)
+            if tipo_produto == "individual":
+                self._send_to_store_group(
+                    alerta.produto.loja_config.id,
+                    alerta.produto.user.id,
+                    event_type,
+                    notification_data
+                )
+            else:
+                # Para produtos compartilhados, enviar para todas as lojas associadas
+                for loja in alerta.produto.lojas.filter(ativo=True):
+                    self._send_to_store_group(
+                        loja.id,
+                        alerta.produto.user.id,
+                        event_type,
+                        notification_data
+                    )
+
+            logger.info(f"Notificação de alerta enviada: {alerta.tipo_alerta} para produto {produto_sku}")
             return True
             
         except Exception as e:
