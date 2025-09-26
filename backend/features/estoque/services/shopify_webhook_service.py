@@ -238,42 +238,87 @@ class ShopifyWebhookService:
     def get_shop_config_by_domain(shop_domain: str):
         """
         Busca a configuração da loja pelo domínio com validação de segurança
-        
+        Implementa busca flexível para lidar com variações de domínio
+
         Args:
             shop_domain: Domínio da loja (ex: minha-loja.myshopify.com)
-            
+
         Returns:
             ShopifyConfig ou None se não encontrado
         """
         try:
             from features.processamento.models import ShopifyConfig
-            
+
             # Validar formato do domínio antes de buscar no banco
             if not shop_domain or len(shop_domain) > 255:
                 logger.warning(f"Domínio inválido fornecido: {shop_domain[:50]}...")
                 return None
-            
+
             # Normalizar domínio (remover protocolo se houver)
             domain = shop_domain.replace('https://', '').replace('http://', '').strip()
-            
+
             # Validação adicional: deve ser um domínio Shopify válido
             if not domain.endswith('.myshopify.com') and not domain.endswith('.shopifypreview.com'):
                 logger.warning(f"SECURITY: Domínio não é do Shopify - possível ataque: {domain}")
                 return None
-            
-            # Buscar configuração ativa por shop_url com select_related para otimização
+
+            # BUSCA FLEXÍVEL: Tentar múltiplas variações de domínio
+            logger.info(f"Buscando configuração para domínio: {domain}")
+
+            # 1. Busca exata primeiro
             config = ShopifyConfig.objects.select_related('user').filter(
                 shop_url=domain,
                 ativo=True
             ).first()
-            
-            if not config:
-                logger.warning(f"Configuração não encontrada para domínio: {domain}")
-            else:
-                logger.info(f"Configuração encontrada para loja: {domain}")
-            
-            return config
-            
+
+            if config:
+                logger.info(f"✅ Loja encontrada por busca exata: {config.nome_loja}")
+                return config
+
+            # 2. Busca por shop_url que contém o nome da loja (sem .myshopify.com)
+            if domain.endswith('.myshopify.com'):
+                shop_name = domain.replace('.myshopify.com', '')
+                logger.info(f"Tentando busca por nome da loja: {shop_name}")
+
+                config = ShopifyConfig.objects.select_related('user').filter(
+                    shop_url__icontains=shop_name,
+                    ativo=True
+                ).first()
+
+                if config:
+                    logger.info(f"✅ Loja encontrada por nome: {config.nome_loja} (shop_url: {config.shop_url})")
+                    return config
+
+            # 3. Busca por variações de domínio (com e sem www, https)
+            domain_variations = [
+                domain,
+                f"www.{domain}",
+                f"https://{domain}",
+                f"http://{domain}",
+                domain.replace('www.', '')
+            ]
+
+            for variation in domain_variations:
+                config = ShopifyConfig.objects.select_related('user').filter(
+                    shop_url=variation,
+                    ativo=True
+                ).first()
+
+                if config:
+                    logger.info(f"✅ Loja encontrada por variação '{variation}': {config.nome_loja}")
+                    return config
+
+            # 4. Log de debug para ajudar a identificar o problema
+            logger.warning(f"❌ Nenhuma configuração encontrada para domínio: {domain}")
+
+            # Listar lojas ativas para debug
+            lojas_ativas = ShopifyConfig.objects.filter(ativo=True).values_list('shop_url', 'nome_loja')
+            logger.info(f"📋 Lojas ativas no sistema ({len(lojas_ativas)}):")
+            for shop_url, nome_loja in lojas_ativas:
+                logger.info(f"  - {shop_url} ({nome_loja})")
+
+            return None
+
         except Exception as e:
             logger.error(f"Erro ao buscar configuração da loja: {str(e)}")
             return None

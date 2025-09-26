@@ -425,24 +425,30 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
         """Endpoint temporário para debug - informações do usuário e lojas"""
         try:
             from features.processamento.models import ShopifyConfig
-            
+            from features.estoque.models import Produto, ProdutoSKU
+
             user_info = {
                 'id': request.user.id,
                 'username': request.user.username,
                 'is_authenticated': request.user.is_authenticated,
                 'is_staff': request.user.is_staff
             }
-            
+
             lojas_user = ShopifyConfig.objects.filter(user=request.user).values(
-                'id', 'nome_loja', 'shopify_domain', 'ativo'
+                'id', 'nome_loja', 'shop_url', 'ativo'
             )
-            
-            produtos_count = ProdutoEstoque.objects.filter(user=request.user).count()
-            
+
+            produtos_individuais_count = ProdutoEstoque.objects.filter(user=request.user).count()
+            produtos_compartilhados_count = Produto.objects.filter(user=request.user).count()
+            skus_compartilhados_count = ProdutoSKU.objects.filter(produto__user=request.user).count()
+
             return Response({
                 'usuario': user_info,
                 'lojas': list(lojas_user),
-                'total_produtos': produtos_count,
+                'produtos_individuais': produtos_individuais_count,
+                'produtos_compartilhados': produtos_compartilhados_count,
+                'skus_compartilhados': skus_compartilhados_count,
+                'total_produtos': produtos_individuais_count + produtos_compartilhados_count,
                 'csrf_token_presente': bool(request.META.get('HTTP_X_CSRFTOKEN')),
                 'method': request.method,
                 'content_type': request.content_type,
