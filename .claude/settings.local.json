@@ -29,7 +29,8 @@
       "Bash(timeout 10 curl -s http://localhost:8000/api/estoque/alertas/verificar_alertas_tempo_real/)",
       "Bash(pkill:*)",
       "Bash(echo:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": [],
