@@ -264,7 +264,7 @@ def cancelar_pedido(request):
         if not loja_id or not order_id:
             return Response({'error': 'ID da loja e do pedido são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
         
-        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True, user=request.user).first()
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
         if not config:
             return Response({'error': 'Loja não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -305,7 +305,7 @@ def cancelar_lote(request):
         if not loja_id or not order_ids:
             return Response({'error': 'ID da loja e lista de pedidos são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
         
-        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True, user=request.user).first()
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
         if not config:
             return Response({'error': 'Loja não encontrada'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -395,7 +395,7 @@ def buscar_pedidos_mesmo_ip(request):
         # Busca configuração da loja (apenas do usuário autenticado)
         try:
             logger.info(f"Buscando configuração da loja {loja_id} para usuário {request.user.username}")
-            config = ShopifyConfig.objects.filter(id=loja_id, ativo=True, user=request.user).first()
+            config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
             if not config:
                 logger.warning(f"Loja {loja_id} não encontrada ou inativa")
                 # Lista lojas disponíveis para debug
@@ -2248,7 +2248,7 @@ def buscar_pedidos_mesmo_ip_enhanced(request):
         if days < 1:
             days = 1
         
-        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True, user=request.user).first()
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
         if not config:
             return Response({'error': 'Loja não encontrada ou inativa'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -2381,7 +2381,7 @@ def analyze_single_order_ip_enhanced(request):
         except (ValueError, TypeError):
             return Response({'error': 'ID da loja inválido'}, status=status.HTTP_400_BAD_REQUEST)
         
-        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True, user=request.user).first()
+        config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
         if not config:
             return Response({'error': 'Loja não encontrada ou inativa'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -4544,8 +4544,8 @@ def debug_detector_ip_user_data(request):
             'is_staff': request.user.is_staff,
         }
         
-        # Lojas do usuário atual
-        user_lojas = ShopifyConfig.objects.filter(user=request.user, ativo=True)
+        # Todas as lojas ativas do sistema
+        user_lojas = ShopifyConfig.objects.filter(ativo=True)
         user_lojas_data = [
             {
                 'id': loja.id,
@@ -4830,13 +4830,13 @@ def _handle_store_validation_get(request, store_id):
     try:
         # Filtrar lojas do usuário
         if store_id:
-            configs = ShopifyConfig.objects.filter(id=store_id, user=request.user)
+            configs = ShopifyConfig.objects.filter(id=store_id, ativo=True)
             if not configs.exists():
                 return Response({
-                    'error': 'Loja não encontrada ou acesso negado'
+                    'error': 'Loja não encontrada no sistema'
                 }, status=status.HTTP_404_NOT_FOUND)
         else:
-            configs = ShopifyConfig.objects.filter(user=request.user)
+            configs = ShopifyConfig.objects.filter(ativo=True)
         
         validation_results = []
         total_problems = 0

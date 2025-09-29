@@ -434,8 +434,9 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
                 'is_staff': request.user.is_staff
             }
 
-            lojas_user = ShopifyConfig.objects.filter(user=request.user).values(
-                'id', 'nome_loja', 'shop_url', 'ativo'
+            # CORRIGIDO: Mostrar todas as lojas ativas do sistema (não filtrar por usuário)
+            lojas_user = ShopifyConfig.objects.filter(ativo=True).values(
+                'id', 'nome_loja', 'shop_url', 'ativo', 'user__username'
             )
 
             produtos_individuais_count = ProdutoEstoque.objects.filter(user=request.user).count()
@@ -1086,11 +1087,11 @@ class AlertaEstoqueViewSet(viewsets.ModelViewSet):
         try:
             from features.processamento.models import ShopifyConfig
             
-            # Validar acesso à loja
-            loja_config = ShopifyConfig.objects.filter(id=loja_id, user=request.user).first()
+            # Validar se a loja existe (sem verificar proprietário)
+            loja_config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
             if not loja_config:
                 return Response(
-                    {'erro': 'Loja não encontrada ou sem permissão'},
+                    {'erro': 'Loja não encontrada no sistema'},
                     status=status.HTTP_404_NOT_FOUND
                 )
             
