@@ -508,7 +508,7 @@ function ControleEstoquePage() {
         }
 
         // Validar se as lojas selecionadas existem na lista de lojas disponíveis
-        const lojasDisponiveis = shopifyConfigs.map(config => config.id);
+        const lojasDisponiveis = lojas.map(loja => loja.id);
         const lojasInvalidas = novoProdutoCompartilhado.lojas_selecionadas.filter(
             lojaId => !lojasDisponiveis.includes(lojaId)
         );
