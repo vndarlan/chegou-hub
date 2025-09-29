@@ -561,7 +561,7 @@ class ProdutoSerializer(serializers.ModelSerializer):
         ]
     
     def validate_lojas_ids(self, value):
-        """Validar se todas as lojas existem e pertencem ao usuário"""
+        """Validar se todas as lojas existem no sistema (sem verificar proprietário)"""
         import logging
         logger = logging.getLogger(__name__)
 
@@ -578,38 +578,27 @@ class ProdutoSerializer(serializers.ModelSerializer):
             logger.error("Usuário não encontrado na request")
             raise serializers.ValidationError('Usuário não autenticado.')
 
-        logger.info(f"=== VALIDAÇÃO DE LOJAS ===")
+        logger.info(f"=== VALIDAÇÃO DE LOJAS (SEM VERIFICAÇÃO DE PROPRIETÁRIO) ===")
         logger.info(f"Usuário: {request.user.username} (ID: {request.user.id})")
         logger.info(f"Lojas solicitadas: {value}")
 
-        # Verificar se todas as lojas existem e pertencem ao usuário
-        lojas_validas_objs = ShopifyConfig.objects.filter(
-            id__in=value,
-            user=request.user
-        )
+        # Verificar se todas as lojas existem no sistema (independente do usuário)
+        lojas_validas_objs = ShopifyConfig.objects.filter(id__in=value)
         lojas_validas_ids = list(lojas_validas_objs.values_list('id', flat=True))
         lojas_validas_count = lojas_validas_objs.count()
 
-        logger.info(f"Lojas encontradas no banco: {lojas_validas_ids}")
+        logger.info(f"Lojas encontradas no sistema: {lojas_validas_ids}")
         logger.info(f"Quantidade encontrada: {lojas_validas_count}")
         logger.info(f"Quantidade solicitada: {len(value)}")
 
-        # Identificar lojas inválidas/inexistentes
-        lojas_invalidas = [loja_id for loja_id in value if loja_id not in lojas_validas_ids]
+        # Identificar lojas inexistentes
+        lojas_inexistentes = [loja_id for loja_id in value if loja_id not in lojas_validas_ids]
 
-        if lojas_invalidas:
-            logger.error(f"Lojas inválidas encontradas: {lojas_invalidas}")
+        if lojas_inexistentes:
+            logger.error(f"Lojas inexistentes encontradas: {lojas_inexistentes}")
+            raise serializers.ValidationError(f'Lojas com IDs {lojas_inexistentes} não foram encontradas no sistema.')
 
-            # Verificar se as lojas existem mas pertencem a outro usuário
-            lojas_existem = ShopifyConfig.objects.filter(id__in=lojas_invalidas).values_list('id', 'user__username')
-            if lojas_existem:
-                logger.error(f"Lojas existem mas pertencem a outros usuários: {list(lojas_existem)}")
-                raise serializers.ValidationError(f'Lojas com IDs {lojas_invalidas} não pertencem ao usuário {request.user.username}.')
-            else:
-                logger.error(f"Lojas não existem no sistema: {lojas_invalidas}")
-                raise serializers.ValidationError(f'Lojas com IDs {lojas_invalidas} não foram encontradas no sistema.')
-
-        logger.info("✅ Validação de lojas aprovada - todas as lojas são válidas")
+        logger.info("✅ Validação de lojas aprovada - todas as lojas existem no sistema")
         return value
 
     def validate_skus_data(self, value):
@@ -652,55 +641,38 @@ class ProdutoSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Usuário não encontrado")
 
             # VALIDAÇÃO PRÉVIA - ANTES da transação atômica
-            # Verificar TODAS as lojas ANTES de criar o produto
+            # Verificar se TODAS as lojas existem no sistema (sem verificar proprietário)
             if lojas_ids:
-                logger.info(f"=== VALIDAÇÃO PRÉVIA DE LOJAS (CREATE) ===")
+                logger.info(f"=== VALIDAÇÃO PRÉVIA DE LOJAS (CREATE - SEM VERIFICAÇÃO DE PROPRIETÁRIO) ===")
                 logger.info(f"Usuário: {request.user.username} (ID: {request.user.id})")
                 logger.info(f"Lojas para validar: {lojas_ids}")
 
-                # Buscar todas as lojas do usuário para debug
-                todas_lojas_usuario = ShopifyConfig.objects.filter(user=request.user).values_list('id', 'nome_loja')
-                logger.info(f"Todas as lojas do usuário: {list(todas_lojas_usuario)}")
+                # Buscar todas as lojas no sistema para debug
+                todas_lojas_sistema = ShopifyConfig.objects.all().values_list('id', 'nome_loja', 'user__username')
+                logger.info(f"Total de lojas no sistema: {len(list(todas_lojas_sistema))}")
 
-                lojas_invalidas = []
+                lojas_inexistentes = []
                 lojas_validas = []
 
                 for loja_id in lojas_ids:
-                    logger.info(f"Validando acesso à loja ID: {loja_id}")
+                    logger.info(f"Validando existência da loja ID: {loja_id}")
 
-                    if ShopifyConfig.objects.filter(id=loja_id, user=request.user).exists():
-                        loja = ShopifyConfig.objects.get(id=loja_id, user=request.user)
+                    loja = ShopifyConfig.objects.filter(id=loja_id).first()
+                    if loja:
                         lojas_validas.append(loja)
-                        logger.info(f"✅ Loja {loja.nome_loja} (ID: {loja_id}) - VÁLIDA")
+                        logger.info(f"✅ Loja {loja.nome_loja} (ID: {loja_id}) - EXISTE (proprietário: {loja.user.username})")
                     else:
-                        lojas_invalidas.append(loja_id)
-                        logger.error(f"❌ Loja ID {loja_id} - INVÁLIDA (não encontrada ou sem permissão)")
+                        lojas_inexistentes.append(loja_id)
+                        logger.error(f"❌ Loja ID {loja_id} - NÃO EXISTE no sistema")
 
-                        # Debug adicional: verificar se a loja existe para outro usuário
-                        loja_outro_usuario = ShopifyConfig.objects.filter(id=loja_id).first()
-                        if loja_outro_usuario:
-                            logger.error(f"   Loja ID {loja_id} existe mas pertence a usuário: {loja_outro_usuario.user.username}")
-                        else:
-                            logger.error(f"   Loja ID {loja_id} não existe no sistema")
-
-                # Se há lojas inválidas, abortar ANTES da criação
-                if lojas_invalidas:
-                    logger.error(f"ABORTANDO CREATE: Usuário {request.user.username} não tem acesso às lojas: {lojas_invalidas}")
-
-                    # Mensagem de erro mais específica
-                    erro_msg = f'Usuário {request.user.username} não tem acesso às lojas com IDs: {lojas_invalidas}.'
-                    for loja_id in lojas_invalidas:
-                        loja_outro = ShopifyConfig.objects.filter(id=loja_id).first()
-                        if loja_outro:
-                            erro_msg += f' Loja ID {loja_id} pertence a {loja_outro.user.username}.'
-                        else:
-                            erro_msg += f' Loja ID {loja_id} não existe.'
-
+                # Se há lojas inexistentes, abortar ANTES da criação
+                if lojas_inexistentes:
+                    logger.error(f"ABORTANDO CREATE: Lojas inexistentes: {lojas_inexistentes}")
                     raise serializers.ValidationError({
-                        'lojas_ids': erro_msg
+                        'lojas_ids': f'Lojas com IDs {lojas_inexistentes} não foram encontradas no sistema.'
                     })
 
-                logger.info(f"✅ VALIDAÇÃO APROVADA: Todas as {len(lojas_validas)} lojas são válidas")
+                logger.info(f"✅ VALIDAÇÃO APROVADA: Todas as {len(lojas_validas)} lojas existem no sistema")
             else:
                 logger.info("Nenhuma loja para associar - produto será criado sem lojas")
 
@@ -733,12 +705,13 @@ class ProdutoSerializer(serializers.ModelSerializer):
 
                 logger.info(f"Total de SKUs criados: {skus_criados}")
 
-                # Associar lojas (agora sabemos que TODAS são válidas)
+                # Associar lojas (agora sabemos que TODAS existem no sistema)
                 lojas_associadas = 0
                 for loja_id in lojas_ids:
                     try:
                         logger.info(f"Tentando associar loja ID: {loja_id}")
-                        loja = ShopifyConfig.objects.get(id=loja_id, user=request.user)
+                        # Buscar loja sem filtrar por usuário
+                        loja = ShopifyConfig.objects.get(id=loja_id)
 
                         produto_loja, created = ProdutoLoja.objects.get_or_create(
                             produto=produto,
@@ -748,7 +721,7 @@ class ProdutoSerializer(serializers.ModelSerializer):
 
                         if created:
                             lojas_associadas += 1
-                            logger.info(f"✅ Loja {loja.nome_loja} associada com sucesso")
+                            logger.info(f"✅ Loja {loja.nome_loja} associada com sucesso (proprietário: {loja.user.username})")
                         else:
                             logger.warning(f"⚠️ Produto já estava associado à loja: {loja.nome_loja}")
 
@@ -861,47 +834,48 @@ class ProdutoSerializer(serializers.ModelSerializer):
         if lojas_ids is not None:
             logger.info(f"Processando atualização de lojas associadas: {lojas_ids}")
 
-            # VALIDAÇÃO PRÉVIA - Verificar TODAS as lojas ANTES de alterar associações
+            # VALIDAÇÃO PRÉVIA - Verificar se TODAS as lojas existem no sistema (sem verificar proprietário)
             request = self.context.get('request')
             if lojas_ids:
-                logger.info(f"=== VALIDAÇÃO PRÉVIA DE LOJAS (UPDATE) ===")
-                lojas_invalidas = []
+                logger.info(f"=== VALIDAÇÃO PRÉVIA DE LOJAS (UPDATE - SEM VERIFICAÇÃO DE PROPRIETÁRIO) ===")
+                lojas_inexistentes = []
                 lojas_validas = []
 
                 for loja_id in lojas_ids:
-                    logger.info(f"Validando acesso à loja ID: {loja_id}")
+                    logger.info(f"Validando existência da loja ID: {loja_id}")
 
-                    if ShopifyConfig.objects.filter(id=loja_id, user=request.user).exists():
-                        loja = ShopifyConfig.objects.get(id=loja_id, user=request.user)
+                    loja = ShopifyConfig.objects.filter(id=loja_id).first()
+                    if loja:
                         lojas_validas.append(loja)
-                        logger.info(f"✅ Loja {loja.nome_loja} (ID: {loja_id}) - VÁLIDA")
+                        logger.info(f"✅ Loja {loja.nome_loja} (ID: {loja_id}) - EXISTE (proprietário: {loja.user.username})")
                     else:
-                        lojas_invalidas.append(loja_id)
-                        logger.error(f"❌ Loja ID {loja_id} - INVÁLIDA (não encontrada ou sem permissão)")
+                        lojas_inexistentes.append(loja_id)
+                        logger.error(f"❌ Loja ID {loja_id} - NÃO EXISTE no sistema")
 
-                # Se há lojas inválidas, abortar ANTES de alterar associações
-                if lojas_invalidas:
-                    logger.error(f"ABORTANDO ATUALIZAÇÃO: Usuário {request.user.username} não tem acesso às lojas: {lojas_invalidas}")
+                # Se há lojas inexistentes, abortar ANTES de alterar associações
+                if lojas_inexistentes:
+                    logger.error(f"ABORTANDO ATUALIZAÇÃO: Lojas inexistentes: {lojas_inexistentes}")
                     raise serializers.ValidationError({
-                        'lojas_ids': f'Usuário não tem acesso às lojas com IDs: {lojas_invalidas}. Associações não foram alteradas.'
+                        'lojas_ids': f'Lojas com IDs {lojas_inexistentes} não foram encontradas no sistema.'
                     })
 
-                logger.info(f"✅ VALIDAÇÃO APROVADA: Todas as {len(lojas_validas)} lojas são válidas")
+                logger.info(f"✅ VALIDAÇÃO APROVADA: Todas as {len(lojas_validas)} lojas existem no sistema")
 
             # Remover associações existentes
             associacoes_removidas = instance.produtoloja_set.count()
             instance.produtoloja_set.all().delete()
             logger.info(f"Removidas {associacoes_removidas} associações existentes")
 
-            # Criar novas associações (agora sabemos que TODAS são válidas)
+            # Criar novas associações (agora sabemos que TODAS existem no sistema)
             lojas_associadas = 0
             for loja_id in lojas_ids:
                 try:
                     logger.info(f"Tentando associar loja ID: {loja_id}")
-                    loja = ShopifyConfig.objects.get(id=loja_id, user=request.user)
+                    # Buscar loja sem filtrar por usuário
+                    loja = ShopifyConfig.objects.get(id=loja_id)
                     ProdutoLoja.objects.create(produto=instance, loja=loja)
                     lojas_associadas += 1
-                    logger.info(f"✅ Loja {loja.nome_loja} associada com sucesso")
+                    logger.info(f"✅ Loja {loja.nome_loja} associada com sucesso (proprietário: {loja.user.username})")
                 except ShopifyConfig.DoesNotExist:
                     # Isso não deveria acontecer mais devido à validação prévia
                     logger.error(f"❌ ERRO CRÍTICO: Loja ID {loja_id} não encontrada (falha na validação prévia)")
