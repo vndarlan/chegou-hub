@@ -112,37 +112,30 @@ class ProdutoEstoqueSerializer(serializers.ModelSerializer):
                 'preco_venda': 'Preço de venda não pode ser negativo.'
             })
         
-        # Validar unicidade de SKU por loja (só para criação)
-        if not self.instance:  # Apenas na criação
-            sku = data.get('sku')
-            loja_config = data.get('loja_config')
-            
-            if sku and loja_config:
-                # Verificar se já existe produto com mesmo SKU na mesma loja
-                produto_existente = ProdutoEstoque.objects.filter(
-                    sku=sku, 
-                    loja_config=loja_config
-                ).exists()
-                
-                if produto_existente:
-                    raise serializers.ValidationError({
-                        'sku': f'Já existe um produto com o SKU "{sku}" nesta loja.'
-                    })
-        else:  # Edição - validar SKU se mudou
-            sku = data.get('sku')
-            loja_config = data.get('loja_config', self.instance.loja_config)
-            
-            if sku and sku != self.instance.sku:
-                # Verificar se já existe produto com mesmo SKU na mesma loja (exceto o atual)
-                produto_existente = ProdutoEstoque.objects.filter(
-                    sku=sku, 
-                    loja_config=loja_config
-                ).exclude(id=self.instance.id).exists()
-                
-                if produto_existente:
-                    raise serializers.ValidationError({
-                        'sku': f'Já existe um produto com o SKU "{sku}" nesta loja.'
-                    })
+        # Validar unicidade de SKU em todo o sistema
+        sku = data.get('sku')
+        if sku:
+            from .models import ProdutoSKU
+
+            # Verificar se SKU já existe em produtos compartilhados
+            existing_sku = ProdutoSKU.objects.filter(sku=sku).first()
+            if existing_sku:
+                raise serializers.ValidationError({
+                    'sku': f'SKU "{sku}" já pertence ao produto compartilhado "{existing_sku.produto.nome}". SKUs devem ser únicos em todo o sistema.'
+                })
+
+            # Verificar se SKU já existe em outros produtos individuais
+            existing_individual = ProdutoEstoque.objects.filter(sku=sku)
+
+            # Se está editando, excluir o próprio produto da validação
+            if self.instance:
+                existing_individual = existing_individual.exclude(id=self.instance.id)
+
+            existing_individual = existing_individual.first()
+            if existing_individual:
+                raise serializers.ValidationError({
+                    'sku': f'SKU "{sku}" já pertence ao produto individual "{existing_individual.nome}" na loja "{existing_individual.loja_config.nome_loja}". SKUs devem ser únicos em todo o sistema.'
+                })
         
         return data
     
@@ -422,16 +415,22 @@ class ProdutoSKUSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'data_criacao', 'data_atualizacao']
     
     def validate_sku(self, value):
-        """Validar se SKU é único"""
+        """Validar se SKU é único em todo o sistema"""
+        if not value:
+            return value
+
         # Se está editando, excluir o próprio registro da validação
         if self.instance:
             existing = ProdutoSKU.objects.filter(sku=value).exclude(id=self.instance.id)
         else:
             existing = ProdutoSKU.objects.filter(sku=value)
-        
-        if existing.exists():
-            raise serializers.ValidationError(f'SKU "{value}" já existe.')
-        
+
+        existing = existing.first()
+        if existing:
+            raise serializers.ValidationError(
+                f'SKU "{value}" já pertence ao produto "{existing.produto.nome}". SKUs devem ser únicos em todo o sistema.'
+            )
+
         return value
 
 
@@ -602,7 +601,7 @@ class ProdutoSerializer(serializers.ModelSerializer):
         return value
 
     def validate_skus_data(self, value):
-        """Validar SKUs únicos dentro do mesmo produto"""
+        """Validar SKUs únicos no sistema"""
         if not value:
             return value
 
@@ -610,6 +609,26 @@ class ProdutoSerializer(serializers.ModelSerializer):
         skus_list = [sku_data.get('sku') for sku_data in value if sku_data.get('sku')]
         if len(skus_list) != len(set(skus_list)):
             raise serializers.ValidationError('SKUs duplicados não são permitidos no mesmo produto.')
+
+        # Verificar se algum SKU já existe em outro produto do sistema
+        from .models import ProdutoSKU
+
+        for sku_data in value:
+            sku_code = sku_data.get('sku')
+            if sku_code:
+                # Verificar se SKU já existe (excluindo o produto atual em caso de update)
+                existing_sku = ProdutoSKU.objects.filter(sku=sku_code)
+
+                # Se estamos fazendo update, excluir SKUs do produto atual
+                if self.instance:
+                    existing_sku = existing_sku.exclude(produto=self.instance)
+
+                existing_sku = existing_sku.first()
+
+                if existing_sku:
+                    raise serializers.ValidationError({
+                        'skus_data': f'SKU "{sku_code}" já pertence ao produto "{existing_sku.produto.nome}". SKUs devem ser únicos em todo o sistema.'
+                    })
 
         return value
     

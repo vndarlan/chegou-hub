@@ -279,7 +279,7 @@ class ProdutoSKU(models.Model):
     produto = models.ForeignKey(Produto, on_delete=models.CASCADE, related_name='skus')
 
     # Dados do SKU
-    sku = models.CharField(max_length=100, help_text="SKU único por produto")
+    sku = models.CharField(max_length=100, help_text="SKU único em todo o sistema")
     descricao_variacao = models.CharField(max_length=255, blank=True, verbose_name="Descrição da variação")
     ativo = models.BooleanField(default=True, verbose_name="SKU ativo")
 
@@ -291,12 +291,36 @@ class ProdutoSKU(models.Model):
         verbose_name = "SKU do Produto"
         verbose_name_plural = "SKUs dos Produtos"
         ordering = ['produto', 'sku']
-        unique_together = ['produto', 'sku']  # SKU único por produto, mas pode repetir entre produtos diferentes
+        # MUDANÇA IMPORTANTE: SKU único em todo o sistema (não apenas por produto)
+        constraints = [
+            models.UniqueConstraint(
+                fields=['sku'],
+                name='unique_sku_global',
+                violation_error_message='Este SKU já existe em outro produto. SKUs devem ser únicos em todo o sistema.'
+            )
+        ]
         indexes = [
             models.Index(fields=['sku']),
             models.Index(fields=['produto', 'ativo']),
         ]
-    
+
+    def clean(self):
+        """Validação customizada para SKU único"""
+        from django.core.exceptions import ValidationError
+
+        if self.sku:
+            # Verificar se existe outro SKU com o mesmo código
+            existing_sku = ProdutoSKU.objects.filter(sku=self.sku).exclude(pk=self.pk).first()
+            if existing_sku:
+                raise ValidationError({
+                    'sku': f'SKU "{self.sku}" já pertence ao produto "{existing_sku.produto.nome}". SKUs devem ser únicos em todo o sistema.'
+                })
+
+    def save(self, *args, **kwargs):
+        """Override save para executar validação"""
+        self.clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.sku} - {self.produto.nome}"
 

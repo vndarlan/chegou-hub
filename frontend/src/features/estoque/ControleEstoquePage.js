@@ -627,6 +627,13 @@ function ControleEstoquePage() {
                     } else {
                         mensagemErro = `Erro nas lojas selecionadas: ${error.response.data.lojas_ids}`;
                     }
+                } else if (error.response.data.skus_data) {
+                    // Erro específico de validação de SKUs duplicados
+                    if (Array.isArray(error.response.data.skus_data)) {
+                        mensagemErro = `Erro nos SKUs: ${error.response.data.skus_data.join(', ')}`;
+                    } else {
+                        mensagemErro = `Erro nos SKUs: ${error.response.data.skus_data}`;
+                    }
                 } else if (error.response.data.non_field_errors) {
                     // Erros gerais do serializer
                     mensagemErro = Array.isArray(error.response.data.non_field_errors)
