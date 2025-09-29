@@ -5,6 +5,13 @@ Todas as mudanças deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [v1.4.0] - 29/09/2025
+
+### ✨ Novidades
+
+#### 🚨 PÁGINA COMPLETAMENTE NOVA
+- **[📦 Controle de Estoque - NOVA PÁGINA]** Sistema completo de gestão de inventário com integração direta à API Shopify, permitindo sincronização automática de produtos, controle de quantidades em tempo real e rastreamento completo das movimentações de estoque entre a loja online e o sistema interno.
+
 ## [v1.3.0] - 19/09/2025
 
 ### ✨ Novidades
