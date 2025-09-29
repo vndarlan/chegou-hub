@@ -506,7 +506,23 @@ function ControleEstoquePage() {
             showNotification('Selecione pelo menos uma loja', 'error');
             return;
         }
-        
+
+        // Validar se as lojas selecionadas existem na lista de lojas disponíveis
+        const lojasDisponiveis = shopifyConfigs.map(config => config.id);
+        const lojasInvalidas = novoProdutoCompartilhado.lojas_selecionadas.filter(
+            lojaId => !lojasDisponiveis.includes(lojaId)
+        );
+
+        console.log('=== DEBUG VALIDAÇÃO LOJAS ===');
+        console.log('Lojas disponíveis:', lojasDisponiveis);
+        console.log('Lojas selecionadas:', novoProdutoCompartilhado.lojas_selecionadas);
+        console.log('Lojas inválidas:', lojasInvalidas);
+
+        if (lojasInvalidas.length > 0) {
+            showNotification(`Lojas selecionadas inválidas (IDs: ${lojasInvalidas.join(', ')}). Por favor, atualize a página.`, 'error');
+            return;
+        }
+
         // Usar apenas as lojas selecionadas no formulário
         const lojasParaAssociar = [...new Set(novoProdutoCompartilhado.lojas_selecionadas)];
         console.log('Lojas que serão associadas:', lojasParaAssociar);
@@ -604,6 +620,31 @@ function ControleEstoquePage() {
                     mensagemErro = error.response.data.error;
                 } else if (error.response.data.detail) {
                     mensagemErro = error.response.data.detail;
+                } else if (error.response.data.lojas_ids) {
+                    // Erro específico de validação de lojas
+                    if (Array.isArray(error.response.data.lojas_ids)) {
+                        mensagemErro = `Erro nas lojas selecionadas: ${error.response.data.lojas_ids.join(', ')}`;
+                    } else {
+                        mensagemErro = `Erro nas lojas selecionadas: ${error.response.data.lojas_ids}`;
+                    }
+                } else if (error.response.data.non_field_errors) {
+                    // Erros gerais do serializer
+                    mensagemErro = Array.isArray(error.response.data.non_field_errors)
+                        ? error.response.data.non_field_errors.join(', ')
+                        : error.response.data.non_field_errors;
+                } else {
+                    // Tentar extrair qualquer mensagem de erro dos campos
+                    const errorMessages = [];
+                    for (const [field, messages] of Object.entries(error.response.data)) {
+                        if (Array.isArray(messages)) {
+                            errorMessages.push(`${field}: ${messages.join(', ')}`);
+                        } else {
+                            errorMessages.push(`${field}: ${messages}`);
+                        }
+                    }
+                    if (errorMessages.length > 0) {
+                        mensagemErro = errorMessages.join(' | ');
+                    }
                 }
                 console.error('💬 Mensagem de erro final:', mensagemErro);
             }
