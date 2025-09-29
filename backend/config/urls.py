@@ -6,10 +6,49 @@ from django.http import JsonResponse
 from django.views.generic import TemplateView
 from django.views.static import serve
 from core.views_debug import DebugCorsView, N8nConnectivityTestView
+from django.utils import timezone
 import os
 
 def simple_health(request):
-    return JsonResponse({'status': 'ok', 'health': 'Railway OK'})
+    try:
+        # Teste básico de conectividade com banco de dados
+        from django.db import connection
+        from django.core.cache import cache
+
+        status_info = {
+            'status': 'ok',
+            'health': 'Railway OK',
+            'timestamp': timezone.now().isoformat()
+        }
+
+        # Teste de conexão com banco
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+                status_info['database'] = 'connected'
+        except Exception as db_error:
+            status_info['database'] = f'error: {str(db_error)}'
+            status_info['status'] = 'partial'
+
+        # Teste de cache (Redis ou LocMem)
+        try:
+            cache.set('health_check', 'ok', 10)
+            if cache.get('health_check') == 'ok':
+                status_info['cache'] = 'connected'
+            else:
+                status_info['cache'] = 'not_working'
+        except Exception as cache_error:
+            status_info['cache'] = f'error: {str(cache_error)}'
+
+        return JsonResponse(status_info)
+
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'health': 'Railway ERROR',
+            'error': str(e),
+            'timestamp': timezone.now().isoformat()
+        }, status=500)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
