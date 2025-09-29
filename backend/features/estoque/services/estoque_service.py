@@ -328,12 +328,25 @@ class EstoqueService:
 
                 try:
                     # Buscar SKU em produtos compartilhados associados à loja
-                    produto_sku = ProdutoSKU.objects.select_related('produto').get(
+                    produto_skus_queryset = ProdutoSKU.objects.select_related('produto').filter(
                         sku=sku,
                         ativo=True,
                         produto__ativo=True,
                         produto__lojas=loja_config
                     )
+
+                    if produto_skus_queryset.count() == 0:
+                        raise ProdutoSKU.DoesNotExist("Nenhum produto encontrado")
+                    elif produto_skus_queryset.count() > 1:
+                        safe_print(f"[CANCELAMENTO PROCESSOR] ⚠️ AMBIGUIDADE: Encontrados {produto_skus_queryset.count()} produtos com SKU '{sku}'")
+                        for idx, psku in enumerate(produto_skus_queryset):
+                            safe_print(f"[CANCELAMENTO PROCESSOR]   {idx+1}. Produto: {psku.produto.nome} (Fornecedor: {psku.produto.fornecedor}, Estoque: {psku.produto.estoque_compartilhado})")
+
+                        # Usar estratégia de priorização: primeiro por estoque, depois por data
+                        produto_sku = produto_skus_queryset.order_by('-produto__estoque_compartilhado', '-produto__data_criacao').first()
+                        safe_print(f"[CANCELAMENTO PROCESSOR] 🎯 SELECIONADO: {produto_sku.produto.nome} (Estoque: {produto_sku.produto.estoque_compartilhado})")
+                    else:
+                        produto_sku = produto_skus_queryset.first()
 
                     produto = produto_sku.produto
                     tipo_produto = "compartilhado"
@@ -503,12 +516,25 @@ class EstoqueService:
 
                 try:
                     # Buscar SKU em produtos compartilhados associados à loja
-                    produto_sku = ProdutoSKU.objects.select_related('produto').get(
+                    produto_skus_queryset = ProdutoSKU.objects.select_related('produto').filter(
                         sku=sku,
                         ativo=True,
                         produto__ativo=True,
                         produto__lojas=loja_config
                     )
+
+                    if produto_skus_queryset.count() == 0:
+                        raise ProdutoSKU.DoesNotExist("Nenhum produto encontrado")
+                    elif produto_skus_queryset.count() > 1:
+                        safe_print(f"[ITEM PROCESSOR] ⚠️ AMBIGUIDADE: Encontrados {produto_skus_queryset.count()} produtos com SKU '{sku}'")
+                        for idx, psku in enumerate(produto_skus_queryset):
+                            safe_print(f"[ITEM PROCESSOR]   {idx+1}. Produto: {psku.produto.nome} (Fornecedor: {psku.produto.fornecedor}, Estoque: {psku.produto.estoque_compartilhado})")
+
+                        # Usar estratégia de priorização: primeiro por estoque, depois por data
+                        produto_sku = produto_skus_queryset.order_by('-produto__estoque_compartilhado', '-produto__data_criacao').first()
+                        safe_print(f"[ITEM PROCESSOR] 🎯 SELECIONADO: {produto_sku.produto.nome} (Estoque: {produto_sku.produto.estoque_compartilhado})")
+                    else:
+                        produto_sku = produto_skus_queryset.first()
 
                     produto = produto_sku.produto
                     tipo_produto = "compartilhado"
