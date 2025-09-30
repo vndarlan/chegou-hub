@@ -645,10 +645,10 @@ class ProdutoSerializer(serializers.ModelSerializer):
 
             # Extrair dados aninhados
             skus_data = validated_data.pop('skus_data', [])
-            lojas_ids = validated_data.pop('lojas_ids', [])
+            lojas_ids = validated_data.pop('lojas_ids', [])  # Ignorar lojas enviadas pelo frontend
 
             logger.info(f"SKUs extraídos: {skus_data}")
-            logger.info(f"Lojas IDs extraídos: {lojas_ids}")
+            logger.info(f"Lojas IDs enviadas pelo frontend (serão ignoradas): {lojas_ids}")
 
             # Definir usuário
             request = self.context.get('request')
@@ -659,41 +659,18 @@ class ProdutoSerializer(serializers.ModelSerializer):
                 logger.error("Usuário não encontrado no contexto!")
                 raise serializers.ValidationError("Usuário não encontrado")
 
-            # VALIDAÇÃO PRÉVIA - ANTES da transação atômica
-            # Verificar se TODAS as lojas existem no sistema (sem verificar proprietário)
-            if lojas_ids:
-                logger.info(f"=== VALIDAÇÃO PRÉVIA DE LOJAS (CREATE - SEM VERIFICAÇÃO DE PROPRIETÁRIO) ===")
-                logger.info(f"Usuário: {request.user.username} (ID: {request.user.id})")
-                logger.info(f"Lojas para validar: {lojas_ids}")
+            # AUTO-COMPARTILHAMENTO: Buscar TODAS as lojas do sistema
+            # Produtos compartilhados são automaticamente associados a TODAS as lojas
+            todas_lojas = ShopifyConfig.objects.filter(ativo=True)
+            lojas_ids = list(todas_lojas.values_list('id', flat=True))
 
-                # Buscar todas as lojas no sistema para debug
-                todas_lojas_sistema = ShopifyConfig.objects.all().values_list('id', 'nome_loja', 'user__username')
-                logger.info(f"Total de lojas no sistema: {len(list(todas_lojas_sistema))}")
+            logger.info(f"=== AUTO-COMPARTILHAMENTO HABILITADO ===")
+            logger.info(f"Total de lojas ATIVAS no sistema: {len(lojas_ids)}")
+            logger.info(f"Produto será automaticamente compartilhado com todas as lojas")
 
-                lojas_inexistentes = []
-                lojas_validas = []
-
-                for loja_id in lojas_ids:
-                    logger.info(f"Validando existência da loja ID: {loja_id}")
-
-                    loja = ShopifyConfig.objects.filter(id=loja_id).first()
-                    if loja:
-                        lojas_validas.append(loja)
-                        logger.info(f"✅ Loja {loja.nome_loja} (ID: {loja_id}) - EXISTE (proprietário: {loja.user.username})")
-                    else:
-                        lojas_inexistentes.append(loja_id)
-                        logger.error(f"❌ Loja ID {loja_id} - NÃO EXISTE no sistema")
-
-                # Se há lojas inexistentes, abortar ANTES da criação
-                if lojas_inexistentes:
-                    logger.error(f"ABORTANDO CREATE: Lojas inexistentes: {lojas_inexistentes}")
-                    raise serializers.ValidationError({
-                        'lojas_ids': f'Lojas com IDs {lojas_inexistentes} não foram encontradas no sistema.'
-                    })
-
-                logger.info(f"✅ VALIDAÇÃO APROVADA: Todas as {len(lojas_validas)} lojas existem no sistema")
-            else:
-                logger.info("Nenhuma loja para associar - produto será criado sem lojas")
+            if not lojas_ids:
+                logger.warning("⚠️ AVISO: Nenhuma loja ativa encontrada no sistema!")
+                logger.warning("Produto será criado, mas não estará associado a nenhuma loja")
 
             # Usar transação para garantir atomicidade
             with transaction.atomic():
@@ -724,12 +701,11 @@ class ProdutoSerializer(serializers.ModelSerializer):
 
                 logger.info(f"Total de SKUs criados: {skus_criados}")
 
-                # Associar lojas (agora sabemos que TODAS existem no sistema)
+                # AUTO-ASSOCIAR a TODAS as lojas ativas do sistema
                 lojas_associadas = 0
                 for loja_id in lojas_ids:
                     try:
-                        logger.info(f"Tentando associar loja ID: {loja_id}")
-                        # Buscar loja sem filtrar por usuário
+                        logger.info(f"Auto-associando loja ID: {loja_id}")
                         loja = ShopifyConfig.objects.get(id=loja_id)
 
                         produto_loja, created = ProdutoLoja.objects.get_or_create(
@@ -740,26 +716,21 @@ class ProdutoSerializer(serializers.ModelSerializer):
 
                         if created:
                             lojas_associadas += 1
-                            logger.info(f"✅ Loja {loja.nome_loja} associada com sucesso (proprietário: {loja.user.username})")
+                            logger.info(f"✅ Loja {loja.nome_loja} auto-associada (proprietário: {loja.user.username})")
                         else:
-                            logger.warning(f"⚠️ Produto já estava associado à loja: {loja.nome_loja}")
+                            lojas_associadas += 1
+                            logger.info(f"ℹ️ Loja {loja.nome_loja} já estava associada")
 
                     except ShopifyConfig.DoesNotExist:
-                        # Isso não deveria acontecer mais devido à validação prévia
-                        logger.error(f"❌ ERRO CRÍTICO: Loja ID {loja_id} não encontrada (falha na validação prévia)")
-                        raise serializers.ValidationError(f"Erro interno: Loja {loja_id} não encontrada após validação")
+                        logger.error(f"❌ ERRO: Loja ID {loja_id} não encontrada")
+                        # Continuar com outras lojas
 
-                logger.info(f"Total de lojas associadas: {lojas_associadas}")
+                logger.info(f"Total de lojas associadas: {lojas_associadas}/{len(lojas_ids)}")
 
                 # Verificar resultado final
                 produto.refresh_from_db()
                 skus_final = produto.skus.count()
                 lojas_final = produto.produtoloja_set.count()
-
-                # Validação final crítica
-                if lojas_ids and lojas_final != len(lojas_ids):
-                    logger.error(f"❌ FALHA CRÍTICA: Esperado {len(lojas_ids)} lojas, mas temos {lojas_final}")
-                    raise serializers.ValidationError("Falha na associação de lojas - nem todas foram associadas")
 
                 logger.info(f"=== PRODUTO CRIADO COM SUCESSO ===")
                 logger.info(f"ID: {produto.id}")
