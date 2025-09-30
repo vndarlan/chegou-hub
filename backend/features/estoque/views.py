@@ -1811,28 +1811,42 @@ class ProdutoViewSet(viewsets.ModelViewSet):
         return ProdutoSerializer
     
     def get_queryset(self):
-        """Filtrar produtos por usuário com filtros avançados e otimização de queries"""
-        queryset = Produto.objects.filter(user=self.request.user)
-        
+        """
+        Filtrar produtos por usuário com filtros avançados e otimização de queries.
+
+        MULTI-USUÁRIO: Produtos compartilhados são visíveis para todos os usuários
+        que têm acesso às lojas associadas ao produto.
+        """
+        # Buscar lojas do usuário para validar acesso
+        from features.processamento.models import ShopifyConfig
+        lojas_usuario = ShopifyConfig.objects.filter(user=self.request.user)
+
+        # Filtrar produtos onde:
+        # 1. Usuário é o criador (user=request.user) OU
+        # 2. Produto está associado a lojas do usuário (via ProdutoLoja)
+        queryset = Produto.objects.filter(
+            Q(user=self.request.user) | Q(lojas__in=lojas_usuario)
+        ).distinct()
+
         # Aplicar filtros dos query parameters
         nome = self.request.query_params.get('nome')
         if nome:
             queryset = queryset.filter(nome__icontains=nome)
-        
+
         fornecedor = self.request.query_params.get('fornecedor')
         if fornecedor:
             queryset = queryset.filter(fornecedor__icontains=fornecedor)
-        
+
         # Filtro por SKU (busca em qualquer SKU do produto)
         sku = self.request.query_params.get('sku')
         if sku:
             queryset = queryset.filter(skus__sku__icontains=sku).distinct()
-        
+
         # Filtro por loja (produtos compartilhados podem estar associados a múltiplas lojas)
         loja_id = self.request.query_params.get('loja_id')
         if loja_id:
             queryset = queryset.filter(produtoloja_set__loja_id=loja_id).distinct()
-        
+
         # Filtro por status do estoque
         status_estoque = self.request.query_params.get('status_estoque')
         if status_estoque == 'baixo':
@@ -1841,17 +1855,17 @@ class ProdutoViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(estoque_compartilhado=0)
         elif status_estoque == 'negativo':
             queryset = queryset.filter(estoque_compartilhado__lt=0)
-        
+
         # Apenas produtos ativos por padrão
         apenas_ativos = self.request.query_params.get('apenas_ativos', 'true')
         if apenas_ativos.lower() == 'true':
             queryset = queryset.filter(ativo=True)
-        
+
         return queryset.select_related().prefetch_related(
-            'skus', 
+            'skus',
             'lojas',
-            'produtoloja_set__loja', 
-            'movimentacoes', 
+            'produtoloja_set__loja',
+            'movimentacoes',
             'alertas'
         ).distinct()
     

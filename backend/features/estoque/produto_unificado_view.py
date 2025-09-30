@@ -3,10 +3,11 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import F
+from django.db.models import F, Q
 from itertools import chain
 
 from .models import ProdutoEstoque, Produto
+from features.processamento.models import ShopifyConfig
 from .serializers import ProdutoUnificadoSerializer
 from .throttles import EstoqueUserRateThrottle
 
@@ -21,19 +22,27 @@ class ProdutoUnificadoViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         """
         Combinar produtos individuais (ProdutoEstoque) e compartilhados (Produto)
-        em uma única consulta unificada
+        em uma única consulta unificada.
+
+        MULTI-USUÁRIO: Produtos compartilhados são visíveis para todos os usuários
+        que têm acesso às lojas associadas ao produto.
         """
         # Buscar produtos individuais (ProdutoEstoque) do usuário
         produtos_individuais = ProdutoEstoque.objects.filter(
             user=self.request.user
         ).select_related('loja_config').prefetch_related('movimentacoes', 'alertas')
-        
-        # Buscar produtos compartilhados (Produto) do usuário
+
+        # Buscar lojas do usuário para validar acesso a produtos compartilhados
+        lojas_usuario = ShopifyConfig.objects.filter(user=self.request.user)
+
+        # Buscar produtos compartilhados (Produto) onde:
+        # 1. Usuário é o criador (user=request.user) OU
+        # 2. Produto está associado a lojas do usuário (via ProdutoLoja)
         produtos_compartilhados = Produto.objects.filter(
-            user=self.request.user
+            Q(user=self.request.user) | Q(lojas__in=lojas_usuario)
         ).select_related().prefetch_related(
             'skus', 'lojas', 'produtoloja_set__loja', 'movimentacoes', 'alertas'
-        )
+        ).distinct()  # distinct() para evitar duplicatas quando produto está em múltiplas lojas
         
         # Aplicar filtros comuns
         nome = self.request.query_params.get('nome')
