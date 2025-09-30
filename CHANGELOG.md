@@ -5,6 +5,12 @@ Todas as mudanças deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [v1.4.1] - 30/09/2025
+
+### 🐛 Correções
+
+- **[📊 Métricas N1 Itália]** Corrigido compartilhamento de análises entre usuários. Anteriormente, análises eram filtradas por usuário, impedindo visibilidade entre a equipe. Agora todas as análises são compartilhadas globalmente, com badge azul identificando o criador de cada análise, facilitando colaboração e acompanhamento em equipe.
+
 ## [v1.4.0] - 29/09/2025
 
 ### ✨ Novidades
