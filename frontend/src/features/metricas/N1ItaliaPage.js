@@ -1126,9 +1126,16 @@ function N1ItaliaPage() {
                                             <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">N1 🇮🇹</Badge>
                                         </div>
 
-                                        <p className="text-xs text-muted-foreground mb-3">
-                                            {new Date(analise.criado_em).toLocaleDateString('pt-BR')}
-                                        </p>
+                                        <div className="space-y-1 mb-3">
+                                            <p className="text-xs text-muted-foreground">
+                                                {new Date(analise.criado_em).toLocaleDateString('pt-BR')}
+                                            </p>
+                                            {analise.criado_por_nome && (
+                                                <p className="text-xs text-blue-600 dark:text-blue-400">
+                                                    Por: {analise.criado_por_nome}
+                                                </p>
+                                            )}
+                                        </div>
 
                                         <div className="flex items-center gap-2">
                                             <Button

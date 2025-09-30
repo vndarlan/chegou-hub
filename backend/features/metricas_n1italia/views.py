@@ -23,9 +23,8 @@ class AnaliseN1ItaliaViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return AnaliseN1Italia.objects.filter(
-            criado_por=self.request.user
-        ).order_by('-atualizado_em')
+        # Retorna todas as análises (compartilhadas entre usuários)
+        return AnaliseN1Italia.objects.all().order_by('-atualizado_em')
 
     @action(detail=False, methods=['post'])
     def upload_excel(self, request):

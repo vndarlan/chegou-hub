@@ -19,7 +19,7 @@ class AnaliseN1Italia(models.Model):
         verbose_name = "Análise N1 Itália"
         verbose_name_plural = "Análises N1 Itália"
         ordering = ['-atualizado_em']
-        unique_together = ['nome', 'criado_por']
+        # Removido unique_together para permitir compartilhamento entre usuários
 
     def __str__(self):
         return f"[N1 ITÁLIA] {self.nome}"
