@@ -63,6 +63,7 @@ if not ALLOWED_HOSTS and not DEBUG:
 
 # Application definition - ATUALIZADO COM SEPARACAO DE METRICAS
 INSTALLED_APPS = [
+    'jazzmin',  # Tema moderno para Django Admin - DEVE vir antes de django.contrib.admin
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -791,3 +792,219 @@ else:
 # WebSocket timeout settings
 WEBSOCKET_ACCEPT_ALL = False  # Requer autenticação
 WEBSOCKET_CLOSE_TIMEOUT = 10  # Timeout para fechar conexões em segundos
+
+# ======================== CONFIGURAÇÃO DJANGO-JAZZMIN (ADMIN CUSTOMIZADO) ========================
+
+JAZZMIN_SETTINGS = {
+    # Título que aparece na aba do navegador
+    "site_title": "Chegou Hub Admin",
+
+    # Título no cabeçalho do admin
+    "site_header": "Chegou Hub",
+
+    # Título na página de login
+    "site_brand": "Chegou Hub - Administração",
+
+    # Logo no topo (sidebar) - use URL absoluta ou caminho em static/
+    # "site_logo": "img/logo.png",
+
+    # Logo para login page
+    # "login_logo": "img/logo.png",
+
+    # CSS classes para o logo
+    "site_logo_classes": "img-circle",
+
+    # URL relativa ou absoluta para o logo como link
+    "site_icon": None,
+
+    # Mensagem de boas-vindas na tela de login
+    "welcome_sign": "Bem-vindo ao Chegou Hub",
+
+    # Copyright no rodapé
+    "copyright": "Chegou Hub - Gestão Integrada de E-commerce",
+
+    # Campo para pesquisa no topo
+    "search_model": ["auth.User", "estoque.ProdutoEstoque"],
+
+    # Nome do campo user para avatar
+    "user_avatar": None,
+
+    ############
+    # Dashboard #
+    ############
+
+    # Widgets no dashboard (cards de resumo)
+    "show_ui_builder": False,
+    "usermenu_links": [
+        {"model": "auth.user"}
+    ],
+
+    ############
+    # Top Menu #
+    ############
+
+    # Links no menu superior
+    "topmenu_links": [
+        # URL ou link reverso
+        {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "Ver Site", "url": "/", "new_window": True},
+        {"model": "auth.User"},
+        {"app": "estoque"},
+    ],
+
+    #############
+    # Side Menu #
+    #############
+
+    # Se deve mostrar o sidebar à esquerda
+    "show_sidebar": True,
+
+    # Se deve mostrar o navegador de apps
+    "navigation_expanded": True,
+
+    # Ocultar apps ou models do menu
+    # "hide_apps": [],
+    # "hide_models": [],
+
+    # Ordem dos apps no menu (os não listados aparecem depois em ordem alfabética)
+    "order_with_respect_to": [
+        # 👥 Gestão
+        "auth",
+
+        # 📦 Operações
+        "estoque",
+        "processamento",
+
+        # 📊 Métricas
+        "metricas_n1italia",
+        "metricas_dropi",
+        "metricas_ecomhub",
+        "metricas_primecod",
+
+        # 🤖 Automação
+        "ia",
+
+        # 💬 Comunicação
+        "feedback",
+
+        # ⚙️ Sistema
+        "api_monitoring",
+        "sync_realtime",
+    ],
+
+    # Customização de nomes dos apps
+    "custom_links": {
+        "estoque": [{
+            "name": "Gestão de Estoque",
+            "url": "admin:estoque_produtoestoque_changelist",
+            "icon": "fas fa-box",
+            "permissions": ["estoque.view_produtoestoque"]
+        }],
+    },
+
+    # Ícones customizados para apps e models
+    # Usando Font Awesome 5 Free icons (https://fontawesome.com/v5/search?m=free)
+    "icons": {
+        # Apps
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+
+        # Estoque
+        "estoque": "fas fa-boxes",
+        "estoque.ProdutoEstoque": "fas fa-box",
+        "estoque.Produto": "fas fa-cube",
+        "estoque.MovimentacaoEstoque": "fas fa-exchange-alt",
+        "estoque.AlertaEstoque": "fas fa-exclamation-triangle",
+
+        # Métricas
+        "metricas_n1italia": "fas fa-chart-line",
+        "metricas_n1italia.AnaliseN1Italia": "fas fa-chart-bar",
+        "metricas_dropi": "fas fa-chart-area",
+        "metricas_ecomhub": "fas fa-chart-pie",
+        "metricas_primecod": "fas fa-analytics",
+
+        # Processamento
+        "processamento": "fas fa-cogs",
+        "processamento.ShopifyConfig": "fab fa-shopify",
+        "processamento.ProcessamentoLog": "fas fa-list-alt",
+
+        # IA
+        "ia": "fas fa-robot",
+        "ia.ProjetoIA": "fas fa-project-diagram",
+        "ia.LogEntry": "fas fa-file-alt",
+        "ia.WhatsAppBusinessAccount": "fab fa-whatsapp",
+        "ia.WhatsAppPhoneNumber": "fas fa-phone",
+
+        # Feedback
+        "feedback": "fas fa-comments",
+        "feedback.Feedback": "fas fa-comment-alt",
+
+        # API Monitoring
+        "api_monitoring": "fas fa-heartbeat",
+    },
+
+    # Ícones padrão para quando não especificado
+    "default_icon_parents": "fas fa-chevron-circle-right",
+    "default_icon_children": "fas fa-circle",
+
+    #################
+    # Customizações #
+    #################
+
+    # Related modal (modais para relacionamentos)
+    "related_modal_active": False,
+
+    # Usar modal para adicionar/editar ao invés de nova página
+    # "custom_links": {},
+
+    # Mostrar o botão de customização de UI
+    "show_ui_builder": False,
+
+    # Mudar template de login, logout, etc
+    # "custom_css": None,
+    # "custom_js": None,
+
+    # Tema de cores
+    "changeform_format": "horizontal_tabs",  # ou "single", "carousel", "collapsible", "vertical_tabs"
+    "changeform_format_overrides": {
+        "auth.user": "collapsible",
+        "auth.group": "vertical_tabs"
+    },
+
+    # Language chooser (se você tem i18n)
+    "language_chooser": False,
+}
+
+# Configurações de UI do Jazzmin
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-primary",  # navbar-primary, navbar-secondary, navbar-info, navbar-warning, navbar-danger, navbar-success
+    "accent": "accent-primary",  # accent-primary, accent-secondary, accent-info, accent-warning, accent-danger, accent-success
+    "navbar": "navbar-dark",  # navbar-dark, navbar-light
+    "no_navbar_border": False,
+    "navbar_fixed": False,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": True,
+    "sidebar": "sidebar-dark-primary",  # sidebar-dark-primary, sidebar-light-primary, etc
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": False,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "theme": "default",  # default, darkly, lux, flatly, minty, etc (bootswatch themes)
+    "dark_mode_theme": None,  # Nome do tema para dark mode
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success"
+    }
+}
