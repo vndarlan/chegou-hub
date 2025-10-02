@@ -7,6 +7,9 @@ import os
 import re
 from dotenv import load_dotenv
 import dj_database_url
+from django.templatetags.static import static
+from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -63,7 +66,8 @@ if not ALLOWED_HOSTS and not DEBUG:
 
 # Application definition - ATUALIZADO COM SEPARACAO DE METRICAS
 INSTALLED_APPS = [
-    'jazzmin',  # Tema moderno para Django Admin - DEVE vir antes de django.contrib.admin
+    'unfold',  # Unfold Admin - DEVE vir antes de django.contrib.admin
+    'unfold.contrib.filters',  # Filtros avançados do Unfold
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -793,220 +797,170 @@ else:
 WEBSOCKET_ACCEPT_ALL = False  # Requer autenticação
 WEBSOCKET_CLOSE_TIMEOUT = 10  # Timeout para fechar conexões em segundos
 
-# ======================== CONFIGURAÇÃO DJANGO-JAZZMIN (ADMIN CUSTOMIZADO) ========================
+# ======================== CONFIGURAÇÃO DJANGO UNFOLD (ADMIN CUSTOMIZADO) ========================
 
-JAZZMIN_SETTINGS = {
-    # Título que aparece na aba do navegador
-    "site_title": "Chegou Hub Admin",
+UNFOLD = {
+    "SITE_TITLE": "Chegou Hub Admin",
+    "SITE_HEADER": "Chegou Hub",
+    "SITE_URL": "/",
+    # "SITE_ICON": lambda request: static("icon.svg"),  # Ícone da aba
+    # "SITE_LOGO": lambda request: static("logo.svg"),   # Logo no sidebar
+    "SITE_SYMBOL": "🚀",  # Emoji como símbolo temporário
 
-    # Título no cabeçalho do admin
-    "site_header": "Chegou Hub",
+    "SHOW_HISTORY": True,  # Mostrar histórico de alterações
+    "SHOW_VIEW_ON_SITE": True,  # Botão "Ver no site"
 
-    # Título na página de login
-    "site_brand": "Chegou Hub - Administração",
-
-    # Logo no topo (sidebar) - use URL absoluta ou caminho em static/
-    # "site_logo": "img/logo.png",
-
-    # Logo para login page
-    # "login_logo": "img/logo.png",
-
-    # CSS classes para o logo
-    "site_logo_classes": "img-circle",
-
-    # URL relativa ou absoluta para o logo como link
-    "site_icon": None,
-
-    # Mensagem de boas-vindas na tela de login
-    "welcome_sign": "Bem-vindo ao Chegou Hub",
-
-    # Copyright no rodapé
-    "copyright": "Chegou Hub - Gestão Integrada de E-commerce",
-
-    # Campo para pesquisa no topo
-    "search_model": ["auth.User", "estoque.ProdutoEstoque"],
-
-    # Nome do campo user para avatar
-    "user_avatar": None,
-
-    ############
-    # Dashboard #
-    ############
-
-    # Widgets no dashboard (cards de resumo)
-    "show_ui_builder": False,
-    "usermenu_links": [
-        {"model": "auth.user"}
-    ],
-
-    ############
-    # Top Menu #
-    ############
-
-    # Links no menu superior
-    "topmenu_links": [
-        # URL ou link reverso
-        {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
-        {"name": "Ver Site", "url": "/", "new_window": True},
-        {"model": "auth.User"},
-        {"app": "estoque"},
-    ],
-
-    #############
-    # Side Menu #
-    #############
-
-    # Se deve mostrar o sidebar à esquerda
-    "show_sidebar": True,
-
-    # Se deve mostrar o navegador de apps
-    "navigation_expanded": True,
-
-    # Ocultar apps ou models do menu
-    # "hide_apps": [],
-    # "hide_models": [],
-
-    # Ordem dos apps no menu (os não listados aparecem depois em ordem alfabética)
-    "order_with_respect_to": [
-        # 👥 Gestão
-        "auth",
-
-        # 📦 Operações
-        "estoque",
-        "processamento",
-
-        # 📊 Métricas
-        "metricas_n1italia",
-        "metricas_dropi",
-        "metricas_ecomhub",
-        "metricas_primecod",
-
-        # 🤖 Automação
-        "ia",
-
-        # 💬 Comunicação
-        "feedback",
-
-        # ⚙️ Sistema
-        "api_monitoring",
-        "sync_realtime",
-    ],
-
-    # Customização de nomes dos apps
-    "custom_links": {
-        "estoque": [{
-            "name": "Gestão de Estoque",
-            "url": "admin:estoque_produtoestoque_changelist",
-            "icon": "fas fa-box",
-            "permissions": ["estoque.view_produtoestoque"]
-        }],
+    # Cores do Chegou Hub (#FF7A00 - Laranja Vibrante)
+    "COLORS": {
+        "primary": {
+            "50": "255 247 237",   # Laranja muito claro
+            "100": "255 237 213",  # Laranja claro
+            "200": "254 215 170",  # Laranja médio claro
+            "300": "253 186 116",  # Laranja médio
+            "400": "251 146 60",   # Laranja
+            "500": "255 122 0",    # Laranja vibrante (PRINCIPAL #FF7A00)
+            "600": "230 107 0",    # Laranja escuro
+            "700": "194 85 0",     # Laranja muito escuro
+            "800": "154 66 0",     # Laranja dark
+            "900": "120 52 0",     # Laranja darkest
+            "950": "69 32 3",      # Laranja quase preto
+        },
     },
 
-    # Ícones customizados para apps e models
-    # Usando Font Awesome 5 Free icons (https://fontawesome.com/v5/search?m=free)
-    "icons": {
-        # Apps
-        "auth": "fas fa-users-cog",
-        "auth.user": "fas fa-user",
-        "auth.Group": "fas fa-users",
-
-        # Estoque
-        "estoque": "fas fa-boxes",
-        "estoque.ProdutoEstoque": "fas fa-box",
-        "estoque.Produto": "fas fa-cube",
-        "estoque.MovimentacaoEstoque": "fas fa-exchange-alt",
-        "estoque.AlertaEstoque": "fas fa-exclamation-triangle",
-
-        # Métricas
-        "metricas_n1italia": "fas fa-chart-line",
-        "metricas_n1italia.AnaliseN1Italia": "fas fa-chart-bar",
-        "metricas_dropi": "fas fa-chart-area",
-        "metricas_ecomhub": "fas fa-chart-pie",
-        "metricas_primecod": "fas fa-analytics",
-
-        # Processamento
-        "processamento": "fas fa-cogs",
-        "processamento.ShopifyConfig": "fab fa-shopify",
-        "processamento.ProcessamentoLog": "fas fa-list-alt",
-
-        # IA
-        "ia": "fas fa-robot",
-        "ia.ProjetoIA": "fas fa-project-diagram",
-        "ia.LogEntry": "fas fa-file-alt",
-        "ia.WhatsAppBusinessAccount": "fab fa-whatsapp",
-        "ia.WhatsAppPhoneNumber": "fas fa-phone",
-
-        # Feedback
-        "feedback": "fas fa-comments",
-        "feedback.Feedback": "fas fa-comment-alt",
-
-        # API Monitoring
-        "api_monitoring": "fas fa-heartbeat",
+    # Sidebar organizada por categorias (baseada no frontend)
+    "SIDEBAR": {
+        "show_search": True,  # Busca no sidebar
+        "show_all_applications": False,  # Não mostrar todos os apps automaticamente
+        "navigation": [
+            {
+                "title": _("Gestão"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Usuários"),
+                        "icon": "person",
+                        "link": reverse_lazy("admin:auth_user_changelist"),
+                    },
+                    {
+                        "title": _("Grupos"),
+                        "icon": "group",
+                        "link": reverse_lazy("admin:auth_group_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Times"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("IA & Automações"),
+                        "icon": "smart_toy",
+                        "collapsible": True,
+                        "items": [
+                            {
+                                "title": _("Projetos IA"),
+                                "link": reverse_lazy("admin:ia_projetoia_changelist"),
+                            },
+                            {
+                                "title": _("Logs de Erros"),
+                                "link": reverse_lazy("admin:ia_logentry_changelist"),
+                            },
+                            {
+                                "title": _("WhatsApp Business"),
+                                "link": reverse_lazy("admin:ia_whatsappbusinessaccount_changelist"),
+                            },
+                        ],
+                    },
+                    {
+                        "title": _("Suporte"),
+                        "icon": "support_agent",
+                        "collapsible": True,
+                        "items": [
+                            {
+                                "title": _("Shopify Config"),
+                                "link": reverse_lazy("admin:processamento_shopifyconfig_changelist"),
+                            },
+                            {
+                                "title": _("Processamento"),
+                                "link": reverse_lazy("admin:processamento_processamentolog_changelist"),
+                            },
+                        ],
+                    },
+                    {
+                        "title": _("Estoque"),
+                        "icon": "inventory_2",
+                        "collapsible": True,
+                        "items": [
+                            {
+                                "title": _("Produtos"),
+                                "link": reverse_lazy("admin:estoque_produtoestoque_changelist"),
+                            },
+                            {
+                                "title": _("Movimentações"),
+                                "link": reverse_lazy("admin:estoque_movimentacaoestoque_changelist"),
+                            },
+                            {
+                                "title": _("Alertas"),
+                                "link": reverse_lazy("admin:estoque_alertaestoque_changelist"),
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                "title": _("Métricas"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Análises"),
+                        "icon": "analytics",
+                        "collapsible": True,
+                        "items": [
+                            {
+                                "title": _("N1 Itália"),
+                                "link": reverse_lazy("admin:metricas_n1italia_analisen1italia_changelist"),
+                            },
+                        ],
+                    },
+                    {
+                        "title": _("Monitoramento"),
+                        "icon": "monitor_heart",
+                        "collapsible": True,
+                        "items": [
+                            {
+                                "title": _("API Monitoring"),
+                                "link": reverse_lazy("admin:api_monitoring_apirequest_changelist"),
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                "title": _("Sistema"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Feedbacks"),
+                        "icon": "feedback",
+                        "link": reverse_lazy("admin:feedback_feedback_changelist"),
+                    },
+                ],
+            },
+        ],
     },
 
-    # Ícones padrão para quando não especificado
-    "default_icon_parents": "fas fa-chevron-circle-right",
-    "default_icon_children": "fas fa-circle",
+    # Estilos customizados
+    "STYLES": [
+        lambda request: static("css/unfold_custom.css"),
+    ],
 
-    #################
-    # Customizações #
-    #################
+    # Scripts customizados
+    "SCRIPTS": [],
 
-    # Related modal (modais para relacionamentos)
-    "related_modal_active": False,
-
-    # Usar modal para adicionar/editar ao invés de nova página
-    # "custom_links": {},
-
-    # Mostrar o botão de customização de UI
-    "show_ui_builder": False,
-
-    # CSS customizado com cores Chegou Hub
-    "custom_css": "css/admin_custom.css",
-    "custom_js": None,
-
-    # Tema de cores
-    "changeform_format": "horizontal_tabs",  # ou "single", "carousel", "collapsible", "vertical_tabs"
-    "changeform_format_overrides": {
-        "auth.user": "collapsible",
-        "auth.group": "vertical_tabs"
-    },
-
-    # Language chooser (se você tem i18n)
-    "language_chooser": False,
+    # Tabs nos formulários
+    "TABS": [],
 }
 
-# Configurações de UI do Jazzmin - CORES CHEGOU HUB
-JAZZMIN_UI_TWEAKS = {
-    "navbar_small_text": False,
-    "footer_small_text": False,
-    "body_small_text": False,
-    "brand_small_text": False,
-    "brand_colour": "navbar-orange",  # Laranja Chegou Hub
-    "accent": "accent-orange",  # Laranja como accent
-    "navbar": "navbar-white",  # Navbar branco (light mode)
-    "no_navbar_border": False,
-    "navbar_fixed": False,
-    "layout_boxed": False,
-    "footer_fixed": False,
-    "sidebar_fixed": True,
-    "sidebar": "sidebar-light-orange",  # Sidebar claro com accent laranja
-    "sidebar_nav_small_text": False,
-    "sidebar_disable_expand": False,
-    "sidebar_nav_child_indent": False,
-    "sidebar_nav_compact_style": False,
-    "sidebar_nav_legacy_style": False,
-    "sidebar_nav_flat_style": False,
-    "theme": "flatly",  # Tema flatly (moderno e clean)
-    "dark_mode_theme": "darkly",  # Tema darkly para modo escuro
-    "button_classes": {
-        "primary": "btn-orange",  # Botões laranja
-        "secondary": "btn-secondary",
-        "info": "btn-info",
-        "warning": "btn-warning",
-        "danger": "btn-danger",
-        "success": "btn-success"
-    },
-    # Customização de cores CSS
-    "actions_sticky_top": False,
-}
+# ======================== FIM CONFIGURAÇÃO UNFOLD ========================
