@@ -1,6 +1,7 @@
 /*
  * Unfold Admin - Customização Chegou Hub
- * Aplica fonte Inter (mesma do frontend) e ajustes visuais
+ * Cores EXATAS do frontend (globals.css)
+ * Fonte Inter (mesma do frontend)
  */
 
 /* ==================== FONTE INTER (MESMA DO FRONTEND) ==================== */
@@ -13,14 +14,84 @@
     font-variation-settings: 'opsz' 32;
 }
 
-/* Ajustes de font-weight para a Inter */
-body {
-    font-weight: 400;
+/* ==================== CORES DO FRONTEND - LIGHT MODE ==================== */
+:root {
+    /* Cor primária - Laranja Chegou Hub */
+    --primary: hsl(25, 95%, 53%);           /* #FF7A00 */
+    --primary-foreground: hsl(0, 0%, 98%);
+
+    /* Backgrounds */
+    --background: hsl(0, 0%, 100%);         /* Branco */
+    --foreground: hsl(240, 10%, 3.9%);      /* Texto escuro */
+
+    /* Cards e Popover */
+    --card: hsl(0, 0%, 100%);
+    --card-foreground: hsl(240, 10%, 3.9%);
+
+    /* Secondary */
+    --secondary: hsl(240, 4.8%, 95.9%);
+    --secondary-foreground: hsl(240, 5.9%, 10%);
+
+    /* Muted */
+    --muted: hsl(240, 4.8%, 95.9%);
+    --muted-foreground: hsl(240, 3.8%, 46.1%);
+
+    /* Accent */
+    --accent: hsl(240, 4.8%, 95.9%);
+    --accent-foreground: hsl(240, 5.9%, 10%);
+
+    /* Border, Input, Ring */
+    --border: hsl(240, 5.9%, 90%);
+    --input: hsl(240, 5.9%, 90%);
+    --ring: hsl(25, 95%, 53%);              /* Laranja */
+
+    /* Border radius */
+    --radius: 0.65rem;
 }
 
-h1, h2, h3, h4, h5, h6,
-.font-semibold {
+/* ==================== CORES DO FRONTEND - DARK MODE ==================== */
+.dark, [data-theme="dark"] {
+    /* Backgrounds dark */
+    --background: hsl(240, 10%, 3.9%);      /* Fundo escuro */
+    --foreground: hsl(0, 0%, 98%);          /* Texto claro */
+
+    /* Cards dark */
+    --card: hsl(240, 10%, 3.9%);
+    --card-foreground: hsl(0, 0%, 98%);
+
+    /* Primary permanece igual */
+    --primary: hsl(25, 95%, 53%);           /* Laranja #FF7A00 */
+    --primary-foreground: hsl(0, 0%, 9%);   /* Texto escuro no laranja */
+
+    /* Secondary dark */
+    --secondary: hsl(240, 3.7%, 15.9%);
+    --secondary-foreground: hsl(0, 0%, 98%);
+
+    /* Muted dark */
+    --muted: hsl(240, 3.7%, 15.9%);
+    --muted-foreground: hsl(240, 5%, 64.9%);
+
+    /* Accent dark */
+    --accent: hsl(240, 3.7%, 15.9%);
+    --accent-foreground: hsl(0, 0%, 98%);
+
+    /* Border, Input, Ring dark */
+    --border: hsl(240, 3.7%, 15.9%);
+    --input: hsl(240, 3.7%, 15.9%);
+    --ring: hsl(25, 95%, 53%);              /* Laranja */
+}
+
+/* ==================== APLICAR CORES ==================== */
+body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-weight: 400;
+    line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6, .font-semibold {
     font-weight: 600;
+    color: var(--foreground);
 }
 
 .font-medium {
@@ -31,77 +102,76 @@ h1, h2, h3, h4, h5, h6,
     font-weight: 700;
 }
 
-/* ==================== DARK MODE TWEAKS ==================== */
-/* Garantir que o dark mode funcione corretamente */
-@media (prefers-color-scheme: dark) {
-    :root {
-        color-scheme: dark;
-    }
+/* Links e botões primários */
+a {
+    color: var(--primary);
 }
 
-/* ==================== SMOOTH TRANSITIONS ==================== */
-* {
-    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+a:hover {
+    opacity: 0.9;
 }
 
-/* ==================== SIDEBAR AJUSTES ==================== */
-/* Melhorar legibilidade do sidebar */
-[data-unfold-sidebar] {
-    font-size: 0.9375rem; /* 15px - mesmo tamanho do frontend */
-}
-
-/* ==================== BOTÕES E LINKS ==================== */
-/* Garantir que os botões primários usem a cor laranja corretamente */
 button[type="submit"],
 .btn-primary,
 a.btn-primary {
-    background-color: rgb(var(--color-primary-500)) !important;
-    border-color: rgb(var(--color-primary-500)) !important;
+    background-color: var(--primary) !important;
+    color: var(--primary-foreground) !important;
+    border-color: var(--primary) !important;
 }
 
 button[type="submit"]:hover,
 .btn-primary:hover,
 a.btn-primary:hover {
-    background-color: rgb(var(--color-primary-600)) !important;
-    border-color: rgb(var(--color-primary-600)) !important;
+    opacity: 0.9;
 }
 
-/* ==================== FORM INPUTS ==================== */
-/* Melhorar aparência dos inputs */
+/* Input focus */
 input:focus,
 select:focus,
 textarea:focus {
     outline: none;
-    ring-color: rgb(var(--color-primary-500));
-    border-color: rgb(var(--color-primary-500));
+    border-color: var(--primary);
+    ring-color: var(--ring);
 }
 
-/* ==================== TABLES ==================== */
-/* Melhorar legibilidade das tabelas */
+/* Cards */
+.card, .box {
+    background-color: var(--card);
+    color: var(--card-foreground);
+    border-radius: var(--radius);
+    border-color: var(--border);
+}
+
+/* Badges */
+.badge-primary {
+    background-color: var(--primary) !important;
+    color: var(--primary-foreground) !important;
+}
+
+/* Tables */
 table {
     font-size: 0.9375rem;
+    color: var(--foreground);
 }
 
 thead th {
     font-weight: 600;
+    color: var(--foreground);
 }
 
-/* ==================== BREADCRUMBS ==================== */
-/* Estilizar breadcrumbs */
+/* Breadcrumbs */
 .breadcrumb {
     font-size: 0.875rem;
     font-weight: 500;
+    color: var(--muted-foreground);
 }
 
-/* ==================== CARDS E BOXES ==================== */
-/* Arredondar cards */
-.card,
-.box {
-    border-radius: 0.65rem; /* Mesmo border-radius do frontend */
+/* Borders */
+.border, [class*="border-"] {
+    border-color: var(--border);
 }
 
 /* ==================== SCROLLBAR CUSTOMIZADO ==================== */
-/* Scrollbar com cor laranja */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -112,39 +182,29 @@ thead th {
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 122, 0, 0.3);
+    background-color: hsla(25, 95%, 53%, 0.3);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255, 122, 0, 0.5);
+    background-color: hsla(25, 95%, 53%, 0.5);
 }
 
 /* Firefox scrollbar */
 * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 122, 0, 0.3) transparent;
+    scrollbar-color: hsla(25, 95%, 53%, 0.3) transparent;
 }
 
-/* ==================== BADGES E TAGS ==================== */
-/* Badges com cor primária */
-.badge-primary {
-    background-color: rgb(var(--color-primary-500)) !important;
-    color: white !important;
+/* ==================== TRANSIÇÕES SUAVES ==================== */
+* {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
 }
 
 /* ==================== ACESSIBILIDADE ==================== */
-/* Focus visível para acessibilidade */
 *:focus-visible {
-    outline: 2px solid rgb(var(--color-primary-500));
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
-}
-
-/* ==================== LOADING STATES ==================== */
-/* Spinner com cor laranja */
-.spinner,
-.loader {
-    border-color: rgb(var(--color-primary-500)) !important;
 }
 
 /* ==================== RESPONSIVIDADE ==================== */
@@ -158,15 +218,9 @@ thead th {
     }
 }
 
-/* ==================== AJUSTES ESPECÍFICOS UNFOLD ==================== */
-/* Garantir que os ícones do Material Icons apareçam corretamente */
+/* ==================== MATERIAL ICONS ==================== */
 .material-icons {
     font-family: 'Material Icons' !important;
-}
-
-/* Ajustar altura de linha para melhor legibilidade */
-body {
-    line-height: 1.6;
 }
 
 /* ==================== PRINT STYLES ==================== */

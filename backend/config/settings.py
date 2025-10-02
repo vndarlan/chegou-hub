@@ -810,20 +810,33 @@ UNFOLD = {
     "SHOW_HISTORY": True,  # Mostrar histórico de alterações
     "SHOW_VIEW_ON_SITE": True,  # Botão "Ver no site"
 
-    # Cores do Chegou Hub (#FF7A00 - Laranja Vibrante)
+    # Cores do Chegou Hub - EXATAS DO FRONTEND (hsl(25, 95%, 53%) = #FF7A00)
+    # Convertidas de HSL para RGB para o Unfold
     "COLORS": {
         "primary": {
-            "50": "255 247 237",   # Laranja muito claro
-            "100": "255 237 213",  # Laranja claro
-            "200": "254 215 170",  # Laranja médio claro
-            "300": "253 186 116",  # Laranja médio
-            "400": "251 146 60",   # Laranja
-            "500": "255 122 0",    # Laranja vibrante (PRINCIPAL #FF7A00)
-            "600": "230 107 0",    # Laranja escuro
-            "700": "194 85 0",     # Laranja muito escuro
-            "800": "154 66 0",     # Laranja dark
-            "900": "120 52 0",     # Laranja darkest
-            "950": "69 32 3",      # Laranja quase preto
+            "50": "255 250 245",    # Muito claro (quase branco laranja)
+            "100": "255 244 235",   # Claro
+            "200": "254 233 215",   # Médio claro
+            "300": "254 220 186",   # Médio
+            "400": "253 186 116",   # Laranja médio
+            "500": "255 122 0",     # Laranja vibrante PRINCIPAL (hsl(25, 95%, 53%) = #FF7A00)
+            "600": "230 107 0",     # Escuro
+            "700": "194 85 0",      # Muito escuro
+            "800": "163 71 0",      # Darkest
+            "900": "122 53 0",      # Extra dark
+            "950": "82 36 0",       # Quase preto laranja
+        },
+        # Cores do tema claro (Light Mode) - EXATAS DO FRONTEND
+        "font": {
+            "subtle": "240 5% 65%",      # --muted-foreground
+            "default": "240 10% 4%",     # --foreground
+            "brand": "25 95% 53%",       # --primary (laranja)
+        },
+        # Cores do tema escuro (Dark Mode) - EXATAS DO FRONTEND
+        "font-dark": {
+            "subtle": "240 5% 65%",      # --muted-foreground dark
+            "default": "0 0% 98%",       # --foreground dark
+            "brand": "25 95% 53%",       # --primary (mesmo laranja)
         },
     },
 
@@ -971,6 +984,9 @@ UNFOLD = {
         ],
     },
 
+    # Tema e aparência
+    "THEME": "light",  # Tema padrão: "light" ou "dark"
+
     # Estilos customizados
     "STYLES": [
         lambda request: static("css/unfold_custom.css"),
@@ -981,6 +997,22 @@ UNFOLD = {
 
     # Tabs nos formulários
     "TABS": [],
+
+    # Configurações visuais adicionais
+    "EXTENSIONS": {
+        "modeltranslation": {
+            "flags": {
+                "en": "🇬🇧",
+                "pt-br": "🇧🇷",
+            },
+        },
+    },
+
+    # Login page
+    "LOGIN": {
+        "image": lambda request: static("images/login-bg.jpg") if False else None,
+        "redirect_after": lambda request: "/admin/",
+    },
 }
 
 # ======================== FIM CONFIGURAÇÃO UNFOLD ========================
