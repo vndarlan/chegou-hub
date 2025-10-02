@@ -922,16 +922,36 @@ UNFOLD = {
                                 "title": _("N1 Itália"),
                                 "link": reverse_lazy("admin:metricas_n1italia_analisen1italia_changelist"),
                             },
+                            {
+                                "title": _("Dropi"),
+                                "link": reverse_lazy("admin:metricas_dropi_analisedropi_changelist"),
+                            },
+                            {
+                                "title": _("EcomHub"),
+                                "link": reverse_lazy("admin:metricas_ecomhub_analiseecomhub_changelist"),
+                            },
+                            {
+                                "title": _("PrimeCOD"),
+                                "link": reverse_lazy("admin:metricas_primecod_analiseprimecod_changelist"),
+                            },
                         ],
                     },
                     {
-                        "title": _("Monitoramento"),
+                        "title": _("Monitoramento API"),
                         "icon": "monitor_heart",
                         "collapsible": True,
                         "items": [
                             {
-                                "title": _("API Monitoring"),
-                                "link": reverse_lazy("admin:api_monitoring_apirequest_changelist"),
+                                "title": _("Providers"),
+                                "link": reverse_lazy("admin:api_monitoring_apiprovider_changelist"),
+                            },
+                            {
+                                "title": _("API Keys"),
+                                "link": reverse_lazy("admin:api_monitoring_apikey_changelist"),
+                            },
+                            {
+                                "title": _("Usage Records"),
+                                "link": reverse_lazy("admin:api_monitoring_usagerecord_changelist"),
                             },
                         ],
                     },
