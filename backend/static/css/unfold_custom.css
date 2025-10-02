@@ -81,6 +81,73 @@
     --ring: hsl(25, 95%, 53%);              /* Laranja */
 }
 
+/* ==================== SOBRESCREVER TAILWIND DO UNFOLD ==================== */
+/* Força aplicação das cores em TODOS os elementos do Unfold */
+
+/* Background e foreground globais */
+body,
+.bg-white,
+[class*="bg-white"],
+main,
+.main-content {
+    background-color: hsl(var(--background)) !important;
+    color: hsl(var(--foreground)) !important;
+}
+
+.dark body,
+.dark .bg-white,
+.dark [class*="bg-white"],
+.dark main,
+.dark .main-content {
+    background-color: hsl(240, 10%, 3.9%) !important;
+    color: hsl(0, 0%, 98%) !important;
+}
+
+/* Sidebar backgrounds */
+.sidebar,
+aside,
+nav,
+[class*="bg-gray-"] {
+    background-color: hsl(240, 5.9%, 98%) !important;
+}
+
+.dark .sidebar,
+.dark aside,
+.dark nav,
+.dark [class*="bg-gray-"] {
+    background-color: hsl(240, 5.9%, 10%) !important;
+}
+
+/* Textos cinza -> usar muted-foreground */
+[class*="text-gray-"],
+.text-muted {
+    color: hsl(240, 3.8%, 46.1%) !important;
+}
+
+.dark [class*="text-gray-"],
+.dark .text-muted {
+    color: hsl(240, 5%, 64.9%) !important;
+}
+
+/* Botões e elementos primários */
+[class*="bg-primary"],
+button[class*="primary"],
+.btn-primary {
+    background-color: hsl(25, 95%, 53%) !important;
+    color: hsl(0, 0%, 98%) !important;
+}
+
+/* Borders */
+[class*="border-gray-"],
+.border {
+    border-color: hsl(240, 5.9%, 90%) !important;
+}
+
+.dark [class*="border-gray-"],
+.dark .border {
+    border-color: hsl(240, 3.7%, 15.9%) !important;
+}
+
 /* ==================== APLICAR CORES ==================== */
 body {
     background-color: var(--background);
