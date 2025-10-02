@@ -810,33 +810,33 @@ UNFOLD = {
     "SHOW_HISTORY": True,  # Mostrar histórico de alterações
     "SHOW_VIEW_ON_SITE": True,  # Botão "Ver no site"
 
-    # Cores do Chegou Hub - EXATAS DO FRONTEND (hsl(25, 95%, 53%) = #FF7A00)
+    # Cores EXATAS do Chegou Hub Frontend (de globals.css)
     # Convertidas de HSL para RGB para o Unfold
     "COLORS": {
         "primary": {
-            "50": "255 250 245",    # Muito claro (quase branco laranja)
-            "100": "255 244 235",   # Claro
-            "200": "254 233 215",   # Médio claro
-            "300": "254 220 186",   # Médio
-            "400": "253 186 116",   # Laranja médio
-            "500": "255 122 0",     # Laranja vibrante PRINCIPAL (hsl(25, 95%, 53%) = #FF7A00)
-            "600": "230 107 0",     # Escuro
-            "700": "194 85 0",      # Muito escuro
-            "800": "163 71 0",      # Darkest
-            "900": "122 53 0",      # Extra dark
-            "950": "82 36 0",       # Quase preto laranja
+            "50": "255 250 245",    # Muito claro
+            "100": "255 244 235",
+            "200": "254 233 215",
+            "300": "254 220 186",
+            "400": "253 186 116",
+            "500": "255 122 0",     # hsl(25, 95%, 53%) = #FF7A00
+            "600": "230 107 0",
+            "700": "194 85 0",
+            "800": "163 71 0",
+            "900": "122 53 0",
+            "950": "82 36 0",
         },
-        # Cores do tema claro (Light Mode) - EXATAS DO FRONTEND
+        # Tema CLARO - De globals.css :root
         "font": {
-            "subtle": "240 5% 65%",      # --muted-foreground
-            "default": "240 10% 4%",     # --foreground
-            "brand": "25 95% 53%",       # --primary (laranja)
+            "subtle": "240 4% 46%",      # --muted-foreground: 240 3.8% 46.1%
+            "default": "240 10% 4%",     # --foreground: 240 10% 3.9%
+            "brand": "255 122 0",        # --primary RGB
         },
-        # Cores do tema escuro (Dark Mode) - EXATAS DO FRONTEND
+        # Tema ESCURO - De globals.css .dark
         "font-dark": {
-            "subtle": "240 5% 65%",      # --muted-foreground dark
-            "default": "0 0% 98%",       # --foreground dark
-            "brand": "25 95% 53%",       # --primary (mesmo laranja)
+            "subtle": "240 5% 65%",      # --muted-foreground: 240 5% 64.9%
+            "default": "0 0% 98%",       # --foreground: 0 0% 98%
+            "brand": "255 122 0",        # --primary RGB
         },
     },
 
@@ -983,9 +983,6 @@ UNFOLD = {
             },
         ],
     },
-
-    # Tema e aparência
-    "THEME": "auto",  # auto = permite troca light/dark pelo usuário
 
     # Estilos customizados
     "STYLES": [
