@@ -862,97 +862,111 @@ UNFOLD = {
                 ],
             },
             {
-                "title": _("IA & Automações"),
+                "title": _("Times"),
                 "separator": True,
-                "icon": "smart_toy",
+                "collapsible": True,
                 "items": [
                     {
-                        "title": _("Projetos IA"),
-                        "link": reverse_lazy("admin:ia_projetoia_changelist"),
+                        "title": _("IA & Automações"),
+                        "icon": "smart_toy",
+                        "collapsible": True,
+                        "items": [
+                            {
+                                "title": _("Projetos IA"),
+                                "link": reverse_lazy("admin:ia_projetoia_changelist"),
+                            },
+                            {
+                                "title": _("Logs de Erros"),
+                                "link": reverse_lazy("admin:ia_logentry_changelist"),
+                            },
+                            {
+                                "title": _("WhatsApp Business"),
+                                "link": reverse_lazy("admin:ia_whatsappbusinessaccount_changelist"),
+                            },
+                        ],
                     },
                     {
-                        "title": _("Logs de Erros"),
-                        "link": reverse_lazy("admin:ia_logentry_changelist"),
+                        "title": _("Suporte"),
+                        "icon": "support_agent",
+                        "collapsible": True,
+                        "items": [
+                            {
+                                "title": _("Shopify Config"),
+                                "link": reverse_lazy("admin:processamento_shopifyconfig_changelist"),
+                            },
+                            {
+                                "title": _("Processamento"),
+                                "link": reverse_lazy("admin:processamento_processamentolog_changelist"),
+                            },
+                        ],
                     },
                     {
-                        "title": _("WhatsApp Business"),
-                        "link": reverse_lazy("admin:ia_whatsappbusinessaccount_changelist"),
+                        "title": _("Estoque"),
+                        "icon": "inventory_2",
+                        "collapsible": True,
+                        "items": [
+                            {
+                                "title": _("Produtos"),
+                                "link": reverse_lazy("admin:estoque_produtoestoque_changelist"),
+                            },
+                            {
+                                "title": _("Movimentações"),
+                                "link": reverse_lazy("admin:estoque_movimentacaoestoque_changelist"),
+                            },
+                            {
+                                "title": _("Alertas"),
+                                "link": reverse_lazy("admin:estoque_alertaestoque_changelist"),
+                            },
+                        ],
                     },
                 ],
             },
             {
-                "title": _("Suporte"),
+                "title": _("Métricas"),
                 "separator": True,
-                "icon": "support_agent",
+                "collapsible": True,
                 "items": [
                     {
-                        "title": _("Shopify Config"),
-                        "link": reverse_lazy("admin:processamento_shopifyconfig_changelist"),
+                        "title": _("Análises"),
+                        "icon": "analytics",
+                        "collapsible": True,
+                        "items": [
+                            {
+                                "title": _("N1 Itália"),
+                                "link": reverse_lazy("admin:metricas_n1italia_analisen1italia_changelist"),
+                            },
+                            {
+                                "title": _("Dropi"),
+                                "link": reverse_lazy("admin:metricas_dropi_analisedropi_changelist"),
+                            },
+                            {
+                                "title": _("EcomHub"),
+                                "link": reverse_lazy("admin:metricas_ecomhub_analiseecomhub_changelist"),
+                            },
+                            {
+                                "title": _("PrimeCOD"),
+                                "link": reverse_lazy("admin:metricas_primecod_analiseprimecod_changelist"),
+                            },
+                        ],
                     },
                     {
-                        "title": _("Processamento"),
-                        "link": reverse_lazy("admin:processamento_processamentolog_changelist"),
-                    },
-                ],
-            },
-            {
-                "title": _("Estoque"),
-                "separator": True,
-                "icon": "inventory_2",
-                "items": [
-                    {
-                        "title": _("Produtos"),
-                        "link": reverse_lazy("admin:estoque_produtoestoque_changelist"),
-                    },
-                    {
-                        "title": _("Movimentações"),
-                        "link": reverse_lazy("admin:estoque_movimentacaoestoque_changelist"),
-                    },
-                    {
-                        "title": _("Alertas"),
-                        "link": reverse_lazy("admin:estoque_alertaestoque_changelist"),
-                    },
-                ],
-            },
-            {
-                "title": _("Análises"),
-                "separator": True,
-                "icon": "analytics",
-                "items": [
-                    {
-                        "title": _("N1 Itália"),
-                        "link": reverse_lazy("admin:metricas_n1italia_analisen1italia_changelist"),
-                    },
-                    {
-                        "title": _("Dropi"),
-                        "link": reverse_lazy("admin:metricas_dropi_analisedropi_changelist"),
-                    },
-                    {
-                        "title": _("EcomHub"),
-                        "link": reverse_lazy("admin:metricas_ecomhub_analiseecomhub_changelist"),
-                    },
-                    {
-                        "title": _("PrimeCOD"),
-                        "link": reverse_lazy("admin:metricas_primecod_analiseprimecod_changelist"),
-                    },
-                ],
-            },
-            {
-                "title": _("Monitoramento API"),
-                "separator": True,
-                "icon": "monitor_heart",
-                "items": [
-                    {
-                        "title": _("Providers"),
-                        "link": reverse_lazy("admin:api_monitoring_apiprovider_changelist"),
-                    },
-                    {
-                        "title": _("API Keys"),
-                        "link": reverse_lazy("admin:api_monitoring_apikey_changelist"),
-                    },
-                    {
-                        "title": _("Usage Records"),
-                        "link": reverse_lazy("admin:api_monitoring_usagerecord_changelist"),
+                        "title": _("Monitoramento API"),
+                        "icon": "monitor_heart",
+                        "collapsible": True,
+                        "items": [
+                            {
+                                "title": _("Providers"),
+                                "link": reverse_lazy("admin:api_monitoring_apiprovider_changelist"),
+                            },
+                            {
+                                "title": _("API Keys"),
+                                "link": reverse_lazy("admin:api_monitoring_apikey_changelist"),
+                            },
+                            {
+                                "title": _("Usage Records"),
+                                "link": reverse_lazy("admin:api_monitoring_usagerecord_changelist"),
+                            },
+                        ],
                     },
                 ],
             },
@@ -971,7 +985,7 @@ UNFOLD = {
     },
 
     # Tema e aparência
-    "THEME": "light",  # Tema padrão: "light" ou "dark"
+    "THEME": "auto",  # auto = permite troca light/dark pelo usuário
 
     # Estilos customizados
     "STYLES": [
