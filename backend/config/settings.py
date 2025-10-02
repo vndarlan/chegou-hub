@@ -811,32 +811,32 @@ UNFOLD = {
     "SHOW_VIEW_ON_SITE": True,  # Botão "Ver no site"
 
     # Cores EXATAS do Chegou Hub Frontend (de globals.css)
-    # Convertidas de HSL para RGB para o Unfold
+    # Convertidas CORRETAMENTE de HSL para RGB
     "COLORS": {
         "primary": {
-            "50": "255 250 245",    # Muito claro
+            "50": "255 250 245",
             "100": "255 244 235",
             "200": "254 233 215",
             "300": "254 220 186",
             "400": "253 186 116",
-            "500": "255 122 0",     # hsl(25, 95%, 53%) = #FF7A00
+            "500": "249 116 21",     # hsl(25, 95%, 53%) = RGB CORRETO
             "600": "230 107 0",
             "700": "194 85 0",
             "800": "163 71 0",
             "900": "122 53 0",
             "950": "82 36 0",
         },
-        # Tema CLARO - De globals.css :root
+        # Tema CLARO - globals.css :root
         "font": {
-            "subtle": "240 4% 46%",      # --muted-foreground: 240 3.8% 46.1%
-            "default": "240 10% 4%",     # --foreground: 240 10% 3.9%
-            "brand": "255 122 0",        # --primary RGB
+            "subtle": "113 113 122",     # hsl(240, 3.8%, 46.1%)
+            "default": "8 8 10",         # hsl(240, 10%, 3.9%)
+            "brand": "249 116 21",       # hsl(25, 95%, 53%)
         },
-        # Tema ESCURO - De globals.css .dark
+        # Tema ESCURO - globals.css .dark
         "font-dark": {
-            "subtle": "240 5% 65%",      # --muted-foreground: 240 5% 64.9%
-            "default": "0 0% 98%",       # --foreground: 0 0% 98%
-            "brand": "255 122 0",        # --primary RGB
+            "subtle": "161 161 169",     # hsl(240, 5%, 64.9%)
+            "default": "249 249 249",    # hsl(0, 0%, 98%)
+            "brand": "249 116 21",       # hsl(25, 95%, 53%)
         },
     },
 
