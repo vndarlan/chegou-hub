@@ -961,9 +961,9 @@ JAZZMIN_SETTINGS = {
     # Mostrar o botão de customização de UI
     "show_ui_builder": False,
 
-    # Mudar template de login, logout, etc
-    # "custom_css": None,
-    # "custom_js": None,
+    # CSS customizado com cores Chegou Hub
+    "custom_css": "css/admin_custom.css",
+    "custom_js": None,
 
     # Tema de cores
     "changeform_format": "horizontal_tabs",  # ou "single", "carousel", "collapsible", "vertical_tabs"
@@ -976,35 +976,37 @@ JAZZMIN_SETTINGS = {
     "language_chooser": False,
 }
 
-# Configurações de UI do Jazzmin
+# Configurações de UI do Jazzmin - CORES CHEGOU HUB
 JAZZMIN_UI_TWEAKS = {
     "navbar_small_text": False,
     "footer_small_text": False,
     "body_small_text": False,
     "brand_small_text": False,
-    "brand_colour": "navbar-primary",  # navbar-primary, navbar-secondary, navbar-info, navbar-warning, navbar-danger, navbar-success
-    "accent": "accent-primary",  # accent-primary, accent-secondary, accent-info, accent-warning, accent-danger, accent-success
-    "navbar": "navbar-dark",  # navbar-dark, navbar-light
+    "brand_colour": "navbar-orange",  # Laranja Chegou Hub
+    "accent": "accent-orange",  # Laranja como accent
+    "navbar": "navbar-white",  # Navbar branco (light mode)
     "no_navbar_border": False,
     "navbar_fixed": False,
     "layout_boxed": False,
     "footer_fixed": False,
     "sidebar_fixed": True,
-    "sidebar": "sidebar-dark-primary",  # sidebar-dark-primary, sidebar-light-primary, etc
+    "sidebar": "sidebar-light-orange",  # Sidebar claro com accent laranja
     "sidebar_nav_small_text": False,
     "sidebar_disable_expand": False,
     "sidebar_nav_child_indent": False,
     "sidebar_nav_compact_style": False,
     "sidebar_nav_legacy_style": False,
     "sidebar_nav_flat_style": False,
-    "theme": "default",  # default, darkly, lux, flatly, minty, etc (bootswatch themes)
-    "dark_mode_theme": None,  # Nome do tema para dark mode
+    "theme": "flatly",  # Tema flatly (moderno e clean)
+    "dark_mode_theme": "darkly",  # Tema darkly para modo escuro
     "button_classes": {
-        "primary": "btn-primary",
+        "primary": "btn-orange",  # Botões laranja
         "secondary": "btn-secondary",
         "info": "btn-info",
         "warning": "btn-warning",
         "danger": "btn-danger",
         "success": "btn-success"
-    }
+    },
+    # Customização de cores CSS
+    "actions_sticky_top": False,
 }
