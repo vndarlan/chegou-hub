@@ -802,7 +802,7 @@ WEBSOCKET_CLOSE_TIMEOUT = 10  # Timeout para fechar conexões em segundos
 UNFOLD = {
     "SITE_TITLE": "Chegou Hub Admin",
     "SITE_HEADER": "Chegou Hub",
-    "SITE_URL": "/",
+    "SITE_URL": "https://www.chegouhub.com.br/",  # URL do site principal
     # "SITE_ICON": lambda request: static("icon.svg"),  # Ícone da aba
     # "SITE_LOGO": lambda request: static("logo.svg"),   # Logo no sidebar
     "SITE_SYMBOL": "🚀",  # Emoji como símbolo temporário
@@ -862,111 +862,97 @@ UNFOLD = {
                 ],
             },
             {
-                "title": _("Times"),
+                "title": _("IA & Automações"),
                 "separator": True,
-                "collapsible": True,
+                "icon": "smart_toy",
                 "items": [
                     {
-                        "title": _("IA & Automações"),
-                        "icon": "smart_toy",
-                        "collapsible": True,
-                        "items": [
-                            {
-                                "title": _("Projetos IA"),
-                                "link": reverse_lazy("admin:ia_projetoia_changelist"),
-                            },
-                            {
-                                "title": _("Logs de Erros"),
-                                "link": reverse_lazy("admin:ia_logentry_changelist"),
-                            },
-                            {
-                                "title": _("WhatsApp Business"),
-                                "link": reverse_lazy("admin:ia_whatsappbusinessaccount_changelist"),
-                            },
-                        ],
+                        "title": _("Projetos IA"),
+                        "link": reverse_lazy("admin:ia_projetoia_changelist"),
                     },
                     {
-                        "title": _("Suporte"),
-                        "icon": "support_agent",
-                        "collapsible": True,
-                        "items": [
-                            {
-                                "title": _("Shopify Config"),
-                                "link": reverse_lazy("admin:processamento_shopifyconfig_changelist"),
-                            },
-                            {
-                                "title": _("Processamento"),
-                                "link": reverse_lazy("admin:processamento_processamentolog_changelist"),
-                            },
-                        ],
+                        "title": _("Logs de Erros"),
+                        "link": reverse_lazy("admin:ia_logentry_changelist"),
                     },
                     {
-                        "title": _("Estoque"),
-                        "icon": "inventory_2",
-                        "collapsible": True,
-                        "items": [
-                            {
-                                "title": _("Produtos"),
-                                "link": reverse_lazy("admin:estoque_produtoestoque_changelist"),
-                            },
-                            {
-                                "title": _("Movimentações"),
-                                "link": reverse_lazy("admin:estoque_movimentacaoestoque_changelist"),
-                            },
-                            {
-                                "title": _("Alertas"),
-                                "link": reverse_lazy("admin:estoque_alertaestoque_changelist"),
-                            },
-                        ],
+                        "title": _("WhatsApp Business"),
+                        "link": reverse_lazy("admin:ia_whatsappbusinessaccount_changelist"),
                     },
                 ],
             },
             {
-                "title": _("Métricas"),
+                "title": _("Suporte"),
                 "separator": True,
-                "collapsible": True,
+                "icon": "support_agent",
                 "items": [
                     {
-                        "title": _("Análises"),
-                        "icon": "analytics",
-                        "collapsible": True,
-                        "items": [
-                            {
-                                "title": _("N1 Itália"),
-                                "link": reverse_lazy("admin:metricas_n1italia_analisen1italia_changelist"),
-                            },
-                            {
-                                "title": _("Dropi"),
-                                "link": reverse_lazy("admin:metricas_dropi_analisedropi_changelist"),
-                            },
-                            {
-                                "title": _("EcomHub"),
-                                "link": reverse_lazy("admin:metricas_ecomhub_analiseecomhub_changelist"),
-                            },
-                            {
-                                "title": _("PrimeCOD"),
-                                "link": reverse_lazy("admin:metricas_primecod_analiseprimecod_changelist"),
-                            },
-                        ],
+                        "title": _("Shopify Config"),
+                        "link": reverse_lazy("admin:processamento_shopifyconfig_changelist"),
                     },
                     {
-                        "title": _("Monitoramento API"),
-                        "icon": "monitor_heart",
-                        "collapsible": True,
-                        "items": [
-                            {
-                                "title": _("Providers"),
-                                "link": reverse_lazy("admin:api_monitoring_apiprovider_changelist"),
-                            },
-                            {
-                                "title": _("API Keys"),
-                                "link": reverse_lazy("admin:api_monitoring_apikey_changelist"),
-                            },
-                            {
-                                "title": _("Usage Records"),
-                                "link": reverse_lazy("admin:api_monitoring_usagerecord_changelist"),
-                            },
-                        ],
+                        "title": _("Processamento"),
+                        "link": reverse_lazy("admin:processamento_processamentolog_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Estoque"),
+                "separator": True,
+                "icon": "inventory_2",
+                "items": [
+                    {
+                        "title": _("Produtos"),
+                        "link": reverse_lazy("admin:estoque_produtoestoque_changelist"),
+                    },
+                    {
+                        "title": _("Movimentações"),
+                        "link": reverse_lazy("admin:estoque_movimentacaoestoque_changelist"),
+                    },
+                    {
+                        "title": _("Alertas"),
+                        "link": reverse_lazy("admin:estoque_alertaestoque_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Análises"),
+                "separator": True,
+                "icon": "analytics",
+                "items": [
+                    {
+                        "title": _("N1 Itália"),
+                        "link": reverse_lazy("admin:metricas_n1italia_analisen1italia_changelist"),
+                    },
+                    {
+                        "title": _("Dropi"),
+                        "link": reverse_lazy("admin:metricas_dropi_analisedropi_changelist"),
+                    },
+                    {
+                        "title": _("EcomHub"),
+                        "link": reverse_lazy("admin:metricas_ecomhub_analiseecomhub_changelist"),
+                    },
+                    {
+                        "title": _("PrimeCOD"),
+                        "link": reverse_lazy("admin:metricas_primecod_analiseprimecod_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Monitoramento API"),
+                "separator": True,
+                "icon": "monitor_heart",
+                "items": [
+                    {
+                        "title": _("Providers"),
+                        "link": reverse_lazy("admin:api_monitoring_apiprovider_changelist"),
+                    },
+                    {
+                        "title": _("API Keys"),
+                        "link": reverse_lazy("admin:api_monitoring_apikey_changelist"),
+                    },
+                    {
+                        "title": _("Usage Records"),
+                        "link": reverse_lazy("admin:api_monitoring_usagerecord_changelist"),
                     },
                 ],
             },
