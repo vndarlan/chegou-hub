@@ -7,8 +7,6 @@ import os
 import re
 from dotenv import load_dotenv
 import dj_database_url
-from django.urls import reverse_lazy
-from django.utils.translation import gettext_lazy as _
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -804,6 +802,14 @@ WEBSOCKET_CLOSE_TIMEOUT = 10  # Timeout para fechar conexões em segundos
 
 # ======================== CONFIGURAÇÃO DJANGO UNFOLD (ADMIN CUSTOMIZADO) ========================
 
+# Helper para evitar imports que causam RuntimeError: populate() isn't reentrant
+def _lazy_reverse(viewname):
+    """Retorna uma função que faz reverse_lazy de forma lazy"""
+    def _reverse(request=None):
+        from django.urls import reverse
+        return reverse(viewname)
+    return _reverse
+
 UNFOLD = {
     "SITE_TITLE": "Chegou Hub Admin",
     "SITE_HEADER": "Chegou Hub",
@@ -851,138 +857,138 @@ UNFOLD = {
         "show_all_applications": False,  # Não mostrar todos os apps automaticamente
         "navigation": [
             {
-                "title": _("Gestão"),
+                "title": "Gestão",
                 "separator": True,
                 "items": [
                     {
-                        "title": _("Usuários"),
+                        "title": "Usuários",
                         "icon": "person",
-                        "link": reverse_lazy("admin:auth_user_changelist"),
+                        "link": _lazy_reverse("admin:auth_user_changelist"),
                     },
                     {
-                        "title": _("Grupos"),
+                        "title": "Grupos",
                         "icon": "group",
-                        "link": reverse_lazy("admin:auth_group_changelist"),
+                        "link": _lazy_reverse("admin:auth_group_changelist"),
                     },
                 ],
             },
             {
-                "title": _("Times"),
+                "title": "Times",
                 "separator": True,
                 "collapsible": True,
                 "items": [
                     {
-                        "title": _("IA & Automações"),
+                        "title": "IA & Automações",
                         "icon": "smart_toy",
                         "collapsible": True,
                         "items": [
                             {
-                                "title": _("Projetos IA"),
-                                "link": reverse_lazy("admin:ia_projetoia_changelist"),
+                                "title": "Projetos IA",
+                                "link": _lazy_reverse("admin:ia_projetoia_changelist"),
                             },
                             {
-                                "title": _("Logs de Erros"),
-                                "link": reverse_lazy("admin:ia_logentry_changelist"),
+                                "title": "Logs de Erros",
+                                "link": _lazy_reverse("admin:ia_logentry_changelist"),
                             },
                             {
-                                "title": _("WhatsApp Business"),
-                                "link": reverse_lazy("admin:ia_whatsappbusinessaccount_changelist"),
+                                "title": "WhatsApp Business",
+                                "link": _lazy_reverse("admin:ia_whatsappbusinessaccount_changelist"),
                             },
                         ],
                     },
                     {
-                        "title": _("Suporte"),
+                        "title": "Suporte",
                         "icon": "support_agent",
                         "collapsible": True,
                         "items": [
                             {
-                                "title": _("Shopify Config"),
-                                "link": reverse_lazy("admin:processamento_shopifyconfig_changelist"),
+                                "title": "Shopify Config",
+                                "link": _lazy_reverse("admin:processamento_shopifyconfig_changelist"),
                             },
                             {
-                                "title": _("Processamento"),
-                                "link": reverse_lazy("admin:processamento_processamentolog_changelist"),
+                                "title": "Processamento",
+                                "link": _lazy_reverse("admin:processamento_processamentolog_changelist"),
                             },
                         ],
                     },
                     {
-                        "title": _("Estoque"),
+                        "title": "Estoque",
                         "icon": "inventory_2",
                         "collapsible": True,
                         "items": [
                             {
-                                "title": _("Produtos"),
-                                "link": reverse_lazy("admin:estoque_produtoestoque_changelist"),
+                                "title": "Produtos",
+                                "link": _lazy_reverse("admin:estoque_produtoestoque_changelist"),
                             },
                             {
-                                "title": _("Movimentações"),
-                                "link": reverse_lazy("admin:estoque_movimentacaoestoque_changelist"),
+                                "title": "Movimentações",
+                                "link": _lazy_reverse("admin:estoque_movimentacaoestoque_changelist"),
                             },
                             {
-                                "title": _("Alertas"),
-                                "link": reverse_lazy("admin:estoque_alertaestoque_changelist"),
+                                "title": "Alertas",
+                                "link": _lazy_reverse("admin:estoque_alertaestoque_changelist"),
                             },
                         ],
                     },
                 ],
             },
             {
-                "title": _("Métricas"),
+                "title": "Métricas",
                 "separator": True,
                 "collapsible": True,
                 "items": [
                     {
-                        "title": _("Análises"),
+                        "title": "Análises",
                         "icon": "analytics",
                         "collapsible": True,
                         "items": [
                             {
-                                "title": _("N1 Itália"),
-                                "link": reverse_lazy("admin:metricas_n1italia_analisen1italia_changelist"),
+                                "title": "N1 Itália",
+                                "link": _lazy_reverse("admin:metricas_n1italia_analisen1italia_changelist"),
                             },
                             {
-                                "title": _("Dropi"),
-                                "link": reverse_lazy("admin:metricas_dropi_analisedropi_changelist"),
+                                "title": "Dropi",
+                                "link": _lazy_reverse("admin:metricas_dropi_analisedropi_changelist"),
                             },
                             {
-                                "title": _("EcomHub"),
-                                "link": reverse_lazy("admin:metricas_ecomhub_analiseecomhub_changelist"),
+                                "title": "EcomHub",
+                                "link": _lazy_reverse("admin:metricas_ecomhub_analiseecomhub_changelist"),
                             },
                             {
-                                "title": _("PrimeCOD"),
-                                "link": reverse_lazy("admin:metricas_primecod_analiseprimecod_changelist"),
+                                "title": "PrimeCOD",
+                                "link": _lazy_reverse("admin:metricas_primecod_analiseprimecod_changelist"),
                             },
                         ],
                     },
                     {
-                        "title": _("Monitoramento API"),
+                        "title": "Monitoramento API",
                         "icon": "monitor_heart",
                         "collapsible": True,
                         "items": [
                             {
-                                "title": _("Providers"),
-                                "link": reverse_lazy("admin:api_monitoring_apiprovider_changelist"),
+                                "title": "Providers",
+                                "link": _lazy_reverse("admin:api_monitoring_apiprovider_changelist"),
                             },
                             {
-                                "title": _("API Keys"),
-                                "link": reverse_lazy("admin:api_monitoring_apikey_changelist"),
+                                "title": "API Keys",
+                                "link": _lazy_reverse("admin:api_monitoring_apikey_changelist"),
                             },
                             {
-                                "title": _("Usage Records"),
-                                "link": reverse_lazy("admin:api_monitoring_usagerecord_changelist"),
+                                "title": "Usage Records",
+                                "link": _lazy_reverse("admin:api_monitoring_usagerecord_changelist"),
                             },
                         ],
                     },
                 ],
             },
             {
-                "title": _("Sistema"),
+                "title": "Sistema",
                 "separator": True,
                 "items": [
                     {
-                        "title": _("Feedbacks"),
+                        "title": "Feedbacks",
                         "icon": "feedback",
-                        "link": reverse_lazy("admin:feedback_feedback_changelist"),
+                        "link": _lazy_reverse("admin:feedback_feedback_changelist"),
                     },
                 ],
             },

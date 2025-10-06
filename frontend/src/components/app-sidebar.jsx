@@ -1,6 +1,5 @@
 import * as React from "react"
 import {
-  Home,
   Bot,
   BarChart3,
   Settings,
@@ -13,9 +12,8 @@ import {
   Sun,
   Calendar,
   Map,
-  MessageSquare,
   TrendingUp,
-  Package
+  BookOpen
 } from 'lucide-react'
 
 import {
@@ -58,7 +56,6 @@ export function AppSidebar({
   const navigate = props.navigate || (() => {})
   const location = props.location || { pathname: '/' }
   const { theme, setTheme } = useTheme()
-  const { isMobile } = useSidebar()
 
   const getInitials = (name) => {
     if (!name) return 'U';
@@ -87,10 +84,17 @@ export function AppSidebar({
       isActive: location.pathname === "/workspace/agenda",
     },
     {
-      title: "Mapa de Atuação", 
+      title: "Mapa de Atuação",
       url: "/workspace/mapa",
       icon: Map,
       isActive: location.pathname === "/workspace/mapa",
+    },
+    {
+      title: "Tutoriais",
+      url: "/tutoriais",
+      icon: BookOpen,
+      isActive: location.pathname === "/tutoriais",
+      external: false,
     },
   ];
 

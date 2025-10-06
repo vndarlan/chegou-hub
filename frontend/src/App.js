@@ -18,6 +18,7 @@ import CSRFManager from './components/CSRFManager';
 // Importa as páginas
 import LoginPage from './pages/LoginPage';
 import WorkspacePage from './pages/WorkspacePage';
+import TutoriaisPage from './pages/TutoriaisPage';
 
 
 function App() {
@@ -69,14 +70,19 @@ function App() {
         <Toaster position="top-right" />
         <Router>
           <Routes>
+            {/* Rota pública de tutoriais */}
+            <Route
+              path="/tutoriais"
+              element={<TutoriaisPage />}
+            />
             <Route
               path="/login"
               element={!isLoggedIn ? <LoginPage setIsLoggedIn={setIsLoggedIn} /> : <Navigate to="/workspace/agenda" replace />}
             />
             <Route
               path="/workspace/*"
-              element={isLoggedIn ? 
-                <WorkspacePage setIsLoggedIn={setIsLoggedIn} /> : 
+              element={isLoggedIn ?
+                <WorkspacePage setIsLoggedIn={setIsLoggedIn} /> :
                 <Navigate to="/login" replace />
               }
             />

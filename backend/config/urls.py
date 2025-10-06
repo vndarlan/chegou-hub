@@ -82,8 +82,10 @@ urlpatterns = [
     
     # URLs do Sistema de Feedback
     path('api/feedback/', include('features.feedback.urls')),
-    
-    
+
+    # URLs do Sistema de Tutoriais
+    path('api/tutoriais/', include('features.tutoriais.urls')),
+
     # URLs do API Monitoring
     path('api/monitoring/', include('features.api_monitoring.urls')),
 ]
