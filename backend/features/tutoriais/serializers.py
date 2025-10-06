@@ -36,8 +36,13 @@ class AulaListSerializer(serializers.ModelSerializer):
 class CategoriaAulaSerializer(serializers.ModelSerializer):
     """Serializer para categorias com suas aulas aninhadas"""
 
-    aulas = AulaSerializer(many=True, read_only=True)
+    aulas = serializers.SerializerMethodField()
     total_aulas = serializers.ReadOnlyField()
+
+    def get_aulas(self, obj):
+        """Retorna apenas aulas ativas"""
+        aulas_ativas = obj.aulas.filter(ativo=True).order_by('ordem')
+        return AulaSerializer(aulas_ativas, many=True).data
 
     class Meta:
         model = CategoriaAula

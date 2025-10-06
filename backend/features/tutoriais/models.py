@@ -83,8 +83,9 @@ class Aula(models.Model):
         help_text="Texto explicativo que aparece abaixo do vídeo"
     )
     video_url = models.URLField(
+        blank=True,
         verbose_name="URL do Vídeo",
-        help_text="URL do YouTube no formato embed (ex: https://www.youtube.com/embed/VIDEO_ID)"
+        help_text="URL do YouTube (opcional, ex: https://www.youtube.com/watch?v=VIDEO_ID)"
     )
     categoria = models.ForeignKey(
         CategoriaAula,
@@ -139,6 +140,8 @@ class Aula(models.Model):
     @property
     def video_id(self):
         """Extrai o ID do vídeo do YouTube da URL"""
+        if not self.video_url:
+            return None
         if 'youtube.com/embed/' in self.video_url:
             return self.video_url.split('embed/')[-1].split('?')[0]
         elif 'youtu.be/' in self.video_url:
@@ -150,6 +153,8 @@ class Aula(models.Model):
     @property
     def embed_url(self):
         """Retorna a URL no formato embed correto"""
+        if not self.video_url:
+            return ""
         video_id = self.video_id
         if video_id:
             return f"https://www.youtube.com/embed/{video_id}"
