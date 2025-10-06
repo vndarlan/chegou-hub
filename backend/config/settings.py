@@ -93,18 +93,21 @@ INSTALLED_APPS = [
     'features.processamento',
     'features.estoque.apps.EstoqueConfig',
     'features.api_monitoring.apps.ApiMonitoringConfig',
-    
+
     # Sincronização em Tempo Real
     'features.sync_realtime.apps.SyncRealtimeConfig',
-    
+
     # Métricas Separadas
     'features.metricas_primecod',
     'features.metricas_ecomhub',
     'features.metricas_dropi',
     'features.metricas_n1italia.apps.MetricasN1ItaliaConfig',
-    
+
     # Sistema de Feedback
     'features.feedback.apps.FeedbackConfig',
+
+    # Sistema de Tutoriais
+    'features.tutoriais.apps.TutoriaisConfig',
     
     
     # Cloudinary para storage de imagens
@@ -317,6 +320,9 @@ USE_TZ = True
 # Static files
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
 
 # Media files (uploads)  
 MEDIA_URL = '/media/'
