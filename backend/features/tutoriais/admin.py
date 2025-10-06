@@ -88,8 +88,3 @@ class AulaAdmin(admin.ModelAdmin):
         """Otimiza query com select_related"""
         qs = super().get_queryset(request)
         return qs.select_related('categoria')
-
-    class Media:
-        css = {
-            'all': ('admin/css/tutoriais.css',)
-        }
