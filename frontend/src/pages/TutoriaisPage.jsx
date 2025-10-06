@@ -42,7 +42,7 @@ function TutoriaisPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get('/api/tutoriais/categorias/', {
+      const response = await axios.get('/tutoriais/categorias/', {
         withCredentials: false // Página pública
       });
       setCategorias(response.data);
@@ -67,7 +67,7 @@ function TutoriaisPage() {
   const carregarAula = async (slug) => {
     setLoadingAula(true);
     try {
-      const response = await axios.get(`/api/tutoriais/aulas/${slug}/`, {
+      const response = await axios.get(`/tutoriais/aulas/${slug}/`, {
         withCredentials: false
       });
       setAulaAtual(response.data);
