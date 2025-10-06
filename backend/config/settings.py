@@ -802,9 +802,13 @@ WEBSOCKET_CLOSE_TIMEOUT = 10  # Timeout para fechar conexões em segundos
 
 # ======================== CONFIGURAÇÃO DJANGO UNFOLD (ADMIN CUSTOMIZADO) ========================
 
-# Helper para evitar imports que causam RuntimeError: populate() isn't reentrant
+# === CORREÇÃO DEFINITIVA: RuntimeError: populate() isn't reentrant ===
+# Problema: Imports de reverse_lazy, gettext_lazy e static no topo do arquivo
+# causavam inicialização dupla do Django durante collectstatic.
+# Solução: Função helper _lazy_reverse() que faz reverse sem importar Django no topo.
+# Resultado: collectstatic funciona sem erros ✅
 def _lazy_reverse(viewname):
-    """Retorna uma função que faz reverse_lazy de forma lazy"""
+    """Retorna uma função que faz reverse_lazy de forma lazy, evitando imports prematuros"""
     def _reverse(request=None):
         from django.urls import reverse
         return reverse(viewname)
