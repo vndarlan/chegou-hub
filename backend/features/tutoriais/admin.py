@@ -22,7 +22,7 @@ class CategoriaAulaAdmin(admin.ModelAdmin):
     ]
     list_filter = ['ativo', 'criado_em']
     search_fields = ['nome', 'slug']
-    readonly_fields = ['slug', 'criado_em', 'atualizado_em', 'total_aulas']
+    readonly_fields = ['criado_em', 'atualizado_em', 'total_aulas']
     prepopulated_fields = {'slug': ('nome',)}
     ordering = ['ordem', 'nome']
 
@@ -62,7 +62,7 @@ class AulaAdmin(admin.ModelAdmin):
     ]
     list_filter = ['categoria', 'ativo', 'criado_em']
     search_fields = ['titulo', 'descricao', 'slug']
-    readonly_fields = ['slug', 'criado_em', 'atualizado_em', 'video_id', 'embed_url']
+    readonly_fields = ['criado_em', 'atualizado_em', 'video_id', 'embed_url']
     prepopulated_fields = {'slug': ('titulo',)}
     ordering = ['categoria__ordem', 'ordem', 'titulo']
 
