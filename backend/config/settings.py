@@ -7,7 +7,6 @@ import os
 import re
 from dotenv import load_dotenv
 import dj_database_url
-from django.templatetags.static import static
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 
@@ -992,7 +991,7 @@ UNFOLD = {
 
     # Estilos customizados
     "STYLES": [
-        lambda request: static("css/unfold_custom.css"),
+        lambda request: f"{STATIC_URL}css/unfold_custom.css",
     ],
 
     # Scripts customizados
