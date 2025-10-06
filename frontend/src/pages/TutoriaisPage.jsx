@@ -42,22 +42,37 @@ function TutoriaisPage() {
     setLoading(true);
     setError(null);
     try {
+      console.log('🔍 Buscando categorias em:', '/tutoriais/categorias/');
       const response = await axios.get('/tutoriais/categorias/', {
         withCredentials: false // Página pública
       });
+      console.log('✅ Categorias recebidas:', response.data);
+      console.log('📊 Total de categorias:', response.data.length);
+
       setCategorias(response.data);
 
       // Abrir primeira categoria e selecionar primeira aula automaticamente
       if (response.data.length > 0) {
         const primeiraCategoria = response.data[0];
+        console.log('📂 Primeira categoria:', primeiraCategoria);
+        console.log('🎓 Aulas da primeira categoria:', primeiraCategoria.aulas);
+
         setCategoriasAbertas({ [primeiraCategoria.id]: true });
 
         if (primeiraCategoria.aulas && primeiraCategoria.aulas.length > 0) {
+          console.log('▶️ Carregando primeira aula:', primeiraCategoria.aulas[0].slug);
           carregarAula(primeiraCategoria.aulas[0].slug);
+        } else {
+          console.warn('⚠️ Primeira categoria não tem aulas');
         }
+      } else {
+        console.warn('⚠️ Nenhuma categoria encontrada');
+        setError('Nenhum tutorial disponível no momento.');
       }
     } catch (error) {
-      console.error('Erro ao carregar categorias:', error);
+      console.error('❌ Erro ao carregar categorias:', error);
+      console.error('❌ Detalhes do erro:', error.response?.data);
+      console.error('❌ Status do erro:', error.response?.status);
       setError('Erro ao carregar tutoriais. Tente novamente mais tarde.');
     } finally {
       setLoading(false);
