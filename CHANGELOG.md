@@ -5,6 +5,13 @@ Todas as mudanças deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [v1.5.0] - 06/10/2025
+
+### ✨ Novidades
+
+#### 🚨 PÁGINA COMPLETAMENTE NOVA
+- **[📚 Tutoriais - NOVA PÁGINA]** Sistema completo de tutoriais em vídeo acessível publicamente, com categorias organizadas, player YouTube integrado e navegação lateral colapsável.
+
 ## [v1.4.1] - 30/09/2025
 
 ### 🐛 Correções
