@@ -47,9 +47,8 @@ class CategoriaAulaViewSet(viewsets.ModelViewSet):
         return queryset
 
     def get_serializer_class(self):
-        """Usa serializers diferentes para listagem e detalhes"""
-        if self.action == 'list':
-            return CategoriaAulaListSerializer
+        """Usa sempre CategoriaAulaSerializer para incluir aulas"""
+        # SEMPRE retorna o serializer completo com aulas
         return CategoriaAulaSerializer
 
     @action(detail=False, methods=['get'])
