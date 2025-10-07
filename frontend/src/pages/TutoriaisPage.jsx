@@ -113,11 +113,16 @@ function TutoriaisPage() {
 
     for (const categoria of categorias) {
       const aulaIndex = categoria.aulas?.findIndex(a => a.slug === aulaAtual.slug);
-      if (aulaIndex !== -1) {
+      if (aulaIndex !== -1 && aulaIndex !== undefined) {
+        const proximaAula = aulaIndex < categoria.aulas.length - 1 ? categoria.aulas[aulaIndex + 1] : null;
+        const aulaAnterior = aulaIndex > 0 ? categoria.aulas[aulaIndex - 1] : null;
+
         return {
           categoria,
           aulaIndex,
-          totalAulas: categoria.aulas.length
+          totalAulas: categoria.aulas.length,
+          proximaAula,
+          aulaAnterior
         };
       }
     }
@@ -213,11 +218,13 @@ function TutoriaisPage() {
 
         {/* Footer da Sidebar */}
         <div className="p-4 border-t">
-          <Button variant="outline" className="w-full" asChild>
-            <a href="/workspace/agenda">
-              <Home className="h-4 w-4 mr-2" />
-              Voltar ao Workspace
-            </a>
+          <Button
+            variant="outline"
+            className="w-full hover:bg-accent hover:text-accent-foreground transition-colors"
+            onClick={() => window.location.href = '/workspace/agenda'}
+          >
+            <Home className="h-4 w-4 mr-2" />
+            Voltar ao Hub
           </Button>
         </div>
       </aside>
@@ -236,7 +243,7 @@ function TutoriaisPage() {
                   <BreadcrumbSeparator />
                   <BreadcrumbItem>
                     <BreadcrumbLink>
-                      {aulaAtual.categoria?.nome || 'Categoria'}
+                      {aulaInfo?.categoria?.nome || 'Categoria'}
                     </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator />
@@ -308,8 +315,8 @@ function TutoriaisPage() {
                     <div className="flex justify-between items-center pt-4">
                       <Button
                         variant="outline"
-                        onClick={() => navegarAula(aulaAtual.aula_anterior)}
-                        disabled={!aulaAtual.aula_anterior}
+                        onClick={() => navegarAula(aulaInfo?.aulaAnterior?.slug)}
+                        disabled={!aulaInfo?.aulaAnterior}
                       >
                         <ChevronLeft className="h-4 w-4 mr-2" />
                         Aula Anterior
@@ -317,8 +324,8 @@ function TutoriaisPage() {
 
                       <Button
                         variant="default"
-                        onClick={() => navegarAula(aulaAtual.proxima_aula)}
-                        disabled={!aulaAtual.proxima_aula}
+                        onClick={() => navegarAula(aulaInfo?.proximaAula?.slug)}
+                        disabled={!aulaInfo?.proximaAula}
                       >
                         Próxima Aula
                         <ChevronRight className="h-4 w-4 ml-2" />
