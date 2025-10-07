@@ -1000,8 +1000,9 @@ UNFOLD = {
     },
 
     # Estilos customizados
+    # TEMPORARIAMENTE DESABILITADO - causando 404 em produção
     "STYLES": [
-        lambda request: f"{STATIC_URL}css/unfold_custom.css",
+        # lambda request: f"{STATIC_URL}css/unfold_custom.css",
     ],
 
     # Scripts customizados
