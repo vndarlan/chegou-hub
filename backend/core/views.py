@@ -2,6 +2,8 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User, Group
 from django.middleware.csrf import get_token
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.decorators import method_decorator
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -39,9 +41,10 @@ class LogoutView(APIView):
         logout(request)
         return Response({'message': 'Logout realizado com sucesso.'})
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class CurrentStateView(APIView):
     permission_classes = [AllowAny]
-    
+
     def get(self, request):
         csrf_token = get_token(request)
         if request.user.is_authenticated:
@@ -49,7 +52,7 @@ class CurrentStateView(APIView):
                 'logged_in': True,
                 'name': request.user.get_full_name() or request.user.username,
                 'email': request.user.email,
-                'is_admin': request.user.is_staff or request.user.is_superuser,  # NOVA LINHA
+                'is_admin': request.user.is_staff or request.user.is_superuser,
                 'csrf_token': csrf_token
             })
         return Response({'logged_in': False, 'csrf_token': csrf_token})
@@ -102,8 +105,9 @@ class SelectAreaView(APIView):
         except Group.DoesNotExist:
             return Response({'error': 'Área não encontrada.'}, status=status.HTTP_400_BAD_REQUEST)
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class EnsureCSRFView(APIView):
     permission_classes = [AllowAny]
-    
+
     def get(self, request):
         return Response({'csrf_token': get_token(request)})
