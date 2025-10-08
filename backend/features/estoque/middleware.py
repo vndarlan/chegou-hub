@@ -14,13 +14,16 @@ class CSRFDebugMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        # Log antes do processamento
+        # PRIMEIRO: processar o request (isso chama AuthenticationMiddleware e popula request.user)
+        response = self.get_response(request)
+
+        # DEPOIS: fazer logging (agora request.user existe)
         if request.path.startswith('/api/estoque/produtos-compartilhados'):
             logger.info("=" * 80)
-            logger.info("=== CSRF DEBUG MIDDLEWARE - REQUEST RECEBIDA ===")
+            logger.info("=== CSRF DEBUG MIDDLEWARE - REQUEST PROCESSADA ===")
             logger.info(f"Path: {request.path}")
             logger.info(f"Method: {request.method}")
-            logger.info(f"User: {request.user}")
+            logger.info(f"User: {getattr(request, 'user', 'N/A')}")
             logger.info(f"Is authenticated: {request.user.is_authenticated if hasattr(request, 'user') else 'N/A'}")
 
             # Cookies
@@ -46,12 +49,6 @@ class CSRFDebugMiddleware:
                 logger.info(f"Session key exists: {bool(request.session.session_key)}")
                 logger.info(f"Session is empty: {request.session.is_empty()}")
 
-            logger.info("=" * 80)
-
-        response = self.get_response(request)
-
-        # Log depois do processamento
-        if request.path.startswith('/api/estoque/produtos-compartilhados'):
             logger.info("=" * 80)
             logger.info("=== CSRF DEBUG MIDDLEWARE - RESPONSE ===")
             logger.info(f"Status Code: {response.status_code}")
