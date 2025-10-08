@@ -498,21 +498,12 @@ class ProdutoViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """
-        Filtrar produtos por usuário com filtros avançados e otimização de queries.
+        Filtrar produtos compartilhados com filtros avançados.
 
-        MULTI-USUÁRIO: Produtos compartilhados são visíveis para todos os usuários
-        que têm acesso às lojas associadas ao produto.
+        MULTI-USUÁRIO: Produtos compartilhados são visíveis para TODOS os usuários autenticados.
         """
-        # Buscar lojas do usuário para validar acesso
-        from features.processamento.models import ShopifyConfig
-        lojas_usuario = ShopifyConfig.objects.filter(user=self.request.user)
-
-        # Filtrar produtos onde:
-        # 1. Usuário é o criador (user=request.user) OU
-        # 2. Produto está associado a lojas do usuário (via ProdutoLoja)
-        queryset = Produto.objects.filter(
-            Q(user=self.request.user) | Q(lojas__in=lojas_usuario)
-        ).distinct()
+        # Todos os produtos compartilhados são visíveis para todos os usuários
+        queryset = Produto.objects.all()
 
         # Aplicar filtros dos query parameters
         nome = self.request.query_params.get('nome')
@@ -588,10 +579,8 @@ class MovimentacaoEstoqueCompartilhadoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        """Filtrar movimentações por usuário com filtros avançados"""
-        queryset = MovimentacaoEstoqueCompartilhado.objects.filter(
-            produto__user=self.request.user
-        )
+        """Filtrar movimentações com filtros avançados - visível para todos os usuários"""
+        queryset = MovimentacaoEstoqueCompartilhado.objects.all()
         
         # Filtros básicos
         produto_id = self.request.query_params.get('produto_id')
