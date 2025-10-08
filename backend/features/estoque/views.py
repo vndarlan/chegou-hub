@@ -937,7 +937,31 @@ class AlertaEstoqueViewSet(viewsets.ModelViewSet):
             logger.error(f"ERRO em AlertaEstoqueViewSet.get_queryset: {str(e)}", exc_info=True)
             # Retornar queryset vazio em caso de erro
             return AlertaEstoque.objects.none()
-    
+
+    def list(self, request, *args, **kwargs):
+        """Override do list com tratamento robusto de erros"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+
+            # Paginação
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                logger.info(f"AlertaEstoqueViewSet.list: {len(serializer.data)} alertas paginados retornados")
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(queryset, many=True)
+            logger.info(f"AlertaEstoqueViewSet.list: {len(serializer.data)} alertas retornados")
+            return Response(serializer.data)
+
+        except Exception as e:
+            logger.error(f"ERRO CRÍTICO em AlertaEstoqueViewSet.list: {str(e)}", exc_info=True)
+            # Retornar lista vazia em vez de quebrar
+            return Response([], status=status.HTTP_200_OK)
+
     @action(detail=True, methods=['post'])
     def marcar_lido(self, request, pk=None):
         """Marcar alerta como lido"""

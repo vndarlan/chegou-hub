@@ -188,18 +188,18 @@ class MovimentacaoEstoqueSerializer(serializers.ModelSerializer):
 
 class AlertaEstoqueSerializer(serializers.ModelSerializer):
     """Serializer para alertas de estoque"""
-    
+
     # Informações do produto
     produto_sku = serializers.CharField(source='produto.sku', read_only=True)
     produto_nome = serializers.CharField(source='produto.nome', read_only=True)
-    loja_nome = serializers.CharField(source='produto.loja_config.nome_loja', read_only=True)
+    loja_nome = serializers.SerializerMethodField()
     estoque_atual_produto = serializers.IntegerField(source='produto.estoque_atual', read_only=True)
     estoque_minimo_produto = serializers.IntegerField(source='produto.estoque_minimo', read_only=True)
-    
+
     # Informações dos usuários
-    responsavel_nome = serializers.CharField(source='usuario_responsavel.username', read_only=True)
-    resolvido_por_nome = serializers.CharField(source='usuario_resolucao.username', read_only=True)
-    
+    responsavel_nome = serializers.CharField(source='usuario_responsavel.username', read_only=True, allow_null=True)
+    resolvido_por_nome = serializers.CharField(source='usuario_resolucao.username', read_only=True, allow_null=True)
+
     # Campos de tempo calculados
     tempo_ativo = serializers.SerializerMethodField()
     esta_vencido = serializers.SerializerMethodField()
@@ -224,7 +224,16 @@ class AlertaEstoqueSerializer(serializers.ModelSerializer):
             'primeira_ocorrencia', 'ultima_ocorrencia', 'contador_ocorrencias',
             'tempo_ativo', 'esta_vencido'
         ]
-    
+
+    def get_loja_nome(self, obj):
+        """Retorna nome da loja, tratando caso loja_config seja None"""
+        try:
+            if hasattr(obj.produto, 'loja_config') and obj.produto.loja_config:
+                return obj.produto.loja_config.nome_loja
+            return None
+        except Exception:
+            return None
+
     def get_tempo_ativo(self, obj):
         """Calcula há quanto tempo o alerta está ativo"""
         from django.utils import timezone
