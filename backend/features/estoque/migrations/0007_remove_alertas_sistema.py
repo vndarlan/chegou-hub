@@ -10,43 +10,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='alertaestoque',
-            name='produto',
-        ),
-        migrations.RemoveField(
-            model_name='alertaestoque',
-            name='usuario_resolucao',
-        ),
-        migrations.RemoveField(
-            model_name='alertaestoque',
-            name='usuario_responsavel',
-        ),
-        migrations.RemoveField(
-            model_name='alertaestoquecompartilhado',
-            name='produto',
-        ),
-        migrations.RemoveField(
-            model_name='alertaestoquecompartilhado',
-            name='usuario_resolucao',
-        ),
-        migrations.RemoveField(
-            model_name='alertaestoquecompartilhado',
-            name='usuario_responsavel',
-        ),
-        migrations.AlterUniqueTogether(
-            name='produtosku',
-            unique_together=set(),
-        ),
-        migrations.AlterField(
-            model_name='produtosku',
-            name='sku',
-            field=models.CharField(help_text='SKU único em todo o sistema', max_length=100),
-        ),
-        migrations.AddConstraint(
-            model_name='produtosku',
-            constraint=models.UniqueConstraint(fields=('sku',), name='unique_sku_global', violation_error_message='Este SKU já existe em outro produto. SKUs devem ser únicos em todo o sistema.'),
-        ),
+        # Deletar tabelas de alertas (Django remove índices e constraints automaticamente)
         migrations.DeleteModel(
             name='AlertaEstoque',
         ),
