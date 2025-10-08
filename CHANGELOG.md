@@ -5,6 +5,13 @@ Todas as mudanças deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [v1.5.2] - 08/10/2025
+
+### 🐛 Correções
+
+- **[📦 Estoque]** Corrigido problema de visibilidade de produtos compartilhados entre usuários
+- **[📦 Estoque]** Corrigido erro que impedia recebimento de pedidos do Shopify
+
 ## [v1.5.1] - 08/10/2025
 
 ### 🐛 Correções
