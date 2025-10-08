@@ -16,19 +16,17 @@ class EstoqueUserRateThrottle(UserRateThrottle):
     
     def get_cache_key(self, request, view):
         """
-        Criar chave única para cache considerando usuário e operação
+        Criar chave única para cache considerando usuário
         """
         if request.user.is_authenticated:
             ident = request.user.pk
         else:
             ident = self.get_ident(request)
-        
-        # Incluir método HTTP e view na chave para controles mais específicos
+
+        # Usar apenas placeholders do cache_format padrão do DRF
         return self.cache_format % {
             'scope': self.scope,
-            'ident': ident,
-            'method': request.method,
-            'view': view.__class__.__name__
+            'ident': ident
         }
 
 
