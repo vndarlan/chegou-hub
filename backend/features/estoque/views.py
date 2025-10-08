@@ -896,37 +896,47 @@ class AlertaEstoqueViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Filtros avançados via query parameters"""
-        queryset = AlertaEstoque.objects.filter(produto__user=self.request.user)
-        
-        # Filtros básicos
-        status_filtro = self.request.query_params.get('status')
-        if status_filtro:
-            queryset = queryset.filter(status=status_filtro)
-        
-        tipo = self.request.query_params.get('tipo')
-        if tipo:
-            queryset = queryset.filter(tipo_alerta=tipo)
-        
-        prioridade = self.request.query_params.get('prioridade')
-        if prioridade:
-            queryset = queryset.filter(prioridade=prioridade)
-        
-        # Filtro por produto
-        produto_id = self.request.query_params.get('produto_id')
-        if produto_id:
-            queryset = queryset.filter(produto_id=produto_id)
-        
-        # Filtro por loja
-        loja_id = self.request.query_params.get('loja_id')
-        if loja_id:
-            queryset = queryset.filter(produto__loja_config_id=loja_id)
-        
-        # Apenas alertas ativos por padrão
-        apenas_ativos = self.request.query_params.get('apenas_ativos', 'true')
-        if apenas_ativos.lower() == 'true':
-            queryset = queryset.filter(status='ativo')
-        
-        return queryset.select_related('produto', 'usuario_responsavel', 'usuario_resolucao')
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            queryset = AlertaEstoque.objects.filter(produto__user=self.request.user)
+
+            # Filtros básicos
+            status_filtro = self.request.query_params.get('status')
+            if status_filtro:
+                queryset = queryset.filter(status=status_filtro)
+
+            tipo = self.request.query_params.get('tipo')
+            if tipo:
+                queryset = queryset.filter(tipo_alerta=tipo)
+
+            prioridade = self.request.query_params.get('prioridade')
+            if prioridade:
+                queryset = queryset.filter(prioridade=prioridade)
+
+            # Filtro por produto
+            produto_id = self.request.query_params.get('produto_id')
+            if produto_id:
+                queryset = queryset.filter(produto_id=produto_id)
+
+            # Filtro por loja
+            loja_id = self.request.query_params.get('loja_id')
+            if loja_id:
+                queryset = queryset.filter(produto__loja_config_id=loja_id)
+
+            # Apenas alertas ativos por padrão
+            apenas_ativos = self.request.query_params.get('apenas_ativos', 'true')
+            if apenas_ativos.lower() == 'true':
+                queryset = queryset.filter(status='ativo')
+
+            logger.info(f"AlertaEstoqueViewSet.get_queryset: {queryset.count()} alertas encontrados")
+            return queryset.select_related('produto', 'usuario_responsavel', 'usuario_resolucao')
+
+        except Exception as e:
+            logger.error(f"ERRO em AlertaEstoqueViewSet.get_queryset: {str(e)}", exc_info=True)
+            # Retornar queryset vazio em caso de erro
+            return AlertaEstoque.objects.none()
     
     @action(detail=True, methods=['post'])
     def marcar_lido(self, request, pk=None):
@@ -1062,130 +1072,201 @@ class AlertaEstoqueViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def verificar_alertas_tempo_real(self, request):
         """
-        Verifica e cria alertas em tempo real para produtos com estoque baixo/zerado.
-        Funciona tanto para produtos individuais quanto compartilhados.
+        Verifica e cria alertas em tempo real.
+        Funciona com ou sem loja_id (modo unificado).
         """
         import logging
         logger = logging.getLogger(__name__)
 
-        # Filtro por loja (opcional para produtos compartilhados)
         loja_id = request.query_params.get('loja_id')
 
-        logger.info(f"verificar_alertas_tempo_real chamado - usuário: {request.user.username}, loja_id: {loja_id}")
+        logger.info(f"verificar_alertas_tempo_real - user: {request.user.username}, loja_id: {loja_id}")
 
-        # Modo para produtos individuais por loja (mantém compatibilidade)
-        if loja_id:
-            try:
-                loja_id = int(loja_id)
-            except (ValueError, TypeError):
-                logger.warning(f"loja_id inválido: {loja_id}")
-                return Response(
-                    {'erro': 'loja_id deve ser um número válido'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-        
         try:
             from features.processamento.models import ShopifyConfig
-            
-            # Validar se a loja existe (sem verificar proprietário)
-            loja_config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
-            if not loja_config:
-                return Response(
-                    {'erro': 'Loja não encontrada no sistema'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            
+
             alertas_criados = []
             alertas_resolvidos_total = 0
-            
-            # CORREÇÃO: Primeiro verificar e resolver alertas desnecessários
-            produtos_da_loja = ProdutoEstoque.objects.filter(
-                loja_config=loja_config,
-                user=request.user,
-                ativo=True
-            )
-            
-            for produto in produtos_da_loja:
-                alertas_antes = AlertaEstoque.objects.filter(
-                    produto=produto,
+
+            # MODO UNIFICADO: Se loja_id não fornecido, buscar todos os produtos do usuário
+            if not loja_id:
+                logger.info("Modo unificado: buscando alertas de todos os produtos")
+
+                # Produtos individuais (ProdutoEstoque)
+                produtos_individuais = ProdutoEstoque.objects.filter(
+                    user=request.user,
+                    ativo=True
+                )
+
+                # Verificar e resolver alertas desnecessários
+                for produto in produtos_individuais:
+                    alertas_antes = AlertaEstoque.objects.filter(
+                        produto=produto,
+                        status='ativo'
+                    ).count()
+
+                    produto._check_and_resolve_alerts_after_adjustment()
+
+                    alertas_depois = AlertaEstoque.objects.filter(
+                        produto=produto,
+                        status='ativo'
+                    ).count()
+
+                    alertas_resolvidos_total += max(0, alertas_antes - alertas_depois)
+
+                # Criar alertas para produtos com estoque zerado
+                produtos_estoque_zero = ProdutoEstoque.objects.filter(
+                    user=request.user,
+                    ativo=True,
+                    estoque_atual=0,
+                    alerta_estoque_zero=True
+                ).exclude(
+                    alertas__tipo_alerta='estoque_zero',
+                    alertas__status='ativo'
+                )
+
+                for produto in produtos_estoque_zero:
+                    alerta = AlertaEstoque.gerar_alerta_estoque_zero(produto)
+                    if alerta:
+                        alertas_criados.append({
+                            'id': alerta.id,
+                            'tipo': 'estoque_zero',
+                            'sku': produto.sku,
+                            'nome': produto.nome
+                        })
+
+                # Criar alertas para produtos com estoque baixo
+                produtos_estoque_baixo = ProdutoEstoque.objects.filter(
+                    user=request.user,
+                    ativo=True,
+                    estoque_atual__gt=0,
+                    estoque_atual__lte=F('estoque_minimo'),
+                    alerta_estoque_baixo=True
+                ).exclude(
+                    alertas__tipo_alerta='estoque_baixo',
+                    alertas__status='ativo'
+                )
+
+                for produto in produtos_estoque_baixo:
+                    alerta = AlertaEstoque.gerar_alerta_estoque_baixo(produto)
+                    if alerta:
+                        alertas_criados.append({
+                            'id': alerta.id,
+                            'tipo': 'estoque_baixo',
+                            'sku': produto.sku,
+                            'nome': produto.nome
+                        })
+
+                # Buscar todos os alertas ativos do usuário
+                alertas_ativos = AlertaEstoque.objects.filter(
+                    produto__user=request.user,
                     status='ativo'
-                ).count()
-                
-                # Forçar verificação de alertas para cada produto
-                produto._check_and_resolve_alerts_after_adjustment()
-                
-                alertas_depois = AlertaEstoque.objects.filter(
-                    produto=produto,
+                ).select_related('produto').order_by('-prioridade', '-data_criacao')
+
+                logger.info(f"Modo unificado: {alertas_ativos.count()} alertas ativos, {len(alertas_criados)} criados")
+
+            else:
+                # MODO COM LOJA ESPECÍFICA (mantém compatibilidade)
+                try:
+                    loja_id = int(loja_id)
+                except (ValueError, TypeError):
+                    logger.warning(f"loja_id inválido: {loja_id}")
+                    return Response(
+                        {'erro': 'loja_id deve ser um número válido'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                loja_config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
+                if not loja_config:
+                    return Response(
+                        {'erro': 'Loja não encontrada'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+
+                produtos_da_loja = ProdutoEstoque.objects.filter(
+                    loja_config=loja_config,
+                    user=request.user,
+                    ativo=True
+                )
+
+                for produto in produtos_da_loja:
+                    alertas_antes = AlertaEstoque.objects.filter(
+                        produto=produto,
+                        status='ativo'
+                    ).count()
+
+                    produto._check_and_resolve_alerts_after_adjustment()
+
+                    alertas_depois = AlertaEstoque.objects.filter(
+                        produto=produto,
+                        status='ativo'
+                    ).count()
+
+                    alertas_resolvidos_total += max(0, alertas_antes - alertas_depois)
+
+                produtos_estoque_zero = ProdutoEstoque.objects.filter(
+                    loja_config=loja_config,
+                    user=request.user,
+                    ativo=True,
+                    estoque_atual=0,
+                    alerta_estoque_zero=True
+                ).exclude(
+                    alertas__tipo_alerta='estoque_zero',
+                    alertas__status='ativo'
+                )
+
+                for produto in produtos_estoque_zero:
+                    alerta = AlertaEstoque.gerar_alerta_estoque_zero(produto)
+                    if alerta:
+                        alertas_criados.append({
+                            'id': alerta.id,
+                            'tipo': 'estoque_zero',
+                            'sku': produto.sku,
+                            'nome': produto.nome
+                        })
+
+                produtos_estoque_baixo = ProdutoEstoque.objects.filter(
+                    loja_config=loja_config,
+                    user=request.user,
+                    ativo=True,
+                    estoque_atual__gt=0,
+                    estoque_atual__lte=F('estoque_minimo'),
+                    alerta_estoque_baixo=True
+                ).exclude(
+                    alertas__tipo_alerta='estoque_baixo',
+                    alertas__status='ativo'
+                )
+
+                for produto in produtos_estoque_baixo:
+                    alerta = AlertaEstoque.gerar_alerta_estoque_baixo(produto)
+                    if alerta:
+                        alertas_criados.append({
+                            'id': alerta.id,
+                            'tipo': 'estoque_baixo',
+                            'sku': produto.sku,
+                            'nome': produto.nome
+                        })
+
+                alertas_ativos = AlertaEstoque.objects.filter(
+                    produto__loja_config=loja_config,
+                    produto__user=request.user,
                     status='ativo'
-                ).count()
-                
-                alertas_resolvidos_total += max(0, alertas_antes - alertas_depois)
-            
-            # Buscar produtos com estoque zerado sem alertas ativos
-            produtos_estoque_zero = ProdutoEstoque.objects.filter(
-                loja_config=loja_config,
-                user=request.user,
-                ativo=True,
-                estoque_atual=0,
-                alerta_estoque_zero=True
-            ).exclude(
-                alertas__tipo_alerta='estoque_zero',
-                alertas__status='ativo'
-            )
-            
-            for produto in produtos_estoque_zero:
-                alerta = AlertaEstoque.gerar_alerta_estoque_zero(produto)
-                if alerta:
-                    alertas_criados.append({
-                        'id': alerta.id,
-                        'tipo': 'estoque_zero',
-                        'sku': produto.sku,
-                        'nome': produto.nome
-                    })
-            
-            # Buscar produtos com estoque baixo sem alertas ativos
-            produtos_estoque_baixo = ProdutoEstoque.objects.filter(
-                loja_config=loja_config,
-                user=request.user,
-                ativo=True,
-                estoque_atual__gt=0,
-                estoque_atual__lte=F('estoque_minimo'),
-                alerta_estoque_baixo=True
-            ).exclude(
-                alertas__tipo_alerta='estoque_baixo',
-                alertas__status='ativo'
-            )
-            
-            for produto in produtos_estoque_baixo:
-                alerta = AlertaEstoque.gerar_alerta_estoque_baixo(produto)
-                if alerta:
-                    alertas_criados.append({
-                        'id': alerta.id,
-                        'tipo': 'estoque_baixo',
-                        'sku': produto.sku,
-                        'nome': produto.nome
-                    })
-            
-            # Retornar alertas ativos atualizados
-            alertas_ativos = AlertaEstoque.objects.filter(
-                produto__loja_config=loja_config,
-                produto__user=request.user,
-                status='ativo'
-            ).select_related('produto').order_by('-prioridade', '-data_criacao')
-            
+                ).select_related('produto').order_by('-prioridade', '-data_criacao')
+
+            # Serializar e retornar
             serializer = AlertaEstoqueSerializer(alertas_ativos, many=True)
-            
+
             return Response({
                 'alertas': serializer.data,
                 'alertas_criados_agora': alertas_criados,
                 'total_alertas_criados': len(alertas_criados),
                 'alertas_resolvidos_automaticamente': alertas_resolvidos_total
             })
-            
+
         except Exception as e:
-            logger.error(f"Erro ao verificar alertas em tempo real: {str(e)}")
+            logger.error(f"ERRO ao verificar alertas: {str(e)}", exc_info=True)
             return Response(
-                {'erro': f'Erro interno: {str(e)}'},
+                {'erro': f'Erro interno ao verificar alertas: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
