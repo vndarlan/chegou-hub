@@ -45,7 +45,7 @@ from .serializers import (
 from .services.shopify_webhook_service import ShopifyWebhookService
 from .services.estoque_service import EstoqueService
 from .throttles import (
-    EstoqueUserRateThrottle, EstoqueWebhookRateThrottle, 
+    EstoqueWebhookRateThrottle,
     EstoqueAPIRateThrottle, EstoqueBulkOperationThrottle
 )
 from .utils.security_utils import (
@@ -70,7 +70,6 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
     
     serializer_class = ProdutoEstoqueSerializer
     permission_classes = [IsAuthenticated]
-    throttle_classes = [EstoqueUserRateThrottle]
     
     def get_serializer_class(self):
         """Usar serializer resumido para listagem e detectar tipo de produto"""
@@ -358,7 +357,6 @@ class MovimentacaoEstoqueViewSet(viewsets.ModelViewSet):
     
     serializer_class = MovimentacaoEstoqueSerializer
     permission_classes = [IsAuthenticated]
-    throttle_classes = [EstoqueUserRateThrottle]
     
     def get_serializer_class(self):
         """Usar serializer específico para criação"""
@@ -476,7 +474,6 @@ class ProdutoViewSet(viewsets.ModelViewSet):
     
     serializer_class = ProdutoSerializer
     permission_classes = [IsAuthenticated]
-    throttle_classes = [EstoqueUserRateThrottle]
     
     def get_serializer_class(self):
         """Usar serializer resumido para listagem"""
@@ -574,7 +571,6 @@ class MovimentacaoEstoqueCompartilhadoViewSet(viewsets.ModelViewSet):
     
     serializer_class = MovimentacaoEstoqueCompartilhadoSerializer
     permission_classes = [IsAuthenticated]
-    throttle_classes = [EstoqueUserRateThrottle]
     
     def get_queryset(self):
         """Filtrar movimentações por usuário com filtros avançados"""

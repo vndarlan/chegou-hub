@@ -9,14 +9,13 @@ from itertools import chain
 from .models import ProdutoEstoque, Produto
 from features.processamento.models import ShopifyConfig
 from .serializers import ProdutoUnificadoSerializer
-from .throttles import EstoqueUserRateThrottle
 
 
 class ProdutoUnificadoViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet unificado para listar produtos individuais e compartilhados juntos"""
-    
+
     permission_classes = [IsAuthenticated]
-    throttle_classes = [EstoqueUserRateThrottle]
+    # Usa throttling padrão do DRF (1000 requests/hour para users autenticados)
     serializer_class = ProdutoUnificadoSerializer
     
     def get_queryset(self):
