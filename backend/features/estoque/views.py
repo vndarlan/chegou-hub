@@ -683,10 +683,12 @@ class MovimentacaoEstoqueCompartilhadoViewSet(viewsets.ModelViewSet):
 # AlertaEstoqueCompartilhadoViewSet removido - Sistema de alertas desativado
 
 
+@csrf_exempt
+@require_http_methods(["POST"])
 def shopify_order_webhook(request):
     """
     Endpoint webhook PERMISSIVO para receber pedidos do Shopify
-    
+
     MODO PERMISSIVO PARA TODAS AS LOJAS:
     1. Rate limiting por IP (mantido para segurança básica)
     2. Validação básica de headers Shopify (opcional)
