@@ -34,7 +34,7 @@ class ProdutoUnificadoViewSet(viewsets.ReadOnlyModelViewSet):
             # Buscar produtos individuais (ProdutoEstoque) do usuário
             produtos_individuais = ProdutoEstoque.objects.filter(
                 user=self.request.user
-            ).select_related('loja_config').prefetch_related('movimentacoes', 'alertas')
+            ).select_related('loja_config').prefetch_related('movimentacoes')
 
             # Buscar lojas do usuário para validar acesso a produtos compartilhados
             lojas_usuario = ShopifyConfig.objects.filter(user=self.request.user)
@@ -45,7 +45,7 @@ class ProdutoUnificadoViewSet(viewsets.ReadOnlyModelViewSet):
             produtos_compartilhados = Produto.objects.filter(
                 Q(user=self.request.user) | Q(lojas__in=lojas_usuario)
             ).select_related().prefetch_related(
-                'skus', 'lojas', 'produtoloja_set__loja', 'movimentacoes', 'alertas'
+                'skus', 'lojas', 'produtoloja_set__loja', 'movimentacoes'
             ).distinct()  # distinct() para evitar duplicatas quando produto está em múltiplas lojas
 
             # Aplicar filtros comuns

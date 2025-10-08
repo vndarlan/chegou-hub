@@ -1115,7 +1115,3 @@ class ProdutoUnificadoSerializer(serializers.Serializer):
     def get_total_movimentacoes(self, obj):
         """Retorna total de movimentações"""
         return obj.movimentacoes.count()
-    
-    def get_alertas_ativos(self, obj):
-        """Retorna número de alertas ativos"""
-        return obj.alertas.filter(status='ativo').count()
