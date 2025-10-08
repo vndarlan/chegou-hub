@@ -4,10 +4,10 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from .models import (
-    ProdutoEstoque, MovimentacaoEstoque, AlertaEstoque,
+    ProdutoEstoque, MovimentacaoEstoque,
     # Modelos de produtos compartilhados
     Produto, ProdutoSKU, ProdutoLoja,
-    MovimentacaoEstoqueCompartilhado, AlertaEstoqueCompartilhado
+    MovimentacaoEstoqueCompartilhado
 )
 
 
@@ -181,76 +181,7 @@ class MovimentacaoEstoqueAdmin(admin.ModelAdmin):
         return request.user.is_superuser  # Só superusuário pode deletar
 
 
-@admin.register(AlertaEstoque)
-class AlertaEstoqueAdmin(admin.ModelAdmin):
-    list_display = [
-        'produto', 'tipo_alerta', 'prioridade', 'status',
-        'valor_atual', 'valor_limite', 'contador_ocorrencias',
-        'data_criacao', 'usuario_responsavel'
-    ]
-    list_filter = [
-        'tipo_alerta', 'prioridade', 'status', 'data_criacao',
-        'produto__loja_config', 'pode_resolver_automaticamente'
-    ]
-    search_fields = [
-        'produto__sku', 'produto__nome', 'titulo', 'descricao'
-    ]
-    readonly_fields = [
-        'produto', 'primeira_ocorrencia', 'ultima_ocorrencia',
-        'contador_ocorrencias', 'data_criacao', 'data_leitura', 'data_resolucao'
-    ]
-    
-    fieldsets = (
-        ('Alerta', {
-            'fields': ('produto', 'tipo_alerta', 'prioridade', 'status')
-        }),
-        ('Conteúdo', {
-            'fields': ('titulo', 'descricao', 'acao_sugerida')
-        }),
-        ('Valores', {
-            'fields': ('valor_atual', 'valor_limite', 'pode_resolver_automaticamente')
-        }),
-        ('Responsabilidade', {
-            'fields': ('usuario_responsavel', 'usuario_resolucao')
-        }),
-        ('Tracking', {
-            'fields': ('primeira_ocorrencia', 'ultima_ocorrencia', 'contador_ocorrencias',
-                      'data_criacao', 'data_leitura', 'data_resolucao'),
-            'classes': ('collapse',)
-        }),
-        ('Dados Contexto', {
-            'fields': ('dados_contexto',),
-            'classes': ('collapse',)
-        })
-    )
-    
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related(
-            'produto', 'usuario_responsavel', 'usuario_resolucao'
-        )
-    
-    actions = ['marcar_como_lido', 'marcar_como_resolvido', 'marcar_como_ignorado']
-    
-    def marcar_como_lido(self, request, queryset):
-        count = 0
-        for alerta in queryset.filter(status='ativo'):
-            alerta.marcar_como_lido(request.user)
-            count += 1
-        self.message_user(request, f'{count} alertas marcados como lidos.')
-    marcar_como_lido.short_description = "Marcar como lido"
-    
-    def marcar_como_resolvido(self, request, queryset):
-        count = 0
-        for alerta in queryset.filter(status__in=['ativo', 'lido']):
-            alerta.resolver(request.user, "Resolvido via admin")
-            count += 1
-        self.message_user(request, f'{count} alertas marcados como resolvidos.')
-    marcar_como_resolvido.short_description = "Marcar como resolvido"
-    
-    def marcar_como_ignorado(self, request, queryset):
-        count = queryset.update(status='ignorado')
-        self.message_user(request, f'{count} alertas marcados como ignorados.')
-    marcar_como_ignorado.short_description = "Marcar como ignorado"
+# AlertaEstoqueAdmin removido - Sistema de alertas desativado
 
 
 # Adicionar inline de movimentações ao admin de produtos
@@ -508,73 +439,4 @@ class MovimentacaoEstoqueCompartilhadoAdmin(admin.ModelAdmin):
         return request.user.is_superuser  # Só superusuário pode deletar
 
 
-@admin.register(AlertaEstoqueCompartilhado)
-class AlertaEstoqueCompartilhadoAdmin(admin.ModelAdmin):
-    list_display = [
-        'produto', 'tipo_alerta', 'prioridade', 'status',
-        'valor_atual', 'valor_limite', 'contador_ocorrencias',
-        'data_criacao', 'usuario_responsavel'
-    ]
-    list_filter = [
-        'tipo_alerta', 'prioridade', 'status', 'data_criacao',
-        'produto__fornecedor', 'pode_resolver_automaticamente'
-    ]
-    search_fields = [
-        'produto__nome', 'produto__skus__sku', 'titulo', 'descricao'
-    ]
-    readonly_fields = [
-        'produto', 'primeira_ocorrencia', 'ultima_ocorrencia',
-        'contador_ocorrencias', 'data_criacao', 'data_leitura', 'data_resolucao'
-    ]
-
-    fieldsets = (
-        ('Alerta', {
-            'fields': ('produto', 'tipo_alerta', 'prioridade', 'status')
-        }),
-        ('Conteúdo', {
-            'fields': ('titulo', 'descricao', 'acao_sugerida')
-        }),
-        ('Valores', {
-            'fields': ('valor_atual', 'valor_limite', 'pode_resolver_automaticamente')
-        }),
-        ('Responsabilidade', {
-            'fields': ('usuario_responsavel', 'usuario_resolucao')
-        }),
-        ('Tracking', {
-            'fields': ('primeira_ocorrencia', 'ultima_ocorrencia', 'contador_ocorrencias',
-                      'data_criacao', 'data_leitura', 'data_resolucao'),
-            'classes': ('collapse',)
-        }),
-        ('Dados Contexto', {
-            'fields': ('dados_contexto',),
-            'classes': ('collapse',)
-        })
-    )
-
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related(
-            'produto', 'usuario_responsavel', 'usuario_resolucao'
-        )
-
-    actions = ['marcar_como_lido', 'marcar_como_resolvido', 'marcar_como_ignorado']
-
-    def marcar_como_lido(self, request, queryset):
-        count = 0
-        for alerta in queryset.filter(status='ativo'):
-            alerta.marcar_como_lido(request.user)
-            count += 1
-        self.message_user(request, f'{count} alertas de produtos compartilhados marcados como lidos.')
-    marcar_como_lido.short_description = "Marcar como lido"
-
-    def marcar_como_resolvido(self, request, queryset):
-        count = 0
-        for alerta in queryset.filter(status__in=['ativo', 'lido']):
-            alerta.resolver(request.user, "Resolvido via admin")
-            count += 1
-        self.message_user(request, f'{count} alertas de produtos compartilhados marcados como resolvidos.')
-    marcar_como_resolvido.short_description = "Marcar como resolvido"
-
-    def marcar_como_ignorado(self, request, queryset):
-        count = queryset.update(status='ignorado')
-        self.message_user(request, f'{count} alertas de produtos compartilhados marcados como ignorados.')
-    marcar_como_ignorado.short_description = "Marcar como ignorado"
+# AlertaEstoqueCompartilhadoAdmin removido - Sistema de alertas desativado

@@ -1,9 +1,9 @@
 # backend/features/estoque/serializers.py
 from rest_framework import serializers
 from .models import (
-    ProdutoEstoque, MovimentacaoEstoque, AlertaEstoque,
+    ProdutoEstoque, MovimentacaoEstoque,
     Produto, ProdutoSKU, ProdutoLoja, 
-    MovimentacaoEstoqueCompartilhado, AlertaEstoqueCompartilhado
+    MovimentacaoEstoqueCompartilhado
 )
 from features.processamento.models import ShopifyConfig
 
@@ -35,8 +35,6 @@ class ProdutoEstoqueSerializer(serializers.ModelSerializer):
     
     # Contadores relacionados
     total_movimentacoes = serializers.SerializerMethodField()
-    alertas_ativos = serializers.SerializerMethodField()
-    
     class Meta:
         model = ProdutoEstoque
         fields = [
@@ -50,8 +48,7 @@ class ProdutoEstoqueSerializer(serializers.ModelSerializer):
             'ativo', 'custo_unitario', 'preco_venda', 'valor_total_estoque',
             'data_criacao', 'data_atualizacao', 'observacoes',
             'tipo_produto', 'lojas_conectadas',
-            'total_movimentacoes', 'alertas_ativos'
-        ]
+            'total_movimentacoes',         ]
         read_only_fields = [
             'id', 'data_criacao', 'data_atualizacao', 'ultima_sincronizacao',
             'shopify_product_id', 'shopify_variant_id', 'erro_sincronizacao',
@@ -59,17 +56,11 @@ class ProdutoEstoqueSerializer(serializers.ModelSerializer):
             'estoque_negativo', 'pedidos_pendentes',
             'valor_total_estoque', 'loja_nome', 'loja_url',
             'tipo_produto', 'lojas_conectadas',
-            'total_movimentacoes', 'alertas_ativos'
-        ]
+            'total_movimentacoes',         ]
     
     def get_total_movimentacoes(self, obj):
         """Retorna o total de movimentações do produto"""
         return obj.movimentacoes.count()
-    
-    def get_alertas_ativos(self, obj):
-        """Retorna o número de alertas ativos para o produto"""
-        return obj.alertas.filter(status='ativo').count()
-    
     def get_tipo_produto(self, obj):
         """Retorna o tipo do produto para interface unificada"""
         return 'individual'
@@ -186,93 +177,7 @@ class MovimentacaoEstoqueSerializer(serializers.ModelSerializer):
             return f"-{obj.quantidade}"
 
 
-class AlertaEstoqueSerializer(serializers.ModelSerializer):
-    """Serializer para alertas de estoque"""
-
-    # Informações do produto
-    produto_sku = serializers.CharField(source='produto.sku', read_only=True)
-    produto_nome = serializers.CharField(source='produto.nome', read_only=True)
-    loja_nome = serializers.SerializerMethodField()
-    estoque_atual_produto = serializers.IntegerField(source='produto.estoque_atual', read_only=True)
-    estoque_minimo_produto = serializers.IntegerField(source='produto.estoque_minimo', read_only=True)
-
-    # Informações dos usuários
-    responsavel_nome = serializers.CharField(source='usuario_responsavel.username', read_only=True, allow_null=True)
-    resolvido_por_nome = serializers.CharField(source='usuario_resolucao.username', read_only=True, allow_null=True)
-
-    # Campos de tempo calculados
-    tempo_ativo = serializers.SerializerMethodField()
-    esta_vencido = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = AlertaEstoque
-        fields = [
-            'id', 'produto', 'produto_sku', 'produto_nome', 'loja_nome',
-            'estoque_atual_produto', 'estoque_minimo_produto', 'usuario_responsavel', 'responsavel_nome',
-            'tipo_alerta', 'status', 'prioridade', 'titulo', 'descricao',
-            'dados_contexto', 'valor_atual', 'valor_limite',
-            'acao_sugerida', 'pode_resolver_automaticamente',
-            'data_criacao', 'data_leitura', 'data_resolucao',
-            'usuario_resolucao', 'resolvido_por_nome',
-            'primeira_ocorrencia', 'ultima_ocorrencia', 'contador_ocorrencias',
-            'tempo_ativo', 'esta_vencido'
-        ]
-        read_only_fields = [
-            'id', 'produto_sku', 'produto_nome', 'loja_nome',
-            'estoque_atual_produto', 'estoque_minimo_produto', 'responsavel_nome', 'resolvido_por_nome',
-            'data_criacao', 'data_leitura', 'data_resolucao',
-            'primeira_ocorrencia', 'ultima_ocorrencia', 'contador_ocorrencias',
-            'tempo_ativo', 'esta_vencido'
-        ]
-
-    def get_loja_nome(self, obj):
-        """Retorna nome da loja, tratando caso loja_config seja None"""
-        try:
-            if hasattr(obj.produto, 'loja_config') and obj.produto.loja_config:
-                return obj.produto.loja_config.nome_loja
-            return None
-        except Exception:
-            return None
-
-    def get_tempo_ativo(self, obj):
-        """Calcula há quanto tempo o alerta está ativo"""
-        from django.utils import timezone
-        if obj.status == 'resolvido' and obj.data_resolucao:
-            delta = obj.data_resolucao - obj.data_criacao
-        else:
-            delta = timezone.now() - obj.data_criacao
-        
-        days = delta.days
-        hours = delta.seconds // 3600
-        
-        if days > 0:
-            return f"{days}d {hours}h"
-        elif hours > 0:
-            return f"{hours}h"
-        else:
-            minutes = delta.seconds // 60
-            return f"{minutes}m"
-    
-    def get_esta_vencido(self, obj):
-        """Verifica se o alerta está há muito tempo ativo"""
-        from django.utils import timezone
-        from datetime import timedelta
-        
-        if obj.status in ['resolvido', 'ignorado']:
-            return False
-        
-        # Definir limites por prioridade
-        limites = {
-            'critica': timedelta(hours=2),
-            'alta': timedelta(hours=12),
-            'media': timedelta(days=2),
-            'baixa': timedelta(days=7)
-        }
-        
-        limite = limites.get(obj.prioridade, timedelta(days=2))
-        tempo_ativo = timezone.now() - obj.data_criacao
-        
-        return tempo_ativo > limite
+# AlertaEstoqueSerializer removido - Sistema de alertas desativado
 
 
 class MovimentacaoEstoqueCreateSerializer(serializers.Serializer):
@@ -518,8 +423,6 @@ class ProdutoSerializer(serializers.ModelSerializer):
     
     # Contadores relacionados
     total_movimentacoes = serializers.SerializerMethodField()
-    alertas_ativos = serializers.SerializerMethodField()
-    
     class Meta:
         model = Produto
         fields = [
@@ -533,25 +436,18 @@ class ProdutoSerializer(serializers.ModelSerializer):
             'total_lojas', 'todos_skus', 'tipo_produto', 'lojas_conectadas',
             'skus', 'skus_data',
             'lojas_associadas', 'lojas_ids',
-            'total_movimentacoes', 'alertas_ativos'
-        ]
+            'total_movimentacoes',         ]
         read_only_fields = [
             'id', 'data_criacao', 'data_atualizacao',
             'estoque_disponivel', 'estoque_baixo', 'necessita_reposicao',
             'estoque_negativo', 'pedidos_pendentes', 'valor_total_estoque',
             'total_lojas', 'todos_skus', 'tipo_produto', 'lojas_conectadas',
             'skus', 'lojas_associadas',
-            'total_movimentacoes', 'alertas_ativos'
-        ]
+            'total_movimentacoes',         ]
     
     def get_total_movimentacoes(self, obj):
         """Retorna o total de movimentações do produto"""
         return obj.movimentacoes.count()
-    
-    def get_alertas_ativos(self, obj):
-        """Retorna o número de alertas ativos para o produto"""
-        return obj.alertas.filter(status='ativo').count()
-    
     def get_tipo_produto(self, obj):
         """Retorna o tipo do produto para interface unificada"""
         return 'compartilhado'
@@ -963,82 +859,7 @@ class MovimentacaoEstoqueCompartilhadoSerializer(serializers.ModelSerializer):
             return f"-{obj.quantidade}"
 
 
-class AlertaEstoqueCompartilhadoSerializer(serializers.ModelSerializer):
-    """Serializer para alertas do estoque compartilhado"""
-    
-    # Informações do produto
-    produto_nome = serializers.CharField(source='produto.nome', read_only=True)
-    estoque_atual_produto = serializers.IntegerField(source='produto.estoque_compartilhado', read_only=True)
-    estoque_minimo_produto = serializers.IntegerField(source='produto.estoque_minimo', read_only=True)
-    
-    # Informações dos usuários
-    responsavel_nome = serializers.CharField(source='usuario_responsavel.username', read_only=True)
-    resolvido_por_nome = serializers.CharField(source='usuario_resolucao.username', read_only=True)
-    
-    # Campos de tempo calculados
-    tempo_ativo = serializers.SerializerMethodField()
-    esta_vencido = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = AlertaEstoqueCompartilhado
-        fields = [
-            'id', 'produto', 'produto_nome',
-            'estoque_atual_produto', 'estoque_minimo_produto', 'usuario_responsavel', 'responsavel_nome',
-            'tipo_alerta', 'status', 'prioridade', 'titulo', 'descricao',
-            'dados_contexto', 'valor_atual', 'valor_limite',
-            'acao_sugerida', 'pode_resolver_automaticamente',
-            'data_criacao', 'data_leitura', 'data_resolucao',
-            'usuario_resolucao', 'resolvido_por_nome',
-            'primeira_ocorrencia', 'ultima_ocorrencia', 'contador_ocorrencias',
-            'tempo_ativo', 'esta_vencido'
-        ]
-        read_only_fields = [
-            'id', 'produto_nome', 'estoque_atual_produto', 'estoque_minimo_produto', 
-            'responsavel_nome', 'resolvido_por_nome',
-            'data_criacao', 'data_leitura', 'data_resolucao',
-            'primeira_ocorrencia', 'ultima_ocorrencia', 'contador_ocorrencias',
-            'tempo_ativo', 'esta_vencido'
-        ]
-    
-    def get_tempo_ativo(self, obj):
-        """Calcula há quanto tempo o alerta está ativo"""
-        from django.utils import timezone
-        if obj.status == 'resolvido' and obj.data_resolucao:
-            delta = obj.data_resolucao - obj.data_criacao
-        else:
-            delta = timezone.now() - obj.data_criacao
-        
-        days = delta.days
-        hours = delta.seconds // 3600
-        
-        if days > 0:
-            return f"{days}d {hours}h"
-        elif hours > 0:
-            return f"{hours}h"
-        else:
-            minutes = delta.seconds // 60
-            return f"{minutes}m"
-    
-    def get_esta_vencido(self, obj):
-        """Verifica se o alerta está há muito tempo ativo"""
-        from django.utils import timezone
-        from datetime import timedelta
-        
-        if obj.status in ['resolvido', 'ignorado']:
-            return False
-        
-        # Definir limites por prioridade
-        limites = {
-            'critica': timedelta(hours=2),
-            'alta': timedelta(hours=12),
-            'media': timedelta(days=2),
-            'baixa': timedelta(days=7)
-        }
-        
-        limite = limites.get(obj.prioridade, timedelta(days=2))
-        tempo_ativo = timezone.now() - obj.data_criacao
-        
-        return tempo_ativo > limite
+# AlertaEstoqueCompartilhadoSerializer removido - Sistema de alertas desativado
 
 
 class MovimentacaoEstoqueCompartilhadoCreateSerializer(serializers.Serializer):
@@ -1210,8 +1031,6 @@ class ProdutoUnificadoSerializer(serializers.Serializer):
     
     # Contadores
     total_movimentacoes = serializers.SerializerMethodField()
-    alertas_ativos = serializers.SerializerMethodField()
-    
     # Metadados
     data_criacao = serializers.DateTimeField()
     data_atualizacao = serializers.DateTimeField()

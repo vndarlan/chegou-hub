@@ -1,10 +1,10 @@
 # Claude Code - Macetes para contrução no Chegou Hub
 
 ## 🧠 Comandos para Pensamento Profundo
-- `"Think more"` - Raciocínio estendido
-- `"Think a lot"` - Raciocínio abrangente  
-- `"Think longer"` - Raciocínio temporal estendido
-- `"Ultrathink"` - Capacidade máxima de raciocínio
+1. think (~5.000 tokens, 5-10s)
+2. think hard (~10.000 tokens, 10-20s)
+3. think harder (~50.000 tokens, 30-60s)
+4. ultrathink (~128.000-500.000 tokens, 1-3min)
 
 ## ⌨️ Atalhos do Chat
 - `\ + Enter` - Quebra de linha sem enviar o prompt

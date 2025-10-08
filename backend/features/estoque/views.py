@@ -29,17 +29,17 @@ from datetime import datetime, timedelta
 from django.core.exceptions import PermissionDenied
 
 from .models import (
-    ProdutoEstoque, MovimentacaoEstoque, AlertaEstoque,
+    ProdutoEstoque, MovimentacaoEstoque,
     Produto, ProdutoSKU, ProdutoLoja,
-    MovimentacaoEstoqueCompartilhado, AlertaEstoqueCompartilhado
+    MovimentacaoEstoqueCompartilhado
 )
 from .serializers import (
     ProdutoEstoqueSerializer, MovimentacaoEstoqueSerializer,
-    AlertaEstoqueSerializer, MovimentacaoEstoqueCreateSerializer,
+    MovimentacaoEstoqueCreateSerializer,
     ProdutoEstoqueResumoSerializer,
     # Novos serializers para produtos compartilhados
     ProdutoSerializer, ProdutoSKUSerializer, ProdutoLojaSerializer,
-    MovimentacaoEstoqueCompartilhadoSerializer, AlertaEstoqueCompartilhadoSerializer,
+    MovimentacaoEstoqueCompartilhadoSerializer,
     MovimentacaoEstoqueCompartilhadoCreateSerializer, ProdutoResumoSerializer
 )
 from .services.shopify_webhook_service import ShopifyWebhookService
@@ -177,7 +177,7 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
         if com_erro_sync == 'true':
             queryset = queryset.exclude(erro_sincronizacao='')
         
-        return queryset.select_related('loja_config').prefetch_related('movimentacoes', 'alertas')
+        return queryset.select_related('loja_config').prefetch_related('movimentacoes')
     
     @action(detail=True, methods=['post'])
     def adicionar_estoque(self, request, pk=None):
@@ -193,30 +193,15 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
             )
         
         try:
-            # Capturar alertas ativos antes do ajuste
-            alertas_antes = list(AlertaEstoque.objects.filter(
-                produto=produto,
-                status='ativo'
-            ).values_list('id', 'tipo_alerta'))
-            
             produto.adicionar_estoque(
                 quantidade=int(quantidade),
                 observacao=observacao
             )
-            
-            # Verificar alertas após o ajuste
-            alertas_depois = AlertaEstoque.objects.filter(
-                produto=produto,
-                status='ativo'
-            ).count()
-            
-            alertas_resolvidos = len(alertas_antes) - alertas_depois
-            
+
             return Response({
                 'sucesso': True,
                 'mensagem': f'Estoque adicionado com sucesso. Novo total: {produto.estoque_atual}',
                 'estoque_atual': produto.estoque_atual,
-                'alertas_resolvidos': alertas_resolvidos,
                 'situacao_estoque': 'adequado' if produto.estoque_atual > produto.estoque_minimo else 'baixo' if produto.estoque_atual > 0 else 'zerado'
             })
         except ValueError as e:
@@ -239,33 +224,15 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
             )
         
         try:
-            # Capturar alertas ativos antes do ajuste
-            alertas_antes = list(AlertaEstoque.objects.filter(
-                produto=produto,
-                status='ativo'
-            ).values_list('id', 'tipo_alerta'))
-            
             produto.remover_estoque(
                 quantidade=int(quantidade),
                 observacao=observacao
             )
-            
-            # Verificar alertas após o ajuste
-            alertas_depois_count = AlertaEstoque.objects.filter(
-                produto=produto,
-                status='ativo'
-            ).count()
-            
-            # Contar novos alertas gerados
-            novos_alertas = max(0, alertas_depois_count - len(alertas_antes))
-            alertas_resolvidos = max(0, len(alertas_antes) - alertas_depois_count + novos_alertas)
-            
+
             return Response({
                 'sucesso': True,
                 'mensagem': f'Estoque removido com sucesso. Novo total: {produto.estoque_atual}',
                 'estoque_atual': produto.estoque_atual,
-                'alertas_resolvidos': alertas_resolvidos,
-                'novos_alertas': novos_alertas,
                 'situacao_estoque': 'adequado' if produto.estoque_atual > produto.estoque_minimo else 'baixo' if produto.estoque_atual > 0 else 'zerado'
             })
         except ValueError as e:
@@ -296,20 +263,6 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
         serializer = MovimentacaoEstoqueSerializer(movimentacoes, many=True)
         return Response(serializer.data)
     
-    @action(detail=True, methods=['get'])
-    def alertas(self, request, pk=None):
-        """Listar alertas de um produto específico"""
-        produto = self.get_object()
-        alertas = produto.alertas.all()
-        
-        # Filtro por status
-        status_filtro = request.query_params.get('status')
-        if status_filtro:
-            alertas = alertas.filter(status=status_filtro)
-        
-        serializer = AlertaEstoqueSerializer(alertas, many=True)
-        return Response(serializer.data)
-    
     @action(detail=False, methods=['get'])
     def resumo_geral(self, request):
         """Resumo geral do estoque do usuário"""
@@ -328,12 +281,6 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
             if produto.custo_unitario
         ])
         
-        # Alertas ativos
-        alertas_ativos = AlertaEstoque.objects.filter(
-            produto__user=request.user,
-            status='ativo'
-        ).count()
-        
         # Produtos que precisam de reposição
         produtos_reposicao = produtos.filter(
             estoque_atual__lt=F('estoque_minimo'),
@@ -347,7 +294,6 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
             'produtos_baixo_estoque': produtos_baixo_estoque,
             'produtos_reposicao': produtos_reposicao,
             'valor_total_estoque': valor_total,
-            'alertas_ativos': alertas_ativos,
             'ultima_atualizacao': timezone.now()
         })
     
@@ -362,63 +308,7 @@ class ProdutoEstoqueViewSet(viewsets.ModelViewSet):
         serializer = ProdutoEstoqueResumoSerializer(produtos, many=True)
         return Response(serializer.data)
     
-    @action(detail=True, methods=['post'])
-    def verificar_alertas(self, request, pk=None):
-        """Força verificação e resolução de alertas para um produto"""
-        produto = self.get_object()
-        
-        # Capturar estado antes
-        alertas_antes = AlertaEstoque.objects.filter(
-            produto=produto,
-            status='ativo'
-        ).count()
-        
-        # Forçar verificação de alertas
-        produto._check_and_resolve_alerts_after_adjustment()
-        
-        # Capturar estado depois
-        alertas_depois = AlertaEstoque.objects.filter(
-            produto=produto,
-            status='ativo'
-        ).count()
-        
-        alertas_resolvidos = alertas_antes - alertas_depois
-        
-        # Verificar se precisa criar novos alertas
-        novos_alertas_criados = 0
-        if produto.estoque_atual == 0 and produto.alerta_estoque_zero:
-            # Verificar se já existe alerta ativo de estoque zero
-            if not AlertaEstoque.objects.filter(
-                produto=produto,
-                tipo_alerta='estoque_zero',
-                status='ativo'
-            ).exists():
-                AlertaEstoque.gerar_alerta_estoque_zero(produto)
-                novos_alertas_criados += 1
-        elif produto.estoque_atual <= produto.estoque_minimo and produto.estoque_atual > 0 and produto.alerta_estoque_baixo:
-            # Verificar se já existe alerta ativo de estoque baixo
-            if not AlertaEstoque.objects.filter(
-                produto=produto,
-                tipo_alerta='estoque_baixo',
-                status='ativo'
-            ).exists():
-                AlertaEstoque.gerar_alerta_estoque_baixo(produto)
-                novos_alertas_criados += 1
-        
-        return Response({
-            'sucesso': True,
-            'mensagem': f'Verificação de alertas concluída para produto {produto.sku}',
-            'produto_sku': produto.sku,
-            'estoque_atual': produto.estoque_atual,
-            'estoque_minimo': produto.estoque_minimo,
-            'alertas_resolvidos': alertas_resolvidos,
-            'novos_alertas_criados': novos_alertas_criados,
-            'alertas_ativos_total': AlertaEstoque.objects.filter(
-                produto=produto,
-                status='ativo'
-            ).count(),
-            'situacao_estoque': 'adequado' if produto.estoque_atual > produto.estoque_minimo else 'baixo' if produto.estoque_atual > 0 else 'zerado'
-        })
+    # Método verificar_alertas removido - sistema de alertas desativado
     
     @action(detail=False, methods=['get'])
     def debug_info(self, request):
@@ -579,270 +469,172 @@ class MovimentacaoEstoqueViewSet(viewsets.ModelViewSet):
         })
 
 
-class AlertaEstoqueCompartilhadoViewSet(viewsets.ModelViewSet):
-    """ViewSet para gerenciar alertas do estoque compartilhado"""
+# AlertaEstoqueCompartilhadoViewSet removido - Sistema de alertas desativado
+
+class ProdutoViewSet(viewsets.ModelViewSet):
+    """ViewSet para gerenciar produtos compartilhados com múltiplos SKUs"""
     
-    serializer_class = AlertaEstoqueCompartilhadoSerializer
+    serializer_class = ProdutoSerializer
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [EstoqueUserRateThrottle]
+    
+    def get_serializer_class(self):
+        """Usar serializer resumido para listagem"""
+        if self.action == 'list':
+            return ProdutoResumoSerializer
+        return ProdutoSerializer
+    
+    def get_queryset(self):
+        """
+        Filtrar produtos por usuário com filtros avançados e otimização de queries.
+
+        MULTI-USUÁRIO: Produtos compartilhados são visíveis para todos os usuários
+        que têm acesso às lojas associadas ao produto.
+        """
+        # Buscar lojas do usuário para validar acesso
+        from features.processamento.models import ShopifyConfig
+        lojas_usuario = ShopifyConfig.objects.filter(user=self.request.user)
+
+        # Filtrar produtos onde:
+        # 1. Usuário é o criador (user=request.user) OU
+        # 2. Produto está associado a lojas do usuário (via ProdutoLoja)
+        queryset = Produto.objects.filter(
+            Q(user=self.request.user) | Q(lojas__in=lojas_usuario)
+        ).distinct()
+
+        # Aplicar filtros dos query parameters
+        nome = self.request.query_params.get('nome')
+        if nome:
+            queryset = queryset.filter(nome__icontains=nome)
+
+        fornecedor = self.request.query_params.get('fornecedor')
+        if fornecedor:
+            queryset = queryset.filter(fornecedor__icontains=fornecedor)
+
+        # Filtro por SKU (busca em qualquer SKU do produto)
+        sku = self.request.query_params.get('sku')
+        if sku:
+            queryset = queryset.filter(skus__sku__icontains=sku).distinct()
+
+        # Filtro por loja (produtos compartilhados podem estar associados a múltiplas lojas)
+        loja_id = self.request.query_params.get('loja_id')
+        if loja_id:
+            queryset = queryset.filter(produtoloja_set__loja_id=loja_id).distinct()
+
+        # Filtro por status do estoque
+        status_estoque = self.request.query_params.get('status_estoque')
+        if status_estoque == 'baixo':
+            queryset = queryset.filter(estoque_compartilhado__lte=F('estoque_minimo'))
+        elif status_estoque == 'zerado':
+            queryset = queryset.filter(estoque_compartilhado=0)
+        elif status_estoque == 'negativo':
+            queryset = queryset.filter(estoque_compartilhado__lt=0)
+
+        # Apenas produtos ativos por padrão
+        apenas_ativos = self.request.query_params.get('apenas_ativos', 'true')
+        if apenas_ativos.lower() == 'true':
+            queryset = queryset.filter(ativo=True)
+
+        return queryset.select_related().prefetch_related(
+            'skus',
+            'lojas',
+            'produtoloja_set__loja',
+            'movimentacoes'
+        ).distinct()
+    
+    def perform_create(self, serializer):
+        """Definir usuário automaticamente na criação"""
+        try:
+            logger.info(f"=== INICIANDO CRIAÇÃO PRODUTO COMPARTILHADO ===")
+            logger.info(f"Usuário: {self.request.user.username}")
+            logger.info(f"Dados validados: {serializer.validated_data}")
+            logger.info(f"Dados brutos da request: {self.request.data}")
+
+            produto = serializer.save(user=self.request.user)
+
+            logger.info(f"=== PRODUTO COMPARTILHADO CRIADO COM SUCESSO ===")
+            logger.info(f"ID: {produto.id}")
+            logger.info(f"Nome: {produto.nome}")
+            logger.info(f"SKUs criados: {produto.skus.count()}")
+            logger.info(f"Lojas associadas: {produto.produtoloja_set.count()}")
+
+            return produto
+        except Exception as e:
+            logger.error(f"=== ERRO AO CRIAR PRODUTO COMPARTILHADO ===")
+            logger.error(f"Erro: {str(e)}")
+            logger.error(f"Tipo do erro: {type(e).__name__}")
+            logger.error(f"Dados da request: {self.request.data}")
+            import traceback
+            logger.error(f"Traceback completo: {traceback.format_exc()}")
+            raise
+
+
+class MovimentacaoEstoqueCompartilhadoViewSet(viewsets.ModelViewSet):
+    """ViewSet para movimentações do estoque compartilhado"""
+    
+    serializer_class = MovimentacaoEstoqueCompartilhadoSerializer
     permission_classes = [IsAuthenticated]
     throttle_classes = [EstoqueUserRateThrottle]
     
     def get_queryset(self):
-        """Filtrar alertas por usuário com filtros avançados"""
-        queryset = AlertaEstoqueCompartilhado.objects.filter(
+        """Filtrar movimentações por usuário com filtros avançados"""
+        queryset = MovimentacaoEstoqueCompartilhado.objects.filter(
             produto__user=self.request.user
         )
         
         # Filtros básicos
-        status_filtro = self.request.query_params.get('status')
-        if status_filtro:
-            queryset = queryset.filter(status=status_filtro)
-        
-        tipo = self.request.query_params.get('tipo')
-        if tipo:
-            queryset = queryset.filter(tipo_alerta=tipo)
-        
-        prioridade = self.request.query_params.get('prioridade')
-        if prioridade:
-            queryset = queryset.filter(prioridade=prioridade)
-        
-        # Filtro por produto
         produto_id = self.request.query_params.get('produto_id')
         if produto_id:
             queryset = queryset.filter(produto_id=produto_id)
         
-        # Apenas alertas ativos por padrão
-        apenas_ativos = self.request.query_params.get('apenas_ativos', 'true')
-        if apenas_ativos.lower() == 'true':
-            queryset = queryset.filter(status='ativo')
+        tipo_movimento = self.request.query_params.get('tipo_movimento')
+        if tipo_movimento:
+            queryset = queryset.filter(tipo_movimento=tipo_movimento)
         
-        return queryset.select_related('produto', 'usuario_responsavel', 'usuario_resolucao')
+        loja_origem_id = self.request.query_params.get('loja_origem_id')
+        if loja_origem_id:
+            queryset = queryset.filter(loja_origem_id=loja_origem_id)
+        
+        # Filtros de data
+        data_inicio = self.request.query_params.get('data_inicio')
+        if data_inicio:
+            queryset = queryset.filter(data_movimentacao__gte=data_inicio)
+        
+        data_fim = self.request.query_params.get('data_fim')
+        if data_fim:
+            queryset = queryset.filter(data_movimentacao__lte=data_fim)
+        
+        return queryset.select_related(
+            'produto', 'loja_origem', 'usuario'
+        ).order_by('-data_movimentacao')
     
-    @action(detail=True, methods=['post'])
-    def marcar_lido(self, request, pk=None):
-        """Marcar alerta como lido"""
-        alerta = self.get_object()
-        
-        if alerta.status != 'ativo':
-            return Response(
-                {'erro': 'Apenas alertas ativos podem ser marcados como lidos'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        alerta.marcar_como_lido(request.user)
-        
-        return Response({
-            'sucesso': True,
-            'mensagem': 'Alerta marcado como lido',
-            'status': alerta.status
-        })
-    
-    @action(detail=True, methods=['post'])
-    def resolver(self, request, pk=None):
-        """Resolver alerta"""
-        alerta = self.get_object()
-        observacao = request.data.get('observacao', '')
-        
-        if alerta.status == 'resolvido':
-            return Response(
-                {'erro': 'Alerta já está resolvido'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        alerta.resolver(request.user, observacao)
-        
-        return Response({
-            'sucesso': True,
-            'mensagem': 'Alerta resolvido com sucesso',
-            'status': alerta.status
-        })
+    def get_serializer_class(self):
+        """Usar serializer de criação para POST"""
+        if self.action == 'create':
+            return MovimentacaoEstoqueCompartilhadoCreateSerializer
+        return MovimentacaoEstoqueCompartilhadoSerializer
     
     @action(detail=False, methods=['post'])
-    def resolver_multiplos(self, request):
-        """Resolver múltiplos alertas de uma vez"""
-        throttle = EstoqueBulkOperationThrottle()
-        if not throttle.allow_request(request, self):
-            return Response({
-                'erro': 'Muitas operações em lote. Tente novamente em alguns minutos.'
-            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
-        
-        ids = request.data.get('alertas_ids', [])
-        observacao = request.data.get('observacao', '')
-        
-        if not ids or len(ids) == 0:
-            return Response(
-                {'erro': 'Lista de IDs de alertas é obrigatória'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        if len(ids) > 50:
-            return Response(
-                {'erro': 'Máximo 50 alertas por operação em lote'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Validar que os alertas pertencem ao usuário
-        alertas = self.get_queryset().filter(
-            id__in=ids,
-            status__in=['ativo', 'lido']
+    def criar_movimentacao(self, request):
+        """Endpoint alternativo para criar movimentação"""
+        serializer = MovimentacaoEstoqueCompartilhadoCreateSerializer(
+            data=request.data,
+            context={'request': request}
         )
         
-        resolvidos = 0
-        for alerta in alertas:
-            alerta.resolver(request.user, observacao)
-            resolvidos += 1
-        
-        return Response({
-            'sucesso': True,
-            'mensagem': f'{resolvidos} alertas resolvidos com sucesso',
-            'total_resolvidos': resolvidos
-        })
-    
-    @action(detail=False, methods=['get'])
-    def resumo(self, request):
-        """Resumo dos alertas por status e prioridade"""
-        queryset = self.get_queryset()
-        
-        # Por status
-        por_status = queryset.values('status').annotate(
-            total=Count('id')
-        ).order_by('status')
-        
-        # Por prioridade (apenas ativos)
-        por_prioridade = queryset.filter(status='ativo').values('prioridade').annotate(
-            total=Count('id')
-        ).order_by('prioridade')
-        
-        # Por tipo (apenas ativos)
-        por_tipo = queryset.filter(status='ativo').values('tipo_alerta').annotate(
-            total=Count('id')
-        ).order_by('-total')
-        
-        # Alertas críticos não resolvidos
-        criticos = queryset.filter(
-            prioridade='critica',
-            status='ativo'
-        ).count()
-        
-        return Response({
-            'total_alertas': queryset.count(),
-            'alertas_ativos': queryset.filter(status='ativo').count(),
-            'alertas_criticos': criticos,
-            'por_status': list(por_status),
-            'por_prioridade': list(por_prioridade),
-            'por_tipo': list(por_tipo)
-        })
-    
-    @action(detail=False, methods=['get'])
-    def verificar_alertas_tempo_real(self, request):
-        """Verificar e criar alertas em tempo real para produtos compartilhados"""
-        produto_id = request.query_params.get('produto_id')
-        
-        try:
-            alertas_criados = []
-            alertas_resolvidos_total = 0
-            
-            if produto_id:
-                # Verificar alertas para produto específico
-                try:
-                    produto = Produto.objects.get(id=produto_id, user=request.user)
-                    produtos_para_verificar = [produto]
-                except Produto.DoesNotExist:
-                    return Response(
-                        {'erro': 'Produto não encontrado'},
-                        status=status.HTTP_404_NOT_FOUND
-                    )
-            else:
-                # Verificar todos os produtos ativos do usuário
-                produtos_para_verificar = Produto.objects.filter(
-                    user=request.user,
-                    ativo=True
-                )
-            
-            for produto in produtos_para_verificar:
-                # Verificar alertas existentes
-                alertas_antes = AlertaEstoqueCompartilhado.objects.filter(
-                    produto=produto,
-                    status='ativo'
-                ).count()
-                
-                # Lógica para resolver/criar alertas baseado no estoque atual
-                alertas_ativos = AlertaEstoqueCompartilhado.objects.filter(
-                    produto=produto,
-                    status='ativo'
-                )
-                
-                # Resolver alertas desnecessários
-                for alerta in alertas_ativos:
-                    should_resolve = False
-                    
-                    if alerta.tipo_alerta == 'estoque_zero' and produto.estoque_compartilhado > 0:
-                        should_resolve = True
-                    elif alerta.tipo_alerta == 'estoque_baixo' and produto.estoque_compartilhado > produto.estoque_minimo:
-                        should_resolve = True
-                    
-                    if should_resolve:
-                        alerta.resolver(request.user, 'Resolvido automaticamente - estoque regularizado')
-                        alertas_resolvidos_total += 1
-                
-                # Criar novos alertas se necessário
-                if produto.estoque_compartilhado == 0 and produto.alerta_estoque_zero:
-                    # Verificar se já existe alerta ativo de estoque zero
-                    if not AlertaEstoqueCompartilhado.objects.filter(
-                        produto=produto,
-                        tipo_alerta='estoque_zero',
-                        status='ativo'
-                    ).exists():
-                        alerta = AlertaEstoqueCompartilhado.gerar_alerta_estoque_zero(produto)
-                        if alerta:
-                            alertas_criados.append({
-                                'id': alerta.id,
-                                'tipo': 'estoque_zero',
-                                'produto': produto.nome
-                            })
-                
-                elif produto.estoque_baixo and produto.alerta_estoque_baixo:
-                    # Verificar se já existe alerta ativo de estoque baixo
-                    if not AlertaEstoqueCompartilhado.objects.filter(
-                        produto=produto,
-                        tipo_alerta='estoque_baixo',
-                        status='ativo'
-                    ).exists():
-                        alerta = AlertaEstoqueCompartilhado.gerar_alerta_estoque_baixo(produto)
-                        if alerta:
-                            alertas_criados.append({
-                                'id': alerta.id,
-                                'tipo': 'estoque_baixo',
-                                'produto': produto.nome
-                            })
-            
-            # Retornar alertas ativos atualizados
-            alertas_ativos = self.get_queryset().filter(
-                status='ativo'
-            ).order_by('-prioridade', '-data_criacao')
-            
-            if produto_id:
-                alertas_ativos = alertas_ativos.filter(produto_id=produto_id)
-            
-            serializer = AlertaEstoqueCompartilhadoSerializer(alertas_ativos, many=True)
-            
-            return Response({
-                'alertas': serializer.data,
-                'alertas_criados_agora': alertas_criados,
-                'total_alertas_criados': len(alertas_criados),
-                'alertas_resolvidos_automaticamente': alertas_resolvidos_total
-            })
-            
-        except Exception as e:
-            logger.error(f"Erro ao verificar alertas em tempo real: {str(e)}")
+        if serializer.is_valid():
+            movimentacao = serializer.save()
+            response_serializer = MovimentacaoEstoqueCompartilhadoSerializer(movimentacao)
             return Response(
-                {'erro': f'Erro interno: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                response_serializer.data,
+                status=status.HTTP_201_CREATED
             )
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=False, methods=['get'])
     def relatorio_periodo(self, request):
-        """Relatório de movimentações por período"""
-        # Parâmetros obrigatórios
+        """Relatório de movimentações por período para estoque compartilhado"""
         data_inicio = request.query_params.get('data_inicio')
         data_fim = request.query_params.get('data_fim')
         
@@ -858,6 +650,7 @@ class AlertaEstoqueCompartilhadoViewSet(viewsets.ModelViewSet):
         )
         
         # Agregações por tipo de movimento
+        from django.db.models import Count, Sum
         por_tipo = queryset.values('tipo_movimento').annotate(
             total_movimentacoes=Count('id'),
             total_quantidade=Sum('quantidade')
@@ -887,418 +680,9 @@ class AlertaEstoqueCompartilhadoViewSet(viewsets.ModelViewSet):
         })
 
 
-class AlertaEstoqueViewSet(viewsets.ModelViewSet):
-    """ViewSet para gerenciar alertas de estoque com segurança"""
-    
-    serializer_class = AlertaEstoqueSerializer
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [EstoqueUserRateThrottle]
-    
-    def get_queryset(self):
-        """Filtros avançados via query parameters"""
-        import logging
-        logger = logging.getLogger(__name__)
-
-        try:
-            queryset = AlertaEstoque.objects.filter(produto__user=self.request.user)
-
-            # Filtros básicos
-            status_filtro = self.request.query_params.get('status')
-            if status_filtro:
-                queryset = queryset.filter(status=status_filtro)
-
-            tipo = self.request.query_params.get('tipo')
-            if tipo:
-                queryset = queryset.filter(tipo_alerta=tipo)
-
-            prioridade = self.request.query_params.get('prioridade')
-            if prioridade:
-                queryset = queryset.filter(prioridade=prioridade)
-
-            # Filtro por produto
-            produto_id = self.request.query_params.get('produto_id')
-            if produto_id:
-                queryset = queryset.filter(produto_id=produto_id)
-
-            # Filtro por loja
-            loja_id = self.request.query_params.get('loja_id')
-            if loja_id:
-                queryset = queryset.filter(produto__loja_config_id=loja_id)
-
-            # Apenas alertas ativos por padrão
-            apenas_ativos = self.request.query_params.get('apenas_ativos', 'true')
-            if apenas_ativos.lower() == 'true':
-                queryset = queryset.filter(status='ativo')
-
-            logger.info(f"AlertaEstoqueViewSet.get_queryset: {queryset.count()} alertas encontrados")
-            return queryset.select_related('produto', 'usuario_responsavel', 'usuario_resolucao')
-
-        except Exception as e:
-            logger.error(f"ERRO em AlertaEstoqueViewSet.get_queryset: {str(e)}", exc_info=True)
-            # Retornar queryset vazio em caso de erro
-            return AlertaEstoque.objects.none()
-
-    def list(self, request, *args, **kwargs):
-        """Override do list com tratamento robusto de erros"""
-        import logging
-        logger = logging.getLogger(__name__)
-
-        try:
-            queryset = self.filter_queryset(self.get_queryset())
-
-            # Paginação
-            page = self.paginate_queryset(queryset)
-            if page is not None:
-                serializer = self.get_serializer(page, many=True)
-                logger.info(f"AlertaEstoqueViewSet.list: {len(serializer.data)} alertas paginados retornados")
-                return self.get_paginated_response(serializer.data)
-
-            serializer = self.get_serializer(queryset, many=True)
-            logger.info(f"AlertaEstoqueViewSet.list: {len(serializer.data)} alertas retornados")
-            return Response(serializer.data)
-
-        except Exception as e:
-            logger.error(f"ERRO CRÍTICO em AlertaEstoqueViewSet.list: {str(e)}", exc_info=True)
-            # Retornar lista vazia em vez de quebrar
-            return Response([], status=status.HTTP_200_OK)
-
-    @action(detail=True, methods=['post'])
-    def marcar_lido(self, request, pk=None):
-        """Marcar alerta como lido"""
-        alerta = self.get_object()
-        
-        if alerta.status != 'ativo':
-            return Response(
-                {'erro': 'Apenas alertas ativos podem ser marcados como lidos'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        alerta.marcar_como_lido(request.user)
-        
-        return Response({
-            'sucesso': True,
-            'mensagem': 'Alerta marcado como lido',
-            'status': alerta.status
-        })
-    
-    @action(detail=True, methods=['post'])
-    def resolver(self, request, pk=None):
-        """Resolver alerta"""
-        alerta = self.get_object()
-        observacao = request.data.get('observacao', '')
-        
-        if alerta.status == 'resolvido':
-            return Response(
-                {'erro': 'Alerta já está resolvido'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        alerta.resolver(request.user, observacao)
-        
-        return Response({
-            'sucesso': True,
-            'mensagem': 'Alerta resolvido com sucesso',
-            'status': alerta.status
-        })
-    
-    @action(detail=False, methods=['post'])
-    def resolver_multiplos(self, request):
-        """Resolver múltiplos alertas de uma vez com throttling específico"""
-        # Aplicar throttling específico para operações em lote
-        throttle = EstoqueBulkOperationThrottle()
-        if not throttle.allow_request(request, self):
-            return Response({
-                'erro': 'Muitas operações em lote. Tente novamente em alguns minutos.'
-            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
-        
-        ids = request.data.get('alertas_ids', [])
-        observacao = request.data.get('observacao', '')
-        
-        # Sanitizar observação
-        observacao_sanitizada = LogSanitizer.sanitize_string(observacao)
-        
-        if not ids or len(ids) == 0:
-            return Response(
-                {'erro': 'Lista de IDs de alertas é obrigatória'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Limitar quantidade para prevenir abuse
-        if len(ids) > 50:
-            return Response(
-                {'erro': 'Máximo 50 alertas por operação em lote'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Validar que os alertas pertencem ao usuário
-        alertas = self.get_queryset().filter(
-            id__in=ids,
-            status__in=['ativo', 'lido']
-        )
-        
-        resolvidos = 0
-        for alerta in alertas:
-            # Validar ownership antes de resolver
-            if not PermissionValidator.validate_product_ownership(request.user, alerta.produto):
-                continue
-            alerta.resolver(request.user, observacao_sanitizada)
-            resolvidos += 1
-        
-        # Log seguro da operação em lote
-        safe_log_data({
-            'event': 'alertas_resolvidos_lote',
-            'total_solicitado': len(ids),
-            'total_resolvido': resolvidos,
-            'user_id': request.user.id
-        }, 'info')
-        
-        return Response({
-            'sucesso': True,
-            'mensagem': f'{resolvidos} alertas resolvidos com sucesso',
-            'total_resolvidos': resolvidos
-        })
-    
-    @action(detail=False, methods=['get'])
-    def resumo(self, request):
-        """Resumo dos alertas por status e prioridade"""
-        queryset = self.get_queryset()
-        
-        # Por status
-        por_status = queryset.values('status').annotate(
-            total=Count('id')
-        ).order_by('status')
-        
-        # Por prioridade (apenas ativos)
-        por_prioridade = queryset.filter(status='ativo').values('prioridade').annotate(
-            total=Count('id')
-        ).order_by('prioridade')
-        
-        # Por tipo (apenas ativos)
-        por_tipo = queryset.filter(status='ativo').values('tipo_alerta').annotate(
-            total=Count('id')
-        ).order_by('-total')
-        
-        # Alertas críticos não resolvidos
-        criticos = queryset.filter(
-            prioridade='critica',
-            status='ativo'
-        ).count()
-        
-        return Response({
-            'total_alertas': queryset.count(),
-            'alertas_ativos': queryset.filter(status='ativo').count(),
-            'alertas_criticos': criticos,
-            'por_status': list(por_status),
-            'por_prioridade': list(por_prioridade),
-            'por_tipo': list(por_tipo)
-        })
-    
-    @action(detail=False, methods=['get'])
-    def verificar_alertas_tempo_real(self, request):
-        """
-        Verifica e cria alertas em tempo real.
-        Funciona com ou sem loja_id (modo unificado).
-        """
-        import logging
-        logger = logging.getLogger(__name__)
-
-        loja_id = request.query_params.get('loja_id')
-
-        logger.info(f"verificar_alertas_tempo_real - user: {request.user.username}, loja_id: {loja_id}")
-
-        try:
-            from features.processamento.models import ShopifyConfig
-
-            alertas_criados = []
-            alertas_resolvidos_total = 0
-
-            # MODO UNIFICADO: Se loja_id não fornecido, buscar todos os produtos do usuário
-            if not loja_id:
-                logger.info("Modo unificado: buscando alertas de todos os produtos")
-
-                # Produtos individuais (ProdutoEstoque)
-                produtos_individuais = ProdutoEstoque.objects.filter(
-                    user=request.user,
-                    ativo=True
-                )
-
-                # Verificar e resolver alertas desnecessários
-                for produto in produtos_individuais:
-                    alertas_antes = AlertaEstoque.objects.filter(
-                        produto=produto,
-                        status='ativo'
-                    ).count()
-
-                    produto._check_and_resolve_alerts_after_adjustment()
-
-                    alertas_depois = AlertaEstoque.objects.filter(
-                        produto=produto,
-                        status='ativo'
-                    ).count()
-
-                    alertas_resolvidos_total += max(0, alertas_antes - alertas_depois)
-
-                # Criar alertas para produtos com estoque zerado
-                produtos_estoque_zero = ProdutoEstoque.objects.filter(
-                    user=request.user,
-                    ativo=True,
-                    estoque_atual=0,
-                    alerta_estoque_zero=True
-                ).exclude(
-                    alertas__tipo_alerta='estoque_zero',
-                    alertas__status='ativo'
-                )
-
-                for produto in produtos_estoque_zero:
-                    alerta = AlertaEstoque.gerar_alerta_estoque_zero(produto)
-                    if alerta:
-                        alertas_criados.append({
-                            'id': alerta.id,
-                            'tipo': 'estoque_zero',
-                            'sku': produto.sku,
-                            'nome': produto.nome
-                        })
-
-                # Criar alertas para produtos com estoque baixo
-                produtos_estoque_baixo = ProdutoEstoque.objects.filter(
-                    user=request.user,
-                    ativo=True,
-                    estoque_atual__gt=0,
-                    estoque_atual__lte=F('estoque_minimo'),
-                    alerta_estoque_baixo=True
-                ).exclude(
-                    alertas__tipo_alerta='estoque_baixo',
-                    alertas__status='ativo'
-                )
-
-                for produto in produtos_estoque_baixo:
-                    alerta = AlertaEstoque.gerar_alerta_estoque_baixo(produto)
-                    if alerta:
-                        alertas_criados.append({
-                            'id': alerta.id,
-                            'tipo': 'estoque_baixo',
-                            'sku': produto.sku,
-                            'nome': produto.nome
-                        })
-
-                # Buscar todos os alertas ativos do usuário
-                alertas_ativos = AlertaEstoque.objects.filter(
-                    produto__user=request.user,
-                    status='ativo'
-                ).select_related('produto').order_by('-prioridade', '-data_criacao')
-
-                logger.info(f"Modo unificado: {alertas_ativos.count()} alertas ativos, {len(alertas_criados)} criados")
-
-            else:
-                # MODO COM LOJA ESPECÍFICA (mantém compatibilidade)
-                try:
-                    loja_id = int(loja_id)
-                except (ValueError, TypeError):
-                    logger.warning(f"loja_id inválido: {loja_id}")
-                    return Response(
-                        {'erro': 'loja_id deve ser um número válido'},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-
-                loja_config = ShopifyConfig.objects.filter(id=loja_id, ativo=True).first()
-                if not loja_config:
-                    return Response(
-                        {'erro': 'Loja não encontrada'},
-                        status=status.HTTP_404_NOT_FOUND
-                    )
-
-                produtos_da_loja = ProdutoEstoque.objects.filter(
-                    loja_config=loja_config,
-                    user=request.user,
-                    ativo=True
-                )
-
-                for produto in produtos_da_loja:
-                    alertas_antes = AlertaEstoque.objects.filter(
-                        produto=produto,
-                        status='ativo'
-                    ).count()
-
-                    produto._check_and_resolve_alerts_after_adjustment()
-
-                    alertas_depois = AlertaEstoque.objects.filter(
-                        produto=produto,
-                        status='ativo'
-                    ).count()
-
-                    alertas_resolvidos_total += max(0, alertas_antes - alertas_depois)
-
-                produtos_estoque_zero = ProdutoEstoque.objects.filter(
-                    loja_config=loja_config,
-                    user=request.user,
-                    ativo=True,
-                    estoque_atual=0,
-                    alerta_estoque_zero=True
-                ).exclude(
-                    alertas__tipo_alerta='estoque_zero',
-                    alertas__status='ativo'
-                )
-
-                for produto in produtos_estoque_zero:
-                    alerta = AlertaEstoque.gerar_alerta_estoque_zero(produto)
-                    if alerta:
-                        alertas_criados.append({
-                            'id': alerta.id,
-                            'tipo': 'estoque_zero',
-                            'sku': produto.sku,
-                            'nome': produto.nome
-                        })
-
-                produtos_estoque_baixo = ProdutoEstoque.objects.filter(
-                    loja_config=loja_config,
-                    user=request.user,
-                    ativo=True,
-                    estoque_atual__gt=0,
-                    estoque_atual__lte=F('estoque_minimo'),
-                    alerta_estoque_baixo=True
-                ).exclude(
-                    alertas__tipo_alerta='estoque_baixo',
-                    alertas__status='ativo'
-                )
-
-                for produto in produtos_estoque_baixo:
-                    alerta = AlertaEstoque.gerar_alerta_estoque_baixo(produto)
-                    if alerta:
-                        alertas_criados.append({
-                            'id': alerta.id,
-                            'tipo': 'estoque_baixo',
-                            'sku': produto.sku,
-                            'nome': produto.nome
-                        })
-
-                alertas_ativos = AlertaEstoque.objects.filter(
-                    produto__loja_config=loja_config,
-                    produto__user=request.user,
-                    status='ativo'
-                ).select_related('produto').order_by('-prioridade', '-data_criacao')
-
-            # Serializar e retornar
-            serializer = AlertaEstoqueSerializer(alertas_ativos, many=True)
-
-            return Response({
-                'alertas': serializer.data,
-                'alertas_criados_agora': alertas_criados,
-                'total_alertas_criados': len(alertas_criados),
-                'alertas_resolvidos_automaticamente': alertas_resolvidos_total
-            })
-
-        except Exception as e:
-            logger.error(f"ERRO ao verificar alertas: {str(e)}", exc_info=True)
-            return Response(
-                {'erro': f'Erro interno ao verificar alertas: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+# AlertaEstoqueCompartilhadoViewSet removido - Sistema de alertas desativado
 
 
-# ===== WEBHOOK ENDPOINTS =====
-
-@csrf_exempt
-@require_http_methods(["POST"])
 def shopify_order_webhook(request):
     """
     Endpoint webhook PERMISSIVO para receber pedidos do Shopify
@@ -1756,18 +1140,13 @@ def webhook_status(request):
             origem_sync='shopify_webhook',
             data_movimentacao__gte=data_limite
         ).count()
-        
-        alertas_ativos = AlertaEstoque.objects.filter(
-            status='ativo'
-        ).count()
-        
+
         return JsonResponse({
             'status': 'operational',
             'timestamp': timezone.now().isoformat(),
             'estatisticas': {
                 'lojas_configuradas': total_lojas,
-                'vendas_processadas_7d': movimentacoes_recentes,
-                'alertas_ativos': alertas_ativos
+                'vendas_processadas_7d': movimentacoes_recentes
             },
             'endpoints': {
                 'webhook_order': '/api/estoque/webhook/order-created/',
@@ -1898,476 +1277,3 @@ def webhook_stats(request):
         return Response({
             'error': str(e)
         }, status=500)
-
-
-# ======= NOVOS VIEWSETS PARA PRODUTOS COMPARTILHADOS =======
-
-class ProdutoViewSet(viewsets.ModelViewSet):
-    """ViewSet para gerenciar produtos compartilhados com múltiplos SKUs"""
-    
-    serializer_class = ProdutoSerializer
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [EstoqueUserRateThrottle]
-    
-    def get_serializer_class(self):
-        """Usar serializer resumido para listagem"""
-        if self.action == 'list':
-            return ProdutoResumoSerializer
-        return ProdutoSerializer
-    
-    def get_queryset(self):
-        """
-        Filtrar produtos por usuário com filtros avançados e otimização de queries.
-
-        MULTI-USUÁRIO: Produtos compartilhados são visíveis para todos os usuários
-        que têm acesso às lojas associadas ao produto.
-        """
-        # Buscar lojas do usuário para validar acesso
-        from features.processamento.models import ShopifyConfig
-        lojas_usuario = ShopifyConfig.objects.filter(user=self.request.user)
-
-        # Filtrar produtos onde:
-        # 1. Usuário é o criador (user=request.user) OU
-        # 2. Produto está associado a lojas do usuário (via ProdutoLoja)
-        queryset = Produto.objects.filter(
-            Q(user=self.request.user) | Q(lojas__in=lojas_usuario)
-        ).distinct()
-
-        # Aplicar filtros dos query parameters
-        nome = self.request.query_params.get('nome')
-        if nome:
-            queryset = queryset.filter(nome__icontains=nome)
-
-        fornecedor = self.request.query_params.get('fornecedor')
-        if fornecedor:
-            queryset = queryset.filter(fornecedor__icontains=fornecedor)
-
-        # Filtro por SKU (busca em qualquer SKU do produto)
-        sku = self.request.query_params.get('sku')
-        if sku:
-            queryset = queryset.filter(skus__sku__icontains=sku).distinct()
-
-        # Filtro por loja (produtos compartilhados podem estar associados a múltiplas lojas)
-        loja_id = self.request.query_params.get('loja_id')
-        if loja_id:
-            queryset = queryset.filter(produtoloja_set__loja_id=loja_id).distinct()
-
-        # Filtro por status do estoque
-        status_estoque = self.request.query_params.get('status_estoque')
-        if status_estoque == 'baixo':
-            queryset = queryset.filter(estoque_compartilhado__lte=F('estoque_minimo'))
-        elif status_estoque == 'zerado':
-            queryset = queryset.filter(estoque_compartilhado=0)
-        elif status_estoque == 'negativo':
-            queryset = queryset.filter(estoque_compartilhado__lt=0)
-
-        # Apenas produtos ativos por padrão
-        apenas_ativos = self.request.query_params.get('apenas_ativos', 'true')
-        if apenas_ativos.lower() == 'true':
-            queryset = queryset.filter(ativo=True)
-
-        return queryset.select_related().prefetch_related(
-            'skus',
-            'lojas',
-            'produtoloja_set__loja',
-            'movimentacoes',
-            'alertas'
-        ).distinct()
-    
-    def perform_create(self, serializer):
-        """Definir usuário automaticamente na criação"""
-        try:
-            logger.info(f"=== INICIANDO CRIAÇÃO PRODUTO COMPARTILHADO ===")
-            logger.info(f"Usuário: {self.request.user.username}")
-            logger.info(f"Dados validados: {serializer.validated_data}")
-            logger.info(f"Dados brutos da request: {self.request.data}")
-
-            produto = serializer.save(user=self.request.user)
-
-            logger.info(f"=== PRODUTO COMPARTILHADO CRIADO COM SUCESSO ===")
-            logger.info(f"ID: {produto.id}")
-            logger.info(f"Nome: {produto.nome}")
-            logger.info(f"SKUs criados: {produto.skus.count()}")
-            logger.info(f"Lojas associadas: {produto.produtoloja_set.count()}")
-
-            return produto
-        except Exception as e:
-            logger.error(f"=== ERRO AO CRIAR PRODUTO COMPARTILHADO ===")
-            logger.error(f"Erro: {str(e)}")
-            logger.error(f"Tipo do erro: {type(e).__name__}")
-            logger.error(f"Dados da request: {self.request.data}")
-            import traceback
-            logger.error(f"Traceback completo: {traceback.format_exc()}")
-            raise
-
-
-class MovimentacaoEstoqueCompartilhadoViewSet(viewsets.ModelViewSet):
-    """ViewSet para movimentações do estoque compartilhado"""
-    
-    serializer_class = MovimentacaoEstoqueCompartilhadoSerializer
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [EstoqueUserRateThrottle]
-    
-    def get_queryset(self):
-        """Filtrar movimentações por usuário com filtros avançados"""
-        queryset = MovimentacaoEstoqueCompartilhado.objects.filter(
-            produto__user=self.request.user
-        )
-        
-        # Filtros básicos
-        produto_id = self.request.query_params.get('produto_id')
-        if produto_id:
-            queryset = queryset.filter(produto_id=produto_id)
-        
-        tipo_movimento = self.request.query_params.get('tipo_movimento')
-        if tipo_movimento:
-            queryset = queryset.filter(tipo_movimento=tipo_movimento)
-        
-        loja_origem_id = self.request.query_params.get('loja_origem_id')
-        if loja_origem_id:
-            queryset = queryset.filter(loja_origem_id=loja_origem_id)
-        
-        # Filtros de data
-        data_inicio = self.request.query_params.get('data_inicio')
-        if data_inicio:
-            queryset = queryset.filter(data_movimentacao__gte=data_inicio)
-        
-        data_fim = self.request.query_params.get('data_fim')
-        if data_fim:
-            queryset = queryset.filter(data_movimentacao__lte=data_fim)
-        
-        return queryset.select_related(
-            'produto', 'loja_origem', 'usuario'
-        ).order_by('-data_movimentacao')
-    
-    def get_serializer_class(self):
-        """Usar serializer de criação para POST"""
-        if self.action == 'create':
-            return MovimentacaoEstoqueCompartilhadoCreateSerializer
-        return MovimentacaoEstoqueCompartilhadoSerializer
-    
-    @action(detail=False, methods=['post'])
-    def criar_movimentacao(self, request):
-        """Endpoint alternativo para criar movimentação"""
-        serializer = MovimentacaoEstoqueCompartilhadoCreateSerializer(
-            data=request.data,
-            context={'request': request}
-        )
-        
-        if serializer.is_valid():
-            movimentacao = serializer.save()
-            response_serializer = MovimentacaoEstoqueCompartilhadoSerializer(movimentacao)
-            return Response(
-                response_serializer.data,
-                status=status.HTTP_201_CREATED
-            )
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    @action(detail=False, methods=['get'])
-    def relatorio_periodo(self, request):
-        """Relatório de movimentações por período para estoque compartilhado"""
-        data_inicio = request.query_params.get('data_inicio')
-        data_fim = request.query_params.get('data_fim')
-        
-        if not data_inicio or not data_fim:
-            return Response(
-                {'erro': 'data_inicio e data_fim são obrigatórios'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        queryset = self.get_queryset().filter(
-            data_movimentacao__gte=data_inicio,
-            data_movimentacao__lte=data_fim
-        )
-        
-        # Agregações por tipo de movimento
-        from django.db.models import Count, Sum
-        por_tipo = queryset.values('tipo_movimento').annotate(
-            total_movimentacoes=Count('id'),
-            total_quantidade=Sum('quantidade')
-        ).order_by('-total_movimentacoes')
-        
-        # Resumo geral
-        total_movimentacoes = queryset.count()
-        entradas = queryset.filter(tipo_movimento__in=['entrada', 'devolucao']).aggregate(
-            total=Sum('quantidade')
-        )['total'] or 0
-        saidas = queryset.filter(tipo_movimento__in=['saida', 'venda', 'perda']).aggregate(
-            total=Sum('quantidade')
-        )['total'] or 0
-        
-        return Response({
-            'periodo': {
-                'data_inicio': data_inicio,
-                'data_fim': data_fim
-            },
-            'resumo': {
-                'total_movimentacoes': total_movimentacoes,
-                'total_entradas': entradas,
-                'total_saidas': saidas,
-                'saldo_liquido': entradas - saidas
-            },
-            'por_tipo': list(por_tipo)
-        })
-
-
-class AlertaEstoqueCompartilhadoViewSet(viewsets.ModelViewSet):
-    """ViewSet para gerenciar alertas do estoque compartilhado"""
-    
-    serializer_class = AlertaEstoqueCompartilhadoSerializer
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [EstoqueUserRateThrottle]
-    
-    def get_queryset(self):
-        """Filtrar alertas por usuário com filtros avançados"""
-        queryset = AlertaEstoqueCompartilhado.objects.filter(
-            produto__user=self.request.user
-        )
-        
-        # Filtros básicos
-        status_filtro = self.request.query_params.get('status')
-        if status_filtro:
-            queryset = queryset.filter(status=status_filtro)
-        
-        tipo = self.request.query_params.get('tipo')
-        if tipo:
-            queryset = queryset.filter(tipo_alerta=tipo)
-        
-        prioridade = self.request.query_params.get('prioridade')
-        if prioridade:
-            queryset = queryset.filter(prioridade=prioridade)
-        
-        # Filtro por produto
-        produto_id = self.request.query_params.get('produto_id')
-        if produto_id:
-            queryset = queryset.filter(produto_id=produto_id)
-        
-        # Apenas alertas ativos por padrão
-        apenas_ativos = self.request.query_params.get('apenas_ativos', 'true')
-        if apenas_ativos.lower() == 'true':
-            queryset = queryset.filter(status='ativo')
-        
-        return queryset.select_related('produto', 'usuario_responsavel', 'usuario_resolucao')
-    
-    @action(detail=True, methods=['post'])
-    def marcar_lido(self, request, pk=None):
-        """Marcar alerta como lido"""
-        alerta = self.get_object()
-        
-        if alerta.status != 'ativo':
-            return Response(
-                {'erro': 'Apenas alertas ativos podem ser marcados como lidos'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        alerta.marcar_como_lido(request.user)
-        
-        return Response({
-            'sucesso': True,
-            'mensagem': 'Alerta marcado como lido',
-            'status': alerta.status
-        })
-    
-    @action(detail=True, methods=['post'])
-    def resolver(self, request, pk=None):
-        """Resolver alerta"""
-        alerta = self.get_object()
-        observacao = request.data.get('observacao', '')
-        
-        if alerta.status == 'resolvido':
-            return Response(
-                {'erro': 'Alerta já está resolvido'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        alerta.resolver(request.user, observacao)
-        
-        return Response({
-            'sucesso': True,
-            'mensagem': 'Alerta resolvido com sucesso',
-            'status': alerta.status
-        })
-    
-    @action(detail=False, methods=['post'])
-    def resolver_multiplos(self, request):
-        """Resolver múltiplos alertas de uma vez"""
-        throttle = EstoqueBulkOperationThrottle()
-        if not throttle.allow_request(request, self):
-            return Response({
-                'erro': 'Muitas operações em lote. Tente novamente em alguns minutos.'
-            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
-        
-        ids = request.data.get('alertas_ids', [])
-        observacao = request.data.get('observacao', '')
-        
-        if not ids or len(ids) == 0:
-            return Response(
-                {'erro': 'Lista de IDs de alertas é obrigatória'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        if len(ids) > 50:
-            return Response(
-                {'erro': 'Máximo 50 alertas por operação em lote'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Validar que os alertas pertencem ao usuário
-        alertas = self.get_queryset().filter(
-            id__in=ids,
-            status__in=['ativo', 'lido']
-        )
-        
-        resolvidos = 0
-        for alerta in alertas:
-            alerta.resolver(request.user, observacao)
-            resolvidos += 1
-        
-        return Response({
-            'sucesso': True,
-            'mensagem': f'{resolvidos} alertas resolvidos com sucesso',
-            'total_resolvidos': resolvidos
-        })
-    
-    @action(detail=False, methods=['get'])
-    def resumo(self, request):
-        """Resumo dos alertas por status e prioridade"""
-        queryset = self.get_queryset()
-        
-        # Por status
-        por_status = queryset.values('status').annotate(
-            total=Count('id')
-        ).order_by('status')
-        
-        # Por prioridade (apenas ativos)
-        por_prioridade = queryset.filter(status='ativo').values('prioridade').annotate(
-            total=Count('id')
-        ).order_by('prioridade')
-        
-        # Por tipo (apenas ativos)
-        por_tipo = queryset.filter(status='ativo').values('tipo_alerta').annotate(
-            total=Count('id')
-        ).order_by('-total')
-        
-        # Alertas críticos não resolvidos
-        criticos = queryset.filter(
-            prioridade='critica',
-            status='ativo'
-        ).count()
-        
-        return Response({
-            'total_alertas': queryset.count(),
-            'alertas_ativos': queryset.filter(status='ativo').count(),
-            'alertas_criticos': criticos,
-            'por_status': list(por_status),
-            'por_prioridade': list(por_prioridade),
-            'por_tipo': list(por_tipo)
-        })
-    
-    @action(detail=False, methods=['get'])
-    def verificar_alertas_tempo_real(self, request):
-        """Verificar e criar alertas em tempo real para produtos compartilhados"""
-        produto_id = request.query_params.get('produto_id')
-        
-        try:
-            alertas_criados = []
-            alertas_resolvidos_total = 0
-            
-            if produto_id:
-                # Verificar alertas para produto específico
-                try:
-                    produto = Produto.objects.get(id=produto_id, user=request.user)
-                    produtos_para_verificar = [produto]
-                except Produto.DoesNotExist:
-                    return Response(
-                        {'erro': 'Produto não encontrado'},
-                        status=status.HTTP_404_NOT_FOUND
-                    )
-            else:
-                # Verificar todos os produtos ativos do usuário
-                produtos_para_verificar = Produto.objects.filter(
-                    user=request.user,
-                    ativo=True
-                )
-            
-            for produto in produtos_para_verificar:
-                # Verificar alertas existentes
-                alertas_antes = AlertaEstoqueCompartilhado.objects.filter(
-                    produto=produto,
-                    status='ativo'
-                ).count()
-                
-                # Lógica para resolver/criar alertas baseado no estoque atual
-                alertas_ativos = AlertaEstoqueCompartilhado.objects.filter(
-                    produto=produto,
-                    status='ativo'
-                )
-                
-                # Resolver alertas desnecessários
-                for alerta in alertas_ativos:
-                    should_resolve = False
-                    
-                    if alerta.tipo_alerta == 'estoque_zero' and produto.estoque_compartilhado > 0:
-                        should_resolve = True
-                    elif alerta.tipo_alerta == 'estoque_baixo' and produto.estoque_compartilhado > produto.estoque_minimo:
-                        should_resolve = True
-                    
-                    if should_resolve:
-                        alerta.resolver(request.user, 'Resolvido automaticamente - estoque regularizado')
-                        alertas_resolvidos_total += 1
-                
-                # Criar novos alertas se necessário
-                if produto.estoque_compartilhado == 0 and produto.alerta_estoque_zero:
-                    # Verificar se já existe alerta ativo de estoque zero
-                    if not AlertaEstoqueCompartilhado.objects.filter(
-                        produto=produto,
-                        tipo_alerta='estoque_zero',
-                        status='ativo'
-                    ).exists():
-                        alerta = AlertaEstoqueCompartilhado.gerar_alerta_estoque_zero(produto)
-                        if alerta:
-                            alertas_criados.append({
-                                'id': alerta.id,
-                                'tipo': 'estoque_zero',
-                                'produto': produto.nome
-                            })
-                
-                elif produto.estoque_baixo and produto.alerta_estoque_baixo:
-                    # Verificar se já existe alerta ativo de estoque baixo
-                    if not AlertaEstoqueCompartilhado.objects.filter(
-                        produto=produto,
-                        tipo_alerta='estoque_baixo',
-                        status='ativo'
-                    ).exists():
-                        alerta = AlertaEstoqueCompartilhado.gerar_alerta_estoque_baixo(produto)
-                        if alerta:
-                            alertas_criados.append({
-                                'id': alerta.id,
-                                'tipo': 'estoque_baixo',
-                                'produto': produto.nome
-                            })
-            
-            # Retornar alertas ativos atualizados
-            alertas_ativos = self.get_queryset().filter(
-                status='ativo'
-            ).order_by('-prioridade', '-data_criacao')
-            
-            if produto_id:
-                alertas_ativos = alertas_ativos.filter(produto_id=produto_id)
-            
-            serializer = AlertaEstoqueCompartilhadoSerializer(alertas_ativos, many=True)
-            
-            return Response({
-                'alertas': serializer.data,
-                'alertas_criados_agora': alertas_criados,
-                'total_alertas_criados': len(alertas_criados),
-                'alertas_resolvidos_automaticamente': alertas_resolvidos_total
-            })
-            
-        except Exception as e:
-            logger.error(f"Erro ao verificar alertas em tempo real: {str(e)}")
-            return Response(
-                {'erro': f'Erro interno: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )

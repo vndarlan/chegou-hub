@@ -2,8 +2,8 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    ProdutoEstoqueViewSet, MovimentacaoEstoqueViewSet, AlertaEstoqueViewSet,
-    ProdutoViewSet, MovimentacaoEstoqueCompartilhadoViewSet, AlertaEstoqueCompartilhadoViewSet,
+    ProdutoEstoqueViewSet, MovimentacaoEstoqueViewSet,
+    ProdutoViewSet, MovimentacaoEstoqueCompartilhadoViewSet,
     shopify_order_webhook, webhook_status, webhook_stats, webhook_permissive_info
 )
 from .produto_unificado_view import ProdutoUnificadoViewSet
@@ -12,12 +12,10 @@ from .produto_unificado_view import ProdutoUnificadoViewSet
 router = DefaultRouter()
 router.register(r'produtos', ProdutoEstoqueViewSet, basename='produto-estoque')
 router.register(r'movimentacoes', MovimentacaoEstoqueViewSet, basename='movimentacao-estoque')
-router.register(r'alertas', AlertaEstoqueViewSet, basename='alerta-estoque')
 
 # Novos endpoints para produtos compartilhados
 router.register(r'produtos-compartilhados', ProdutoViewSet, basename='produto-compartilhado')
 router.register(r'movimentacoes-compartilhadas', MovimentacaoEstoqueCompartilhadoViewSet, basename='movimentacao-compartilhada')
-router.register(r'alertas-compartilhados', AlertaEstoqueCompartilhadoViewSet, basename='alerta-compartilhado')
 
 # Endpoint unificado para interface nova
 router.register(r'produtos-unificados', ProdutoUnificadoViewSet, basename='produto-unificado')
@@ -50,7 +48,6 @@ urlpatterns = [
 # POST /api/estoque/produtos/{id}/adicionar_estoque/ - Adiciona estoque
 # POST /api/estoque/produtos/{id}/remover_estoque/ - Remove estoque
 # GET /api/estoque/produtos/{id}/movimentacoes/ - Movimentações do produto
-# GET /api/estoque/produtos/{id}/alertas/ - Alertas do produto
 # GET /api/estoque/produtos/resumo_geral/ - Resumo geral do estoque
 # GET /api/estoque/produtos/produtos_reposicao/ - Produtos que precisam reposição
 
@@ -64,16 +61,6 @@ urlpatterns = [
 # GET /api/estoque/movimentacoes/{id}/ - Detalhes da movimentação
 # POST /api/estoque/movimentacoes/criar_movimentacao/ - Cria movimentação (alternativa)
 # GET /api/estoque/movimentacoes/relatorio_periodo/ - Relatório por período
-
-# === ALERTAS ===
-# GET /api/estoque/alertas/ - Lista alertas
-# GET /api/estoque/alertas/{id}/ - Detalhes do alerta
-# PUT /api/estoque/alertas/{id}/ - Atualiza alerta
-# POST /api/estoque/alertas/{id}/marcar_lido/ - Marca como lido
-# POST /api/estoque/alertas/{id}/resolver/ - Resolve alerta
-# POST /api/estoque/alertas/resolver_multiplos/ - Resolve múltiplos alertas
-# GET /api/estoque/alertas/resumo/ - Resumo dos alertas
-# GET /api/estoque/alertas/verificar_alertas_tempo_real/ - Verifica e cria alertas em tempo real
 
 # === WEBHOOKS SHOPIFY (MODO PERMISSIVO) ===
 # POST /api/estoque/webhook/order-created/ - Recebe pedidos do Shopify (público, CSRF exempt, MODO PERMISSIVO)

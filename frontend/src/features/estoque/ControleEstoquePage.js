@@ -77,8 +77,6 @@ function ControleEstoquePage() {
     
     // Estados de dados
     const [movimentacoes, setMovimentacoes] = useState([]);
-    const [alertas, setAlertas] = useState([]);
-    const [showAlertas, setShowAlertas] = useState(true);
     
     // Estados interface
     const [loading, setLoading] = useState(true);
@@ -177,91 +175,7 @@ function ControleEstoquePage() {
         }
     }, []);
 
-    const loadAlertas = useCallback(async () => {
-        try {
-            // Usar o novo endpoint que verifica alertas em tempo real - modo unificado
-            const response = await axios.get('/estoque/alertas/verificar_alertas_tempo_real/', {
-                headers: {
-                    'X-CSRFToken': getCSRFToken(),
-                    'Content-Type': 'application/json'
-                },
-                withCredentials: true
-            });
-            
-            if (response.data && response.data.alertas && Array.isArray(response.data.alertas)) {
-                const alertasAtivos = response.data.alertas;
-                const alertasCriados = response.data.alertas_criados_agora || [];
-                
-                // DEBUG: Log para investigar os alertas retornados
-                console.log('🔍 DEBUG Alertas - Total recebidos:', alertasAtivos.length);
-                console.log('🆕 Alertas criados agora:', alertasCriados.length);
-                
-                if (alertasCriados.length > 0) {
-                    console.log('🆕 Novos alertas criados:', alertasCriados);
-                    showNotification(
-                        `${alertasCriados.length} novo(s) alerta(s) de estoque detectado(s)!`, 
-                        'warning'
-                    );
-                }
-                
-                alertasAtivos.forEach((alerta, index) => {
-                    console.log(`🔍 Alerta ${index + 1}:`, {
-                        sku: alerta.produto_sku,
-                        tipo: alerta.tipo_alerta,
-                        estoque_atual: alerta.estoque_atual_produto,
-                        estoque_minimo: alerta.estoque_minimo_produto,
-                        status: alerta.status
-                    });
-                });
-                
-                console.log('✅ Alertas ativos finais:', alertasAtivos.length);
-                setAlertas(alertasAtivos);
-            } else {
-                console.error('Erro ao carregar alertas:', response.data?.erro || 'Resposta inválida');
-                setAlertas([]);
-            }
-        } catch (error) {
-            console.error('Erro ao carregar alertas:', error);
-
-            // Tratamento específico para erros de autenticação
-            if (error.response?.status === 401 || error.response?.status === 403) {
-                console.error('⚠️ Erro de autenticação ao carregar alertas');
-                showNotification('Erro de autenticação. Faça login novamente.', 'error');
-                setAlertas([]);
-                return;
-            }
-
-            // Fallback para o endpoint antigo caso o novo falhe
-            console.log('⚠️ Tentando fallback para endpoint antigo de alertas...');
-            try {
-                const fallbackResponse = await axios.get('/estoque/alertas/', {
-                    headers: {
-                        'X-CSRFToken': getCSRFToken(),
-                        'Content-Type': 'application/json'
-                    },
-                    withCredentials: true
-                });
-
-                if (fallbackResponse.data && Array.isArray(fallbackResponse.data)) {
-                    const alertasAtivos = fallbackResponse.data.filter(alerta => alerta.status === 'ativo');
-                    console.log('✅ Fallback - Alertas carregados:', alertasAtivos.length);
-                    setAlertas(alertasAtivos);
-                } else {
-                    setAlertas([]);
-                }
-            } catch (fallbackError) {
-                console.error('Erro no fallback dos alertas:', fallbackError);
-
-                // Tratamento específico para erro de autenticação no fallback
-                if (fallbackError.response?.status === 401 || fallbackError.response?.status === 403) {
-                    showNotification('Erro de autenticação. Faça login novamente.', 'error');
-                } else {
-                    showNotification('Erro ao carregar alertas de estoque', 'error');
-                }
-                setAlertas([]);
-            }
-        }
-    }, []);
+    // Função loadAlertas removida - sistema de alertas desabilitado
 
     useEffect(() => {
         loadLojas();
@@ -269,10 +183,9 @@ function ControleEstoquePage() {
 
     useEffect(() => {
         loadProdutos();
-        loadAlertas();
         // Limpar destaques no carregamento inicial
         clearAllHighlights();
-    }, [clearAllHighlights, loadProdutos, loadAlertas]);
+    }, [clearAllHighlights, loadProdutos]);
     
     // Sistema habilitado para receber atualizações em tempo real via WebSocket
     
@@ -337,7 +250,7 @@ function ControleEstoquePage() {
             }
             
             // Recarregar dados para manter sincronização
-            await Promise.all([loadProdutos(), loadAlertas()]);
+            await loadProdutos();
             
             // Feedback visual adicional
             const diferenca = data.estoque_atual - data.estoque_anterior;
@@ -354,7 +267,7 @@ function ControleEstoquePage() {
     
     const handleProductUpdate = async () => {
         try {
-            await Promise.all([loadProdutos(), loadAlertas()]);
+            await loadProdutos();
             showNotification('Produtos atualizados automaticamente', 'success');
         } catch (error) {
             console.error('Erro ao processar atualização de produtos:', error);
@@ -584,7 +497,6 @@ function ControleEstoquePage() {
                 setShowAddProdutoCompartilhado(false);
                 console.log('🔄 Atualizando listagem de produtos...');
                 await loadProdutos();
-                await loadAlertas();
                 console.log('✅ Listagem atualizada!');
             } else {
                 console.log('❌ Condição de sucesso não atendida:', {
@@ -770,7 +682,6 @@ function ControleEstoquePage() {
                 setSelectedProduto(null);
                 setEditingSkus([]);
                 await loadProdutos();
-                await loadAlertas();
             } else {
                 showNotification(response.data.error || 'Erro ao atualizar produto', 'error');
             }
@@ -838,9 +749,9 @@ function ControleEstoquePage() {
                 });
                 setShowAjusteEstoque(false);
                 setSelectedProduto(null);
-                
+
                 // Recarregar dados atualizados
-                await Promise.all([loadProdutos(), loadAlertas()]);
+                await loadProdutos();
             } else {
                 showNotification(response.data?.error || 'Erro ao ajustar estoque', 'error');
             }
@@ -904,7 +815,6 @@ function ControleEstoquePage() {
             if (response.status === 204) {
                 showNotification('Produto deletado com sucesso!');
                 await loadProdutos();
-                await loadAlertas();
             } else {
                 showNotification(response.data.error || 'Erro ao deletar produto', 'error');
             }
@@ -1464,80 +1374,7 @@ function ControleEstoquePage() {
             />
 
 
-            {/* Alertas de Estoque Baixo */}
-            {alertas && alertas.length > 0 && (
-                <Collapsible open={showAlertas} onOpenChange={setShowAlertas}>
-                    <Card className="bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800">
-                        <CollapsibleTrigger className="w-full">
-                            <CardHeader className="cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
-                                        <CardTitle className="text-red-700 dark:text-red-300">
-                                            Alertas de Estoque ({alertas.length})
-                                        </CardTitle>
-                                    </div>
-                                    {showAlertas ? <ChevronUp className="h-4 w-4 text-red-600" /> : <ChevronDown className="h-4 w-4 text-red-600" />}
-                                </div>
-                                <CardDescription className="text-red-600 dark:text-red-400 text-left">
-                                    Produtos com estoque baixo ou zerado
-                                </CardDescription>
-                            </CardHeader>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                            <CardContent className="pt-0">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                    {alertas.map((alerta, index) => {
-                                        // Normalizar dados do alerta para compatibilidade com getStatusEstoque
-                                        const alertaNormalizado = {
-                                            ...alerta,
-                                            id: alerta.produto, // O ID do produto para ajustes
-                                            estoque_atual: alerta.estoque_atual_produto || 0,
-                                            estoque_minimo: alerta.estoque_minimo_produto || 
-                                                           alerta.produto?.estoque_minimo || 
-                                                           alerta.estoque_minimo || 0,
-                                            nome: alerta.produto_nome || 'Produto sem nome',
-                                            sku: alerta.produto_sku || 'N/A'
-                                        };
-                                        
-                                        const statusInfo = getStatusEstoque(alertaNormalizado);
-                                        
-                                        
-                                        return (
-                                            <div key={`alerta-${alerta.id || index}`} 
-                                                 className="p-3 bg-white dark:bg-red-950/10 rounded border border-red-200 dark:border-red-800">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <span className="font-medium text-sm text-foreground">
-                                                        {alertaNormalizado.nome}
-                                                    </span>
-                                                    <Badge variant={statusInfo.variant} className="text-xs">
-                                                        {statusInfo.status}
-                                                    </Badge>
-                                                </div>
-                                                <div className="text-xs text-muted-foreground space-y-1">
-                                                    <p>SKU: {alertaNormalizado.sku}</p>
-                                                    <p>Atual: {alertaNormalizado.estoque_atual} | Mínimo: {alertaNormalizado.estoque_minimo}</p>
-                                                </div>
-                                                <div className="flex gap-1 mt-2">
-                                                    <Button 
-                                                        size="sm" 
-                                                        variant="outline"
-                                                        onClick={() => openAjusteEstoque(alertaNormalizado)}
-                                                        className="text-xs h-6"
-                                                    >
-                                                        <TrendingUp className="h-3 w-3 mr-1" />
-                                                        Ajustar
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </CardContent>
-                        </CollapsibleContent>
-                    </Card>
-                </Collapsible>
-            )}
+            {/* Sistema de alertas removido - status visível diretamente na tabela de produtos */}
 
             {/* Área Principal - Produtos */}
             <Card className="bg-card border-border">

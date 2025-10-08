@@ -5,7 +5,7 @@ from django.utils import timezone
 from typing import Dict, Any, List, Optional, Tuple
 from decimal import Decimal
 
-from ..models import ProdutoEstoque, MovimentacaoEstoque, AlertaEstoque
+from ..models import ProdutoEstoque, MovimentacaoEstoque
 
 logger = logging.getLogger(__name__)
 
@@ -417,9 +417,7 @@ class EstoqueService:
                 )
                 estoque_posterior = produto.estoque_compartilhado
 
-            # Verificar alertas automaticamente após cancelamento
-            safe_print(f"[CANCELAMENTO PROCESSOR] Verificando alertas após cancelamento...")
-            produto._check_and_resolve_alerts_after_adjustment()
+            # Sistema de alertas removido
 
             safe_print(f"[CANCELAMENTO PROCESSOR] OK Estoque adicionado com sucesso!")
             safe_print(f"[CANCELAMENTO PROCESSOR] Estoque anterior: {estoque_anterior}")
@@ -624,15 +622,8 @@ class EstoqueService:
                 )
                 estoque_posterior = produto.estoque_atual
 
-                # Verificar alertas para produto individual
-                produto._check_and_resolve_alerts_after_adjustment()
-
-                # Buscar alertas recentes para produto individual
-                from features.estoque.models import AlertaEstoque
-                alertas_recentes = AlertaEstoque.objects.filter(
-                    produto=produto,
-                    data_criacao__gte=timezone.now().replace(second=0, microsecond=0)
-                )
+                # Sistema de alertas removido
+                pass
 
             else:  # tipo_produto == "compartilhado"
                 # Para produtos compartilhados (Produto)
@@ -643,15 +634,8 @@ class EstoqueService:
                 )
                 estoque_posterior = produto.estoque_compartilhado
 
-                # Verificar alertas para produto compartilhado
-                produto._check_and_resolve_alerts_after_adjustment()
-
-                # Buscar alertas recentes para produto compartilhado
-                from features.estoque.models import AlertaEstoqueCompartilhado
-                alertas_recentes = AlertaEstoqueCompartilhado.objects.filter(
-                    produto=produto,
-                    data_criacao__gte=timezone.now().replace(second=0, microsecond=0)
-                )
+                # Sistema de alertas removido
+                pass
 
             safe_print(f"[ITEM PROCESSOR] OK Estoque removido com sucesso!")
             safe_print(f"[ITEM PROCESSOR] Estoque anterior: {estoque_anterior}")
@@ -666,13 +650,7 @@ class EstoqueService:
                 'estoque_posterior': estoque_posterior
             })
 
-            # Verificar se foram gerados alertas
-            for alerta in alertas_recentes:
-                item_result['alertas_gerados'].append({
-                    'tipo': alerta.tipo_alerta,
-                    'titulo': alerta.titulo,
-                    'prioridade': alerta.prioridade
-                })
+            # Sistema de alertas removido - não há mais alertas_recentes para processar
 
             logger.info(f"Estoque decrementado ({tipo_produto}): SKU {sku}, Quantidade: {quantity}, Estoque: {estoque_anterior} → {estoque_posterior}")
             
@@ -722,59 +700,7 @@ class EstoqueService:
             logger.error(f"Erro ao criar movimentação de venda: {str(e)}")
             raise
     
-    @staticmethod
-    def verificar_alertas_pos_venda(produto: ProdutoEstoque) -> List[AlertaEstoque]:
-        """
-        Verifica e cria alertas necessários após uma venda
-        
-        Args:
-            produto: Produto que teve estoque alterado
-            
-        Returns:
-            Lista de alertas criados
-        """
-        alertas_criados = []
-        
-        try:
-            # Verificar estoque zerado
-            if produto.estoque_atual == 0 and produto.alerta_estoque_zero:
-                alerta = AlertaEstoque.gerar_alerta_estoque_zero(produto)
-                if alerta:
-                    alertas_criados.append(alerta)
-            
-            # Verificar estoque baixo
-            elif produto.estoque_baixo and produto.alerta_estoque_baixo:
-                alerta = AlertaEstoque.gerar_alerta_estoque_baixo(produto)
-                if alerta:
-                    alertas_criados.append(alerta)
-            
-            # Verificar estoque negativo (situação crítica)
-            if produto.estoque_atual < 0:
-                alerta = AlertaEstoque.objects.create(
-                    produto=produto,
-                    usuario_responsavel=produto.user,
-                    tipo_alerta='estoque_negativo',
-                    prioridade='critica',
-                    titulo=f"CRÍTICO: Estoque negativo - {produto.sku}",
-                    descricao=f"O produto {produto.nome} está com estoque NEGATIVO: {produto.estoque_atual}. "
-                             f"Isso indica um problema no controle de estoque que precisa ser resolvido imediatamente.",
-                    valor_atual=produto.estoque_atual,
-                    valor_limite=0,
-                    acao_sugerida="URGENTE: Verificar movimentações recentes e corrigir estoque manualmente.",
-                    dados_contexto={
-                        'sku': produto.sku,
-                        'nome_produto': produto.nome,
-                        'loja': produto.loja_config.nome_loja,
-                        'situacao': 'estoque_negativo_critico'
-                    }
-                )
-                alertas_criados.append(alerta)
-            
-            return alertas_criados
-            
-        except Exception as e:
-            logger.error(f"Erro ao verificar alertas pós-venda: {str(e)}")
-            return alertas_criados
+    # Método removido: Sistema de alertas foi desativado
     
     @staticmethod
     def obter_estatisticas_processamento(loja_config, data_inicio=None, data_fim=None) -> Dict[str, Any]:
