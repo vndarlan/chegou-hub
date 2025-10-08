@@ -5,6 +5,23 @@ Todas as mudanças deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [v1.5.1] - 08/10/2025
+
+### 🐛 Correções
+
+- **[📦 Estoque]** Corrigido erro ao criar produtos compartilhados
+- **[📦 Estoque]** Corrigido erro ao carregar lista de produtos unificados
+- **[Sistema]** Corrigidos problemas de autenticação entre domínios
+
+### 🗑️ Remoções
+
+- **[📦 Estoque]** Sistema de alertas automáticos removido (informação já visível na tabela de produtos)
+
+### 🔧 Melhorias
+
+- **[📦 Estoque]** Página mais rápida e limpa após otimizações
+- **[Performance]** Sistema de estoque otimizado
+
 ## [v1.5.0] - 06/10/2025
 
 ### ✨ Novidades
