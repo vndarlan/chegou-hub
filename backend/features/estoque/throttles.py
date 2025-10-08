@@ -11,23 +11,9 @@ logger = logging.getLogger(__name__)
 class EstoqueUserRateThrottle(UserRateThrottle):
     """
     Throttling para usuários autenticados nas operações de estoque
+    Rate: 200 requests/hour (configurado em settings.py)
     """
     scope = 'estoque_user'
-    
-    def get_cache_key(self, request, view):
-        """
-        Criar chave única para cache considerando usuário
-        """
-        if request.user.is_authenticated:
-            ident = request.user.pk
-        else:
-            ident = self.get_ident(request)
-
-        # Usar apenas placeholders do cache_format padrão do DRF
-        return self.cache_format % {
-            'scope': self.scope,
-            'ident': ident
-        }
 
 
 class EstoqueWebhookRateThrottle(AnonRateThrottle):
@@ -87,16 +73,6 @@ class EstoqueAPIRateThrottle(UserRateThrottle):
 class EstoqueBulkOperationThrottle(UserRateThrottle):
     """
     Throttling para operações em lote que podem ser pesadas
+    Rate: 10 requests/hour (configurado em settings.py)
     """
     scope = 'estoque_bulk'
-    
-    def get_cache_key(self, request, view):
-        """
-        Chave específica para operações em lote
-        """
-        if request.user.is_authenticated:
-            ident = request.user.pk
-        else:
-            ident = self.get_ident(request)
-        
-        return f"estoque_bulk:{ident}:{view.action}"
