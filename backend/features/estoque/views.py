@@ -471,10 +471,25 @@ class MovimentacaoEstoqueViewSet(viewsets.ModelViewSet):
 
 class ProdutoViewSet(viewsets.ModelViewSet):
     """ViewSet para gerenciar produtos compartilhados com múltiplos SKUs"""
-    
+
     serializer_class = ProdutoSerializer
     permission_classes = [IsAuthenticated]
-    
+
+    def check_permissions(self, request):
+        """Override para debug de permissões"""
+        logger.info(f"=== CHECK PERMISSIONS (ProdutoViewSet) ===")
+        logger.info(f"User: {request.user}")
+        logger.info(f"Is authenticated: {request.user.is_authenticated}")
+        logger.info(f"Permission classes: {self.permission_classes}")
+        logger.info(f"Action: {self.action}")
+        logger.info(f"Method: {request.method}")
+        logger.info(f"Has sessionid cookie: {'sessionid' in request.COOKIES}")
+        logger.info(f"Has csrftoken cookie: {'csrftoken' in request.COOKIES}")
+        logger.info(f"CSRF token header: {request.META.get('HTTP_X_CSRFTOKEN', 'NONE')}")
+
+        # Chamar verificação normal
+        return super().check_permissions(request)
+
     def get_serializer_class(self):
         """Usar serializer resumido para listagem"""
         if self.action == 'list':
