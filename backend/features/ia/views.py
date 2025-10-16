@@ -1753,7 +1753,7 @@ def nicochat_testar_conexao(request):
     try:
         from .nicochat_service import NicochatAPIService
 
-        service = NicochatAPIService()
+        service = NicochatAPIService(api_key)
         sucesso, mensagem = service.testar_conexao(api_key)
 
         if sucesso:

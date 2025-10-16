@@ -1619,9 +1619,14 @@ class NicochatConfigSerializer(serializers.ModelSerializer):
         return html.escape(value.strip())
 
     def validate_api_key(self, value):
-        """Validar API key"""
-        if not value or not value.strip():
-            raise serializers.ValidationError("API Key é obrigatória")
+        """Validar API key - APENAS se fornecida"""
+        # Se não foi fornecida, permitir (para updates parciais como toggle ativo)
+        if not value:
+            return value
+
+        # Se foi fornecida, validar
+        if not value.strip():
+            raise serializers.ValidationError("API Key não pode ser vazia")
 
         if len(value.strip()) < 10:
             raise serializers.ValidationError("API Key muito curta - verifique se está completa")
@@ -1632,12 +1637,17 @@ class NicochatConfigSerializer(serializers.ModelSerializer):
         """Criar configuração com criptografia da API key"""
         api_key = validated_data.pop('api_key', None)
 
-        if api_key:
-            try:
-                from .nicochat_service import encrypt_api_key
-                validated_data['api_key_encrypted'] = encrypt_api_key(api_key)
-            except ImportError as e:
-                raise serializers.ValidationError(f"Erro na configuração de segurança: {str(e)}")
+        # Na criação, API key é obrigatória
+        if not api_key:
+            raise serializers.ValidationError({
+                'api_key': 'API Key é obrigatória ao criar uma nova configuração'
+            })
+
+        try:
+            from .nicochat_service import encrypt_api_key
+            validated_data['api_key_encrypted'] = encrypt_api_key(api_key)
+        except ImportError as e:
+            raise serializers.ValidationError(f"Erro na configuração de segurança: {str(e)}")
 
         return super().create(validated_data)
 
@@ -1645,11 +1655,15 @@ class NicochatConfigSerializer(serializers.ModelSerializer):
         """Atualizar configuração com recriptografia se API key mudou"""
         api_key = validated_data.pop('api_key', None)
 
+        # Apenas re-criptografar se uma nova API key foi fornecida
         if api_key:
             try:
                 from .nicochat_service import encrypt_api_key
                 validated_data['api_key_encrypted'] = encrypt_api_key(api_key)
             except ImportError as e:
                 raise serializers.ValidationError(f"Erro na configuração de segurança: {str(e)}")
+
+        # Se não foi fornecida nova API key, manter a existente (não modificar)
+        # Isso permite updates parciais como toggle de 'ativo' sem exigir api_key
 
         return super().update(instance, validated_data)
