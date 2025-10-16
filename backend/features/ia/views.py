@@ -1597,8 +1597,8 @@ def nicochat_subflows(request):
         - flow_id: ID do fluxo (obrigatório)
         - config_id: ID da configuração NicoChat a usar (obrigatório)
     """
-    flow_id = request.query_params.get('flow_id')
-    config_id = request.query_params.get('config_id')
+    flow_id = request.GET.get('flow_id')
+    config_id = request.GET.get('config_id')
 
     if not flow_id:
         return Response(
@@ -1670,8 +1670,8 @@ def nicochat_user_fields(request):
         - flow_id: ID do fluxo (obrigatório)
         - config_id: ID da configuração NicoChat a usar (obrigatório)
     """
-    flow_id = request.query_params.get('flow_id')
-    config_id = request.query_params.get('config_id')
+    flow_id = request.GET.get('flow_id')
+    config_id = request.GET.get('config_id')
 
     if not flow_id:
         return Response(
