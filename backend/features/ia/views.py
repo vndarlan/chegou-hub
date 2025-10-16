@@ -1631,7 +1631,7 @@ def nicochat_subflows(request):
         api_key = decrypt_api_key(config.api_key_encrypted)
         service = NicochatAPIService(api_key)
 
-        sucesso, subfluxos = service.get_flow_subflows(flow_id)
+        sucesso, subfluxos = service.get_flow_subflows(flow_id, api_key)
 
         if sucesso:
             return Response({
@@ -1704,7 +1704,7 @@ def nicochat_user_fields(request):
         api_key = decrypt_api_key(config.api_key_encrypted)
         service = NicochatAPIService(api_key)
 
-        sucesso, campos = service.get_flow_user_fields(flow_id)
+        sucesso, campos = service.get_flow_user_fields(flow_id, api_key)
 
         if sucesso:
             return Response({
