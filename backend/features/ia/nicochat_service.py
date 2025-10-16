@@ -83,7 +83,7 @@ class NicochatAPIService:
     Fornece métodos para buscar dados dos fluxos
     """
 
-    BASE_URL = "https://api.nicochat.io/v1"
+    BASE_URL = "https://app.nicochat.com.br/api"
 
     def __init__(self, api_key: Optional[str] = None):
         """
@@ -276,13 +276,13 @@ class NicochatAPIService:
         Returns:
             Tupla (sucesso: bool, mensagem: str)
         """
-        # Tentar buscar informações da conta
-        endpoint = "/account/info"
+        # Tentar buscar informações da equipe (team-info é um endpoint público)
+        endpoint = "/team-info"
         sucesso, resposta = self._make_request(endpoint, api_key)
 
         if sucesso:
-            account_name = resposta.get('data', {}).get('name', 'Conta NicoChat')
-            return True, f"Conexão bem-sucedida! Conta: {account_name}"
+            team_name = resposta.get('data', {}).get('name', 'Conta NicoChat')
+            return True, f"Conexão bem-sucedida! Equipe: {team_name}"
 
         error_message = resposta.get('message', resposta.get('error', 'Erro desconhecido'))
         return False, f"Falha na conexão: {error_message}"
