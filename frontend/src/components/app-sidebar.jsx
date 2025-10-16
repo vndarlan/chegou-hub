@@ -130,8 +130,8 @@ export function AppSidebar({
         },
         {
           title: "Nicochat",
-          url: "/workspace/nicochat",
-          isActive: location.pathname === "/workspace/nicochat",
+          url: "/workspace/nicochat/dashboard",
+          isActive: location.pathname.includes("/workspace/nicochat"),
         },
         {
           title: "OpenAI Analytics",
