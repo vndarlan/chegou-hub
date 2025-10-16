@@ -22,11 +22,6 @@ import AgendaPage from '../features/agenda/AgendaPage';
 import MapaPage from '../features/mapa/MapaPage';
 import ProjetoDashboard from '../features/ia/ProjetoDashboard';
 import LogsPage from '../features/ia/LogsPage';
-import NicochatLayout from '../features/ia/NicochatLayout';
-import NicochatDashboard from '../features/ia/NicochatDashboard';
-import NicochatConfigPage from '../features/ia/NicochatConfigPage';
-import NicochatFluxosPage from '../features/ia/NicochatFluxosPage';
-import NicochatTemplatesPage from '../features/ia/NicochatTemplatesPage';
 import OpenAIAnalytics from '../features/ia/OpenAIAnalytics';
 import PrimecodPage from '../features/metricas/PrimecodPage';
 import EcomhubPage from '../features/metricas/EcomhubPage';
@@ -48,10 +43,6 @@ const breadcrumbMap = {
   '/workspace/mapa': [{ label: 'HOME', href: '#' }, { label: 'Mapa de Atuação' }],
   '/workspace/projetos': [{ label: 'IA & Automações', href: '#' }, { label: 'Projetos' }],
   '/workspace/logs': [{ label: 'IA & Automações', href: '#' }, { label: 'Logs de Erros' }],
-  '/workspace/nicochat/dashboard': [{ label: 'Nicochat', href: '#' }, { label: 'Dashboard' }],
-  '/workspace/nicochat/configuracoes': [{ label: 'Nicochat', href: '#' }, { label: 'Configurações' }],
-  '/workspace/nicochat/fluxos': [{ label: 'Nicochat', href: '#' }, { label: 'Fluxos' }],
-  '/workspace/nicochat/templates': [{ label: 'Nicochat', href: '#' }, { label: 'Templates' }],
   '/workspace/openai-analytics': [{ label: 'IA & Automações', href: '#' }, { label: 'OpenAI Analytics' }],
   '/workspace/metricas/primecod': [{ label: 'Efetividade', href: '#' }, { label: 'PRIMECOD' }],
   '/workspace/metricas/ecomhub': [{ label: 'Efetividade', href: '#' }, { label: 'ECOMHUB' }],
@@ -161,16 +152,6 @@ function WorkspacePage({ setIsLoggedIn }) {
               <Route path="mapa" element={<MapaPage />} />
               <Route path="projetos" element={<ProjetoDashboard />} />
               <Route path="logs" element={<LogsPage />} />
-
-              {/* Rotas aninhadas do Nicochat */}
-              <Route path="nicochat/*" element={<NicochatLayout isAdmin={userData?.isAdmin} />}>
-                <Route index element={<Navigate to="dashboard" replace />} />
-                <Route path="dashboard" element={<NicochatDashboard />} />
-                <Route path="configuracoes" element={<NicochatConfigPage />} />
-                <Route path="fluxos" element={<NicochatFluxosPage />} />
-                <Route path="templates" element={<NicochatTemplatesPage />} />
-              </Route>
-
               <Route path="openai-analytics" element={<OpenAIAnalytics />} />
               <Route path="metricas/primecod" element={<PrimecodPage />} />
               <Route path="metricas/ecomhub" element={<EcomhubPage />} />

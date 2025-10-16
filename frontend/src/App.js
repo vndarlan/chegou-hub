@@ -19,6 +19,7 @@ import CSRFManager from './components/CSRFManager';
 import LoginPage from './pages/LoginPage';
 import WorkspacePage from './pages/WorkspacePage';
 import TutoriaisPage from './pages/TutoriaisPage';
+import NicochatPage from './pages/NicochatPage';
 
 
 function App() {
@@ -74,6 +75,11 @@ function App() {
             <Route
               path="/tutoriais"
               element={<TutoriaisPage />}
+            />
+            {/* Rota independente do Nicochat */}
+            <Route
+              path="/nicochat/*"
+              element={isLoggedIn ? <NicochatPage /> : <Navigate to="/login" replace />}
             />
             <Route
               path="/login"
