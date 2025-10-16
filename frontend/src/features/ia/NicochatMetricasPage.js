@@ -74,7 +74,7 @@ export default function NicochatMetricasPage() {
       setConfigs(configsList);
 
       // Selecionar a primeira config ativa automaticamente
-      const activeConfig = configsList.find(c => c.ativa);
+      const activeConfig = configsList.find(c => c.ativo);
       if (activeConfig) {
         setSelectedConfig(activeConfig.id);
       }
@@ -215,7 +215,7 @@ export default function NicochatMetricasPage() {
               <SelectContent>
                 {configs.map((config) => (
                   <SelectItem key={config.id} value={config.id.toString()}>
-                    {config.nome} {config.ativa ? '(Ativa)' : ''}
+                    {config.nome} {config.ativo ? '(Ativa)' : ''}
                   </SelectItem>
                 ))}
               </SelectContent>

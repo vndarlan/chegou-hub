@@ -124,7 +124,7 @@ export default function NicochatConfigPage() {
     try {
       await axios.put(
         `/ia/nicochat-configs/${configId}/`,
-        { ativa: !currentStatus },
+        { ativo: !currentStatus },
         { headers: { 'X-CSRFToken': getCSRFToken() } }
       );
 
@@ -322,7 +322,7 @@ export default function NicochatConfigPage() {
                       <TableRow key={config.id}>
                         <TableCell className="font-medium">{config.nome}</TableCell>
                         <TableCell>
-                          {config.ativa ? (
+                          {config.ativo ? (
                             <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
                               <Check className="mr-1 h-3 w-3" />
                               Ativa
@@ -342,7 +342,7 @@ export default function NicochatConfigPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleToggleActive(config.id, config.ativa)}
+                              onClick={() => handleToggleActive(config.id, config.ativo)}
                             >
                               <Power className="h-4 w-4" />
                             </Button>
