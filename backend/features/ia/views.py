@@ -20,7 +20,9 @@ from .models import (
     # WhatsApp Business models
     BusinessManager, WhatsAppPhoneNumber, QualityHistory, QualityAlert,
     QualityRatingChoices, MessagingLimitTierChoices, PhoneNumberStatusChoices,
-    AlertTypeChoices, AlertPriorityChoices
+    AlertTypeChoices, AlertPriorityChoices,
+    # NicoChat models
+    NicochatConfig
 )
 from .serializers import (
     LogEntrySerializer, CriarLogSerializer, MarcarResolvidoSerializer,
@@ -28,9 +30,11 @@ from .serializers import (
     VersaoProjetoSerializer, NovaVersaoSerializer, DashboardStatsSerializer,
     FiltrosProjetosSerializer,
     # WhatsApp Business serializers
-    WhatsAppBusinessAccountSerializer, WhatsAppPhoneNumberSerializer, 
+    WhatsAppBusinessAccountSerializer, WhatsAppPhoneNumberSerializer,
     WhatsAppPhoneNumberCreateSerializer, QualityHistorySerializer, QualityAlertSerializer,
-    MarcarAlertaResolvidoSerializer, SincronizarMetaAPISerializer
+    MarcarAlertaResolvidoSerializer, SincronizarMetaAPISerializer,
+    # NicoChat serializers
+    NicochatConfigSerializer
 )
 
 # Importar serviço e auditoria
@@ -1555,6 +1559,220 @@ def apply_migrations_temp(request):
             'success': False,
             'error': f'ERRO ao aplicar migrations: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ===== VIEWS PARA NICOCHAT =====
+
+class NicochatConfigViewSet(viewsets.ModelViewSet):
+    """ViewSet para CRUD de Configurações NicoChat"""
+
+    queryset = NicochatConfig.objects.all()
+    serializer_class = NicochatConfigSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Filtrar por permissões do usuário"""
+        queryset = NicochatConfig.objects.all()
+
+        # Superuser e grupos especiais veem tudo
+        if not (self.request.user.is_superuser or
+                self.request.user.groups.filter(name__in=['Diretoria', 'Gestão', 'IA & Automações']).exists()):
+            # Usuários normais veem apenas suas configs
+            queryset = queryset.filter(usuario=self.request.user)
+
+        return queryset.order_by('-criado_em')
+
+    def perform_create(self, serializer):
+        """Definir usuário ao criar"""
+        serializer.save(usuario=self.request.user)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def nicochat_subflows(request):
+    """
+    Busca subfluxos de um fluxo específico do NicoChat
+
+    Query params:
+        - flow_id: ID do fluxo (obrigatório)
+        - config_id: ID da configuração NicoChat a usar (obrigatório)
+    """
+    flow_id = request.query_params.get('flow_id')
+    config_id = request.query_params.get('config_id')
+
+    if not flow_id:
+        return Response(
+            {'error': 'flow_id é obrigatório'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if not config_id:
+        return Response(
+            {'error': 'config_id é obrigatório'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        # Buscar configuração
+        config = NicochatConfig.objects.get(id=config_id, ativo=True)
+
+        # Verificar permissão
+        if not (request.user.is_superuser or
+                request.user.groups.filter(name__in=['Diretoria', 'Gestão', 'IA & Automações']).exists() or
+                config.usuario == request.user):
+            return Response(
+                {'error': 'Sem permissão para usar esta configuração'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Descriptografar API key e fazer request
+        from .nicochat_service import NicochatAPIService, decrypt_api_key
+
+        api_key = decrypt_api_key(config.api_key_encrypted)
+        service = NicochatAPIService(api_key)
+
+        sucesso, subfluxos = service.get_flow_subflows(flow_id)
+
+        if sucesso:
+            return Response({
+                'success': True,
+                'flow_id': flow_id,
+                'subfluxos': subfluxos,
+                'total': len(subfluxos)
+            })
+        else:
+            return Response({
+                'success': False,
+                'error': 'Erro ao buscar subfluxos',
+                'detalhes': subfluxos
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    except NicochatConfig.DoesNotExist:
+        return Response(
+            {'error': 'Configuração NicoChat não encontrada ou inativa'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"Erro ao buscar subfluxos NicoChat: {e}")
+        return Response(
+            {'error': f'Erro interno: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def nicochat_user_fields(request):
+    """
+    Busca campos customizados de um fluxo do NicoChat
+
+    Query params:
+        - flow_id: ID do fluxo (obrigatório)
+        - config_id: ID da configuração NicoChat a usar (obrigatório)
+    """
+    flow_id = request.query_params.get('flow_id')
+    config_id = request.query_params.get('config_id')
+
+    if not flow_id:
+        return Response(
+            {'error': 'flow_id é obrigatório'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if not config_id:
+        return Response(
+            {'error': 'config_id é obrigatório'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        # Buscar configuração
+        config = NicochatConfig.objects.get(id=config_id, ativo=True)
+
+        # Verificar permissão
+        if not (request.user.is_superuser or
+                request.user.groups.filter(name__in=['Diretoria', 'Gestão', 'IA & Automações']).exists() or
+                config.usuario == request.user):
+            return Response(
+                {'error': 'Sem permissão para usar esta configuração'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Descriptografar API key e fazer request
+        from .nicochat_service import NicochatAPIService, decrypt_api_key
+
+        api_key = decrypt_api_key(config.api_key_encrypted)
+        service = NicochatAPIService(api_key)
+
+        sucesso, campos = service.get_flow_user_fields(flow_id)
+
+        if sucesso:
+            return Response({
+                'success': True,
+                'flow_id': flow_id,
+                'campos': campos,
+                'total': len(campos)
+            })
+        else:
+            return Response({
+                'success': False,
+                'error': 'Erro ao buscar campos customizados',
+                'detalhes': campos
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    except NicochatConfig.DoesNotExist:
+        return Response(
+            {'error': 'Configuração NicoChat não encontrada ou inativa'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"Erro ao buscar campos NicoChat: {e}")
+        return Response(
+            {'error': f'Erro interno: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def nicochat_testar_conexao(request):
+    """
+    Testa conexão com a API do NicoChat
+
+    Body:
+        - api_key: API key a testar (obrigatória)
+    """
+    api_key = request.data.get('api_key')
+
+    if not api_key:
+        return Response(
+            {'error': 'api_key é obrigatória'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        from .nicochat_service import NicochatAPIService
+
+        service = NicochatAPIService()
+        sucesso, mensagem = service.testar_conexao(api_key)
+
+        if sucesso:
+            return Response({
+                'success': True,
+                'message': mensagem
+            })
+        else:
+            return Response({
+                'success': False,
+                'message': mensagem
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        logger.error(f"Erro ao testar conexão NicoChat: {e}")
+        return Response(
+            {'error': f'Erro interno: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @api_view(['GET'])

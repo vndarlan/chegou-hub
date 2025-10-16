@@ -13,6 +13,9 @@ router.register(r'whatsapp-numeros', views.WhatsAppPhoneNumberViewSet, basename=
 router.register(r'quality-history', views.QualityHistoryViewSet, basename='quality-history')
 router.register(r'quality-alerts', views.QualityAlertViewSet, basename='quality-alert')
 
+# NicoChat routers
+router.register(r'nicochat-configs', views.NicochatConfigViewSet, basename='nicochat-config')
+
 urlpatterns = [
     path('', include(router.urls)),
     
@@ -30,7 +33,12 @@ urlpatterns = [
     path('dashboard-whatsapp-stats/', views.dashboard_whatsapp_stats, name='dashboard-whatsapp-stats'),
     path('verificar-mudancas-qualidade/', views.verificar_mudancas_qualidade, name='verificar-mudancas-qualidade'),
     path('verificar-saude-criptografia/', views.verificar_saude_criptografia, name='verificar-saude-criptografia'),
-    
+
+    # === ENDPOINTS DE NICOCHAT ===
+    path('nicochat/subflows/', views.nicochat_subflows, name='nicochat-subflows'),
+    path('nicochat/user-fields/', views.nicochat_user_fields, name='nicochat-user-fields'),
+    path('nicochat/testar-conexao/', views.nicochat_testar_conexao, name='nicochat-testar-conexao'),
+
     # === ENDPOINTS TEMPORÁRIOS - REMOVER APÓS USO ===
     path('fix-whatsapp-tokens-temp/', views.fix_whatsapp_tokens_temp, name='fix-whatsapp-tokens-temp'),
     path('apply-migrations-temp/', views.apply_migrations_temp, name='apply-migrations-temp'),

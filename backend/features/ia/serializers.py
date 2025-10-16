@@ -11,7 +11,9 @@ from .models import (
     # WhatsApp Business models
     WhatsAppBusinessAccount, BusinessManager, WhatsAppPhoneNumber, QualityHistory, QualityAlert,
     QualityRatingChoices, MessagingLimitTierChoices, PhoneNumberStatusChoices,
-    AlertTypeChoices, AlertPriorityChoices
+    AlertTypeChoices, AlertPriorityChoices,
+    # NicoChat models
+    NicochatConfig
 )
 
 # Configurar logger
@@ -1572,3 +1574,82 @@ class SincronizarMetaAPISerializer(serializers.Serializer):
         if data.get('business_manager_id') and not data.get('whatsapp_business_account_id'):
             data['whatsapp_business_account_id'] = data['business_manager_id']
         return data
+
+
+# ===== SERIALIZERS PARA NICOCHAT =====
+
+class NicochatConfigSerializer(serializers.ModelSerializer):
+    """Serializer para Configurações NicoChat - SEGURO"""
+
+    # Campo write-only para receber API key não criptografada
+    api_key = serializers.CharField(
+        write_only=True,
+        required=False,
+        help_text="API Key do NicoChat em texto plano (apenas para criação/atualização)"
+    )
+
+    # Informações do usuário (read-only)
+    usuario_nome = serializers.CharField(
+        source='usuario.get_full_name',
+        read_only=True
+    )
+
+    class Meta:
+        model = NicochatConfig
+        fields = [
+            'id', 'nome', 'api_key', 'api_key_encrypted',
+            'usuario', 'usuario_nome', 'ativo',
+            'criado_em', 'atualizado_em'
+        ]
+        read_only_fields = ['id', 'usuario', 'usuario_nome', 'criado_em', 'atualizado_em']
+        extra_kwargs = {
+            # API key criptografada nunca deve ser retornada
+            'api_key_encrypted': {'write_only': True, 'required': False}
+        }
+
+    def validate_nome(self, value):
+        """Validar nome da configuração"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Nome é obrigatório")
+        if len(value.strip()) < 3:
+            raise serializers.ValidationError("Nome deve ter pelo menos 3 caracteres")
+
+        # Sanitizar HTML
+        import html
+        return html.escape(value.strip())
+
+    def validate_api_key(self, value):
+        """Validar API key"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("API Key é obrigatória")
+
+        if len(value.strip()) < 10:
+            raise serializers.ValidationError("API Key muito curta - verifique se está completa")
+
+        return value.strip()
+
+    def create(self, validated_data):
+        """Criar configuração com criptografia da API key"""
+        api_key = validated_data.pop('api_key', None)
+
+        if api_key:
+            try:
+                from .nicochat_service import encrypt_api_key
+                validated_data['api_key_encrypted'] = encrypt_api_key(api_key)
+            except ImportError as e:
+                raise serializers.ValidationError(f"Erro na configuração de segurança: {str(e)}")
+
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        """Atualizar configuração com recriptografia se API key mudou"""
+        api_key = validated_data.pop('api_key', None)
+
+        if api_key:
+            try:
+                from .nicochat_service import encrypt_api_key
+                validated_data['api_key_encrypted'] = encrypt_api_key(api_key)
+            except ImportError as e:
+                raise serializers.ValidationError(f"Erro na configuração de segurança: {str(e)}")
+
+        return super().update(instance, validated_data)

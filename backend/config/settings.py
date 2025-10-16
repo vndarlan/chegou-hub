@@ -26,6 +26,11 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'local-dev-insecure-fallback-key')
 # Chave de criptografia para WhatsApp Business API
 WHATSAPP_ENCRYPTION_KEY = os.getenv('WHATSAPP_ENCRYPTION_KEY')
 
+# Chave de criptografia para NicoChat API
+NICOCHAT_ENCRYPTION_KEY = os.getenv('NICOCHAT_ENCRYPTION_KEY', '7Dfkjjc4Jc27vwl2Zfd1EhvyTo1YG0H5dmlkOZL39kM=')
+if not NICOCHAT_ENCRYPTION_KEY:
+    print("AVISO CRÍTICO: NICOCHAT_ENCRYPTION_KEY não está configurada!")
+
 # --- DEBUG ---
 DEBUG_ENV_VAR = os.getenv('DEBUG', 'True' if not IS_RAILWAY_DEPLOYMENT else 'False')
 DEBUG = DEBUG_ENV_VAR.lower() == 'true'

@@ -1246,3 +1246,54 @@ class QualityAlert(models.Model):
         status_icon = "✅" if self.resolvido else ("👀" if self.visualizado else "🆕")
         
         return f"{priority_icon}{status_icon} {self.titulo} - {self.phone_number.display_phone_number}"
+
+
+# ===== MODELO PARA CONFIGURAÇÕES NICOCHAT =====
+
+class NicochatConfig(models.Model):
+    """Configurações do NicoChat para integração com fluxos"""
+
+    nome = models.CharField(
+        max_length=200,
+        verbose_name="Nome da Configuração",
+        help_text="Nome identificador desta configuração NicoChat"
+    )
+    api_key_encrypted = models.TextField(
+        verbose_name="API Key Criptografada",
+        help_text="API Key do NicoChat armazenada de forma segura"
+    )
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='nicochat_configs',
+        verbose_name="Usuário",
+        help_text="Usuário responsável por esta configuração"
+    )
+    ativo = models.BooleanField(
+        default=True,
+        verbose_name="Ativo",
+        help_text="Se esta configuração está ativa"
+    )
+
+    # Metadados
+    criado_em = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Criado em"
+    )
+    atualizado_em = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Atualizado em"
+    )
+
+    class Meta:
+        verbose_name = "Configuração NicoChat"
+        verbose_name_plural = "Configurações NicoChat"
+        ordering = ['-criado_em']
+        indexes = [
+            models.Index(fields=['usuario', 'ativo']),
+            models.Index(fields=['criado_em']),
+        ]
+
+    def __str__(self):
+        status = "Ativa" if self.ativo else "Inativa"
+        return f"{self.nome} ({status})"

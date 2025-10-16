@@ -1,14 +1,16 @@
 // frontend/src/pages/NicochatPage.js
 import React from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { MessageSquare, LayoutDashboard, Home } from 'lucide-react';
+import { MessageSquare, LayoutDashboard, Home, Settings, BarChart3 } from 'lucide-react';
 
 // shadcn/ui imports
 import { Button } from '../components/ui/button';
 import { ScrollArea } from '../components/ui/scroll-area';
 
-// Importar apenas o Dashboard
+// Importar páginas
 import NicochatDashboard from '../features/ia/NicochatDashboard';
+import NicochatConfigPage from '../features/ia/NicochatConfigPage';
+import NicochatMetricasPage from '../features/ia/NicochatMetricasPage';
 
 function NicochatPage() {
   const navigate = useNavigate();
@@ -42,6 +44,22 @@ function NicochatPage() {
               <LayoutDashboard className="mr-2 h-4 w-4" />
               Dashboard
             </Button>
+            <Button
+              variant={location.pathname === '/nicochat/config' ? 'secondary' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => navigate('/nicochat/config')}
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Configuração
+            </Button>
+            <Button
+              variant={location.pathname === '/nicochat/metricas' ? 'secondary' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => navigate('/nicochat/metricas')}
+            >
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Métricas
+            </Button>
           </div>
         </ScrollArea>
 
@@ -63,6 +81,8 @@ function NicochatPage() {
         <Routes>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<NicochatDashboard />} />
+          <Route path="config" element={<NicochatConfigPage />} />
+          <Route path="metricas" element={<NicochatMetricasPage />} />
           <Route path="*" element={<Navigate to="dashboard" replace />} />
         </Routes>
       </main>

@@ -6,7 +6,9 @@ from django.utils.safestring import mark_safe
 from .models import (
     LogEntry, ProjetoIA, VersaoProjeto,
     # WhatsApp Business models
-    WhatsAppBusinessAccount, BusinessManager, WhatsAppPhoneNumber, QualityHistory, QualityAlert
+    WhatsAppBusinessAccount, BusinessManager, WhatsAppPhoneNumber, QualityHistory, QualityAlert,
+    # NicoChat models
+    NicochatConfig
 )
 
 # ===== ADMIN DE LOGS (EXISTENTE) =====
@@ -493,6 +495,37 @@ class QualityAlertAdmin(admin.ModelAdmin):
         )
     priority_badge.short_description = 'Prioridade'
     priority_badge.admin_order_field = 'priority'
+
+
+# ===== ADMIN DE NICOCHAT =====
+
+@admin.register(NicochatConfig)
+class NicochatConfigAdmin(admin.ModelAdmin):
+    list_display = [
+        'nome', 'usuario', 'ativo', 'criado_em', 'atualizado_em'
+    ]
+    list_filter = ['ativo', 'usuario', 'criado_em']
+    search_fields = ['nome', 'usuario__first_name', 'usuario__last_name', 'usuario__username']
+    list_editable = ['ativo']
+    readonly_fields = ['criado_em', 'atualizado_em']
+
+    fieldsets = (
+        ('Informações Básicas', {
+            'fields': ('nome', 'usuario', 'ativo')
+        }),
+        ('Configuração API', {
+            'fields': ('api_key_encrypted',),
+            'description': 'ATENÇÃO: A API key está criptografada. Apenas visualização do hash.',
+            'classes': ('collapse',)
+        }),
+        ('Auditoria', {
+            'fields': ('criado_em', 'atualizado_em'),
+            'classes': ('collapse',)
+        })
+    )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('usuario')
 
 
 # ===== CONFIGURAÇÕES GERAIS DO ADMIN =====

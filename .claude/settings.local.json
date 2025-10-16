@@ -18,7 +18,12 @@
       "Bash(railway whoami:*)",
       "Bash(git tag:*)",
       "Bash(python:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(ls:*)",
+      "Bash(curl:*)",
+      "Bash(rm:*)",
+      "Bash(npm start)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": [],
