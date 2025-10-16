@@ -163,7 +163,7 @@ function WorkspacePage({ setIsLoggedIn }) {
               <Route path="logs" element={<LogsPage />} />
 
               {/* Rotas aninhadas do Nicochat */}
-              <Route path="nicochat/*" element={<NicochatLayout />}>
+              <Route path="nicochat/*" element={<NicochatLayout isAdmin={userData?.isAdmin} />}>
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<NicochatDashboard />} />
                 <Route path="configuracoes" element={<NicochatConfigPage />} />
