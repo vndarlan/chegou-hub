@@ -211,16 +211,10 @@ class NicochatAPIService:
         Returns:
             Tupla (sucesso: bool, subfluxos: list)
         """
-        endpoint = f"/flows/{flow_id}/subflows"
-        sucesso, resposta = self._make_request(endpoint, api_key)
-
-        if sucesso:
-            # Extrair lista de subfluxos da resposta
-            subfluxos = resposta.get('data', [])
-            logger.info(f"Obtidos {len(subfluxos)} subfluxos para flow {flow_id}")
-            return True, subfluxos
-
-        return False, []
+        # NOTA: O endpoint /flows/{id}/subflows não existe na API do NicoChat
+        # Retornando lista vazia temporariamente até identificar endpoint correto
+        logger.warning(f"get_flow_subflows: endpoint /flows/{flow_id}/subflows não implementado na API NicoChat - retornando vazio")
+        return True, []
 
     def get_flow_user_fields(self, flow_id: str, api_key: Optional[str] = None) -> Tuple[bool, List[Dict]]:
         """
@@ -233,16 +227,10 @@ class NicochatAPIService:
         Returns:
             Tupla (sucesso: bool, campos: list)
         """
-        endpoint = f"/flows/{flow_id}/user-fields"
-        sucesso, resposta = self._make_request(endpoint, api_key)
-
-        if sucesso:
-            # Extrair lista de campos da resposta
-            campos = resposta.get('data', [])
-            logger.info(f"Obtidos {len(campos)} campos customizados para flow {flow_id}")
-            return True, campos
-
-        return False, []
+        # NOTA: O endpoint /flows/{id}/user-fields não existe na API do NicoChat
+        # Retornando lista vazia temporariamente até identificar endpoint correto
+        logger.warning(f"get_flow_user_fields: endpoint /flows/{flow_id}/user-fields não implementado na API NicoChat - retornando vazio")
+        return True, []
 
     def get_flow_bot_users_count(self, flow_id: str, api_key: Optional[str] = None) -> Tuple[bool, int]:
         """
