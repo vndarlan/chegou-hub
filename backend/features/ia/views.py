@@ -1586,6 +1586,71 @@ class NicochatConfigViewSet(viewsets.ModelViewSet):
         """Definir usuário ao criar"""
         serializer.save(usuario=self.request.user)
 
+    def update(self, request, *args, **kwargs):
+        """Update com logging detalhado"""
+        logger.info("=" * 80)
+        logger.info("🔄 NICOCHAT_CONFIG UPDATE - INICIANDO")
+        logger.info(f"   Usuario: {request.user.username}")
+        logger.info(f"   Config ID: {kwargs.get('pk')}")
+        logger.info(f"   Metodo: {request.method}")
+        logger.info(f"   Partial: {kwargs.get('partial', False)}")
+
+        logger.info("📥 DADOS RECEBIDOS:")
+        logger.info(f"   - request.data completo: {dict(request.data)}")
+        logger.info(f"   - Keys presentes: {list(request.data.keys())}")
+
+        try:
+            # Validar que o objeto existe antes de tentar atualizar
+            instance = self.get_object()
+            logger.info(f"✅ Config encontrada:")
+            logger.info(f"   - ID: {instance.id}")
+            logger.info(f"   - Nome atual: {instance.nome}")
+            logger.info(f"   - Usuario dono: {instance.usuario.username}")
+            logger.info(f"   - Ativo: {instance.ativo}")
+
+            # Verificar permissão
+            if instance.usuario != request.user and not request.user.is_superuser:
+                logger.error(f"❌ ERRO: Usuario {request.user.username} tentando editar config de {instance.usuario.username}")
+                return Response(
+                    {'error': 'Sem permissão para editar esta configuração'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            logger.info("✅ Permissões OK, prosseguindo com update...")
+
+            # Verificar se está tentando mudar campo 'ativo'
+            if 'ativo' in request.data:
+                logger.info(f"🔄 Campo 'ativo' presente: {request.data.get('ativo')} (atual: {instance.ativo})")
+
+            # Chamar update padrão
+            response = super().update(request, *args, **kwargs)
+
+            logger.info("✅ UPDATE CONCLUÍDO COM SUCESSO")
+            logger.info(f"   - Status code: {response.status_code}")
+            logger.info(f"   - Response keys: {list(response.data.keys()) if hasattr(response, 'data') else 'N/A'}")
+
+            return response
+
+        except Exception as e:
+            logger.error(f"❌ ERRO INESPERADO em NicochatConfig.update:")
+            logger.error(f"   - Tipo: {type(e).__name__}")
+            logger.error(f"   - Mensagem: {str(e)}")
+            import traceback
+            logger.error(f"   - Stack trace completo:")
+            logger.error(traceback.format_exc())
+            return Response(
+                {'error': f'Erro ao atualizar configuração: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        finally:
+            logger.info("=" * 80)
+
+    def partial_update(self, request, *args, **kwargs):
+        """Partial update com logging detalhado"""
+        logger.info("🔄 NICOCHAT_CONFIG PARTIAL_UPDATE - redirecionando para update()")
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -1597,43 +1662,112 @@ def nicochat_subflows(request):
         - flow_id: ID do fluxo (obrigatório)
         - config_id: ID da configuração NicoChat a usar (obrigatório)
     """
+    # LOG 1: Entrada da função
+    logger.info("=" * 80)
+    logger.info("🔍 NICOCHAT_SUBFLOWS - INICIANDO")
+    logger.info(f"   Usuario: {request.user.username}")
+    logger.info(f"   Metodo: {request.method}")
+    logger.info(f"   Path: {request.path}")
+
+    # LOG 2: Query params recebidos
+    logger.info("📥 QUERY PARAMS RECEBIDOS:")
+    logger.info(f"   - request.GET completo: {dict(request.GET)}")
+
     flow_id = request.GET.get('flow_id')
     config_id = request.GET.get('config_id')
 
+    logger.info(f"   - flow_id extraido: '{flow_id}' (tipo: {type(flow_id)})")
+    logger.info(f"   - config_id extraido: '{config_id}' (tipo: {type(config_id)})")
+
+    # VALIDAÇÃO 1: flow_id
     if not flow_id:
+        logger.error("❌ ERRO: flow_id não fornecido ou vazio")
         return Response(
             {'error': 'flow_id é obrigatório'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
+    logger.info(f"✅ flow_id validado: '{flow_id}'")
+
+    # VALIDAÇÃO 2: config_id
     if not config_id:
+        logger.error("❌ ERRO: config_id não fornecido ou vazio")
         return Response(
             {'error': 'config_id é obrigatório'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    try:
-        # Buscar configuração
-        config = NicochatConfig.objects.get(id=config_id, ativo=True)
+    logger.info(f"✅ config_id validado: '{config_id}'")
 
-        # Verificar permissão
-        if not (request.user.is_superuser or
-                request.user.groups.filter(name__in=['Diretoria', 'Gestão', 'IA & Automações']).exists() or
-                config.usuario == request.user):
+    try:
+        # LOG 3: Buscar configuração
+        logger.info(f"🔎 Buscando NicochatConfig com id={config_id}, ativo=True")
+        config = NicochatConfig.objects.get(id=config_id, ativo=True)
+        logger.info(f"✅ Config encontrada:")
+        logger.info(f"   - ID: {config.id}")
+        logger.info(f"   - Nome: {config.nome}")
+        logger.info(f"   - Usuario: {config.usuario.username}")
+        logger.info(f"   - Ativo: {config.ativo}")
+        logger.info(f"   - Tem API key criptografada: {bool(config.api_key_encrypted)}")
+
+        # LOG 4: Verificar permissão
+        logger.info("🔐 Verificando permissões do usuário:")
+        logger.info(f"   - É superuser: {request.user.is_superuser}")
+        grupos = list(request.user.groups.values_list('name', flat=True))
+        logger.info(f"   - Grupos: {grupos}")
+        logger.info(f"   - É dono da config: {config.usuario == request.user}")
+
+        tem_permissao = (
+            request.user.is_superuser or
+            request.user.groups.filter(name__in=['Diretoria', 'Gestão', 'IA & Automações']).exists() or
+            config.usuario == request.user
+        )
+
+        logger.info(f"   - Tem permissão: {tem_permissao}")
+
+        if not tem_permissao:
+            logger.error("❌ ERRO: Usuario sem permissão para usar esta configuração")
             return Response(
                 {'error': 'Sem permissão para usar esta configuração'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Descriptografar API key e fazer request
+        logger.info("✅ Permissões validadas")
+
+        # LOG 5: Descriptografar API key
+        logger.info("🔓 Descriptografando API key...")
         from .nicochat_service import NicochatAPIService, decrypt_api_key
 
-        api_key = decrypt_api_key(config.api_key_encrypted)
+        try:
+            api_key = decrypt_api_key(config.api_key_encrypted)
+            logger.info(f"✅ API key descriptografada com sucesso (tamanho: {len(api_key)} chars)")
+        except Exception as decrypt_error:
+            logger.error(f"❌ ERRO ao descriptografar API key: {decrypt_error}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return Response(
+                {'error': f'Erro ao descriptografar API key: {str(decrypt_error)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # LOG 6: Criar service e fazer request
+        logger.info("🌐 Criando NicochatAPIService e fazendo request à API externa...")
         service = NicochatAPIService(api_key)
 
+        logger.info(f"📡 Chamando service.get_flow_subflows(flow_id='{flow_id}', api_key=<presente>)")
         sucesso, subfluxos = service.get_flow_subflows(flow_id, api_key)
 
+        logger.info(f"📊 Resposta do service:")
+        logger.info(f"   - Sucesso: {sucesso}")
+        logger.info(f"   - Tipo de subfluxos: {type(subfluxos)}")
+        logger.info(f"   - Quantidade: {len(subfluxos) if isinstance(subfluxos, list) else 'N/A'}")
+
+        if not sucesso:
+            logger.error(f"❌ Service retornou erro:")
+            logger.error(f"   - Detalhes: {subfluxos}")
+
         if sucesso:
+            logger.info("✅ Subfluxos obtidos com sucesso! Retornando resposta 200")
             return Response({
                 'success': True,
                 'flow_id': flow_id,
@@ -1641,6 +1775,7 @@ def nicochat_subflows(request):
                 'total': len(subfluxos)
             })
         else:
+            logger.warning("⚠️ Retornando erro 400 - Falha ao buscar subfluxos")
             return Response({
                 'success': False,
                 'error': 'Erro ao buscar subfluxos',
@@ -1648,16 +1783,25 @@ def nicochat_subflows(request):
             }, status=status.HTTP_400_BAD_REQUEST)
 
     except NicochatConfig.DoesNotExist:
+        logger.error(f"❌ ERRO: NicochatConfig não encontrada (id={config_id}, ativo=True)")
+        logger.error(f"   - Todas as configs ativas: {list(NicochatConfig.objects.filter(ativo=True).values_list('id', 'nome'))}")
         return Response(
             {'error': 'Configuração NicoChat não encontrada ou inativa'},
             status=status.HTTP_404_NOT_FOUND
         )
     except Exception as e:
-        logger.error(f"Erro ao buscar subfluxos NicoChat: {e}")
+        logger.error(f"❌ ERRO INESPERADO em nicochat_subflows:")
+        logger.error(f"   - Tipo: {type(e).__name__}")
+        logger.error(f"   - Mensagem: {str(e)}")
+        import traceback
+        logger.error(f"   - Stack trace completo:")
+        logger.error(traceback.format_exc())
         return Response(
             {'error': f'Erro interno: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+    finally:
+        logger.info("=" * 80)
 
 
 @api_view(['GET'])
@@ -1670,43 +1814,112 @@ def nicochat_user_fields(request):
         - flow_id: ID do fluxo (obrigatório)
         - config_id: ID da configuração NicoChat a usar (obrigatório)
     """
+    # LOG 1: Entrada da função
+    logger.info("=" * 80)
+    logger.info("🔍 NICOCHAT_USER_FIELDS - INICIANDO")
+    logger.info(f"   Usuario: {request.user.username}")
+    logger.info(f"   Metodo: {request.method}")
+    logger.info(f"   Path: {request.path}")
+
+    # LOG 2: Query params recebidos
+    logger.info("📥 QUERY PARAMS RECEBIDOS:")
+    logger.info(f"   - request.GET completo: {dict(request.GET)}")
+
     flow_id = request.GET.get('flow_id')
     config_id = request.GET.get('config_id')
 
+    logger.info(f"   - flow_id extraido: '{flow_id}' (tipo: {type(flow_id)})")
+    logger.info(f"   - config_id extraido: '{config_id}' (tipo: {type(config_id)})")
+
+    # VALIDAÇÃO 1: flow_id
     if not flow_id:
+        logger.error("❌ ERRO: flow_id não fornecido ou vazio")
         return Response(
             {'error': 'flow_id é obrigatório'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
+    logger.info(f"✅ flow_id validado: '{flow_id}'")
+
+    # VALIDAÇÃO 2: config_id
     if not config_id:
+        logger.error("❌ ERRO: config_id não fornecido ou vazio")
         return Response(
             {'error': 'config_id é obrigatório'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    try:
-        # Buscar configuração
-        config = NicochatConfig.objects.get(id=config_id, ativo=True)
+    logger.info(f"✅ config_id validado: '{config_id}'")
 
-        # Verificar permissão
-        if not (request.user.is_superuser or
-                request.user.groups.filter(name__in=['Diretoria', 'Gestão', 'IA & Automações']).exists() or
-                config.usuario == request.user):
+    try:
+        # LOG 3: Buscar configuração
+        logger.info(f"🔎 Buscando NicochatConfig com id={config_id}, ativo=True")
+        config = NicochatConfig.objects.get(id=config_id, ativo=True)
+        logger.info(f"✅ Config encontrada:")
+        logger.info(f"   - ID: {config.id}")
+        logger.info(f"   - Nome: {config.nome}")
+        logger.info(f"   - Usuario: {config.usuario.username}")
+        logger.info(f"   - Ativo: {config.ativo}")
+        logger.info(f"   - Tem API key criptografada: {bool(config.api_key_encrypted)}")
+
+        # LOG 4: Verificar permissão
+        logger.info("🔐 Verificando permissões do usuário:")
+        logger.info(f"   - É superuser: {request.user.is_superuser}")
+        grupos = list(request.user.groups.values_list('name', flat=True))
+        logger.info(f"   - Grupos: {grupos}")
+        logger.info(f"   - É dono da config: {config.usuario == request.user}")
+
+        tem_permissao = (
+            request.user.is_superuser or
+            request.user.groups.filter(name__in=['Diretoria', 'Gestão', 'IA & Automações']).exists() or
+            config.usuario == request.user
+        )
+
+        logger.info(f"   - Tem permissão: {tem_permissao}")
+
+        if not tem_permissao:
+            logger.error("❌ ERRO: Usuario sem permissão para usar esta configuração")
             return Response(
                 {'error': 'Sem permissão para usar esta configuração'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Descriptografar API key e fazer request
+        logger.info("✅ Permissões validadas")
+
+        # LOG 5: Descriptografar API key
+        logger.info("🔓 Descriptografando API key...")
         from .nicochat_service import NicochatAPIService, decrypt_api_key
 
-        api_key = decrypt_api_key(config.api_key_encrypted)
+        try:
+            api_key = decrypt_api_key(config.api_key_encrypted)
+            logger.info(f"✅ API key descriptografada com sucesso (tamanho: {len(api_key)} chars)")
+        except Exception as decrypt_error:
+            logger.error(f"❌ ERRO ao descriptografar API key: {decrypt_error}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return Response(
+                {'error': f'Erro ao descriptografar API key: {str(decrypt_error)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # LOG 6: Criar service e fazer request
+        logger.info("🌐 Criando NicochatAPIService e fazendo request à API externa...")
         service = NicochatAPIService(api_key)
 
+        logger.info(f"📡 Chamando service.get_flow_user_fields(flow_id='{flow_id}', api_key=<presente>)")
         sucesso, campos = service.get_flow_user_fields(flow_id, api_key)
 
+        logger.info(f"📊 Resposta do service:")
+        logger.info(f"   - Sucesso: {sucesso}")
+        logger.info(f"   - Tipo de campos: {type(campos)}")
+        logger.info(f"   - Quantidade: {len(campos) if isinstance(campos, list) else 'N/A'}")
+
+        if not sucesso:
+            logger.error(f"❌ Service retornou erro:")
+            logger.error(f"   - Detalhes: {campos}")
+
         if sucesso:
+            logger.info("✅ Campos customizados obtidos com sucesso! Retornando resposta 200")
             return Response({
                 'success': True,
                 'flow_id': flow_id,
@@ -1714,6 +1927,7 @@ def nicochat_user_fields(request):
                 'total': len(campos)
             })
         else:
+            logger.warning("⚠️ Retornando erro 400 - Falha ao buscar campos")
             return Response({
                 'success': False,
                 'error': 'Erro ao buscar campos customizados',
@@ -1721,16 +1935,25 @@ def nicochat_user_fields(request):
             }, status=status.HTTP_400_BAD_REQUEST)
 
     except NicochatConfig.DoesNotExist:
+        logger.error(f"❌ ERRO: NicochatConfig não encontrada (id={config_id}, ativo=True)")
+        logger.error(f"   - Todas as configs ativas: {list(NicochatConfig.objects.filter(ativo=True).values_list('id', 'nome'))}")
         return Response(
             {'error': 'Configuração NicoChat não encontrada ou inativa'},
             status=status.HTTP_404_NOT_FOUND
         )
     except Exception as e:
-        logger.error(f"Erro ao buscar campos NicoChat: {e}")
+        logger.error(f"❌ ERRO INESPERADO em nicochat_user_fields:")
+        logger.error(f"   - Tipo: {type(e).__name__}")
+        logger.error(f"   - Mensagem: {str(e)}")
+        import traceback
+        logger.error(f"   - Stack trace completo:")
+        logger.error(traceback.format_exc())
         return Response(
             {'error': f'Erro interno: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+    finally:
+        logger.info("=" * 80)
 
 
 @api_view(['POST'])
