@@ -205,32 +205,42 @@ class NicochatAPIService:
         Busca todos os subfluxos de um fluxo específico
 
         Args:
-            flow_id: ID do fluxo principal
+            flow_id: ID do fluxo principal (não usado - endpoint retorna todos)
             api_key: API key (opcional)
 
         Returns:
             Tupla (sucesso: bool, subfluxos: list)
         """
-        # NOTA: O endpoint /flows/{id}/subflows não existe na API do NicoChat
-        # Retornando lista vazia temporariamente até identificar endpoint correto
-        logger.warning(f"get_flow_subflows: endpoint /flows/{flow_id}/subflows não implementado na API NicoChat - retornando vazio")
-        return True, []
+        endpoint = "/flow/subflows"
+        sucesso, resposta = self._make_request(endpoint, api_key)
+
+        if sucesso:
+            subfluxos = resposta.get('data', [])
+            logger.info(f"Obtidos {len(subfluxos)} subfluxos")
+            return True, subfluxos
+
+        return False, []
 
     def get_flow_user_fields(self, flow_id: str, api_key: Optional[str] = None) -> Tuple[bool, List[Dict]]:
         """
         Busca todos os campos customizados de usuário de um fluxo
 
         Args:
-            flow_id: ID do fluxo
+            flow_id: ID do fluxo (não usado - endpoint retorna todos)
             api_key: API key (opcional)
 
         Returns:
             Tupla (sucesso: bool, campos: list)
         """
-        # NOTA: O endpoint /flows/{id}/user-fields não existe na API do NicoChat
-        # Retornando lista vazia temporariamente até identificar endpoint correto
-        logger.warning(f"get_flow_user_fields: endpoint /flows/{flow_id}/user-fields não implementado na API NicoChat - retornando vazio")
-        return True, []
+        endpoint = "/flow/user-fields"
+        sucesso, resposta = self._make_request(endpoint, api_key)
+
+        if sucesso:
+            campos = resposta.get('data', [])
+            logger.info(f"Obtidos {len(campos)} campos customizados")
+            return True, campos
+
+        return False, []
 
     def get_flow_bot_users_count(self, flow_id: str, api_key: Optional[str] = None) -> Tuple[bool, int]:
         """
