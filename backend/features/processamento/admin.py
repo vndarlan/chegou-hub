@@ -3,8 +3,9 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from .models import (
-    ShopifyConfig, ProcessamentoLog, 
-    IPDetectionStatistics, IPDetectionDebugLog, IPDetectionAlert
+    ShopifyConfig, ProcessamentoLog,
+    IPDetectionStatistics, IPDetectionDebugLog, IPDetectionAlert,
+    ResolvedIP, ObservedIP
 )
 
 @admin.register(ShopifyConfig)
@@ -226,3 +227,77 @@ class IPDetectionAlertAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related(
             'config', 'reconhecido_por'
         )
+
+
+# ===== ADMIN DOS MODELOS DE IPs RESOLVIDOS E EM OBSERVAÇÃO =====
+
+@admin.register(ResolvedIP)
+class ResolvedIPAdmin(admin.ModelAdmin):
+    list_display = [
+        'ip_address', 'config', 'resolved_by', 'resolved_at',
+        'total_orders_at_resolution', 'unique_customers_at_resolution'
+    ]
+    list_filter = ['resolved_at', 'config__nome_loja', 'resolved_by']
+    search_fields = ['ip_address', 'config__nome_loja', 'resolved_by__username', 'notes']
+    readonly_fields = ['resolved_at']
+    date_hierarchy = 'resolved_at'
+    ordering = ['-resolved_at']
+
+    fieldsets = (
+        ('Informações do IP', {
+            'fields': ('config', 'ip_address')
+        }),
+        ('Resolução', {
+            'fields': ('resolved_by', 'resolved_at', 'notes')
+        }),
+        ('Estatísticas no Momento da Resolução', {
+            'fields': (
+                'total_orders_at_resolution',
+                'unique_customers_at_resolution'
+            )
+        }),
+        ('Dados dos Clientes', {
+            'fields': ('client_data',),
+            'classes': ['collapse'],
+            'description': 'Dados completos dos clientes e pedidos salvos no momento da resolução'
+        })
+    )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('config', 'resolved_by')
+
+
+@admin.register(ObservedIP)
+class ObservedIPAdmin(admin.ModelAdmin):
+    list_display = [
+        'ip_address', 'config', 'observed_by', 'observed_at',
+        'total_orders_at_observation', 'unique_customers_at_observation'
+    ]
+    list_filter = ['observed_at', 'config__nome_loja', 'observed_by']
+    search_fields = ['ip_address', 'config__nome_loja', 'observed_by__username', 'notes']
+    readonly_fields = ['observed_at']
+    date_hierarchy = 'observed_at'
+    ordering = ['-observed_at']
+
+    fieldsets = (
+        ('Informações do IP', {
+            'fields': ('config', 'ip_address')
+        }),
+        ('Observação', {
+            'fields': ('observed_by', 'observed_at', 'notes')
+        }),
+        ('Estatísticas no Momento da Observação', {
+            'fields': (
+                'total_orders_at_observation',
+                'unique_customers_at_observation'
+            )
+        }),
+        ('Dados dos Clientes', {
+            'fields': ('client_data',),
+            'classes': ['collapse'],
+            'description': 'Dados completos dos clientes e pedidos salvos no momento da observação'
+        })
+    )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('config', 'observed_by')

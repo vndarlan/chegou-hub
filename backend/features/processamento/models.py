@@ -511,25 +511,25 @@ class ResolvedIP(models.Model):
     Modelo para armazenar IPs que foram analisados e marcados como resolvidos.
     Permite filtrar IPs já analisados em futuras buscas.
     """
-    
+
     config = models.ForeignKey(
-        ShopifyConfig, 
-        on_delete=models.CASCADE, 
+        ShopifyConfig,
+        on_delete=models.CASCADE,
         related_name='resolved_ips',
         help_text="Configuração da loja à qual este IP pertence"
     )
     ip_address = models.GenericIPAddressField(help_text="Endereço IP que foi resolvido")
     resolved_by = models.ForeignKey(
-        User, 
+        User,
         on_delete=models.CASCADE,
         help_text="Usuário que marcou este IP como resolvido"
     )
     resolved_at = models.DateTimeField(auto_now_add=True, help_text="Data e hora em que foi marcado como resolvido")
     notes = models.TextField(
-        blank=True, 
+        blank=True,
         help_text="Observações opcionais sobre a resolução do IP"
     )
-    
+
     # Campos adicionais para contexto
     total_orders_at_resolution = models.IntegerField(
         default=0,
@@ -538,6 +538,11 @@ class ResolvedIP(models.Model):
     unique_customers_at_resolution = models.IntegerField(
         default=0,
         help_text="Número de clientes únicos deste IP no momento da resolução"
+    )
+    client_data = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Dados completos dos clientes e pedidos salvos no momento da resolução"
     )
     
     class Meta:
@@ -582,10 +587,10 @@ class ResolvedIP(models.Model):
         return cls.objects.filter(config=config).order_by('-resolved_at')
     
     @classmethod
-    def mark_ip_as_resolved(cls, config, ip_address, user, notes='', total_orders=0, unique_customers=0):
+    def mark_ip_as_resolved(cls, config, ip_address, user, notes='', total_orders=0, unique_customers=0, client_data=None):
         """
         Marca um IP como resolvido
-        
+
         Args:
             config: ShopifyConfig object
             ip_address: String do endereço IP
@@ -593,7 +598,8 @@ class ResolvedIP(models.Model):
             notes: Observações opcionais
             total_orders: Total de pedidos no momento da resolução
             unique_customers: Clientes únicos no momento da resolução
-            
+            client_data: Dados completos dos clientes (dict)
+
         Returns:
             ResolvedIP: Objeto criado ou atualizado
         """
@@ -604,35 +610,176 @@ class ResolvedIP(models.Model):
                 'resolved_by': user,
                 'notes': notes,
                 'total_orders_at_resolution': total_orders,
-                'unique_customers_at_resolution': unique_customers
+                'unique_customers_at_resolution': unique_customers,
+                'client_data': client_data or {}
             }
         )
-        
+
         if not created:
             # Atualiza dados se já existia
             resolved_ip.resolved_by = user
             resolved_ip.notes = notes
             resolved_ip.total_orders_at_resolution = total_orders
             resolved_ip.unique_customers_at_resolution = unique_customers
+            resolved_ip.client_data = client_data or {}
             resolved_ip.save()
-        
+
         return resolved_ip
     
     @classmethod
     def unmark_ip_as_resolved(cls, config, ip_address):
         """
         Remove um IP da lista de resolvidos
-        
+
         Args:
             config: ShopifyConfig object
             ip_address: String do endereço IP
-            
+
         Returns:
             bool: True se o IP foi removido, False se não existia
         """
         try:
             resolved_ip = cls.objects.get(config=config, ip_address=ip_address)
             resolved_ip.delete()
+            return True
+        except cls.DoesNotExist:
+            return False
+
+
+class ObservedIP(models.Model):
+    """
+    Modelo para armazenar IPs que estão em observação.
+    Similar ao ResolvedIP, mas indica que o IP ainda está sendo monitorado.
+    """
+
+    config = models.ForeignKey(
+        ShopifyConfig,
+        on_delete=models.CASCADE,
+        related_name='observed_ips',
+        help_text="Configuração da loja à qual este IP pertence"
+    )
+    ip_address = models.GenericIPAddressField(help_text="Endereço IP que está em observação")
+    observed_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        help_text="Usuário que marcou este IP como em observação"
+    )
+    observed_at = models.DateTimeField(auto_now_add=True, help_text="Data e hora em que foi marcado como em observação")
+    notes = models.TextField(
+        blank=True,
+        help_text="Observações opcionais sobre o IP em observação"
+    )
+
+    # Campos adicionais para contexto
+    total_orders_at_observation = models.IntegerField(
+        default=0,
+        help_text="Número total de pedidos deste IP no momento da observação"
+    )
+    unique_customers_at_observation = models.IntegerField(
+        default=0,
+        help_text="Número de clientes únicos deste IP no momento da observação"
+    )
+    client_data = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Dados completos dos clientes e pedidos salvos no momento da observação"
+    )
+
+    class Meta:
+        verbose_name = "IP em Observação"
+        verbose_name_plural = "IPs em Observação"
+        unique_together = ['config', 'ip_address']
+        ordering = ['-observed_at']
+        indexes = [
+            models.Index(fields=['config', 'ip_address']),
+            models.Index(fields=['observed_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.config.nome_loja} - {self.ip_address} - Em observação por {self.observed_by.username} em {self.observed_at.strftime('%d/%m/%Y %H:%M')}"
+
+    @classmethod
+    def is_ip_observed(cls, config, ip_address):
+        """
+        Verifica se um IP já foi marcado como em observação para uma loja específica
+
+        Args:
+            config: ShopifyConfig object
+            ip_address: String do endereço IP
+
+        Returns:
+            bool: True se o IP está em observação, False caso contrário
+        """
+        return cls.objects.filter(config=config, ip_address=ip_address).exists()
+
+    @classmethod
+    def get_observed_ips_for_config(cls, config):
+        """
+        Retorna lista de IPs em observação para uma configuração específica
+
+        Args:
+            config: ShopifyConfig object
+
+        Returns:
+            QuerySet: Lista de IPs em observação
+        """
+        return cls.objects.filter(config=config).order_by('-observed_at')
+
+    @classmethod
+    def mark_ip_as_observed(cls, config, ip_address, user, notes='', total_orders=0, unique_customers=0, client_data=None):
+        """
+        Marca um IP como em observação
+
+        Args:
+            config: ShopifyConfig object
+            ip_address: String do endereço IP
+            user: User object que está marcando como em observação
+            notes: Observações opcionais
+            total_orders: Total de pedidos no momento da observação
+            unique_customers: Clientes únicos no momento da observação
+            client_data: Dados completos dos clientes (dict)
+
+        Returns:
+            ObservedIP: Objeto criado ou atualizado
+        """
+        observed_ip, created = cls.objects.get_or_create(
+            config=config,
+            ip_address=ip_address,
+            defaults={
+                'observed_by': user,
+                'notes': notes,
+                'total_orders_at_observation': total_orders,
+                'unique_customers_at_observation': unique_customers,
+                'client_data': client_data or {}
+            }
+        )
+
+        if not created:
+            # Atualiza dados se já existia
+            observed_ip.observed_by = user
+            observed_ip.notes = notes
+            observed_ip.total_orders_at_observation = total_orders
+            observed_ip.unique_customers_at_observation = unique_customers
+            observed_ip.client_data = client_data or {}
+            observed_ip.save()
+
+        return observed_ip
+
+    @classmethod
+    def unmark_ip_as_observed(cls, config, ip_address):
+        """
+        Remove um IP da lista de observação
+
+        Args:
+            config: ShopifyConfig object
+            ip_address: String do endereço IP
+
+        Returns:
+            bool: True se o IP foi removido, False se não existia
+        """
+        try:
+            observed_ip = cls.objects.get(config=config, ip_address=ip_address)
+            observed_ip.delete()
             return True
         except cls.DoesNotExist:
             return False

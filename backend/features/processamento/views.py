@@ -4596,6 +4596,75 @@ def debug_detector_ip_user_data(request):
 
 # ===== ENDPOINTS PARA SISTEMA DE IPs RESOLVIDOS =====
 
+def fetch_client_data_for_ip(config, ip_address, days=90):
+    """
+    Busca dados completos dos clientes de um IP usando o detector
+    Retorna os dados no formato esperado pelo frontend
+
+    Args:
+        config: ShopifyConfig object
+        ip_address: String do endereço IP
+        days: Período em dias (padrão: 90)
+
+    Returns:
+        dict: Dados dos clientes formatados
+    """
+    try:
+        detector = ShopifyDuplicateOrderDetector(config.shop_url, config.access_token)
+
+        # Busca dados completos do IP
+        orders = detector.get_orders_for_specific_ip(ip_address, days=days, max_orders=200)
+
+        if not orders:
+            return {'ip': ip_address, 'total_orders': 0, 'active_orders': 0, 'cancelled_orders': 0, 'client_details': []}
+
+        # Formata dados dos clientes
+        client_details = []
+        active_orders = 0
+        cancelled_orders = 0
+
+        for order in orders:
+            customer = order.get('customer', {})
+            customer_name = f"{customer.get('first_name', '')} {customer.get('last_name', '')}".strip()
+            if not customer_name:
+                customer_name = 'Cliente não informado'
+
+            # Determina status do pedido
+            is_cancelled = order.get('cancelled_at') is not None
+            order_status = 'cancelled' if is_cancelled else 'active'
+
+            if is_cancelled:
+                cancelled_orders += 1
+            else:
+                active_orders += 1
+
+            client_details.append({
+                'order_id': str(order.get('id')),
+                'order_number': order.get('order_number') or order.get('name'),
+                'customer_name': customer_name,
+                'customer_email': customer.get('email'),
+                'customer_phone': customer.get('phone'),
+                'total_price': order.get('total_price'),
+                'currency': order.get('currency'),
+                'created_at': order.get('created_at'),
+                'cancelled_at': order.get('cancelled_at'),
+                'financial_status': order.get('financial_status'),
+                'status': order_status
+            })
+
+        return {
+            'ip': ip_address,
+            'total_orders': len(orders),
+            'active_orders': active_orders,
+            'cancelled_orders': cancelled_orders,
+            'client_details': client_details
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar client_data para IP {ip_address}: {str(e)}")
+        return {'ip': ip_address, 'total_orders': 0, 'active_orders': 0, 'cancelled_orders': 0, 'client_details': []}
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def marcar_ip_resolvido(request):
@@ -4633,15 +4702,21 @@ def marcar_ip_resolvido(request):
         
         # Importar o modelo aqui para evitar problemas de importação circular
         from .models import ResolvedIP
-        
-        # Marcar IP como resolvido
+
+        # Buscar dados dos clientes antes de salvar
+        logger.info(f"Buscando client_data para IP {validated_ip}")
+        client_data = fetch_client_data_for_ip(config, validated_ip, days=90)
+        logger.info(f"Client_data obtido: {len(client_data.get('client_details', []))} pedidos")
+
+        # Marcar IP como resolvido COM client_data
         resolved_ip = ResolvedIP.mark_ip_as_resolved(
             config=config,
             ip_address=validated_ip,
             user=request.user,
             notes=notes,
             total_orders=int(total_orders),
-            unique_customers=int(unique_customers)
+            unique_customers=int(unique_customers),
+            client_data=client_data
         )
         
         # Log da ação
@@ -4717,7 +4792,8 @@ def listar_ips_resolvidos(request):
                 'resolved_by': resolved_ip.resolved_by.username,
                 'notes': resolved_ip.notes,
                 'total_orders_at_resolution': resolved_ip.total_orders_at_resolution,
-                'unique_customers_at_resolution': resolved_ip.unique_customers_at_resolution
+                'unique_customers_at_resolution': resolved_ip.unique_customers_at_resolution,
+                'client_data': resolved_ip.client_data
             })
         
         return Response({
@@ -4797,6 +4873,222 @@ def desmarcar_ip_resolvido(request):
         
     except Exception as e:
         logger.error(f"Erro ao desmarcar IP como resolvido: {str(e)}")
+        return Response({
+            'error': 'Erro interno do servidor',
+            'details': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ===== ENDPOINTS PARA SISTEMA DE IPs EM OBSERVAÇÃO =====
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def marcar_ip_observacao(request):
+    """
+    Marca um IP como em observação para uma loja específica
+    """
+    try:
+        loja_id = request.data.get('loja_id')
+        ip_address = request.data.get('ip_address')
+        notes = request.data.get('notes', '')
+        total_orders = request.data.get('total_orders', 0)
+        unique_customers = request.data.get('unique_customers', 0)
+
+        # Validação de dados obrigatórios
+        if not loja_id or not ip_address:
+            return Response({
+                'error': 'loja_id e ip_address são obrigatórios'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validar IP
+        try:
+            validated_ip = validate_ip_address(ip_address)
+        except ValueError as e:
+            return Response({
+                'error': f'IP inválido: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Buscar configuração da loja
+        try:
+            config = ShopifyConfig.objects.get(id=loja_id, ativo=True)
+        except ShopifyConfig.DoesNotExist:
+            return Response({
+                'error': 'Loja não encontrada ou inativa'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Importar o modelo
+        from .models import ObservedIP
+
+        # Buscar dados dos clientes antes de salvar
+        logger.info(f"Buscando client_data para IP em observação {validated_ip}")
+        client_data = fetch_client_data_for_ip(config, validated_ip, days=90)
+        logger.info(f"Client_data obtido: {len(client_data.get('client_details', []))} pedidos")
+
+        # Marcar IP como em observação COM client_data
+        observed_ip = ObservedIP.mark_ip_as_observed(
+            config=config,
+            ip_address=validated_ip,
+            user=request.user,
+            notes=notes,
+            total_orders=int(total_orders),
+            unique_customers=int(unique_customers),
+            client_data=client_data
+        )
+
+        # Log da ação
+        create_safe_log(
+            user=request.user,
+            config=config,
+            tipo='busca_ip',
+            status='sucesso',
+            dados={
+                'acao': 'ip_marcado_observacao',
+                'ip_address': validated_ip,
+                'notes': notes,
+                'total_orders': total_orders,
+                'unique_customers': unique_customers
+            }
+        )
+
+        return Response({
+            'success': True,
+            'message': 'IP marcado como em observação com sucesso',
+            'data': {
+                'ip_address': observed_ip.ip_address,
+                'observed_at': observed_ip.observed_at.isoformat(),
+                'observed_by': observed_ip.observed_by.username,
+                'notes': observed_ip.notes,
+                'total_orders_at_observation': observed_ip.total_orders_at_observation,
+                'unique_customers_at_observation': observed_ip.unique_customers_at_observation
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao marcar IP como em observação: {str(e)}")
+        return Response({
+            'error': 'Erro interno do servidor',
+            'details': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def listar_ips_observacao(request):
+    """
+    Lista todos os IPs em observação para uma loja específica
+    """
+    try:
+        loja_id = request.GET.get('loja_id')
+
+        if not loja_id:
+            return Response({
+                'error': 'loja_id é obrigatório'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Buscar configuração da loja
+        try:
+            config = ShopifyConfig.objects.get(id=loja_id, ativo=True)
+        except ShopifyConfig.DoesNotExist:
+            return Response({
+                'error': 'Loja não encontrada ou inativa'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Importar o modelo
+        from .models import ObservedIP
+
+        # Buscar IPs em observação
+        observed_ips = ObservedIP.get_observed_ips_for_config(config)
+
+        # Formatar dados para o frontend
+        ips_data = []
+        for observed_ip in observed_ips:
+            ips_data.append({
+                'ip_address': observed_ip.ip_address,
+                'observed_at': observed_ip.observed_at.isoformat(),
+                'observed_by': observed_ip.observed_by.username,
+                'notes': observed_ip.notes,
+                'total_orders_at_observation': observed_ip.total_orders_at_observation,
+                'unique_customers_at_observation': observed_ip.unique_customers_at_observation,
+                'client_data': observed_ip.client_data
+            })
+
+        return Response({
+            'success': True,
+            'loja_nome': config.nome_loja,
+            'total_observed_ips': len(ips_data),
+            'observed_ips': ips_data
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao listar IPs em observação: {str(e)}")
+        return Response({
+            'error': 'Erro interno do servidor',
+            'details': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def desmarcar_ip_observacao(request):
+    """
+    Remove um IP da lista de observação
+    """
+    try:
+        loja_id = request.data.get('loja_id')
+        ip_address = request.data.get('ip_address')
+
+        # Validação de dados obrigatórios
+        if not loja_id or not ip_address:
+            return Response({
+                'error': 'loja_id e ip_address são obrigatórios'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validar IP
+        try:
+            validated_ip = validate_ip_address(ip_address)
+        except ValueError as e:
+            return Response({
+                'error': f'IP inválido: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Buscar configuração da loja
+        try:
+            config = ShopifyConfig.objects.get(id=loja_id, ativo=True)
+        except ShopifyConfig.DoesNotExist:
+            return Response({
+                'error': 'Loja não encontrada ou inativa'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Importar o modelo
+        from .models import ObservedIP
+
+        # Remover IP da lista de observação
+        was_removed = ObservedIP.unmark_ip_as_observed(config, validated_ip)
+
+        if not was_removed:
+            return Response({
+                'error': 'IP não estava na lista de observação'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Log da ação
+        create_safe_log(
+            user=request.user,
+            config=config,
+            tipo='busca_ip',
+            status='sucesso',
+            dados={
+                'acao': 'ip_desmarcado_observacao',
+                'ip_address': validated_ip
+            }
+        )
+
+        return Response({
+            'success': True,
+            'message': 'IP removido da lista de observação com sucesso'
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao desmarcar IP como em observação: {str(e)}")
         return Response({
             'error': 'Erro interno do servidor',
             'details': str(e)

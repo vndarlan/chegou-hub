@@ -33,8 +33,14 @@ function DetectorIPPage() {
     const [showResolvedIPs, setShowResolvedIPs] = useState(false);
     const [loadingResolved, setLoadingResolved] = useState(false);
     const [markingIP, setMarkingIP] = useState(null);
-    
-    
+
+    // Estados para IPs em observação
+    const [observedIPs, setObservedIPs] = useState([]);
+    const [showObservedIPs, setShowObservedIPs] = useState(false);
+    const [loadingObserved, setLoadingObserved] = useState(false);
+    const [markingObserved, setMarkingObserved] = useState(null);
+
+
     
     // Estados modais/interface
     const [showInstructions, setShowInstructions] = useState(false);
@@ -59,6 +65,7 @@ function DetectorIPPage() {
     useEffect(() => {
         if (lojaSelecionada) {
             loadResolvedIPs();
+            loadObservedIPs();
         }
     }, [lojaSelecionada]); // eslint-disable-line react-hooks/exhaustive-deps
     
@@ -424,7 +431,7 @@ function DetectorIPPage() {
             if (response.data.success) {
                 // Remove da lista de resolvidos
                 setResolvedIPs(prev => prev.filter(ip => ip.ip_address !== ipAddress));
-                
+
                 // Força nova busca para mostrar o IP novamente
                 showNotification(`IP ${ipAddress} removido da lista de resolvidos. Execute uma nova busca para vê-lo novamente.`);
             } else {
@@ -435,7 +442,101 @@ function DetectorIPPage() {
             showNotification('Erro ao desmarcar IP', 'error');
         }
     };
-    
+
+    // Funções para gerenciar IPs em observação
+    const loadObservedIPs = async () => {
+        if (!lojaSelecionada) return;
+
+        setLoadingObserved(true);
+        try {
+            const response = await axios.get('/processamento/listar-ips-observacao/', {
+                params: { loja_id: lojaSelecionada }
+            });
+
+            if (response.data.success) {
+                setObservedIPs(response.data.observed_ips || []);
+            } else {
+                console.error('Erro ao carregar IPs em observação:', response.data.error);
+            }
+        } catch (error) {
+            console.error('Erro ao carregar IPs em observação:', error);
+        } finally {
+            setLoadingObserved(false);
+        }
+    };
+
+    const markIPAsObserved = async (ipGroup) => {
+        if (!lojaSelecionada || !ipGroup?.ip) {
+            showNotification('Dados insuficientes para marcar IP como em observação', 'error');
+            return;
+        }
+
+        setMarkingObserved(ipGroup.ip);
+        try {
+            const response = await axios.post('/processamento/marcar-ip-observacao/', {
+                loja_id: parseInt(lojaSelecionada),
+                ip_address: ipGroup.ip,
+                total_orders: ipGroup.order_count || 0,
+                unique_customers: ipGroup.unique_customers || 0,
+                notes: 'Marcado como em observação via interface do detector'
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                }
+            });
+
+            if (response.data.success) {
+                // Remove IP da lista principal
+                setIPGroups(prev => prev.filter(ip => ip.ip !== ipGroup.ip));
+
+                // Recarrega lista de IPs em observação
+                await loadObservedIPs();
+
+                showNotification(`IP ${ipGroup.ip} marcado como em observação com sucesso`);
+            } else {
+                showNotification(response.data.error || 'Erro ao marcar IP como em observação', 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao marcar IP como em observação:', error);
+            showNotification('Erro ao marcar IP como em observação', 'error');
+        } finally {
+            setMarkingObserved(null);
+        }
+    };
+
+    const unmarkIPAsObserved = async (ipAddress) => {
+        if (!lojaSelecionada || !ipAddress) {
+            showNotification('Dados insuficientes para desmarcar IP', 'error');
+            return;
+        }
+
+        try {
+            const response = await axios.delete('/processamento/desmarcar-ip-observacao/', {
+                data: {
+                    loja_id: parseInt(lojaSelecionada),
+                    ip_address: ipAddress
+                },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                }
+            });
+
+            if (response.data.success) {
+                // Remove da lista de observação
+                setObservedIPs(prev => prev.filter(ip => ip.ip_address !== ipAddress));
+
+                showNotification(`IP ${ipAddress} removido da lista de observação. Execute uma nova busca para vê-lo novamente.`);
+            } else {
+                showNotification(response.data.error || 'Erro ao desmarcar IP', 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao desmarcar IP da observação:', error);
+            showNotification('Erro ao desmarcar IP', 'error');
+        }
+    };
+
 
 
     if (loading) {
@@ -780,6 +881,21 @@ function DetectorIPPage() {
                                                             <Button
                                                                 variant="outline"
                                                                 size="sm"
+                                                                onClick={() => markIPAsObserved(ipGroup)}
+                                                                disabled={markingObserved === ipGroup.ip}
+                                                                className="text-amber-600 hover:bg-amber-50 hover:text-amber-700 border-amber-200"
+                                                            >
+                                                                {markingObserved === ipGroup.ip ? (
+                                                                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                                                ) : (
+                                                                    <Eye className="h-4 w-4 mr-1" />
+                                                                )}
+                                                                Observação
+                                                            </Button>
+
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
                                                                 onClick={() => markIPAsResolved(ipGroup)}
                                                                 disabled={markingIP === ipGroup.ip}
                                                                 className="text-green-600 hover:bg-green-50 hover:text-green-700 border-green-200"
@@ -791,7 +907,7 @@ function DetectorIPPage() {
                                                                 )}
                                                                 Resolvido
                                                             </Button>
-                                                            
+
                                                             <Button
                                                                 variant="outline"
                                                                 size="sm"
@@ -820,10 +936,10 @@ function DetectorIPPage() {
 
             {/* Seção de IPs Resolvidos */}
             {resolvedIPs.length > 0 && (
-                <Card className="bg-muted/30 border-border border-dashed">
+                <Card className="bg-green-50/30 dark:bg-green-950/10 border-green-200 dark:border-green-800 border-dashed">
                     <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
-                            <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+                            <CardTitle className="text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
                                 <Check className="h-4 w-4" />
                                 IPs Resolvidos ({resolvedIPs.length})
                             </CardTitle>
@@ -831,36 +947,164 @@ function DetectorIPPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setShowResolvedIPs(!showResolvedIPs)}
-                                className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                                className="h-6 px-2 text-xs text-green-700 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300"
                             >
                                 {showResolvedIPs ? 'Ocultar' : 'Mostrar'}
                             </Button>
                         </div>
                     </CardHeader>
-                
+
                     {showResolvedIPs && (
                         <CardContent className="pt-0">
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                                 {resolvedIPs.map((resolvedIP, index) => (
-                                    <div key={`${resolvedIP.ip_address}-${index}`} 
-                                         className="flex items-center justify-between py-2 px-3 bg-background rounded border text-sm">
-                                        <div className="flex items-center gap-3">
-                                            <span className="font-mono font-medium">{resolvedIP.ip_address}</span>
-                                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                                <span>{resolvedIP.total_orders_at_resolution} pedidos</span>
-                                                <span>{resolvedIP.unique_customers_at_resolution} clientes</span>
-                                                <span>{formatDate(resolvedIP.resolved_at)}</span>
+                                    <Card key={`${resolvedIP.ip_address}-${index}`}
+                                          className="bg-background border-green-200 dark:border-green-800">
+                                        <CardHeader className="pb-3">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-mono font-medium text-foreground">{resolvedIP.ip_address}</span>
+                                                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                                        <span>{resolvedIP.total_orders_at_resolution} pedidos</span>
+                                                        <span>{resolvedIP.unique_customers_at_resolution} clientes</span>
+                                                        <span>{formatDate(resolvedIP.resolved_at)}</span>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => unmarkIPAsResolved(resolvedIP.ip_address)}
+                                                    className="h-6 px-2 text-xs text-muted-foreground hover:text-red-600"
+                                                >
+                                                    <X className="h-3 w-3 mr-1" />
+                                                    Remover
+                                                </Button>
                                             </div>
-                                        </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => unmarkIPAsResolved(resolvedIP.ip_address)}
-                                            className="h-6 px-2 text-xs text-muted-foreground hover:text-red-600"
-                                        >
-                                            <X className="h-3 w-3" />
-                                        </Button>
-                                    </div>
+                                        </CardHeader>
+
+                                        {/* Dados dos Clientes */}
+                                        {resolvedIP.client_data && resolvedIP.client_data.client_details && resolvedIP.client_data.client_details.length > 0 && (
+                                            <CardContent className="pt-0">
+                                                <div className="border-t border-green-200 dark:border-green-800 pt-3">
+                                                    <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                                                        <Users className="h-4 w-4" />
+                                                        Clientes ({resolvedIP.client_data.client_details.length})
+                                                    </h4>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        {resolvedIP.client_data.client_details.map((client, idx) => (
+                                                            <div key={`${client.order_id}-${idx}`}
+                                                                 className="p-3 bg-muted/30 rounded border text-sm">
+                                                                <div className="flex items-center justify-between mb-2">
+                                                                    <span className="font-medium text-foreground">
+                                                                        Pedido {client.order_number || `#${client.order_id}`}
+                                                                    </span>
+                                                                    <Badge variant={client.cancelled_at ? 'secondary' : 'default'} className="text-xs">
+                                                                        {client.cancelled_at ? 'Cancelado' : 'Ativo'}
+                                                                    </Badge>
+                                                                </div>
+                                                                <div className="space-y-1 text-xs text-muted-foreground">
+                                                                    <p><strong>Cliente:</strong> {client.customer_name}</p>
+                                                                    <p><strong>Email:</strong> {client.customer_email}</p>
+                                                                    {client.customer_phone && <p><strong>Telefone:</strong> {client.customer_phone}</p>}
+                                                                    <p><strong>Valor:</strong> {formatCurrency(client.total_price, client.currency)}</p>
+                                                                    <p><strong>Data:</strong> {formatDate(client.created_at)}</p>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                        )}
+                                    </Card>
+                                ))}
+                            </div>
+                        </CardContent>
+                    )}
+                </Card>
+            )}
+
+            {/* Seção de IPs em Observação */}
+            {observedIPs.length > 0 && (
+                <Card className="bg-amber-50/30 dark:bg-amber-950/10 border-amber-200 dark:border-amber-800 border-dashed">
+                    <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                                <Eye className="h-4 w-4" />
+                                IPs em Observação ({observedIPs.length})
+                            </CardTitle>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowObservedIPs(!showObservedIPs)}
+                                className="h-6 px-2 text-xs text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-300"
+                            >
+                                {showObservedIPs ? 'Ocultar' : 'Mostrar'}
+                            </Button>
+                        </div>
+                    </CardHeader>
+
+                    {showObservedIPs && (
+                        <CardContent className="pt-0">
+                            <div className="space-y-3">
+                                {observedIPs.map((observedIP, index) => (
+                                    <Card key={`${observedIP.ip_address}-${index}`}
+                                          className="bg-background border-amber-200 dark:border-amber-800">
+                                        <CardHeader className="pb-3">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-mono font-medium text-foreground">{observedIP.ip_address}</span>
+                                                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                                        <span>{observedIP.total_orders_at_observation} pedidos</span>
+                                                        <span>{observedIP.unique_customers_at_observation} clientes</span>
+                                                        <span>{formatDate(observedIP.observed_at)}</span>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => unmarkIPAsObserved(observedIP.ip_address)}
+                                                    className="h-6 px-2 text-xs text-muted-foreground hover:text-red-600"
+                                                >
+                                                    <X className="h-3 w-3 mr-1" />
+                                                    Remover
+                                                </Button>
+                                            </div>
+                                        </CardHeader>
+
+                                        {/* Dados dos Clientes */}
+                                        {observedIP.client_data && observedIP.client_data.client_details && observedIP.client_data.client_details.length > 0 && (
+                                            <CardContent className="pt-0">
+                                                <div className="border-t border-amber-200 dark:border-amber-800 pt-3">
+                                                    <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                                                        <Users className="h-4 w-4" />
+                                                        Clientes ({observedIP.client_data.client_details.length})
+                                                    </h4>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        {observedIP.client_data.client_details.map((client, idx) => (
+                                                            <div key={`${client.order_id}-${idx}`}
+                                                                 className="p-3 bg-muted/30 rounded border text-sm">
+                                                                <div className="flex items-center justify-between mb-2">
+                                                                    <span className="font-medium text-foreground">
+                                                                        Pedido {client.order_number || `#${client.order_id}`}
+                                                                    </span>
+                                                                    <Badge variant={client.cancelled_at ? 'secondary' : 'default'} className="text-xs">
+                                                                        {client.cancelled_at ? 'Cancelado' : 'Ativo'}
+                                                                    </Badge>
+                                                                </div>
+                                                                <div className="space-y-1 text-xs text-muted-foreground">
+                                                                    <p><strong>Cliente:</strong> {client.customer_name}</p>
+                                                                    <p><strong>Email:</strong> {client.customer_email}</p>
+                                                                    {client.customer_phone && <p><strong>Telefone:</strong> {client.customer_phone}</p>}
+                                                                    <p><strong>Valor:</strong> {formatCurrency(client.total_price, client.currency)}</p>
+                                                                    <p><strong>Data:</strong> {formatDate(client.created_at)}</p>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                        )}
+                                    </Card>
                                 ))}
                             </div>
                         </CardContent>
