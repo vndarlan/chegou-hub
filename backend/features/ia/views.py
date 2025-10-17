@@ -2031,6 +2031,301 @@ def nicochat_testar_conexao(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def nicochat_bot_users_count(request):
+    """
+    Retorna contagem de usuários do bot (conversas abertas + concluídas)
+
+    Query params:
+        - config_id: ID da configuração NicoChat (obrigatório)
+    """
+    logger.info("=" * 80)
+    logger.info("🔍 NICOCHAT_BOT_USERS_COUNT - INICIANDO")
+    logger.info(f"   Usuario: {request.user.username}")
+
+    config_id = request.GET.get('config_id')
+
+    logger.info(f"   config_id: '{config_id}'")
+
+    if not config_id:
+        logger.error("❌ ERRO: config_id não fornecido")
+        return Response(
+            {'error': 'config_id é obrigatório'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        # Buscar configuração
+        logger.info(f"🔎 Buscando NicochatConfig id={config_id}")
+        config = NicochatConfig.objects.get(id=config_id, ativo=True)
+        logger.info(f"✅ Config encontrada: {config.nome}")
+
+        # Verificar permissão
+        tem_permissao = (
+            request.user.is_superuser or
+            request.user.groups.filter(name__in=['Diretoria', 'Gestão', 'IA & Automações']).exists() or
+            config.usuario == request.user
+        )
+
+        if not tem_permissao:
+            logger.error("❌ ERRO: Usuario sem permissão")
+            return Response(
+                {'error': 'Sem permissão para usar esta configuração'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        logger.info("✅ Permissões validadas")
+
+        # Descriptografar API key
+        from .nicochat_service import NicochatAPIService, decrypt_api_key
+
+        try:
+            api_key = decrypt_api_key(config.api_key_encrypted)
+            logger.info("✅ API key descriptografada")
+        except Exception as decrypt_error:
+            logger.error(f"❌ ERRO ao descriptografar: {decrypt_error}")
+            return Response(
+                {'error': 'Erro ao descriptografar API key'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # Chamar service
+        logger.info("🌐 Chamando service.get_bot_users_count()")
+        service = NicochatAPIService(api_key)
+        sucesso, resposta = service.get_bot_users_count(api_key)
+
+        logger.info(f"📊 Resposta - Sucesso: {sucesso}")
+
+        if sucesso:
+            logger.info("✅ Contagem obtida com sucesso")
+            return Response({
+                'success': True,
+                'data': resposta.get('data', [])
+            })
+        else:
+            logger.warning("⚠️ Falha ao buscar contagem")
+            return Response({
+                'success': False,
+                'error': 'Erro ao buscar contagem de usuários',
+                'detalhes': resposta
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    except NicochatConfig.DoesNotExist:
+        logger.error(f"❌ Config não encontrada: id={config_id}")
+        return Response(
+            {'error': 'Configuração NicoChat não encontrada ou inativa'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"❌ ERRO INESPERADO: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return Response(
+            {'error': f'Erro interno: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    finally:
+        logger.info("=" * 80)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def nicochat_whatsapp_templates_list(request):
+    """
+    Lista templates WhatsApp
+
+    Body:
+        - config_id: ID da configuração NicoChat (obrigatório)
+    """
+    logger.info("=" * 80)
+    logger.info("🔍 NICOCHAT_WHATSAPP_TEMPLATES_LIST - INICIANDO")
+    logger.info(f"   Usuario: {request.user.username}")
+
+    config_id = request.data.get('config_id')
+
+    logger.info(f"   config_id: '{config_id}'")
+
+    if not config_id:
+        logger.error("❌ ERRO: config_id não fornecido")
+        return Response(
+            {'error': 'config_id é obrigatório'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        # Buscar configuração
+        logger.info(f"🔎 Buscando NicochatConfig id={config_id}")
+        config = NicochatConfig.objects.get(id=config_id, ativo=True)
+        logger.info(f"✅ Config encontrada: {config.nome}")
+
+        # Verificar permissão
+        tem_permissao = (
+            request.user.is_superuser or
+            request.user.groups.filter(name__in=['Diretoria', 'Gestão', 'IA & Automações']).exists() or
+            config.usuario == request.user
+        )
+
+        if not tem_permissao:
+            logger.error("❌ ERRO: Usuario sem permissão")
+            return Response(
+                {'error': 'Sem permissão para usar esta configuração'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        logger.info("✅ Permissões validadas")
+
+        # Descriptografar API key
+        from .nicochat_service import NicochatAPIService, decrypt_api_key
+
+        try:
+            api_key = decrypt_api_key(config.api_key_encrypted)
+            logger.info("✅ API key descriptografada")
+        except Exception as decrypt_error:
+            logger.error(f"❌ ERRO ao descriptografar: {decrypt_error}")
+            return Response(
+                {'error': 'Erro ao descriptografar API key'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # Chamar service
+        logger.info("🌐 Chamando service.get_whatsapp_templates()")
+        service = NicochatAPIService(api_key)
+        sucesso, resposta = service.get_whatsapp_templates(api_key)
+
+        logger.info(f"📊 Resposta - Sucesso: {sucesso}")
+
+        if sucesso:
+            logger.info("✅ Templates obtidos com sucesso")
+            return Response({
+                'success': True,
+                'data': resposta.get('data', [])
+            })
+        else:
+            logger.warning("⚠️ Falha ao buscar templates")
+            return Response({
+                'success': False,
+                'error': 'Erro ao buscar templates WhatsApp',
+                'detalhes': resposta
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    except NicochatConfig.DoesNotExist:
+        logger.error(f"❌ Config não encontrada: id={config_id}")
+        return Response(
+            {'error': 'Configuração NicoChat não encontrada ou inativa'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"❌ ERRO INESPERADO: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return Response(
+            {'error': f'Erro interno: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    finally:
+        logger.info("=" * 80)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def nicochat_whatsapp_templates_sync(request):
+    """
+    Sincroniza templates WhatsApp com a API Meta
+
+    Body:
+        - config_id: ID da configuração NicoChat (obrigatório)
+    """
+    logger.info("=" * 80)
+    logger.info("🔍 NICOCHAT_WHATSAPP_TEMPLATES_SYNC - INICIANDO")
+    logger.info(f"   Usuario: {request.user.username}")
+
+    config_id = request.data.get('config_id')
+
+    logger.info(f"   config_id: '{config_id}'")
+
+    if not config_id:
+        logger.error("❌ ERRO: config_id não fornecido")
+        return Response(
+            {'error': 'config_id é obrigatório'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        # Buscar configuração
+        logger.info(f"🔎 Buscando NicochatConfig id={config_id}")
+        config = NicochatConfig.objects.get(id=config_id, ativo=True)
+        logger.info(f"✅ Config encontrada: {config.nome}")
+
+        # Verificar permissão
+        tem_permissao = (
+            request.user.is_superuser or
+            request.user.groups.filter(name__in=['Diretoria', 'Gestão', 'IA & Automações']).exists() or
+            config.usuario == request.user
+        )
+
+        if not tem_permissao:
+            logger.error("❌ ERRO: Usuario sem permissão")
+            return Response(
+                {'error': 'Sem permissão para usar esta configuração'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        logger.info("✅ Permissões validadas")
+
+        # Descriptografar API key
+        from .nicochat_service import NicochatAPIService, decrypt_api_key
+
+        try:
+            api_key = decrypt_api_key(config.api_key_encrypted)
+            logger.info("✅ API key descriptografada")
+        except Exception as decrypt_error:
+            logger.error(f"❌ ERRO ao descriptografar: {decrypt_error}")
+            return Response(
+                {'error': 'Erro ao descriptografar API key'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # Chamar service
+        logger.info("🌐 Chamando service.sync_whatsapp_templates()")
+        service = NicochatAPIService(api_key)
+        sucesso, resposta = service.sync_whatsapp_templates(api_key)
+
+        logger.info(f"📊 Resposta - Sucesso: {sucesso}")
+
+        if sucesso:
+            logger.info("✅ Sincronização concluída com sucesso")
+            return Response({
+                'success': True,
+                'message': 'Templates WhatsApp sincronizados com sucesso',
+                'data': resposta
+            })
+        else:
+            logger.warning("⚠️ Falha ao sincronizar templates")
+            return Response({
+                'success': False,
+                'error': 'Erro ao sincronizar templates WhatsApp',
+                'detalhes': resposta
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    except NicochatConfig.DoesNotExist:
+        logger.error(f"❌ Config não encontrada: id={config_id}")
+        return Response(
+            {'error': 'Configuração NicoChat não encontrada ou inativa'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"❌ ERRO INESPERADO: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return Response(
+            {'error': f'Erro interno: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    finally:
+        logger.info("=" * 80)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def verificar_saude_criptografia(request):
     """Verifica saúde do sistema de criptografia WhatsApp"""
     

@@ -13,3 +13,6 @@ export { default as SubflowsList } from './SubflowsList';
 export { default as FormularioTable } from './FormularioTable';
 export { default as LoadingSpinner } from './LoadingSpinner';
 export { default as ErrorAlert } from './ErrorAlert';
+export { default as StatsCard } from './StatsCard';
+export { default as WhatsAppTemplatesCard } from './WhatsAppTemplatesCard';
+export { default as TagsBreakdownCard } from './TagsBreakdownCard';

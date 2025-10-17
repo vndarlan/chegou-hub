@@ -21,7 +21,7 @@ import {
 import { ScrollArea } from '../../components/ui/scroll-area';
 
 // Ícones
-import { RefreshCw, FileX, Package, MapPin } from 'lucide-react';
+import { RefreshCw, FileX, Package, MapPin, Users, MessageCircle, CheckCircle } from 'lucide-react';
 
 // Componentes locais
 import {
@@ -29,7 +29,10 @@ import {
   SubflowsList,
   FormularioTable,
   LoadingSpinner,
-  ErrorAlert
+  ErrorAlert,
+  StatsCard,
+  WhatsAppTemplatesCard,
+  TagsBreakdownCard
 } from './components';
 
 export default function NicochatMetricasPage() {
@@ -38,12 +41,14 @@ export default function NicochatMetricasPage() {
   const [selectedConfig, setSelectedConfig] = useState(null);
   const [subfluxos, setSubfluxos] = useState([]);
   const [userFields, setUserFields] = useState([]);
+  const [botUsersCount, setBotUsersCount] = useState({ open: 0, done: 0, total: 0 });
 
   // Estados de loading/erro
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [loadingSubfluxos, setLoadingSubfluxos] = useState(false);
   const [loadingFields, setLoadingFields] = useState(false);
+  const [loadingStats, setLoadingStats] = useState(false);
 
   // Estados do modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -118,10 +123,31 @@ export default function NicochatMetricasPage() {
     }
   };
 
+  const fetchBotUsersCount = async () => {
+    try {
+      setLoadingStats(true);
+
+      const response = await axios.get('/ia/nicochat/bot-users-count/', {
+        params: { config_id: selectedConfig }
+      });
+
+      const data = response.data.data || [];
+      const done = data.find(d => d.status === 'done')?.num || 0;
+      const open = data.find(d => d.status === 'open')?.num || 0;
+
+      setBotUsersCount({ open, done, total: open + done });
+    } catch (err) {
+      console.error('Erro ao buscar estatísticas de usuários:', err);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
   const fetchAllData = async () => {
     await Promise.all([
       fetchSubfluxos(),
-      fetchUserFields()
+      fetchUserFields(),
+      fetchBotUsersCount()
     ]);
   };
 
@@ -230,13 +256,46 @@ export default function NicochatMetricasPage() {
           <ErrorAlert message="Selecione uma configuração para visualizar os dados" />
         ) : (
           <>
-            {/* Grid de Cards */}
+            {/* ROW 1: Cards de Estatísticas */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <StatsCard
+                title="Total de Contatos"
+                value={botUsersCount.total}
+                icon={<Users className="h-5 w-5" />}
+                color="blue"
+                loading={loadingStats}
+              />
+              <StatsCard
+                title="Conversas Abertas"
+                value={botUsersCount.open}
+                icon={<MessageCircle className="h-5 w-5" />}
+                color="green"
+                loading={loadingStats}
+              />
+              <StatsCard
+                title="Conversas Concluídas"
+                value={botUsersCount.done}
+                icon={<CheckCircle className="h-5 w-5" />}
+                color="gray"
+                loading={loadingStats}
+              />
+              <TagsBreakdownCard
+                tags={subfluxos}
+                loading={loadingSubfluxos}
+              />
+            </div>
+
+            {/* ROW 2: Templates WhatsApp e Automações */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Card 1: Automações Ativas */}
+              <WhatsAppTemplatesCard
+                configId={selectedConfig}
+                onRefresh={handleRefresh}
+              />
+
+              {/* Card de Automações Ativas */}
               <NicochatCard
                 title="Automações Ativas"
                 badge={subfluxos.length}
-                className="md:row-span-2"
               >
                 {loadingSubfluxos ? (
                   <LoadingSpinner message="Carregando automações..." />
@@ -244,8 +303,11 @@ export default function NicochatMetricasPage() {
                   <SubflowsList subfluxos={subfluxos} />
                 )}
               </NicochatCard>
+            </div>
 
-              {/* Card 2: Cancelamentos */}
+            {/* ROW 3: Formulários */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Card: Cancelamentos */}
               <NicochatCard
                 title="Cancelamentos de Pedido"
                 badge={cancelamentos.length}
@@ -261,7 +323,7 @@ export default function NicochatMetricasPage() {
                 )}
               </NicochatCard>
 
-              {/* Card 3: Devoluções */}
+              {/* Card: Devoluções */}
               <NicochatCard
                 title="Devoluções"
                 badge={devolucoes.length}
@@ -277,7 +339,7 @@ export default function NicochatMetricasPage() {
                 )}
               </NicochatCard>
 
-              {/* Card 4: Troca de Endereço */}
+              {/* Card: Troca de Endereço */}
               <NicochatCard
                 title="Troca de Endereço"
                 badge={trocasEndereco.length}

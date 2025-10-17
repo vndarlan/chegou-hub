@@ -242,27 +242,57 @@ class NicochatAPIService:
 
         return False, []
 
-    def get_flow_bot_users_count(self, flow_id: str, api_key: Optional[str] = None) -> Tuple[bool, int]:
+    def get_flow_bot_users_count(self, flow_id: str, api_key: Optional[str] = None) -> Tuple[bool, Dict]:
         """
         Busca a quantidade de usuários (contatos) em um fluxo
 
         Args:
-            flow_id: ID do fluxo
+            flow_id: ID do fluxo (não usado - endpoint retorna estatísticas gerais)
             api_key: API key (opcional)
 
         Returns:
-            Tupla (sucesso: bool, quantidade: int)
+            Tupla (sucesso: bool, stats: dict com 'done' e 'open')
         """
-        endpoint = f"/flows/{flow_id}/bot-users/count"
+        endpoint = "/flow/bot-users-count"
         sucesso, resposta = self._make_request(endpoint, api_key)
 
         if sucesso:
-            # Extrair quantidade da resposta
-            quantidade = resposta.get('count', 0)
-            logger.info(f"Flow {flow_id} tem {quantidade} usuários")
-            return True, quantidade
+            # Resposta formato: {"status": "ok", "data": [{"num": 317, "status": "done"}, {"num": 196, "status": "open"}]}
+            stats_list = resposta.get('data', [])
+            stats = {'done': 0, 'open': 0, 'total': 0}
 
-        return False, 0
+            for item in stats_list:
+                status_key = item.get('status', '')
+                num = item.get('num', 0)
+                if status_key in ['done', 'open']:
+                    stats[status_key] = num
+                    stats['total'] += num
+
+            logger.info(f"Usuários do bot: {stats['done']} concluídos, {stats['open']} abertos")
+            return True, stats
+
+        return False, {'done': 0, 'open': 0, 'total': 0}
+
+    def get_flow_tags(self, flow_id: str, api_key: Optional[str] = None) -> Tuple[bool, List[Dict]]:
+        """
+        Busca todas as tags configuradas no flow
+
+        Args:
+            flow_id: ID do fluxo (não usado - endpoint retorna todas as tags)
+            api_key: API key (opcional)
+
+        Returns:
+            Tupla (sucesso: bool, tags: list)
+        """
+        endpoint = "/flow/tags"
+        sucesso, resposta = self._make_request(endpoint, api_key)
+
+        if sucesso:
+            tags = resposta.get('data', [])
+            logger.info(f"Obtidas {len(tags)} tags")
+            return True, tags
+
+        return False, []
 
     def testar_conexao(self, api_key: str) -> Tuple[bool, str]:
         """
@@ -325,3 +355,75 @@ class NicochatAPIService:
             return True, detalhes
 
         return False, {}
+
+    def get_bot_users_count(self, api_key: str) -> Tuple[bool, Dict]:
+        """
+        Obtém contagem de usuários do bot (conversas abertas e concluídas)
+        Endpoint: GET /flow/bot-users-count
+
+        Args:
+            api_key: API key (obrigatória)
+
+        Returns:
+            Tupla (sucesso: bool, dados: dict)
+            Dados esperados: {"data": [{"num": 318, "status": "done"}, {"num": 196, "status": "open"}]}
+        """
+        endpoint = "/flow/bot-users-count"
+        sucesso, resposta = self._make_request(endpoint, api_key, method='GET')
+
+        if sucesso:
+            dados = resposta.get('data', [])
+            logger.info(f"Obtida contagem de usuários do bot: {len(dados)} registros")
+
+            # Log detalhado da estrutura
+            if dados:
+                logger.info(f"Estrutura dos dados: {dados}")
+
+            return True, resposta
+
+        logger.error(f"Erro ao obter contagem de usuários do bot: {resposta}")
+        return False, resposta
+
+    def get_whatsapp_templates(self, api_key: str) -> Tuple[bool, Dict]:
+        """
+        Lista templates WhatsApp
+        Endpoint: POST /whatsapp-template/list
+
+        Args:
+            api_key: API key (obrigatória)
+
+        Returns:
+            Tupla (sucesso: bool, dados: dict)
+        """
+        endpoint = "/whatsapp-template/list"
+        sucesso, resposta = self._make_request(endpoint, api_key, method='POST')
+
+        if sucesso:
+            templates = resposta.get('data', [])
+            logger.info(f"Obtidos {len(templates)} templates WhatsApp")
+            return True, resposta
+
+        logger.error(f"Erro ao obter templates WhatsApp: {resposta}")
+        return False, resposta
+
+    def sync_whatsapp_templates(self, api_key: str) -> Tuple[bool, Dict]:
+        """
+        Sincroniza templates WhatsApp com a API Meta
+        Endpoint: POST /whatsapp-template/sync
+
+        Args:
+            api_key: API key (obrigatória)
+
+        Returns:
+            Tupla (sucesso: bool, dados: dict)
+        """
+        endpoint = "/whatsapp-template/sync"
+        sucesso, resposta = self._make_request(endpoint, api_key, method='POST')
+
+        if sucesso:
+            logger.info(f"Templates WhatsApp sincronizados com sucesso")
+            logger.info(f"Resposta: {resposta}")
+            return True, resposta
+
+        logger.error(f"Erro ao sincronizar templates WhatsApp: {resposta}")
+        return False, resposta
