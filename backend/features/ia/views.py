@@ -1772,7 +1772,7 @@ def nicochat_subflows(request):
             return Response({
                 'success': True,
                 'flow_id': flow_id,
-                'subfluxos': subfluxos,
+                'data': subfluxos,  # Frontend espera 'data', não 'subfluxos'
                 'total': len(subfluxos)
             })
         else:
@@ -1924,7 +1924,7 @@ def nicochat_user_fields(request):
             return Response({
                 'success': True,
                 'flow_id': flow_id,
-                'campos': campos,
+                'data': campos,  # Frontend espera 'data', não 'campos'
                 'total': len(campos)
             })
         else:
