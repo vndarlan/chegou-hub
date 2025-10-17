@@ -23,6 +23,11 @@ export default function AllTagsCard({ configId, onRefresh }) {
   }, [configId]);
 
   const fetchTags = async (forceRefresh = false) => {
+    if (!configId) {
+      console.warn('AllTagsCard: configId não definido');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -31,6 +36,8 @@ export default function AllTagsCard({ configId, onRefresh }) {
       if (forceRefresh) {
         params.force_refresh = 'true';
       }
+
+      console.log('AllTagsCard: Buscando tags com params:', params);
 
       const response = await axios.get('/ia/nicochat/subscribers/tags-stats/', {
         params
