@@ -24,7 +24,7 @@ class ShopifyDuplicateOrderDetector:
     
     def get_product_identifier(self, item):
         """Retorna identificador único do produto (SKU ou nome normalizado)"""
-        sku = item.get("sku", "").strip()
+        sku = (item.get("sku") or "").strip()
         name = self.normalize_product_name(item.get("title", ""))
         return {"sku": sku, "name": name}
     
@@ -343,7 +343,7 @@ class ShopifyDuplicateOrderDetector:
             product_orders = defaultdict(list)
             for order in customer_orders:
                 for item in order["line_items"]:
-                    sku = item.get("sku", "").strip()
+                    sku = (item.get("sku") or "").strip()
                     product_name = self.normalize_product_name(item.get("title", ""))
                     
                     # Adiciona ao grupo por SKU se existir
@@ -355,7 +355,7 @@ class ShopifyDuplicateOrderDetector:
             
             # Verifica duplicatas para produtos do pedido não processado
             for item in unprocessed_order["line_items"]:
-                sku = item.get("sku", "").strip()
+                sku = (item.get("sku") or "").strip()
                 product_name = self.normalize_product_name(item.get("title", ""))
                 
                 # Verifica se existe duplicata por SKU E/OU nome
