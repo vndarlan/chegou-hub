@@ -1921,6 +1921,36 @@ def nicochat_user_fields(request):
 
         if sucesso:
             logger.info("✅ Campos customizados obtidos com sucesso! Retornando resposta 200")
+
+            # LOG TEMPORÁRIO: Mostrar estrutura COMPLETA dos dados
+            if campos and len(campos) > 0:
+                import json
+                logger.info("📋 ESTRUTURA COMPLETA DO PRIMEIRO CAMPO:")
+                logger.info(json.dumps(campos[0], indent=2, ensure_ascii=False))
+
+                # Coletar todas as chaves únicas
+                todas_chaves = set()
+                for campo in campos:
+                    todas_chaves.update(campo.keys())
+                logger.info(f"📋 TODAS AS CHAVES PRESENTES: {sorted(todas_chaves)}")
+
+                # Procurar campos com 'form' no nome
+                campos_com_form = []
+                for campo in campos:
+                    chaves_form = [k for k in campo.keys() if 'form' in k.lower()]
+                    if chaves_form:
+                        campos_com_form.append({
+                            'id': campo.get('id'),
+                            'chaves_form': chaves_form,
+                            'valores': {k: campo.get(k) for k in chaves_form}
+                        })
+
+                if campos_com_form:
+                    logger.info(f"📋 CAMPOS COM 'FORM': {len(campos_com_form)}")
+                    logger.info(json.dumps(campos_com_form, indent=2, ensure_ascii=False))
+                else:
+                    logger.info("⚠️ NENHUM CAMPO COM 'FORM' ENCONTRADO!")
+
             return Response({
                 'success': True,
                 'flow_id': flow_id,
