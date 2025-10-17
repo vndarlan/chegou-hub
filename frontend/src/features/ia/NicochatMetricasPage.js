@@ -32,7 +32,7 @@ import {
   ErrorAlert,
   StatsCard,
   WhatsAppTemplatesCard,
-  TagsBreakdownCard
+  AllTagsCard
 } from './components';
 
 export default function NicochatMetricasPage() {
@@ -257,7 +257,7 @@ export default function NicochatMetricasPage() {
         ) : (
           <>
             {/* ROW 1: Cards de Estatísticas */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <StatsCard
                 title="Total de Contatos"
                 value={botUsersCount.total}
@@ -279,20 +279,23 @@ export default function NicochatMetricasPage() {
                 color="gray"
                 loading={loadingStats}
               />
-              <TagsBreakdownCard
-                tags={subfluxos}
-                loading={loadingSubfluxos}
-              />
             </div>
 
-            {/* ROW 2: Templates WhatsApp e Automações */}
+            {/* ROW 2: Tags e Templates */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <WhatsAppTemplatesCard
+              <AllTagsCard
                 configId={selectedConfig}
                 onRefresh={handleRefresh}
               />
 
-              {/* Card de Automações Ativas */}
+              <WhatsAppTemplatesCard
+                configId={selectedConfig}
+                onRefresh={handleRefresh}
+              />
+            </div>
+
+            {/* ROW 3: Automações */}
+            <div className="grid grid-cols-1 gap-6">
               <NicochatCard
                 title="Automações Ativas"
                 badge={subfluxos.length}
@@ -305,7 +308,7 @@ export default function NicochatMetricasPage() {
               </NicochatCard>
             </div>
 
-            {/* ROW 3: Formulários */}
+            {/* ROW 4: Formulários */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Card: Cancelamentos */}
               <NicochatCard

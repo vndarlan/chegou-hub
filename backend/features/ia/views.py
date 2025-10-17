@@ -2326,6 +2326,168 @@ def nicochat_whatsapp_templates_sync(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def nicochat_subscribers_tags_stats(request):
+    """
+    Retorna estatísticas de tags de TODOS os subscribers do NicoChat
+
+    Query params:
+        - config_id: ID da configuração NicoChat (obrigatório)
+
+    Retorna:
+        - tags: Lista de tags com contagem e percentual
+        - total_subscribers: Total de contatos
+        - total_tags_found: Número de tags diferentes
+        - cached_at: Timestamp do cache
+        - cache_expires_in: Tempo restante do cache em segundos
+    """
+    from django.core.cache import cache
+    from django.utils import timezone
+
+    logger.info("=" * 80)
+    logger.info("🏷️ NICOCHAT_SUBSCRIBERS_TAGS_STATS - INICIANDO")
+    logger.info(f"   Usuario: {request.user.username}")
+
+    config_id = request.GET.get('config_id')
+    force_refresh = request.GET.get('force_refresh', 'false').lower() == 'true'
+    logger.info(f"   config_id: '{config_id}', force_refresh: {force_refresh}")
+
+    if not config_id:
+        logger.error("❌ ERRO: config_id não fornecido")
+        return Response(
+            {'error': 'config_id é obrigatório'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        # Buscar configuração
+        logger.info(f"🔎 Buscando NicochatConfig id={config_id}")
+        config = NicochatConfig.objects.get(id=config_id, ativo=True)
+        logger.info(f"✅ Config encontrada: {config.nome}")
+
+        # Verificar permissão
+        tem_permissao = (
+            request.user.is_superuser or
+            request.user.groups.filter(name__in=['Diretoria', 'Gestão', 'IA & Automações']).exists() or
+            config.usuario == request.user
+        )
+
+        if not tem_permissao:
+            logger.error("❌ ERRO: Usuario sem permissão")
+            return Response(
+                {'error': 'Sem permissão para usar esta configuração'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        logger.info("✅ Permissões validadas")
+
+        # Verificar cache primeiro
+        cache_key = f"nicochat_tags_stats_{config_id}"
+
+        # Invalidar cache se force_refresh
+        if force_refresh:
+            logger.info("🔄 FORCE REFRESH - Invalidando cache")
+            cache.delete(cache_key)
+            cached_data = None
+        else:
+            cached_data = cache.get(cache_key)
+
+        if cached_data:
+            logger.info("📦 CACHE HIT - Retornando dados em cache")
+            cache_age = (timezone.now() - timezone.datetime.fromisoformat(cached_data['cached_at'])).total_seconds()
+            cached_data['cache_hit'] = True
+            cached_data['cache_age_seconds'] = round(cache_age, 2)
+            logger.info(f"   Cache age: {cache_age:.2f}s")
+            logger.info("=" * 80)
+            return Response(cached_data)
+
+        logger.info("📭 CACHE MISS - Buscando dados da API")
+
+        # Descriptografar API key
+        from .nicochat_service import NicochatAPIService, decrypt_api_key
+
+        try:
+            api_key = decrypt_api_key(config.api_key_encrypted)
+            logger.info("✅ API key descriptografada")
+        except Exception as decrypt_error:
+            logger.error(f"❌ ERRO ao descriptografar: {decrypt_error}")
+            return Response(
+                {'error': 'Erro ao descriptografar API key'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # Chamar service
+        logger.info("🌐 Chamando service.get_all_subscribers_tags()")
+        logger.info("   ⚠️ ATENÇÃO: Isso pode demorar 10-20 segundos (531 contatos, 54 páginas)")
+
+        service = NicochatAPIService(api_key)
+        sucesso, resposta = service.get_all_subscribers_tags(api_key)
+
+        if sucesso:
+            logger.info("✅ Estatísticas de tags obtidas com sucesso")
+
+            # Preparar resposta com cache info
+            cached_at = timezone.now().isoformat()
+            cache_ttl = 600  # 10 minutos
+
+            result = {
+                'success': True,
+                'tags': resposta.get('tags', []),
+                'total_subscribers': resposta.get('total_subscribers', 0),
+                'total_tags_found': resposta.get('total_tags_found', 0),
+                'pages_processed': resposta.get('pages_processed', 0),
+                'processing_time_seconds': resposta.get('processing_time_seconds', 0),
+                'cached_at': cached_at,
+                'cache_expires_in': cache_ttl,
+                'cache_hit': False
+            }
+
+            # Adicionar erros se houver
+            if 'errors' in resposta:
+                result['errors'] = resposta['errors']
+
+            # Armazenar em cache
+            cache.set(cache_key, result, cache_ttl)
+            logger.info(f"💾 Dados armazenados em cache por {cache_ttl}s")
+
+            return Response(result)
+
+        else:
+            logger.warning("⚠️ Falha ao buscar estatísticas de tags")
+
+            # Tentar retornar cache antigo se existir (fallback)
+            old_cache = cache.get(cache_key + "_backup")
+            if old_cache:
+                logger.info("🔄 Retornando cache antigo como fallback")
+                old_cache['cache_fallback'] = True
+                old_cache['error_message'] = resposta.get('error', 'Erro ao buscar dados')
+                return Response(old_cache, status=status.HTTP_200_OK)
+
+            return Response({
+                'success': False,
+                'error': 'Erro ao buscar estatísticas de tags',
+                'detalhes': resposta
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    except NicochatConfig.DoesNotExist:
+        logger.error(f"❌ Config não encontrada: id={config_id}")
+        return Response(
+            {'error': 'Configuração NicoChat não encontrada ou inativa'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"❌ ERRO INESPERADO: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return Response(
+            {'error': f'Erro interno: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    finally:
+        logger.info("=" * 80)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def verificar_saude_criptografia(request):
     """Verifica saúde do sistema de criptografia WhatsApp"""
     

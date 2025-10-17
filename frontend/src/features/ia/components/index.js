@@ -15,4 +15,4 @@ export { default as LoadingSpinner } from './LoadingSpinner';
 export { default as ErrorAlert } from './ErrorAlert';
 export { default as StatsCard } from './StatsCard';
 export { default as WhatsAppTemplatesCard } from './WhatsAppTemplatesCard';
-export { default as TagsBreakdownCard } from './TagsBreakdownCard';
+export { default as AllTagsCard } from './AllTagsCard';

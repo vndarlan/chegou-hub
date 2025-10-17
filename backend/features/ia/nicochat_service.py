@@ -427,3 +427,149 @@ class NicochatAPIService:
 
         logger.error(f"Erro ao sincronizar templates WhatsApp: {resposta}")
         return False, resposta
+
+    def get_all_subscribers_tags(self, api_key: str) -> Tuple[bool, Dict]:
+        """
+        Busca TODOS os subscribers paginados e extrai estatísticas de tags
+        Endpoint: GET /subscribers (com paginação completa)
+
+        Args:
+            api_key: API key (obrigatória)
+
+        Returns:
+            Tupla (sucesso: bool, dados: dict)
+            Formato: {
+                "tags": [{"name": "tag1", "tag_ns": "id1", "count": 10, "percentage": 15.5}],
+                "total_subscribers": 531,
+                "total_tags_found": 62,
+                "pages_processed": 54,
+                "processing_time_seconds": 12.5
+            }
+        """
+        import time
+        from collections import defaultdict
+
+        start_time = time.time()
+        logger.info("=" * 80)
+        logger.info("🔍 INICIANDO BUSCA DE TODAS AS TAGS DOS SUBSCRIBERS")
+
+        # Dicionário para contar tags: {(name, tag_ns): count}
+        tags_counter = defaultdict(int)
+        total_subscribers = 0
+        current_page = 1
+        pages_processed = 0
+        errors = []
+
+        try:
+            while True:
+                # Buscar página atual
+                endpoint = "/subscribers"
+                params = {
+                    'page': current_page,
+                    'per_page': 100  # Máximo por página para otimizar
+                }
+
+                logger.info(f"📄 Buscando página {current_page}...")
+                sucesso, resposta = self._make_request(
+                    endpoint,
+                    api_key,
+                    method='GET',
+                    params=params
+                )
+
+                if not sucesso:
+                    error_msg = f"Erro na página {current_page}: {resposta.get('error', 'Desconhecido')}"
+                    logger.error(f"❌ {error_msg}")
+                    errors.append(error_msg)
+
+                    # Se falhou logo na primeira página, retornar erro
+                    if current_page == 1:
+                        return False, {
+                            'error': 'Falha ao buscar subscribers',
+                            'detalhes': resposta
+                        }
+
+                    # Se falhou em páginas posteriores, continuar com o que já temos
+                    break
+
+                # Extrair dados da página
+                data = resposta.get('data', {})
+                subscribers = data.get('data', [])
+                pagination = data.get('pagination', {})
+
+                last_page = pagination.get('last_page', 1)
+                total_subscribers = pagination.get('total', 0)
+
+                logger.info(f"   ✅ Página {current_page}/{last_page} - {len(subscribers)} subscribers")
+
+                # Processar tags desta página
+                for subscriber in subscribers:
+                    tags = subscriber.get('tags', [])
+                    for tag in tags:
+                        tag_name = tag.get('name', '')
+                        tag_ns = tag.get('tag_ns', '')
+
+                        if tag_name:  # Só contar tags com nome
+                            tags_counter[(tag_name, tag_ns)] += 1
+
+                pages_processed += 1
+
+                # Verificar se chegou na última página
+                if current_page >= last_page:
+                    logger.info(f"✅ Processamento completo! {pages_processed} páginas processadas")
+                    break
+
+                current_page += 1
+
+            # Calcular estatísticas finais
+            processing_time = time.time() - start_time
+
+            # Converter para lista ordenada por count (decrescente)
+            tags_list = []
+            for (tag_name, tag_ns), count in tags_counter.items():
+                percentage = (count / total_subscribers * 100) if total_subscribers > 0 else 0
+                tags_list.append({
+                    'name': tag_name,
+                    'tag_ns': tag_ns,
+                    'count': count,
+                    'percentage': round(percentage, 2)
+                })
+
+            # Ordenar por count (maior primeiro)
+            tags_list.sort(key=lambda x: x['count'], reverse=True)
+
+            result = {
+                'tags': tags_list,
+                'total_subscribers': total_subscribers,
+                'total_tags_found': len(tags_list),
+                'pages_processed': pages_processed,
+                'processing_time_seconds': round(processing_time, 2)
+            }
+
+            if errors:
+                result['errors'] = errors
+
+            logger.info(f"📊 ESTATÍSTICAS FINAIS:")
+            logger.info(f"   Total de subscribers: {total_subscribers}")
+            logger.info(f"   Total de tags diferentes: {len(tags_list)}")
+            logger.info(f"   Páginas processadas: {pages_processed}")
+            logger.info(f"   Tempo de processamento: {processing_time:.2f}s")
+            logger.info(f"   Top 5 tags:")
+            for tag in tags_list[:5]:
+                logger.info(f"      - {tag['name']}: {tag['count']} ({tag['percentage']}%)")
+            logger.info("=" * 80)
+
+            return True, result
+
+        except Exception as e:
+            processing_time = time.time() - start_time
+            logger.error(f"❌ ERRO INESPERADO ao processar tags: {e}")
+            logger.error(f"   Tempo decorrido: {processing_time:.2f}s")
+            logger.error("=" * 80)
+
+            return False, {
+                'error': 'Erro inesperado ao processar tags',
+                'message': str(e),
+                'pages_processed': pages_processed,
+                'processing_time_seconds': round(processing_time, 2)
+            }

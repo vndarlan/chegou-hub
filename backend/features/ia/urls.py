@@ -41,6 +41,7 @@ urlpatterns = [
     path('nicochat/bot-users-count/', views.nicochat_bot_users_count, name='nicochat-bot-users-count'),
     path('nicochat/whatsapp-templates/', views.nicochat_whatsapp_templates_list, name='nicochat-whatsapp-templates'),
     path('nicochat/whatsapp-templates/sync/', views.nicochat_whatsapp_templates_sync, name='nicochat-whatsapp-templates-sync'),
+    path('nicochat/subscribers/tags-stats/', views.nicochat_subscribers_tags_stats, name='nicochat-subscribers-tags-stats'),
 
     # === ENDPOINTS TEMPORÁRIOS - REMOVER APÓS USO ===
     path('fix-whatsapp-tokens-temp/', views.fix_whatsapp_tokens_temp, name='fix-whatsapp-tokens-temp'),
