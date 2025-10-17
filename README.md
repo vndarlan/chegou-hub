@@ -1,6 +1,6 @@
 # Chegou Hub - Plataforma de Gestão Empresarial
 
-**Versão Atual: v1.5.0** | [📋 Changelog](CHANGELOG.md)
+**Versão Atual: v1.5.3** | [📋 Changelog](CHANGELOG.md)
 
 ## 📋 Sobre o Projeto
 
