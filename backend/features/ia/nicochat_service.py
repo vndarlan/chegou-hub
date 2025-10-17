@@ -493,12 +493,13 @@ class NicochatAPIService:
                     break
 
                 # Extrair dados da página
-                data = resposta.get('data', {})
-                subscribers = data.get('data', [])
-                pagination = data.get('pagination', {})
+                # resposta já é o dict completo: {data: [...], links: {...}, meta: {...}}
+                subscribers = resposta.get('data', [])
+                meta = resposta.get('meta', {})
 
-                last_page = pagination.get('last_page', 1)
-                total_subscribers = pagination.get('total', 0)
+                last_page = meta.get('last_page', 1)
+                current_page_from_api = meta.get('current_page', current_page)
+                total_subscribers = meta.get('total', 0)
 
                 logger.info(f"   ✅ Página {current_page}/{last_page} - {len(subscribers)} subscribers")
 
