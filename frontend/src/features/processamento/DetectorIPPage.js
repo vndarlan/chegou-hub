@@ -537,6 +537,66 @@ function DetectorIPPage() {
         }
     };
 
+    const moveObservedToResolved = async (observedIP) => {
+        if (!lojaSelecionada || !observedIP?.ip_address) {
+            showNotification('Dados insuficientes para mover IP', 'error');
+            return;
+        }
+
+        setMarkingIP(observedIP.ip_address);
+        try {
+            // 1. Marcar como resolvido (com os mesmos dados salvos)
+            const markResolvedResponse = await axios.post('/processamento/marcar-ip-resolvido/', {
+                loja_id: parseInt(lojaSelecionada),
+                ip_address: observedIP.ip_address,
+                total_orders: observedIP.total_orders_at_observation || 0,
+                unique_customers: observedIP.unique_customers_at_observation || 0,
+                notes: `Movido de observação para resolvido. ${observedIP.notes || ''}`
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                }
+            });
+
+            if (!markResolvedResponse.data.success) {
+                showNotification(markResolvedResponse.data.error || 'Erro ao marcar como resolvido', 'error');
+                setMarkingIP(null);
+                return;
+            }
+
+            // 2. Remover da lista de observação
+            const unmarkObservedResponse = await axios.delete('/processamento/desmarcar-ip-observacao/', {
+                data: {
+                    loja_id: parseInt(lojaSelecionada),
+                    ip_address: observedIP.ip_address
+                },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                }
+            });
+
+            if (unmarkObservedResponse.data.success) {
+                // Atualiza ambas as listas
+                await Promise.all([
+                    loadResolvedIPs(),
+                    loadObservedIPs()
+                ]);
+
+                showNotification(`IP ${observedIP.ip_address} movido para resolvidos com sucesso`);
+            } else {
+                showNotification('IP marcado como resolvido mas não removido da observação. Atualize a página.', 'warning');
+                await loadResolvedIPs();
+            }
+        } catch (error) {
+            console.error('Erro ao mover IP para resolvidos:', error);
+            showNotification('Erro ao mover IP para resolvidos', 'error');
+        } finally {
+            setMarkingIP(null);
+        }
+    };
+
 
 
     if (loading) {
@@ -1059,15 +1119,34 @@ function DetectorIPPage() {
                                                         <span>{formatDate(observedIP.observed_at)}</span>
                                                     </div>
                                                 </div>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => unmarkIPAsObserved(observedIP.ip_address)}
-                                                    className="h-6 px-2 text-xs text-muted-foreground hover:text-red-600"
-                                                >
-                                                    <X className="h-3 w-3 mr-1" />
-                                                    Remover
-                                                </Button>
+                                                <div className="flex items-center gap-2">
+                                                    {/* NOVO BOTÃO - Resolvido */}
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => moveObservedToResolved(observedIP)}
+                                                        disabled={markingIP === observedIP.ip_address}
+                                                        className="h-6 px-2 text-xs text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                    >
+                                                        {markingIP === observedIP.ip_address ? (
+                                                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                                        ) : (
+                                                            <Check className="h-3 w-3 mr-1" />
+                                                        )}
+                                                        Resolvido
+                                                    </Button>
+
+                                                    {/* Botão Remover existente */}
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => unmarkIPAsObserved(observedIP.ip_address)}
+                                                        className="h-6 px-2 text-xs text-muted-foreground hover:text-red-600"
+                                                    >
+                                                        <X className="h-3 w-3 mr-1" />
+                                                        Remover
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </CardHeader>
 
