@@ -1622,7 +1622,8 @@ class NicochatConfigViewSet(viewsets.ModelViewSet):
             if 'ativo' in request.data:
                 logger.info(f"🔄 Campo 'ativo' presente: {request.data.get('ativo')} (atual: {instance.ativo})")
 
-            # Chamar update padrão
+            # Chamar update padrão COM partial=True para permitir updates parciais
+            kwargs['partial'] = True
             response = super().update(request, *args, **kwargs)
 
             logger.info("✅ UPDATE CONCLUÍDO COM SUCESSO")
