@@ -7,16 +7,12 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [v1.6.0] - 17/10/2025
 
-### ✨ Novidades
+### 🔧 Melhorias
 
 - **[🔒 Detector IP]** Sistema de IPs em Observação para monitoramento de casos suspeitos
-- **[🔒 Detector IP]** Salvamento automático de dados completos dos clientes (histórico persistente)
-- **[🔒 Detector IP]** Visualização detalhada de pedidos e clientes nas seções Resolvido e Observação
-- **[🔒 Detector IP]** Botão para mover IPs diretamente de Observação para Resolvido
-
-### 🐛 Correções
-
-- **[📦 Processamento Shopify]** Corrigido erro ao processar produtos sem SKU no detector de duplicatas
+- **[🔒 Detector IP]** Salvamento automático de dados completos dos clientes com histórico persistente
+- **[🔒 Detector IP]** Visualização detalhada de pedidos nas seções Resolvido e Observação
+- **[🔒 Detector IP]** Botão para mover IPs diretamente entre Observação e Resolvido
 
 ## [v1.5.3] - 17/10/2025
 
