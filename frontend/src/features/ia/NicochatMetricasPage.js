@@ -5,6 +5,7 @@ import { useWorkspace } from './contexts/WorkspaceContext';
 
 // shadcn/ui imports
 import { Button } from '../../components/ui/button';
+import { Alert, AlertDescription } from '../../components/ui/alert';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +16,7 @@ import {
 import { ScrollArea } from '../../components/ui/scroll-area';
 
 // Ícones
-import { RefreshCw, FileX, Package, MapPin, Users, MessageCircle, CheckCircle } from 'lucide-react';
+import { RefreshCw, FileX, Package, MapPin, Users, MessageCircle, CheckCircle, AlertTriangle } from 'lucide-react';
 
 // Componentes locais
 import {
@@ -30,7 +31,7 @@ import {
 import EmailMetricsCard from './components/EmailMetricsCard';
 
 export default function NicochatMetricasPage() {
-  const { selectedWorkspace } = useWorkspace();
+  const { selectedWorkspace, validationError } = useWorkspace();
 
   // Estados de dados
   const [configs, setConfigs] = useState([]);
@@ -51,11 +52,6 @@ export default function NicochatMetricasPage() {
 
   // Constantes
   const FLOW_ID = 'f108059';
-
-  // Carregar configurações ao montar
-  useEffect(() => {
-    fetchConfigs();
-  }, []);
 
   // Carregar dados quando o workspace for selecionado
   useEffect(() => {
@@ -327,6 +323,8 @@ export default function NicochatMetricasPage() {
                 )}
               </NicochatCard>
             </div>
+          </>
+        )}
 
         {/* Modal de Detalhes */}
         <Dialog open={modalOpen} onOpenChange={setModalOpen}>
