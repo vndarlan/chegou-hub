@@ -1,20 +1,27 @@
 // frontend/src/pages/NicochatPage.js
 import React from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { MessageSquare, LayoutDashboard, Home, Settings, BarChart3 } from 'lucide-react';
+import { MessageSquare, Home, Settings, BarChart3, Shield } from 'lucide-react';
 
 // shadcn/ui imports
 import { Button } from '../components/ui/button';
 import { ScrollArea } from '../components/ui/scroll-area';
 
-// Importar páginas
-import NicochatDashboard from '../features/ia/NicochatDashboard';
-import NicochatConfigPage from '../features/ia/NicochatConfigPage';
-import NicochatMetricasPage from '../features/ia/NicochatMetricasPage';
+// Context
+import { WorkspaceProvider, useWorkspace } from '../features/ia/contexts/WorkspaceContext';
 
-function NicochatPage() {
+// Components
+import WorkspaceSelector from '../features/ia/components/WorkspaceSelector';
+
+// Páginas
+import NicochatMetricasPage from '../features/ia/NicochatMetricasPage';
+import NicochatQualidadeContaPage from '../features/ia/NicochatQualidadeContaPage';
+import NicochatWorkspacesPage from '../features/ia/NicochatWorkspacesPage';
+
+function NicochatPageContent() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { selectedWorkspace, setSelectedWorkspace } = useWorkspace();
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -37,28 +44,28 @@ function NicochatPage() {
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-2">
             <Button
-              variant={location.pathname === '/nicochat/dashboard' ? 'secondary' : 'ghost'}
-              className="w-full justify-start"
-              onClick={() => navigate('/nicochat/dashboard')}
-            >
-              <LayoutDashboard className="mr-2 h-4 w-4" />
-              Dashboard
-            </Button>
-            <Button
-              variant={location.pathname === '/nicochat/config' ? 'secondary' : 'ghost'}
-              className="w-full justify-start"
-              onClick={() => navigate('/nicochat/config')}
-            >
-              <Settings className="mr-2 h-4 w-4" />
-              Configuração
-            </Button>
-            <Button
               variant={location.pathname === '/nicochat/metricas' ? 'secondary' : 'ghost'}
               className="w-full justify-start"
               onClick={() => navigate('/nicochat/metricas')}
             >
               <BarChart3 className="mr-2 h-4 w-4" />
               Métricas
+            </Button>
+            <Button
+              variant={location.pathname === '/nicochat/qualidade-conta' ? 'secondary' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => navigate('/nicochat/qualidade-conta')}
+            >
+              <Shield className="mr-2 h-4 w-4" />
+              Qualidade da Conta
+            </Button>
+            <Button
+              variant={location.pathname === '/nicochat/workspaces' ? 'secondary' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => navigate('/nicochat/workspaces')}
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Workspaces
             </Button>
           </div>
         </ScrollArea>
@@ -78,15 +85,37 @@ function NicochatPage() {
 
       {/* Área de conteúdo principal */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        <Routes>
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<NicochatDashboard />} />
-          <Route path="config" element={<NicochatConfigPage />} />
-          <Route path="metricas" element={<NicochatMetricasPage />} />
-          <Route path="*" element={<Navigate to="dashboard" replace />} />
-        </Routes>
+        {/* Barra superior com Workspace Selector */}
+        <div className="border-b bg-card p-4">
+          <div className="max-w-7xl mx-auto">
+            <WorkspaceSelector
+              value={selectedWorkspace}
+              onChange={setSelectedWorkspace}
+              showLimiteAlert={true}
+            />
+          </div>
+        </div>
+
+        {/* Conteúdo das páginas */}
+        <div className="flex-1 overflow-y-auto">
+          <Routes>
+            <Route index element={<Navigate to="metricas" replace />} />
+            <Route path="metricas" element={<NicochatMetricasPage />} />
+            <Route path="qualidade-conta" element={<NicochatQualidadeContaPage />} />
+            <Route path="workspaces" element={<NicochatWorkspacesPage />} />
+            <Route path="*" element={<Navigate to="metricas" replace />} />
+          </Routes>
+        </div>
       </main>
     </div>
+  );
+}
+
+function NicochatPage() {
+  return (
+    <WorkspaceProvider>
+      <NicochatPageContent />
+    </WorkspaceProvider>
   );
 }
 

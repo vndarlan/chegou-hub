@@ -8,7 +8,7 @@ from .models import (
     # WhatsApp Business models
     WhatsAppBusinessAccount, BusinessManager, WhatsAppPhoneNumber, QualityHistory, QualityAlert,
     # NicoChat models
-    NicochatConfig
+    NicochatWorkspace, NicochatConfig
 )
 
 # ===== ADMIN DE LOGS (EXISTENTE) =====
@@ -499,19 +499,23 @@ class QualityAlertAdmin(admin.ModelAdmin):
 
 # ===== ADMIN DE NICOCHAT =====
 
-@admin.register(NicochatConfig)
-class NicochatConfigAdmin(admin.ModelAdmin):
+@admin.register(NicochatWorkspace)
+class NicochatWorkspaceAdmin(admin.ModelAdmin):
     list_display = [
-        'nome', 'usuario', 'ativo', 'criado_em', 'atualizado_em'
+        'nome', 'usuario', 'limite_contatos', 'ativo', 'criado_em', 'atualizado_em'
     ]
     list_filter = ['ativo', 'usuario', 'criado_em']
     search_fields = ['nome', 'usuario__first_name', 'usuario__last_name', 'usuario__username']
-    list_editable = ['ativo']
+    list_editable = ['ativo', 'limite_contatos']
     readonly_fields = ['criado_em', 'atualizado_em']
 
     fieldsets = (
         ('Informações Básicas', {
             'fields': ('nome', 'usuario', 'ativo')
+        }),
+        ('Controle de Limites', {
+            'fields': ('limite_contatos',),
+            'description': 'Defina o número máximo de contatos permitidos neste workspace'
         }),
         ('Configuração API', {
             'fields': ('api_key_encrypted',),

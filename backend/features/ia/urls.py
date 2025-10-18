@@ -14,6 +14,8 @@ router.register(r'quality-history', views.QualityHistoryViewSet, basename='quali
 router.register(r'quality-alerts', views.QualityAlertViewSet, basename='quality-alert')
 
 # NicoChat routers
+router.register(r'nicochat-workspaces', views.NicochatWorkspaceViewSet, basename='nicochat-workspace')
+# Manter compatibilidade temporária
 router.register(r'nicochat-configs', views.NicochatConfigViewSet, basename='nicochat-config')
 
 urlpatterns = [
@@ -42,6 +44,7 @@ urlpatterns = [
     path('nicochat/whatsapp-templates/', views.nicochat_whatsapp_templates_list, name='nicochat-whatsapp-templates'),
     path('nicochat/whatsapp-templates/sync/', views.nicochat_whatsapp_templates_sync, name='nicochat-whatsapp-templates-sync'),
     path('nicochat/subscribers/tags-stats/', views.nicochat_subscribers_tags_stats, name='nicochat-subscribers-tags-stats'),
+    path('nicochat/email-metrics/', views.nicochat_email_metrics, name='nicochat-email-metrics'),
 
     # === ENDPOINTS TEMPORÁRIOS - REMOVER APÓS USO ===
     path('fix-whatsapp-tokens-temp/', views.fix_whatsapp_tokens_temp, name='fix-whatsapp-tokens-temp'),

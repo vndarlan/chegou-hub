@@ -1,23 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Alert, AlertDescription } from '../../components/ui/alert';
-import { 
-  AlertTriangle, 
+import {
+  AlertTriangle,
   RefreshCw
 } from 'lucide-react';
 import axios from 'axios';
+import { useWorkspace } from './contexts/WorkspaceContext';
 
 // Importar componentes necessários
 import PhoneNumberTable from './components/PhoneNumberTable';
 import AddPhoneNumberModal from './components/AddPhoneNumberModal';
+import WhatsAppTemplatesCard from './components/WhatsAppTemplatesCard';
 
-const NicochatPage = () => {
+const NicochatQualidadeContaPage = () => {
+  const { selectedWorkspace } = useWorkspace();
   // Estados principais
   const [phoneNumbers, setPhoneNumbers] = useState([]);
 
   // Estados de loading
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Estado do modal
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -37,7 +40,7 @@ const NicochatPage = () => {
         message: err.message,
         url: err.config?.url
       });
-      
+
       if (err.response?.status === 404) {
         setError('Endpoint da API não encontrado. Verifique se o backend está rodando.');
       } else if (err.response?.status === 403) {
@@ -62,7 +65,7 @@ const NicochatPage = () => {
   // Manipuladores do modal
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
-  
+
   const handleNumberAdded = (newNumber) => {
     // Refresh da lista após adicionar
     fetchPhoneNumbers();
@@ -88,12 +91,12 @@ const NicochatPage = () => {
   return (
     <div className="p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        
-        {/* Header Simples */}
+
+        {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold mb-2">Números WhatsApp Business</h1>
+          <h1 className="text-3xl font-bold mb-2">Qualidade da Conta</h1>
           <p className="text-muted-foreground">
-            Gerenciamento dos números WhatsApp Business
+            Gerenciamento de números WhatsApp Business e templates
           </p>
         </div>
 
@@ -105,7 +108,15 @@ const NicochatPage = () => {
           </Alert>
         )}
 
-        {/* Tabela de Números */}
+        {/* ROW 1: Templates WhatsApp */}
+        {selectedWorkspace && (
+          <WhatsAppTemplatesCard
+            configId={selectedWorkspace}
+            onRefresh={fetchPhoneNumbers}
+          />
+        )}
+
+        {/* ROW 2: Tabela de Números WhatsApp */}
         <PhoneNumberTable
           phoneNumbers={phoneNumbers}
           onRefresh={fetchPhoneNumbers}
@@ -125,4 +136,4 @@ const NicochatPage = () => {
   );
 };
 
-export default NicochatPage;
+export default NicochatQualidadeContaPage;

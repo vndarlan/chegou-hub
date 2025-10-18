@@ -17,11 +17,12 @@ import { RefreshCw, AlertTriangle, Check, X, Eye, EyeOff, Plus, Trash2, Power } 
 // Componentes locais
 import { LoadingSpinner, ErrorAlert } from './components';
 
-export default function NicochatConfigPage() {
+export default function NicochatWorkspacesPage() {
   // Estados do formulário
   const [formData, setFormData] = useState({
     nome: '',
-    api_key: ''
+    api_key: '',
+    limite_contatos: 1000
   });
   const [showApiKey, setShowApiKey] = useState(false);
 
@@ -45,7 +46,7 @@ export default function NicochatConfigPage() {
       setLoadingList(true);
       setError(null);
 
-      const response = await axios.get('/ia/nicochat-configs/');
+      const response = await axios.get('/ia/nicochat-workspaces/');
       setConfigs(response.data.results || response.data);
     } catch (err) {
       console.error('Erro ao carregar configurações:', err);
@@ -93,7 +94,7 @@ export default function NicochatConfigPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.nome || !formData.api_key) {
+    if (!formData.nome || !formData.api_key || !formData.limite_contatos) {
       setError('Preencha todos os campos');
       return;
     }
@@ -104,17 +105,17 @@ export default function NicochatConfigPage() {
       setSuccess(null);
 
       await axios.post(
-        '/ia/nicochat-configs/',
+        '/ia/nicochat-workspaces/',
         formData,
         { headers: { 'X-CSRFToken': getCSRFToken() } }
       );
 
-      setSuccess('Configuração salva com sucesso!');
-      setFormData({ nome: '', api_key: '' });
+      setSuccess('Workspace salvo com sucesso!');
+      setFormData({ nome: '', api_key: '', limite_contatos: 1000 });
       fetchConfigs();
     } catch (err) {
-      console.error('Erro ao salvar configuração:', err);
-      setError(err.response?.data?.error || 'Erro ao salvar configuração');
+      console.error('Erro ao salvar workspace:', err);
+      setError(err.response?.data?.error || 'Erro ao salvar workspace');
     } finally {
       setLoading(false);
     }
@@ -123,7 +124,7 @@ export default function NicochatConfigPage() {
   const handleToggleActive = async (configId, currentStatus) => {
     try {
       await axios.put(
-        `/ia/nicochat-configs/${configId}/`,
+        `/ia/nicochat-workspaces/${configId}/`,
         { ativo: !currentStatus },
         { headers: { 'X-CSRFToken': getCSRFToken() } }
       );
@@ -131,26 +132,26 @@ export default function NicochatConfigPage() {
       fetchConfigs();
     } catch (err) {
       console.error('Erro ao atualizar status:', err);
-      setError('Erro ao atualizar status da configuração');
+      setError('Erro ao atualizar status do workspace');
     }
   };
 
   const handleDelete = async (configId) => {
-    if (!window.confirm('Tem certeza que deseja excluir esta configuração?')) {
+    if (!window.confirm('Tem certeza que deseja excluir este workspace?')) {
       return;
     }
 
     try {
       await axios.delete(
-        `/ia/nicochat-configs/${configId}/`,
+        `/ia/nicochat-workspaces/${configId}/`,
         { headers: { 'X-CSRFToken': getCSRFToken() } }
       );
 
-      setSuccess('Configuração excluída com sucesso!');
+      setSuccess('Workspace excluído com sucesso!');
       fetchConfigs();
     } catch (err) {
-      console.error('Erro ao excluir configuração:', err);
-      setError('Erro ao excluir configuração');
+      console.error('Erro ao excluir workspace:', err);
+      setError('Erro ao excluir workspace');
     }
   };
 
@@ -159,33 +160,33 @@ export default function NicochatConfigPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold mb-2">Configurações NicoChat</h1>
+          <h1 className="text-3xl font-bold mb-2">Workspaces</h1>
           <p className="text-muted-foreground">
-            Gerencie suas API Keys e configurações do NicoChat
+            Gerencie seus workspaces e API Keys do NicoChat
           </p>
         </div>
 
-        {/* Formulário de Nova Configuração */}
+        {/* Formulário de Novo Workspace */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5" />
-              Adicionar Nova Configuração
+              Adicionar Novo Workspace
             </CardTitle>
             <CardDescription>
-              Configure uma nova API Key para integração com o NicoChat
+              Configure um novo workspace com sua API Key do NicoChat
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Nome */}
               <div className="space-y-2">
-                <Label htmlFor="nome">Nome da Configuração</Label>
+                <Label htmlFor="nome">Nome do Workspace</Label>
                 <Input
                   id="nome"
                   name="nome"
                   type="text"
-                  placeholder="Ex: Configuração Principal"
+                  placeholder="Ex: Workspace Principal"
                   value={formData.nome}
                   onChange={handleInputChange}
                   disabled={loading}
@@ -242,6 +243,24 @@ export default function NicochatConfigPage() {
                 </div>
               </div>
 
+              {/* Limite de Contatos */}
+              <div className="space-y-2">
+                <Label htmlFor="limite_contatos">Limite de Contatos</Label>
+                <Input
+                  id="limite_contatos"
+                  name="limite_contatos"
+                  type="number"
+                  min="1"
+                  placeholder="Ex: 1000"
+                  value={formData.limite_contatos}
+                  onChange={handleInputChange}
+                  disabled={loading}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Número máximo de contatos permitidos neste workspace
+                </p>
+              </div>
+
               {/* Alertas */}
               {error && (
                 <Alert variant="destructive">
@@ -268,7 +287,7 @@ export default function NicochatConfigPage() {
                   ) : (
                     <>
                       <Plus className="mr-2 h-4 w-4" />
-                      Salvar Configuração
+                      Salvar Workspace
                     </>
                   )}
                 </Button>
@@ -276,7 +295,7 @@ export default function NicochatConfigPage() {
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    setFormData({ nome: '', api_key: '' });
+                    setFormData({ nome: '', api_key: '', limite_contatos: 1000 });
                     setError(null);
                     setSuccess(null);
                   }}
@@ -289,11 +308,11 @@ export default function NicochatConfigPage() {
           </CardContent>
         </Card>
 
-        {/* Lista de Configurações */}
+        {/* Lista de Workspaces */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Configurações Existentes</span>
+              <span>Workspaces Existentes</span>
               <Button variant="outline" size="sm" onClick={fetchConfigs} disabled={loadingList}>
                 <RefreshCw className={`h-4 w-4 ${loadingList ? 'animate-spin' : ''}`} />
               </Button>
@@ -301,10 +320,10 @@ export default function NicochatConfigPage() {
           </CardHeader>
           <CardContent>
             {loadingList ? (
-              <LoadingSpinner message="Carregando configurações..." />
+              <LoadingSpinner message="Carregando workspaces..." />
             ) : configs.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">Nenhuma configuração cadastrada</p>
+                <p className="text-muted-foreground">Nenhum workspace cadastrado</p>
               </div>
             ) : (
               <div className="border rounded-lg">
@@ -313,6 +332,9 @@ export default function NicochatConfigPage() {
                     <TableRow>
                       <TableHead>Nome</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Contatos</TableHead>
+                      <TableHead>Limite</TableHead>
+                      <TableHead>Utilização</TableHead>
                       <TableHead>Data de Criação</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
@@ -325,12 +347,34 @@ export default function NicochatConfigPage() {
                           {config.ativo ? (
                             <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
                               <Check className="mr-1 h-3 w-3" />
-                              Ativa
+                              Ativo
                             </Badge>
                           ) : (
                             <Badge variant="secondary">
                               <X className="mr-1 h-3 w-3" />
-                              Inativa
+                              Inativo
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {config.contatos_atuais || 0}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {config.limite_contatos || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {config.limite_atingido ? (
+                            <Badge variant="destructive">
+                              <AlertTriangle className="mr-1 h-3 w-3" />
+                              Limite Atingido
+                            </Badge>
+                          ) : config.percentual_utilizado >= 90 ? (
+                            <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                              {config.percentual_utilizado?.toFixed(1)}%
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+                              {config.percentual_utilizado?.toFixed(1)}%
                             </Badge>
                           )}
                         </TableCell>

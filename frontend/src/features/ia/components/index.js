@@ -16,3 +16,5 @@ export { default as ErrorAlert } from './ErrorAlert';
 export { default as StatsCard } from './StatsCard';
 export { default as WhatsAppTemplatesCard } from './WhatsAppTemplatesCard';
 export { default as AllTagsCard } from './AllTagsCard';
+export { default as WorkspaceSelector } from './WorkspaceSelector';
+export { default as EmailMetricsCard } from './EmailMetricsCard';

@@ -1,16 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getCSRFToken } from '../../utils/csrf';
+import { useWorkspace } from './contexts/WorkspaceContext';
 
 // shadcn/ui imports
 import { Button } from '../../components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -31,14 +25,15 @@ import {
   LoadingSpinner,
   ErrorAlert,
   StatsCard,
-  WhatsAppTemplatesCard,
   AllTagsCard
 } from './components';
+import EmailMetricsCard from './components/EmailMetricsCard';
 
 export default function NicochatMetricasPage() {
+  const { selectedWorkspace } = useWorkspace();
+
   // Estados de dados
   const [configs, setConfigs] = useState([]);
-  const [selectedConfig, setSelectedConfig] = useState(null);
   const [subfluxos, setSubfluxos] = useState([]);
   const [userFields, setUserFields] = useState([]);
   const [botUsersCount, setBotUsersCount] = useState({ open: 0, done: 0, total: 0 });
@@ -62,19 +57,19 @@ export default function NicochatMetricasPage() {
     fetchConfigs();
   }, []);
 
-  // Carregar dados quando a configuração for selecionada
+  // Carregar dados quando o workspace for selecionado
   useEffect(() => {
-    if (selectedConfig) {
+    if (selectedWorkspace) {
       fetchAllData();
     }
-  }, [selectedConfig]);
+  }, [selectedWorkspace]);
 
   const fetchConfigs = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await axios.get('/ia/nicochat-configs/');
+      const response = await axios.get('/ia/nicochat-workspaces/');
       const configsList = response.data.results || response.data;
       setConfigs(configsList);
 
@@ -96,7 +91,7 @@ export default function NicochatMetricasPage() {
       setLoadingSubfluxos(true);
 
       const response = await axios.get('/ia/nicochat/subflows/', {
-        params: { flow_id: FLOW_ID, config_id: selectedConfig }
+        params: { flow_id: FLOW_ID, config_id: selectedWorkspace }
       });
 
       setSubfluxos(response.data.data || []);
@@ -112,7 +107,7 @@ export default function NicochatMetricasPage() {
       setLoadingFields(true);
 
       const response = await axios.get('/ia/nicochat/user-fields/', {
-        params: { flow_id: FLOW_ID, config_id: selectedConfig }
+        params: { flow_id: FLOW_ID, config_id: selectedWorkspace }
       });
 
       setUserFields(response.data.data || []);
@@ -128,7 +123,7 @@ export default function NicochatMetricasPage() {
       setLoadingStats(true);
 
       const response = await axios.get('/ia/nicochat/bot-users-count/', {
-        params: { config_id: selectedConfig }
+        params: { config_id: selectedWorkspace }
       });
 
       const data = response.data.data || [];
@@ -152,7 +147,7 @@ export default function NicochatMetricasPage() {
   };
 
   const handleRefresh = () => {
-    if (selectedConfig) {
+    if (selectedWorkspace) {
       fetchAllData();
     }
   };
@@ -225,35 +220,23 @@ export default function NicochatMetricasPage() {
   return (
     <div className="p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header com seletor */}
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Dashboard NicoChat</h1>
+            <h1 className="text-3xl font-bold mb-2">Métricas</h1>
             <p className="text-muted-foreground">
               Métricas e automações do seu WhatsApp Business
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Select value={selectedConfig?.toString()} onValueChange={(val) => setSelectedConfig(parseInt(val))}>
-              <SelectTrigger className="w-[250px]">
-                <SelectValue placeholder="Selecione uma configuração" />
-              </SelectTrigger>
-              <SelectContent>
-                {configs.map((config) => (
-                  <SelectItem key={config.id} value={config.id.toString()}>
-                    {config.nome} {config.ativo ? '(Ativa)' : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button variant="outline" onClick={handleRefresh} disabled={!selectedConfig}>
+            <Button variant="outline" onClick={handleRefresh} disabled={!selectedWorkspace}>
               <RefreshCw className={`h-4 w-4 ${(loadingSubfluxos || loadingFields) ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
 
-        {!selectedConfig ? (
-          <ErrorAlert message="Selecione uma configuração para visualizar os dados" />
+        {!selectedWorkspace ? (
+          <ErrorAlert message="Selecione um workspace na barra superior para visualizar os dados" />
         ) : (
           <>
             {/* ROW 1: Cards de Estatísticas */}
@@ -281,16 +264,15 @@ export default function NicochatMetricasPage() {
               />
             </div>
 
-            {/* ROW 2: Tags e Templates */}
+            {/* ROW 2: Tags e Email Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <AllTagsCard
-                configId={selectedConfig}
+                configId={selectedWorkspace}
                 onRefresh={handleRefresh}
               />
 
-              <WhatsAppTemplatesCard
-                configId={selectedConfig}
-                onRefresh={handleRefresh}
+              <EmailMetricsCard
+                workspaceId={selectedWorkspace}
               />
             </div>
 

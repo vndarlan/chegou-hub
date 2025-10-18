@@ -1248,31 +1248,36 @@ class QualityAlert(models.Model):
         return f"{priority_icon}{status_icon} {self.titulo} - {self.phone_number.display_phone_number}"
 
 
-# ===== MODELO PARA CONFIGURAÇÕES NICOCHAT =====
+# ===== MODELO PARA WORKSPACES NICOCHAT =====
 
-class NicochatConfig(models.Model):
-    """Configurações do NicoChat para integração com fluxos"""
+class NicochatWorkspace(models.Model):
+    """Workspace do NicoChat com controle de limites"""
 
     nome = models.CharField(
         max_length=200,
-        verbose_name="Nome da Configuração",
-        help_text="Nome identificador desta configuração NicoChat"
+        verbose_name="Nome do Workspace",
+        help_text="Nome identificador deste workspace NicoChat"
     )
     api_key_encrypted = models.TextField(
         verbose_name="API Key Criptografada",
         help_text="API Key do NicoChat armazenada de forma segura"
     )
+    limite_contatos = models.PositiveIntegerField(
+        default=1000,
+        verbose_name="Limite de Contatos",
+        help_text="Número máximo de contatos permitidos neste workspace"
+    )
     usuario = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='nicochat_configs',
+        related_name='nicochat_workspaces',
         verbose_name="Usuário",
-        help_text="Usuário responsável por esta configuração"
+        help_text="Usuário responsável por este workspace"
     )
     ativo = models.BooleanField(
         default=True,
         verbose_name="Ativo",
-        help_text="Se esta configuração está ativa"
+        help_text="Se este workspace está ativo"
     )
 
     # Metadados
@@ -1286,8 +1291,8 @@ class NicochatConfig(models.Model):
     )
 
     class Meta:
-        verbose_name = "Configuração NicoChat"
-        verbose_name_plural = "Configurações NicoChat"
+        verbose_name = "Workspace NicoChat"
+        verbose_name_plural = "Workspaces NicoChat"
         ordering = ['-criado_em']
         indexes = [
             models.Index(fields=['usuario', 'ativo']),
@@ -1297,3 +1302,32 @@ class NicochatConfig(models.Model):
     def __str__(self):
         status = "Ativa" if self.ativo else "Inativa"
         return f"{self.nome} ({status})"
+
+    def get_contatos_atuais(self, api_key_decrypted):
+        """Busca quantidade atual de contatos da API NicoChat"""
+        from .nicochat_service import NicochatAPIService
+
+        service = NicochatAPIService(api_key_decrypted)
+        sucesso, dados = service.get_bot_users_count(api_key_decrypted)
+
+        if sucesso:
+            # Somar done + open para ter total de contatos
+            total = dados.get('total', 0)
+            return total
+        return 0
+
+    @property
+    def percentual_utilizado(self):
+        """Calcula percentual de uso do limite"""
+        # Será calculado no serializer com API key descriptografada
+        return 0
+
+    @property
+    def limite_atingido(self):
+        """Verifica se o limite foi atingido"""
+        # Será calculado no serializer
+        return False
+
+
+# Alias de compatibilidade temporário
+NicochatConfig = NicochatWorkspace

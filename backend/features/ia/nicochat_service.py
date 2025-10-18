@@ -574,3 +574,32 @@ class NicochatAPIService:
                 'pages_processed': pages_processed,
                 'processing_time_seconds': round(processing_time, 2)
             }
+
+    def get_email_metrics(self, api_key: str) -> Tuple[bool, Dict]:
+        """
+        Busca métricas de email (PLACEHOLDER - endpoint não disponível na API atual)
+
+        Args:
+            api_key: API key (obrigatória)
+
+        Returns:
+            Tupla (sucesso: bool, dados: dict)
+            Formato: {
+                "emails_enviados": 0,
+                "taxa_abertura": 0.0,
+                "taxa_clique": 0.0,
+                "disponivel": False,
+                "message": "Métricas de email não disponíveis na API NicoChat"
+            }
+        """
+        logger.info("⚠️ PLACEHOLDER: Métricas de email não disponíveis na API NicoChat atual")
+
+        # Retornar estrutura placeholder
+        return True, {
+            "emails_enviados": 0,
+            "taxa_abertura": 0.0,
+            "taxa_clique": 0.0,
+            "disponivel": False,
+            "message": "Métricas de email não disponíveis na API NicoChat",
+            "nota": "Este endpoint será implementado quando a API NicoChat disponibilizar os dados"
+        }

@@ -22,7 +22,7 @@ from .models import (
     QualityRatingChoices, MessagingLimitTierChoices, PhoneNumberStatusChoices,
     AlertTypeChoices, AlertPriorityChoices,
     # NicoChat models
-    NicochatConfig
+    NicochatWorkspace, NicochatConfig
 )
 from .serializers import (
     LogEntrySerializer, CriarLogSerializer, MarcarResolvidoSerializer,
@@ -34,7 +34,7 @@ from .serializers import (
     WhatsAppPhoneNumberCreateSerializer, QualityHistorySerializer, QualityAlertSerializer,
     MarcarAlertaResolvidoSerializer, SincronizarMetaAPISerializer,
     # NicoChat serializers
-    NicochatConfigSerializer
+    NicochatWorkspaceSerializer, NicochatConfigSerializer
 )
 
 # Importar serviço e auditoria
@@ -1563,21 +1563,21 @@ def apply_migrations_temp(request):
 
 # ===== VIEWS PARA NICOCHAT =====
 
-class NicochatConfigViewSet(viewsets.ModelViewSet):
-    """ViewSet para CRUD de Configurações NicoChat"""
+class NicochatWorkspaceViewSet(viewsets.ModelViewSet):
+    """ViewSet para CRUD de Workspaces NicoChat"""
 
-    queryset = NicochatConfig.objects.all()
-    serializer_class = NicochatConfigSerializer
+    queryset = NicochatWorkspace.objects.all()
+    serializer_class = NicochatWorkspaceSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """Filtrar por permissões do usuário"""
-        queryset = NicochatConfig.objects.all()
+        queryset = NicochatWorkspace.objects.all()
 
         # Superuser e grupos especiais veem tudo
         if not (self.request.user.is_superuser or
                 self.request.user.groups.filter(name__in=['Diretoria', 'Gestão', 'IA & Automações']).exists()):
-            # Usuários normais veem apenas suas configs
+            # Usuários normais veem apenas seus workspaces
             queryset = queryset.filter(usuario=self.request.user)
 
         return queryset.order_by('-criado_em')
@@ -1585,6 +1585,22 @@ class NicochatConfigViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Definir usuário ao criar"""
         serializer.save(usuario=self.request.user)
+
+    @action(detail=True, methods=['get'])
+    def check_limite(self, request, pk=None):
+        """Endpoint para verificar status do limite"""
+        workspace = self.get_object()
+        serializer = self.get_serializer(workspace)
+
+        return Response({
+            'workspace_id': workspace.id,
+            'workspace_nome': workspace.nome,
+            'limite_contatos': workspace.limite_contatos,
+            'contatos_atuais': serializer.data['contatos_atuais'],
+            'percentual_utilizado': serializer.data['percentual_utilizado'],
+            'limite_atingido': serializer.data['limite_atingido'],
+            'alerta': serializer.data['percentual_utilizado'] >= 90
+        })
 
     def update(self, request, *args, **kwargs):
         """Update com logging detalhado"""
@@ -1648,9 +1664,13 @@ class NicochatConfigViewSet(viewsets.ModelViewSet):
 
     def partial_update(self, request, *args, **kwargs):
         """Partial update com logging detalhado"""
-        logger.info("🔄 NICOCHAT_CONFIG PARTIAL_UPDATE - redirecionando para update()")
+        logger.info("🔄 NICOCHAT_WORKSPACE PARTIAL_UPDATE - redirecionando para update()")
         kwargs['partial'] = True
         return self.update(request, *args, **kwargs)
+
+
+# Alias de compatibilidade
+NicochatConfigViewSet = NicochatWorkspaceViewSet
 
 
 @api_view(['GET'])
@@ -2472,6 +2492,99 @@ def nicochat_subscribers_tags_stats(request):
         logger.error(f"❌ Config não encontrada: id={config_id}")
         return Response(
             {'error': 'Configuração NicoChat não encontrada ou inativa'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"❌ ERRO INESPERADO: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return Response(
+            {'error': f'Erro interno: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    finally:
+        logger.info("=" * 80)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def nicochat_email_metrics(request):
+    """
+    Retorna métricas de email do NicoChat (PLACEHOLDER)
+
+    Query params:
+        - workspace_id: ID do workspace NicoChat (obrigatório)
+
+    Retorna:
+        - emails_enviados: Total de emails enviados
+        - taxa_abertura: Percentual de emails abertos
+        - taxa_clique: Percentual de emails com cliques
+        - disponivel: Se os dados estão disponíveis
+    """
+    logger.info("=" * 80)
+    logger.info("📧 NICOCHAT_EMAIL_METRICS - INICIANDO (PLACEHOLDER)")
+    logger.info(f"   Usuario: {request.user.username}")
+
+    workspace_id = request.GET.get('workspace_id')
+    logger.info(f"   workspace_id: '{workspace_id}'")
+
+    if not workspace_id:
+        logger.error("❌ ERRO: workspace_id não fornecido")
+        return Response(
+            {'error': 'workspace_id é obrigatório'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        # Buscar workspace
+        logger.info(f"🔎 Buscando NicochatWorkspace id={workspace_id}")
+        workspace = NicochatWorkspace.objects.get(id=workspace_id, ativo=True)
+        logger.info(f"✅ Workspace encontrado: {workspace.nome}")
+
+        # Verificar permissão
+        tem_permissao = (
+            request.user.is_superuser or
+            request.user.groups.filter(name__in=['Diretoria', 'Gestão', 'IA & Automações']).exists() or
+            workspace.usuario == request.user
+        )
+
+        if not tem_permissao:
+            logger.error("❌ ERRO: Usuario sem permissão")
+            return Response(
+                {'error': 'Sem permissão para usar este workspace'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        logger.info("✅ Permissões OK")
+
+        # Descriptografar API key
+        from .nicochat_service import decrypt_api_key, NicochatAPIService
+        api_key = decrypt_api_key(workspace.api_key_encrypted)
+        logger.info("✅ API key descriptografada")
+
+        # Buscar métricas de email (placeholder)
+        logger.info("📡 Chamando API NicoChat para métricas de email...")
+        service = NicochatAPIService(api_key)
+        sucesso, resposta = service.get_email_metrics(api_key)
+
+        if sucesso:
+            logger.info("✅ Placeholder de métricas retornado com sucesso")
+            return Response({
+                'success': True,
+                'data': resposta
+            }, status=status.HTTP_200_OK)
+
+        logger.error("❌ Erro ao buscar métricas de email")
+        return Response({
+            'success': False,
+            'error': 'Erro ao buscar métricas de email',
+            'detalhes': resposta
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    except NicochatWorkspace.DoesNotExist:
+        logger.error(f"❌ Workspace não encontrado: id={workspace_id}")
+        return Response(
+            {'error': 'Workspace NicoChat não encontrado ou inativo'},
             status=status.HTTP_404_NOT_FOUND
         )
     except Exception as e:

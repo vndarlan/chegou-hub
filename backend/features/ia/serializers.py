@@ -13,7 +13,7 @@ from .models import (
     QualityRatingChoices, MessagingLimitTierChoices, PhoneNumberStatusChoices,
     AlertTypeChoices, AlertPriorityChoices,
     # NicoChat models
-    NicochatConfig
+    NicochatWorkspace, NicochatConfig
 )
 
 # Configurar logger
@@ -1578,8 +1578,8 @@ class SincronizarMetaAPISerializer(serializers.Serializer):
 
 # ===== SERIALIZERS PARA NICOCHAT =====
 
-class NicochatConfigSerializer(serializers.ModelSerializer):
-    """Serializer para Configurações NicoChat - SEGURO"""
+class NicochatWorkspaceSerializer(serializers.ModelSerializer):
+    """Serializer para Workspaces NicoChat - SEGURO COM CONTROLE DE LIMITES"""
 
     # Campo write-only para receber API key não criptografada
     api_key = serializers.CharField(
@@ -1594,12 +1594,18 @@ class NicochatConfigSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
+    # Campos calculados
+    contatos_atuais = serializers.SerializerMethodField()
+    percentual_utilizado = serializers.SerializerMethodField()
+    limite_atingido = serializers.SerializerMethodField()
+
     class Meta:
-        model = NicochatConfig
+        model = NicochatWorkspace
         fields = [
-            'id', 'nome', 'api_key', 'api_key_encrypted',
+            'id', 'nome', 'api_key', 'api_key_encrypted', 'limite_contatos',
             'usuario', 'usuario_nome', 'ativo',
-            'criado_em', 'atualizado_em'
+            'criado_em', 'atualizado_em',
+            'contatos_atuais', 'percentual_utilizado', 'limite_atingido'
         ]
         read_only_fields = ['id', 'usuario', 'usuario_nome', 'criado_em', 'atualizado_em']
         extra_kwargs = {
@@ -1608,7 +1614,7 @@ class NicochatConfigSerializer(serializers.ModelSerializer):
         }
 
     def validate_nome(self, value):
-        """Validar nome da configuração"""
+        """Validar nome do workspace"""
         if not value or not value.strip():
             raise serializers.ValidationError("Nome é obrigatório")
         if len(value.strip()) < 3:
@@ -1633,14 +1639,22 @@ class NicochatConfigSerializer(serializers.ModelSerializer):
 
         return value.strip()
 
+    def validate_limite_contatos(self, value):
+        """Validar limite de contatos"""
+        if value <= 0:
+            raise serializers.ValidationError("Limite deve ser maior que zero")
+        if value > 100000:
+            raise serializers.ValidationError("Limite máximo é 100.000 contatos")
+        return value
+
     def create(self, validated_data):
-        """Criar configuração com criptografia da API key"""
+        """Criar workspace com criptografia da API key"""
         api_key = validated_data.pop('api_key', None)
 
         # Na criação, API key é obrigatória
         if not api_key:
             raise serializers.ValidationError({
-                'api_key': 'API Key é obrigatória ao criar uma nova configuração'
+                'api_key': 'API Key é obrigatória ao criar um novo workspace'
             })
 
         try:
@@ -1652,7 +1666,7 @@ class NicochatConfigSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
-        """Atualizar configuração com recriptografia se API key mudou"""
+        """Atualizar workspace com recriptografia se API key mudou"""
         api_key = validated_data.pop('api_key', None)
 
         # Apenas re-criptografar se uma nova API key foi fornecida
@@ -1663,7 +1677,30 @@ class NicochatConfigSerializer(serializers.ModelSerializer):
             except ImportError as e:
                 raise serializers.ValidationError(f"Erro na configuração de segurança: {str(e)}")
 
-        # Se não foi fornecida nova API key, manter a existente (não modificar)
-        # Isso permite updates parciais como toggle de 'ativo' sem exigir api_key
-
         return super().update(instance, validated_data)
+
+    def get_contatos_atuais(self, obj):
+        """Busca contatos atuais da API"""
+        try:
+            from .nicochat_service import decrypt_api_key
+            api_key = decrypt_api_key(obj.api_key_encrypted)
+            return obj.get_contatos_atuais(api_key)
+        except Exception as e:
+            logger.error(f"Erro ao buscar contatos atuais do workspace {obj.id}: {e}")
+            return 0
+
+    def get_percentual_utilizado(self, obj):
+        """Calcula percentual"""
+        contatos = self.get_contatos_atuais(obj)
+        if obj.limite_contatos > 0:
+            return round((contatos / obj.limite_contatos) * 100, 2)
+        return 0
+
+    def get_limite_atingido(self, obj):
+        """Verifica se limite foi atingido"""
+        contatos = self.get_contatos_atuais(obj)
+        return contatos >= obj.limite_contatos
+
+
+# Alias de compatibilidade
+NicochatConfigSerializer = NicochatWorkspaceSerializer
