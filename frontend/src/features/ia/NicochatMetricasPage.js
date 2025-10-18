@@ -64,27 +64,6 @@ export default function NicochatMetricasPage() {
     }
   }, [selectedWorkspace]);
 
-  const fetchConfigs = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await axios.get('/ia/nicochat-workspaces/');
-      const configsList = response.data.results || response.data;
-      setConfigs(configsList);
-
-      // Selecionar a primeira config ativa automaticamente
-      const activeConfig = configsList.find(c => c.ativo);
-      if (activeConfig) {
-        setSelectedConfig(activeConfig.id);
-      }
-    } catch (err) {
-      console.error('Erro ao carregar configurações:', err);
-      setError('Erro ao carregar configurações. Verifique sua conexão.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchSubfluxos = async () => {
     try {
@@ -184,30 +163,38 @@ export default function NicochatMetricasPage() {
     return (
       <div className="p-6">
         <div className="max-w-7xl mx-auto">
-          <LoadingSpinner message="Carregando dashboard..." />
+          <LoadingSpinner message="Carregando métricas..." />
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (validationError) {
     return (
       <div className="p-6">
         <div className="max-w-7xl mx-auto">
-          <ErrorAlert message={error} onRetry={fetchConfigs} />
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              O workspace selecionado não existe mais ou foi desativado.
+              Por favor, selecione outro workspace na barra superior.
+            </AlertDescription>
+          </Alert>
         </div>
       </div>
     );
   }
 
-  if (configs.length === 0) {
+  if (!selectedWorkspace) {
     return (
       <div className="p-6">
         <div className="max-w-7xl mx-auto">
-          <ErrorAlert
-            message="Nenhuma configuração encontrada. Configure uma API Key primeiro."
-            onRetry={null}
-          />
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Selecione um workspace na barra superior para visualizar as métricas.
+            </AlertDescription>
+          </Alert>
         </div>
       </div>
     );
@@ -340,8 +327,6 @@ export default function NicochatMetricasPage() {
                 )}
               </NicochatCard>
             </div>
-          </>
-        )}
 
         {/* Modal de Detalhes */}
         <Dialog open={modalOpen} onOpenChange={setModalOpen}>
