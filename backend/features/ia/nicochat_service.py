@@ -575,34 +575,88 @@ class NicochatAPIService:
                 'processing_time_seconds': round(processing_time, 2)
             }
 
-    def get_email_metrics(self, api_key: str) -> Tuple[bool, Dict]:
+    def get_email_metrics(self, api_key: str, range_param: str = 'last_7_days') -> Tuple[bool, Dict]:
         """
-        Busca métricas de email (PLACEHOLDER - endpoint não disponível na API atual)
+        Busca métricas de email usando endpoint /flow-summary
 
         Args:
             api_key: API key (obrigatória)
+            range_param: Período dos dados (yesterday, last_7_days, last_week, last_30_days, last_month, last_3_months)
 
         Returns:
             Tupla (sucesso: bool, dados: dict)
             Formato: {
-                "emails_enviados": 0,
-                "taxa_abertura": 0.0,
-                "taxa_clique": 0.0,
-                "disponivel": False,
-                "message": "Métricas de email não disponíveis na API NicoChat"
+                "emails_enviados": 150,
+                "emails_abertos": 45,
+                "taxa_abertura": 30.0,
+                "disponivel": True,
+                "range": "last_7_days",
+                "flows_detalhes": [...]
             }
         """
-        logger.info("⚠️ PLACEHOLDER: Métricas de email não disponíveis na API NicoChat atual")
+        logger.info(f"📧 Buscando métricas de email (range: {range_param})")
 
-        # Retornar estrutura placeholder
-        return True, {
-            "emails_enviados": 0,
-            "taxa_abertura": 0.0,
-            "taxa_clique": 0.0,
-            "disponivel": False,
-            "message": "Métricas de email não disponíveis na API NicoChat",
-            "nota": "Este endpoint será implementado quando a API NicoChat disponibilizar os dados"
+        endpoint = "/flow-summary"
+        params = {'range': range_param}
+
+        sucesso, resposta = self._make_request(
+            endpoint,
+            api_key,
+            method='GET',
+            params=params
+        )
+
+        if not sucesso:
+            logger.error(f"❌ Erro ao buscar métricas de email: {resposta}")
+            return False, {
+                "emails_enviados": 0,
+                "emails_abertos": 0,
+                "taxa_abertura": 0.0,
+                "disponivel": False,
+                "error": resposta.get('error', 'Erro desconhecido'),
+                "message": resposta.get('message', 'Não foi possível obter métricas de email')
+            }
+
+        # Processar dados
+        flows = resposta.get('data', [])
+        total_sent = 0
+        total_open = 0
+        flows_detalhes = []
+
+        for flow in flows:
+            sent = flow.get('day_email_sent', 0)
+            opened = flow.get('day_email_open', 0)
+
+            total_sent += sent
+            total_open += opened
+
+            # Adicionar detalhes do flow se tiver métricas de email
+            if sent > 0 or opened > 0:
+                flows_detalhes.append({
+                    'flow_ns': flow.get('flow_ns', ''),
+                    'summary_date': flow.get('summary_date', ''),
+                    'emails_enviados': sent,
+                    'emails_abertos': opened,
+                    'taxa_abertura': round((opened / sent * 100), 2) if sent > 0 else 0.0
+                })
+
+        # Calcular taxa de abertura geral
+        taxa_abertura = round((total_open / total_sent * 100), 2) if total_sent > 0 else 0.0
+
+        resultado = {
+            "emails_enviados": total_sent,
+            "emails_abertos": total_open,
+            "taxa_abertura": taxa_abertura,
+            "disponivel": True,
+            "range": range_param,
+            "total_flows": len(flows),
+            "flows_com_email": len(flows_detalhes),
+            "flows_detalhes": flows_detalhes
         }
+
+        logger.info(f"✅ Métricas de email obtidas: {total_sent} enviados, {total_open} abertos ({taxa_abertura}%)")
+
+        return True, resultado
 
     def get_subscribers_with_errors(self, api_key: str) -> Tuple[bool, List[Dict]]:
         """

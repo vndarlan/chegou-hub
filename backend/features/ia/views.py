@@ -1652,6 +1652,70 @@ class NicochatWorkspaceViewSet(viewsets.ModelViewSet):
                 'error_logs': []
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @action(detail=True, methods=['get'])
+    def email_metrics(self, request, pk=None):
+        """
+        Busca métricas de email (enviados, abertos, taxa de abertura)
+
+        GET /ia/nicochat-workspaces/{id}/email_metrics/?range=last_7_days
+
+        Query params:
+            range: Período (yesterday, last_7_days, last_week, last_30_days, last_month, last_3_months)
+
+        Returns:
+            JSON com métricas de email
+        """
+        workspace = self.get_object()
+
+        try:
+            # Descriptografar API key
+            from .nicochat_service import decrypt_api_key, NicochatAPIService
+
+            api_key = decrypt_api_key(workspace.api_key_encrypted)
+
+            # Obter parâmetro range (default: last_7_days)
+            range_param = request.query_params.get('range', 'last_7_days')
+
+            # Buscar métricas de email
+            service = NicochatAPIService(api_key)
+            sucesso, metrics = service.get_email_metrics(api_key, range_param)
+
+            if sucesso:
+                return Response({
+                    'success': True,
+                    'data': metrics,
+                    'workspace_id': workspace.id,
+                    'workspace_nome': workspace.nome
+                })
+            else:
+                return Response({
+                    'success': False,
+                    'error': metrics.get('error', 'Erro ao buscar métricas de email'),
+                    'message': metrics.get('message', ''),
+                    'data': {
+                        'emails_enviados': 0,
+                        'emails_abertos': 0,
+                        'taxa_abertura': 0.0,
+                        'disponivel': False
+                    }
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        except Exception as e:
+            logger.error(f"❌ Erro ao buscar email_metrics do workspace {workspace.id}: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+
+            return Response({
+                'success': False,
+                'error': f'Erro ao processar requisição: {str(e)}',
+                'data': {
+                    'emails_enviados': 0,
+                    'emails_abertos': 0,
+                    'taxa_abertura': 0.0,
+                    'disponivel': False
+                }
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     def update(self, request, *args, **kwargs):
         """Update com logging detalhado"""
         logger.info("=" * 80)
