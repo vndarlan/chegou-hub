@@ -21,3 +21,4 @@ export { default as EmailMetricsCard } from './EmailMetricsCard';
 export { default as ConfirmacaoMetricsCard } from './ConfirmacaoMetricsCard';
 export { default as InteracaoIACard } from './InteracaoIACard';
 export { default as ProblemasOperacionaisCard } from './ProblemasOperacionaisCard';
+export { default as FeedbackDevolucaoCard } from './FeedbackDevolucaoCard';

@@ -26,7 +26,8 @@ import {
   LoadingSpinner,
   ErrorAlert,
   StatsCard,
-  AllTagsCard
+  AllTagsCard,
+  FeedbackDevolucaoCard
 } from './components';
 import EmailMetricsCard from './components/EmailMetricsCard';
 import ConfirmacaoMetricsCard from './components/ConfirmacaoMetricsCard';
@@ -277,8 +278,8 @@ export default function NicochatMetricasPage() {
               />
             </div>
 
-            {/* ROW 3: Tags e Email Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* ROW 3: Tags, Email Metrics e Feedback Devolução */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <AllTagsCard
                 configId={selectedWorkspace}
                 onRefresh={handleRefresh}
@@ -286,6 +287,11 @@ export default function NicochatMetricasPage() {
 
               <EmailMetricsCard
                 workspaceId={selectedWorkspace}
+              />
+
+              <FeedbackDevolucaoCard
+                configId={selectedWorkspace}
+                onRefresh={handleRefresh}
               />
             </div>
 
