@@ -1306,14 +1306,29 @@ class NicochatWorkspace(models.Model):
     def get_contatos_atuais(self, api_key_decrypted):
         """Busca quantidade atual de contatos da API NicoChat"""
         from .nicochat_service import NicochatAPIService
+        import logging
+        logger = logging.getLogger(__name__)
 
-        service = NicochatAPIService(api_key_decrypted)
-        sucesso, dados = service.get_bot_users_count(api_key_decrypted)
+        try:
+            service = NicochatAPIService(api_key_decrypted)
+            sucesso, resposta = service.get_bot_users_count(api_key_decrypted)
 
-        if sucesso:
-            # Somar done + open para ter total de contatos
-            total = dados.get('total', 0)
-            return total
+            if sucesso:
+                # A resposta vem no formato: {"status": "ok", "data": [{"num": 317, "status": "done"}, {"num": 196, "status": "open"}]}
+                # Precisamos extrair e somar done + open
+                data = resposta.get('data', [])
+                total = 0
+
+                for item in data:
+                    num = item.get('num', 0)
+                    total += num
+
+                logger.info(f"✅ Total de contatos: {total}")
+                return total
+        except Exception as e:
+            logger.error(f"❌ Erro ao buscar contatos atuais: {e}")
+            return 0
+
         return 0
 
     @property

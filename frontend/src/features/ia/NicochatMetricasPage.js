@@ -29,6 +29,9 @@ import {
   AllTagsCard
 } from './components';
 import EmailMetricsCard from './components/EmailMetricsCard';
+import ConfirmacaoMetricsCard from './components/ConfirmacaoMetricsCard';
+import InteracaoIACard from './components/InteracaoIACard';
+import ProblemasOperacionaisCard from './components/ProblemasOperacionaisCard';
 
 export default function NicochatMetricasPage() {
   const { selectedWorkspace, validationError } = useWorkspace();
@@ -255,7 +258,26 @@ export default function NicochatMetricasPage() {
               />
             </div>
 
-            {/* ROW 2: Tags e Email Metrics */}
+            {/* ROW 2: Métricas Especiais (3 colunas) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <ConfirmacaoMetricsCard
+                configId={selectedWorkspace}
+                onRefresh={handleRefresh}
+              />
+
+              <InteracaoIACard
+                configId={selectedWorkspace}
+                totalContatos={botUsersCount.total}
+                onRefresh={handleRefresh}
+              />
+
+              <ProblemasOperacionaisCard
+                configId={selectedWorkspace}
+                onRefresh={handleRefresh}
+              />
+            </div>
+
+            {/* ROW 3: Tags e Email Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <AllTagsCard
                 configId={selectedWorkspace}
@@ -267,7 +289,7 @@ export default function NicochatMetricasPage() {
               />
             </div>
 
-            {/* ROW 3: Automações */}
+            {/* ROW 4: Automações */}
             <div className="grid grid-cols-1 gap-6">
               <NicochatCard
                 title="Automações Ativas"
@@ -281,8 +303,9 @@ export default function NicochatMetricasPage() {
               </NicochatCard>
             </div>
 
-            {/* ROW 4: Formulários */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* ROW 5: Formulários (apenas se tiver dados) */}
+            {(cancelamentos.length > 0 || devolucoes.length > 0 || trocasEndereco.length > 0) && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Card: Cancelamentos */}
               <NicochatCard
                 title="Cancelamentos de Pedido"
@@ -330,7 +353,8 @@ export default function NicochatMetricasPage() {
                   />
                 )}
               </NicochatCard>
-            </div>
+              </div>
+            )}
           </>
         )}
 

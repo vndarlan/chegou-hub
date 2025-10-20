@@ -74,15 +74,28 @@ export default function AllTagsCard({ configId, onRefresh }) {
     return 'text-gray-600';
   };
 
+  // Filtrar tags especiais que aparecem em cards dedicados
+  const tagsEspeciais = [
+    'confirmado', 'não confirmado', 'nao confirmado',
+    'interagil', 'interágil',
+    'cancelamento de pedido', 'ofenças', 'devolução', 'devolucao',
+    'troca de endereço', 'troca de endereco'
+  ];
+
+  const tagsFiltradas = tags.filter(tag => {
+    const nomeLower = tag.name.toLowerCase();
+    return !tagsEspeciais.some(especial => nomeLower.includes(especial));
+  });
+
   return (
-    <Card>
+    <Card className="bg-gradient-to-b from-muted/50 to-muted border-border">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Tag className="h-5 w-5" />
-            Tags de Contatos
-            {totalTagsFound > 0 && (
-              <Badge variant="secondary">{totalTagsFound} tags</Badge>
+            <Tag className="h-5 w-5 text-primary" />
+            Outras Tags
+            {tagsFiltradas.length > 0 && (
+              <Badge variant="secondary">{tagsFiltradas.length} tags</Badge>
             )}
             {cacheInfo?.cache_hit && (
               <Badge variant="outline" className="text-xs">
@@ -91,7 +104,7 @@ export default function AllTagsCard({ configId, onRefresh }) {
             )}
           </div>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => fetchTags(true)}
             disabled={loading || !configId}
@@ -108,7 +121,7 @@ export default function AllTagsCard({ configId, onRefresh }) {
           </Alert>
         )}
 
-        {loading && tags.length === 0 ? (
+        {loading && tagsFiltradas.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 space-y-3">
             <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
             <div className="text-center">
@@ -118,23 +131,23 @@ export default function AllTagsCard({ configId, onRefresh }) {
               </p>
             </div>
           </div>
-        ) : tags.length === 0 ? (
+        ) : tagsFiltradas.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Tag className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p>Nenhuma tag encontrada</p>
-            <p className="text-sm mt-1">Os contatos não possuem tags atribuídas</p>
+            <p>Nenhuma outra tag encontrada</p>
+            <p className="text-sm mt-1">Todas as tags estão em categorias específicas</p>
           </div>
         ) : (
           <div className="space-y-1">
             {/* Informação do total */}
             <div className="text-xs text-muted-foreground mb-4 pb-3 border-b">
-              Total de {totalSubscribers.toLocaleString('pt-BR')} contatos com tags
+              {tagsFiltradas.length} tags adicionais de {totalSubscribers.toLocaleString('pt-BR')} contatos
             </div>
 
             {/* Lista de tags com scroll */}
             <ScrollArea className="h-[400px] pr-3">
               <div className="space-y-4">
-                {tags.map((tag, index) => (
+                {tagsFiltradas.map((tag, index) => (
                   <div
                     key={tag.tag_ns || index}
                     className="space-y-2 pb-3 border-b last:border-b-0"

@@ -18,3 +18,6 @@ export { default as WhatsAppTemplatesCard } from './WhatsAppTemplatesCard';
 export { default as AllTagsCard } from './AllTagsCard';
 export { default as WorkspaceSelector } from './WorkspaceSelector';
 export { default as EmailMetricsCard } from './EmailMetricsCard';
+export { default as ConfirmacaoMetricsCard } from './ConfirmacaoMetricsCard';
+export { default as InteracaoIACard } from './InteracaoIACard';
+export { default as ProblemasOperacionaisCard } from './ProblemasOperacionaisCard';
