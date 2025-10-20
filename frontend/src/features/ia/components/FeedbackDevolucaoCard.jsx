@@ -40,15 +40,33 @@ export default function FeedbackDevolucaoCard({ configId, onRefresh }) {
       if (response.data.success) {
         const userFields = response.data.data || [];
 
-        // Filtrar apenas registros que têm formsDevolucao
+        console.log('🔍 FeedbackDevolucaoCard: Total de userFields:', userFields.length);
+
+        // Log de todos os campos do primeiro registro para debug
+        if (userFields.length > 0) {
+          console.log('🔍 Campos disponíveis no primeiro registro:', Object.keys(userFields[0]));
+          console.log('🔍 Primeiro registro completo:', userFields[0]);
+        }
+
+        // Filtrar apenas registros que têm formsDevolucao (testando variações)
         const feedbacksData = userFields
-          .filter(user => user.formsDevolucao)
+          .filter(user => {
+            const temFormsDevolucao = user.formsDevolucao || user.formsdevolucao || user.formsDevolucao || user.Formsdevolucao;
+            if (temFormsDevolucao) {
+              console.log('✅ Encontrado formsDevolucao em:', user.nome || user.telefone);
+            }
+            return temFormsDevolucao;
+          })
           .map(user => {
+            // Tentar várias variações do nome do campo
+            const formsDevolucaoRaw = user.formsDevolucao || user.formsdevolucao || user.formsDevolucao || user.Formsdevolucao;
             try {
               // Parse do JSON do campo formsDevolucao
-              const devolucaoData = typeof user.formsDevolucao === 'string'
-                ? JSON.parse(user.formsDevolucao)
-                : user.formsDevolucao;
+              const devolucaoData = typeof formsDevolucaoRaw === 'string'
+                ? JSON.parse(formsDevolucaoRaw)
+                : formsDevolucaoRaw;
+
+              console.log('📦 Dados de devolução parseados:', devolucaoData);
 
               // Retornar apenas se tiver feedback preenchido
               if (devolucaoData.feedback && devolucaoData.feedback.trim() !== '') {
