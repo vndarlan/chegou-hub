@@ -114,11 +114,19 @@ export default function NicochatMetricasPage() {
   };
 
   const fetchAllData = async () => {
-    await Promise.all([
-      fetchSubfluxos(),
-      fetchUserFields(),
-      fetchBotUsersCount()
-    ]);
+    try {
+      setLoading(true);
+      await Promise.all([
+        fetchSubfluxos(),
+        fetchUserFields(),
+        fetchBotUsersCount()
+      ]);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+      setError('Erro ao carregar dados. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRefresh = () => {
