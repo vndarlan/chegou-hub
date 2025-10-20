@@ -1682,11 +1682,22 @@ class NicochatWorkspaceSerializer(serializers.ModelSerializer):
     def get_contatos_atuais(self, obj):
         """Busca contatos atuais da API"""
         try:
+            logger.info(f"🔍 get_contatos_atuais - Workspace {obj.id} ({obj.nome})")
+
             from .nicochat_service import decrypt_api_key
+            logger.info(f"   - Descriptografando API key...")
             api_key = decrypt_api_key(obj.api_key_encrypted)
-            return obj.get_contatos_atuais(api_key)
+            logger.info(f"   - API key descriptografada com sucesso")
+
+            logger.info(f"   - Chamando obj.get_contatos_atuais()...")
+            contatos = obj.get_contatos_atuais(api_key)
+            logger.info(f"   ✅ Contatos obtidos: {contatos}")
+
+            return contatos
         except Exception as e:
-            logger.error(f"Erro ao buscar contatos atuais do workspace {obj.id}: {e}")
+            logger.error(f"❌ Erro ao buscar contatos atuais do workspace {obj.id}: {e}")
+            import traceback
+            logger.error(f"   Stack trace: {traceback.format_exc()}")
             return 0
 
     def get_percentual_utilizado(self, obj):
