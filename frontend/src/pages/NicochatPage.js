@@ -1,7 +1,7 @@
 // frontend/src/pages/NicochatPage.js
 import React from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { MessageSquare, Home, Settings, BarChart3, Shield } from 'lucide-react';
+import { MessageSquare, Home, Settings, BarChart3, Shield, AlertTriangle } from 'lucide-react';
 
 // shadcn/ui imports
 import { Button } from '../components/ui/button';
@@ -17,6 +17,7 @@ import WorkspaceSelector from '../features/ia/components/WorkspaceSelector';
 import NicochatMetricasPage from '../features/ia/NicochatMetricasPage';
 import NicochatQualidadeContaPage from '../features/ia/NicochatQualidadeContaPage';
 import NicochatWorkspacesPage from '../features/ia/NicochatWorkspacesPage';
+import NicochatErrorLogsPage from '../features/ia/NicochatErrorLogsPage';
 
 function NicochatPageContent() {
   const navigate = useNavigate();
@@ -58,6 +59,14 @@ function NicochatPageContent() {
             >
               <Shield className="mr-2 h-4 w-4" />
               Qualidade da Conta
+            </Button>
+            <Button
+              variant={location.pathname === '/nicochat/error-logs' ? 'secondary' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => navigate('/nicochat/error-logs')}
+            >
+              <AlertTriangle className="mr-2 h-4 w-4" />
+              Log de Erros
             </Button>
             <Button
               variant={location.pathname === '/nicochat/workspaces' ? 'secondary' : 'ghost'}
@@ -102,6 +111,7 @@ function NicochatPageContent() {
             <Route index element={<Navigate to="metricas" replace />} />
             <Route path="metricas" element={<NicochatMetricasPage />} />
             <Route path="qualidade-conta" element={<NicochatQualidadeContaPage />} />
+            <Route path="error-logs" element={<NicochatErrorLogsPage />} />
             <Route path="workspaces" element={<NicochatWorkspacesPage />} />
             <Route path="*" element={<Navigate to="metricas" replace />} />
           </Routes>

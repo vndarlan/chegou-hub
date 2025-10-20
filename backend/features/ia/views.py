@@ -1602,6 +1602,56 @@ class NicochatWorkspaceViewSet(viewsets.ModelViewSet):
             'alerta': serializer.data['percentual_utilizado'] >= 90
         })
 
+    @action(detail=True, methods=['get'])
+    def error_logs(self, request, pk=None):
+        """
+        Lista subscribers que têm a variável 'erroencontrado' preenchida
+
+        GET /ia/nicochat-workspaces/{id}/error_logs/
+
+        Returns:
+            JSON com lista de erros em tempo real
+        """
+        workspace = self.get_object()
+
+        try:
+            # Descriptografar API key
+            from .nicochat_service import decrypt_api_key, NicochatAPIService
+
+            api_key = decrypt_api_key(workspace.api_key_encrypted)
+
+            # Buscar subscribers com erro
+            service = NicochatAPIService(api_key)
+            sucesso, error_logs = service.get_subscribers_with_errors(api_key)
+
+            if sucesso:
+                return Response({
+                    'success': True,
+                    'total': len(error_logs),
+                    'error_logs': error_logs,
+                    'workspace_id': workspace.id,
+                    'workspace_nome': workspace.nome
+                })
+            else:
+                return Response({
+                    'success': False,
+                    'error': 'Erro ao buscar logs de erro da API NicoChat',
+                    'total': 0,
+                    'error_logs': []
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        except Exception as e:
+            logger.error(f"❌ Erro ao buscar error_logs do workspace {workspace.id}: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+
+            return Response({
+                'success': False,
+                'error': f'Erro ao processar requisição: {str(e)}',
+                'total': 0,
+                'error_logs': []
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     def update(self, request, *args, **kwargs):
         """Update com logging detalhado"""
         logger.info("=" * 80)

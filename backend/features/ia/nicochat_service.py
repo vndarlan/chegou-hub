@@ -603,3 +603,123 @@ class NicochatAPIService:
             "message": "Métricas de email não disponíveis na API NicoChat",
             "nota": "Este endpoint será implementado quando a API NicoChat disponibilizar os dados"
         }
+
+    def get_subscribers_with_errors(self, api_key: str) -> Tuple[bool, List[Dict]]:
+        """
+        Busca subscribers que têm a variável 'erroencontrado' preenchida
+
+        OTIMIZADO: user_fields já vem na listagem GET /subscribers,
+        não precisa chamar /subscriber/get-info para cada um!
+
+        Args:
+            api_key: API key (obrigatória)
+
+        Returns:
+            Tupla (sucesso: bool, lista de subscribers com erro)
+            Formato de cada item: {
+                "user_ns": "f108059u412597865",
+                "name": "Amado",
+                "phone": "+523343170008",
+                "email": "email@example.com",
+                "error_message": "Mensagem de erro completa"
+            }
+        """
+        import time
+
+        start_time = time.time()
+        logger.info("=" * 80)
+        logger.info("🔍 BUSCANDO SUBSCRIBERS COM ERRO (variável 'erroencontrado')")
+
+        subscribers_with_errors = []
+        current_page = 1
+        pages_processed = 0
+        total_subscribers_checked = 0
+
+        try:
+            while True:
+                endpoint = "/subscribers"
+                params = {
+                    'page': current_page,
+                    'limit': 100  # Máximo por página
+                }
+
+                logger.info(f"📄 Buscando página {current_page}...")
+                sucesso, resposta = self._make_request(
+                    endpoint,
+                    api_key,
+                    method='GET',
+                    params=params
+                )
+
+                if not sucesso:
+                    error_msg = f"Erro na página {current_page}: {resposta.get('error', 'Desconhecido')}"
+                    logger.error(f"❌ {error_msg}")
+
+                    # Se falhou logo na primeira página, retornar erro
+                    if current_page == 1:
+                        return False, []
+
+                    # Se falhou em páginas posteriores, retornar o que já encontramos
+                    break
+
+                # Extrair dados da página
+                subscribers = resposta.get('data', [])
+                meta = resposta.get('meta', {})
+
+                last_page = meta.get('last_page', 1)
+                total_subscribers_checked += len(subscribers)
+
+                logger.info(f"   ✅ Página {current_page}/{last_page} - {len(subscribers)} subscribers")
+
+                # Filtrar os que têm erroencontrado
+                for sub in subscribers:
+                    user_fields = sub.get('user_fields', [])
+
+                    # Procurar variável erroencontrado
+                    for field in user_fields:
+                        if field.get('name') == 'erroencontrado':
+                            error_value = field.get('value', '')
+
+                            # Só adicionar se tiver valor (não vazio)
+                            if error_value:
+                                subscriber_error = {
+                                    'user_ns': sub.get('user_ns', ''),
+                                    'name': sub.get('name', 'N/A'),
+                                    'phone': sub.get('phone', ''),
+                                    'email': sub.get('email', ''),
+                                    'error_message': error_value
+                                }
+
+                                subscribers_with_errors.append(subscriber_error)
+
+                                logger.info(f"   🚨 Erro encontrado: {sub.get('name')} - {error_value[:70]}...")
+                            break
+
+                pages_processed += 1
+
+                # Verificar se chegou na última página
+                if current_page >= last_page:
+                    logger.info(f"✅ Processamento completo! {pages_processed} páginas processadas")
+                    break
+
+                current_page += 1
+
+            # Estatísticas finais
+            processing_time = time.time() - start_time
+
+            logger.info(f"📊 ESTATÍSTICAS FINAIS:")
+            logger.info(f"   Total de subscribers verificados: {total_subscribers_checked}")
+            logger.info(f"   Subscribers com erro: {len(subscribers_with_errors)}")
+            logger.info(f"   Páginas processadas: {pages_processed}")
+            logger.info(f"   Tempo de processamento: {processing_time:.2f}s")
+            logger.info("=" * 80)
+
+            return True, subscribers_with_errors
+
+        except Exception as e:
+            processing_time = time.time() - start_time
+            logger.error(f"❌ ERRO INESPERADO ao buscar subscribers com erro: {e}")
+            logger.error(f"   Tempo decorrido: {processing_time:.2f}s")
+            logger.error("=" * 80)
+
+            return False, []
