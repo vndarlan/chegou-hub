@@ -18,6 +18,7 @@ export default function FeedbackDevolucaoCard({ configId, onRefresh }) {
     if (configId) {
       fetchFeedbacks();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [configId]);
 
   const fetchFeedbacks = async () => {
@@ -40,50 +41,39 @@ export default function FeedbackDevolucaoCard({ configId, onRefresh }) {
       if (response.data.success) {
         const userFields = response.data.data || [];
 
-        console.log('🔍 FeedbackDevolucaoCard: Total de userFields:', userFields.length);
+        // Processar user_fields para extrair formsdevolucao
+        const feedbacksData = [];
 
-        // Log de todos os campos do primeiro registro para debug
-        if (userFields.length > 0) {
-          console.log('🔍 Campos disponíveis no primeiro registro:', Object.keys(userFields[0]));
-          console.log('🔍 Primeiro registro completo:', userFields[0]);
-        }
+        for (const user of userFields) {
+          // Buscar dentro de user_fields array
+          const userFieldsArray = user.user_fields || [];
 
-        // Filtrar apenas registros que têm formsDevolucao (testando variações)
-        const feedbacksData = userFields
-          .filter(user => {
-            const temFormsDevolucao = user.formsDevolucao || user.formsdevolucao || user.formsDevolucao || user.Formsdevolucao;
-            if (temFormsDevolucao) {
-              console.log('✅ Encontrado formsDevolucao em:', user.nome || user.telefone);
-            }
-            return temFormsDevolucao;
-          })
-          .map(user => {
-            // Tentar várias variações do nome do campo
-            const formsDevolucaoRaw = user.formsDevolucao || user.formsdevolucao || user.formsDevolucao || user.Formsdevolucao;
+          // Procurar o campo formsdevolucao (minúsculo)
+          const formsDevolucaoField = userFieldsArray.find(
+            field => field.name === 'formsdevolucao' || field.var_ns === 'f108059v5901303'
+          );
+
+          if (formsDevolucaoField && formsDevolucaoField.value) {
             try {
-              // Parse do JSON do campo formsDevolucao
-              const devolucaoData = typeof formsDevolucaoRaw === 'string'
-                ? JSON.parse(formsDevolucaoRaw)
-                : formsDevolucaoRaw;
+              // Parse do JSON do campo formsdevolucao
+              const devolucaoData = typeof formsDevolucaoField.value === 'string'
+                ? JSON.parse(formsDevolucaoField.value)
+                : formsDevolucaoField.value;
 
-              console.log('📦 Dados de devolução parseados:', devolucaoData);
-
-              // Retornar apenas se tiver feedback preenchido
+              // Apenas adicionar se tiver feedback preenchido
               if (devolucaoData.feedback && devolucaoData.feedback.trim() !== '') {
-                return {
-                  nombre: devolucaoData.nombre || user.nome || 'N/A',
+                feedbacksData.push({
+                  nombre: devolucaoData.nombre || user.name || 'N/A',
                   feedback: devolucaoData.feedback,
                   numerodopedido: devolucaoData.numerodopedido || '',
                   email: devolucaoData.email || ''
-                };
+                });
               }
-              return null;
             } catch (err) {
-              console.error('Erro ao parsear formsDevolucao:', err);
-              return null;
+              console.error('Erro ao parsear formsdevolucao:', err, formsDevolucaoField.value);
             }
-          })
-          .filter(item => item !== null); // Remover itens nulos
+          }
+        }
 
         setFeedbacks(feedbacksData);
       }
