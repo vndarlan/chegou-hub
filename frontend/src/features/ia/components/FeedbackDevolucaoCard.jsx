@@ -82,11 +82,21 @@ export default function FeedbackDevolucaoCard({ configId, onRefresh }) {
                 // Apenas adicionar se tiver feedback preenchido
                 if (devolucaoData.feedback && devolucaoData.feedback.trim() !== '') {
                   console.log(`   💬 Feedback encontrado: "${devolucaoData.feedback}" (${devolucaoData.nombre})`);
+
+                  // Tentar pegar data do subscriber ou do campo
+                  let feedbackDate = null;
+                  if (subscriber.updated_at) {
+                    feedbackDate = subscriber.updated_at;
+                  } else if (subscriber.created_at) {
+                    feedbackDate = subscriber.created_at;
+                  }
+
                   allFeedbacks.push({
                     nombre: devolucaoData.nombre || subscriber.name || 'N/A',
                     feedback: devolucaoData.feedback,
                     numerodopedido: devolucaoData.numerodopedido || '',
-                    email: devolucaoData.email || subscriber.email || ''
+                    email: devolucaoData.email || subscriber.email || '',
+                    data: feedbackDate
                   });
                 }
               } catch (err) {
@@ -175,7 +185,18 @@ export default function FeedbackDevolucaoCard({ configId, onRefresh }) {
                   key={index}
                   className="border-l-4 border-yellow-500 bg-muted/30 p-3 rounded"
                 >
-                  <p className="font-medium text-sm mb-1">{item.nombre}</p>
+                  <div className="flex items-start justify-between mb-1">
+                    <p className="font-medium text-sm">{item.nombre}</p>
+                    {item.data && (
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(item.data).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        })}
+                      </p>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground italic">"{item.feedback}"</p>
                   {item.numerodopedido && (
                     <p className="text-xs text-muted-foreground mt-1">
