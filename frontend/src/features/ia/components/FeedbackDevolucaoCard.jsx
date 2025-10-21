@@ -83,12 +83,14 @@ export default function FeedbackDevolucaoCard({ configId, onRefresh }) {
                 if (devolucaoData.feedback && devolucaoData.feedback.trim() !== '') {
                   console.log(`   💬 Feedback encontrado: "${devolucaoData.feedback}" (${devolucaoData.nombre})`);
 
-                  // Tentar pegar data do subscriber ou do campo
+                  // Tentar pegar data do subscriber (usar last_interaction, last_message_at ou subscribed)
                   let feedbackDate = null;
-                  if (subscriber.updated_at) {
-                    feedbackDate = subscriber.updated_at;
-                  } else if (subscriber.created_at) {
-                    feedbackDate = subscriber.created_at;
+                  if (subscriber.last_interaction) {
+                    feedbackDate = subscriber.last_interaction;
+                  } else if (subscriber.last_message_at) {
+                    feedbackDate = subscriber.last_message_at;
+                  } else if (subscriber.subscribed) {
+                    feedbackDate = subscriber.subscribed;
                   }
 
                   allFeedbacks.push({
