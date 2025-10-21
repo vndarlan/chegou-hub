@@ -2825,6 +2825,143 @@ def nicochat_subscribers(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def nicochat_channel_status(request):
+    """
+    Busca informações sobre os canais conectados nos fluxos do NicoChat
+
+    Params:
+        - config_id: ID da configuração NicoChat (obrigatório)
+
+    Returns:
+        {
+            "flows": [
+                {
+                    "id": "f211553",
+                    "name": "Romênia",
+                    "type": "waapi",  // Tipo de canal
+                    "status": "editing",
+                    "linked_label": "5521965429532",  // Número vinculado (se vazio = desconectado)
+                    "channel_status": "connected"  // Calculado: connected/disconnected
+                }
+            ]
+        }
+    """
+    logger.info("🔍 NICOCHAT_CHANNEL_STATUS - INICIANDO")
+
+    try:
+        # Pegar config_id
+        config_id = request.query_params.get('config_id')
+
+        if not config_id:
+            return Response(
+                {'error': 'config_id é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        logger.info(f"📋 Parâmetros recebidos: config_id={config_id}")
+
+        # Buscar config
+        config = NicochatConfig.objects.get(id=config_id, ativo=True)
+        logger.info(f"✅ Config encontrada: {config.nome}")
+
+        # Descriptografar API key
+        from .nicochat_service import decrypt_api_key, NicochatAPIService
+
+        api_key = decrypt_api_key(config.api_key_encrypted)
+        logger.info("✅ API key descriptografada")
+
+        # Criar service e buscar flows
+        service = NicochatAPIService(api_key)
+        sucesso, flows = service.get_flows_list(api_key)
+
+        if not sucesso:
+            logger.error(f"❌ Erro ao buscar flows: {flows}")
+            return Response({
+                'success': False,
+                'error': 'Erro ao buscar fluxos da API NicoChat',
+                'detalhes': flows
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Processar flows e adicionar informações de status do canal
+        flows_processados = []
+        for flow in flows:
+            # Determinar status do canal baseado em linked_label
+            linked_label = flow.get('linked_label', '')
+            has_connection = bool(linked_label and linked_label.strip())
+
+            flow_processado = {
+                'id': flow.get('flow_ns', flow.get('id')),
+                'name': flow.get('name', 'Sem nome'),
+                'type': flow.get('type', 'unknown'),
+                'type_display': get_channel_type_display(flow.get('type', 'unknown')),
+                'status': flow.get('status', 'unknown'),
+                'linked_label': linked_label,
+                'channel_status': 'connected' if has_connection else 'disconnected',
+                'use_channel_id': flow.get('use_channel_id', 0),
+                'created_at': flow.get('created_at'),
+                'updated_at': flow.get('updated_at'),
+                'image': flow.get('image'),
+            }
+            flows_processados.append(flow_processado)
+
+        # Calcular estatísticas
+        total_flows = len(flows_processados)
+        connected_count = sum(1 for f in flows_processados if f['channel_status'] == 'connected')
+        disconnected_count = total_flows - connected_count
+
+        # Contar por tipo
+        types_count = {}
+        for flow in flows_processados:
+            tipo = flow['type']
+            types_count[tipo] = types_count.get(tipo, 0) + 1
+
+        resultado = {
+            'success': True,
+            'config_id': config_id,
+            'config_name': config.nome,
+            'flows': flows_processados,
+            'stats': {
+                'total': total_flows,
+                'connected': connected_count,
+                'disconnected': disconnected_count,
+                'by_type': types_count
+            }
+        }
+
+        logger.info(f"✅ {total_flows} fluxos processados: {connected_count} conectados, {disconnected_count} desconectados")
+        return Response(resultado)
+
+    except NicochatConfig.DoesNotExist:
+        logger.error(f"❌ Config não encontrada: id={config_id}")
+        return Response(
+            {'error': 'Configuração NicoChat não encontrada ou inativa'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"❌ ERRO em nicochat_channel_status: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return Response(
+            {'error': f'Erro interno: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+def get_channel_type_display(type_code):
+    """Converte código de tipo de canal para nome legível"""
+    type_map = {
+        'waapi': 'WhatsApp API',
+        'web': 'Web Chat',
+        'telegram': 'Telegram',
+        'instagram': 'Instagram',
+        'facebook': 'Facebook Messenger',
+        'unknown': 'Desconhecido'
+    }
+    return type_map.get(type_code, type_code.title())
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def verificar_saude_criptografia(request):
     """Verifica saúde do sistema de criptografia WhatsApp"""
     
