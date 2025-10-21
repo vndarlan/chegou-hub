@@ -2715,6 +2715,116 @@ def nicochat_email_metrics(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def nicochat_subscribers(request):
+    """
+    Busca subscribers do NicoChat com seus user_fields preenchidos
+
+    Query params:
+        - config_id: ID da configuração NicoChat (obrigatório)
+        - flow_id: ID do flow (opcional)
+        - limit: Qtd por página, máx 100 (opcional, default 100)
+        - page: Número da página (opcional, default 1)
+
+    Retorna:
+        - success: bool
+        - data: lista de subscribers com user_fields
+        - meta: informações de paginação
+        - links: links de navegação
+    """
+    logger.info("=" * 80)
+    logger.info("📋 NICOCHAT_SUBSCRIBERS - INICIANDO")
+    logger.info(f"   Usuario: {request.user.username}")
+    logger.info(f"   Query params: {dict(request.GET)}")
+
+    # Extrair parâmetros
+    config_id = request.GET.get('config_id')
+    flow_id = request.GET.get('flow_id')
+    limit = int(request.GET.get('limit', 100))
+    page = int(request.GET.get('page', 1))
+
+    logger.info(f"   - config_id: '{config_id}'")
+    logger.info(f"   - flow_id: '{flow_id}'")
+    logger.info(f"   - limit: {limit}")
+    logger.info(f"   - page: {page}")
+
+    # Validação: config_id é obrigatório
+    if not config_id:
+        logger.error("❌ ERRO: config_id não fornecido")
+        return Response(
+            {'error': 'config_id é obrigatório'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        # Buscar configuração
+        logger.info(f"🔎 Buscando NicochatConfig id={config_id}")
+        config = NicochatConfig.objects.get(id=config_id, ativo=True)
+        logger.info(f"✅ Config encontrada: {config.nome}")
+
+        # Verificar permissões
+        tem_permissao = (
+            request.user.is_superuser or
+            request.user.groups.filter(name__in=['Diretoria', 'Gestão', 'IA & Automações']).exists() or
+            config.usuario == request.user
+        )
+
+        if not tem_permissao:
+            logger.error("❌ ERRO: Usuario sem permissão")
+            return Response(
+                {'error': 'Sem permissão para usar esta configuração'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        logger.info("✅ Permissões OK")
+
+        # Descriptografar API key
+        from .nicochat_service import decrypt_api_key, NicochatAPIService
+        api_key = decrypt_api_key(config.api_key_encrypted)
+        logger.info("✅ API key descriptografada")
+
+        # Buscar subscribers
+        logger.info(f"📡 Chamando API NicoChat para buscar subscribers...")
+        service = NicochatAPIService(api_key)
+        sucesso, resposta = service.get_subscribers(api_key, flow_id, limit, page)
+
+        if sucesso:
+            subscribers = resposta.get('data', [])
+            logger.info(f"✅ {len(subscribers)} subscribers retornados")
+
+            return Response({
+                'success': True,
+                'data': subscribers,
+                'meta': resposta.get('meta', {}),
+                'links': resposta.get('links', {})
+            }, status=status.HTTP_200_OK)
+
+        logger.error(f"❌ Erro ao buscar subscribers: {resposta}")
+        return Response({
+            'success': False,
+            'error': 'Erro ao buscar subscribers',
+            'detalhes': resposta
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    except NicochatConfig.DoesNotExist:
+        logger.error(f"❌ Config não encontrada: id={config_id}")
+        return Response(
+            {'error': 'Configuração NicoChat não encontrada ou inativa'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"❌ ERRO INESPERADO em nicochat_subscribers: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return Response(
+            {'error': f'Erro interno: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    finally:
+        logger.info("=" * 80)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def verificar_saude_criptografia(request):
     """Verifica saúde do sistema de criptografia WhatsApp"""
     

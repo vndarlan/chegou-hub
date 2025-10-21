@@ -12,8 +12,6 @@ export default function FeedbackDevolucaoCard({ configId, onRefresh }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const FLOW_ID = 'f108059';
-
   useEffect(() => {
     if (configId) {
       fetchFeedbacks();
@@ -31,22 +29,23 @@ export default function FeedbackDevolucaoCard({ configId, onRefresh }) {
       setLoading(true);
       setError(null);
 
-      const response = await axios.get('/ia/nicochat/user-fields/', {
+      // Usar o novo endpoint que retorna subscribers com user_fields
+      const response = await axios.get('/ia/nicochat/subscribers/', {
         params: {
-          flow_id: FLOW_ID,
-          config_id: configId
+          config_id: configId,
+          limit: 100  // Buscar até 100 subscribers por vez
         }
       });
 
       if (response.data.success) {
-        const userFields = response.data.data || [];
+        const subscribers = response.data.data || [];
 
-        // Processar user_fields para extrair formsdevolucao
+        // Processar subscribers para extrair formsdevolucao
         const feedbacksData = [];
 
-        for (const user of userFields) {
+        for (const subscriber of subscribers) {
           // Buscar dentro de user_fields array
-          const userFieldsArray = user.user_fields || [];
+          const userFieldsArray = subscriber.user_fields || [];
 
           // Procurar o campo formsdevolucao (minúsculo)
           const formsDevolucaoField = userFieldsArray.find(
@@ -63,10 +62,10 @@ export default function FeedbackDevolucaoCard({ configId, onRefresh }) {
               // Apenas adicionar se tiver feedback preenchido
               if (devolucaoData.feedback && devolucaoData.feedback.trim() !== '') {
                 feedbacksData.push({
-                  nombre: devolucaoData.nombre || user.name || 'N/A',
+                  nombre: devolucaoData.nombre || subscriber.name || 'N/A',
                   feedback: devolucaoData.feedback,
                   numerodopedido: devolucaoData.numerodopedido || '',
-                  email: devolucaoData.email || ''
+                  email: devolucaoData.email || subscriber.email || ''
                 });
               }
             } catch (err) {

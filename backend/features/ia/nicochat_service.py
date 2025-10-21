@@ -658,6 +658,66 @@ class NicochatAPIService:
 
         return True, resultado
 
+    def get_subscribers(self, api_key: str, flow_id: Optional[str] = None, limit: int = 100, page: int = 1) -> Tuple[bool, Dict]:
+        """
+        Busca subscribers do NicoChat com seus user_fields preenchidos
+
+        Args:
+            api_key: API key do NicoChat (obrigatória)
+            flow_id: Filtro opcional por flow_id
+            limit: Quantidade por página (máximo 100)
+            page: Número da página
+
+        Returns:
+            Tupla (sucesso: bool, dados: dict)
+            Formato: {
+                "data": [
+                    {
+                        "user_ns": "f108059u408237851",
+                        "name": "José",
+                        "phone": "+528781367140",
+                        "email": "...",
+                        "status": "open",
+                        "user_fields": [
+                            {"name": "pedidocriado", "var_ns": "...", "value": "{...}"},
+                            ...
+                        ]
+                    }
+                ],
+                "meta": {...},
+                "links": {...}
+            }
+        """
+        endpoint = "/subscribers"
+
+        # Validar e limitar o limite máximo
+        limit = min(limit, 100)
+
+        params = {
+            'limit': limit,
+            'page': page
+        }
+
+        if flow_id:
+            params['flow_id'] = flow_id
+
+        logger.info(f"📄 Buscando subscribers (page={page}, limit={limit}, flow_id={flow_id})")
+
+        sucesso, resposta = self._make_request(
+            endpoint,
+            api_key,
+            method='GET',
+            params=params
+        )
+
+        if sucesso:
+            subscribers = resposta.get('data', [])
+            logger.info(f"✅ Obtidos {len(subscribers)} subscribers")
+            return True, resposta
+
+        logger.error(f"❌ Erro ao buscar subscribers: {resposta}")
+        return False, resposta
+
     def get_subscribers_with_errors(self, api_key: str) -> Tuple[bool, List[Dict]]:
         """
         Busca subscribers que têm a variável 'erroencontrado' preenchida

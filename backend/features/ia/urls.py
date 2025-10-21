@@ -39,6 +39,7 @@ urlpatterns = [
     # === ENDPOINTS DE NICOCHAT ===
     path('nicochat/subflows/', views.nicochat_subflows, name='nicochat-subflows'),
     path('nicochat/user-fields/', views.nicochat_user_fields, name='nicochat-user-fields'),
+    path('nicochat/subscribers/', views.nicochat_subscribers, name='nicochat-subscribers'),
     path('nicochat/testar-conexao/', views.nicochat_testar_conexao, name='nicochat-testar-conexao'),
     path('nicochat/bot-users-count/', views.nicochat_bot_users_count, name='nicochat-bot-users-count'),
     path('nicochat/whatsapp-templates/', views.nicochat_whatsapp_templates_list, name='nicochat-whatsapp-templates'),
