@@ -1,7 +1,7 @@
 // frontend/src/pages/NicochatPage.js
 import React from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { MessageSquare, Home, Settings, BarChart3, Shield, AlertTriangle } from 'lucide-react';
+import { MessageSquare, Home, Settings, BarChart3, Shield, AlertTriangle, Layers } from 'lucide-react';
 
 // shadcn/ui imports
 import { Button } from '../components/ui/button';
@@ -18,6 +18,7 @@ import NicochatMetricasPage from '../features/ia/NicochatMetricasPage';
 import NicochatQualidadeContaPage from '../features/ia/NicochatQualidadeContaPage';
 import NicochatWorkspacesPage from '../features/ia/NicochatWorkspacesPage';
 import NicochatErrorLogsPage from '../features/ia/NicochatErrorLogsPage';
+import NicochatEstruturaPage from '../features/ia/NicochatEstruturaPage';
 
 function NicochatPageContent() {
   const navigate = useNavigate();
@@ -51,6 +52,14 @@ function NicochatPageContent() {
             >
               <BarChart3 className="mr-2 h-4 w-4" />
               Métricas
+            </Button>
+            <Button
+              variant={location.pathname === '/nicochat/estrutura' ? 'secondary' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => navigate('/nicochat/estrutura')}
+            >
+              <Layers className="mr-2 h-4 w-4" />
+              Estrutura
             </Button>
             <Button
               variant={location.pathname === '/nicochat/qualidade-conta' ? 'secondary' : 'ghost'}
@@ -110,6 +119,7 @@ function NicochatPageContent() {
           <Routes>
             <Route index element={<Navigate to="metricas" replace />} />
             <Route path="metricas" element={<NicochatMetricasPage />} />
+            <Route path="estrutura" element={<NicochatEstruturaPage />} />
             <Route path="qualidade-conta" element={<NicochatQualidadeContaPage />} />
             <Route path="error-logs" element={<NicochatErrorLogsPage />} />
             <Route path="workspaces" element={<NicochatWorkspacesPage />} />

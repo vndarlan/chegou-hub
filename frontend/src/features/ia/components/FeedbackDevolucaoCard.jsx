@@ -39,6 +39,7 @@ export default function FeedbackDevolucaoCard({ configId, onRefresh }) {
 
       if (response.data.success) {
         const subscribers = response.data.data || [];
+        console.log('🔍 FeedbackDevolucaoCard: Total de subscribers recebidos:', subscribers.length);
 
         // Processar subscribers para extrair formsdevolucao
         const feedbacksData = [];
@@ -47,33 +48,57 @@ export default function FeedbackDevolucaoCard({ configId, onRefresh }) {
           // Buscar dentro de user_fields array
           const userFieldsArray = subscriber.user_fields || [];
 
-          // Procurar o campo formsdevolucao (minúsculo)
+          console.log('📋 Subscriber:', subscriber.name || subscriber.id, '- Total de user_fields:', userFieldsArray.length);
+
+          // Mostrar todos os campos disponíveis (apenas os primeiros 5 subscribers para não poluir)
+          if (feedbacksData.length < 5) {
+            console.log('   Campos disponíveis:', userFieldsArray.map(f => ({ name: f.name, var_ns: f.var_ns })));
+          }
+
+          // Procurar o campo formsdevolucao (tentar várias variações)
           const formsDevolucaoField = userFieldsArray.find(
-            field => field.name === 'formsdevolucao' || field.var_ns === 'f108059v5901303'
+            field =>
+              field.name?.toLowerCase() === 'formsdevolucao' ||
+              field.name?.toLowerCase() === 'formsdevolução' ||
+              field.name?.toLowerCase().includes('devolucao') ||
+              field.name?.toLowerCase().includes('devolução') ||
+              field.var_ns === 'f108059v5901303'
           );
 
-          if (formsDevolucaoField && formsDevolucaoField.value) {
-            try {
-              // Parse do JSON do campo formsdevolucao
-              const devolucaoData = typeof formsDevolucaoField.value === 'string'
-                ? JSON.parse(formsDevolucaoField.value)
-                : formsDevolucaoField.value;
+          if (formsDevolucaoField) {
+            console.log('✅ Campo formsdevolucao encontrado!', formsDevolucaoField);
 
-              // Apenas adicionar se tiver feedback preenchido
-              if (devolucaoData.feedback && devolucaoData.feedback.trim() !== '') {
-                feedbacksData.push({
-                  nombre: devolucaoData.nombre || subscriber.name || 'N/A',
-                  feedback: devolucaoData.feedback,
-                  numerodopedido: devolucaoData.numerodopedido || '',
-                  email: devolucaoData.email || subscriber.email || ''
-                });
+            if (formsDevolucaoField.value) {
+              try {
+                // Parse do JSON do campo formsdevolucao
+                const devolucaoData = typeof formsDevolucaoField.value === 'string'
+                  ? JSON.parse(formsDevolucaoField.value)
+                  : formsDevolucaoField.value;
+
+                console.log('📦 Dados parseados:', devolucaoData);
+
+                // Apenas adicionar se tiver feedback preenchido
+                if (devolucaoData.feedback && devolucaoData.feedback.trim() !== '') {
+                  console.log('💬 Feedback válido encontrado:', devolucaoData.feedback);
+                  feedbacksData.push({
+                    nombre: devolucaoData.nombre || subscriber.name || 'N/A',
+                    feedback: devolucaoData.feedback,
+                    numerodopedido: devolucaoData.numerodopedido || '',
+                    email: devolucaoData.email || subscriber.email || ''
+                  });
+                } else {
+                  console.log('⚠️ Campo feedback vazio ou não encontrado');
+                }
+              } catch (err) {
+                console.error('❌ Erro ao parsear formsdevolucao:', err, formsDevolucaoField.value);
               }
-            } catch (err) {
-              console.error('Erro ao parsear formsdevolucao:', err, formsDevolucaoField.value);
+            } else {
+              console.log('⚠️ Campo formsdevolucao encontrado mas sem valor');
             }
           }
         }
 
+        console.log('📊 Total de feedbacks processados:', feedbacksData.length);
         setFeedbacks(feedbacksData);
       }
     } catch (err) {

@@ -10,6 +10,7 @@ import { Label } from '../../components/ui/label';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 
 // Ícones
 import { RefreshCw, AlertTriangle, Check, X, Eye, EyeOff, Plus, Trash2, Power } from 'lucide-react';
@@ -22,6 +23,7 @@ export default function NicochatWorkspacesPage() {
   const [formData, setFormData] = useState({
     nome: '',
     api_key: '',
+    tipo_whatsapp: '',
     limite_contatos: 1000
   });
   const [showApiKey, setShowApiKey] = useState(false);
@@ -193,6 +195,27 @@ export default function NicochatWorkspacesPage() {
                 />
               </div>
 
+              {/* Tipo de WhatsApp */}
+              <div className="space-y-2">
+                <Label htmlFor="tipo_whatsapp">Tipo de WhatsApp</Label>
+                <Select
+                  value={formData.tipo_whatsapp}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, tipo_whatsapp: value }))}
+                  disabled={loading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo de conexão" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cloud">WhatsApp Cloud API</SelectItem>
+                    <SelectItem value="qr_code">WhatsApp QR Code</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Tipo de conexão do WhatsApp (Cloud API ou QR Code)
+                </p>
+              </div>
+
               {/* API Key */}
               <div className="space-y-2">
                 <Label htmlFor="api_key">API Key</Label>
@@ -295,7 +318,7 @@ export default function NicochatWorkspacesPage() {
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    setFormData({ nome: '', api_key: '', limite_contatos: 1000 });
+                    setFormData({ nome: '', api_key: '', tipo_whatsapp: '', limite_contatos: 1000 });
                     setError(null);
                     setSuccess(null);
                   }}
@@ -331,6 +354,7 @@ export default function NicochatWorkspacesPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nome</TableHead>
+                      <TableHead>Tipo</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Contatos</TableHead>
                       <TableHead>Limite</TableHead>
@@ -343,6 +367,21 @@ export default function NicochatWorkspacesPage() {
                     {configs.map((config) => (
                       <TableRow key={config.id}>
                         <TableCell className="font-medium">{config.nome}</TableCell>
+                        <TableCell>
+                          {config.tipo_whatsapp === 'cloud' ? (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                              Cloud API
+                            </Badge>
+                          ) : config.tipo_whatsapp === 'qr_code' ? (
+                            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300">
+                              QR Code
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-300">
+                              Não definido
+                            </Badge>
+                          )}
+                        </TableCell>
                         <TableCell>
                           {config.ativo ? (
                             <Badge className="bg-green-100 text-green-800 hover:bg-green-100">

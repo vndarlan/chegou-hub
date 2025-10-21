@@ -1602,7 +1602,7 @@ class NicochatWorkspaceSerializer(serializers.ModelSerializer):
     class Meta:
         model = NicochatWorkspace
         fields = [
-            'id', 'nome', 'api_key', 'api_key_encrypted', 'limite_contatos',
+            'id', 'nome', 'api_key', 'api_key_encrypted', 'tipo_whatsapp', 'limite_contatos',
             'usuario', 'usuario_nome', 'ativo',
             'criado_em', 'atualizado_em',
             'contatos_atuais', 'percentual_utilizado', 'limite_atingido'

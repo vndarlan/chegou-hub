@@ -1248,6 +1248,14 @@ class QualityAlert(models.Model):
         return f"{priority_icon}{status_icon} {self.titulo} - {self.phone_number.display_phone_number}"
 
 
+# ===== CLASSES DE ESCOLHAS PARA NICOCHAT =====
+
+class TipoWhatsAppChoices(models.TextChoices):
+    """Tipo de conexão WhatsApp"""
+    CLOUD = 'cloud', 'WhatsApp Cloud API'
+    QR_CODE = 'qr_code', 'WhatsApp QR Code'
+
+
 # ===== MODELO PARA WORKSPACES NICOCHAT =====
 
 class NicochatWorkspace(models.Model):
@@ -1261,6 +1269,14 @@ class NicochatWorkspace(models.Model):
     api_key_encrypted = models.TextField(
         verbose_name="API Key Criptografada",
         help_text="API Key do NicoChat armazenada de forma segura"
+    )
+    tipo_whatsapp = models.CharField(
+        max_length=10,
+        choices=TipoWhatsAppChoices.choices,
+        blank=True,
+        null=True,
+        verbose_name="Tipo de WhatsApp",
+        help_text="Tipo de conexão WhatsApp (Cloud API ou QR Code)"
     )
     limite_contatos = models.PositiveIntegerField(
         default=1000,

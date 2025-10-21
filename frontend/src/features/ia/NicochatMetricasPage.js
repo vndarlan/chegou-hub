@@ -21,12 +21,10 @@ import { RefreshCw, FileX, Package, MapPin, Users, MessageCircle, CheckCircle, A
 // Componentes locais
 import {
   NicochatCard,
-  SubflowsList,
   FormularioTable,
   LoadingSpinner,
   ErrorAlert,
   StatsCard,
-  AllTagsCard,
   FeedbackDevolucaoCard
 } from './components';
 import EmailMetricsCard from './components/EmailMetricsCard';
@@ -39,14 +37,12 @@ export default function NicochatMetricasPage() {
 
   // Estados de dados
   const [configs, setConfigs] = useState([]);
-  const [subfluxos, setSubfluxos] = useState([]);
   const [userFields, setUserFields] = useState([]);
   const [botUsersCount, setBotUsersCount] = useState({ open: 0, done: 0, total: 0 });
 
   // Estados de loading/erro
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [loadingSubfluxos, setLoadingSubfluxos] = useState(false);
   const [loadingFields, setLoadingFields] = useState(false);
   const [loadingStats, setLoadingStats] = useState(false);
 
@@ -64,22 +60,6 @@ export default function NicochatMetricasPage() {
     }
   }, [selectedWorkspace]);
 
-
-  const fetchSubfluxos = async () => {
-    try {
-      setLoadingSubfluxos(true);
-
-      const response = await axios.get('/ia/nicochat/subflows/', {
-        params: { flow_id: FLOW_ID, config_id: selectedWorkspace }
-      });
-
-      setSubfluxos(response.data.data || []);
-    } catch (err) {
-      console.error('Erro ao carregar subfluxos:', err);
-    } finally {
-      setLoadingSubfluxos(false);
-    }
-  };
 
   const fetchUserFields = async () => {
     try {
@@ -121,7 +101,6 @@ export default function NicochatMetricasPage() {
     try {
       setLoading(true);
       await Promise.all([
-        fetchSubfluxos(),
         fetchUserFields(),
         fetchBotUsersCount()
       ]);
@@ -225,7 +204,7 @@ export default function NicochatMetricasPage() {
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline" onClick={handleRefresh} disabled={!selectedWorkspace}>
-              <RefreshCw className={`h-4 w-4 ${(loadingSubfluxos || loadingFields) ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${loadingFields ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
@@ -278,13 +257,8 @@ export default function NicochatMetricasPage() {
               />
             </div>
 
-            {/* ROW 3: Tags, Email Metrics e Feedback Devolução */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <AllTagsCard
-                configId={selectedWorkspace}
-                onRefresh={handleRefresh}
-              />
-
+            {/* ROW 3: Email Metrics e Feedback Devolução */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <EmailMetricsCard
                 workspaceId={selectedWorkspace}
               />
@@ -295,21 +269,7 @@ export default function NicochatMetricasPage() {
               />
             </div>
 
-            {/* ROW 4: Automações */}
-            <div className="grid grid-cols-1 gap-6">
-              <NicochatCard
-                title="Automações Ativas"
-                badge={subfluxos.length}
-              >
-                {loadingSubfluxos ? (
-                  <LoadingSpinner message="Carregando automações..." />
-                ) : (
-                  <SubflowsList subfluxos={subfluxos} />
-                )}
-              </NicochatCard>
-            </div>
-
-            {/* ROW 5: Formulários (apenas se tiver dados) */}
+            {/* ROW 4: Formulários (apenas se tiver dados) */}
             {(cancelamentos.length > 0 || devolucoes.length > 0 || trocasEndereco.length > 0) && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Card: Cancelamentos */}
