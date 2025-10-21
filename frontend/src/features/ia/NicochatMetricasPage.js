@@ -25,8 +25,7 @@ import {
   LoadingSpinner,
   ErrorAlert,
   StatsCard,
-  FeedbackDevolucaoCard,
-  ChannelStatusCard
+  FeedbackDevolucaoCard
 } from './components';
 import EmailMetricsCard from './components/EmailMetricsCard';
 import ConfirmacaoMetricsCard from './components/ConfirmacaoMetricsCard';
@@ -238,12 +237,6 @@ export default function NicochatMetricasPage() {
                 loading={loadingStats}
               />
             </div>
-
-            {/* ROW 1.5: Status dos Canais */}
-            <ChannelStatusCard
-              configId={selectedWorkspace}
-              onRefresh={handleRefresh}
-            />
 
             {/* ROW 2: Métricas Especiais (3 colunas) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

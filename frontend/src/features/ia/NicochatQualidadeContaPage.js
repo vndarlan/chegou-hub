@@ -11,11 +11,13 @@ import { useWorkspace } from './contexts/WorkspaceContext';
 import PhoneNumberTable from './components/PhoneNumberTable';
 import AddPhoneNumberModal from './components/AddPhoneNumberModal';
 import WhatsAppTemplatesCard from './components/WhatsAppTemplatesCard';
+import ChannelStatusCard from './components/ChannelStatusCard';
 
 const NicochatQualidadeContaPage = () => {
   const { selectedWorkspace } = useWorkspace();
   // Estados principais
   const [phoneNumbers, setPhoneNumbers] = useState([]);
+  const [workspaceData, setWorkspaceData] = useState(null);
 
   // Estados de loading
   const [isLoading, setIsLoading] = useState(true);
@@ -57,7 +59,26 @@ const NicochatQualidadeContaPage = () => {
     }
   };
 
-  // Carregar dados na inicialização
+  // Função para buscar dados do workspace (tipo_whatsapp)
+  const fetchWorkspaceData = async () => {
+    if (!selectedWorkspace) return;
+
+    try {
+      const response = await axios.get(`/ia/nicochat-workspaces/${selectedWorkspace}/`);
+      setWorkspaceData(response.data);
+    } catch (err) {
+      console.error('Erro ao buscar dados do workspace:', err);
+    }
+  };
+
+  // Carregar dados quando workspace mudar
+  useEffect(() => {
+    if (selectedWorkspace) {
+      fetchWorkspaceData();
+    }
+  }, [selectedWorkspace]);
+
+  // Carregar números WhatsApp na inicialização
   useEffect(() => {
     fetchPhoneNumbers();
   }, []);
@@ -108,21 +129,33 @@ const NicochatQualidadeContaPage = () => {
           </Alert>
         )}
 
-        {/* ROW 1: Templates WhatsApp */}
-        {selectedWorkspace && (
-          <WhatsAppTemplatesCard
+        {/* Renderização condicional baseada no tipo de WhatsApp */}
+        {selectedWorkspace && workspaceData && workspaceData.tipo_whatsapp === 'qr_code' && (
+          /* WORKSPACE QR CODE: Mostrar apenas Status de Conexão */
+          <ChannelStatusCard
             configId={selectedWorkspace}
-            onRefresh={fetchPhoneNumbers}
+            onRefresh={fetchWorkspaceData}
           />
         )}
 
-        {/* ROW 2: Tabela de Números WhatsApp */}
-        <PhoneNumberTable
-          phoneNumbers={phoneNumbers}
-          onRefresh={fetchPhoneNumbers}
-          isLoading={isLoading}
-          onAddNumber={handleOpenModal}
-        />
+        {selectedWorkspace && workspaceData && workspaceData.tipo_whatsapp === 'cloud' && (
+          /* WORKSPACE CLOUD API: Mostrar Templates e Números WhatsApp */
+          <>
+            {/* ROW 1: Templates WhatsApp */}
+            <WhatsAppTemplatesCard
+              configId={selectedWorkspace}
+              onRefresh={fetchPhoneNumbers}
+            />
+
+            {/* ROW 2: Tabela de Números WhatsApp */}
+            <PhoneNumberTable
+              phoneNumbers={phoneNumbers}
+              onRefresh={fetchPhoneNumbers}
+              isLoading={isLoading}
+              onAddNumber={handleOpenModal}
+            />
+          </>
+        )}
 
         {/* Modal para Adicionar Número */}
         <AddPhoneNumberModal

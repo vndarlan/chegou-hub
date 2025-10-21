@@ -49,40 +49,60 @@ function NicochatPageContent() {
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-2">
             <Button
-              variant={location.pathname === '/nicochat/metricas' ? 'secondary' : 'ghost'}
-              className="w-full justify-start"
+              variant="ghost"
+              className={`w-full justify-start ${
+                location.pathname === '/nicochat/metricas'
+                  ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                  : ''
+              }`}
               onClick={() => navigate('/nicochat/metricas')}
             >
               <BarChart3 className="mr-2 h-4 w-4" />
               Métricas
             </Button>
             <Button
-              variant={location.pathname === '/nicochat/estrutura' ? 'secondary' : 'ghost'}
-              className="w-full justify-start"
+              variant="ghost"
+              className={`w-full justify-start ${
+                location.pathname === '/nicochat/estrutura'
+                  ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                  : ''
+              }`}
               onClick={() => navigate('/nicochat/estrutura')}
             >
               <Layers className="mr-2 h-4 w-4" />
               Estrutura
             </Button>
             <Button
-              variant={location.pathname === '/nicochat/qualidade-conta' ? 'secondary' : 'ghost'}
-              className="w-full justify-start"
+              variant="ghost"
+              className={`w-full justify-start ${
+                location.pathname === '/nicochat/qualidade-conta'
+                  ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                  : ''
+              }`}
               onClick={() => navigate('/nicochat/qualidade-conta')}
             >
               <Shield className="mr-2 h-4 w-4" />
               Qualidade da Conta
             </Button>
             <Button
-              variant={location.pathname === '/nicochat/error-logs' ? 'secondary' : 'ghost'}
-              className="w-full justify-start"
+              variant="ghost"
+              className={`w-full justify-start ${
+                location.pathname === '/nicochat/error-logs'
+                  ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                  : ''
+              }`}
               onClick={() => navigate('/nicochat/error-logs')}
             >
               <AlertTriangle className="mr-2 h-4 w-4" />
               Log de Erros
             </Button>
             <Button
-              variant={location.pathname === '/nicochat/workspaces' ? 'secondary' : 'ghost'}
-              className="w-full justify-start"
+              variant="ghost"
+              className={`w-full justify-start ${
+                location.pathname === '/nicochat/workspaces'
+                  ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                  : ''
+              }`}
               onClick={() => navigate('/nicochat/workspaces')}
             >
               <Settings className="mr-2 h-4 w-4" />

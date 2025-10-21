@@ -15,7 +15,8 @@ import {
   SubflowsList,
   LoadingSpinner,
   ErrorAlert,
-  AllTagsCard
+  AllTagsCard,
+  WebhooksCard
 } from './components';
 
 export default function NicochatEstruturaPage() {
@@ -156,6 +157,12 @@ export default function NicochatEstruturaPage() {
                 )}
               </NicochatCard>
             </div>
+
+            {/* ROW 2: Webhooks */}
+            <WebhooksCard
+              configId={selectedWorkspace}
+              onRefresh={handleRefresh}
+            />
           </>
         )}
       </div>

@@ -2825,6 +2825,105 @@ def nicochat_subscribers(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def nicochat_inbound_webhooks(request):
+    """
+    Busca webhooks inbound configurados no NicoChat
+
+    Params:
+        - config_id: ID da configuração NicoChat (obrigatório)
+        - limit: Limite de webhooks por página (opcional, padrão: 100)
+        - page: Número da página (opcional, padrão: 1)
+
+    Returns:
+        {
+            "data": [
+                {
+                    "hook_uid": "9eb15ef...",
+                    "name": "Atualização de Pedido",
+                    "sub_flow_ns": "f211553s2841045",
+                    "status": "active" | "inactive",
+                    "url": "https://app.nicochat.com.br/api/iwh/..."
+                }
+            ],
+            "meta": {...},
+            "links": {...}
+        }
+    """
+    logger.info("🪝 NICOCHAT_INBOUND_WEBHOOKS - INICIANDO")
+
+    try:
+        # Pegar parâmetros
+        config_id = request.query_params.get('config_id')
+        limit = int(request.query_params.get('limit', 100))
+        page = int(request.query_params.get('page', 1))
+
+        if not config_id:
+            return Response(
+                {'error': 'config_id é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        logger.info(f"📋 Parâmetros: config_id={config_id}, limit={limit}, page={page}")
+
+        # Buscar config
+        config = NicochatConfig.objects.get(id=config_id, ativo=True)
+        logger.info(f"✅ Config encontrada: {config.nome}")
+
+        # Descriptografar API key
+        from .nicochat_service import decrypt_api_key, NicochatAPIService
+
+        api_key = decrypt_api_key(config.api_key_encrypted)
+        logger.info("✅ API key descriptografada")
+
+        # Buscar webhooks
+        service = NicochatAPIService(api_key)
+        sucesso, resposta = service.get_inbound_webhooks(api_key, limit=limit, page=page)
+
+        if not sucesso:
+            logger.error(f"❌ Erro ao buscar webhooks: {resposta}")
+            return Response({
+                'success': False,
+                'error': 'Erro ao buscar webhooks da API NicoChat',
+                'detalhes': resposta
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Retornar resposta
+        resultado = {
+            'success': True,
+            'config_id': config_id,
+            'config_name': config.nome,
+            **resposta  # Inclui data, meta, links
+        }
+
+        webhooks_count = len(resposta.get('data', []))
+        logger.info(f"✅ {webhooks_count} webhooks retornados")
+
+        return Response(resultado)
+
+    except NicochatConfig.DoesNotExist:
+        logger.error(f"❌ Config não encontrada: id={config_id}")
+        return Response(
+            {'error': 'Configuração NicoChat não encontrada ou inativa'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except ValueError as e:
+        logger.error(f"❌ Erro de validação: {e}")
+        return Response(
+            {'error': 'Parâmetros inválidos (limit e page devem ser números)'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    except Exception as e:
+        logger.error(f"❌ ERRO em nicochat_inbound_webhooks: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return Response(
+            {'error': f'Erro interno: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def nicochat_channel_status(request):
     """
     Busca informações sobre os canais conectados nos fluxos do NicoChat

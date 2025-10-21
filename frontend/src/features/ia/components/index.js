@@ -23,3 +23,4 @@ export { default as InteracaoIACard } from './InteracaoIACard';
 export { default as ProblemasOperacionaisCard } from './ProblemasOperacionaisCard';
 export { default as FeedbackDevolucaoCard } from './FeedbackDevolucaoCard';
 export { default as ChannelStatusCard } from './ChannelStatusCard';
+export { default as WebhooksCard } from './WebhooksCard';

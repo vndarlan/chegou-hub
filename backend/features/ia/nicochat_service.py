@@ -837,3 +837,52 @@ class NicochatAPIService:
             logger.error("=" * 80)
 
             return False, []
+
+    def get_inbound_webhooks(self, api_key: str, limit: int = 100, page: int = 1) -> Tuple[bool, Dict]:
+        """
+        Busca webhooks inbound configurados no NicoChat
+
+        Args:
+            api_key: API key do NicoChat (obrigatória)
+            limit: Quantidade por página (padrão: 100)
+            page: Número da página (padrão: 1)
+
+        Returns:
+            Tupla (sucesso: bool, dados: dict)
+            Formato: {
+                "data": [
+                    {
+                        "hook_uid": "9eb15ef130f0f7a6df4458259ea5434c",
+                        "name": "Atualização de Pedido",
+                        "sub_flow_ns": "f211553s2841045",
+                        "status": "active" | "inactive",
+                        "url": "https://app.nicochat.com.br/api/iwh/..."
+                    }
+                ],
+                "meta": {...},
+                "links": {...}
+            }
+        """
+        endpoint = "/flow/inbound-webhooks"
+
+        params = {
+            'limit': limit,
+            'page': page
+        }
+
+        logger.info(f"🪝 Buscando inbound webhooks (page={page}, limit={limit})")
+
+        sucesso, resposta = self._make_request(
+            endpoint,
+            api_key,
+            method='GET',
+            params=params
+        )
+
+        if sucesso:
+            webhooks = resposta.get('data', [])
+            logger.info(f"✅ Obtidos {len(webhooks)} webhooks")
+            return True, resposta
+
+        logger.error(f"❌ Erro ao buscar webhooks: {resposta}")
+        return False, resposta

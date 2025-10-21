@@ -13,19 +13,19 @@ export default function StatsCard({ title, value, icon, color = 'blue', loading 
 
   return (
     <Card>
-      <CardContent className="p-6">
+      <CardContent className="p-4">
         {loading ? (
-          <div className="flex items-center justify-center h-24">
-            <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+          <div className="flex items-center justify-center h-16">
+            <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="flex items-center gap-4">
-            <div className={`p-3 rounded-lg ${colorClasses[color] || colorClasses.blue}`}>
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${colorClasses[color] || colorClasses.blue}`}>
               {icon}
             </div>
             <div className="flex-1">
-              <p className="text-sm text-muted-foreground font-medium">{title}</p>
-              <p className="text-3xl font-bold mt-1">{value.toLocaleString('pt-BR')}</p>
+              <p className="text-xs text-muted-foreground font-medium">{title}</p>
+              <p className="text-2xl font-bold mt-0.5">{value.toLocaleString('pt-BR')}</p>
             </div>
           </div>
         )}

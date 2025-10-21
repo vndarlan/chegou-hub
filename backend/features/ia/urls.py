@@ -47,6 +47,7 @@ urlpatterns = [
     path('nicochat/subscribers/tags-stats/', views.nicochat_subscribers_tags_stats, name='nicochat-subscribers-tags-stats'),
     path('nicochat/email-metrics/', views.nicochat_email_metrics, name='nicochat-email-metrics'),
     path('nicochat/channel-status/', views.nicochat_channel_status, name='nicochat-channel-status'),
+    path('nicochat/inbound-webhooks/', views.nicochat_inbound_webhooks, name='nicochat-inbound-webhooks'),
 
     # === ENDPOINTS TEMPORÁRIOS - REMOVER APÓS USO ===
     path('fix-whatsapp-tokens-temp/', views.fix_whatsapp_tokens_temp, name='fix-whatsapp-tokens-temp'),
