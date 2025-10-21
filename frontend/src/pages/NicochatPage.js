@@ -31,13 +31,16 @@ function NicochatPageContent() {
       <aside className="w-64 border-r bg-card flex flex-col">
         {/* Header da Sidebar */}
         <div className="p-6 border-b">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-green-600">
-              <MessageSquare className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">Nicochat</h1>
-              <p className="text-xs text-muted-foreground">WhatsApp Business</p>
+          <div className="flex items-center justify-center">
+            <div className="bg-[#3B4D9B] rounded-lg px-4 py-3 shadow-md">
+              <div className="text-white">
+                <div className="bg-white rounded px-2 py-1 inline-block mb-1">
+                  <span className="text-[#3B4D9B] font-bold text-lg">Nico</span>
+                </div>
+                <div className="text-white font-bold text-2xl leading-tight">
+                  Chat
+                </div>
+              </div>
             </div>
           </div>
         </div>
