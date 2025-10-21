@@ -29,78 +29,88 @@ export default function FeedbackDevolucaoCard({ configId, onRefresh }) {
       setLoading(true);
       setError(null);
 
-      // Usar o novo endpoint que retorna subscribers com user_fields
-      const response = await axios.get('/ia/nicochat/subscribers/', {
-        params: {
-          config_id: configId,
-          limit: 100  // Buscar até 100 subscribers por vez
-        }
-      });
+      console.log('🔍 FeedbackDevolucaoCard: Iniciando busca em TODAS as páginas...');
 
-      if (response.data.success) {
-        const subscribers = response.data.data || [];
-        console.log('🔍 FeedbackDevolucaoCard: Total de subscribers recebidos:', subscribers.length);
+      const allFeedbacks = [];
+      let currentPage = 1;
+      let hasMorePages = true;
 
-        // Processar subscribers para extrair formsdevolucao
-        const feedbacksData = [];
+      // Buscar todas as páginas
+      while (hasMorePages) {
+        console.log(`📄 Buscando página ${currentPage}...`);
 
-        for (const subscriber of subscribers) {
-          // Buscar dentro de user_fields array
-          const userFieldsArray = subscriber.user_fields || [];
+        const response = await axios.get('/ia/nicochat/subscribers/', {
+          params: {
+            config_id: configId,
+            limit: 100,
+            page: currentPage
+          }
+        });
 
-          console.log('📋 Subscriber:', subscriber.name || subscriber.id, '- Total de user_fields:', userFieldsArray.length);
+        if (response.data.success) {
+          const subscribers = response.data.data || [];
+          console.log(`   ✅ Página ${currentPage}: ${subscribers.length} subscribers`);
 
-          // Mostrar todos os campos disponíveis (apenas os primeiros 5 subscribers para não poluir)
-          if (feedbacksData.length < 5) {
-            console.log('   Campos disponíveis:', userFieldsArray.map(f => ({ name: f.name, var_ns: f.var_ns })));
+          // Se não retornou subscribers, chegamos ao fim
+          if (subscribers.length === 0) {
+            console.log('   📭 Fim dos subscribers');
+            hasMorePages = false;
+            break;
           }
 
-          // Procurar o campo formsdevolucao (tentar várias variações)
-          const formsDevolucaoField = userFieldsArray.find(
-            field =>
-              field.name?.toLowerCase() === 'formsdevolucao' ||
-              field.name?.toLowerCase() === 'formsdevolução' ||
-              field.name?.toLowerCase().includes('devolucao') ||
-              field.name?.toLowerCase().includes('devolução') ||
-              field.var_ns === 'f108059v5901303'
-          );
+          // Processar subscribers desta página
+          for (const subscriber of subscribers) {
+            const userFieldsArray = subscriber.user_fields || [];
 
-          if (formsDevolucaoField) {
-            console.log('✅ Campo formsdevolucao encontrado!', formsDevolucaoField);
+            // Procurar o campo formsdevolucao
+            const formsDevolucaoField = userFieldsArray.find(
+              field =>
+                field.name?.toLowerCase() === 'formsdevolucao' ||
+                field.name?.toLowerCase() === 'formsdevolução' ||
+                field.name?.toLowerCase().includes('devolucao') ||
+                field.name?.toLowerCase().includes('devolução') ||
+                field.var_ns === 'f108059v5901303'
+            );
 
-            if (formsDevolucaoField.value) {
+            if (formsDevolucaoField && formsDevolucaoField.value) {
               try {
                 // Parse do JSON do campo formsdevolucao
                 const devolucaoData = typeof formsDevolucaoField.value === 'string'
                   ? JSON.parse(formsDevolucaoField.value)
                   : formsDevolucaoField.value;
 
-                console.log('📦 Dados parseados:', devolucaoData);
-
                 // Apenas adicionar se tiver feedback preenchido
                 if (devolucaoData.feedback && devolucaoData.feedback.trim() !== '') {
-                  console.log('💬 Feedback válido encontrado:', devolucaoData.feedback);
-                  feedbacksData.push({
+                  console.log(`   💬 Feedback encontrado: "${devolucaoData.feedback}" (${devolucaoData.nombre})`);
+                  allFeedbacks.push({
                     nombre: devolucaoData.nombre || subscriber.name || 'N/A',
                     feedback: devolucaoData.feedback,
                     numerodopedido: devolucaoData.numerodopedido || '',
                     email: devolucaoData.email || subscriber.email || ''
                   });
-                } else {
-                  console.log('⚠️ Campo feedback vazio ou não encontrado');
                 }
               } catch (err) {
-                console.error('❌ Erro ao parsear formsdevolucao:', err, formsDevolucaoField.value);
+                console.error('❌ Erro ao parsear formsdevolucao:', err);
               }
-            } else {
-              console.log('⚠️ Campo formsdevolucao encontrado mas sem valor');
             }
           }
-        }
 
-        console.log('📊 Total de feedbacks processados:', feedbacksData.length);
-        setFeedbacks(feedbacksData);
+          // Verificar se há mais páginas (se retornou menos que 100, é a última)
+          if (subscribers.length < 100) {
+            console.log('   📭 Última página (menos de 100 subscribers)');
+            hasMorePages = false;
+          } else {
+            currentPage++;
+          }
+        } else {
+          console.error('❌ Erro na resposta da API');
+          hasMorePages = false;
+        }
       }
+
+      console.log(`📊 Total de páginas buscadas: ${currentPage}`);
+      console.log(`📊 Total de feedbacks encontrados: ${allFeedbacks.length}`);
+      setFeedbacks(allFeedbacks);
     } catch (err) {
       console.error('Erro ao carregar feedbacks de devolução:', err);
       setError(err.response?.data?.error || 'Erro ao carregar feedbacks de devolução');
