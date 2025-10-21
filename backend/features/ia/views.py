@@ -2883,8 +2883,15 @@ def nicochat_channel_status(request):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # Processar flows e adicionar informações de status do canal
+        # FILTRAR APENAS FLUXOS WAAPI (WhatsApp) - ignorar web, telegram, etc
         flows_processados = []
         for flow in flows:
+            # Ignorar fluxos que não sejam WhatsApp
+            flow_type = flow.get('type', '')
+            if flow_type != 'waapi':
+                logger.info(f"⏭️ Ignorando fluxo tipo '{flow_type}': {flow.get('name')}")
+                continue
+
             # Determinar status do canal baseado em linked_label
             linked_label = flow.get('linked_label', '')
             has_connection = bool(linked_label and linked_label.strip())
@@ -2919,6 +2926,7 @@ def nicochat_channel_status(request):
             'success': True,
             'config_id': config_id,
             'config_name': config.nome,
+            'tipo_whatsapp': config.tipo_whatsapp,  # 'qr_code' ou 'cloud'
             'flows': flows_processados,
             'stats': {
                 'total': total_flows,

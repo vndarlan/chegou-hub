@@ -77,6 +77,11 @@ export default function ChannelStatusCard({ configId, onRefresh }) {
     );
   };
 
+  // NÃO RENDERIZAR se o workspace for WhatsApp Cloud API (só para QR Code)
+  if (data && data.tipo_whatsapp === 'cloud') {
+    return null; // Não mostra o card para Cloud API
+  }
+
   if (loading) {
     return (
       <Card>
