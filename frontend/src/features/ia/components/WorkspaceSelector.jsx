@@ -9,7 +9,7 @@ import {
 } from '../../../components/ui/select';
 import { Badge } from '../../../components/ui/badge';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Cloud, QrCode } from 'lucide-react';
 
 export default function WorkspaceSelector({ value, onChange, showLimiteAlert = true }) {
   const [workspaces, setWorkspaces] = useState([]);
@@ -56,6 +56,15 @@ export default function WorkspaceSelector({ value, onChange, showLimiteAlert = t
     }
   };
 
+  const getTipoWhatsAppIcon = (tipo) => {
+    if (tipo === 'cloud') {
+      return <Cloud className="h-4 w-4 text-blue-600" title="WhatsApp Cloud API" />;
+    } else if (tipo === 'qr_code') {
+      return <QrCode className="h-4 w-4 text-purple-600" title="WhatsApp QR Code" />;
+    }
+    return null;
+  };
+
   const getLimiteBadge = () => {
     if (!limiteInfo) return null;
 
@@ -93,6 +102,8 @@ export default function WorkspaceSelector({ value, onChange, showLimiteAlert = t
     );
   }
 
+  const selectedWorkspace = workspaces.find(w => w.id === value);
+
   return (
     <div className="flex items-center gap-2">
       <Select value={value?.toString()} onValueChange={(val) => onChange(parseInt(val))} disabled={loading}>
@@ -102,6 +113,11 @@ export default function WorkspaceSelector({ value, onChange, showLimiteAlert = t
               <RefreshCw className="h-4 w-4 animate-spin" />
               <span>Carregando...</span>
             </div>
+          ) : selectedWorkspace ? (
+            <div className="flex items-center gap-2">
+              {getTipoWhatsAppIcon(selectedWorkspace.tipo_whatsapp)}
+              <span>{selectedWorkspace.nome}</span>
+            </div>
           ) : (
             <SelectValue placeholder="Selecione um workspace" />
           )}
@@ -109,8 +125,11 @@ export default function WorkspaceSelector({ value, onChange, showLimiteAlert = t
         <SelectContent>
           {workspaces.map((workspace) => (
             <SelectItem key={workspace.id} value={workspace.id.toString()}>
-              <div className="flex items-center justify-between w-full">
-                <span>{workspace.nome}</span>
+              <div className="flex items-center justify-between w-full gap-2">
+                <div className="flex items-center gap-2">
+                  {getTipoWhatsAppIcon(workspace.tipo_whatsapp)}
+                  <span>{workspace.nome}</span>
+                </div>
                 {workspace.ativo && (
                   <Badge variant="secondary" className="ml-2 text-xs">Ativo</Badge>
                 )}
