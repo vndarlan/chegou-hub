@@ -1,10 +1,10 @@
 // frontend/src/features/metricas/EcomhubPage.js - VERSÃO CORRIGIDA
 import React, { useState, useEffect } from 'react';
 import {
-    Calendar as CalendarIcon, Download, Trash2, RefreshCw, Check, X, 
-    AlertTriangle, TrendingUp, BarChart3, Eye, Search, Globe, 
-    ArrowUpDown, ArrowUp, ArrowDown, Package, Target, Percent, 
-    PieChart, Filter, Rocket, LayoutDashboard, Loader2
+    Calendar as CalendarIcon, Download, Trash2, RefreshCw, Check, X,
+    AlertTriangle, TrendingUp, BarChart3, Eye, Search, Globe,
+    ArrowUpDown, ArrowUp, ArrowDown, Package, Target, Percent,
+    PieChart, Filter, Rocket, LayoutDashboard, Loader2, Minus, Plus
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -65,6 +65,12 @@ function EcomhubPage() {
     const [sortBy, setSortBy] = useState(null);
     const [sortOrder, setSortOrder] = useState('asc');
     const [imagensComErro, setImagensComErro] = useState(new Set());
+
+    // Estado para largura da coluna Produto
+    const [larguraProduto, setLarguraProduto] = useState(() => {
+        const saved = localStorage.getItem('ecomhub_largura_produto');
+        return saved ? parseInt(saved, 10) : 150;
+    });
 
     // ======================== FUNÇÕES DE API ========================
 
@@ -244,6 +250,22 @@ function EcomhubPage() {
             setSortBy(column);
             setSortOrder('asc');
         }
+    };
+
+    const aumentarLarguraProduto = () => {
+        setLarguraProduto(prev => {
+            const novaLargura = Math.min(prev + 30, 400);
+            localStorage.setItem('ecomhub_largura_produto', novaLargura);
+            return novaLargura;
+        });
+    };
+
+    const diminuirLarguraProduto = () => {
+        setLarguraProduto(prev => {
+            const novaLargura = Math.max(prev - 30, 120);
+            localStorage.setItem('ecomhub_largura_produto', novaLargura);
+            return novaLargura;
+        });
     };
 
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
@@ -499,30 +521,75 @@ function EcomhubPage() {
                                         const isImagem = col === 'Imagem';
                                         
                                         let classesHeader = 'whitespace-nowrap px-2 py-2 text-xs text-muted-foreground';
-                                        
+                                        let styleHeader = {};
+
                                         if (isProduto) {
-                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border min-w-[150px]';
+                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border';
+                                            styleHeader = { minWidth: `${larguraProduto}px`, width: `${larguraProduto}px` };
                                         } else if (isImagem) {
-                                            classesHeader += ' sticky left-[150px] z-20 bg-background border-r border-border min-w-[80px]';
+                                            classesHeader += ' sticky z-20 bg-background border-r border-border min-w-[80px]';
+                                            styleHeader = { left: `${larguraProduto}px` };
                                         }
-                                        
+
                                         return (
-                                            <TableHead key={col} className={classesHeader}>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-auto p-0 font-medium text-xs text-muted-foreground hover:text-foreground"
-                                                    onClick={() => handleSort(col)}
-                                                >
-                                                    {col.replace('_', ' ')}
-                                                    {sortBy === col ? (
-                                                        sortOrder === 'asc' ? 
-                                                            <ArrowUp className="ml-1 h-3 w-3" /> : 
-                                                            <ArrowDown className="ml-1 h-3 w-3" />
-                                                    ) : (
-                                                        <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
-                                                    )}
-                                                </Button>
+                                            <TableHead key={col} className={classesHeader} style={styleHeader}>
+                                                {isProduto ? (
+                                                    <div className="flex items-center justify-between gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-auto p-0 font-medium text-xs text-muted-foreground hover:text-foreground"
+                                                            onClick={() => handleSort(col)}
+                                                        >
+                                                            {col.replace('_', ' ')}
+                                                            {sortBy === col ? (
+                                                                sortOrder === 'asc' ?
+                                                                    <ArrowUp className="ml-1 h-3 w-3" /> :
+                                                                    <ArrowDown className="ml-1 h-3 w-3" />
+                                                            ) : (
+                                                                <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
+                                                            )}
+                                                        </Button>
+                                                        <div className="flex items-center gap-0.5">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={diminuirLarguraProduto}
+                                                                disabled={larguraProduto <= 120}
+                                                                className="h-5 w-5 p-0 hover:bg-accent"
+                                                                title="Diminuir largura"
+                                                            >
+                                                                <Minus className="h-3 w-3" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={aumentarLarguraProduto}
+                                                                disabled={larguraProduto >= 400}
+                                                                className="h-5 w-5 p-0 hover:bg-accent"
+                                                                title="Aumentar largura"
+                                                            >
+                                                                <Plus className="h-3 w-3" />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-auto p-0 font-medium text-xs text-muted-foreground hover:text-foreground"
+                                                        onClick={() => handleSort(col)}
+                                                    >
+                                                        {col.replace('_', ' ')}
+                                                        {sortBy === col ? (
+                                                            sortOrder === 'asc' ?
+                                                                <ArrowUp className="ml-1 h-3 w-3" /> :
+                                                                <ArrowDown className="ml-1 h-3 w-3" />
+                                                        ) : (
+                                                            <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
+                                                        )}
+                                                    </Button>
+                                                )}
                                             </TableHead>
                                         );
                                     })}
@@ -534,28 +601,32 @@ function EcomhubPage() {
                                         {colunas.map(col => {
                                             const isProduto = col === 'Produto';
                                             const isImagem = col === 'Imagem';
-                                            
+
                                             let classesCelula = 'px-2 py-2 text-xs text-card-foreground';
-                                            
+                                            let styleCelula = {};
+
                                             if (tipoVisualizacao === 'otimizada' && (col === 'Efetividade_Total' || col === 'Efetividade_Parcial')) {
                                                 classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center`;
                                             }
-                                            
+
                                             if (isProduto) {
-                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border min-w-[150px]';
+                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border';
+                                                styleCelula = { minWidth: `${larguraProduto}px`, width: `${larguraProduto}px`, maxWidth: `${larguraProduto}px` };
                                             } else if (isImagem) {
-                                                classesCelula += ' sticky left-[150px] z-10 bg-background border-r border-border min-w-[80px]';
+                                                classesCelula += ' sticky z-10 bg-background border-r border-border min-w-[80px]';
+                                                styleCelula = { left: `${larguraProduto}px` };
                                             }
-                                            
+
                                             return (
                                                 <TableCell
                                                     key={col}
                                                     className={classesCelula}
+                                                    style={styleCelula}
                                                 >
                                                     {col === 'Imagem' ? (
                                                         renderImagemProduto(row[col], idx)
                                                     ) : col === 'Produto' ? (
-                                                        <div className="max-w-[120px] truncate" title={row[col]}>
+                                                        <div className="truncate" style={{ maxWidth: `${larguraProduto - 16}px` }} title={row[col]}>
                                                             {row[col]}
                                                         </div>
                                                     ) : (
