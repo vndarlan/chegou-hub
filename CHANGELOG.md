@@ -21,11 +21,6 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 - **[📊 Efetividade/EcomHub]** Removida coluna "Imagem" da tabela para melhor aproveitamento do espaço horizontal
 
-### ⚡ Performance
-
-- **[📊 Efetividade/EcomHub]** Melhorada performance ao eliminar processamento desnecessário de imagens de produtos
-- **[📊 Efetividade/EcomHub]** Ajustada lógica de posicionamento fixo (sticky) para focar apenas na coluna "Produto"
-
 ## [v1.7.0] - 21/10/2025
 
 ### ✨ Novidades
