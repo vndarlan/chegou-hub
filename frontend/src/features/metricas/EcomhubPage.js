@@ -452,9 +452,11 @@ function EcomhubPage() {
     // Tabela responsiva
     const renderResultados = () => {
         const dados = getDadosVisualizacao();
-        if (!dados || !Array.isArray(dados)) return null;
+        if (!dados || !Array.isArray(dados) || dados.length === 0) return null;
 
         let colunas = Object.keys(dados[0] || {}).filter(col => col !== 'Imagem');
+        if (colunas.length === 0) return null;
+
         const dadosOrdenados = sortData(dados, sortBy, sortOrder);
 
         const colunasEssenciais = ['Produto', 'Totais', 'Entregues', 'Efetividade_Total'];
