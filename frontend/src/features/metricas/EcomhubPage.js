@@ -61,10 +61,9 @@ function EcomhubPage() {
     const [notification, setNotification] = useState(null);
     const [progressoAtual, setProgressoAtual] = useState(null);
 
-    // Estados para ordenação e controle de imagens
+    // Estados para ordenação
     const [sortBy, setSortBy] = useState(null);
     const [sortOrder, setSortOrder] = useState('asc');
-    const [imagensComErro, setImagensComErro] = useState(new Set());
 
     // Estado para largura da coluna Produto
     const [larguraProduto, setLarguraProduto] = useState(() => {
@@ -450,35 +449,17 @@ function EcomhubPage() {
         );
     };
 
-    const renderImagemProduto = (value, rowIndex) => {
-        const imageKey = `${rowIndex}-${value}`;
-        const hasError = imagensComErro.has(imageKey);
-        
-        if (!value || hasError) {
-            return <div className="w-8 h-8 bg-muted rounded flex items-center justify-center text-sm">📦</div>;
-        }
-
-        return (
-            <img 
-                src={value} 
-                alt="Produto" 
-                className="w-8 h-8 object-cover rounded border"
-                onError={() => setImagensComErro(prev => new Set(prev).add(imageKey))}
-            />
-        );
-    };
-
     // Tabela responsiva
     const renderResultados = () => {
         const dados = getDadosVisualizacao();
         if (!dados || !Array.isArray(dados)) return null;
 
-        let colunas = Object.keys(dados[0] || {});
+        let colunas = Object.keys(dados[0] || {}).filter(col => col !== 'Imagem');
         const dadosOrdenados = sortData(dados, sortBy, sortOrder);
 
         const colunasEssenciais = ['Produto', 'Totais', 'Entregues', 'Efetividade_Total'];
         const isMobile = window.innerWidth < 768;
-        
+
         if (isMobile && tipoVisualizacao === 'otimizada') {
             colunas = colunas.filter(col => colunasEssenciais.includes(col));
         }
@@ -518,17 +499,16 @@ function EcomhubPage() {
                                 <TableRow className="bg-muted/50 border-border">
                                     {colunas.map(col => {
                                         const isProduto = col === 'Produto';
-                                        const isImagem = col === 'Imagem';
-                                        
+                                        const isPais = col === 'Pais';
+
                                         let classesHeader = 'whitespace-nowrap px-2 py-2 text-xs text-muted-foreground';
                                         let styleHeader = {};
 
                                         if (isProduto) {
                                             classesHeader += ' sticky left-0 z-20 bg-background border-r border-border';
                                             styleHeader = { minWidth: `${larguraProduto}px`, width: `${larguraProduto}px` };
-                                        } else if (isImagem) {
-                                            classesHeader += ' sticky z-20 bg-background border-r border-border min-w-[80px]';
-                                            styleHeader = { left: `${larguraProduto}px` };
+                                        } else if (isPais) {
+                                            styleHeader = { minWidth: '60px', width: '60px', maxWidth: '60px' };
                                         }
 
                                         return (
@@ -600,7 +580,7 @@ function EcomhubPage() {
                                     <TableRow key={idx} className={`border-border ${row.Produto === 'Total' ? 'bg-muted/20 font-medium' : ''}`}>
                                         {colunas.map(col => {
                                             const isProduto = col === 'Produto';
-                                            const isImagem = col === 'Imagem';
+                                            const isPais = col === 'Pais';
 
                                             let classesCelula = 'px-2 py-2 text-xs text-card-foreground';
                                             let styleCelula = {};
@@ -612,9 +592,8 @@ function EcomhubPage() {
                                             if (isProduto) {
                                                 classesCelula += ' sticky left-0 z-10 bg-background border-r border-border';
                                                 styleCelula = { minWidth: `${larguraProduto}px`, width: `${larguraProduto}px`, maxWidth: `${larguraProduto}px` };
-                                            } else if (isImagem) {
-                                                classesCelula += ' sticky z-10 bg-background border-r border-border min-w-[80px]';
-                                                styleCelula = { left: `${larguraProduto}px` };
+                                            } else if (isPais) {
+                                                styleCelula = { minWidth: '60px', width: '60px', maxWidth: '60px' };
                                             }
 
                                             return (
@@ -623,10 +602,12 @@ function EcomhubPage() {
                                                     className={classesCelula}
                                                     style={styleCelula}
                                                 >
-                                                    {col === 'Imagem' ? (
-                                                        renderImagemProduto(row[col], idx)
-                                                    ) : col === 'Produto' ? (
+                                                    {col === 'Produto' ? (
                                                         <div className="truncate" style={{ maxWidth: `${larguraProduto - 16}px` }} title={row[col]}>
+                                                            {row[col]}
+                                                        </div>
+                                                    ) : col === 'Pais' ? (
+                                                        <div className="truncate text-center" style={{ maxWidth: '60px' }} title={row[col]}>
                                                             {row[col]}
                                                         </div>
                                                     ) : (
