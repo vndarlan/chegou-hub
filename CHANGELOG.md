@@ -14,7 +14,17 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ### 🔧 Melhorias
 
-- **[📊 Efetividade/EcomHub]** Adicionado sistema de redimensionamento dinâmico da coluna Produto com botões +/- no cabeçalho, ajuste de largura de 120px a 400px, e persistência da preferência do usuário
+- **[📊 Efetividade/EcomHub]** Adicionado sistema de redimensionamento dinâmico da coluna Produto com botões +/- no cabeçalho, ajuste de largura de 120px a 400px, e persistência da preferência do usuário no localStorage
+- **[📊 Efetividade/EcomHub]** Otimizada largura da coluna "País" para 60px, tornando a visualização mais compacta e eficiente
+
+### 🗑️ Remoções
+
+- **[📊 Efetividade/EcomHub]** Removida coluna "Imagem" da tabela para melhor aproveitamento do espaço horizontal
+
+### ⚡ Performance
+
+- **[📊 Efetividade/EcomHub]** Melhorada performance ao eliminar processamento desnecessário de imagens de produtos
+- **[📊 Efetividade/EcomHub]** Ajustada lógica de posicionamento fixo (sticky) para focar apenas na coluna "Produto"
 
 ## [v1.7.0] - 21/10/2025
 
