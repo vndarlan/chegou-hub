@@ -171,6 +171,11 @@ function N1ItaliaPage() {
 
                     // Limpar nome da análise para que o usuário defina manualmente
                     setNomeAnalise('');
+
+                    // Limpar agrupamentos anteriores ao processar novo arquivo
+                    setAgrupamentos([]);
+                    setLinhasSelecionadas(new Set());
+                    setMostrarAgrupados(false);
                 } else {
                     throw new Error(processResponse.data.message || 'Erro no processamento');
                 }
@@ -200,9 +205,15 @@ function N1ItaliaPage() {
                 ? nomeAnalise
                 : `[N1 ITÁLIA] ${nomeAnalise}`;
 
+            // Incluir agrupamentos nos dados processados
+            const dadosComAgrupamentos = {
+                ...dadosResultado,
+                agrupamentos: agrupamentos
+            };
+
             const response = await axios.post('/metricas/n1italia/analise-n1italia/', {
                 nome: nomeComPrefixo,
-                dados_processados: dadosResultado,
+                dados_processados: dadosComAgrupamentos,
                 tipo_metrica: 'n1_italia',
                 descricao: 'Análise de efetividade N1 Itália por upload de Excel'
             }, {
@@ -226,9 +237,28 @@ function N1ItaliaPage() {
     };
 
     const carregarAnalise = (analise) => {
-        setDadosResultado(analise.dados_processados);
+        const dadosProcessados = analise.dados_processados;
+
+        // Separar agrupamentos dos dados principais
+        const { agrupamentos: agrupamentosSalvos, ...dadosSemAgrupamentos } = dadosProcessados || {};
+
+        // Restaurar dados principais
+        setDadosResultado(dadosSemAgrupamentos);
+
+        // Restaurar agrupamentos se existirem
+        if (agrupamentosSalvos && Array.isArray(agrupamentosSalvos) && agrupamentosSalvos.length > 0) {
+            setAgrupamentos(agrupamentosSalvos);
+            setMostrarAgrupados(true);
+            showNotification('success', `Análise carregada com ${agrupamentosSalvos.length} agrupamento(s)!`);
+        } else {
+            setAgrupamentos([]);
+            setMostrarAgrupados(false);
+            showNotification('success', 'Análise carregada!');
+        }
+
+        // Limpar seleções
+        setLinhasSelecionadas(new Set());
         setSecaoAtiva('gerar');
-        showNotification('success', 'Análise carregada!');
     };
 
     const deletarAnalise = async (id, nome) => {
@@ -735,10 +765,10 @@ function N1ItaliaPage() {
             'Problemas',
             'Devolucao',
             'Cancelados',
+            'Efetividade',          // ← Primeira coluna de métricas
             '% A Caminho',
             '% Devolvidos',
-            'Efetividade Parcial',
-            'Efetividade'
+            'Efetividade Parcial'
         ];
 
         const ordemColunasTotal = [
