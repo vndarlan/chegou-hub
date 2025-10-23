@@ -5,6 +5,52 @@ Todas as mudanças deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [v1.7.1] - 23/10/2025
+
+### 🐛 Correções
+
+- **[📊 N1 Itália]** Corrigida persistência de agrupamentos de kits - agrupamentos criados manualmente agora são salvos e restaurados corretamente ao carregar análises
+- **[📊 N1 Itália]** Reorganizada ordem das colunas de métricas - coluna "Efetividade" movida para primeira posição para facilitar visualização do dado mais importante
+
+### 🔧 Melhorias
+
+- **[📊 Efetividade/EcomHub]** Adicionado sistema de redimensionamento dinâmico da coluna Produto com botões +/- no cabeçalho, ajuste de largura de 120px a 400px, e persistência da preferência do usuário
+
+## [v1.7.0] - 21/10/2025
+
+### ✨ Novidades
+
+#### 🚨 ESTRUTURA DE PÁGINAS COMPLETAMENTE NOVA
+
+- **[🤖 NicoChat - NOVA ESTRUTURA COMPLETA]** Sistema de gerenciamento do NicoChat totalmente reformulado como subsite independente com navegação lateral própria e 5 páginas especializadas:
+
+  **Páginas criadas:**
+  - **📊 Métricas** - Dashboard completo com monitoramento em tempo real de:
+    - Métricas de Email (enviados, abertos, clicados, convertidos)
+    - Confirmações de Entrega
+    - Interações com IA
+    - Problemas Operacionais
+    - Feedback de Devoluções
+    - Status de Usuários do Bot (abertos, concluídos)
+    - Campos Customizados e Configurações
+
+  - **🏗️ Estrutura** - Gerenciamento da arquitetura do bot:
+    - Visualização de Subfluxos
+    - Sistema de Tags (todas as tags do workspace com estatísticas)
+    - **Webhooks Inbound** (novo): visualização de webhooks configurados com nome, status ativo/inativo, URL copiável e estatísticas de ativação
+
+  - **🛡️ Qualidade da Conta** - Monitoramento de saúde do WhatsApp:
+    - **Status de Canais WhatsApp** (novo): monitoramento de conexão em tempo real com lógica condicional por tipo de workspace (QR Code vs Cloud API)
+    - Templates do WhatsApp
+    - Números WhatsApp Business cadastrados
+
+  - **🚨 Log de Erros** - Central de monitoramento de problemas
+
+  - **⚙️ Workspaces** - Gerenciamento de workspaces com:
+    - Sistema de workspaces com controle de limites
+    - Seletor visual com ícones por tipo
+    - Validação de workspaces inválidos
+
 ## [v1.6.0] - 17/10/2025
 
 ### 🔧 Melhorias
