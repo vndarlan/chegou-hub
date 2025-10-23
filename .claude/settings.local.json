@@ -23,7 +23,12 @@
       "Bash(curl:*)",
       "Bash(rm:*)",
       "Bash(npm start)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(npm install:*)",
+      "Bash(set GENERATE_SOURCEMAP=false)",
+      "Read(//c/**)"
     ],
     "deny": [],
     "ask": [],
