@@ -97,10 +97,10 @@ function EditStoreModal({ open, onClose, onSuccess, store }) {
         }
       );
 
-      if (response.data.success) {
+      if (response.data.valid) {
         setTestResult({
           success: true,
-          country: response.data.country,
+          country: response.data.country?.name || response.data.country,
           store_id: response.data.store_id,
           message: response.data.message
         });
