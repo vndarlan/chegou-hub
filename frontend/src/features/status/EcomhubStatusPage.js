@@ -1,11 +1,11 @@
-// frontend/src/features/status/EcomhubStatusPage.js - DASHBOARD COMPLETO STATUS TRACKING ECOMHUB
+// frontend/src/features/status/EcomhubStatusPage.js - SPRINT 4 FINAL - Sistema Completo de Tracking ECOMHUB
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    AlertTriangle, Activity, Truck, Package, Clock, TrendingUp, 
+    AlertTriangle, Activity, Truck, Package, Clock, TrendingUp,
     RefreshCw, Settings, Filter, Eye, Search, ChevronDown, ChevronUp,
-    RotateCcw, CheckCircle, XCircle, AlertCircle, Timer, 
-    List, BarChart3, Users, Globe, LayoutDashboard, 
-    Loader2, Calendar, ArrowUpDown, ArrowUp, ArrowDown
+    RotateCcw, CheckCircle, XCircle, AlertCircle, Timer,
+    List, BarChart3, Users, Globe, LayoutDashboard,
+    Loader2, Calendar, ArrowUpDown, ArrowUp, ArrowDown, ArrowRight
 } from 'lucide-react';
 import axios from 'axios';
 import { getCSRFToken } from '../../utils/csrf';
@@ -23,17 +23,19 @@ import { Label } from '../../components/ui/label';
 import { Progress } from '../../components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { ScrollArea } from '../../components/ui/scroll-area';
+import { useToast } from '../../components/ui/use-toast';
+import { Toaster } from '../../components/ui/toaster';
 
 // Constantes
 const PAISES = [
-    { value: 'todos', label: 'Todos os Países' },
-    { value: '164', label: 'Espanha' },
-    { value: '41', label: 'Croácia' },
-    { value: '66', label: 'Grécia' },
-    { value: '82', label: 'Itália' },
-    { value: '142', label: 'Romênia' },
-    { value: '44', label: 'República Checa' },
-    { value: '139', label: 'Polônia' }
+    { value: 'todos', label: 'Todos os Países', id: null },
+    { value: '164', label: 'Espanha', id: 164 },
+    { value: '41', label: 'Croácia', id: 41 },
+    { value: '66', label: 'Grécia', id: 66 },
+    { value: '82', label: 'Itália', id: 82 },
+    { value: '142', label: 'Romênia', id: 142 },
+    { value: '44', label: 'República Checa', id: 44 },
+    { value: '139', label: 'Polônia', id: 139 }
 ];
 
 const STATUS_MAP = {
@@ -47,149 +49,206 @@ const STATUS_MAP = {
 };
 
 const NIVEL_ALERTA_CONFIG = {
-    'normal': { label: 'Normal', color: 'bg-green-500 text-white', icon: CheckCircle },
-    'amarelo': { label: 'Atenção', color: 'bg-yellow-500 text-black', icon: Clock },
-    'vermelho': { label: 'Urgente', color: 'bg-red-500 text-white', icon: AlertCircle },
-    'critico': { label: 'Crítico', color: 'bg-red-700 text-white', icon: XCircle }
+    'normal': { label: 'Normal', variant: 'secondary', icon: CheckCircle },
+    'yellow': { label: 'Atenção', variant: 'warning', icon: Clock },
+    'red': { label: 'Urgente', variant: 'destructive', icon: AlertCircle },
+    'critical': { label: 'Crítico', variant: 'destructive', icon: XCircle }
 };
 
 function EcomhubStatusPage() {
+    const { toast } = useToast();
+
     // Estados principais
     const [abaSelecionada, setAbaSelecionada] = useState('dashboard');
-    const [dadosDashboard, setDadosDashboard] = useState(null);
-    const [listaPedidos, setListaPedidos] = useState([]);
-    const [pedidoHistorico, setPedidoHistorico] = useState(null);
-    
-    // Estados de filtros
     const [paisSelecionado, setPaisSelecionado] = useState('todos');
-    const [statusFiltro, setStatusFiltro] = useState('todos');
-    const [nivelAlertaFiltro, setNivelAlertaFiltro] = useState('todos');
-    const [buscaCliente, setBuscaCliente] = useState('');
-    const [buscaPedidoId, setBuscaPedidoId] = useState('');
-    
-    // Estados de ordenação
-    const [sortBy, setSortBy] = useState('tempo_no_status_atual');
-    const [sortOrder, setSortOrder] = useState('desc');
-    
-    // Estados de loading e modal
+
+    // Dashboard
+    const [dadosDashboard, setDadosDashboard] = useState(null);
     const [loadingDashboard, setLoadingDashboard] = useState(false);
+
+    // Lista de pedidos
+    const [listaPedidos, setListaPedidos] = useState([]);
     const [loadingPedidos, setLoadingPedidos] = useState(false);
-    const [loadingSincronizar, setLoadingSincronizar] = useState(false);
-    const [modalHistorico, setModalHistorico] = useState(false);
-    const [modalConfiguracoes, setModalConfiguracoes] = useState(false);
-    
-    // Estados de notificação e configuração
-    const [notification, setNotification] = useState(null);
-    const [autoRefresh, setAutoRefresh] = useState(false);
-    const [configuracoes, setConfiguracoes] = useState(null);
-    
-    // Estados de paginação
     const [paginaAtual, setPaginaAtual] = useState(1);
     const [totalPaginas, setTotalPaginas] = useState(1);
     const [totalItens, setTotalItens] = useState(0);
 
+    // Filtros
+    const [statusFiltro, setStatusFiltro] = useState('');
+    const [nivelAlertaFiltro, setNivelAlertaFiltro] = useState('');
+    const [buscaTexto, setBuscaTexto] = useState('');
+    const [ordenacao, setOrdenacao] = useState('-time_in_status_hours');
+
+    // Modal histórico
+    const [modalHistorico, setModalHistorico] = useState(false);
+    const [pedidoSelecionado, setPedidoSelecionado] = useState(null);
+    const [historicoPedido, setHistoricoPedido] = useState(null);
+    const [loadingHistorico, setLoadingHistorico] = useState(false);
+
+    // Sincronização
+    const [sincronizando, setSincronizando] = useState(false);
+
+    // Configurações de alerta
+    const [configsAlerta, setConfigsAlerta] = useState([]);
+    const [loadingConfigs, setLoadingConfigs] = useState(false);
+
     // ======================== FUNÇÕES DE API ========================
 
-    const buscarDadosDashboard = useCallback(async () => {
+    const fetchDashboard = useCallback(async () => {
         setLoadingDashboard(true);
         try {
-            const response = await axios.get('/metricas/ecomhub/status-tracking/dashboard/', {
-                params: { pais: paisSelecionado !== 'todos' ? paisSelecionado : undefined },
-                headers: { 'X-CSRFToken': getCSRFToken() }
-            });
-            setDadosDashboard(response.data);
-        } catch (error) {
-            console.error('Erro ao buscar dashboard:', error);
-            showNotification('error', 'Erro ao carregar métricas do dashboard');
-        } finally {
-            setLoadingDashboard(false);
-        }
-    }, [paisSelecionado]);
+            const params = {};
+            if (paisSelecionado !== 'todos') {
+                params.country_id = paisSelecionado;
+            }
 
-    const buscarPedidos = useCallback(async (resetarPagina = false) => {
-        setLoadingPedidos(true);
-        const pagina = resetarPagina ? 1 : paginaAtual;
-        
-        try {
-            const params = {
-                page: pagina,
-                ordering: sortOrder === 'desc' ? `-${sortBy}` : sortBy
-            };
-            
-            if (paisSelecionado !== 'todos') params.pais = paisSelecionado;
-            if (statusFiltro !== 'todos') params.status_atual = statusFiltro;
-            if (nivelAlertaFiltro !== 'todos') params.nivel_alerta = nivelAlertaFiltro;
-            if (buscaCliente.trim()) params.customer_name = buscaCliente.trim();
-            if (buscaPedidoId.trim()) params.pedido_id = buscaPedidoId.trim();
-
-            const response = await axios.get('/metricas/ecomhub/status-tracking/pedidos/', {
+            const response = await axios.get('/api/metricas/ecomhub/orders/dashboard/', {
                 params,
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
-            
+
+            setDadosDashboard(response.data);
+        } catch (error) {
+            console.error('Erro ao buscar dashboard:', error);
+            toast({
+                title: "Erro",
+                description: "Erro ao carregar métricas do dashboard",
+                variant: "destructive"
+            });
+        } finally {
+            setLoadingDashboard(false);
+        }
+    }, [paisSelecionado, toast]);
+
+    const fetchPedidos = useCallback(async () => {
+        setLoadingPedidos(true);
+        try {
+            const params = {
+                page: paginaAtual,
+                ordering: ordenacao
+            };
+
+            if (paisSelecionado !== 'todos') params.country_id = paisSelecionado;
+            if (statusFiltro) params.status = statusFiltro;
+            if (nivelAlertaFiltro) params.alert_level = nivelAlertaFiltro;
+            if (buscaTexto.trim()) params.search = buscaTexto.trim();
+
+            const response = await axios.get('/api/metricas/ecomhub/orders/', {
+                params,
+                headers: { 'X-CSRFToken': getCSRFToken() }
+            });
+
             setListaPedidos(response.data.results || []);
-            setTotalPaginas(Math.ceil(response.data.count / 20));
-            setTotalItens(response.data.count);
-            
-            if (resetarPagina) setPaginaAtual(1);
+            setTotalItens(response.data.count || 0);
+            setTotalPaginas(Math.ceil((response.data.count || 0) / 20));
         } catch (error) {
             console.error('Erro ao buscar pedidos:', error);
-            showNotification('error', 'Erro ao carregar lista de pedidos');
+            toast({
+                title: "Erro",
+                description: "Erro ao carregar lista de pedidos",
+                variant: "destructive"
+            });
         } finally {
             setLoadingPedidos(false);
         }
-    }, [paisSelecionado, statusFiltro, nivelAlertaFiltro, buscaCliente, buscaPedidoId, sortBy, sortOrder, paginaAtual]);
+    }, [paisSelecionado, statusFiltro, nivelAlertaFiltro, buscaTexto, ordenacao, paginaAtual, toast]);
 
-    const buscarHistoricoPedido = async (pedidoId) => {
+    const fetchHistorico = async (orderId) => {
+        setLoadingHistorico(true);
         try {
-            const response = await axios.get(`/metricas/ecomhub/status-tracking/historico/${pedidoId}/`, {
+            const response = await axios.get(`/api/metricas/ecomhub/orders/${orderId}/history/`, {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
-            setPedidoHistorico(response.data);
+
+            setHistoricoPedido(response.data);
+            setPedidoSelecionado(orderId);
             setModalHistorico(true);
         } catch (error) {
             console.error('Erro ao buscar histórico:', error);
-            showNotification('error', 'Erro ao carregar histórico do pedido');
+            toast({
+                title: "Erro",
+                description: "Erro ao carregar histórico do pedido",
+                variant: "destructive"
+            });
+        } finally {
+            setLoadingHistorico(false);
         }
     };
 
     const sincronizarAgora = async () => {
-        setLoadingSincronizar(true);
+        setSincronizando(true);
         try {
-            const today = new Date();
-            const oneWeekAgo = new Date();
-            oneWeekAgo.setDate(today.getDate() - 7);
-
-            const response = await axios.post('/metricas/ecomhub/status-tracking/sincronizar/', {
-                data_inicio: oneWeekAgo.toISOString().split('T')[0],
-                data_fim: today.toISOString().split('T')[0],
-                pais_id: paisSelecionado,
-                forcar_sincronizacao: true
-            }, {
-                headers: { 'X-CSRFToken': getCSRFToken() }
+            const response = await axios.post('/api/metricas/ecomhub/orders/sync/', {}, {
+                headers: {
+                    'X-CSRFToken': getCSRFToken(),
+                    'Content-Type': 'application/json'
+                }
             });
 
-            if (response.data.status === 'success') {
-                showNotification('success', `Sincronização concluída! ${response.data.dados_processados?.total_processados || 0} pedidos processados`);
-                buscarDadosDashboard();
+            if (response.data.success) {
+                toast({
+                    title: "Sucesso!",
+                    description: `Sincronização concluída! ${response.data.stats?.orders_created || 0} novos, ${response.data.stats?.orders_updated || 0} atualizados`,
+                });
+
+                fetchDashboard();
                 if (abaSelecionada === 'lista') {
-                    buscarPedidos(true);
+                    fetchPedidos();
                 }
             }
         } catch (error) {
-            console.error('Erro na sincronização:', error);
-            showNotification('error', `Erro na sincronização: ${error.response?.data?.message || error.message}`);
+            console.error('Erro ao sincronizar:', error);
+            toast({
+                title: "Erro",
+                description: "Erro ao sincronizar dados",
+                variant: "destructive"
+            });
         } finally {
-            setLoadingSincronizar(false);
+            setSincronizando(false);
+        }
+    };
+
+    const fetchConfigsAlerta = async () => {
+        setLoadingConfigs(true);
+        try {
+            const response = await axios.get('/api/metricas/ecomhub/alert-config/', {
+                headers: { 'X-CSRFToken': getCSRFToken() }
+            });
+            setConfigsAlerta(response.data || []);
+        } catch (error) {
+            console.error('Erro ao buscar configs:', error);
+            // Não mostra toast para não ser invasivo
+        } finally {
+            setLoadingConfigs(false);
+        }
+    };
+
+    const atualizarConfig = async (status, thresholds) => {
+        try {
+            await axios.put(`/api/metricas/ecomhub/alert-config/${status}/`, thresholds, {
+                headers: {
+                    'X-CSRFToken': getCSRFToken(),
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            toast({
+                title: "Sucesso!",
+                description: "Configuração de alerta atualizada",
+            });
+
+            fetchConfigsAlerta();
+        } catch (error) {
+            console.error('Erro ao atualizar config:', error);
+            toast({
+                title: "Erro",
+                description: "Erro ao atualizar configuração",
+                variant: "destructive"
+            });
         }
     };
 
     // ======================== FUNÇÕES AUXILIARES ========================
-
-    const showNotification = (type, message) => {
-        setNotification({ type, message });
-        setTimeout(() => setNotification(null), 5000);
-    };
 
     const formatarTempo = (horas) => {
         if (!horas) return '0h';
@@ -204,189 +263,143 @@ function EcomhubStatusPage() {
         return new Date(dataStr).toLocaleString('pt-BR');
     };
 
-    const handleSort = (column) => {
-        if (sortBy === column) {
-            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-        } else {
-            setSortBy(column);
-            setSortOrder('desc');
-        }
+    const limparFiltros = () => {
+        setStatusFiltro('');
+        setNivelAlertaFiltro('');
+        setBuscaTexto('');
+        setOrdenacao('-time_in_status_hours');
+        setPaginaAtual(1);
     };
 
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
     const renderHeader = () => (
         <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-                <Activity className="h-6 w-6 text-primary" />
-                <div>
-                    <h1 className="text-2xl font-bold text-foreground">Status Teste</h1>
-                    <p className="text-sm text-muted-foreground">
-                        Monitoramento em tempo real de pedidos ativos
-                    </p>
-                </div>
+            <div>
+                <h1 className="text-2xl font-bold">Status Tracking ECOMHUB</h1>
+                <p className="text-sm text-muted-foreground">Monitoramento em tempo real</p>
             </div>
-            
-            <div className="flex items-center gap-3">
+            <div className="flex gap-3">
                 <Select value={paisSelecionado} onValueChange={setPaisSelecionado}>
-                    <SelectTrigger className="w-48 border-border bg-background text-foreground">
+                    <SelectTrigger className="w-48">
                         <Globe className="h-4 w-4 mr-2" />
                         <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="border-border bg-popover">
+                    <SelectContent>
                         {PAISES.map(pais => (
-                            <SelectItem key={pais.value} value={pais.value} className="text-popover-foreground hover:bg-accent">
+                            <SelectItem key={pais.value} value={pais.value}>
                                 {pais.label}
                             </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
-
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={sincronizarAgora}
-                    disabled={loadingSincronizar}
-                    className="border-border bg-background text-foreground hover:bg-accent"
-                >
-                    {loadingSincronizar ? (
+                <Button onClick={sincronizarAgora} disabled={sincronizando}>
+                    {sincronizando ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
                         <RefreshCw className="h-4 w-4 mr-2" />
                     )}
-                    {loadingSincronizar ? 'Sincronizando...' : 'Sincronizar'}
+                    Sincronizar
                 </Button>
             </div>
         </div>
     );
 
     const renderAlertasCriticos = () => {
-        if (!dadosDashboard || dadosDashboard.alertas_criticos === 0) return null;
+        if (!dadosDashboard) return null;
+
+        const criticos = dadosDashboard.by_alert_level?.critical || 0;
+        const urgentes = dadosDashboard.by_alert_level?.red || 0;
+
+        if (criticos === 0 && urgentes === 0) return null;
 
         return (
-            <Alert variant="destructive" className="mb-4 border-red-500 bg-red-50 dark:bg-red-900/20">
+            <Alert variant="destructive" className="mb-4">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertDescription className="font-medium">
-                    ⚠️ <strong>{dadosDashboard.alertas_criticos} pedidos críticos</strong> precisam de atenção imediata!
-                    {dadosDashboard.alertas_vermelhos > 0 && (
-                        <span className="ml-2">+ {dadosDashboard.alertas_vermelhos} pedidos urgentes</span>
-                    )}
+                <AlertDescription>
+                    {criticos > 0 && <strong>⚠️ {criticos} pedidos críticos precisam atenção imediata!</strong>}
+                    {urgentes > 0 && <span className="ml-2">+ {urgentes} pedidos urgentes</span>}
                 </AlertDescription>
             </Alert>
         );
     };
 
-    const renderCardsDashboard = () => {
+    const renderCardMetricas = () => {
         if (!dadosDashboard) return null;
 
-        const cards = [
-            {
-                title: 'Pedidos Ativos',
-                value: dadosDashboard.total_pedidos_ativos || 0,
-                icon: Package,
-                color: 'text-blue-600',
-                description: 'Total em monitoramento'
-            },
-            {
-                title: 'Alertas Críticos',
-                value: dadosDashboard.alertas_criticos || 0,
-                icon: XCircle,
-                color: 'text-red-600',
-                description: 'Precisam ação imediata'
-            },
-            {
-                title: 'Alertas Urgentes',
-                value: dadosDashboard.alertas_vermelhos || 0,
-                icon: AlertCircle,
-                color: 'text-orange-600',
-                description: 'Atraso significativo'
-            },
-            {
-                title: 'Em Atenção',
-                value: dadosDashboard.alertas_amarelos || 0,
-                icon: Clock,
-                color: 'text-yellow-600',
-                description: 'Atraso moderado'
-            },
-            {
-                title: 'Eficiência Entrega',
-                value: `${dadosDashboard.eficiencia_entrega_pct || 0}%`,
-                icon: TrendingUp,
-                color: 'text-green-600',
-                description: 'Taxa de sucesso'
-            },
-            {
-                title: 'Taxa de Problemas',
-                value: `${dadosDashboard.taxa_problemas_pct || 0}%`,
-                icon: AlertTriangle,
-                color: 'text-red-500',
-                description: 'Pedidos com problemas'
-            }
-        ];
-
         return (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-                {cards.map((card, index) => {
-                    const IconComponent = card.icon;
-                    return (
-                        <Card key={index} className="border-border bg-card">
-                            <CardContent className="p-4">
-                                <div className="flex items-center justify-between mb-2">
-                                    <IconComponent className={`h-5 w-5 ${card.color}`} />
-                                    <span className="text-2xl font-bold text-card-foreground">
-                                        {card.value}
-                                    </span>
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-card-foreground">{card.title}</p>
-                                    <p className="text-xs text-muted-foreground">{card.description}</p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    );
-                })}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <Package className="h-5 w-5 text-blue-600" />
+                            <div className="text-2xl font-bold">{dadosDashboard.total_active_orders || 0}</div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Pedidos Ativos</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <XCircle className="h-5 w-5 text-red-600" />
+                            <div className="text-2xl font-bold text-red-600">{dadosDashboard.by_alert_level?.critical || 0}</div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Críticos</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <AlertCircle className="h-5 w-5 text-orange-600" />
+                            <div className="text-2xl font-bold text-orange-600">{dadosDashboard.by_alert_level?.red || 0}</div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Urgentes</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <Clock className="h-5 w-5 text-yellow-600" />
+                            <div className="text-2xl font-bold text-yellow-600">{dadosDashboard.by_alert_level?.yellow || 0}</div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Atenção</p>
+                    </CardContent>
+                </Card>
             </div>
         );
     };
 
     const renderDistribuicaoStatus = () => {
-        if (!dadosDashboard?.distribuicao_status) return null;
+        if (!dadosDashboard?.by_status) return null;
+
+        const total = dadosDashboard.total_active_orders || 1;
 
         return (
-            <Card className="mb-6 border-border bg-card">
+            <Card className="mb-6">
                 <CardHeader>
-                    <CardTitle className="text-card-foreground">Distribuição por Status</CardTitle>
-                    <CardDescription className="text-muted-foreground">
-                        Pedidos ativos por status atual
-                    </CardDescription>
+                    <CardTitle>Distribuição por Status</CardTitle>
+                    <CardDescription>Pedidos ativos por status atual</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-3">
-                        {Object.entries(dadosDashboard.distribuicao_status).map(([status, count]) => {
+                        {Object.entries(dadosDashboard.by_status).map(([status, count]) => {
                             const statusConfig = STATUS_MAP[status];
                             if (!statusConfig || count === 0) return null;
-                            
+
                             const IconComponent = statusConfig.icon;
-                            const total = dadosDashboard.total_pedidos_ativos || 1;
                             const percentage = ((count / total) * 100).toFixed(1);
 
                             return (
-                                <div key={status} className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
+                                <div key={status} className="flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
                                         <div className={`w-3 h-3 rounded-full ${statusConfig.color}`}></div>
-                                        <IconComponent className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-sm text-card-foreground">{statusConfig.label}</span>
+                                        <IconComponent className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                        <span className="text-sm truncate">{statusConfig.label}</span>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-24">
-                                            <Progress value={parseFloat(percentage)} className="h-2" />
-                                        </div>
-                                        <span className="text-sm font-medium text-card-foreground w-12 text-right">
-                                            {count}
-                                        </span>
-                                        <span className="text-xs text-muted-foreground w-12 text-right">
-                                            {percentage}%
-                                        </span>
+                                    <div className="flex items-center gap-3 flex-shrink-0">
+                                        <Progress value={parseFloat(percentage)} className="w-24 h-2" />
+                                        <span className="text-sm font-medium w-8 text-right">{count}</span>
+                                        <span className="text-xs text-muted-foreground w-12 text-right">{percentage}%</span>
                                     </div>
                                 </div>
                             );
@@ -397,21 +410,46 @@ function EcomhubStatusPage() {
         );
     };
 
+    const renderGargalos = () => {
+        if (!dadosDashboard?.bottlenecks?.length) return null;
+
+        return (
+            <Card className="mb-6">
+                <CardHeader>
+                    <CardTitle>Gargalos Detectados</CardTitle>
+                    <CardDescription>Status com pedidos parados há muito tempo</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-2">
+                        {dadosDashboard.bottlenecks.map((gargalo, i) => (
+                            <Alert key={i} variant="destructive">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                    <strong>{STATUS_MAP[gargalo.status]?.label || gargalo.status}:</strong> {gargalo.count} pedidos há mais de {Math.round(gargalo.avg_days)} dias
+                                </AlertDescription>
+                            </Alert>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    };
+
     const renderFiltrosPedidos = () => (
-        <Card className="mb-4 border-border bg-card">
+        <Card className="mb-4">
             <CardHeader>
-                <CardTitle className="text-sm text-card-foreground">Filtros Avançados</CardTitle>
+                <CardTitle className="text-sm">Filtros</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                     <div>
-                        <Label htmlFor="status-filter" className="text-xs text-foreground">Status</Label>
+                        <Label className="text-xs">Status</Label>
                         <Select value={statusFiltro} onValueChange={setStatusFiltro}>
-                            <SelectTrigger className="h-8 text-xs border-border bg-background">
-                                <SelectValue />
+                            <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Todos" />
                             </SelectTrigger>
-                            <SelectContent className="border-border bg-popover">
-                                <SelectItem value="todos">Todos os Status</SelectItem>
+                            <SelectContent>
+                                <SelectItem value="">Todos os Status</SelectItem>
                                 {Object.entries(STATUS_MAP).map(([status, config]) => (
                                     <SelectItem key={status} value={status}>
                                         {config.label}
@@ -422,13 +460,13 @@ function EcomhubStatusPage() {
                     </div>
 
                     <div>
-                        <Label htmlFor="alerta-filter" className="text-xs text-foreground">Nível de Alerta</Label>
+                        <Label className="text-xs">Nível de Alerta</Label>
                         <Select value={nivelAlertaFiltro} onValueChange={setNivelAlertaFiltro}>
-                            <SelectTrigger className="h-8 text-xs border-border bg-background">
-                                <SelectValue />
+                            <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Todos" />
                             </SelectTrigger>
-                            <SelectContent className="border-border bg-popover">
-                                <SelectItem value="todos">Todos os Níveis</SelectItem>
+                            <SelectContent>
+                                <SelectItem value="">Todos os Níveis</SelectItem>
                                 {Object.entries(NIVEL_ALERTA_CONFIG).map(([nivel, config]) => (
                                     <SelectItem key={nivel} value={nivel}>
                                         {config.label}
@@ -439,51 +477,37 @@ function EcomhubStatusPage() {
                     </div>
 
                     <div>
-                        <Label htmlFor="cliente-search" className="text-xs text-foreground">Cliente</Label>
+                        <Label className="text-xs">Buscar</Label>
                         <Input
-                            id="cliente-search"
-                            placeholder="Nome do cliente..."
-                            value={buscaCliente}
-                            onChange={(e) => setBuscaCliente(e.target.value)}
-                            className="h-8 text-xs border-border bg-background"
+                            placeholder="Cliente ou pedido..."
+                            value={buscaTexto}
+                            onChange={(e) => setBuscaTexto(e.target.value)}
+                            className="h-9"
                         />
                     </div>
 
                     <div>
-                        <Label htmlFor="pedido-search" className="text-xs text-foreground">ID do Pedido</Label>
-                        <Input
-                            id="pedido-search"
-                            placeholder="ID ou número..."
-                            value={buscaPedidoId}
-                            onChange={(e) => setBuscaPedidoId(e.target.value)}
-                            className="h-8 text-xs border-border bg-background"
-                        />
+                        <Label className="text-xs">Ordenar por</Label>
+                        <Select value={ordenacao} onValueChange={setOrdenacao}>
+                            <SelectTrigger className="h-9">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="-time_in_status_hours">Tempo no Status (desc)</SelectItem>
+                                <SelectItem value="time_in_status_hours">Tempo no Status (asc)</SelectItem>
+                                <SelectItem value="-date">Data (mais recente)</SelectItem>
+                                <SelectItem value="date">Data (mais antigo)</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <Button
-                        size="sm"
-                        onClick={() => buscarPedidos(true)}
-                        disabled={loadingPedidos}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90"
-                    >
+                <div className="flex gap-2">
+                    <Button size="sm" onClick={() => { setPaginaAtual(1); fetchPedidos(); }}>
                         <Search className="h-3 w-3 mr-1" />
-                        Filtrar
+                        Aplicar Filtros
                     </Button>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                            setStatusFiltro('todos');
-                            setNivelAlertaFiltro('todos');
-                            setBuscaCliente('');
-                            setBuscaPedidoId('');
-                            setSortBy('tempo_no_status_atual');
-                            setSortOrder('desc');
-                        }}
-                        className="border-border bg-background text-foreground hover:bg-accent"
-                    >
+                    <Button size="sm" variant="outline" onClick={limparFiltros}>
                         <RotateCcw className="h-3 w-3 mr-1" />
                         Limpar
                     </Button>
@@ -493,22 +517,14 @@ function EcomhubStatusPage() {
     );
 
     const renderTabelaPedidos = () => (
-        <Card className="border-border bg-card">
+        <Card>
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <div>
-                        <CardTitle className="text-card-foreground">Lista de Pedidos</CardTitle>
-                        <CardDescription className="text-muted-foreground">
-                            {totalItens} pedidos encontrados
-                        </CardDescription>
+                        <CardTitle>Lista de Pedidos</CardTitle>
+                        <CardDescription>{totalItens} pedidos encontrados</CardDescription>
                     </div>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => buscarPedidos()}
-                        disabled={loadingPedidos}
-                        className="border-border bg-background text-foreground hover:bg-accent"
-                    >
+                    <Button size="sm" variant="outline" onClick={fetchPedidos} disabled={loadingPedidos}>
                         {loadingPedidos ? (
                             <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                         ) : (
@@ -518,130 +534,107 @@ function EcomhubStatusPage() {
                     </Button>
                 </div>
             </CardHeader>
-            <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="bg-muted/50 border-border">
-                                <TableHead className="text-xs">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-auto p-0 font-medium text-xs hover:text-foreground"
-                                        onClick={() => handleSort('pedido_id')}
-                                    >
-                                        Pedido
-                                        {sortBy === 'pedido_id' ? (
-                                            sortOrder === 'asc' ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />
-                                        ) : (
-                                            <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
-                                        )}
-                                    </Button>
-                                </TableHead>
-                                <TableHead className="text-xs">Cliente</TableHead>
-                                <TableHead className="text-xs">Status</TableHead>
-                                <TableHead className="text-xs">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-auto p-0 font-medium text-xs hover:text-foreground"
-                                        onClick={() => handleSort('tempo_no_status_atual')}
-                                    >
-                                        Tempo no Status
-                                        {sortBy === 'tempo_no_status_atual' ? (
-                                            sortOrder === 'asc' ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />
-                                        ) : (
-                                            <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
-                                        )}
-                                    </Button>
-                                </TableHead>
-                                <TableHead className="text-xs">Alerta</TableHead>
-                                <TableHead className="text-xs">País</TableHead>
-                                <TableHead className="text-xs">Ações</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {listaPedidos.map((pedido) => {
-                                const statusConfig = STATUS_MAP[pedido.status_atual] || { label: pedido.status_atual, color: 'bg-gray-500', icon: Package };
-                                const alertaConfig = NIVEL_ALERTA_CONFIG[pedido.nivel_alerta] || NIVEL_ALERTA_CONFIG.normal;
-                                const StatusIcon = statusConfig.icon;
-                                const AlertaIcon = alertaConfig.icon;
-
-                                return (
-                                    <TableRow key={pedido.pedido_id} className="border-border hover:bg-muted/30">
-                                        <TableCell className="text-xs font-mono">
-                                            {pedido.pedido_id}
-                                        </TableCell>
-                                        <TableCell className="text-xs">
-                                            <div>
-                                                <div className="font-medium">{pedido.customer_name}</div>
-                                                <div className="text-muted-foreground truncate max-w-32">
-                                                    {pedido.produto_nome}
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-xs">
-                                            <div className="flex items-center gap-2">
-                                                <StatusIcon className="h-3 w-3" />
-                                                <span>{statusConfig.label}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-xs">
-                                            {formatarTempo(pedido.tempo_no_status_atual)}
-                                        </TableCell>
-                                        <TableCell className="text-xs">
-                                            <Badge variant="secondary" className={`text-xs ${alertaConfig.color}`}>
-                                                <AlertaIcon className="h-3 w-3 mr-1" />
-                                                {alertaConfig.label}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-xs">
-                                            {pedido.pais}
-                                        </TableCell>
-                                        <TableCell className="text-xs">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => buscarHistoricoPedido(pedido.pedido_id)}
-                                                className="h-6 px-2 text-xs border-border bg-background hover:bg-accent"
-                                            >
-                                                <Eye className="h-3 w-3" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                    </Table>
-                </div>
-
-                {/* Paginação */}
-                {totalPaginas > 1 && (
-                    <div className="flex items-center justify-between p-4 border-t border-border">
-                        <div className="text-xs text-muted-foreground">
-                            Página {paginaAtual} de {totalPaginas} ({totalItens} total)
-                        </div>
-                        <div className="flex gap-2">
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setPaginaAtual(Math.max(1, paginaAtual - 1))}
-                                disabled={paginaAtual <= 1 || loadingPedidos}
-                                className="h-6 px-3 text-xs border-border bg-background hover:bg-accent"
-                            >
-                                Anterior
-                            </Button>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setPaginaAtual(Math.min(totalPaginas, paginaAtual + 1))}
-                                disabled={paginaAtual >= totalPaginas || loadingPedidos}
-                                className="h-6 px-3 text-xs border-border bg-background hover:bg-accent"
-                            >
-                                Próxima
-                            </Button>
-                        </div>
+            <CardContent>
+                {loadingPedidos ? (
+                    <div className="flex items-center justify-center py-12">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
+                ) : (
+                    <>
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Pedido</TableHead>
+                                        <TableHead>Cliente</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Tempo no Status</TableHead>
+                                        <TableHead>Alerta</TableHead>
+                                        <TableHead>País</TableHead>
+                                        <TableHead>Ações</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {listaPedidos.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                                                Nenhum pedido encontrado
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        listaPedidos.map((pedido) => {
+                                            const statusConfig = STATUS_MAP[pedido.status] || { label: pedido.status, color: 'bg-gray-500', icon: Package };
+                                            const alertaConfig = NIVEL_ALERTA_CONFIG[pedido.alert_level] || NIVEL_ALERTA_CONFIG.normal;
+                                            const StatusIcon = statusConfig.icon;
+
+                                            return (
+                                                <TableRow key={pedido.id}>
+                                                    <TableCell className="font-mono text-xs">{pedido.order_id}</TableCell>
+                                                    <TableCell>
+                                                        <div className="text-sm font-medium">{pedido.customer_name}</div>
+                                                        <div className="text-xs text-muted-foreground truncate max-w-xs">
+                                                            {pedido.product_name}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-2">
+                                                            <StatusIcon className="h-3 w-3" />
+                                                            <span className="text-xs">{statusConfig.label}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-sm">
+                                                        {formatarTempo(pedido.time_in_status_hours)}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={alertaConfig.variant}>
+                                                            {alertaConfig.label}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="text-sm">{pedido.country_name}</TableCell>
+                                                    <TableCell>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => fetchHistorico(pedido.id)}
+                                                        >
+                                                            <Eye className="h-3 w-3" />
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+
+                        {/* Paginação */}
+                        {totalPaginas > 1 && (
+                            <div className="flex items-center justify-between pt-4 border-t mt-4">
+                                <div className="text-sm text-muted-foreground">
+                                    Página {paginaAtual} de {totalPaginas} ({totalItens} total)
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setPaginaAtual(Math.max(1, paginaAtual - 1))}
+                                        disabled={paginaAtual <= 1}
+                                    >
+                                        Anterior
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setPaginaAtual(Math.min(totalPaginas, paginaAtual + 1))}
+                                        disabled={paginaAtual >= totalPaginas}
+                                    >
+                                        Próxima
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
             </CardContent>
         </Card>
@@ -649,40 +642,40 @@ function EcomhubStatusPage() {
 
     const renderModalHistorico = () => (
         <Dialog open={modalHistorico} onOpenChange={setModalHistorico}>
-            <DialogContent className="max-w-4xl max-h-[80vh] border-border bg-popover">
+            <DialogContent className="max-w-2xl max-h-[80vh]">
                 <DialogHeader>
-                    <DialogTitle className="text-popover-foreground">
-                        Histórico do Pedido {pedidoHistorico?.pedido?.pedido_id}
-                    </DialogTitle>
-                    <DialogDescription className="text-muted-foreground">
-                        Timeline completa de mudanças de status
-                    </DialogDescription>
+                    <DialogTitle>Histórico do Pedido</DialogTitle>
+                    <DialogDescription>Timeline completa de mudanças de status</DialogDescription>
                 </DialogHeader>
 
-                {pedidoHistorico && (
+                {loadingHistorico ? (
+                    <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                ) : historicoPedido ? (
                     <ScrollArea className="max-h-96 pr-4">
                         <div className="space-y-4">
                             {/* Dados do pedido */}
-                            <Card className="border-border bg-card">
+                            <Card>
                                 <CardContent className="p-4">
-                                    <div className="grid grid-cols-2 gap-4 text-xs">
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
                                         <div>
-                                            <strong>Cliente:</strong> {pedidoHistorico.pedido.customer_name}
+                                            <strong>Pedido:</strong> {historicoPedido.order?.order_id}
                                         </div>
                                         <div>
-                                            <strong>Email:</strong> {pedidoHistorico.pedido.customer_email}
+                                            <strong>Cliente:</strong> {historicoPedido.order?.customer_name}
                                         </div>
                                         <div>
-                                            <strong>Produto:</strong> {pedidoHistorico.pedido.produto_nome}
+                                            <strong>Produto:</strong> {historicoPedido.order?.product_name}
                                         </div>
                                         <div>
-                                            <strong>País:</strong> {pedidoHistorico.pedido.pais}
+                                            <strong>País:</strong> {historicoPedido.order?.country_name}
                                         </div>
                                         <div>
-                                            <strong>Status Atual:</strong> {STATUS_MAP[pedidoHistorico.pedido.status_atual]?.label || pedidoHistorico.pedido.status_atual}
+                                            <strong>Status Atual:</strong> {STATUS_MAP[historicoPedido.order?.status]?.label || historicoPedido.order?.status}
                                         </div>
                                         <div>
-                                            <strong>Tempo no Status:</strong> {formatarTempo(pedidoHistorico.pedido.tempo_no_status_atual)}
+                                            <strong>Tempo no Status:</strong> {formatarTempo(historicoPedido.order?.time_in_status_hours)}
                                         </div>
                                     </div>
                                 </CardContent>
@@ -690,48 +683,44 @@ function EcomhubStatusPage() {
 
                             {/* Timeline do histórico */}
                             <div className="space-y-3">
-                                <h4 className="font-medium text-sm text-popover-foreground">Timeline de Status</h4>
-                                {pedidoHistorico.historico?.length > 0 ? (
-                                    pedidoHistorico.historico.map((registro, index) => (
-                                        <div key={index} className="flex items-start gap-3 p-3 border border-border rounded bg-card">
-                                            <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
-                                            <div className="flex-1">
+                                <h4 className="font-medium text-sm">Timeline de Mudanças</h4>
+                                {historicoPedido.history?.length > 0 ? (
+                                    historicoPedido.history.map((registro, index) => (
+                                        <div key={index} className="flex items-start gap-3 p-3 border rounded">
+                                            <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                                            <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-xs font-medium text-card-foreground">
-                                                        {STATUS_MAP[registro.status_anterior]?.label || registro.status_anterior}
+                                                    <span className="text-sm font-medium">
+                                                        {STATUS_MAP[registro.status_from]?.label || registro.status_from}
                                                     </span>
-                                                    <span className="text-xs text-muted-foreground">→</span>
-                                                    <span className="text-xs font-medium text-primary">
-                                                        {STATUS_MAP[registro.status_novo]?.label || registro.status_novo}
+                                                    <ArrowRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                                    <span className="text-sm font-medium text-primary">
+                                                        {STATUS_MAP[registro.status_to]?.label || registro.status_to}
                                                     </span>
                                                 </div>
                                                 <div className="text-xs text-muted-foreground">
-                                                    {formatarData(registro.data_mudanca)}
+                                                    {formatarData(registro.changed_at)}
                                                 </div>
-                                                {registro.tempo_no_status_anterior && (
+                                                {registro.duration_in_previous_status_hours && (
                                                     <div className="text-xs text-muted-foreground">
-                                                        Ficou {formatarTempo(registro.tempo_no_status_anterior)} no status anterior
+                                                        Ficou {formatarTempo(registro.duration_in_previous_status_hours)} no status anterior
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="text-xs text-muted-foreground text-center py-4">
+                                    <div className="text-sm text-muted-foreground text-center py-4">
                                         Nenhuma mudança de status registrada
                                     </div>
                                 )}
                             </div>
                         </div>
                     </ScrollArea>
-                )}
+                ) : null}
 
                 <DialogFooter>
-                    <Button 
-                        variant="outline" 
-                        onClick={() => setModalHistorico(false)}
-                        className="border-border bg-background text-foreground hover:bg-accent"
-                    >
+                    <Button variant="outline" onClick={() => setModalHistorico(false)}>
                         Fechar
                     </Button>
                 </DialogFooter>
@@ -739,71 +728,109 @@ function EcomhubStatusPage() {
         </Dialog>
     );
 
+    const renderConfiguracoes = () => (
+        <Card>
+            <CardHeader>
+                <CardTitle>Configurações de Alertas</CardTitle>
+                <CardDescription>Defina os limites de tempo para cada status (em horas)</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {loadingConfigs ? (
+                    <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                ) : configsAlerta.length > 0 ? (
+                    <div className="space-y-4">
+                        {configsAlerta.map(config => (
+                            <div key={config.status} className="p-4 border rounded">
+                                <h4 className="font-medium mb-3">
+                                    {STATUS_MAP[config.status]?.label || config.status}
+                                </h4>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <Label className="text-xs">🟡 Atenção (horas)</Label>
+                                        <Input
+                                            type="number"
+                                            defaultValue={config.yellow_threshold_hours}
+                                            className="h-9"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs">🟠 Urgente (horas)</Label>
+                                        <Input
+                                            type="number"
+                                            defaultValue={config.red_threshold_hours}
+                                            className="h-9"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs">🔴 Crítico (horas)</Label>
+                                        <Input
+                                            type="number"
+                                            defaultValue={config.critical_threshold_hours}
+                                            className="h-9"
+                                        />
+                                    </div>
+                                </div>
+                                <Button size="sm" className="mt-3">
+                                    Salvar Configuração
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                        <p className="mb-4">Configurações de alerta não disponíveis</p>
+                        <p className="text-sm">Limites padrão:</p>
+                        <div className="mt-2 space-y-1 text-xs">
+                            <div>🟡 Atenção: 168h (7 dias)</div>
+                            <div>🟠 Urgente: 336h (14 dias)</div>
+                            <div>🔴 Crítico: 504h (21 dias)</div>
+                        </div>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+
     // ======================== EFEITOS ========================
 
     useEffect(() => {
-        buscarDadosDashboard();
-    }, [buscarDadosDashboard]);
+        fetchDashboard();
+    }, [fetchDashboard]);
 
     useEffect(() => {
         if (abaSelecionada === 'lista') {
-            buscarPedidos(true);
+            fetchPedidos();
         }
-    }, [abaSelecionada, paisSelecionado]);
+    }, [abaSelecionada, fetchPedidos]);
 
     useEffect(() => {
-        if (abaSelecionada === 'lista') {
-            buscarPedidos();
+        if (abaSelecionada === 'configuracoes') {
+            fetchConfigsAlerta();
         }
-    }, [buscarPedidos]);
-
-    // Auto-refresh
-    useEffect(() => {
-        if (!autoRefresh) return;
-
-        const interval = setInterval(() => {
-            if (abaSelecionada === 'dashboard') {
-                buscarDadosDashboard();
-            } else if (abaSelecionada === 'lista') {
-                buscarPedidos();
-            }
-        }, 30000); // 30 segundos
-
-        return () => clearInterval(interval);
-    }, [autoRefresh, abaSelecionada, buscarDadosDashboard, buscarPedidos]);
+    }, [abaSelecionada]);
 
     // ======================== RENDER PRINCIPAL ========================
 
     return (
         <div className="flex-1 space-y-4 p-6 min-h-screen bg-background">
-            {/* Notificações */}
-            {notification && (
-                <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4 border-border">
-                    {notification.type === 'success' ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                    <AlertDescription>{notification.message}</AlertDescription>
-                </Alert>
-            )}
-
-            {/* Header */}
             {renderHeader()}
-
-            {/* Alertas críticos */}
             {renderAlertasCriticos()}
 
-            {/* Navegação por tabs */}
-            <Tabs value={abaSelecionada} onValueChange={setAbaSelecionada} className="w-full">
-                <TabsList className="grid w-fit grid-cols-3 bg-muted">
-                    <TabsTrigger value="dashboard" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
+            <Tabs value={abaSelecionada} onValueChange={setAbaSelecionada}>
+                <TabsList className="grid w-fit grid-cols-3">
+                    <TabsTrigger value="dashboard">
                         <LayoutDashboard className="h-4 w-4 mr-2" />
                         Dashboard
                     </TabsTrigger>
-                    <TabsTrigger value="lista" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
+                    <TabsTrigger value="lista">
                         <List className="h-4 w-4 mr-2" />
-                        Lista Pedidos
+                        Lista
                     </TabsTrigger>
-                    <TabsTrigger value="configuracao" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
+                    <TabsTrigger value="configuracoes">
                         <Settings className="h-4 w-4 mr-2" />
-                        Configuração
+                        Configurações
                     </TabsTrigger>
                 </TabsList>
 
@@ -814,12 +841,13 @@ function EcomhubStatusPage() {
                         </div>
                     ) : (
                         <>
-                            {renderCardsDashboard()}
+                            {renderCardMetricas()}
                             {renderDistribuicaoStatus()}
-                            
-                            {dadosDashboard?.ultima_sincronizacao && (
+                            {renderGargalos()}
+
+                            {dadosDashboard?.last_sync && (
                                 <div className="text-xs text-muted-foreground text-center">
-                                    Última sincronização: {formatarData(dadosDashboard.ultima_sincronizacao)}
+                                    Última sincronização: {formatarData(dadosDashboard.last_sync)}
                                 </div>
                             )}
                         </>
@@ -831,49 +859,13 @@ function EcomhubStatusPage() {
                     {renderTabelaPedidos()}
                 </TabsContent>
 
-                <TabsContent value="configuracao" className="space-y-4">
-                    <Card className="border-border bg-card">
-                        <CardHeader>
-                            <CardTitle className="text-card-foreground">Configurações do Sistema</CardTitle>
-                            <CardDescription className="text-muted-foreground">
-                                Configure limites de alerta e sincronização automática
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <Label className="text-sm font-medium text-foreground">Auto-Refresh</Label>
-                                        <p className="text-xs text-muted-foreground">Atualizar dados a cada 30 segundos</p>
-                                    </div>
-                                    <Button
-                                        size="sm"
-                                        variant={autoRefresh ? "default" : "outline"}
-                                        onClick={() => setAutoRefresh(!autoRefresh)}
-                                        className={autoRefresh ? "bg-primary text-primary-foreground" : "border-border bg-background text-foreground hover:bg-accent"}
-                                    >
-                                        {autoRefresh ? 'Ativo' : 'Inativo'}
-                                    </Button>
-                                </div>
-                                
-                                <div className="p-4 border border-border rounded bg-muted/30">
-                                    <h4 className="text-sm font-medium text-foreground mb-2">Limites de Alerta</h4>
-                                    <div className="space-y-2 text-xs text-muted-foreground">
-                                        <div>• <strong>Amarelo:</strong> 7 dias (168h) - Atenção</div>
-                                        <div>• <strong>Vermelho:</strong> 14 dias (336h) - Urgente</div>
-                                        <div>• <strong>Crítico:</strong> 21 dias (504h) - Crítico</div>
-                                        <div>• <strong>Entrega:</strong> 3, 5 e 7 dias respectivamente</div>
-                                        <div>• <strong>Problemas (issue):</strong> Sempre crítico após 24h</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                <TabsContent value="configuracoes" className="space-y-4">
+                    {renderConfiguracoes()}
                 </TabsContent>
             </Tabs>
 
-            {/* Modal de histórico */}
             {renderModalHistorico()}
+            <Toaster />
         </div>
     );
 }
