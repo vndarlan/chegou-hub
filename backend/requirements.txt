@@ -40,6 +40,9 @@ rq==1.15.1
 django-redis>=5.4.0
 Pillow>=10.0.0
 
+# APScheduler para jobs agendados (sincronização ECOMHUB)
+apscheduler>=3.10.4
+
 # Cloudinary para storage persistente de imagens
 cloudinary>=1.41.0
 django-cloudinary-storage>=0.3.0

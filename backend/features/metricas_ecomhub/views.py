@@ -730,3 +730,216 @@ class EcomhubStoreViewSet(viewsets.ModelViewSet):
                 'valid': False,
                 'error': serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ===========================================
+# SPRINT 3: VIEWSETS PARA NOVA API REST
+# ===========================================
+
+from .models import EcomhubOrder, EcomhubStatusHistory, EcomhubAlertConfig
+from .serializers import (
+    EcomhubOrderSerializer, EcomhubStatusHistorySerializer,
+    EcomhubAlertConfigSerializer, DashboardSerializer
+)
+from .services.sync_service import sync_all_stores
+from django.db.models import Count, Avg, Q, Max
+
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
+class EcomhubOrderViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet para pedidos (read-only)"""
+    queryset = EcomhubOrder.objects.all()
+    serializer_class = EcomhubOrderSerializer
+    pagination_class = StandardResultsSetPagination
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = EcomhubOrder.objects.select_related('store').all()
+
+        # Filtro por país
+        country_id = self.request.query_params.get('country_id')
+        if country_id and country_id != 'todos':
+            queryset = queryset.filter(country_id=country_id)
+
+        # Filtro por status
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+
+        # Filtro por alert_level
+        alert_level = self.request.query_params.get('alert_level')
+        if alert_level:
+            queryset = queryset.filter(alert_level=alert_level)
+
+        # Busca por texto (customer_name, order_id, product_name)
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(customer_name__icontains=search) |
+                Q(order_id__icontains=search) |
+                Q(product_name__icontains=search) |
+                Q(customer_email__icontains=search)
+            )
+
+        # Ordenação
+        ordering = self.request.query_params.get('ordering', '-time_in_status_hours')
+        queryset = queryset.order_by(ordering)
+
+        return queryset
+
+    @action(detail=True, methods=['get'])
+    def history(self, request, pk=None):
+        """
+        GET /api/metricas/ecomhub/orders/{id}/history/
+        Retorna histórico de um pedido específico
+        """
+        order = self.get_object()
+        history = EcomhubStatusHistory.objects.filter(order=order).order_by('-changed_at')
+        serializer = EcomhubStatusHistorySerializer(history, many=True)
+
+        return Response({
+            'order': EcomhubOrderSerializer(order).data,
+            'history': serializer.data
+        })
+
+    @action(detail=False, methods=['get'])
+    def dashboard(self, request):
+        """
+        GET /api/metricas/ecomhub/orders/dashboard/
+        Retorna métricas agregadas para o dashboard
+        """
+        try:
+            country_id = request.query_params.get('country_id')
+
+            # Base queryset
+            queryset = EcomhubOrder.objects.all()
+            if country_id and country_id != 'todos':
+                queryset = queryset.filter(country_id=country_id)
+
+            # Total de pedidos ativos
+            total_active = queryset.count()
+
+            # Por status
+            by_status = {}
+            status_counts = queryset.values('status').annotate(count=Count('id'))
+            for item in status_counts:
+                by_status[item['status']] = item['count']
+
+            # Por alert_level
+            by_alert = {}
+            alert_counts = queryset.values('alert_level').annotate(count=Count('id'))
+            for item in alert_counts:
+                by_alert[item['alert_level']] = item['count']
+
+            # Tempo médio por status
+            avg_time = {}
+            avg_times = queryset.values('status').annotate(avg_time=Avg('time_in_status_hours'))
+            for item in avg_times:
+                avg_time[item['status']] = round(item['avg_time'] or 0, 2)
+
+            # Gargalos (pedidos com mais tempo no status)
+            bottlenecks = []
+            for status_name in by_status.keys():
+                critical_count = queryset.filter(
+                    status=status_name,
+                    alert_level__in=['red', 'critical']
+                ).count()
+
+                if critical_count > 0:
+                    avg = queryset.filter(status=status_name).aggregate(
+                        avg=Avg('time_in_status_hours')
+                    )['avg'] or 0
+
+                    bottlenecks.append({
+                        'status': status_name,
+                        'count': critical_count,
+                        'avg_days': round(avg / 24, 1)
+                    })
+
+            # Por país (se não filtrado)
+            by_country = {}
+            if not country_id or country_id == 'todos':
+                country_counts = EcomhubOrder.objects.values('country_name').annotate(count=Count('id'))
+                for item in country_counts:
+                    by_country[item['country_name']] = item['count']
+
+            # Última sincronização
+            from .models import EcomhubStore
+            last_sync = EcomhubStore.objects.aggregate(Max('last_sync'))['last_sync__max']
+
+            data = {
+                'total_active_orders': total_active,
+                'by_status': by_status,
+                'by_alert_level': by_alert,
+                'avg_time_per_status': avg_time,
+                'bottlenecks': sorted(bottlenecks, key=lambda x: x['count'], reverse=True),
+                'by_country': by_country,
+                'last_sync': last_sync
+            }
+
+            serializer = DashboardSerializer(data)
+            return Response(serializer.data)
+
+        except Exception as e:
+            logger.error(f"Erro no dashboard: {e}")
+            return Response({
+                'error': 'Erro interno do servidor',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'])
+    def sync(self, request):
+        """
+        POST /api/metricas/ecomhub/orders/sync/
+        Aciona sincronização manual de pedidos
+        """
+        try:
+            logger.info("Sincronização manual iniciada via API")
+            stats = sync_all_stores()
+
+            if stats.get('success'):
+                return Response({
+                    'success': True,
+                    'message': 'Sincronização concluída com sucesso',
+                    'stats': stats
+                })
+            else:
+                return Response({
+                    'success': False,
+                    'message': stats.get('message', 'Erro na sincronização'),
+                    'stats': stats
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            logger.error(f"Erro na sincronização manual: {e}")
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class EcomhubAlertConfigViewSet(viewsets.ModelViewSet):
+    """ViewSet para configurações de alerta"""
+    queryset = EcomhubAlertConfig.objects.all()
+    serializer_class = EcomhubAlertConfigSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        """Permite buscar por status ao invés de ID"""
+        pk = self.kwargs.get('pk')
+
+        # Se é um número, busca por ID normalmente
+        if pk and pk.isdigit():
+            return super().get_object()
+
+        # Se não, busca por status
+        try:
+            return EcomhubAlertConfig.objects.get(status=pk)
+        except EcomhubAlertConfig.DoesNotExist:
+            from django.http import Http404
+            raise Http404("Config não encontrada para este status")

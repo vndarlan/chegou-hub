@@ -252,3 +252,67 @@ class TestConnectionSerializer(serializers.Serializer):
         data['country_result'] = country_result
 
         return data
+
+
+# ===========================================
+# SPRINT 3: SERIALIZERS PARA NOVA API REST
+# ===========================================
+
+from .models import EcomhubOrder, EcomhubStatusHistory, EcomhubAlertConfig
+
+
+class EcomhubOrderSerializer(serializers.ModelSerializer):
+    """Serializer completo para pedidos"""
+    store_name = serializers.CharField(source='store.name', read_only=True)
+
+    class Meta:
+        model = EcomhubOrder
+        fields = [
+            'id', 'order_id', 'store', 'store_name', 'country_id', 'country_name',
+            'price', 'date', 'status', 'shipping_postal_code',
+            'customer_name', 'customer_email', 'product_name',
+            'cost_commission', 'cost_courier', 'cost_payment_method', 'cost_warehouse',
+            'status_since', 'time_in_status_hours', 'previous_status', 'alert_level',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class EcomhubStatusHistorySerializer(serializers.ModelSerializer):
+    """Serializer para histórico de status"""
+    order_id = serializers.CharField(source='order.order_id', read_only=True)
+    customer_name = serializers.CharField(source='order.customer_name', read_only=True)
+
+    class Meta:
+        model = EcomhubStatusHistory
+        fields = [
+            'id', 'order_id', 'customer_name',
+            'status_from', 'status_to', 'changed_at',
+            'duration_in_previous_status_hours'
+        ]
+        read_only_fields = ['id', 'changed_at']
+
+
+class EcomhubAlertConfigSerializer(serializers.ModelSerializer):
+    """Serializer para configurações de alerta"""
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = EcomhubAlertConfig
+        fields = [
+            'id', 'status', 'status_display',
+            'yellow_threshold_hours', 'red_threshold_hours', 'critical_threshold_hours',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class DashboardSerializer(serializers.Serializer):
+    """Serializer para dados do dashboard"""
+    total_active_orders = serializers.IntegerField()
+    by_status = serializers.DictField()
+    by_alert_level = serializers.DictField()
+    avg_time_per_status = serializers.DictField()
+    bottlenecks = serializers.ListField()
+    by_country = serializers.DictField()
+    last_sync = serializers.DateTimeField(allow_null=True)
