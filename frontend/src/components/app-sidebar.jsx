@@ -189,7 +189,7 @@ export function AppSidebar({
     {
       title: "Efetividade",
       icon: TrendingUp,
-      isActive: location.pathname.includes('/workspace/metricas/'),
+      isActive: location.pathname.includes('/workspace/metricas/') && !location.pathname.includes('/workspace/metricas/ecomhub'),
       items: [
         {
           title: "Dropi",
@@ -202,11 +202,6 @@ export function AppSidebar({
           isActive: location.pathname === "/workspace/metricas/primecod",
         },
         {
-          title: "ECOMHUB",
-          url: "/workspace/metricas/ecomhub",
-          isActive: location.pathname === "/workspace/metricas/ecomhub",
-        },
-        {
           title: "N1 Itália",
           url: "/workspace/metricas/n1italia",
           isActive: location.pathname === "/workspace/metricas/n1italia",
@@ -214,14 +209,26 @@ export function AppSidebar({
       ],
     },
     {
-      title: "Status",
+      title: "ECOMHUB",
       icon: BarChart3,
-      isActive: location.pathname.includes('/workspace/status/'),
+      isActive: location.pathname.includes('/workspace/metricas/ecomhub') ||
+                location.pathname.includes('/workspace/status/ecomhub') ||
+                location.pathname.includes('/workspace/ecomhub/configuracoes'),
       items: [
         {
-          title: "Ecomhub",
+          title: "Efetividade",
+          url: "/workspace/metricas/ecomhub",
+          isActive: location.pathname === "/workspace/metricas/ecomhub",
+        },
+        {
+          title: "Status",
           url: "/workspace/status/ecomhub",
           isActive: location.pathname === "/workspace/status/ecomhub",
+        },
+        {
+          title: "Configurações",
+          url: "/workspace/ecomhub/configuracoes",
+          isActive: location.pathname === "/workspace/ecomhub/configuracoes",
         },
       ],
     }
