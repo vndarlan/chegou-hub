@@ -48,7 +48,7 @@ function StoreCard({ store, onEdit, onDelete, onToggleActive, onTest }) {
         <div className="space-y-2 mb-4 text-sm">
           <div>
             <span className="text-muted-foreground">País:</span>
-            <span className="ml-2 font-medium text-card-foreground">{store.country || 'N/A'}</span>
+            <span className="ml-2 font-medium text-card-foreground">{store.country_name || 'N/A'}</span>
           </div>
 
           <div>

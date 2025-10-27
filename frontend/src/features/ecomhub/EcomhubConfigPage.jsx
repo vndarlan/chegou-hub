@@ -108,8 +108,8 @@ function EcomhubConfigPage() {
         }
       );
 
-      if (response.data.success) {
-        showNotification('success', `Conexão OK! País: ${response.data.country}, Store ID: ${response.data.store_id}`);
+      if (response.data.valid) {
+        showNotification('success', `Conexão OK! País: ${response.data.country?.name || response.data.country}, Store ID: ${response.data.store_id}`);
       } else {
         showNotification('error', response.data.error || 'Erro ao testar conexão');
       }
