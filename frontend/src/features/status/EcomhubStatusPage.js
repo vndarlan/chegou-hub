@@ -5,10 +5,12 @@ import {
     RefreshCw, Settings, Filter, Eye, Search, ChevronDown, ChevronUp,
     RotateCcw, CheckCircle, XCircle, AlertCircle, Timer,
     List, BarChart3, Users, Globe, LayoutDashboard,
-    Loader2, Calendar, ArrowUpDown, ArrowUp, ArrowDown, ArrowRight
+    Loader2, Calendar, ArrowUpDown, ArrowUp, ArrowDown, ArrowRight,
+    Info, ShoppingBag, PieChart
 } from 'lucide-react';
 import axios from 'axios';
 import { getCSRFToken } from '../../utils/csrf';
+import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 // shadcn/ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -28,13 +30,13 @@ import { Toaster } from '../../components/ui/toaster';
 
 // Constantes
 const STATUS_MAP = {
-    'processing': { label: 'Processando', color: 'bg-blue-500', icon: Package },
-    'preparing_for_shipping': { label: 'Preparando Envio', color: 'bg-blue-600', icon: Package },
-    'ready_to_ship': { label: 'Pronto p/ Envio', color: 'bg-indigo-500', icon: Package },
-    'shipped': { label: 'Enviado', color: 'bg-purple-500', icon: Truck },
-    'with_courier': { label: 'Com Transportadora', color: 'bg-purple-600', icon: Truck },
-    'out_for_delivery': { label: 'Saiu p/ Entrega', color: 'bg-orange-500', icon: Truck },
-    'issue': { label: 'Com Problemas', color: 'bg-red-500', icon: AlertTriangle }
+    'processing': { label: 'Processando', color: 'bg-blue-500', icon: Package, chartColor: '#3b82f6' },
+    'preparing_for_shipping': { label: 'Preparando Envio', color: 'bg-blue-600', icon: Package, chartColor: '#2563eb' },
+    'ready_to_ship': { label: 'Pronto p/ Envio', color: 'bg-indigo-500', icon: Package, chartColor: '#6366f1' },
+    'shipped': { label: 'Enviado', color: 'bg-purple-500', icon: Truck, chartColor: '#a855f7' },
+    'with_courier': { label: 'Com Transportadora', color: 'bg-purple-600', icon: Truck, chartColor: '#9333ea' },
+    'out_for_delivery': { label: 'Saiu p/ Entrega', color: 'bg-orange-500', icon: Truck, chartColor: '#f97316' },
+    'issue': { label: 'Com Problemas', color: 'bg-red-500', icon: AlertTriangle, chartColor: '#ef4444' }
 };
 
 const NIVEL_ALERTA_CONFIG = {
@@ -83,6 +85,8 @@ function EcomhubStatusPage() {
     // Configurações de alerta
     const [configsAlerta, setConfigsAlerta] = useState([]);
     const [loadingConfigs, setLoadingConfigs] = useState(false);
+    const [editedConfigs, setEditedConfigs] = useState({});
+    const [savingConfig, setSavingConfig] = useState({});
 
     // ======================== FUNÇÕES DE API ========================
 
@@ -246,6 +250,21 @@ function EcomhubStatusPage() {
     };
 
     const atualizarConfig = async (status, thresholds) => {
+        // Validar que yellow < red < critical
+        const yellow = Number(thresholds.yellow_threshold_hours);
+        const red = Number(thresholds.red_threshold_hours);
+        const critical = Number(thresholds.critical_threshold_hours);
+
+        if (yellow >= red || red >= critical) {
+            toast({
+                title: "Validação Falhou",
+                description: "Os limites devem ser: Atenção < Urgente < Crítico",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        setSavingConfig(prev => ({ ...prev, [status]: true }));
         try {
             await axios.put(`/metricas/ecomhub/alert-config/${status}/`, thresholds, {
                 headers: {
@@ -260,6 +279,12 @@ function EcomhubStatusPage() {
             });
 
             fetchConfigsAlerta();
+            // Limpar o edited state para esse status
+            setEditedConfigs(prev => {
+                const newState = { ...prev };
+                delete newState[status];
+                return newState;
+            });
         } catch (error) {
             console.error('Erro ao atualizar config:', error);
             toast({
@@ -267,7 +292,23 @@ function EcomhubStatusPage() {
                 description: "Erro ao atualizar configuração",
                 variant: "destructive"
             });
+        } finally {
+            setSavingConfig(prev => ({ ...prev, [status]: false }));
         }
+    };
+
+    const handleConfigChange = (status, field, value) => {
+        setEditedConfigs(prev => ({
+            ...prev,
+            [status]: {
+                ...(prev[status] || {}),
+                [field]: value
+            }
+        }));
+    };
+
+    const getConfigValue = (config, field) => {
+        return editedConfigs[config.status]?.[field] ?? config[field];
     };
 
     // ======================== FUNÇÕES AUXILIARES ========================
@@ -349,79 +390,223 @@ function EcomhubStatusPage() {
     const renderCardMetricas = () => {
         if (!dadosDashboard) return null;
 
+        const criticos = dadosDashboard.by_alert_level?.critical || 0;
+        const urgentes = dadosDashboard.by_alert_level?.red || 0;
+        const atencao = dadosDashboard.by_alert_level?.yellow || 0;
+        const normal = dadosDashboard.by_alert_level?.normal || 0;
+
         return (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <Card>
+                <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 hover:scale-105">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-2">
-                            <Package className="h-5 w-5 text-blue-600" />
-                            <div className="text-2xl font-bold">{dadosDashboard.total_active_orders || 0}</div>
+                            <Package className="h-6 w-6 text-blue-600" />
+                            <div className="text-3xl font-bold text-blue-600">{dadosDashboard.total_active_orders || 0}</div>
                         </div>
-                        <p className="text-xs text-muted-foreground">Pedidos Ativos</p>
+                        <p className="text-xs font-medium text-muted-foreground">Pedidos Ativos</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className={`border-l-4 border-l-red-500 transition-all duration-200 ${criticos > 0 ? 'bg-red-50 dark:bg-red-950 hover:shadow-xl animate-pulse' : 'hover:shadow-lg hover:scale-105'}`}>
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-2">
-                            <XCircle className="h-5 w-5 text-red-600" />
-                            <div className="text-2xl font-bold text-red-600">{dadosDashboard.by_alert_level?.critical || 0}</div>
+                            <XCircle className="h-6 w-6 text-red-600" />
+                            <div className="text-3xl font-bold text-red-600">{criticos}</div>
                         </div>
-                        <p className="text-xs text-muted-foreground">Críticos</p>
+                        <p className="text-xs font-medium text-muted-foreground">Críticos</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className={`border-l-4 border-l-orange-500 transition-all duration-200 ${urgentes > 10 ? 'bg-orange-50 dark:bg-orange-950' : ''} hover:shadow-lg hover:scale-105`}>
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-2">
-                            <AlertCircle className="h-5 w-5 text-orange-600" />
-                            <div className="text-2xl font-bold text-orange-600">{dadosDashboard.by_alert_level?.red || 0}</div>
+                            <AlertCircle className="h-6 w-6 text-orange-600" />
+                            <div className="text-3xl font-bold text-orange-600">{urgentes}</div>
                         </div>
-                        <p className="text-xs text-muted-foreground">Urgentes</p>
+                        <div className="flex items-center justify-between">
+                            <p className="text-xs font-medium text-muted-foreground">Urgentes</p>
+                            {urgentes > 10 && (
+                                <Badge variant="destructive" className="text-xs">Atenção!</Badge>
+                            )}
+                        </div>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-all duration-200 hover:scale-105">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-2">
-                            <Clock className="h-5 w-5 text-yellow-600" />
-                            <div className="text-2xl font-bold text-yellow-600">{dadosDashboard.by_alert_level?.yellow || 0}</div>
+                            <Clock className="h-6 w-6 text-yellow-600" />
+                            <div className="text-3xl font-bold text-yellow-600">{atencao}</div>
                         </div>
-                        <p className="text-xs text-muted-foreground">Atenção</p>
+                        <div className="space-y-1">
+                            <p className="text-xs font-medium text-muted-foreground">Atenção</p>
+                            <p className="text-xs text-green-600 font-medium">Normal: {normal}</p>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
         );
     };
 
-    const renderDistribuicaoStatus = () => {
+    const renderGraficoPizza = () => {
         if (!dadosDashboard?.by_status) return null;
 
-        const total = dadosDashboard.total_active_orders || 1;
+        // Preparar dados para o gráfico
+        const chartData = Object.entries(dadosDashboard.by_status)
+            .filter(([_, count]) => count > 0)
+            .map(([status, count]) => ({
+                name: STATUS_MAP[status]?.label || status,
+                value: count,
+                status: status,
+                percentage: ((count / dadosDashboard.total_active_orders) * 100).toFixed(1)
+            }))
+            .sort((a, b) => b.value - a.value);
+
+        if (chartData.length === 0) return null;
+
+        const CustomTooltip = ({ active, payload }) => {
+            if (active && payload && payload.length) {
+                return (
+                    <div className="bg-background border border-border p-3 rounded-lg shadow-lg">
+                        <p className="font-medium">{payload[0].payload.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                            {payload[0].value} pedidos ({payload[0].payload.percentage}%)
+                        </p>
+                    </div>
+                );
+            }
+            return null;
+        };
 
         return (
-            <Card className="mb-6">
+            <Card className="hover:shadow-lg transition-shadow">
                 <CardHeader>
-                    <CardTitle>Distribuição por Status</CardTitle>
-                    <CardDescription>Pedidos ativos por status atual</CardDescription>
+                    <div className="flex items-center gap-2">
+                        <PieChart className="h-5 w-5 text-primary" />
+                        <CardTitle>Distribuição de Status</CardTitle>
+                    </div>
+                    <CardDescription>Visualização da distribuição dos pedidos por status</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <RechartsPie>
+                            <Pie
+                                data={chartData}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                label={({ percentage }) => `${percentage}%`}
+                                outerRadius={100}
+                                fill="#8884d8"
+                                dataKey="value"
+                            >
+                                {chartData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={STATUS_MAP[entry.status]?.chartColor || '#6b7280'} />
+                                ))}
+                            </Pie>
+                            <Tooltip content={<CustomTooltip />} />
+                            <Legend
+                                verticalAlign="bottom"
+                                height={36}
+                                formatter={(value) => <span className="text-xs">{value}</span>}
+                            />
+                        </RechartsPie>
+                    </ResponsiveContainer>
+                </CardContent>
+            </Card>
+        );
+    };
+
+    const renderTop5Status = () => {
+        if (!dadosDashboard?.by_status) return null;
+
+        const top5 = Object.entries(dadosDashboard.by_status)
+            .filter(([_, count]) => count > 0)
+            .map(([status, count]) => ({
+                status,
+                count,
+                config: STATUS_MAP[status] || { label: status, color: 'bg-gray-500', icon: Package, chartColor: '#6b7280' },
+                percentage: ((count / dadosDashboard.total_active_orders) * 100).toFixed(1)
+            }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5);
+
+        if (top5.length === 0) return null;
+
+        return (
+            <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                    <div className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-primary" />
+                        <CardTitle>Top 5 Status</CardTitle>
+                    </div>
+                    <CardDescription>Status com mais pedidos ativos</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {top5.map((item, index) => {
+                        const IconComponent = item.config.icon;
+                        return (
+                            <div key={item.status} className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                                        <div className={`w-2 h-2 rounded-full flex-shrink-0`} style={{ backgroundColor: item.config.chartColor }}></div>
+                                        <IconComponent className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                        <span className="text-sm font-medium truncate">{item.config.label}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 flex-shrink-0">
+                                        <span className="text-lg font-bold">{item.count}</span>
+                                        <Badge variant="secondary" className="text-xs">{item.percentage}%</Badge>
+                                    </div>
+                                </div>
+                                <Progress value={parseFloat(item.percentage)} className="h-2" style={{
+                                    '--progress-background': item.config.chartColor
+                                } as React.CSSProperties} />
+                            </div>
+                        );
+                    })}
+                </CardContent>
+            </Card>
+        );
+    };
+
+    const renderTempoMedioStatus = () => {
+        if (!dadosDashboard?.avg_time_per_status) return null;
+
+        const statusComTempo = Object.entries(dadosDashboard.avg_time_per_status)
+            .filter(([_, avgTime]) => avgTime > 0)
+            .map(([status, avgTime]) => ({
+                status,
+                avgTime,
+                config: STATUS_MAP[status] || { label: status, icon: Package, color: 'bg-gray-500' }
+            }))
+            .sort((a, b) => b.avgTime - a.avgTime);
+
+        if (statusComTempo.length === 0) return null;
+
+        return (
+            <Card className="mb-6 hover:shadow-lg transition-shadow">
+                <CardHeader>
+                    <div className="flex items-center gap-2">
+                        <Timer className="h-5 w-5 text-primary" />
+                        <CardTitle>Tempo Médio por Status</CardTitle>
+                    </div>
+                    <CardDescription>Média de tempo que os pedidos permanecem em cada status</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-3">
-                        {Object.entries(dadosDashboard.by_status).map(([status, count]) => {
-                            const statusConfig = STATUS_MAP[status];
-                            if (!statusConfig || count === 0) return null;
-
-                            const IconComponent = statusConfig.icon;
-                            const percentage = ((count / total) * 100).toFixed(1);
+                        {statusComTempo.map(({ status, avgTime, config }) => {
+                            const IconComponent = config.icon;
+                            const dias = Math.floor(avgTime / 24);
+                            const horas = Math.round(avgTime % 24);
 
                             return (
-                                <div key={status} className="flex items-center justify-between gap-4">
+                                <div key={status} className="flex items-center justify-between gap-4 p-3 rounded-lg hover:bg-accent/50 transition-colors">
                                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                                        <div className={`w-3 h-3 rounded-full ${statusConfig.color}`}></div>
                                         <IconComponent className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                        <span className="text-sm truncate">{statusConfig.label}</span>
+                                        <span className="text-sm font-medium truncate">{config.label}</span>
                                     </div>
-                                    <div className="flex items-center gap-3 flex-shrink-0">
-                                        <Progress value={parseFloat(percentage)} className="w-24 h-2" />
-                                        <span className="text-sm font-medium w-8 text-right">{count}</span>
-                                        <span className="text-xs text-muted-foreground w-12 text-right">{percentage}%</span>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                        <Clock className="h-3 w-3 text-muted-foreground" />
+                                        <span className="text-sm font-bold">
+                                            {dias > 0 ? `${dias}d ${horas}h` : `${horas}h`}
+                                        </span>
                                     </div>
                                 </div>
                             );
@@ -569,6 +754,7 @@ function EcomhubStatusPage() {
                                     <TableRow>
                                         <TableHead>Pedido</TableHead>
                                         <TableHead>Cliente</TableHead>
+                                        <TableHead>Produto</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead>Tempo no Status</TableHead>
                                         <TableHead>Alerta</TableHead>
@@ -579,7 +765,7 @@ function EcomhubStatusPage() {
                                 <TableBody>
                                     {listaPedidos.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                                            <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                                                 Nenhum pedido encontrado
                                             </TableCell>
                                         </TableRow>
@@ -591,11 +777,18 @@ function EcomhubStatusPage() {
 
                                             return (
                                                 <TableRow key={pedido.id}>
-                                                    <TableCell className="font-mono text-xs">{pedido.order_id}</TableCell>
+                                                    <TableCell className="font-mono text-xs font-medium">
+                                                        #{pedido.order_id}
+                                                    </TableCell>
                                                     <TableCell>
-                                                        <div className="text-sm font-medium">{pedido.customer_name}</div>
-                                                        <div className="text-xs text-muted-foreground truncate max-w-xs">
-                                                            {pedido.product_name}
+                                                        <div className="text-sm font-medium">{pedido.customer_name || 'N/A'}</div>
+                                                        {pedido.customer_email && (
+                                                            <div className="text-xs text-muted-foreground">{pedido.customer_email}</div>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="text-xs truncate max-w-xs" title={pedido.product_name}>
+                                                            {pedido.product_name || '-'}
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
@@ -754,7 +947,7 @@ function EcomhubStatusPage() {
         <Card>
             <CardHeader>
                 <CardTitle>Configurações de Alertas</CardTitle>
-                <CardDescription>Defina os limites de tempo para cada status (em horas)</CardDescription>
+                <CardDescription>Defina os limites de tempo para cada status (em horas). Os valores devem ser: Atenção &lt; Urgente &lt; Crítico</CardDescription>
             </CardHeader>
             <CardContent>
                 {loadingConfigs ? (
@@ -763,45 +956,114 @@ function EcomhubStatusPage() {
                     </div>
                 ) : configsAlerta.length > 0 ? (
                     <div className="space-y-4">
-                        {configsAlerta.map(config => (
-                            <div key={config.status} className="p-4 border rounded">
-                                <h4 className="font-medium mb-3">
-                                    {STATUS_MAP[config.status]?.label || config.status}
-                                </h4>
-                                <div className="grid grid-cols-3 gap-3">
-                                    <div>
-                                        <Label className="text-xs">🟡 Atenção (horas)</Label>
-                                        <Input
-                                            type="number"
-                                            defaultValue={config.yellow_threshold_hours}
-                                            className="h-9"
-                                        />
+                        {configsAlerta.map(config => {
+                            const statusConfig = STATUS_MAP[config.status];
+                            const StatusIcon = statusConfig?.icon || Settings;
+                            const isSaving = savingConfig[config.status];
+                            const hasChanges = editedConfigs[config.status] !== undefined;
+
+                            return (
+                                <div key={config.status} className="p-4 border rounded-lg hover:border-primary/50 transition-colors">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <StatusIcon className="h-5 w-5 text-primary" />
+                                        <h4 className="font-medium">
+                                            {statusConfig?.label || config.status}
+                                        </h4>
+                                        {hasChanges && (
+                                            <Badge variant="outline" className="ml-auto">Modificado</Badge>
+                                        )}
                                     </div>
-                                    <div>
-                                        <Label className="text-xs">🟠 Urgente (horas)</Label>
-                                        <Input
-                                            type="number"
-                                            defaultValue={config.red_threshold_hours}
-                                            className="h-9"
-                                        />
+                                    <div className="grid grid-cols-3 gap-3 mb-3">
+                                        <div>
+                                            <Label className="text-xs flex items-center gap-1">
+                                                <Clock className="h-3 w-3 text-yellow-600" />
+                                                🟡 Atenção (horas)
+                                            </Label>
+                                            <Input
+                                                type="number"
+                                                min="1"
+                                                value={getConfigValue(config, 'yellow_threshold_hours')}
+                                                onChange={(e) => handleConfigChange(config.status, 'yellow_threshold_hours', e.target.value)}
+                                                className="h-9 mt-1"
+                                                disabled={isSaving}
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs flex items-center gap-1">
+                                                <AlertCircle className="h-3 w-3 text-orange-600" />
+                                                🟠 Urgente (horas)
+                                            </Label>
+                                            <Input
+                                                type="number"
+                                                min="1"
+                                                value={getConfigValue(config, 'red_threshold_hours')}
+                                                onChange={(e) => handleConfigChange(config.status, 'red_threshold_hours', e.target.value)}
+                                                className="h-9 mt-1"
+                                                disabled={isSaving}
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs flex items-center gap-1">
+                                                <XCircle className="h-3 w-3 text-red-600" />
+                                                🔴 Crítico (horas)
+                                            </Label>
+                                            <Input
+                                                type="number"
+                                                min="1"
+                                                value={getConfigValue(config, 'critical_threshold_hours')}
+                                                onChange={(e) => handleConfigChange(config.status, 'critical_threshold_hours', e.target.value)}
+                                                className="h-9 mt-1"
+                                                disabled={isSaving}
+                                            />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <Label className="text-xs">🔴 Crítico (horas)</Label>
-                                        <Input
-                                            type="number"
-                                            defaultValue={config.critical_threshold_hours}
-                                            className="h-9"
-                                        />
+                                    <div className="flex gap-2">
+                                        <Button
+                                            size="sm"
+                                            onClick={() => atualizarConfig(config.status, {
+                                                yellow_threshold_hours: getConfigValue(config, 'yellow_threshold_hours'),
+                                                red_threshold_hours: getConfigValue(config, 'red_threshold_hours'),
+                                                critical_threshold_hours: getConfigValue(config, 'critical_threshold_hours')
+                                            })}
+                                            disabled={isSaving || !hasChanges}
+                                        >
+                                            {isSaving ? (
+                                                <>
+                                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                                    Salvando...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                                    Salvar Configuração
+                                                </>
+                                            )}
+                                        </Button>
+                                        {hasChanges && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => {
+                                                    setEditedConfigs(prev => {
+                                                        const newState = { ...prev };
+                                                        delete newState[config.status];
+                                                        return newState;
+                                                    });
+                                                }}
+                                                disabled={isSaving}
+                                            >
+                                                <RotateCcw className="h-3 w-3 mr-1" />
+                                                Resetar
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
-                                <Button size="sm" className="mt-3">
-                                    Salvar Configuração
-                                </Button>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 ) : (
                     <div className="text-center py-8 text-muted-foreground">
+                        <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
                         <p className="mb-4">Configurações de alerta não disponíveis</p>
                         <p className="text-sm">Limites padrão:</p>
                         <div className="mt-2 space-y-1 text-xs">
@@ -844,6 +1106,15 @@ function EcomhubStatusPage() {
             {renderHeader()}
             {renderAlertasCriticos()}
 
+            {/* Aviso sobre pedidos finalizados */}
+            <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
+                <Info className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Informação:</strong> Esta página exibe apenas pedidos <strong>ATIVOS</strong>.
+                    Pedidos finalizados (entregues, cancelados ou devolvidos) não são sincronizados e não aparecem nas listagens.
+                </AlertDescription>
+            </Alert>
+
             <Tabs value={abaSelecionada} onValueChange={setAbaSelecionada}>
                 <TabsList className="grid w-fit grid-cols-3">
                     <TabsTrigger value="dashboard">
@@ -862,21 +1133,49 @@ function EcomhubStatusPage() {
 
                 <TabsContent value="dashboard" className="space-y-4">
                     {loadingDashboard ? (
-                        <div className="flex items-center justify-center py-12">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <div className="space-y-4 animate-pulse">
+                            {/* Skeleton para cards */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {[1, 2, 3, 4].map(i => (
+                                    <Card key={i}>
+                                        <CardContent className="p-4">
+                                            <div className="h-12 bg-muted rounded mb-2"></div>
+                                            <div className="h-4 bg-muted rounded w-2/3"></div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                            {/* Skeleton para gráficos */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {[1, 2].map(i => (
+                                    <Card key={i}>
+                                        <CardContent className="p-6">
+                                            <div className="h-64 bg-muted rounded"></div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
                         </div>
                     ) : (
-                        <>
+                        <div className="space-y-4 animate-in fade-in duration-500">
                             {renderCardMetricas()}
-                            {renderDistribuicaoStatus()}
+
+                            {/* Gráfico de Pizza + Top 5 Status */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                                {renderGraficoPizza()}
+                                {renderTop5Status()}
+                            </div>
+
+                            {renderTempoMedioStatus()}
                             {renderGargalos()}
 
                             {dadosDashboard?.last_sync && (
-                                <div className="text-xs text-muted-foreground text-center">
-                                    Última sincronização: {formatarData(dadosDashboard.last_sync)}
+                                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                                    <Clock className="h-3 w-3" />
+                                    <span>Última sincronização: {formatarData(dadosDashboard.last_sync)}</span>
                                 </div>
                             )}
-                        </>
+                        </div>
                     )}
                 </TabsContent>
 
