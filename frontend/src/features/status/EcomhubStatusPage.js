@@ -555,9 +555,7 @@ function EcomhubStatusPage() {
                                         <Badge variant="secondary" className="text-xs">{item.percentage}%</Badge>
                                     </div>
                                 </div>
-                                <Progress value={parseFloat(item.percentage)} className="h-2" style={{
-                                    '--progress-background': item.config.chartColor
-                                } as React.CSSProperties} />
+                                <Progress value={parseFloat(item.percentage)} className="h-2" />
                             </div>
                         );
                     })}
