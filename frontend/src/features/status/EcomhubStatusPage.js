@@ -27,17 +27,6 @@ import { useToast } from '../../components/ui/use-toast';
 import { Toaster } from '../../components/ui/toaster';
 
 // Constantes
-const PAISES = [
-    { value: 'todos', label: 'Todos os Países', id: null },
-    { value: '164', label: 'Espanha', id: 164 },
-    { value: '41', label: 'Croácia', id: 41 },
-    { value: '66', label: 'Grécia', id: 66 },
-    { value: '82', label: 'Itália', id: 82 },
-    { value: '142', label: 'Romênia', id: 142 },
-    { value: '44', label: 'República Checa', id: 44 },
-    { value: '139', label: 'Polônia', id: 139 }
-];
-
 const STATUS_MAP = {
     'processing': { label: 'Processando', color: 'bg-blue-500', icon: Package },
     'preparing_for_shipping': { label: 'Preparando Envio', color: 'bg-blue-600', icon: Package },
@@ -61,6 +50,9 @@ function EcomhubStatusPage() {
     // Estados principais
     const [abaSelecionada, setAbaSelecionada] = useState('dashboard');
     const [paisSelecionado, setPaisSelecionado] = useState('todos');
+    const [paisesDisponiveis, setPaisesDisponiveis] = useState([
+        { id: 'todos', name: 'Todos os Países' }
+    ]);
 
     // Dashboard
     const [dadosDashboard, setDadosDashboard] = useState(null);
@@ -74,8 +66,8 @@ function EcomhubStatusPage() {
     const [totalItens, setTotalItens] = useState(0);
 
     // Filtros
-    const [statusFiltro, setStatusFiltro] = useState('');
-    const [nivelAlertaFiltro, setNivelAlertaFiltro] = useState('');
+    const [statusFiltro, setStatusFiltro] = useState('todos');
+    const [nivelAlertaFiltro, setNivelAlertaFiltro] = useState('todos');
     const [buscaTexto, setBuscaTexto] = useState('');
     const [ordenacao, setOrdenacao] = useState('-time_in_status_hours');
 
@@ -94,6 +86,36 @@ function EcomhubStatusPage() {
 
     // ======================== FUNÇÕES DE API ========================
 
+    const fetchPaisesDisponiveis = async () => {
+        try {
+            const response = await axios.get('/metricas/ecomhub/stores/', {
+                headers: { 'X-CSRFToken': getCSRFToken() }
+            });
+
+            const stores = response.data;
+
+            // Extrair países únicos
+            const paisesUnicos = new Set();
+            stores.forEach(store => {
+                if (store.country_id && store.country_name) {
+                    paisesUnicos.add(JSON.stringify({
+                        id: store.country_id.toString(),
+                        name: store.country_name
+                    }));
+                }
+            });
+
+            const paises = Array.from(paisesUnicos).map(p => JSON.parse(p));
+
+            setPaisesDisponiveis([
+                { id: 'todos', name: 'Todos os Países' },
+                ...paises
+            ]);
+        } catch (error) {
+            console.error('Erro ao buscar países:', error);
+        }
+    };
+
     const fetchDashboard = useCallback(async () => {
         setLoadingDashboard(true);
         try {
@@ -102,7 +124,7 @@ function EcomhubStatusPage() {
                 params.country_id = paisSelecionado;
             }
 
-            const response = await axios.get('/api/metricas/ecomhub/orders/dashboard/', {
+            const response = await axios.get('/metricas/ecomhub/orders/dashboard/', {
                 params,
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
@@ -129,11 +151,11 @@ function EcomhubStatusPage() {
             };
 
             if (paisSelecionado !== 'todos') params.country_id = paisSelecionado;
-            if (statusFiltro) params.status = statusFiltro;
-            if (nivelAlertaFiltro) params.alert_level = nivelAlertaFiltro;
+            if (statusFiltro !== 'todos') params.status = statusFiltro;
+            if (nivelAlertaFiltro !== 'todos') params.alert_level = nivelAlertaFiltro;
             if (buscaTexto.trim()) params.search = buscaTexto.trim();
 
-            const response = await axios.get('/api/metricas/ecomhub/orders/', {
+            const response = await axios.get('/metricas/ecomhub/orders/', {
                 params,
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
@@ -156,7 +178,7 @@ function EcomhubStatusPage() {
     const fetchHistorico = async (orderId) => {
         setLoadingHistorico(true);
         try {
-            const response = await axios.get(`/api/metricas/ecomhub/orders/${orderId}/history/`, {
+            const response = await axios.get(`/metricas/ecomhub/orders/${orderId}/history/`, {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
 
@@ -178,7 +200,7 @@ function EcomhubStatusPage() {
     const sincronizarAgora = async () => {
         setSincronizando(true);
         try {
-            const response = await axios.post('/api/metricas/ecomhub/orders/sync/', {}, {
+            const response = await axios.post('/metricas/ecomhub/orders/sync/', {}, {
                 headers: {
                     'X-CSRFToken': getCSRFToken(),
                     'Content-Type': 'application/json'
@@ -211,7 +233,7 @@ function EcomhubStatusPage() {
     const fetchConfigsAlerta = async () => {
         setLoadingConfigs(true);
         try {
-            const response = await axios.get('/api/metricas/ecomhub/alert-config/', {
+            const response = await axios.get('/metricas/ecomhub/alert-config/', {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
             setConfigsAlerta(response.data || []);
@@ -225,7 +247,7 @@ function EcomhubStatusPage() {
 
     const atualizarConfig = async (status, thresholds) => {
         try {
-            await axios.put(`/api/metricas/ecomhub/alert-config/${status}/`, thresholds, {
+            await axios.put(`/metricas/ecomhub/alert-config/${status}/`, thresholds, {
                 headers: {
                     'X-CSRFToken': getCSRFToken(),
                     'Content-Type': 'application/json'
@@ -264,8 +286,8 @@ function EcomhubStatusPage() {
     };
 
     const limparFiltros = () => {
-        setStatusFiltro('');
-        setNivelAlertaFiltro('');
+        setStatusFiltro('todos');
+        setNivelAlertaFiltro('todos');
         setBuscaTexto('');
         setOrdenacao('-time_in_status_hours');
         setPaginaAtual(1);
@@ -286,9 +308,9 @@ function EcomhubStatusPage() {
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        {PAISES.map(pais => (
-                            <SelectItem key={pais.value} value={pais.value}>
-                                {pais.label}
+                        {paisesDisponiveis.map(pais => (
+                            <SelectItem key={pais.id} value={pais.id}>
+                                {pais.name}
                             </SelectItem>
                         ))}
                     </SelectContent>
@@ -449,7 +471,7 @@ function EcomhubStatusPage() {
                                 <SelectValue placeholder="Todos" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">Todos os Status</SelectItem>
+                                <SelectItem value="todos">Todos os Status</SelectItem>
                                 {Object.entries(STATUS_MAP).map(([status, config]) => (
                                     <SelectItem key={status} value={status}>
                                         {config.label}
@@ -466,7 +488,7 @@ function EcomhubStatusPage() {
                                 <SelectValue placeholder="Todos" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">Todos os Níveis</SelectItem>
+                                <SelectItem value="todos">Todos os Níveis</SelectItem>
                                 {Object.entries(NIVEL_ALERTA_CONFIG).map(([nivel, config]) => (
                                     <SelectItem key={nivel} value={nivel}>
                                         {config.label}
@@ -794,6 +816,10 @@ function EcomhubStatusPage() {
     );
 
     // ======================== EFEITOS ========================
+
+    useEffect(() => {
+        fetchPaisesDisponiveis();
+    }, []);
 
     useEffect(() => {
         fetchDashboard();
