@@ -4,8 +4,8 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from .models import (
-    AnaliseEcomhub, PedidoStatusAtual, HistoricoStatus, 
-    ConfiguracaoStatusTracking
+    AnaliseEcomhub, PedidoStatusAtual, HistoricoStatus,
+    ConfiguracaoStatusTracking, EcomhubOrder, EcomhubStatusHistory, EcomhubAlertConfig
 )
 
 
@@ -244,4 +244,68 @@ class EcomhubStoreAdmin(admin.ModelAdmin):
             'fields': ('id', 'created_at', 'updated_at'),
             'classes': ('collapse',)
         })
+    )
+
+
+# ===========================================
+# SPRINT 1: ADMIN PARA TRACKING OTIMIZADO
+# ===========================================
+
+@admin.register(EcomhubOrder)
+class EcomhubOrderAdmin(admin.ModelAdmin):
+    list_display = ['order_id', 'store', 'country_name', 'status', 'customer_name',
+                    'alert_level', 'time_in_status_hours', 'date']
+    list_filter = ['status', 'alert_level', 'country_name', 'store']
+    search_fields = ['order_id', 'customer_name', 'customer_email', 'product_name']
+    readonly_fields = ['order_id', 'created_at', 'updated_at']
+    date_hierarchy = 'date'
+
+    fieldsets = (
+        ('Identificação', {
+            'fields': ('order_id', 'store', 'country_id', 'country_name')
+        }),
+        ('Dados do Pedido', {
+            'fields': ('price', 'date', 'status', 'shipping_postal_code',
+                      'customer_name', 'customer_email', 'product_name')
+        }),
+        ('Custos', {
+            'fields': ('cost_commission', 'cost_commission_return', 'cost_courier',
+                      'cost_courier_return', 'cost_payment_method',
+                      'cost_warehouse', 'cost_warehouse_return'),
+            'classes': ('collapse',)
+        }),
+        ('Tracking', {
+            'fields': ('status_since', 'time_in_status_hours', 'previous_status', 'alert_level')
+        }),
+        ('Metadados', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(EcomhubStatusHistory)
+class EcomhubStatusHistoryAdmin(admin.ModelAdmin):
+    list_display = ['order', 'status_from', 'status_to', 'changed_at', 'duration_in_previous_status_hours']
+    list_filter = ['status_from', 'status_to', 'changed_at']
+    search_fields = ['order__order_id', 'order__customer_name']
+    readonly_fields = ['order', 'status_from', 'status_to', 'changed_at', 'duration_in_previous_status_hours']
+    date_hierarchy = 'changed_at'
+
+
+@admin.register(EcomhubAlertConfig)
+class EcomhubAlertConfigAdmin(admin.ModelAdmin):
+    list_display = ['status', 'yellow_threshold_hours', 'red_threshold_hours',
+                    'critical_threshold_hours', 'updated_at']
+    list_filter = ['status']
+
+    fieldsets = (
+        ('Status', {
+            'fields': ('status',)
+        }),
+        ('Limites de Alerta (em horas)', {
+            'fields': ('yellow_threshold_hours', 'red_threshold_hours', 'critical_threshold_hours'),
+            'description': 'Configure os limites de tempo para cada nível de alerta. '
+                          'Exemplo: 48h = 2 dias, 168h = 7 dias'
+        }),
     )

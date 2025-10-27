@@ -269,3 +269,122 @@ class ConfiguracaoStatusTracking(models.Model):
             }
         )
         return config
+
+
+# ===========================================
+# SPRINT 1: SISTEMA DE TRACKING OTIMIZADO
+# ===========================================
+
+class EcomhubOrder(models.Model):
+    """Snapshot atual de cada pedido ECOMHUB"""
+
+    # Identificação
+    order_id = models.CharField(max_length=255, db_index=True, help_text="ID único do pedido na API ECOMHUB")
+    store = models.ForeignKey(EcomhubStore, on_delete=models.CASCADE, related_name='orders')
+    country_id = models.IntegerField(db_index=True)
+    country_name = models.CharField(max_length=100)
+
+    # Dados do pedido
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    date = models.DateTimeField(help_text="Data original do pedido")
+    status = models.CharField(max_length=50, db_index=True, help_text="Status atual")
+    shipping_postal_code = models.CharField(max_length=20, blank=True)
+    customer_name = models.CharField(max_length=255, blank=True)
+    customer_email = models.CharField(max_length=255, blank=True)
+    product_name = models.TextField(blank=True, help_text="Nome do(s) produto(s)")
+
+    # Custos (todos opcionais)
+    cost_commission = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    cost_commission_return = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    cost_courier = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    cost_courier_return = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    cost_payment_method = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    cost_warehouse = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    cost_warehouse_return = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    # Tracking de status
+    status_since = models.DateTimeField(help_text="Quando entrou no status atual")
+    time_in_status_hours = models.FloatField(default=0, help_text="Horas no status atual")
+    previous_status = models.CharField(max_length=50, blank=True, help_text="Status anterior")
+
+    # Alerta
+    ALERT_LEVELS = (
+        ('normal', 'Normal'),
+        ('yellow', 'Atenção'),
+        ('red', 'Urgente'),
+        ('critical', 'Crítico'),
+    )
+    alert_level = models.CharField(max_length=20, choices=ALERT_LEVELS, default='normal', db_index=True)
+
+    # Metadados
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Pedido ECOMHUB"
+        verbose_name_plural = "Pedidos ECOMHUB"
+        unique_together = ['order_id', 'store']
+        indexes = [
+            models.Index(fields=['order_id']),
+            models.Index(fields=['status']),
+            models.Index(fields=['country_id']),
+            models.Index(fields=['alert_level']),
+            models.Index(fields=['-time_in_status_hours']),
+        ]
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.order_id} - {self.status} - {self.customer_name}"
+
+
+class EcomhubStatusHistory(models.Model):
+    """Histórico de mudanças de status de um pedido"""
+
+    order = models.ForeignKey(EcomhubOrder, on_delete=models.CASCADE, related_name='status_history')
+    status_from = models.CharField(max_length=50, help_text="Status anterior")
+    status_to = models.CharField(max_length=50, help_text="Novo status")
+    changed_at = models.DateTimeField(auto_now_add=True, help_text="Quando mudou")
+    duration_in_previous_status_hours = models.FloatField(help_text="Tempo que ficou no status anterior")
+
+    class Meta:
+        verbose_name = "Histórico de Status"
+        verbose_name_plural = "Históricos de Status"
+        ordering = ['-changed_at']
+        indexes = [
+            models.Index(fields=['order', '-changed_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.order.order_id}: {self.status_from} → {self.status_to}"
+
+
+class EcomhubAlertConfig(models.Model):
+    """Configuração de limites de alerta por status (editável pelo usuário)"""
+
+    STATUS_CHOICES = (
+        ('processing', 'Processando'),
+        ('preparing_for_shipping', 'Preparando Envio'),
+        ('ready_to_ship', 'Pronto para Envio'),
+        ('shipped', 'Enviado'),
+        ('with_courier', 'Com Transportadora'),
+        ('out_for_delivery', 'Saiu para Entrega'),
+        ('issue', 'Com Problemas'),
+    )
+
+    status = models.CharField(max_length=50, unique=True, choices=STATUS_CHOICES, help_text="Status do pedido")
+
+    # Limites em horas
+    yellow_threshold_hours = models.FloatField(default=48, help_text="Atenção após X horas (padrão: 48h = 2 dias)")
+    red_threshold_hours = models.FloatField(default=120, help_text="Urgente após X horas (padrão: 120h = 5 dias)")
+    critical_threshold_hours = models.FloatField(default=168, help_text="Crítico após X horas (padrão: 168h = 7 dias)")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configuração de Alerta"
+        verbose_name_plural = "Configurações de Alertas"
+        ordering = ['status']
+
+    def __str__(self):
+        return f"Alertas para {self.get_status_display()}"
