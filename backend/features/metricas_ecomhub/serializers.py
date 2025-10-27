@@ -189,3 +189,66 @@ class FiltrosPedidosSerializer(serializers.Serializer):
             if data['data_criacao_inicio'] > data['data_criacao_fim']:
                 raise serializers.ValidationError("Data criação início deve ser anterior ao fim")
         return data
+
+# Serializers para gerenciamento de lojas ECOMHUB
+from .models import EcomhubStore
+from .services import test_ecomhub_connection, get_store_country
+
+
+class EcomhubStoreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EcomhubStore
+        fields = [
+            'id', 'name', 'token', 'secret', 'country_id', 'country_name',
+            'store_id', 'myshopify_domain', 'is_active', 'last_sync',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'country_id', 'country_name', 'store_id',
+                           'myshopify_domain', 'last_sync', 'created_at', 'updated_at']
+
+    def validate(self, data):
+        """Valida token e detecta país antes de salvar"""
+        token = data.get('token')
+        secret = data.get('secret')
+
+        # Testar conexão
+        connection_result = test_ecomhub_connection(token, secret)
+        if not connection_result['success']:
+            raise serializers.ValidationError({
+                'token': f"Token inválido: {connection_result['error_message']}"
+            })
+
+        # Detectar país
+        country_result = get_store_country(token, secret)
+        if country_result['country_id']:
+            data['country_id'] = country_result['country_id']
+            data['country_name'] = country_result['country_name']
+            data['store_id'] = connection_result['store_id']
+            data['myshopify_domain'] = connection_result['myshopify_domain']
+
+        return data
+
+
+class TestConnectionSerializer(serializers.Serializer):
+    """Serializer para testar conexão sem salvar"""
+    token = serializers.CharField(required=True)
+    secret = serializers.CharField(required=True)
+
+    def validate(self, data):
+        token = data.get('token')
+        secret = data.get('secret')
+
+        # Testar conexão
+        connection_result = test_ecomhub_connection(token, secret)
+        if not connection_result['success']:
+            raise serializers.ValidationError({
+                'error': connection_result['error_message']
+            })
+
+        # Detectar país
+        country_result = get_store_country(token, secret)
+
+        data['connection_result'] = connection_result
+        data['country_result'] = country_result
+
+        return data

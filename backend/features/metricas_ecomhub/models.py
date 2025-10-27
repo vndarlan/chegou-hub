@@ -3,6 +3,42 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
+import uuid
+
+
+class EcomhubStore(models.Model):
+    """Armazena configurações de lojas ECOMHUB conectadas"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255, help_text="Nome descritivo da loja")
+    token = models.CharField(max_length=255, unique=True, help_text="Token da API ECOMHUB")
+    secret = models.CharField(max_length=255, help_text="Secret da API ECOMHUB")
+
+    # Informações detectadas via API
+    country_id = models.IntegerField(null=True, blank=True, help_text="ID do país na API ECOMHUB")
+    country_name = models.CharField(max_length=100, blank=True, help_text="Nome do país")
+    store_id = models.CharField(max_length=255, blank=True, help_text="ID da loja retornado pela API")
+    myshopify_domain = models.CharField(max_length=255, blank=True, null=True)
+
+    # Controles
+    is_active = models.BooleanField(default=True, help_text="Se False, não sincroniza pedidos")
+    last_sync = models.DateTimeField(null=True, blank=True, help_text="Última sincronização de pedidos")
+
+    # Metadados
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Loja ECOMHUB"
+        verbose_name_plural = "Lojas ECOMHUB"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} ({self.country_name or 'País não detectado'})"
+# backend/features/metricas_ecomhub/models.py - COM SISTEMA DE TRACKING DE STATUS
+from django.db import models
+from django.contrib.auth.models import User
+from django.utils import timezone
+from datetime import timedelta
 
 class AnaliseEcomhub(models.Model):
     """Model simplificado apenas para análises"""

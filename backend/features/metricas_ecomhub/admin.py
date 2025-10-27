@@ -213,3 +213,35 @@ class ConfiguracaoStatusTrackingAdmin(admin.ModelAdmin):
 admin.site.site_header = "ECOMHUB Status Tracking Admin"
 admin.site.site_title = "ECOMHUB Admin"
 admin.site.index_title = "Painel de Controle - Status Tracking"
+
+# Admin para gerenciamento de lojas ECOMHUB
+from .models import EcomhubStore
+
+
+@admin.register(EcomhubStore)
+class EcomhubStoreAdmin(admin.ModelAdmin):
+    list_display = ['name', 'country_name', 'is_active', 'last_sync', 'created_at']
+    list_filter = ['is_active', 'country_name']
+    search_fields = ['name', 'token', 'store_id']
+    readonly_fields = ['id', 'store_id', 'myshopify_domain', 'country_id',
+                      'country_name', 'last_sync', 'created_at', 'updated_at']
+
+    fieldsets = (
+        ('Informações Básicas', {
+            'fields': ('name', 'is_active')
+        }),
+        ('Credenciais API', {
+            'fields': ('token', 'secret'),
+            'classes': ('collapse',)
+        }),
+        ('Dados Detectados', {
+            'fields': ('store_id', 'myshopify_domain', 'country_id', 'country_name')
+        }),
+        ('Sincronização', {
+            'fields': ('last_sync',)
+        }),
+        ('Metadados', {
+            'fields': ('id', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )

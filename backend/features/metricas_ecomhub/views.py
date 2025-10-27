@@ -692,3 +692,41 @@ class PedidoStatusViewSet(viewsets.ReadOnlyModelViewSet):
         if self.action == 'list':
             return PedidoStatusResumoSerializer
         return PedidoStatusAtualSerializer
+
+# ViewSet para gerenciamento de lojas ECOMHUB
+from .models import EcomhubStore
+from .serializers import EcomhubStoreSerializer, TestConnectionSerializer
+
+
+class EcomhubStoreViewSet(viewsets.ModelViewSet):
+    """ViewSet para gerenciar lojas ECOMHUB"""
+    queryset = EcomhubStore.objects.all()
+    serializer_class = EcomhubStoreSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=False, methods=['post'])
+    def test_connection(self, request):
+        """
+        Testa conexão com API ECOMHUB sem salvar
+        POST /api/metricas/ecomhub/stores/test_connection/
+        Body: {token, secret}
+        """
+        serializer = TestConnectionSerializer(data=request.data)
+
+        if serializer.is_valid():
+            data = serializer.validated_data
+            return Response({
+                'valid': True,
+                'store_id': data['connection_result']['store_id'],
+                'myshopify_domain': data['connection_result']['myshopify_domain'],
+                'country': {
+                    'id': data['country_result']['country_id'],
+                    'name': data['country_result']['country_name']
+                },
+                'message': 'Conexão estabelecida com sucesso!'
+            })
+        else:
+            return Response({
+                'valid': False,
+                'error': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)

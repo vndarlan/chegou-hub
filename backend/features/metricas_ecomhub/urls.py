@@ -1,7 +1,7 @@
 # backend/features/metricas_ecomhub/urls.py - COM SISTEMA COMPLETO DE TRACKING DE STATUS
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import AnaliseEcomhubViewSet, StatusTrackingViewSet, PedidoStatusViewSet
+from .views import AnaliseEcomhubViewSet, StatusTrackingViewSet, PedidoStatusViewSet, EcomhubStoreViewSet
 
 router = DefaultRouter()
 
@@ -11,6 +11,9 @@ router.register(r'analises', AnaliseEcomhubViewSet, basename='analise_ecomhub')
 # Novas rotas para tracking de status
 router.register(r'status-tracking', StatusTrackingViewSet, basename='status_tracking')
 router.register(r'pedidos-status', PedidoStatusViewSet, basename='pedidos_status')
+
+# Rotas para gerenciamento de lojas ECOMHUB
+router.register(r'stores', EcomhubStoreViewSet, basename='ecomhub_stores')
 
 urlpatterns = [
     path('', include(router.urls)),
