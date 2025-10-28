@@ -736,10 +736,10 @@ class EcomhubStoreViewSet(viewsets.ModelViewSet):
 # SPRINT 3: VIEWSETS PARA NOVA API REST
 # ===========================================
 
-from .models import EcomhubOrder, EcomhubStatusHistory, EcomhubAlertConfig
+from .models import EcomhubOrder, EcomhubStatusHistory, EcomhubAlertConfig, EcomhubUnknownStatus
 from .serializers import (
     EcomhubOrderSerializer, EcomhubStatusHistorySerializer,
-    EcomhubAlertConfigSerializer, DashboardSerializer
+    EcomhubAlertConfigSerializer, DashboardSerializer, EcomhubUnknownStatusSerializer
 )
 from .services.sync_service import sync_all_stores
 from django.db.models import Count, Avg, Q, Max
@@ -872,6 +872,9 @@ class EcomhubOrderViewSet(viewsets.ReadOnlyModelViewSet):
             from .models import EcomhubStore
             last_sync = EcomhubStore.objects.aggregate(Max('last_sync'))['last_sync__max']
 
+            # Contar status desconhecidos não revisados
+            unknown_count = EcomhubUnknownStatus.objects.filter(reviewed=False).count()
+
             data = {
                 'total_active_orders': total_active,
                 'by_status': by_status,
@@ -879,7 +882,8 @@ class EcomhubOrderViewSet(viewsets.ReadOnlyModelViewSet):
                 'avg_time_per_status': avg_time,
                 'bottlenecks': sorted(bottlenecks, key=lambda x: x['count'], reverse=True),
                 'by_country': by_country,
-                'last_sync': last_sync
+                'last_sync': last_sync,
+                'unknown_statuses_count': unknown_count
             }
 
             serializer = DashboardSerializer(data)
@@ -943,3 +947,92 @@ class EcomhubAlertConfigViewSet(viewsets.ModelViewSet):
         except EcomhubAlertConfig.DoesNotExist:
             from django.http import Http404
             raise Http404("Config não encontrada para este status")
+
+
+
+# ===========================================
+# ViewSet para Status Desconhecidos
+# ===========================================
+
+class EcomhubUnknownStatusViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    API para gerenciar status desconhecidos detectados automaticamente
+    
+    Endpoints:
+    - GET /api/metricas/ecomhub/unknown-status/ - Lista status desconhecidos não revisados
+    - GET /api/metricas/ecomhub/unknown-status/?all=true - Lista todos
+    - POST /api/metricas/ecomhub/unknown-status/classify/ - Classifica um status
+    - GET /api/metricas/ecomhub/unknown-status/reference_map/ - Retorna mapa de referência
+    """
+    queryset = EcomhubUnknownStatus.objects.all()
+    serializer_class = EcomhubUnknownStatusSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Filtrar apenas não revisados por padrão"""
+        qs = super().get_queryset()
+        # Filtrar apenas não revisados, a menos que ?all=true
+        if self.request.query_params.get('all') != 'true':
+            qs = qs.filter(reviewed=False)
+        return qs
+
+    @action(detail=False, methods=['post'])
+    def classify(self, request):
+        """
+        POST /api/metricas/ecomhub/unknown-status/classify/
+        Classifica um status como ativo ou final
+        
+        Body: {"status": "nome_status", "is_active": true/false}
+        """
+        status_name = request.data.get('status')
+        is_active = request.data.get('is_active')
+
+        if not status_name:
+            return Response({
+                'success': False,
+                'error': 'Campo "status" é obrigatório'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            unknown = EcomhubUnknownStatus.objects.get(status=status_name)
+            unknown.reviewed = True
+            unknown.is_active = is_active
+            unknown.reviewed_at = django_timezone.now()
+            unknown.save()
+
+            return Response({
+                'success': True,
+                'message': f'Status "{status_name}" classificado como {"ATIVO" if is_active else "FINAL"}'
+            })
+        except EcomhubUnknownStatus.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': 'Status não encontrado'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=False, methods=['get'])
+    def reference_map(self, request):
+        """
+        GET /api/metricas/ecomhub/unknown-status/reference_map/
+        Retorna mapeamento completo de todos os status conhecidos (API → Tradução)
+        """
+        from .services.sync_service import ACTIVE_STATUSES, FINAL_STATUSES
+        
+        return Response({
+            'active_statuses': [
+                {'api': 'processing', 'label': 'Processando'},
+                {'api': 'preparing_for_shipping', 'label': 'Preparando Envio'},
+                {'api': 'ready_to_ship', 'label': 'Pronto para Envio'},
+                {'api': 'shipped', 'label': 'Enviado'},
+                {'api': 'with_courier', 'label': 'Com Transportadora'},
+                {'api': 'out_for_delivery', 'label': 'Saiu para Entrega'},
+                {'api': 'issue', 'label': 'Com Problemas'},
+                {'api': 'returning', 'label': 'Em Devolução'},
+            ],
+            'final_statuses': [
+                {'api': 'delivered', 'label': 'Entregue'},
+                {'api': 'returned', 'label': 'Devolvido'},
+                {'api': 'cancelled', 'label': 'Cancelado'},
+            ]
+        })
+

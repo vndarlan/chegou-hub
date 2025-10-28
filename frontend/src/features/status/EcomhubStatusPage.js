@@ -6,7 +6,7 @@ import {
     RotateCcw, CheckCircle, XCircle, AlertCircle, Timer,
     List, BarChart3, Users, Globe, LayoutDashboard,
     Loader2, Calendar, ArrowUpDown, ArrowUp, ArrowDown, ArrowRight,
-    Info, ShoppingBag, PieChart
+    Info, ShoppingBag, PieChart, ArrowLeft
 } from 'lucide-react';
 import axios from 'axios';
 import { getCSRFToken } from '../../utils/csrf';
@@ -36,6 +36,7 @@ const STATUS_MAP = {
     'shipped': { label: 'Enviado', color: 'bg-purple-500', icon: Truck, chartColor: '#a855f7' },
     'with_courier': { label: 'Com Transportadora', color: 'bg-purple-600', icon: Truck, chartColor: '#9333ea' },
     'out_for_delivery': { label: 'Saiu p/ Entrega', color: 'bg-orange-500', icon: Truck, chartColor: '#f97316' },
+    'returning': { label: 'Em Devolução', color: 'bg-yellow-500', icon: ArrowLeft, chartColor: '#eab308' },
     'issue': { label: 'Com Problemas', color: 'bg-red-500', icon: AlertTriangle, chartColor: '#ef4444' }
 };
 
@@ -87,6 +88,11 @@ function EcomhubStatusPage() {
     const [loadingConfigs, setLoadingConfigs] = useState(false);
     const [editedConfigs, setEditedConfigs] = useState({});
     const [savingConfig, setSavingConfig] = useState({});
+
+    // Status desconhecidos
+    const [unknownStatuses, setUnknownStatuses] = useState([]);
+    const [loadingUnknown, setLoadingUnknown] = useState(false);
+    const [statusReferenceMap, setStatusReferenceMap] = useState(null);
 
     // ======================== FUNÇÕES DE API ========================
 
@@ -249,6 +255,60 @@ function EcomhubStatusPage() {
         }
     };
 
+    const fetchUnknownStatuses = async () => {
+        setLoadingUnknown(true);
+        try {
+            const response = await axios.get('/metricas/ecomhub/unknown-status/', {
+                headers: { 'X-CSRFToken': getCSRFToken() }
+            });
+            setUnknownStatuses(response.data || []);
+        } catch (error) {
+            console.error('Erro ao buscar status desconhecidos:', error);
+        } finally {
+            setLoadingUnknown(false);
+        }
+    };
+
+    const fetchStatusReferenceMap = async () => {
+        try {
+            const response = await axios.get('/metricas/ecomhub/unknown-status/reference_map/', {
+                headers: { 'X-CSRFToken': getCSRFToken() }
+            });
+            setStatusReferenceMap(response.data);
+        } catch (error) {
+            console.error('Erro ao buscar mapa de referência:', error);
+        }
+    };
+
+    const classificarStatus = async (status, isActive) => {
+        try {
+            await axios.post('/metricas/ecomhub/unknown-status/classify/', {
+                status,
+                is_active: isActive
+            }, {
+                headers: {
+                    'X-CSRFToken': getCSRFToken(),
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            toast({
+                title: "Sucesso!",
+                description: `Status "${status}" classificado como ${isActive ? 'ATIVO' : 'FINAL'}`,
+            });
+
+            fetchUnknownStatuses();
+            fetchDashboard();
+        } catch (error) {
+            console.error('Erro ao classificar status:', error);
+            toast({
+                title: "Erro",
+                description: "Erro ao classificar status",
+                variant: "destructive"
+            });
+        }
+    };
+
     const atualizarConfig = async (status, thresholds) => {
         // Validar que yellow < red < critical
         const yellow = Number(thresholds.yellow_threshold_hours);
@@ -382,6 +442,24 @@ function EcomhubStatusPage() {
                 <AlertDescription>
                     {criticos > 0 && <strong>⚠️ {criticos} pedidos críticos precisam atenção imediata!</strong>}
                     {urgentes > 0 && <span className="ml-2">+ {urgentes} pedidos urgentes</span>}
+                </AlertDescription>
+            </Alert>
+        );
+    };
+
+    const renderAlertaStatusDesconhecidos = () => {
+        const unknownCount = dadosDashboard?.unknown_statuses_count || 0;
+        if (unknownCount === 0) return null;
+
+        return (
+            <Alert className="mb-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
+                <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                <AlertDescription className="text-sm text-yellow-800 dark:text-yellow-200">
+                    <strong>⚠️ {unknownCount} Status Desconhecido{unknownCount > 1 ? 's' : ''} Detectado{unknownCount > 1 ? 's' : ''}!</strong>
+                    <p className="mt-1">
+                        Foram encontrados pedidos com status não mapeados no sistema.
+                        Vá para a aba <strong>"Gerenciar Status"</strong> para revisar e classificar.
+                    </p>
                 </AlertDescription>
             </Alert>
         );
@@ -786,6 +864,12 @@ function EcomhubStatusPage() {
                                                         <div className="flex items-center gap-2">
                                                             <StatusIcon className="h-3 w-3" />
                                                             <span className="text-xs">{statusConfig.label}</span>
+                                                            {!STATUS_MAP[pedido.status] && (
+                                                                <Badge variant="outline" className="ml-1 border-yellow-500 text-yellow-700 text-xs">
+                                                                    <AlertTriangle className="h-2 w-2 mr-1" />
+                                                                    Novo!
+                                                                </Badge>
+                                                            )}
                                                         </div>
                                                     </TableCell>
                                                     <TableCell className="text-sm">
@@ -1090,12 +1174,20 @@ function EcomhubStatusPage() {
         }
     }, [abaSelecionada]);
 
+    useEffect(() => {
+        if (abaSelecionada === 'gerenciar-status') {
+            fetchUnknownStatuses();
+            fetchStatusReferenceMap();
+        }
+    }, [abaSelecionada]);
+
     // ======================== RENDER PRINCIPAL ========================
 
     return (
         <div className="flex-1 space-y-4 p-6 min-h-screen bg-background">
             {renderHeader()}
             {renderAlertasCriticos()}
+            {renderAlertaStatusDesconhecidos()}
 
             {/* Aviso sobre pedidos finalizados */}
             <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
@@ -1107,7 +1199,7 @@ function EcomhubStatusPage() {
             </Alert>
 
             <Tabs value={abaSelecionada} onValueChange={setAbaSelecionada}>
-                <TabsList className="grid w-fit grid-cols-3">
+                <TabsList className="grid w-fit grid-cols-4">
                     <TabsTrigger value="dashboard">
                         <LayoutDashboard className="h-4 w-4 mr-2" />
                         Dashboard
@@ -1115,6 +1207,13 @@ function EcomhubStatusPage() {
                     <TabsTrigger value="lista">
                         <List className="h-4 w-4 mr-2" />
                         Lista
+                    </TabsTrigger>
+                    <TabsTrigger value="gerenciar-status">
+                        <AlertTriangle className="h-4 w-4 mr-2" />
+                        Gerenciar Status
+                        {unknownStatuses.length > 0 && (
+                            <Badge variant="destructive" className="ml-2">{unknownStatuses.length}</Badge>
+                        )}
                     </TabsTrigger>
                     <TabsTrigger value="configuracoes">
                         <Settings className="h-4 w-4 mr-2" />
@@ -1173,6 +1272,156 @@ function EcomhubStatusPage() {
                 <TabsContent value="lista" className="space-y-4">
                     {renderFiltrosPedidos()}
                     {renderTabelaPedidos()}
+                </TabsContent>
+
+                <TabsContent value="gerenciar-status" className="space-y-4">
+                    {/* Card: Guia de Referência */}
+                    <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950">
+                        <CardHeader>
+                            <div className="flex items-center gap-2">
+                                <Info className="h-5 w-5 text-blue-600" />
+                                <CardTitle>Guia de Referência de Status</CardTitle>
+                            </div>
+                            <CardDescription>Mapeamento oficial da API ECOMHUB para traduções em português</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {statusReferenceMap ? (
+                                <div className="space-y-6">
+                                    {/* Status Ativos */}
+                                    <div>
+                                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                                            <CheckCircle className="h-4 w-4 text-green-600" />
+                                            Status Ativos (sincronizados)
+                                        </h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                            {Object.entries(statusReferenceMap.active || {}).map(([apiStatus, translation]) => (
+                                                <div key={apiStatus} className="flex items-center justify-between p-2 bg-background rounded border">
+                                                    <span className="font-mono text-xs text-muted-foreground">{apiStatus}</span>
+                                                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                                                    <span className="text-sm font-medium">{translation}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Status Finais */}
+                                    <div>
+                                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                                            <XCircle className="h-4 w-4 text-gray-600" />
+                                            Status Finais (não sincronizados)
+                                        </h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                            {Object.entries(statusReferenceMap.final || {}).map(([apiStatus, translation]) => (
+                                                <div key={apiStatus} className="flex items-center justify-between p-2 bg-background rounded border opacity-60">
+                                                    <span className="font-mono text-xs text-muted-foreground">{apiStatus}</span>
+                                                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                                                    <span className="text-sm font-medium">{translation}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center py-4">
+                                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Card: Status Desconhecidos Detectados */}
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                                        <CardTitle>Status Desconhecidos Detectados</CardTitle>
+                                    </div>
+                                    <CardDescription>Classifique os novos status encontrados nos pedidos</CardDescription>
+                                </div>
+                                <Button size="sm" variant="outline" onClick={fetchUnknownStatuses} disabled={loadingUnknown}>
+                                    {loadingUnknown ? (
+                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                    ) : (
+                                        <RefreshCw className="h-3 w-3 mr-1" />
+                                    )}
+                                    Atualizar
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            {loadingUnknown ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                </div>
+                            ) : unknownStatuses.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-600 opacity-50" />
+                                    <p className="text-muted-foreground">Nenhum status desconhecido encontrado!</p>
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                        Todos os status estão mapeados corretamente.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <Alert className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
+                                        <Info className="h-4 w-4 text-yellow-600" />
+                                        <AlertDescription className="text-sm text-yellow-800 dark:text-yellow-200">
+                                            <strong>Como classificar:</strong>
+                                            <ul className="mt-2 space-y-1 text-xs">
+                                                <li>• <strong>Status ATIVO:</strong> Pedido ainda está em trânsito (será sincronizado)</li>
+                                                <li>• <strong>Status FINAL:</strong> Pedido já foi finalizado/concluído (não será mais sincronizado)</li>
+                                            </ul>
+                                        </AlertDescription>
+                                    </Alert>
+
+                                    {unknownStatuses.map((item) => (
+                                        <div key={item.status} className="p-4 border rounded-lg hover:border-yellow-500 transition-colors">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Badge variant="outline" className="border-yellow-500 text-yellow-700">
+                                                            Status Desconhecido
+                                                        </Badge>
+                                                        <span className="font-mono text-sm font-bold">{item.status}</span>
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground">
+                                                        Detectado pela primeira vez: {formatarData(item.first_seen)}
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground">
+                                                        Última ocorrência: {formatarData(item.last_seen)}
+                                                    </div>
+                                                    <div className="text-xs font-medium mt-1">
+                                                        {item.occurrences} pedido{item.occurrences > 1 ? 's' : ''} encontrado{item.occurrences > 1 ? 's' : ''}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => classificarStatus(item.status, true)}
+                                                    className="flex-1"
+                                                >
+                                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                                    Classificar como ATIVO
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => classificarStatus(item.status, false)}
+                                                    className="flex-1"
+                                                >
+                                                    <XCircle className="h-3 w-3 mr-1" />
+                                                    Classificar como FINAL
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 </TabsContent>
 
                 <TabsContent value="configuracoes" className="space-y-4">

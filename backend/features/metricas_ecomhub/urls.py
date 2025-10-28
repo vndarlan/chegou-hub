@@ -3,7 +3,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     AnaliseEcomhubViewSet, StatusTrackingViewSet, PedidoStatusViewSet,
-    EcomhubStoreViewSet, EcomhubOrderViewSet, EcomhubAlertConfigViewSet
+    EcomhubStoreViewSet, EcomhubOrderViewSet, EcomhubAlertConfigViewSet,
+    EcomhubUnknownStatusViewSet
 )
 
 router = DefaultRouter()
@@ -23,6 +24,9 @@ router.register(r'stores', EcomhubStoreViewSet, basename='ecomhub_stores')
 # ===========================================
 router.register(r'orders', EcomhubOrderViewSet, basename='ecomhub-orders')
 router.register(r'alert-config', EcomhubAlertConfigViewSet, basename='ecomhub-alert-config')
+
+# Sistema de detecção de status desconhecidos
+router.register(r'unknown-status', EcomhubUnknownStatusViewSet, basename='ecomhub-unknown-status')
 
 urlpatterns = [
     path('', include(router.urls)),

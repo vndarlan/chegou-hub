@@ -388,3 +388,27 @@ class EcomhubAlertConfig(models.Model):
 
     def __str__(self):
         return f"Alertas para {self.get_status_display()}"
+
+
+class EcomhubUnknownStatus(models.Model):
+    """Registra status desconhecidos detectados automaticamente"""
+    status = models.CharField(max_length=100, unique=True, db_index=True, help_text="Status desconhecido encontrado na API")
+    first_detected = models.DateTimeField(auto_now_add=True, help_text="Primeira vez que foi detectado")
+    last_seen = models.DateTimeField(auto_now=True, help_text="Última vez que apareceu")
+    occurrences_count = models.IntegerField(default=1, help_text="Quantidade de vezes que apareceu")
+    sample_order_id = models.CharField(max_length=255, blank=True, help_text="Exemplo de pedido com este status")
+
+    # Classificação manual
+    reviewed = models.BooleanField(default=False, help_text="Se já foi revisado pelo usuário")
+    is_active = models.BooleanField(null=True, blank=True, help_text="True=ativo, False=final, None=não revisado")
+    reviewed_at = models.DateTimeField(null=True, blank=True, help_text="Quando foi revisado")
+
+    class Meta:
+        db_table = 'ecomhub_unknown_statuses'
+        ordering = ['-last_seen']
+        verbose_name = 'Status Desconhecido'
+        verbose_name_plural = 'Status Desconhecidos'
+
+    def __str__(self):
+        return f"{self.status} ({self.occurrences_count} ocorrências)"
+

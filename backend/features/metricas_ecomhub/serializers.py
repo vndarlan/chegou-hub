@@ -316,3 +316,21 @@ class DashboardSerializer(serializers.Serializer):
     bottlenecks = serializers.ListField()
     by_country = serializers.DictField()
     last_sync = serializers.DateTimeField(allow_null=True)
+
+
+
+# ===========================================
+# SISTEMA DE DETECÇÃO DE STATUS DESCONHECIDOS
+# ===========================================
+
+from .models import EcomhubUnknownStatus
+
+
+class EcomhubUnknownStatusSerializer(serializers.ModelSerializer):
+    """Serializer para status desconhecidos detectados automaticamente"""
+
+    class Meta:
+        model = EcomhubUnknownStatus
+        fields = '__all__'
+        read_only_fields = ['first_detected', 'last_seen', 'occurrences_count']
+

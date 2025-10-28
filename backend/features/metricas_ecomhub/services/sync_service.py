@@ -3,7 +3,7 @@ import requests
 from datetime import datetime, timezone
 from django.utils import timezone as django_timezone
 from django.db import transaction
-from ..models import EcomhubStore, EcomhubOrder, EcomhubStatusHistory, EcomhubAlertConfig
+from ..models import EcomhubStore, EcomhubOrder, EcomhubStatusHistory, EcomhubAlertConfig, EcomhubUnknownStatus
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,8 +16,46 @@ ACTIVE_STATUSES = [
     'shipped',
     'with_courier',
     'out_for_delivery',
-    'issue'
+    'issue',
+    'returning'  # ADICIONADO
 ]
+
+# Status finalizados (não aparecem no tracking)
+FINAL_STATUSES = [
+    'delivered',
+    'returned',
+    'cancelled'
+]
+
+
+def detect_unknown_status(status, order_id):
+    """
+    Detecta e registra status desconhecidos automaticamente
+
+    Args:
+        status: Status encontrado no pedido
+        order_id: ID do pedido para exemplo
+
+    Returns:
+        bool: True se é um status desconhecido
+    """
+    if status not in ACTIVE_STATUSES and status not in FINAL_STATUSES:
+        unknown, created = EcomhubUnknownStatus.objects.get_or_create(
+            status=status,
+            defaults={
+                'sample_order_id': order_id,
+                'first_detected': django_timezone.now()
+            }
+        )
+
+        if not created:
+            unknown.last_seen = django_timezone.now()
+            unknown.occurrences_count += 1
+            unknown.save(update_fields=['last_seen', 'occurrences_count'])
+
+        logger.warning(f"Status desconhecido detectado: '{status}' no pedido {order_id}")
+        return True
+    return False
 
 def sync_all_stores():
     """
@@ -61,6 +99,9 @@ def sync_all_stores():
             logger.error(error_msg)
             stats['errors'].append(error_msg)
 
+    # Contar status desconhecidos não revisados
+    unknown_count = EcomhubUnknownStatus.objects.filter(reviewed=False).count()
+    stats['unknown_statuses'] = unknown_count
     stats['success'] = True
     return stats
 
@@ -159,6 +200,9 @@ def process_order(store, order_data):
     order_id = order_data.get('id')
     current_status = order_data.get('status')
     now = django_timezone.now()
+
+    # Detectar status desconhecido
+    detect_unknown_status(current_status, order_id)
 
     # Extrair dados do cliente e produto
     customer_name = extract_customer_name(order_data)
