@@ -944,9 +944,9 @@ class EcomhubAlertConfigViewSet(viewsets.ModelViewSet):
             for status in ACTIVE_STATUSES:
                 config = EcomhubAlertConfig.objects.create(
                     status=status,
-                    yellow_threshold=168,   # 7 dias
-                    red_threshold=336,      # 14 dias
-                    critical_threshold=504  # 21 dias
+                    yellow_threshold_hours=168,   # 7 dias
+                    red_threshold_hours=336,      # 14 dias
+                    critical_threshold_hours=504  # 21 dias
                 )
                 default_configs.append(config)
 

@@ -368,6 +368,7 @@ class EcomhubAlertConfig(models.Model):
         ('shipped', 'Enviado'),
         ('with_courier', 'Com Transportadora'),
         ('out_for_delivery', 'Saiu para Entrega'),
+        ('returning', 'Em Devolução'),
         ('issue', 'Com Problemas'),
     )
 

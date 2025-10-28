@@ -254,7 +254,11 @@ function EcomhubStatusPage() {
             setConfigsAlerta(response.data || []);
         } catch (error) {
             console.error('Erro ao buscar configs:', error);
-            // Não mostra toast para não ser invasivo
+            toast({
+                title: "Erro ao carregar configurações",
+                description: "Não foi possível carregar as configurações de alerta. Tente recarregar a página.",
+                variant: "destructive"
+            });
         } finally {
             setLoadingConfigs(false);
         }
