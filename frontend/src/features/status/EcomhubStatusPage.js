@@ -750,8 +750,7 @@ function EcomhubStatusPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Pedido</TableHead>
-                                        <TableHead>Cliente</TableHead>
+                                        <TableHead>Número do Pedido</TableHead>
                                         <TableHead>Produto</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead>Tempo no Status</TableHead>
@@ -763,7 +762,7 @@ function EcomhubStatusPage() {
                                 <TableBody>
                                     {listaPedidos.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                                            <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                                                 Nenhum pedido encontrado
                                             </TableCell>
                                         </TableRow>
@@ -776,16 +775,10 @@ function EcomhubStatusPage() {
                                             return (
                                                 <TableRow key={pedido.id}>
                                                     <TableCell className="font-mono text-xs font-medium">
-                                                        #{pedido.order_id}
+                                                        {pedido.order_id}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <div className="text-sm font-medium">{pedido.customer_name || 'N/A'}</div>
-                                                        {pedido.customer_email && (
-                                                            <div className="text-xs text-muted-foreground">{pedido.customer_email}</div>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="text-xs truncate max-w-xs" title={pedido.product_name}>
+                                                        <div className="text-sm truncate max-w-xs" title={pedido.product_name}>
                                                             {pedido.product_name || '-'}
                                                         </div>
                                                     </TableCell>
