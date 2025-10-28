@@ -94,6 +94,10 @@ function EcomhubStatusPage() {
     const [loadingUnknown, setLoadingUnknown] = useState(false);
     const [statusReferenceMap, setStatusReferenceMap] = useState(null);
 
+    // Auto-refresh
+    const [ultimaAtualizacao, setUltimaAtualizacao] = useState(new Date());
+    const [autoRefreshAtivo, setAutoRefreshAtivo] = useState(true);
+
     // ======================== FUNÇÕES DE API ========================
 
     const fetchPaisesDisponiveis = async () => {
@@ -140,6 +144,7 @@ function EcomhubStatusPage() {
             });
 
             setDadosDashboard(response.data);
+            setUltimaAtualizacao(new Date());  // Atualiza timestamp
         } catch (error) {
             console.error('Erro ao buscar dashboard:', error);
             toast({
@@ -396,37 +401,67 @@ function EcomhubStatusPage() {
 
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
-    const renderHeader = () => (
-        <div className="flex items-center justify-between mb-6">
-            <div>
-                <h1 className="text-2xl font-bold">Status Tracking ECOMHUB</h1>
-                <p className="text-sm text-muted-foreground">Monitoramento em tempo real</p>
+    const renderHeader = () => {
+        const tempoDecorrido = Math.floor((new Date() - ultimaAtualizacao) / 1000);
+        const minutosDecorridos = Math.floor(tempoDecorrido / 60);
+        const segundosDecorridos = tempoDecorrido % 60;
+
+        let tempoTexto = '';
+        if (minutosDecorridos > 0) {
+            tempoTexto = `${minutosDecorridos}m ${segundosDecorridos}s atrás`;
+        } else {
+            tempoTexto = `${segundosDecorridos}s atrás`;
+        }
+
+        return (
+            <div className="flex items-center justify-between mb-6">
+                <div>
+                    <h1 className="text-2xl font-bold">Status Tracking ECOMHUB</h1>
+                    <div className="flex items-center gap-3 mt-1">
+                        <p className="text-sm text-muted-foreground">Monitoramento em tempo real</p>
+                        <span className="text-xs text-muted-foreground">• Última atualização: {tempoTexto}</span>
+                        {autoRefreshAtivo && (
+                            <Badge variant="outline" className="text-xs">
+                                <Activity className="h-3 w-3 mr-1" />
+                                Auto-refresh ativo (60s)
+                            </Badge>
+                        )}
+                    </div>
+                </div>
+                <div className="flex gap-3">
+                    <Button
+                        variant={autoRefreshAtivo ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setAutoRefreshAtivo(!autoRefreshAtivo)}
+                    >
+                        <Activity className="h-4 w-4 mr-2" />
+                        {autoRefreshAtivo ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
+                    </Button>
+                    <Select value={paisSelecionado} onValueChange={setPaisSelecionado}>
+                        <SelectTrigger className="w-48">
+                            <Globe className="h-4 w-4 mr-2" />
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {paisesDisponiveis.map(pais => (
+                                <SelectItem key={pais.id} value={pais.id}>
+                                    {pais.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Button onClick={sincronizarAgora} disabled={sincronizando}>
+                        {sincronizando ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                        )}
+                        Sincronizar
+                    </Button>
+                </div>
             </div>
-            <div className="flex gap-3">
-                <Select value={paisSelecionado} onValueChange={setPaisSelecionado}>
-                    <SelectTrigger className="w-48">
-                        <Globe className="h-4 w-4 mr-2" />
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {paisesDisponiveis.map(pais => (
-                            <SelectItem key={pais.id} value={pais.id}>
-                                {pais.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                <Button onClick={sincronizarAgora} disabled={sincronizando}>
-                    {sincronizando ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                    )}
-                    Sincronizar
-                </Button>
-            </div>
-        </div>
-    );
+        );
+    };
 
     const renderAlertasCriticos = () => {
         if (!dadosDashboard) return null;
@@ -1180,6 +1215,19 @@ function EcomhubStatusPage() {
             fetchStatusReferenceMap();
         }
     }, [abaSelecionada]);
+
+    // Auto-refresh do dashboard a cada 60 segundos
+    useEffect(() => {
+        if (!autoRefreshAtivo) return;
+
+        const intervalo = setInterval(() => {
+            if (abaSelecionada === 'dashboard') {
+                fetchDashboard();
+            }
+        }, 60000); // 60 segundos
+
+        return () => clearInterval(intervalo);
+    }, [autoRefreshAtivo, abaSelecionada, fetchDashboard]);
 
     // ======================== RENDER PRINCIPAL ========================
 

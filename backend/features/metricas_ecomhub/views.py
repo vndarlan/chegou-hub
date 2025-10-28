@@ -933,6 +933,28 @@ class EcomhubAlertConfigViewSet(viewsets.ModelViewSet):
     serializer_class = EcomhubAlertConfigSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def list(self, request, *args, **kwargs):
+        """Lista configs e cria automaticamente se não existirem"""
+        # Verifica se há configurações no banco
+        if EcomhubAlertConfig.objects.count() == 0:
+            # Cria configurações padrão para todos os status ativos
+            from .services.sync_service import ACTIVE_STATUSES
+
+            default_configs = []
+            for status in ACTIVE_STATUSES:
+                config = EcomhubAlertConfig.objects.create(
+                    status=status,
+                    yellow_threshold=168,   # 7 dias
+                    red_threshold=336,      # 14 dias
+                    critical_threshold=504  # 21 dias
+                )
+                default_configs.append(config)
+
+            logger.info(f"✓ Criadas {len(default_configs)} configurações padrão de alerta")
+
+        # Retorna lista normal
+        return super().list(request, *args, **kwargs)
+
     def get_object(self):
         """Permite buscar por status ao invés de ID"""
         pk = self.kwargs.get('pk')
@@ -1017,22 +1039,22 @@ class EcomhubUnknownStatusViewSet(viewsets.ReadOnlyModelViewSet):
         Retorna mapeamento completo de todos os status conhecidos (API → Tradução)
         """
         from .services.sync_service import ACTIVE_STATUSES, FINAL_STATUSES
-        
+
         return Response({
-            'active_statuses': [
-                {'api': 'processing', 'label': 'Processando'},
-                {'api': 'preparing_for_shipping', 'label': 'Preparando Envio'},
-                {'api': 'ready_to_ship', 'label': 'Pronto para Envio'},
-                {'api': 'shipped', 'label': 'Enviado'},
-                {'api': 'with_courier', 'label': 'Com Transportadora'},
-                {'api': 'out_for_delivery', 'label': 'Saiu para Entrega'},
-                {'api': 'issue', 'label': 'Com Problemas'},
-                {'api': 'returning', 'label': 'Em Devolução'},
-            ],
-            'final_statuses': [
-                {'api': 'delivered', 'label': 'Entregue'},
-                {'api': 'returned', 'label': 'Devolvido'},
-                {'api': 'cancelled', 'label': 'Cancelado'},
-            ]
+            'active': {
+                'processing': 'Processando',
+                'preparing_for_shipping': 'Preparando Envio',
+                'ready_to_ship': 'Pronto para Envio',
+                'shipped': 'Enviado',
+                'with_courier': 'Com Transportadora',
+                'out_for_delivery': 'Saiu para Entrega',
+                'issue': 'Com Problemas',
+                'returning': 'Em Devolução',
+            },
+            'final': {
+                'delivered': 'Entregue',
+                'returned': 'Devolvido',
+                'cancelled': 'Cancelado',
+            }
         })
 

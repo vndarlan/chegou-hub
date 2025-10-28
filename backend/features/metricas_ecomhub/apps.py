@@ -30,10 +30,10 @@ class MetricasEcomhubConfig(AppConfig):
 
                     scheduler = BackgroundScheduler()
 
-                    # Adicionar job de sincronização ECOMHUB (a cada 6 horas)
+                    # Adicionar job de sincronização ECOMHUB (a cada 1 hora)
                     scheduler.add_job(
                         sync_all_stores,
-                        trigger=IntervalTrigger(hours=6),
+                        trigger=IntervalTrigger(hours=1),
                         id='sync_ecomhub_orders',
                         name='Sincronizar pedidos ECOMHUB',
                         replace_existing=True,
@@ -41,7 +41,7 @@ class MetricasEcomhubConfig(AppConfig):
                     )
 
                     scheduler.start()
-                    logger.info("✓ APScheduler iniciado: sincronização ECOMHUB a cada 6 horas")
+                    logger.info("✓ APScheduler iniciado: sincronização ECOMHUB a cada 1 hora")
 
                 except ImportError:
                     logger.warning("APScheduler não instalado. Job de sincronização desabilitado.")
