@@ -418,16 +418,16 @@ function EcomhubStatusPage() {
         }
 
         return (
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
                 <div>
-                    <h1 className="text-2xl font-bold">Status Tracking ECOMHUB</h1>
-                    <div className="flex items-center gap-3 mt-1">
-                        <p className="text-sm text-muted-foreground">Monitoramento em tempo real</p>
+                    <h1 className="text-xl font-bold">Status Tracking ECOMHUB</h1>
+                    <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-muted-foreground">Monitoramento em tempo real</p>
                         <span className="text-xs text-muted-foreground">• Última atualização: {tempoTexto}</span>
                         {autoRefreshAtivo && (
                             <Badge variant="outline" className="text-xs">
                                 <Activity className="h-3 w-3 mr-1" />
-                                Auto-refresh ativo (60s)
+                                Auto-refresh (60s)
                             </Badge>
                         )}
                     </div>
@@ -513,30 +513,30 @@ function EcomhubStatusPage() {
         const normal = dadosDashboard.by_alert_level?.normal || 0;
 
         return (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 hover:scale-105">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <Package className="h-6 w-6 text-blue-600" />
-                            <div className="text-3xl font-bold text-blue-600">{dadosDashboard.total_active_orders || 0}</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <Card className="border-l-2 border-l-blue-500">
+                    <CardContent className="p-3">
+                        <div className="flex items-center justify-between mb-1">
+                            <Package className="h-4 w-4 text-blue-600" />
+                            <div className="text-2xl font-bold text-blue-600">{dadosDashboard.total_active_orders || 0}</div>
                         </div>
                         <p className="text-xs font-medium text-muted-foreground">Pedidos Ativos</p>
                     </CardContent>
                 </Card>
-                <Card className={`border-l-4 border-l-red-500 transition-all duration-200 ${criticos > 0 ? 'bg-red-50 dark:bg-red-950 hover:shadow-xl animate-pulse' : 'hover:shadow-lg hover:scale-105'}`}>
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <XCircle className="h-6 w-6 text-red-600" />
-                            <div className="text-3xl font-bold text-red-600">{criticos}</div>
+                <Card className={`border-l-2 border-l-red-500 ${criticos > 0 ? 'bg-red-50 dark:bg-red-950' : ''}`}>
+                    <CardContent className="p-3">
+                        <div className="flex items-center justify-between mb-1">
+                            <XCircle className="h-4 w-4 text-red-600" />
+                            <div className="text-2xl font-bold text-red-600">{criticos}</div>
                         </div>
                         <p className="text-xs font-medium text-muted-foreground">Críticos</p>
                     </CardContent>
                 </Card>
-                <Card className={`border-l-4 border-l-orange-500 transition-all duration-200 ${urgentes > 10 ? 'bg-orange-50 dark:bg-orange-950' : ''} hover:shadow-lg hover:scale-105`}>
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <AlertCircle className="h-6 w-6 text-orange-600" />
-                            <div className="text-3xl font-bold text-orange-600">{urgentes}</div>
+                <Card className={`border-l-2 border-l-orange-500 ${urgentes > 10 ? 'bg-orange-50 dark:bg-orange-950' : ''}`}>
+                    <CardContent className="p-3">
+                        <div className="flex items-center justify-between mb-1">
+                            <AlertCircle className="h-4 w-4 text-orange-600" />
+                            <div className="text-2xl font-bold text-orange-600">{urgentes}</div>
                         </div>
                         <div className="flex items-center justify-between">
                             <p className="text-xs font-medium text-muted-foreground">Urgentes</p>
@@ -546,11 +546,11 @@ function EcomhubStatusPage() {
                         </div>
                     </CardContent>
                 </Card>
-                <Card className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-all duration-200 hover:scale-105">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <Clock className="h-6 w-6 text-yellow-600" />
-                            <div className="text-3xl font-bold text-yellow-600">{atencao}</div>
+                <Card className="border-l-2 border-l-yellow-500">
+                    <CardContent className="p-3">
+                        <div className="flex items-center justify-between mb-1">
+                            <Clock className="h-4 w-4 text-yellow-600" />
+                            <div className="text-2xl font-bold text-yellow-600">{atencao}</div>
                         </div>
                         <div className="space-y-1">
                             <p className="text-xs font-medium text-muted-foreground">Atenção</p>
@@ -593,16 +593,16 @@ function EcomhubStatusPage() {
         };
 
         return (
-            <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader>
+            <Card>
+                <CardHeader className="pb-2">
                     <div className="flex items-center gap-2">
-                        <PieChart className="h-5 w-5 text-primary" />
-                        <CardTitle>Distribuição de Status</CardTitle>
+                        <PieChart className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-base">Distribuição de Status</CardTitle>
                     </div>
-                    <CardDescription>Visualização da distribuição dos pedidos por status</CardDescription>
+                    <CardDescription className="text-xs">Visualização da distribuição dos pedidos por status</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
+                <CardContent className="pt-2">
+                    <ResponsiveContainer width="100%" height={240}>
                         <RechartsPie>
                             <Pie
                                 data={chartData}
@@ -610,7 +610,7 @@ function EcomhubStatusPage() {
                                 cy="50%"
                                 labelLine={false}
                                 label={({ percentage }) => `${percentage}%`}
-                                outerRadius={100}
+                                outerRadius={90}
                                 fill="#8884d8"
                                 dataKey="value"
                             >
@@ -621,7 +621,7 @@ function EcomhubStatusPage() {
                             <Tooltip content={<CustomTooltip />} />
                             <Legend
                                 verticalAlign="bottom"
-                                height={36}
+                                height={30}
                                 formatter={(value) => <span className="text-xs">{value}</span>}
                             />
                         </RechartsPie>
@@ -648,31 +648,31 @@ function EcomhubStatusPage() {
         if (top5.length === 0) return null;
 
         return (
-            <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader>
+            <Card>
+                <CardHeader className="pb-2">
                     <div className="flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5 text-primary" />
-                        <CardTitle>Top 5 Status</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-base">Top 5 Status</CardTitle>
                     </div>
-                    <CardDescription>Status com mais pedidos ativos</CardDescription>
+                    <CardDescription className="text-xs">Status com mais pedidos ativos</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-2">
                     {top5.map((item, index) => {
                         const IconComponent = item.config.icon;
                         return (
-                            <div key={item.status} className="space-y-2">
+                            <div key={item.status} className="space-y-1">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 min-w-0 flex-1">
                                         <div className={`w-2 h-2 rounded-full flex-shrink-0`} style={{ backgroundColor: item.config.chartColor }}></div>
-                                        <IconComponent className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                        <span className="text-sm font-medium truncate">{item.config.label}</span>
+                                        <IconComponent className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                        <span className="text-xs font-medium truncate">{item.config.label}</span>
                                     </div>
-                                    <div className="flex items-center gap-3 flex-shrink-0">
-                                        <span className="text-lg font-bold">{item.count}</span>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                        <span className="text-sm font-bold">{item.count}</span>
                                         <Badge variant="secondary" className="text-xs">{item.percentage}%</Badge>
                                     </div>
                                 </div>
-                                <Progress value={parseFloat(item.percentage)} className="h-2" />
+                                <Progress value={parseFloat(item.percentage)} className="h-1.5" />
                             </div>
                         );
                     })}
@@ -696,30 +696,30 @@ function EcomhubStatusPage() {
         if (statusComTempo.length === 0) return null;
 
         return (
-            <Card className="mb-6 hover:shadow-lg transition-shadow">
-                <CardHeader>
+            <Card className="mb-4">
+                <CardHeader className="pb-2">
                     <div className="flex items-center gap-2">
-                        <Timer className="h-5 w-5 text-primary" />
-                        <CardTitle>Tempo Médio por Status</CardTitle>
+                        <Timer className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-base">Tempo Médio por Status</CardTitle>
                     </div>
-                    <CardDescription>Média de tempo que os pedidos permanecem em cada status</CardDescription>
+                    <CardDescription className="text-xs">Média de tempo que os pedidos permanecem em cada status</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                         {statusComTempo.map(({ status, avgTime, config }) => {
                             const IconComponent = config.icon;
                             const dias = Math.floor(avgTime / 24);
                             const horas = Math.round(avgTime % 24);
 
                             return (
-                                <div key={status} className="flex items-center justify-between gap-4 p-3 rounded-lg hover:bg-accent/50 transition-colors">
-                                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                                        <IconComponent className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                        <span className="text-sm font-medium truncate">{config.label}</span>
+                                <div key={status} className="flex items-center justify-between gap-3 p-2 rounded-lg hover:bg-accent/50">
+                                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                                        <IconComponent className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                        <span className="text-xs font-medium truncate">{config.label}</span>
                                     </div>
-                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                    <div className="flex items-center gap-1 flex-shrink-0">
                                         <Clock className="h-3 w-3 text-muted-foreground" />
-                                        <span className="text-sm font-bold">
+                                        <span className="text-xs font-bold">
                                             {dias > 0 ? `${dias}d ${horas}h` : `${horas}h`}
                                         </span>
                                     </div>
@@ -736,17 +736,17 @@ function EcomhubStatusPage() {
         if (!dadosDashboard?.bottlenecks?.length) return null;
 
         return (
-            <Card className="mb-6">
-                <CardHeader>
-                    <CardTitle>Gargalos Detectados</CardTitle>
-                    <CardDescription>Status com pedidos parados há muito tempo</CardDescription>
+            <Card className="mb-4">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Gargalos Detectados</CardTitle>
+                    <CardDescription className="text-xs">Status com pedidos parados há muito tempo</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-2">
                         {dadosDashboard.bottlenecks.map((gargalo, i) => (
-                            <Alert key={i} variant="destructive">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertDescription>
+                            <Alert key={i} variant="destructive" className="py-2">
+                                <AlertCircle className="h-3 w-3" />
+                                <AlertDescription className="text-xs">
                                     <strong>{STATUS_MAP[gargalo.status]?.label || gargalo.status}:</strong> {gargalo.count} pedidos há mais de {Math.round(gargalo.avg_days)} dias
                                 </AlertDescription>
                             </Alert>
@@ -1059,17 +1059,17 @@ function EcomhubStatusPage() {
 
     const renderConfiguracoes = () => (
         <Card>
-            <CardHeader>
-                <CardTitle>Configurações de Alertas</CardTitle>
-                <CardDescription>Defina os limites de tempo para cada status (em horas). Os valores devem ser: Atenção &lt; Urgente &lt; Crítico</CardDescription>
+            <CardHeader className="pb-2">
+                <CardTitle className="text-base">Configurações de Alertas</CardTitle>
+                <CardDescription className="text-xs">Defina os limites de tempo para cada status (em horas). Os valores devem ser: Atenção &lt; Urgente &lt; Crítico</CardDescription>
             </CardHeader>
             <CardContent>
                 {loadingConfigs ? (
-                    <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <div className="flex items-center justify-center py-6">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     </div>
                 ) : configsAlerta.length > 0 ? (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         {configsAlerta.map(config => {
                             const statusConfig = STATUS_MAP[config.status];
                             const StatusIcon = statusConfig?.icon || Settings;
@@ -1077,56 +1077,56 @@ function EcomhubStatusPage() {
                             const hasChanges = editedConfigs[config.status] !== undefined;
 
                             return (
-                                <div key={config.status} className="p-4 border rounded-lg hover:border-primary/50 transition-colors">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <StatusIcon className="h-5 w-5 text-primary" />
-                                        <h4 className="font-medium">
+                                <div key={config.status} className="p-3 border rounded-lg hover:border-primary/50">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <StatusIcon className="h-4 w-4 text-primary" />
+                                        <h4 className="text-sm font-medium">
                                             {statusConfig?.label || config.status}
                                         </h4>
                                         {hasChanges && (
-                                            <Badge variant="outline" className="ml-auto">Modificado</Badge>
+                                            <Badge variant="outline" className="ml-auto text-xs">Modificado</Badge>
                                         )}
                                     </div>
-                                    <div className="grid grid-cols-3 gap-3 mb-3">
+                                    <div className="grid grid-cols-3 gap-2 mb-2">
                                         <div>
                                             <Label className="text-xs flex items-center gap-1">
                                                 <Clock className="h-3 w-3 text-yellow-600" />
-                                                🟡 Atenção (horas)
+                                                🟡 Atenção (h)
                                             </Label>
                                             <Input
                                                 type="number"
                                                 min="1"
                                                 value={getConfigValue(config, 'yellow_threshold_hours')}
                                                 onChange={(e) => handleConfigChange(config.status, 'yellow_threshold_hours', e.target.value)}
-                                                className="h-9 mt-1"
+                                                className="h-8 mt-1 text-xs"
                                                 disabled={isSaving}
                                             />
                                         </div>
                                         <div>
                                             <Label className="text-xs flex items-center gap-1">
                                                 <AlertCircle className="h-3 w-3 text-orange-600" />
-                                                🟠 Urgente (horas)
+                                                🟠 Urgente (h)
                                             </Label>
                                             <Input
                                                 type="number"
                                                 min="1"
                                                 value={getConfigValue(config, 'red_threshold_hours')}
                                                 onChange={(e) => handleConfigChange(config.status, 'red_threshold_hours', e.target.value)}
-                                                className="h-9 mt-1"
+                                                className="h-8 mt-1 text-xs"
                                                 disabled={isSaving}
                                             />
                                         </div>
                                         <div>
                                             <Label className="text-xs flex items-center gap-1">
                                                 <XCircle className="h-3 w-3 text-red-600" />
-                                                🔴 Crítico (horas)
+                                                🔴 Crítico (h)
                                             </Label>
                                             <Input
                                                 type="number"
                                                 min="1"
                                                 value={getConfigValue(config, 'critical_threshold_hours')}
                                                 onChange={(e) => handleConfigChange(config.status, 'critical_threshold_hours', e.target.value)}
-                                                className="h-9 mt-1"
+                                                className="h-8 mt-1 text-xs"
                                                 disabled={isSaving}
                                             />
                                         </div>
@@ -1149,7 +1149,7 @@ function EcomhubStatusPage() {
                                             ) : (
                                                 <>
                                                     <CheckCircle className="h-3 w-3 mr-1" />
-                                                    Salvar Configuração
+                                                    Salvar
                                                 </>
                                             )}
                                         </Button>
@@ -1176,10 +1176,10 @@ function EcomhubStatusPage() {
                         })}
                     </div>
                 ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                        <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p className="mb-4">Configurações de alerta não disponíveis</p>
-                        <p className="text-sm">Limites padrão:</p>
+                    <div className="text-center py-6 text-muted-foreground">
+                        <Settings className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                        <p className="text-sm mb-3">Configurações de alerta não disponíveis</p>
+                        <p className="text-xs">Limites padrão:</p>
                         <div className="mt-2 space-y-1 text-xs">
                             <div>🟡 Atenção: 168h (7 dias)</div>
                             <div>🟠 Urgente: 336h (14 dias)</div>
@@ -1236,7 +1236,7 @@ function EcomhubStatusPage() {
     // ======================== RENDER PRINCIPAL ========================
 
     return (
-        <div className="flex-1 space-y-4 p-6 min-h-screen bg-background">
+        <div className="flex-1 space-y-3 p-4 min-h-screen bg-background">
             {renderHeader()}
             {renderAlertasCriticos()}
             {renderAlertaStatusDesconhecidos()}
@@ -1273,11 +1273,11 @@ function EcomhubStatusPage() {
                     </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="dashboard" className="space-y-4">
+                <TabsContent value="dashboard" className="space-y-3">
                     {loadingDashboard ? (
-                        <div className="space-y-4 animate-pulse">
+                        <div className="space-y-3 animate-pulse">
                             {/* Skeleton para cards */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                 {[1, 2, 3, 4].map(i => (
                                     <Card key={i}>
                                         <CardContent className="p-4">
@@ -1299,11 +1299,11 @@ function EcomhubStatusPage() {
                             </div>
                         </div>
                     ) : (
-                        <div className="space-y-4 animate-in fade-in duration-500">
+                        <div className="space-y-3 animate-in fade-in duration-500">
                             {renderCardMetricas()}
 
                             {/* Gráfico de Pizza + Top 5 Status */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                                 {renderGraficoPizza()}
                                 {renderTop5Status()}
                             </div>
@@ -1321,12 +1321,12 @@ function EcomhubStatusPage() {
                     )}
                 </TabsContent>
 
-                <TabsContent value="lista" className="space-y-4">
+                <TabsContent value="lista" className="space-y-3">
                     {renderFiltrosPedidos()}
                     {renderTabelaPedidos()}
                 </TabsContent>
 
-                <TabsContent value="gerenciar-status" className="space-y-4">
+                <TabsContent value="gerenciar-status" className="space-y-3">
                     {/* Card: Guia de Referência */}
                     <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950">
                         <CardHeader>
@@ -1476,7 +1476,7 @@ function EcomhubStatusPage() {
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="configuracoes" className="space-y-4">
+                <TabsContent value="configuracoes" className="space-y-3">
                     {renderConfiguracoes()}
                 </TabsContent>
             </Tabs>

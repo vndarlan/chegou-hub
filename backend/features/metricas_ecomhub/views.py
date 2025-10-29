@@ -932,6 +932,7 @@ class EcomhubAlertConfigViewSet(viewsets.ModelViewSet):
     queryset = EcomhubAlertConfig.objects.all()
     serializer_class = EcomhubAlertConfigSerializer
     permission_classes = [permissions.IsAuthenticated]
+    lookup_field = 'status'  # Permite buscar por status ao invés de ID
 
     def list(self, request, *args, **kwargs):
         """Lista configs e cria automaticamente se não existirem"""
