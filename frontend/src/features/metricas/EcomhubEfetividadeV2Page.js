@@ -581,26 +581,14 @@ function EcomhubEfetividadeV2Page() {
                                         const isProduto = col === 'Produto';
                                         const isPais = col === 'Pais';
 
-                                        let classesHeader = 'px-2 py-2 text-xs text-muted-foreground';
+                                        let classesHeader = 'whitespace-nowrap px-2 py-2 text-xs text-muted-foreground';
                                         let styleHeader = {};
 
                                         if (isProduto) {
-                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border whitespace-nowrap';
+                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border';
                                             styleHeader = { minWidth: `${larguraProduto}px`, width: `${larguraProduto}px` };
                                         } else if (isPais) {
-                                            classesHeader += ' whitespace-nowrap';
                                             styleHeader = { minWidth: '60px', width: '60px', maxWidth: '60px' };
-                                        } else if (col.startsWith('Pct_') || col.startsWith('Efetividade_')) {
-                                            // Colunas de percentual: permitir quebra de linha
-                                            styleHeader = { minWidth: '90px', width: '90px' };
-                                        } else if (col === 'Receita_Total') {
-                                            classesHeader += ' whitespace-nowrap';
-                                            styleHeader = { minWidth: '100px', width: '100px' };
-                                        } else if (['Totais', 'Entregues', 'Finalizados', 'Em_Transito', 'Problemas', 'Devolucao', 'Cancelados'].includes(col)) {
-                                            // Colunas numéricas: permitir quebra de linha no header
-                                            styleHeader = { minWidth: '70px', width: '70px' };
-                                        } else {
-                                            styleHeader = { minWidth: '80px' };
                                         }
 
                                         return (
@@ -649,10 +637,10 @@ function EcomhubEfetividadeV2Page() {
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="h-auto p-0 font-medium text-xs text-muted-foreground hover:text-foreground text-center w-full"
+                                                        className="h-auto p-0 font-medium text-xs text-muted-foreground hover:text-foreground"
                                                         onClick={() => handleSort(col)}
                                                     >
-                                                        <span className="break-words">{col.replace(/_/g, ' ')}</span>
+                                                        {col.replace('_', ' ')}
                                                         {sortBy === col ? (
                                                             sortOrder === 'asc' ?
                                                                 <ArrowUp className="ml-1 h-3 w-3" /> :
@@ -677,13 +665,8 @@ function EcomhubEfetividadeV2Page() {
                                             let classesCelula = 'px-2 py-2 text-xs text-card-foreground';
                                             let styleCelula = {};
 
-                                            // Centralizar células que não são Produto
-                                            if (!isProduto) {
-                                                classesCelula += ' text-center';
-                                            }
-
                                             if (tipoVisualizacao === 'otimizada' && (col === 'Efetividade_Total' || col === 'Efetividade_Parcial')) {
-                                                classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded`;
+                                                classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center`;
                                             }
 
                                             if (isProduto) {
@@ -691,14 +674,6 @@ function EcomhubEfetividadeV2Page() {
                                                 styleCelula = { minWidth: `${larguraProduto}px`, width: `${larguraProduto}px`, maxWidth: `${larguraProduto}px` };
                                             } else if (isPais) {
                                                 styleCelula = { minWidth: '60px', width: '60px', maxWidth: '60px' };
-                                            } else if (col.startsWith('Pct_') || col.startsWith('Efetividade_')) {
-                                                styleCelula = { minWidth: '90px', width: '90px' };
-                                            } else if (col === 'Receita_Total') {
-                                                styleCelula = { minWidth: '100px', width: '100px' };
-                                            } else if (['Totais', 'Entregues', 'Finalizados', 'Em_Transito', 'Problemas', 'Devolucao', 'Cancelados'].includes(col)) {
-                                                styleCelula = { minWidth: '70px', width: '70px' };
-                                            } else {
-                                                styleCelula = { minWidth: '80px' };
                                             }
 
                                             return (

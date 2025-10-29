@@ -245,7 +245,6 @@ def calcular_efetividade(pedidos_raw: List[Dict[str, Any]]) -> Dict[str, Any]:
         'preparing_for_shipping': 0,
         'processing': 0,
         'returning': 0,
-        'total_revenue': 0.0,  # Receita total
         'country_id': None
     })
 
@@ -264,7 +263,6 @@ def calcular_efetividade(pedidos_raw: List[Dict[str, Any]]) -> Dict[str, Any]:
 
             # Contabilizar
             produtos[chave]['Totais'] += 1
-            produtos[chave]['total_revenue'] += price
             produtos[chave]['country_id'] = country_id
 
             # Contar por status
@@ -317,7 +315,6 @@ def calcular_efetividade(pedidos_raw: List[Dict[str, Any]]) -> Dict[str, Any]:
             'Pct_Devolvidos': f"{pct_devolvidos:.1f}%",
             'Efetividade_Parcial': f"{efetividade_parcial:.1f}%",
             'Efetividade_Total': f"{efetividade_total:.1f}%",
-            'Receita_Total': f"{counts['total_revenue']:.2f}",
             # Campos numéricos para ordenação
             '_efetividade_total_num': efetividade_total,
             '_efetividade_parcial_num': efetividade_parcial
