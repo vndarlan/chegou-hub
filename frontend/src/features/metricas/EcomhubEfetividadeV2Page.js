@@ -116,7 +116,7 @@ function EcomhubEfetividadeV2Page() {
             const payload = {
                 data_inicio: dateRange.from.toISOString().split('T')[0],
                 data_fim: dateRange.to.toISOString().split('T')[0],
-                store_id: lojaSelecionada === 'todas' ? null : parseInt(lojaSelecionada)
+                store_id: lojaSelecionada === 'todas' ? null : lojaSelecionada
             };
 
             const response = await axios.post('/metricas/ecomhub/efetividade-v2/processar_tempo_real/', payload);
@@ -157,7 +157,7 @@ function EcomhubEfetividadeV2Page() {
                 dados_efetividade: dadosResultado,
                 tipo_metrica: 'produto',
                 descricao: lojaNome,
-                store_id: lojaSelecionada === 'todas' ? null : parseInt(lojaSelecionada)
+                store_id: lojaSelecionada === 'todas' ? null : lojaSelecionada
             });
 
             if (response.data.id) {
