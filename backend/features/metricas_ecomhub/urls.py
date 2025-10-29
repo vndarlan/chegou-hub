@@ -4,7 +4,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     AnaliseEcomhubViewSet, StatusTrackingViewSet, PedidoStatusViewSet,
     EcomhubStoreViewSet, EcomhubOrderViewSet, EcomhubAlertConfigViewSet,
-    EcomhubUnknownStatusViewSet
+    EcomhubUnknownStatusViewSet, EfetividadeV2ViewSet
 )
 
 router = DefaultRouter()
@@ -27,6 +27,11 @@ router.register(r'alert-config', EcomhubAlertConfigViewSet, basename='ecomhub-al
 
 # Sistema de detecção de status desconhecidos
 router.register(r'unknown-status', EcomhubUnknownStatusViewSet, basename='ecomhub-unknown-status')
+
+# ===========================================
+# EFETIVIDADE V2: ANÁLISES COM API DIRETA
+# ===========================================
+router.register(r'efetividade-v2', EfetividadeV2ViewSet, basename='efetividade-v2')
 
 urlpatterns = [
     path('', include(router.urls)),

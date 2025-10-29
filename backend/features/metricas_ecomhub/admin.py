@@ -309,3 +309,149 @@ class EcomhubAlertConfigAdmin(admin.ModelAdmin):
                           'Exemplo: 48h = 2 dias, 168h = 7 dias'
         }),
     )
+
+
+# ===========================================
+# EFETIVIDADE V2: ADMIN PARA ANÁLISES V2
+# ===========================================
+
+from .models import EfetividadeAnaliseV2
+
+
+@admin.register(EfetividadeAnaliseV2)
+class EfetividadeAnaliseV2Admin(admin.ModelAdmin):
+    """Admin para análises de efetividade V2 (API direta)"""
+
+    list_display = [
+        'nome',
+        'store_link',
+        'periodo_formatado',
+        'total_produtos',
+        'efetividade_media_formatada',
+        'criado_por_link',
+        'criado_em'
+    ]
+
+    list_filter = [
+        'store',
+        'data_inicio',
+        'data_fim',
+        'criado_por',
+        'criado_em'
+    ]
+
+    search_fields = [
+        'nome',
+        'descricao',
+        'store__name',
+        'criado_por__username',
+        'criado_por__first_name',
+        'criado_por__last_name'
+    ]
+
+    readonly_fields = [
+        'periodo_dias',
+        'total_produtos',
+        'efetividade_media',
+        'criado_em',
+        'atualizado_em'
+    ]
+
+    date_hierarchy = 'criado_em'
+    ordering = ['-criado_em']
+
+    fieldsets = (
+        ('Informações Básicas', {
+            'fields': ('nome', 'descricao')
+        }),
+        ('Parâmetros da Análise', {
+            'fields': (
+                'data_inicio',
+                'data_fim',
+                'periodo_dias',
+                'store'
+            )
+        }),
+        ('Dados Processados', {
+            'fields': (
+                'dados_brutos',
+                'dados_processados',
+                'estatisticas'
+            ),
+            'classes': ('collapse',),
+            'description': 'Dados brutos e processados da análise (JSON)'
+        }),
+        ('Métricas Calculadas', {
+            'fields': (
+                'total_produtos',
+                'efetividade_media'
+            )
+        }),
+        ('Metadados', {
+            'fields': (
+                'criado_por',
+                'criado_em',
+                'atualizado_em'
+            ),
+            'classes': ('collapse',)
+        })
+    )
+
+    def store_link(self, obj):
+        """Link para a loja"""
+        if obj.store:
+            url = reverse('admin:metricas_ecomhub_ecomhubstore_change', args=[obj.store.pk])
+            return format_html(
+                '<a href="{}">{} ({})</a>',
+                url,
+                obj.store.name,
+                obj.store.country_name
+            )
+        return format_html('<em style="color: #6c757d;">Todas as lojas</em>')
+    store_link.short_description = 'Loja'
+
+    def periodo_formatado(self, obj):
+        """Formata o período da análise"""
+        return format_html(
+            '<span style="font-weight: bold;">{} a {}</span><br><em style="color: #6c757d;">({} dias)</em>',
+            obj.data_inicio.strftime('%d/%m/%Y'),
+            obj.data_fim.strftime('%d/%m/%Y'),
+            obj.periodo_dias
+        )
+    periodo_formatado.short_description = 'Período'
+
+    def efetividade_media_formatada(self, obj):
+        """Formata a efetividade média com cor"""
+        efetividade = obj.efetividade_media
+
+        if efetividade >= 70:
+            cor = '#28a745'  # Verde
+        elif efetividade >= 50:
+            cor = '#ffc107'  # Amarelo
+        elif efetividade >= 30:
+            cor = '#fd7e14'  # Laranja
+        else:
+            cor = '#dc3545'  # Vermelho
+
+        return format_html(
+            '<span style="color: {}; font-weight: bold; font-size: 1.1em;">{:.1f}%</span>',
+            cor,
+            efetividade
+        )
+    efetividade_media_formatada.short_description = 'Efetividade Média'
+    efetividade_media_formatada.admin_order_field = 'estatisticas__efetividade_media'
+
+    def criado_por_link(self, obj):
+        """Link para o usuário que criou"""
+        url = reverse('admin:auth_user_change', args=[obj.criado_por.pk])
+        nome = obj.criado_por.get_full_name() or obj.criado_por.username
+        return format_html('<a href="{}">{}</a>', url, nome)
+    criado_por_link.short_description = 'Criado por'
+
+    def get_queryset(self, request):
+        """Otimiza queries com select_related"""
+        return super().get_queryset(request).select_related('store', 'criado_por')
+
+    def has_add_permission(self, request):
+        """Desabilita criação manual (análises são criadas via API)"""
+        return False

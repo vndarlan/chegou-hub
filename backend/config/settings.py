@@ -31,6 +31,11 @@ NICOCHAT_ENCRYPTION_KEY = os.getenv('NICOCHAT_ENCRYPTION_KEY', '7Dfkjjc4Jc27vwl2
 if not NICOCHAT_ENCRYPTION_KEY:
     print("AVISO CRÍTICO: NICOCHAT_ENCRYPTION_KEY não está configurada!")
 
+# Chave de autenticação para n8n (sincronização automática)
+N8N_API_KEY = os.getenv('N8N_API_KEY')
+if not N8N_API_KEY and IS_RAILWAY_DEPLOYMENT:
+    print("AVISO: N8N_API_KEY não configurada. Sincronização automática n8n não funcionará!")
+
 # --- DEBUG ---
 DEBUG_ENV_VAR = os.getenv('DEBUG', 'True' if not IS_RAILWAY_DEPLOYMENT else 'False')
 DEBUG = DEBUG_ENV_VAR.lower() == 'true'
@@ -136,6 +141,8 @@ MIDDLEWARE = [
     'core.middleware.error_logging.ErrorLoggingMiddleware',
     # Middleware de ultra logging para debug EcomHub (LOCAL vs PRODUÇÃO)
     'core.middleware.ecomhub_request_logger.EcomhubRequestLoggerMiddleware',
+    # Middleware de autenticação n8n (sincronização automática via API Key)
+    'core.middleware.n8n_auth.N8NAuthMiddleware',
     # Middleware de segurança para detecção de IP - TEMPORARIAMENTE DESABILITADO
     # 'features.processamento.middleware.ip_security_middleware.IPDetectorSecurityMiddleware',
     # 'features.processamento.middleware.ip_security_middleware.SecurityAuditMiddleware',

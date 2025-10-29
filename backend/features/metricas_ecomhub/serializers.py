@@ -334,3 +334,126 @@ class EcomhubUnknownStatusSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['first_detected', 'last_seen', 'occurrences_count']
 
+
+# ===========================================
+# EFETIVIDADE V2: SERIALIZERS PARA API DIRETA
+# ===========================================
+
+from .models import EfetividadeAnaliseV2
+
+
+class EfetividadeAnaliseV2Serializer(serializers.ModelSerializer):
+    """Serializer completo para análises de efetividade V2"""
+
+    criado_por_nome = serializers.CharField(source='criado_por.get_full_name', read_only=True)
+    criado_por_username = serializers.CharField(source='criado_por.username', read_only=True)
+    store_nome = serializers.CharField(source='store.name', read_only=True, allow_null=True)
+    store_pais = serializers.CharField(source='store.country_name', read_only=True, allow_null=True)
+
+    # Propriedades computadas
+    periodo_dias = serializers.ReadOnlyField()
+    total_produtos = serializers.ReadOnlyField()
+    efetividade_media = serializers.ReadOnlyField()
+
+    class Meta:
+        model = EfetividadeAnaliseV2
+        fields = [
+            'id', 'nome', 'descricao',
+            'data_inicio', 'data_fim', 'periodo_dias',
+            'store', 'store_nome', 'store_pais',
+            'dados_brutos', 'dados_processados', 'estatisticas',
+            'total_produtos', 'efetividade_media',
+            'criado_por', 'criado_por_nome', 'criado_por_username',
+            'criado_em', 'atualizado_em'
+        ]
+        read_only_fields = ['id', 'criado_por', 'criado_em', 'atualizado_em']
+
+    def create(self, validated_data):
+        """Associa o usuário atual ao criar análise"""
+        validated_data['criado_por'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class EfetividadeAnaliseV2ResumoSerializer(serializers.ModelSerializer):
+    """Serializer resumido para listagem de análises V2"""
+
+    criado_por_nome = serializers.CharField(source='criado_por.get_full_name', read_only=True)
+    store_nome = serializers.CharField(source='store.name', read_only=True, allow_null=True)
+    store_pais = serializers.CharField(source='store.country_name', read_only=True, allow_null=True)
+    periodo_dias = serializers.ReadOnlyField()
+    total_produtos = serializers.ReadOnlyField()
+    efetividade_media = serializers.ReadOnlyField()
+
+    class Meta:
+        model = EfetividadeAnaliseV2
+        fields = [
+            'id', 'nome', 'descricao',
+            'data_inicio', 'data_fim', 'periodo_dias',
+            'store', 'store_nome', 'store_pais',
+            'total_produtos', 'efetividade_media',
+            'criado_por_nome', 'criado_em'
+        ]
+
+
+class ProcessarEfetividadeV2Serializer(serializers.Serializer):
+    """
+    Serializer para validar parâmetros de processamento em tempo real
+    """
+    data_inicio = serializers.DateField(
+        required=True,
+        help_text="Data inicial do período (formato: YYYY-MM-DD)"
+    )
+    data_fim = serializers.DateField(
+        required=True,
+        help_text="Data final do período (formato: YYYY-MM-DD)"
+    )
+    store_id = serializers.UUIDField(
+        required=False,
+        allow_null=True,
+        help_text="UUID da loja específica ou null para 'todas as lojas'"
+    )
+
+    def validate(self, data):
+        """Validações gerais"""
+        data_inicio = data.get('data_inicio')
+        data_fim = data.get('data_fim')
+
+        # Validar ordem das datas
+        if data_inicio and data_fim:
+            if data_inicio > data_fim:
+                raise serializers.ValidationError({
+                    'data_inicio': 'Data início deve ser anterior à data fim'
+                })
+
+            # Validar período máximo (6 meses = ~180 dias)
+            periodo_dias = (data_fim - data_inicio).days
+            if periodo_dias > 180:
+                raise serializers.ValidationError({
+                    'periodo': 'Período máximo permitido é de 6 meses (180 dias)'
+                })
+
+        return data
+
+    def validate_store_id(self, value):
+        """Valida se a loja existe (quando fornecida)"""
+        if value:
+            from .models import EcomhubStore
+            try:
+                store = EcomhubStore.objects.get(id=value)
+                if not store.is_active:
+                    raise serializers.ValidationError("Loja está inativa")
+            except EcomhubStore.DoesNotExist:
+                raise serializers.ValidationError("Loja não encontrada")
+        return value
+
+
+class StoresDisponiveisSerializer(serializers.Serializer):
+    """Serializer para listar lojas disponíveis"""
+
+    id = serializers.UUIDField()
+    name = serializers.CharField()
+    country_id = serializers.IntegerField()
+    country_name = serializers.CharField()
+    is_active = serializers.BooleanField()
+    last_sync = serializers.DateTimeField(allow_null=True)
+

@@ -1059,3 +1059,198 @@ class EcomhubUnknownStatusViewSet(viewsets.ReadOnlyModelViewSet):
             }
         })
 
+
+# ===========================================
+# EFETIVIDADE V2: VIEWSET PARA API DIRETA
+# ===========================================
+
+from .models import EfetividadeAnaliseV2
+from .serializers import (
+    EfetividadeAnaliseV2Serializer,
+    EfetividadeAnaliseV2ResumoSerializer,
+    ProcessarEfetividadeV2Serializer,
+    StoresDisponiveisSerializer
+)
+from .services.efetividade_v2_service import processar_efetividade_v2
+
+
+class EfetividadeV2ViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para análises de efetividade V2 (API direta)
+
+    Endpoints:
+    - GET /efetividade-v2/ - Lista análises salvas
+    - POST /efetividade-v2/ - Salva nova análise
+    - GET /efetividade-v2/{id}/ - Detalhes de análise
+    - DELETE /efetividade-v2/{id}/ - Deleta análise
+    - POST /efetividade-v2/processar_tempo_real/ - Processa sem salvar
+    - GET /efetividade-v2/stores_disponiveis/ - Lista lojas ativas
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = PageNumberPagination
+
+    def get_queryset(self):
+        """Retorna apenas análises do usuário atual"""
+        return EfetividadeAnaliseV2.objects.filter(criado_por=self.request.user)
+
+    def get_serializer_class(self):
+        """Retorna serializer apropriado para a action"""
+        if self.action == 'list':
+            return EfetividadeAnaliseV2ResumoSerializer
+        return EfetividadeAnaliseV2Serializer
+
+    @action(detail=False, methods=['post'])
+    def processar_tempo_real(self, request):
+        """
+        POST /api/metricas/ecomhub/efetividade-v2/processar_tempo_real/
+
+        Processa dados em tempo real SEM salvar análise
+
+        Body:
+        {
+            "data_inicio": "2025-01-01",
+            "data_fim": "2025-01-31",
+            "store_id": "uuid" ou null
+        }
+        """
+        serializer = ProcessarEfetividadeV2Serializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            data = serializer.validated_data
+            data_inicio = data['data_inicio']
+            data_fim = data['data_fim']
+            store_id = data.get('store_id')
+
+            logger.info(f"Processamento tempo real V2: {data_inicio} a {data_fim}")
+
+            # Determinar lista de store_ids
+            if store_id:
+                store_ids = [str(store_id)]
+                logger.info(f"Processando loja específica: {store_id}")
+            else:
+                store_ids = []
+                logger.info("Processando TODAS as lojas ativas")
+
+            # Processar
+            resultado = processar_efetividade_v2(
+                store_ids=store_ids,
+                data_inicio=data_inicio,
+                data_fim=data_fim
+            )
+
+            if resultado['status'] == 'success':
+                return Response({
+                    'status': 'success',
+                    'message': resultado['message'],
+                    'dados_processados': resultado['dados_processados'],
+                    'estatisticas': resultado['estatisticas'],
+                    'lojas_processadas': resultado['lojas_processadas']
+                })
+            else:
+                return Response(
+                    resultado,
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        except Exception as e:
+            logger.error(f"Erro no processamento tempo real V2: {e}", exc_info=True)
+            return Response({
+                'status': 'error',
+                'message': f'Erro inesperado: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'])
+    def stores_disponiveis(self, request):
+        """
+        GET /api/metricas/ecomhub/efetividade-v2/stores_disponiveis/
+
+        Lista todas as lojas ativas disponíveis para análise
+
+        Query params (opcional):
+        - country_id: Filtrar por país
+        """
+        try:
+            queryset = EcomhubStore.objects.filter(is_active=True)
+
+            # Filtro opcional por país
+            country_id = request.query_params.get('country_id')
+            if country_id:
+                queryset = queryset.filter(country_id=country_id)
+
+            # Serializar
+            stores_data = []
+            for store in queryset:
+                stores_data.append({
+                    'id': store.id,
+                    'name': store.name,
+                    'country_id': store.country_id,
+                    'country_name': store.country_name,
+                    'is_active': store.is_active,
+                    'last_sync': store.last_sync
+                })
+
+            serializer = StoresDisponiveisSerializer(stores_data, many=True)
+
+            return Response({
+                'count': len(stores_data),
+                'stores': serializer.data
+            })
+
+        except Exception as e:
+            logger.error(f"Erro ao buscar lojas disponíveis: {e}")
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def create(self, request, *args, **kwargs):
+        """
+        POST /api/metricas/ecomhub/efetividade-v2/
+
+        Salva uma nova análise (após processamento em tempo real)
+        """
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+
+            logger.info(f"Análise V2 salva: {serializer.data['nome']}")
+
+            return Response(
+                serializer.data,
+                status=status.HTTP_201_CREATED
+            )
+
+        except Exception as e:
+            logger.error(f"Erro ao salvar análise V2: {e}")
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        DELETE /api/metricas/ecomhub/efetividade-v2/{id}/
+
+        Deleta uma análise salva
+        """
+        try:
+            instance = self.get_object()
+            nome = instance.nome
+            self.perform_destroy(instance)
+
+            logger.info(f"Análise V2 deletada: {nome}")
+
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        except Exception as e:
+            logger.error(f"Erro ao deletar análise V2: {e}")
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

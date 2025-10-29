@@ -413,3 +413,96 @@ class EcomhubUnknownStatus(models.Model):
     def __str__(self):
         return f"{self.status} ({self.occurrences_count} ocorrências)"
 
+
+# ===========================================
+# EFETIVIDADE V2: ANÁLISES COM API DIRETA
+# ===========================================
+
+class EfetividadeAnaliseV2(models.Model):
+    """
+    Model separado para análises V2 - chamadas diretas à API ECOMHUB
+
+    Diferente de AnaliseEcomhub (V1 via Selenium), este model armazena
+    análises obtidas diretamente da API oficial, integradas com lojas
+    cadastradas em EcomhubStore.
+    """
+
+    # Identificação
+    nome = models.CharField(
+        max_length=255,
+        verbose_name="Nome da Análise",
+        help_text="Nome descritivo para identificar a análise"
+    )
+    descricao = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Descrição",
+        help_text="Descrição detalhada (opcional)"
+    )
+
+    # Parâmetros da análise
+    data_inicio = models.DateField(verbose_name="Data Início")
+    data_fim = models.DateField(verbose_name="Data Fim")
+    store = models.ForeignKey(
+        'EcomhubStore',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='analises_v2',
+        verbose_name="Loja",
+        help_text="Loja específica ou null para 'todas as lojas'"
+    )
+
+    # Dados processados
+    dados_brutos = models.JSONField(
+        verbose_name="Dados Brutos",
+        help_text="Response completa da API ECOMHUB"
+    )
+    dados_processados = models.JSONField(
+        verbose_name="Dados Processados",
+        help_text="Dados calculados: visualizacao_otimizada, visualizacao_total, stats"
+    )
+    estatisticas = models.JSONField(
+        verbose_name="Estatísticas",
+        help_text="Métricas agregadas: total_produtos, efetividade_media, etc"
+    )
+
+    # Metadados
+    criado_por = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name="Criado por"
+    )
+    criado_em = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
+    atualizado_em = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
+
+    class Meta:
+        verbose_name = "Análise Efetividade V2"
+        verbose_name_plural = "Análises Efetividade V2"
+        ordering = ['-criado_em']
+        indexes = [
+            models.Index(fields=['store', '-criado_em']),
+            models.Index(fields=['criado_por', '-criado_em']),
+            models.Index(fields=['data_inicio', 'data_fim']),
+        ]
+
+    def __str__(self):
+        store_nome = self.store.name if self.store else "Todas as lojas"
+        periodo = f"{self.data_inicio.strftime('%d/%m/%Y')} - {self.data_fim.strftime('%d/%m/%Y')}"
+        return f"{self.nome} ({store_nome}) - {periodo}"
+
+    @property
+    def periodo_dias(self):
+        """Retorna quantidade de dias do período analisado"""
+        return (self.data_fim - self.data_inicio).days + 1
+
+    @property
+    def total_produtos(self):
+        """Extrai total de produtos das estatísticas"""
+        return self.estatisticas.get('total_produtos', 0) if self.estatisticas else 0
+
+    @property
+    def efetividade_media(self):
+        """Extrai efetividade média das estatísticas"""
+        return self.estatisticas.get('efetividade_media', 0) if self.estatisticas else 0
+
