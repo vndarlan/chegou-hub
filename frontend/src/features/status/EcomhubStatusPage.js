@@ -432,7 +432,7 @@ function EcomhubStatusPage() {
                         )}
                     </div>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                     <Button
                         variant={autoRefreshAtivo ? "default" : "outline"}
                         size="sm"
@@ -712,7 +712,7 @@ function EcomhubStatusPage() {
                             const horas = Math.round(avgTime % 24);
 
                             return (
-                                <div key={status} className="flex items-center justify-between gap-3 p-2 rounded-lg hover:bg-accent/50">
+                                <div key={status} className="flex items-center justify-between gap-3 p-2 rounded-lg">
                                     <div className="flex items-center gap-2 min-w-0 flex-1">
                                         <IconComponent className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                                         <span className="text-xs font-medium truncate">{config.label}</span>
@@ -767,7 +767,7 @@ function EcomhubStatusPage() {
                     <div>
                         <Label className="text-xs">Status</Label>
                         <Select value={statusFiltro} onValueChange={setStatusFiltro}>
-                            <SelectTrigger className="h-9">
+                            <SelectTrigger className="h-8">
                                 <SelectValue placeholder="Todos" />
                             </SelectTrigger>
                             <SelectContent>
@@ -784,7 +784,7 @@ function EcomhubStatusPage() {
                     <div>
                         <Label className="text-xs">Nível de Alerta</Label>
                         <Select value={nivelAlertaFiltro} onValueChange={setNivelAlertaFiltro}>
-                            <SelectTrigger className="h-9">
+                            <SelectTrigger className="h-8">
                                 <SelectValue placeholder="Todos" />
                             </SelectTrigger>
                             <SelectContent>
@@ -804,14 +804,14 @@ function EcomhubStatusPage() {
                             placeholder="Cliente ou pedido..."
                             value={buscaTexto}
                             onChange={(e) => setBuscaTexto(e.target.value)}
-                            className="h-9"
+                            className="h-8"
                         />
                     </div>
 
                     <div>
                         <Label className="text-xs">Ordenar por</Label>
                         <Select value={ordenacao} onValueChange={setOrdenacao}>
-                            <SelectTrigger className="h-9">
+                            <SelectTrigger className="h-8">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
