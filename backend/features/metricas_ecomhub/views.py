@@ -896,11 +896,14 @@ class EcomhubOrderViewSet(viewsets.ReadOnlyModelViewSet):
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny])
     def sync(self, request):
         """
         POST /api/metricas/ecomhub/orders/sync/
         Aciona sincronização manual de pedidos
+
+        Autenticação: Via middleware N8NAuthMiddleware (header X-API-Key)
+        Não requer autenticação DRF (usuário logado)
         """
         try:
             logger.info("Sincronização manual iniciada via API")
