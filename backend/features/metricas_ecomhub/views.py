@@ -960,19 +960,27 @@ class EcomhubAlertConfigViewSet(viewsets.ModelViewSet):
         return super().list(request, *args, **kwargs)
 
     def get_object(self):
-        """Permite buscar por status ao invés de ID"""
+        """Permite buscar por status ao invés de ID, criando automaticamente se não existir"""
         pk = self.kwargs.get('pk')
 
         # Se é um número, busca por ID normalmente
         if pk and pk.isdigit():
             return super().get_object()
 
-        # Se não, busca por status
+        # Se não, busca por status (ou cria se não existir)
         try:
-            return EcomhubAlertConfig.objects.get(status=pk)
+            config = EcomhubAlertConfig.objects.get(status=pk)
+            return config
         except EcomhubAlertConfig.DoesNotExist:
-            from django.http import Http404
-            raise Http404("Config não encontrada para este status")
+            # Cria automaticamente com valores padrão se não existir
+            config = EcomhubAlertConfig.objects.create(
+                status=pk,
+                yellow_threshold_hours=168,   # 7 dias
+                red_threshold_hours=336,      # 14 dias
+                critical_threshold_hours=504  # 21 dias
+            )
+            logger.info(f"✓ Config criada automaticamente para status: {pk}")
+            return config
 
 
 
