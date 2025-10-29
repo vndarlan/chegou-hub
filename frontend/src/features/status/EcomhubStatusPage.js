@@ -424,12 +424,6 @@ function EcomhubStatusPage() {
                     <div className="flex items-center gap-2 mt-1">
                         <p className="text-xs text-muted-foreground">Monitoramento em tempo real</p>
                         <span className="text-xs text-muted-foreground">• Última atualização: {tempoTexto}</span>
-                        {autoRefreshAtivo && (
-                            <Badge variant="outline" className="text-xs">
-                                <Activity className="h-3 w-3 mr-1" />
-                                Auto-refresh (60s)
-                            </Badge>
-                        )}
                     </div>
                 </div>
                 <div className="flex gap-2">
