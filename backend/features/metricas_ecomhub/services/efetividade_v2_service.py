@@ -231,7 +231,7 @@ def calcular_efetividade(pedidos_raw: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     logger.info(f"Calculando efetividade de {len(pedidos_raw)} pedidos")
 
-    # Agrupar por produto
+    # Agrupar por (produto, país) para manter informação de país
     produtos = defaultdict(lambda: {
         'Totais': 0,
         'delivered': 0,
@@ -245,7 +245,8 @@ def calcular_efetividade(pedidos_raw: List[Dict[str, Any]]) -> Dict[str, Any]:
         'preparing_for_shipping': 0,
         'processing': 0,
         'returning': 0,
-        'total_revenue': 0.0  # Receita total
+        'total_revenue': 0.0,  # Receita total
+        'country_id': None
     })
 
     # Processar cada pedido
@@ -256,24 +257,34 @@ def calcular_efetividade(pedidos_raw: List[Dict[str, Any]]) -> Dict[str, Any]:
             produto_nome = item['produto']
             status = item['status']
             price = item['price']
+            country_id = item.get('country_id')
+
+            # Chave única: produto + país
+            chave = (produto_nome, country_id)
 
             # Contabilizar
-            produtos[produto_nome]['Totais'] += 1
-            produtos[produto_nome]['total_revenue'] += price
+            produtos[chave]['Totais'] += 1
+            produtos[chave]['total_revenue'] += price
+            produtos[chave]['country_id'] = country_id
 
             # Contar por status
-            if status in produtos[produto_nome]:
-                produtos[produto_nome][status] += 1
+            if status in produtos[chave]:
+                produtos[chave][status] += 1
 
     # Gerar visualização otimizada
     visualizacao_otimizada = []
     total_vendas = 0
     total_entregues = 0
 
-    for produto_nome, counts in produtos.items():
+    for chave, counts in produtos.items():
+        produto_nome, country_id = chave
+
+        # Obter nome do país
+        pais_nome = PAISES.get(country_id, f"ID {country_id}" if country_id else "N/A")
+
         entregues = counts['delivered']
         totais = counts['Totais']
-        finalizados = counts['delivered'] + counts['returned'] + counts['cancelled']
+        finalizados = counts['delivered'] + counts['returned'] + counts['cancelled'] + counts['issue']
         em_transito = (
             counts['shipped'] +
             counts['with_courier'] +
@@ -282,7 +293,7 @@ def calcular_efetividade(pedidos_raw: List[Dict[str, Any]]) -> Dict[str, Any]:
             counts['preparing_for_shipping'] +
             counts['processing']
         )
-        devolucao = counts['returning'] + counts['returned']
+        devolucao = counts['returning'] + counts['returned'] + counts['issue']
         problemas = counts.get('issue', 0)
         cancelados = counts['cancelled']
 
@@ -294,6 +305,7 @@ def calcular_efetividade(pedidos_raw: List[Dict[str, Any]]) -> Dict[str, Any]:
 
         visualizacao_otimizada.append({
             'Produto': produto_nome,
+            'Pais': pais_nome,
             'Totais': totais,
             'Entregues': entregues,
             'Finalizados': finalizados,

@@ -857,58 +857,94 @@ function EcomhubEfetividadeV2Page() {
             <Dialog open={modalInstrucoes} onOpenChange={setModalInstrucoes}>
                 <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto border-border bg-popover">
                     <DialogHeader>
-                        <DialogTitle className="text-blue-600">Manual - Efetividade V2 (API Tempo Real)</DialogTitle>
+                        <DialogTitle className="text-blue-600">Manual de Instruções - Métricas ECOMHUB</DialogTitle>
                         <DialogDescription className="text-muted-foreground">
-                            Análise de efetividade usando dados diretos da API ECOMHUB
+                            Guia completo para uso da ferramenta
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-6">
                         <div>
-                            <h4 className="text-lg font-semibold text-blue-600 mb-3">Diferenças da V2</h4>
-                            <div className="space-y-2">
-                                <p className="text-sm text-foreground">• <strong>Seleção por Loja:</strong> Escolha lojas específicas ou "Todas as Lojas"</p>
-                                <p className="text-sm text-foreground">• <strong>API Tempo Real:</strong> Dados processados diretamente da API ECOMHUB</p>
-                                <p className="text-sm text-foreground">• <strong>Períodos Rápidos:</strong> Presets de 7, 30 e 90 dias</p>
-                                <p className="text-sm text-foreground">• <strong>Performance:</strong> Processamento mais rápido sem Selenium</p>
+                            <h4 className="text-lg font-semibold text-green-600 mb-3">Visualização Otimizada</h4>
+                            <p className="text-sm text-muted-foreground mb-4">Colunas agrupadas para análise mais eficiente:</p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Card className="border-blue-200 bg-card">
+                                    <CardContent className="p-4">
+                                        <h5 className="font-semibold text-blue-600 text-sm">Totais</h5>
+                                        <p className="text-xs text-muted-foreground">Soma de todos os pedidos (todos os status)</p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border-green-200 bg-card">
+                                    <CardContent className="p-4">
+                                        <h5 className="font-semibold text-green-600 text-sm">Finalizados</h5>
+                                        <p className="text-xs text-muted-foreground">"delivered" + "issue" + "returning" + "returned" + "cancelled"</p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border-orange-200 bg-card">
+                                    <CardContent className="p-4">
+                                        <h5 className="font-semibold text-orange-600 text-sm">Em Trânsito</h5>
+                                        <p className="text-xs text-muted-foreground">"out_for_delivery" + "preparing_for_shipping" + "ready_to_ship" + "with_courier"</p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border-red-200 bg-card">
+                                    <CardContent className="p-4">
+                                        <h5 className="font-semibold text-red-600 text-sm">Problemas</h5>
+                                        <p className="text-xs text-muted-foreground">Apenas "issue"</p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border-purple-200 bg-card">
+                                    <CardContent className="p-4">
+                                        <h5 className="font-semibold text-purple-600 text-sm">Devolução</h5>
+                                        <p className="text-xs text-muted-foreground">"returning" + "returned" + "issue"</p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border-gray-200 bg-card">
+                                    <CardContent className="p-4">
+                                        <h5 className="font-semibold text-gray-600 text-sm">Cancelados</h5>
+                                        <p className="text-xs text-muted-foreground">"cancelled"</p>
+                                    </CardContent>
+                                </Card>
                             </div>
                         </div>
 
                         <Separator className="bg-border" />
 
                         <div>
-                            <h4 className="text-lg font-semibold text-green-600 mb-3">Visualização Otimizada</h4>
-                            <p className="text-sm text-muted-foreground mb-4">Colunas agrupadas para análise eficiente:</p>
+                            <h4 className="text-lg font-semibold text-purple-600 mb-3">🌍 Opção "Todos os Países"</h4>
+                            <p className="text-sm text-muted-foreground mb-4">Funcionalidades especiais quando "Todos" está selecionado:</p>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Card className="border-blue-200 bg-card">
-                                    <CardContent className="p-4">
-                                        <h5 className="font-semibold text-blue-600 text-sm">Totais</h5>
-                                        <p className="text-xs text-muted-foreground">Total de pedidos (todos os status)</p>
-                                    </CardContent>
-                                </Card>
-
-                                <Card className="border-green-200 bg-card">
-                                    <CardContent className="p-4">
-                                        <h5 className="font-semibold text-green-600 text-sm">Entregues</h5>
-                                        <p className="text-xs text-muted-foreground">Pedidos entregues com sucesso</p>
-                                    </CardContent>
-                                </Card>
-
-                                <Card className="border-orange-200 bg-card">
-                                    <CardContent className="p-4">
-                                        <h5 className="font-semibold text-orange-600 text-sm">Efetividade Total</h5>
-                                        <p className="text-xs text-muted-foreground">(Entregues ÷ Totais) × 100</p>
-                                    </CardContent>
-                                </Card>
-
-                                <Card className="border-purple-200 bg-card">
-                                    <CardContent className="p-4">
-                                        <h5 className="font-semibold text-purple-600 text-sm">Efetividade Parcial</h5>
-                                        <p className="text-xs text-muted-foreground">(Entregues ÷ Finalizados) × 100</p>
-                                    </CardContent>
-                                </Card>
+                            <div className="space-y-2">
+                                <p className="text-sm text-foreground">• <strong>Países Incluídos:</strong> Espanha, Croácia, Grécia, Itália, Romênia, República Checa e Polônia</p>
+                                <p className="text-sm text-foreground">• <strong>Métricas Salvas:</strong> Exibe análises de todos os países em uma única lista</p>
+                                <p className="text-sm text-foreground">• <strong>Gerar Métricas:</strong> Combina dados de todos os 7 países em uma tabela unificada</p>
+                                <p className="text-sm text-foreground">• <strong>Processamento:</strong> Consulta todos os países simultaneamente para maior eficiência</p>
+                                <p className="text-sm text-foreground">• <strong>Análise Comparativa:</strong> Permite comparar performance entre produtos de diferentes países</p>
                             </div>
+                        </div>
+
+                        <Separator className="bg-border" />
+
+                        <div>
+                            <h5 className="font-semibold text-teal-600 mb-2">Percentuais Calculados:</h5>
+                            <div className="space-y-1">
+                                <p className="text-sm text-foreground">• <strong>% A Caminho:</strong> (Em Trânsito ÷ Totais) × 100</p>
+                                <p className="text-sm text-foreground">• <strong>% Devolvidos:</strong> (Devolução ÷ Totais) × 100</p>
+                                <p className="text-sm text-foreground">• <strong>Efetividade Parcial:</strong> (Entregues ÷ Finalizados) × 100</p>
+                                <p className="text-sm text-foreground">• <strong>Efetividade Total:</strong> (Entregues ÷ Totais) × 100</p>
+                            </div>
+                        </div>
+
+                        <Separator className="bg-border" />
+
+                        <div>
+                            <h4 className="text-lg font-semibold text-orange-600 mb-3">Visualização Total</h4>
+                            <p className="text-sm text-muted-foreground">Mostra todos os status individuais conforme retornados da API ECOMHUB, sem agrupamentos.</p>
                         </div>
 
                         <Separator className="bg-border" />
