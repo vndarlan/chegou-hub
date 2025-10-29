@@ -221,6 +221,11 @@ export function AppSidebar({
           isActive: location.pathname === "/workspace/metricas/ecomhub",
         },
         {
+          title: "Efetividade V2",
+          url: "/workspace/metricas/ecomhub-v2",
+          isActive: location.pathname === "/workspace/metricas/ecomhub-v2",
+        },
+        {
           title: "Status",
           url: "/workspace/status/ecomhub",
           isActive: location.pathname === "/workspace/status/ecomhub",

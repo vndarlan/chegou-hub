@@ -28,7 +28,12 @@
       "Bash(findstr:*)",
       "Bash(npm install:*)",
       "Bash(set GENERATE_SOURCEMAP=false)",
-      "Read(//c/**)"
+      "Read(//c/**)",
+      "Bash(touch:*)",
+      "Bash(timeout 5 python manage.py check:*)",
+      "Bash(timeout 10 python:*)",
+      "Bash(railway status:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": [],
