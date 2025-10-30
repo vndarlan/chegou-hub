@@ -1,12 +1,49 @@
 # backend/features/metricas_ecomhub/services/sync_service.py
 import requests
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from django.utils import timezone as django_timezone
 from django.db import transaction
 from ..models import EcomhubStore, EcomhubOrder, EcomhubStatusHistory, EcomhubAlertConfig, EcomhubUnknownStatus
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def calculate_business_hours(start_datetime, end_datetime):
+    """
+    Calcula o número de horas úteis entre duas datas.
+    Conta apenas Segunda a Sexta (ignora Sábado=5 e Domingo=6).
+
+    Args:
+        start_datetime: datetime inicial
+        end_datetime: datetime final
+
+    Returns:
+        float: número de horas úteis
+    """
+    if start_datetime >= end_datetime:
+        return 0.0
+
+    total_hours = 0.0
+    current = start_datetime
+
+    # Processar hora por hora
+    while current < end_datetime:
+        # Verificar se é dia útil (Segunda=0, ..., Sexta=4, Sábado=5, Domingo=6)
+        if current.weekday() < 5:  # Segunda a Sexta
+            # Calcular quantas horas adicionar (no máximo 1h por iteração)
+            next_hour = current + timedelta(hours=1)
+            if next_hour > end_datetime:
+                # Última hora parcial
+                remaining_seconds = (end_datetime - current).total_seconds()
+                total_hours += remaining_seconds / 3600
+                break
+            else:
+                total_hours += 1.0
+
+        current += timedelta(hours=1)
+
+    return total_hours
 
 # Status que consideramos "ativos" (não finalizados)
 ACTIVE_STATUSES = [
@@ -221,7 +258,17 @@ def process_order(store, order_data):
         if order.status != current_status:
             # STATUS MUDOU!
             old_status = order.status
-            duration_hours = (now - order.status_since).total_seconds() / 3600
+
+            # Calcular duração no status anterior (usar dias úteis se configurado)
+            try:
+                config = EcomhubAlertConfig.objects.get(status=old_status)
+                if config.business_hours_only:
+                    duration_hours = calculate_business_hours(order.status_since, now)
+                else:
+                    duration_hours = (now - order.status_since).total_seconds() / 3600
+            except EcomhubAlertConfig.DoesNotExist:
+                # Padrão: usar dias úteis
+                duration_hours = calculate_business_hours(order.status_since, now)
 
             # Criar histórico
             EcomhubStatusHistory.objects.create(
@@ -241,8 +288,17 @@ def process_order(store, order_data):
 
             status_changed = True
         else:
-            # Status igual - apenas atualizar tempo
-            order.time_in_status_hours = (now - order.status_since).total_seconds() / 3600
+            # Status igual - recalcular tempo desde que entrou no status atual
+            # Usar dias úteis se configurado
+            try:
+                config = EcomhubAlertConfig.objects.get(status=order.status)
+                if config.business_hours_only:
+                    order.time_in_status_hours = calculate_business_hours(order.status_since, now)
+                else:
+                    order.time_in_status_hours = (now - order.status_since).total_seconds() / 3600
+            except EcomhubAlertConfig.DoesNotExist:
+                # Padrão: usar dias úteis
+                order.time_in_status_hours = calculate_business_hours(order.status_since, now)
             status_changed = False
 
         # Atualizar outros campos

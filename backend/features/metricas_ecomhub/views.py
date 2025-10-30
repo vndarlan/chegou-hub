@@ -946,15 +946,20 @@ class EcomhubAlertConfigViewSet(viewsets.ModelViewSet):
 
             default_configs = []
             for status in ACTIVE_STATUSES:
-                config = EcomhubAlertConfig.objects.create(
+                # Usar get_or_create para evitar IntegrityError em requisições simultâneas
+                config, created = EcomhubAlertConfig.objects.get_or_create(
                     status=status,
-                    yellow_threshold_hours=168,   # 7 dias
-                    red_threshold_hours=336,      # 14 dias
-                    critical_threshold_hours=504  # 21 dias
+                    defaults={
+                        'yellow_threshold_hours': 168,   # 7 dias
+                        'red_threshold_hours': 336,      # 14 dias
+                        'critical_threshold_hours': 504  # 21 dias
+                    }
                 )
-                default_configs.append(config)
+                if created:
+                    default_configs.append(config)
 
-            logger.info(f"✓ Criadas {len(default_configs)} configurações padrão de alerta")
+            if default_configs:
+                logger.info(f"✓ Criadas {len(default_configs)} configurações padrão de alerta")
 
         # Retorna lista normal
         return super().list(request, *args, **kwargs)
@@ -968,19 +973,18 @@ class EcomhubAlertConfigViewSet(viewsets.ModelViewSet):
             return super().get_object()
 
         # Se não, busca por status (ou cria se não existir)
-        try:
-            config = EcomhubAlertConfig.objects.get(status=pk)
-            return config
-        except EcomhubAlertConfig.DoesNotExist:
-            # Cria automaticamente com valores padrão se não existir
-            config = EcomhubAlertConfig.objects.create(
-                status=pk,
-                yellow_threshold_hours=168,   # 7 dias
-                red_threshold_hours=336,      # 14 dias
-                critical_threshold_hours=504  # 21 dias
-            )
+        # Usar get_or_create para evitar IntegrityError
+        config, created = EcomhubAlertConfig.objects.get_or_create(
+            status=pk,
+            defaults={
+                'yellow_threshold_hours': 168,   # 7 dias
+                'red_threshold_hours': 336,      # 14 dias
+                'critical_threshold_hours': 504  # 21 dias
+            }
+        )
+        if created:
             logger.info(f"✓ Config criada automaticamente para status: {pk}")
-            return config
+        return config
 
 
 

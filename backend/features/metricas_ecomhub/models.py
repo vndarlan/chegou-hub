@@ -379,6 +379,12 @@ class EcomhubAlertConfig(models.Model):
     red_threshold_hours = models.FloatField(default=120, help_text="Urgente após X horas (padrão: 120h = 5 dias)")
     critical_threshold_hours = models.FloatField(default=168, help_text="Crítico após X horas (padrão: 168h = 7 dias)")
 
+    # Contagem de dias úteis
+    business_hours_only = models.BooleanField(
+        default=True,
+        help_text="Se True, conta apenas dias úteis (seg-sex). Se False, conta todos os dias."
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

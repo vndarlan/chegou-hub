@@ -1,7 +1,7 @@
 // frontend/src/features/status/EcomhubStatusPage.js - SPRINT 4 FINAL - Sistema Completo de Tracking ECOMHUB
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    AlertTriangle, Activity, Truck, Package, Clock, TrendingUp,
+    AlertTriangle, Truck, Package, Clock, TrendingUp,
     RefreshCw, Settings, Filter, Eye, Search, ChevronDown, ChevronUp,
     RotateCcw, CheckCircle, XCircle, AlertCircle, Timer,
     List, BarChart3, Users, Globe, LayoutDashboard,
@@ -427,14 +427,6 @@ function EcomhubStatusPage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button
-                        variant={autoRefreshAtivo ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setAutoRefreshAtivo(!autoRefreshAtivo)}
-                    >
-                        <Activity className="h-4 w-4 mr-2" />
-                        {autoRefreshAtivo ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
-                    </Button>
                     <Select value={paisSelecionado} onValueChange={setPaisSelecionado}>
                         <SelectTrigger className="w-48">
                             <Globe className="h-4 w-4 mr-2" />

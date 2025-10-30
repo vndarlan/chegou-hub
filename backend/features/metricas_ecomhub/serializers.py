@@ -302,6 +302,7 @@ class EcomhubAlertConfigSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'status', 'status_display',
             'yellow_threshold_hours', 'red_threshold_hours', 'critical_threshold_hours',
+            'business_hours_only',  # NOVO CAMPO
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']

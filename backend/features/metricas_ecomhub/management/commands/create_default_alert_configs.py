@@ -24,7 +24,8 @@ class Command(BaseCommand):
                 defaults={
                     'yellow_threshold_hours': yellow,
                     'red_threshold_hours': red,
-                    'critical_threshold_hours': critical
+                    'critical_threshold_hours': critical,
+                    'business_hours_only': True,  # NOVO: usar dias úteis por padrão
                 }
             )
             if created:
