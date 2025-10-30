@@ -15,8 +15,8 @@ def calculate_business_hours(start_datetime, end_datetime):
     Conta apenas Segunda a Sexta (ignora Sábado=5 e Domingo=6).
 
     Args:
-        start_datetime: datetime inicial
-        end_datetime: datetime final
+        start_datetime: datetime inicial (timezone-aware)
+        end_datetime: datetime final (timezone-aware)
 
     Returns:
         float: número de horas úteis
@@ -33,7 +33,19 @@ def calculate_business_hours(start_datetime, end_datetime):
         if current.weekday() < 5:  # Segunda a Sexta
             # Calcular quantas horas adicionar (no máximo 1h por iteração)
             next_hour = current + timedelta(hours=1)
-            if next_hour > end_datetime:
+
+            # Verificar se next_hour cruza de dia útil para fim de semana
+            if next_hour.weekday() >= 5 and current.weekday() < 5:
+                # Cruzou de dia útil para fim de semana
+                # Contar apenas até meia-noite (fim do dia útil)
+                midnight = current.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+                remaining_seconds = (midnight - current).total_seconds()
+                total_hours += remaining_seconds / 3600
+                current = midnight
+                continue
+
+            # Verificar se chegou ao fim
+            if next_hour >= end_datetime:
                 # Última hora parcial
                 remaining_seconds = (end_datetime - current).total_seconds()
                 total_hours += remaining_seconds / 3600

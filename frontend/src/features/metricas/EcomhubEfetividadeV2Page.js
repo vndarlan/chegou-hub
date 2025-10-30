@@ -122,7 +122,13 @@ function EcomhubEfetividadeV2Page() {
             const response = await axios.post('/metricas/ecomhub/efetividade-v2/processar_tempo_real/', payload);
 
             if (response.data.status === 'success') {
-                setDadosResultado(response.data.dados_processados);
+                // Salvar TODA a resposta, não só dados_processados
+                setDadosResultado({
+                    dados_processados: response.data.dados_processados,
+                    estatisticas: response.data.estatisticas,
+                    lojas_processadas: response.data.lojas_processadas,
+                    dados_brutos: response.data.dados_brutos || []
+                });
                 showNotification('success', 'Dados processados com sucesso!');
 
                 const lojaNome = lojaSelecionada === 'todas' ?
@@ -154,10 +160,13 @@ function EcomhubEfetividadeV2Page() {
 
             const response = await axios.post('/metricas/ecomhub/efetividade-v2/', {
                 nome: nomeAnalise,
-                dados_efetividade: dadosResultado,
-                tipo_metrica: 'produto',
                 descricao: lojaNome,
-                store_id: lojaSelecionada === 'todas' ? null : lojaSelecionada
+                data_inicio: dateRange.from.toISOString().split('T')[0],
+                data_fim: dateRange.to.toISOString().split('T')[0],
+                store: lojaSelecionada === 'todas' ? null : parseInt(lojaSelecionada),
+                dados_brutos: dadosResultado.dados_brutos || [],
+                dados_processados: dadosResultado.dados_processados,
+                estatisticas: dadosResultado.estatisticas || {}
             });
 
             if (response.data.id) {
@@ -240,10 +249,10 @@ function EcomhubEfetividadeV2Page() {
     };
 
     const getDadosVisualizacao = () => {
-        if (!dadosResultado) return null;
+        if (!dadosResultado?.dados_processados) return null;
         return tipoVisualizacao === 'otimizada' ?
-            (dadosResultado.visualizacao_otimizada || dadosResultado) :
-            (dadosResultado.visualizacao_total || dadosResultado);
+            dadosResultado.dados_processados.visualizacao_otimizada :
+            dadosResultado.dados_processados.visualizacao_total;
     };
 
     const sortData = (data, sortBy, sortOrder) => {
@@ -532,7 +541,9 @@ function EcomhubEfetividadeV2Page() {
         const dados = getDadosVisualizacao();
         if (!dados || !Array.isArray(dados) || dados.length === 0) return null;
 
-        let colunas = Object.keys(dados[0] || {}).filter(col => col !== 'Imagem');
+        let colunas = Object.keys(dados[0] || {}).filter(col =>
+            col !== 'Imagem' && !col.startsWith('_')  // Remove _efetividade_total_num, etc
+        );
         if (colunas.length === 0) return null;
 
         const dadosOrdenados = sortData(dados, sortBy, sortOrder);
@@ -574,21 +585,24 @@ function EcomhubEfetividadeV2Page() {
 
                 <CardContent className="p-0">
                     <div className="w-full max-w-[calc(100vw-280px)] overflow-x-auto">
-                        <Table className="w-full table-fixed" style={{ minWidth: '1000px' }}>
+                        <Table className="w-full" style={{ minWidth: 'max-content' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     {colunas.map(col => {
                                         const isProduto = col === 'Produto';
                                         const isPais = col === 'Pais';
 
-                                        let classesHeader = 'whitespace-nowrap px-2 py-2 text-xs text-muted-foreground';
+                                        let classesHeader = 'whitespace-nowrap px-3 py-2 text-xs text-muted-foreground';
                                         let styleHeader = {};
 
                                         if (isProduto) {
                                             classesHeader += ' sticky left-0 z-20 bg-background border-r border-border';
-                                            styleHeader = { minWidth: `${larguraProduto}px`, width: `${larguraProduto}px` };
+                                            styleHeader = { minWidth: `${larguraProduto}px`, width: `${larguraProduto}px`, maxWidth: `${larguraProduto}px` };
                                         } else if (isPais) {
-                                            styleHeader = { minWidth: '60px', width: '60px', maxWidth: '60px' };
+                                            styleHeader = { minWidth: '60px', maxWidth: '80px' };
+                                        } else {
+                                            // Colunas adaptáveis: crescem conforme o conteúdo
+                                            styleHeader = { minWidth: '80px' };
                                         }
 
                                         return (
@@ -662,7 +676,7 @@ function EcomhubEfetividadeV2Page() {
                                             const isProduto = col === 'Produto';
                                             const isPais = col === 'Pais';
 
-                                            let classesCelula = 'px-2 py-2 text-xs text-card-foreground';
+                                            let classesCelula = 'px-3 py-2 text-xs text-card-foreground whitespace-nowrap';
                                             let styleCelula = {};
 
                                             if (tipoVisualizacao === 'otimizada' && (col === 'Efetividade_Total' || col === 'Efetividade_Parcial')) {
@@ -673,7 +687,10 @@ function EcomhubEfetividadeV2Page() {
                                                 classesCelula += ' sticky left-0 z-10 bg-background border-r border-border';
                                                 styleCelula = { minWidth: `${larguraProduto}px`, width: `${larguraProduto}px`, maxWidth: `${larguraProduto}px` };
                                             } else if (isPais) {
-                                                styleCelula = { minWidth: '60px', width: '60px', maxWidth: '60px' };
+                                                styleCelula = { minWidth: '60px', maxWidth: '80px' };
+                                            } else {
+                                                // Colunas adaptáveis: crescem conforme o conteúdo
+                                                styleCelula = { minWidth: '80px' };
                                             }
 
                                             return (
@@ -686,12 +703,10 @@ function EcomhubEfetividadeV2Page() {
                                                         <div className="truncate" style={{ maxWidth: `${larguraProduto - 16}px` }} title={row[col]}>
                                                             {row[col]}
                                                         </div>
-                                                    ) : col === 'Pais' ? (
-                                                        <div className="truncate text-center" style={{ maxWidth: '60px' }} title={row[col]}>
-                                                            {row[col]}
-                                                        </div>
                                                     ) : (
-                                                        typeof row[col] === 'number' ? row[col].toLocaleString() : row[col]
+                                                        <div title={row[col]}>
+                                                            {typeof row[col] === 'number' ? row[col].toLocaleString() : row[col]}
+                                                        </div>
                                                     )}
                                                 </TableCell>
                                             );
