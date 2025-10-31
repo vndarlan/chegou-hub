@@ -793,7 +793,7 @@ function EcomhubStatusPage() {
             {/* Busca */}
             <div className="flex-1">
                 <Input
-                    placeholder="Cliente ou pedido..."
+                    placeholder="Número do pedido..."
                     value={buscaTexto}
                     onChange={(e) => {
                         setBuscaTexto(e.target.value);
@@ -1025,6 +1025,23 @@ function EcomhubStatusPage() {
                                 ) : (
                                     <div className="text-sm text-muted-foreground text-center py-4">
                                         Nenhuma mudança de status registrada
+                                    </div>
+                                )}
+
+                                {/* Item mostrando criação do pedido */}
+                                {historicoPedido.order?.created_at && (
+                                    <div className="flex items-start gap-3 p-3 border rounded bg-muted/30">
+                                        <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-sm font-medium text-green-700">
+                                                    Pedido criado no Chegou Hub
+                                                </span>
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {formatarData(historicoPedido.order.created_at)}
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -1335,9 +1352,7 @@ function EcomhubStatusPage() {
                                         </h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                             {Object.entries(statusReferenceMap.active || {}).map(([apiStatus, translation]) => (
-                                                <div key={apiStatus} className="flex items-center justify-between p-2 bg-background rounded border">
-                                                    <span className="font-mono text-xs text-muted-foreground">{apiStatus}</span>
-                                                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                                                <div key={apiStatus} className="p-2 bg-background rounded border">
                                                     <span className="text-sm font-medium">{translation}</span>
                                                 </div>
                                             ))}
@@ -1352,9 +1367,7 @@ function EcomhubStatusPage() {
                                         </h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                             {Object.entries(statusReferenceMap.final || {}).map(([apiStatus, translation]) => (
-                                                <div key={apiStatus} className="flex items-center justify-between p-2 bg-background rounded border opacity-60">
-                                                    <span className="font-mono text-xs text-muted-foreground">{apiStatus}</span>
-                                                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                                                <div key={apiStatus} className="p-2 bg-background rounded border opacity-60">
                                                     <span className="text-sm font-medium">{translation}</span>
                                                 </div>
                                             ))}
