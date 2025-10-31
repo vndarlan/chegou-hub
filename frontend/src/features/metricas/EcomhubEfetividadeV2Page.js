@@ -7,6 +7,8 @@ import {
     Filter, Rocket, LayoutDashboard, Loader2, Minus, Plus, Database
 } from 'lucide-react';
 import axios from 'axios';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 // shadcn/ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -22,6 +24,7 @@ import { Label } from '../../components/ui/label';
 import { Progress } from '../../components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { Calendar } from '../../components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
 
 function EcomhubEfetividadeV2Page() {
     // Estados principais
@@ -53,6 +56,9 @@ function EcomhubEfetividadeV2Page() {
     const [notification, setNotification] = useState(null);
     const [progressoAtual, setProgressoAtual] = useState(null);
 
+    // Estado para controlar Popover do Calendar
+    const [openPopover, setOpenPopover] = useState(false);
+
     // Estados para ordenação
     const [sortBy, setSortBy] = useState(null);
     const [sortOrder, setSortOrder] = useState('asc');
@@ -62,9 +68,6 @@ function EcomhubEfetividadeV2Page() {
         const saved = localStorage.getItem('ecomhub_v2_largura_produto');
         return saved ? parseInt(saved, 10) : 150;
     });
-
-    // Estado para responsividade do Calendar
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
     // ======================== FUNÇÕES DE API ========================
 
@@ -379,8 +382,8 @@ function EcomhubEfetividadeV2Page() {
                 </div>
             </CardHeader>
 
-            <CardContent className="space-y-6">
-                {/* Presets de período */}
+            <CardContent className="space-y-4">
+                {/* Períodos Rápidos + Período Personalizado */}
                 <div className="space-y-2">
                     <Label className="text-sm font-medium">Períodos Rápidos:</Label>
                     <div className="flex gap-2 flex-wrap">
@@ -388,7 +391,6 @@ function EcomhubEfetividadeV2Page() {
                             onClick={() => aplicarPreset('semana')}
                             variant={periodoPreset === 'semana' ? 'default' : 'outline'}
                             size="sm"
-                            className="text-xs"
                         >
                             Última Semana
                         </Button>
@@ -396,7 +398,6 @@ function EcomhubEfetividadeV2Page() {
                             onClick={() => aplicarPreset('mes')}
                             variant={periodoPreset === 'mes' ? 'default' : 'outline'}
                             size="sm"
-                            className="text-xs"
                         >
                             Último Mês
                         </Button>
@@ -404,43 +405,83 @@ function EcomhubEfetividadeV2Page() {
                             onClick={() => aplicarPreset('3meses')}
                             variant={periodoPreset === '3meses' ? 'default' : 'outline'}
                             size="sm"
-                            className="text-xs"
                         >
                             Últimos 3 Meses
                         </Button>
+
+                        {/* Popover com Calendar */}
+                        <Popover open={openPopover} onOpenChange={setOpenPopover}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant={periodoPreset === null && dateRange?.from ? 'default' : 'outline'}
+                                    size="sm"
+                                    className="gap-2"
+                                >
+                                    <CalendarIcon className="h-4 w-4" />
+                                    Período Personalizado
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <div className="p-4 space-y-4">
+                                    <Calendar
+                                        mode="range"
+                                        defaultMonth={dateRange?.from}
+                                        selected={dateRange}
+                                        onSelect={(range) => {
+                                            setDateRange(range);
+                                            setPeriodoPreset(null);
+                                        }}
+                                        numberOfMonths={2}
+                                        className="rounded-lg"
+                                    />
+                                    <div className="flex justify-end gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setOpenPopover(false)}
+                                        >
+                                            Cancelar
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            onClick={() => setOpenPopover(false)}
+                                            disabled={!dateRange?.from || !dateRange?.to}
+                                        >
+                                            Aplicar
+                                        </Button>
+                                    </div>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                     </div>
+
+                    {/* Mostrar período selecionado */}
+                    {dateRange?.from && dateRange?.to && (
+                        <p className="text-xs text-muted-foreground">
+                            Período selecionado: {format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR })} até {format(dateRange.to, 'dd/MM/yyyy', { locale: ptBR })}
+                        </p>
+                    )}
                 </div>
 
-                {/* Calendário com range */}
-                <div className="flex items-center justify-center">
-                    <Calendar
-                        mode="range"
-                        defaultMonth={dateRange?.from}
-                        selected={dateRange}
-                        onSelect={(range) => {
-                            setDateRange(range);
-                            setPeriodoPreset(null); // Limpar preset ao selecionar manualmente
-                        }}
-                        numberOfMonths={isMobile ? 1 : 2}
-                        disabled={loadingProcessar}
-                        className="rounded-lg border border-border shadow-sm"
-                    />
-                </div>
-
-                {/* Botão Processar centralizado */}
+                {/* Botão Processar */}
                 <div className="flex justify-center">
                     <Button
                         onClick={processarDados}
                         disabled={!dateRange?.from || !dateRange?.to || loadingProcessar}
                         size="lg"
-                        className="min-w-48 bg-primary text-primary-foreground hover:bg-primary/90"
+                        className="min-w-48"
                     >
                         {loadingProcessar ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Processando...
+                            </>
                         ) : (
-                            <Search className="h-4 w-4 mr-2" />
+                            <>
+                                <Search className="h-4 w-4 mr-2" />
+                                Processar
+                            </>
                         )}
-                        {loadingProcessar ? 'Processando...' : 'Processar'}
                     </Button>
                 </div>
             </CardContent>
@@ -533,12 +574,6 @@ function EcomhubEfetividadeV2Page() {
         if (colunas.length === 0) return null;
 
         const dadosOrdenados = sortData(dados, sortBy, sortOrder);
-
-        const colunasEssenciais = ['Produto', 'Totais', 'Entregues', 'Efetividade_Total'];
-
-        if (isMobile && tipoVisualizacao === 'otimizada') {
-            colunas = colunas.filter(col => colunasEssenciais.includes(col));
-        }
 
         return (
             <Card className="mb-6 border-border bg-card">
@@ -812,14 +847,6 @@ function EcomhubEfetividadeV2Page() {
             to: hoje
         });
         setPeriodoPreset('semana');
-
-        // Listener para responsividade do Calendar
-        const handleResize = () => {
-            setIsMobile(window.innerWidth < 768);
-        };
-
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     // ======================== RENDER PRINCIPAL ========================
