@@ -220,9 +220,9 @@ function EcomhubEfetividadeV2Page() {
 
             if (response.data.status === 'success') {
                 setDadosResultado({
-                    dados_processados: response.data.dados_processados,
-                    estatisticas: response.data.estatisticas,
-                    lojas_processadas: response.data.lojas_processadas,
+                    dados_processados: response.data.dados_processados || {},
+                    estatisticas: response.data.estatisticas || {},
+                    lojas_processadas: response.data.lojas_processadas || [],
                     dados_brutos: response.data.dados_brutos || []
                 });
                 showNotification('success', 'Dados processados com sucesso!');
@@ -232,6 +232,8 @@ function EcomhubEfetividadeV2Page() {
                     lojas.find(l => l.id.toString() === lojaSelecionada)?.name || 'Loja';
                 const dataStr = `${dataInicio.toLocaleDateString('pt-BR')} - ${dataFim.toLocaleDateString('pt-BR')}`;
                 setNomeAnalise(`${lojaNome} ${dataStr}`);
+            } else {
+                showNotification('error', response.data.message || 'Erro ao processar dados');
             }
         } catch (error) {
             console.error('Erro no processamento:', error);
