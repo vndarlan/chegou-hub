@@ -761,7 +761,12 @@ class EcomhubOrderViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         queryset = EcomhubOrder.objects.select_related('store').all()
 
-        # Filtro por país
+        # Filtro por loja (prioridade sobre país)
+        store_id = self.request.query_params.get('store_id')
+        if store_id and store_id != 'todas':
+            queryset = queryset.filter(store_id=store_id)
+
+        # Filtro por país (mantém compatibilidade)
         country_id = self.request.query_params.get('country_id')
         if country_id and country_id != 'todos':
             queryset = queryset.filter(country_id=country_id)
@@ -815,9 +820,16 @@ class EcomhubOrderViewSet(viewsets.ReadOnlyModelViewSet):
         """
         try:
             country_id = request.query_params.get('country_id')
+            store_id = request.query_params.get('store_id')
 
             # Base queryset
             queryset = EcomhubOrder.objects.all()
+
+            # Filtro por loja (prioridade sobre país)
+            if store_id and store_id != 'todas':
+                queryset = queryset.filter(store_id=store_id)
+
+            # Filtro por país (mantém compatibilidade)
             if country_id and country_id != 'todos':
                 queryset = queryset.filter(country_id=country_id)
 
