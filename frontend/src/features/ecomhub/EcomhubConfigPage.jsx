@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Settings,
   Plus,
-  RefreshCw,
   Loader2,
   CheckCircle2,
   AlertCircle,
@@ -191,37 +190,20 @@ function EcomhubConfigPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchStores}
-            disabled={loading}
-            className="border-border bg-background text-foreground hover:bg-accent"
-          >
-            {loading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4 mr-2" />
-            )}
-            Atualizar
-          </Button>
-
-          <Button
-            size="sm"
-            onClick={() => setModalAdd(true)}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Adicionar Nova Loja
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          onClick={() => setModalAdd(true)}
+          className="bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Adicionar Nova Loja
+        </Button>
       </div>
 
       {/* Lista de Lojas */}
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-card-foreground">Lojas Cadastradas</CardTitle>
+          <CardTitle className="text-base font-medium text-card-foreground">Lojas Cadastradas</CardTitle>
           <CardDescription className="text-muted-foreground">
             {stores.length} {stores.length === 1 ? 'loja configurada' : 'lojas configuradas'}
           </CardDescription>

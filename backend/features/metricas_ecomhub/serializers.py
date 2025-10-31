@@ -306,7 +306,7 @@ class EcomhubAlertConfigSerializer(serializers.ModelSerializer):
             'business_hours_only',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'status', 'created_at', 'updated_at']
 
 
 class DashboardSerializer(serializers.Serializer):
