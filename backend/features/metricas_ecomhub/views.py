@@ -966,16 +966,16 @@ class EcomhubAlertConfigViewSet(viewsets.ModelViewSet):
 
     def get_object(self):
         """Permite buscar por status ao invés de ID, criando automaticamente se não existir"""
-        pk = self.kwargs.get('pk')
+        status_value = self.kwargs.get(self.lookup_field)
 
         # Se é um número, busca por ID normalmente
-        if pk and pk.isdigit():
+        if status_value and status_value.isdigit():
             return super().get_object()
 
         # Se não, busca por status (ou cria se não existir)
         # Usar get_or_create para evitar IntegrityError
         config, created = EcomhubAlertConfig.objects.get_or_create(
-            status=pk,
+            status=status_value,
             defaults={
                 'yellow_threshold_hours': 168,   # 7 dias
                 'red_threshold_hours': 336,      # 14 dias
@@ -983,7 +983,7 @@ class EcomhubAlertConfigViewSet(viewsets.ModelViewSet):
             }
         )
         if created:
-            logger.info(f"✓ Config criada automaticamente para status: {pk}")
+            logger.info(f"✓ Config criada automaticamente para status: {status_value}")
         return config
 
 
