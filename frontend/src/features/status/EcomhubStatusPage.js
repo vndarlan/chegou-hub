@@ -11,6 +11,11 @@ import {
 import axios from 'axios';
 import { getCSRFToken } from '../../utils/csrf';
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import {
+    ChartContainer,
+    ChartLegend,
+    ChartLegendContent,
+} from '../../components/ui/chart';
 
 // shadcn/ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -68,9 +73,9 @@ function EcomhubStatusPage() {
 
     // Estados principais
     const [abaSelecionada, setAbaSelecionada] = useState('dashboard');
-    const [paisSelecionado, setPaisSelecionado] = useState('todos');
-    const [paisesDisponiveis, setPaisesDisponiveis] = useState([
-        { id: 'todos', name: 'Todos os Países' }
+    const [lojaSelecionada, setLojaSelecionada] = useState('todas');
+    const [lojasDisponiveis, setLojasDisponiveis] = useState([
+        { id: 'todas', name: 'Todas as Lojas', display: 'Todas as Lojas' }
     ]);
 
     // Dashboard
@@ -116,7 +121,7 @@ function EcomhubStatusPage() {
 
     // ======================== FUNÇÕES DE API ========================
 
-    const fetchPaisesDisponiveis = async () => {
+    const fetchLojasDisponiveis = async () => {
         try {
             const response = await axios.get('/metricas/ecomhub/stores/', {
                 headers: { 'X-CSRFToken': getCSRFToken() }
@@ -124,25 +129,27 @@ function EcomhubStatusPage() {
 
             const stores = response.data;
 
-            // Extrair países únicos
-            const paisesUnicos = new Set();
-            stores.forEach(store => {
-                if (store.country_id && store.country_name) {
-                    paisesUnicos.add(JSON.stringify({
-                        id: store.country_id.toString(),
-                        name: store.country_name
-                    }));
-                }
-            });
+            // Mapear lojas com formato "Nome da Loja (País)"
+            const lojas = stores
+                .filter(store => store.is_active)
+                .map(store => ({
+                    id: store.id.toString(),
+                    name: store.name,
+                    country_name: store.country_name,
+                    display: `${store.name} (${store.country_name})`
+                }));
 
-            const paises = Array.from(paisesUnicos).map(p => JSON.parse(p));
-
-            setPaisesDisponiveis([
-                { id: 'todos', name: 'Todos os Países' },
-                ...paises
+            setLojasDisponiveis([
+                { id: 'todas', name: 'Todas as Lojas', display: 'Todas as Lojas' },
+                ...lojas
             ]);
         } catch (error) {
-            console.error('Erro ao buscar países:', error);
+            console.error('Erro ao buscar lojas:', error);
+            toast({
+                title: "Erro ao carregar lojas",
+                description: "Não foi possível carregar a lista de lojas disponíveis",
+                variant: "destructive"
+            });
         }
     };
 
@@ -150,8 +157,8 @@ function EcomhubStatusPage() {
         setLoadingDashboard(true);
         try {
             const params = {};
-            if (paisSelecionado !== 'todos') {
-                params.country_id = paisSelecionado;
+            if (lojaSelecionada !== 'todas') {
+                params.store_id = lojaSelecionada;
             }
 
             const response = await axios.get('/metricas/ecomhub/orders/dashboard/', {
@@ -171,7 +178,7 @@ function EcomhubStatusPage() {
         } finally {
             setLoadingDashboard(false);
         }
-    }, [paisSelecionado, toast]);
+    }, [lojaSelecionada, toast]);
 
     const fetchPedidos = useCallback(async () => {
         setLoadingPedidos(true);
@@ -182,7 +189,7 @@ function EcomhubStatusPage() {
                 ordering: ordenacao
             };
 
-            if (paisSelecionado !== 'todos') params.country_id = paisSelecionado;
+            if (lojaSelecionada !== 'todas') params.store_id = lojaSelecionada;
             if (statusFiltro !== 'todos') params.status = statusFiltro;
             if (nivelAlertaFiltro !== 'todos') params.alert_level = nivelAlertaFiltro;
             if (buscaTexto.trim()) params.search = buscaTexto.trim();
@@ -205,7 +212,7 @@ function EcomhubStatusPage() {
         } finally {
             setLoadingPedidos(false);
         }
-    }, [paisSelecionado, statusFiltro, nivelAlertaFiltro, buscaTexto, ordenacao, paginaAtual, toast]);
+    }, [lojaSelecionada, statusFiltro, nivelAlertaFiltro, buscaTexto, ordenacao, paginaAtual, toast]);
 
     const fetchHistorico = async (orderId) => {
         setLoadingHistorico(true);
@@ -430,15 +437,15 @@ function EcomhubStatusPage() {
                     <p className="text-xs text-muted-foreground mt-1">Monitoramento em tempo real</p>
                 </div>
                 <div className="flex gap-2">
-                    <Select value={paisSelecionado} onValueChange={setPaisSelecionado}>
-                        <SelectTrigger className="w-48">
-                            <Globe className="h-4 w-4 mr-2" />
+                    <Select value={lojaSelecionada} onValueChange={setLojaSelecionada}>
+                        <SelectTrigger className="w-64">
+                            <ShoppingBag className="h-4 w-4 mr-2" />
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            {paisesDisponiveis.map(pais => (
-                                <SelectItem key={pais.id} value={pais.id}>
-                                    {pais.name}
+                            {lojasDisponiveis.map(loja => (
+                                <SelectItem key={loja.id} value={loja.id}>
+                                    {loja.display}
                                 </SelectItem>
                             ))}
                         </SelectContent>
@@ -561,25 +568,20 @@ function EcomhubStatusPage() {
                 name: STATUS_MAP[status]?.label || status,
                 value: count,
                 status: status,
-                percentage: ((count / dadosDashboard.total_active_orders) * 100).toFixed(1)
+                fill: STATUS_MAP[status]?.chartColor || '#6b7280'
             }))
             .sort((a, b) => b.value - a.value);
 
         if (chartData.length === 0) return null;
 
-        const CustomTooltip = ({ active, payload }) => {
-            if (active && payload && payload.length) {
-                return (
-                    <div className="bg-background border border-border p-3 rounded-lg shadow-lg">
-                        <p className="font-medium">{payload[0].payload.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                            {payload[0].value} pedidos ({payload[0].payload.percentage}%)
-                        </p>
-                    </div>
-                );
-            }
-            return null;
-        };
+        // Criar chartConfig dinamicamente baseado nos status
+        const chartConfig = {};
+        chartData.forEach((item) => {
+            chartConfig[item.status] = {
+                label: item.name,
+                color: item.fill
+            };
+        });
 
         return (
             <Card>
@@ -588,87 +590,35 @@ function EcomhubStatusPage() {
                         <PieChart className="h-4 w-4 text-primary" />
                         <CardTitle className="text-base">Distribuição de Status</CardTitle>
                     </div>
-                    <CardDescription className="text-xs">Visualização da distribuição dos pedidos por status</CardDescription>
+                    <CardDescription className="text-xs">
+                        Visualização da distribuição dos pedidos por status
+                    </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-2">
-                    <ResponsiveContainer width="100%" height={240}>
+                    <ChartContainer
+                        config={chartConfig}
+                        className="mx-auto aspect-square max-h-[300px]"
+                    >
                         <RechartsPie>
                             <Pie
                                 data={chartData}
+                                dataKey="value"
+                                nameKey="name"
                                 cx="50%"
                                 cy="50%"
-                                labelLine={false}
-                                label={({ percentage }) => `${percentage}%`}
                                 outerRadius={90}
-                                fill="#8884d8"
-                                dataKey="value"
-                            >
-                                {chartData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={STATUS_MAP[entry.status]?.chartColor || '#6b7280'} />
-                                ))}
-                            </Pie>
-                            <Tooltip content={<CustomTooltip />} />
-                            <Legend
-                                verticalAlign="bottom"
-                                height={30}
-                                formatter={(value) => <span className="text-xs">{value}</span>}
+                            />
+                            <ChartLegend
+                                content={<ChartLegendContent nameKey="name" />}
+                                className="-translate-y-2 flex-wrap gap-2 [&>ul]:justify-center"
                             />
                         </RechartsPie>
-                    </ResponsiveContainer>
+                    </ChartContainer>
                 </CardContent>
             </Card>
         );
     };
 
-    const renderTop5Status = () => {
-        if (!dadosDashboard?.by_status) return null;
-
-        const top5 = Object.entries(dadosDashboard.by_status)
-            .filter(([_, count]) => count > 0)
-            .map(([status, count]) => ({
-                status,
-                count,
-                config: STATUS_MAP[status] || { label: status, color: 'bg-gray-500', icon: Package, chartColor: '#6b7280' },
-                percentage: ((count / dadosDashboard.total_active_orders) * 100).toFixed(1)
-            }))
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 5);
-
-        if (top5.length === 0) return null;
-
-        return (
-            <Card>
-                <CardHeader className="pb-2">
-                    <div className="flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-base">Top 5 Status</CardTitle>
-                    </div>
-                    <CardDescription className="text-xs">Status com mais pedidos ativos</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                    {top5.map((item, index) => {
-                        const IconComponent = item.config.icon;
-                        return (
-                            <div key={item.status} className="space-y-1">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                                        <div className={`w-2 h-2 rounded-full flex-shrink-0`} style={{ backgroundColor: item.config.chartColor }}></div>
-                                        <IconComponent className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                                        <span className="text-xs font-medium truncate">{item.config.label}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-shrink-0">
-                                        <span className="text-sm font-bold">{item.count}</span>
-                                        <Badge variant="secondary" className="text-xs">{item.percentage}%</Badge>
-                                    </div>
-                                </div>
-                                <Progress value={parseFloat(item.percentage)} className="h-1.5" />
-                            </div>
-                        );
-                    })}
-                </CardContent>
-            </Card>
-        );
-    };
 
     const renderTempoMedioStatus = () => {
         if (!dadosDashboard?.avg_time_per_status) return null;
@@ -1200,7 +1150,7 @@ function EcomhubStatusPage() {
     // ======================== EFEITOS ========================
 
     useEffect(() => {
-        fetchPaisesDisponiveis();
+        fetchLojasDisponiveis();
     }, []);
 
     useEffect(() => {
@@ -1299,10 +1249,9 @@ function EcomhubStatusPage() {
                         <div className="space-y-3 animate-in fade-in duration-500">
                             {renderCardMetricas()}
 
-                            {/* Gráfico de Pizza + Top 5 Status */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                            {/* Gráfico de Pizza */}
+                            <div className="mb-4">
                                 {renderGraficoPizza()}
-                                {renderTop5Status()}
                             </div>
 
                             {renderTempoMedioStatus()}
