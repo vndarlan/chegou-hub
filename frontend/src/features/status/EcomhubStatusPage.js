@@ -422,25 +422,11 @@ function EcomhubStatusPage() {
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
     const renderHeader = () => {
-        const tempoDecorrido = Math.floor((new Date() - ultimaAtualizacao) / 1000);
-        const minutosDecorridos = Math.floor(tempoDecorrido / 60);
-        const segundosDecorridos = tempoDecorrido % 60;
-
-        let tempoTexto = '';
-        if (minutosDecorridos > 0) {
-            tempoTexto = `${minutosDecorridos}m ${segundosDecorridos}s atrás`;
-        } else {
-            tempoTexto = `${segundosDecorridos}s atrás`;
-        }
-
         return (
             <div className="flex items-center justify-between mb-4">
                 <div>
                     <h1 className="text-xl font-bold">Status Tracking ECOMHUB</h1>
-                    <div className="flex items-center gap-2 mt-1">
-                        <p className="text-xs text-muted-foreground">Monitoramento em tempo real</p>
-                        <span className="text-xs text-muted-foreground">• Última atualização: {tempoTexto}</span>
-                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Monitoramento em tempo real</p>
                 </div>
                 <div className="flex gap-2">
                     <Select value={paisSelecionado} onValueChange={setPaisSelecionado}>
@@ -760,84 +746,81 @@ function EcomhubStatusPage() {
     };
 
     const renderFiltrosPedidos = () => (
-        <Card className="mb-4">
-            <CardHeader>
-                <CardTitle className="text-sm">Filtros</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                    <div>
-                        <Label className="text-xs">Status</Label>
-                        <Select value={statusFiltro} onValueChange={setStatusFiltro}>
-                            <SelectTrigger className="h-8">
-                                <SelectValue placeholder="Todos" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="todos">Todos os Status</SelectItem>
-                                {Object.entries(STATUS_MAP).map(([status, config]) => (
-                                    <SelectItem key={status} value={status}>
-                                        {config.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+        <div className="flex flex-row gap-4 items-center mb-4">
+            {/* Status */}
+            <Select
+                value={statusFiltro}
+                onValueChange={(value) => {
+                    setStatusFiltro(value);
+                    setPaginaAtual(1);
+                }}
+            >
+                <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Todos os Status" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="todos">Todos os Status</SelectItem>
+                    {Object.entries(STATUS_MAP).map(([status, config]) => (
+                        <SelectItem key={status} value={status}>
+                            {config.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
 
-                    <div>
-                        <Label className="text-xs">Nível de Alerta</Label>
-                        <Select value={nivelAlertaFiltro} onValueChange={setNivelAlertaFiltro}>
-                            <SelectTrigger className="h-8">
-                                <SelectValue placeholder="Todos" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="todos">Todos os Níveis</SelectItem>
-                                {Object.entries(NIVEL_ALERTA_CONFIG).map(([nivel, config]) => (
-                                    <SelectItem key={nivel} value={nivel}>
-                                        {config.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+            {/* Nível de Alerta */}
+            <Select
+                value={nivelAlertaFiltro}
+                onValueChange={(value) => {
+                    setNivelAlertaFiltro(value);
+                    setPaginaAtual(1);
+                }}
+            >
+                <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Todos os Níveis" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="todos">Todos os Níveis</SelectItem>
+                    {Object.entries(NIVEL_ALERTA_CONFIG).map(([nivel, config]) => (
+                        <SelectItem key={nivel} value={nivel}>
+                            {config.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
 
-                    <div>
-                        <Label className="text-xs">Buscar</Label>
-                        <Input
-                            placeholder="Cliente ou pedido..."
-                            value={buscaTexto}
-                            onChange={(e) => setBuscaTexto(e.target.value)}
-                            className="h-8"
-                        />
-                    </div>
+            {/* Busca */}
+            <div className="flex-1">
+                <Input
+                    placeholder="Cliente ou pedido..."
+                    value={buscaTexto}
+                    onChange={(e) => {
+                        setBuscaTexto(e.target.value);
+                        setPaginaAtual(1);
+                    }}
+                    className="w-full"
+                />
+            </div>
 
-                    <div>
-                        <Label className="text-xs">Ordenar por</Label>
-                        <Select value={ordenacao} onValueChange={setOrdenacao}>
-                            <SelectTrigger className="h-8">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="-time_in_status_hours">Tempo no Status (desc)</SelectItem>
-                                <SelectItem value="time_in_status_hours">Tempo no Status (asc)</SelectItem>
-                                <SelectItem value="-date">Data (mais recente)</SelectItem>
-                                <SelectItem value="date">Data (mais antigo)</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-
-                <div className="flex gap-2">
-                    <Button size="sm" onClick={() => { setPaginaAtual(1); fetchPedidos(); }}>
-                        <Search className="h-3 w-3 mr-1" />
-                        Aplicar Filtros
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={limparFiltros}>
-                        <RotateCcw className="h-3 w-3 mr-1" />
-                        Limpar
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
+            {/* Ordenar por */}
+            <Select
+                value={ordenacao}
+                onValueChange={(value) => {
+                    setOrdenacao(value);
+                    setPaginaAtual(1);
+                }}
+            >
+                <SelectTrigger className="w-[220px]">
+                    <SelectValue placeholder="Ordenar por" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="-time_in_status_hours">Tempo no Status (desc)</SelectItem>
+                    <SelectItem value="time_in_status_hours">Tempo no Status (asc)</SelectItem>
+                    <SelectItem value="-date">Data (mais recente)</SelectItem>
+                    <SelectItem value="date">Data (mais antigo)</SelectItem>
+                </SelectContent>
+            </Select>
+        </div>
     );
 
     const renderTabelaPedidos = () => (
