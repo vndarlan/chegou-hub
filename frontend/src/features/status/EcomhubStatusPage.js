@@ -607,6 +607,7 @@ function EcomhubStatusPage() {
                                 cx="50%"
                                 cy="50%"
                                 outerRadius={90}
+                                label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
                             />
                             <ChartLegend
                                 content={<ChartLegendContent nameKey="name" />}
@@ -635,7 +636,7 @@ function EcomhubStatusPage() {
         if (statusComTempo.length === 0) return null;
 
         return (
-            <Card className="mb-4">
+            <Card>
                 <CardHeader className="pb-2">
                     <div className="flex items-center gap-2">
                         <Timer className="h-4 w-4 text-primary" />
@@ -1249,12 +1250,12 @@ function EcomhubStatusPage() {
                         <div className="space-y-3 animate-in fade-in duration-500">
                             {renderCardMetricas()}
 
-                            {/* Gráfico de Pizza */}
-                            <div className="mb-4">
+                            {/* Gráfico de Pizza e Tempo Médio - Lado a Lado */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                                 {renderGraficoPizza()}
+                                {renderTempoMedioStatus()}
                             </div>
 
-                            {renderTempoMedioStatus()}
                             {renderGargalos()}
 
                             {dadosDashboard?.last_sync && (
