@@ -370,80 +370,80 @@ function EcomhubEfetividadeV2Page() {
             )}
 
             <CardHeader>
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-3">
                     <Filter className="h-5 w-5 text-primary" />
                     <div>
                         <CardTitle className="text-card-foreground">Configuração</CardTitle>
                         <CardDescription className="text-muted-foreground">Selecione o período e execute</CardDescription>
                     </div>
                 </div>
+            </CardHeader>
 
-                <div className="flex flex-col gap-4">
-                    {/* Presets de período */}
-                    <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">Períodos Rápidos:</Label>
-                        <div className="flex gap-2">
-                            <Button
-                                onClick={() => aplicarPreset('semana')}
-                                variant={periodoPreset === 'semana' ? 'default' : 'outline'}
-                                size="sm"
-                                className="text-xs"
-                            >
-                                Última Semana
-                            </Button>
-                            <Button
-                                onClick={() => aplicarPreset('mes')}
-                                variant={periodoPreset === 'mes' ? 'default' : 'outline'}
-                                size="sm"
-                                className="text-xs"
-                            >
-                                Último Mês
-                            </Button>
-                            <Button
-                                onClick={() => aplicarPreset('3meses')}
-                                variant={periodoPreset === '3meses' ? 'default' : 'outline'}
-                                size="sm"
-                                className="text-xs"
-                            >
-                                Últimos 3 Meses
-                            </Button>
-                        </div>
-                    </div>
-
-                    {/* Calendário com range */}
-                    <div className="flex items-center justify-center">
-                        <Calendar
-                            mode="range"
-                            defaultMonth={dateRange?.from}
-                            selected={dateRange}
-                            onSelect={(range) => {
-                                setDateRange(range);
-                                setPeriodoPreset(null); // Limpar preset ao selecionar manualmente
-                            }}
-                            numberOfMonths={isMobile ? 1 : 2}
-                            disabled={loadingProcessar}
-                            className="rounded-lg border border-border shadow-sm"
-                        />
-                    </div>
-
-                    {/* Botão Processar centralizado */}
-                    <div className="flex justify-center">
+            <CardContent className="space-y-6">
+                {/* Presets de período */}
+                <div className="space-y-2">
+                    <Label className="text-sm font-medium">Períodos Rápidos:</Label>
+                    <div className="flex gap-2 flex-wrap">
                         <Button
-                            onClick={processarDados}
-                            disabled={!dateRange?.from || !dateRange?.to || loadingProcessar}
-                            size="lg"
-                            className="min-w-48 bg-primary text-primary-foreground hover:bg-primary/90"
+                            onClick={() => aplicarPreset('semana')}
+                            variant={periodoPreset === 'semana' ? 'default' : 'outline'}
+                            size="sm"
+                            className="text-xs"
                         >
-                            {loadingProcessar ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                                <Search className="h-4 w-4 mr-2" />
-                            )}
-                            {loadingProcessar ? 'Processando...' : 'Processar'}
+                            Última Semana
+                        </Button>
+                        <Button
+                            onClick={() => aplicarPreset('mes')}
+                            variant={periodoPreset === 'mes' ? 'default' : 'outline'}
+                            size="sm"
+                            className="text-xs"
+                        >
+                            Último Mês
+                        </Button>
+                        <Button
+                            onClick={() => aplicarPreset('3meses')}
+                            variant={periodoPreset === '3meses' ? 'default' : 'outline'}
+                            size="sm"
+                            className="text-xs"
+                        >
+                            Últimos 3 Meses
                         </Button>
                     </div>
                 </div>
-            </CardHeader>
+
+                {/* Calendário com range */}
+                <div className="flex items-center justify-center">
+                    <Calendar
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={(range) => {
+                            setDateRange(range);
+                            setPeriodoPreset(null); // Limpar preset ao selecionar manualmente
+                        }}
+                        numberOfMonths={isMobile ? 1 : 2}
+                        disabled={loadingProcessar}
+                        className="rounded-lg border border-border shadow-sm"
+                    />
+                </div>
+
+                {/* Botão Processar centralizado */}
+                <div className="flex justify-center">
+                    <Button
+                        onClick={processarDados}
+                        disabled={!dateRange?.from || !dateRange?.to || loadingProcessar}
+                        size="lg"
+                        className="min-w-48 bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                        {loadingProcessar ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <Search className="h-4 w-4 mr-2" />
+                        )}
+                        {loadingProcessar ? 'Processando...' : 'Processar'}
+                    </Button>
+                </div>
+            </CardContent>
         </Card>
     );
 
