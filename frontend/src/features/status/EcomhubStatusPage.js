@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Progress } from '../../components/ui/progress';
+import { Checkbox } from '../../components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { useToast } from '../../components/ui/use-toast';
@@ -45,6 +46,21 @@ const NIVEL_ALERTA_CONFIG = {
     'yellow': { label: 'Atenção', variant: 'warning', icon: Clock },
     'red': { label: 'Urgente', variant: 'destructive', icon: AlertCircle },
     'critical': { label: 'Crítico', variant: 'destructive', icon: XCircle }
+};
+
+// Helper para converter classes Tailwind em cores hexadecimais
+const getStatusColorHex = (status) => {
+    const colorMap = {
+        'bg-blue-500': '#3b82f6',
+        'bg-blue-600': '#2563eb',
+        'bg-indigo-500': '#6366f1',
+        'bg-purple-500': '#a855f7',
+        'bg-purple-600': '#9333ea',
+        'bg-orange-500': '#f97316',
+        'bg-yellow-500': '#eab308',
+        'bg-red-500': '#ef4444'
+    };
+    return colorMap[STATUS_MAP[status]?.color] || '#6b7280';
 };
 
 function EcomhubStatusPage() {
@@ -177,7 +193,7 @@ function EcomhubStatusPage() {
 
             setListaPedidos(response.data.results || []);
             setTotalItens(response.data.count || 0);
-            setTotalPaginas(Math.ceil((response.data.count || 0) / 20));
+            setTotalPaginas(Math.ceil((response.data.count || 0) / 10));
         } catch (error) {
             console.error('Erro ao buscar pedidos:', error);
             toast({
@@ -1043,140 +1059,144 @@ function EcomhubStatusPage() {
         </Dialog>
     );
 
-    const renderConfiguracoes = () => (
-        <Card>
-            <CardHeader className="pb-2">
-                <CardTitle className="text-base">Configurações de Alertas</CardTitle>
-                <CardDescription className="text-xs">Defina os limites de tempo para cada status (em horas). Os valores devem ser: Atenção &lt; Urgente &lt; Crítico</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {loadingConfigs ? (
-                    <div className="flex items-center justify-center py-6">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    </div>
-                ) : configsAlerta.length > 0 ? (
-                    <div className="space-y-3">
-                        {configsAlerta.map(config => {
-                            const statusConfig = STATUS_MAP[config.status];
-                            const StatusIcon = statusConfig?.icon || Settings;
-                            const isSaving = savingConfig[config.status];
-                            const hasChanges = editedConfigs[config.status] !== undefined;
+    const renderConfiguracoes = () => {
+        const isSaving = (status) => savingConfig[status];
+        const hasChanges = (status) => editedConfigs[status] !== undefined;
 
-                            return (
-                                <div key={config.status} className="p-3 border rounded-lg hover:border-primary/50">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <StatusIcon className="h-4 w-4 text-primary" />
-                                        <h4 className="text-sm font-medium">
-                                            {statusConfig?.label || config.status}
-                                        </h4>
-                                        {hasChanges && (
-                                            <Badge variant="outline" className="ml-auto text-xs">Modificado</Badge>
-                                        )}
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-2 mb-2">
-                                        <div>
-                                            <Label className="text-xs flex items-center gap-1">
-                                                <Clock className="h-3 w-3 text-yellow-600" />
-                                                🟡 Atenção (h)
-                                            </Label>
-                                            <Input
-                                                type="number"
-                                                min="1"
-                                                value={getConfigValue(config, 'yellow_threshold_hours')}
-                                                onChange={(e) => handleConfigChange(config.status, 'yellow_threshold_hours', e.target.value)}
-                                                className="h-8 mt-1 text-xs"
-                                                disabled={isSaving}
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label className="text-xs flex items-center gap-1">
-                                                <AlertCircle className="h-3 w-3 text-orange-600" />
-                                                🟠 Urgente (h)
-                                            </Label>
-                                            <Input
-                                                type="number"
-                                                min="1"
-                                                value={getConfigValue(config, 'red_threshold_hours')}
-                                                onChange={(e) => handleConfigChange(config.status, 'red_threshold_hours', e.target.value)}
-                                                className="h-8 mt-1 text-xs"
-                                                disabled={isSaving}
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label className="text-xs flex items-center gap-1">
-                                                <XCircle className="h-3 w-3 text-red-600" />
-                                                🔴 Crítico (h)
-                                            </Label>
-                                            <Input
-                                                type="number"
-                                                min="1"
-                                                value={getConfigValue(config, 'critical_threshold_hours')}
-                                                onChange={(e) => handleConfigChange(config.status, 'critical_threshold_hours', e.target.value)}
-                                                className="h-8 mt-1 text-xs"
-                                                disabled={isSaving}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <Button
-                                            size="sm"
-                                            onClick={() => atualizarConfig(config.status, {
-                                                yellow_threshold_hours: getConfigValue(config, 'yellow_threshold_hours'),
-                                                red_threshold_hours: getConfigValue(config, 'red_threshold_hours'),
-                                                critical_threshold_hours: getConfigValue(config, 'critical_threshold_hours'),
-                                                business_hours_only: getConfigValue(config, 'business_hours_only') ?? true
-                                            })}
-                                            disabled={isSaving || !hasChanges}
-                                        >
-                                            {isSaving ? (
-                                                <>
-                                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                                    Salvando...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                                    Salvar
-                                                </>
-                                            )}
-                                        </Button>
-                                        {hasChanges && (
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => {
-                                                    setEditedConfigs(prev => {
-                                                        const newState = { ...prev };
-                                                        delete newState[config.status];
-                                                        return newState;
-                                                    });
-                                                }}
-                                                disabled={isSaving}
-                                            >
-                                                <RotateCcw className="h-3 w-3 mr-1" />
-                                                Resetar
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
+        return (
+            <Card>
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Configurações de Alertas por Status</CardTitle>
+                    <CardDescription className="text-xs">
+                        Configure os limites de tempo para cada nível de alerta. Os valores devem seguir: Atenção &lt; Urgente &lt; Crítico
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="rounded-md border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="hover:bg-transparent">
+                                    <TableHead className="w-[180px]">Status</TableHead>
+                                    <TableHead className="text-center">🟡 Atenção (h)</TableHead>
+                                    <TableHead className="text-center">🟠 Urgente (h)</TableHead>
+                                    <TableHead className="text-center">🔴 Crítico (h)</TableHead>
+                                    <TableHead className="text-center">Dias Úteis</TableHead>
+                                    <TableHead className="text-center w-[100px]">Ações</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {configsAlerta.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                                            Nenhuma configuração encontrada
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    configsAlerta.map((config) => {
+                                        const statusInfo = STATUS_MAP[config.status];
+                                        const saving = isSaving(config.status);
+                                        const changed = hasChanges(config.status);
+
+                                        return (
+                                            <TableRow key={config.status}>
+                                                <TableCell className="font-medium">
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge
+                                                            variant="outline"
+                                                            style={{
+                                                                borderColor: getStatusColorHex(config.status),
+                                                                color: getStatusColorHex(config.status)
+                                                            }}
+                                                            className="text-xs"
+                                                        >
+                                                            {statusInfo?.label || config.status}
+                                                        </Badge>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Input
+                                                        type="number"
+                                                        value={getConfigValue(config, 'yellow_threshold_hours')}
+                                                        onChange={(e) => handleConfigChange(config.status, 'yellow_threshold_hours', e.target.value)}
+                                                        className={`h-8 text-xs text-center ${changed ? 'border-yellow-500 ring-1 ring-yellow-500' : ''}`}
+                                                        disabled={saving}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Input
+                                                        type="number"
+                                                        value={getConfigValue(config, 'red_threshold_hours')}
+                                                        onChange={(e) => handleConfigChange(config.status, 'red_threshold_hours', e.target.value)}
+                                                        className={`h-8 text-xs text-center ${changed ? 'border-yellow-500 ring-1 ring-yellow-500' : ''}`}
+                                                        disabled={saving}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Input
+                                                        type="number"
+                                                        value={getConfigValue(config, 'critical_threshold_hours')}
+                                                        onChange={(e) => handleConfigChange(config.status, 'critical_threshold_hours', e.target.value)}
+                                                        className={`h-8 text-xs text-center ${changed ? 'border-yellow-500 ring-1 ring-yellow-500' : ''}`}
+                                                        disabled={saving}
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <Checkbox
+                                                        checked={Boolean(getConfigValue(config, 'business_hours_only') ?? true)}
+                                                        onCheckedChange={(checked) => handleConfigChange(config.status, 'business_hours_only', checked)}
+                                                        disabled={saving}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex gap-1 justify-center">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => atualizarConfig(config.status, {
+                                                                yellow_threshold_hours: getConfigValue(config, 'yellow_threshold_hours'),
+                                                                red_threshold_hours: getConfigValue(config, 'red_threshold_hours'),
+                                                                critical_threshold_hours: getConfigValue(config, 'critical_threshold_hours'),
+                                                                business_hours_only: getConfigValue(config, 'business_hours_only') ?? true
+                                                            })}
+                                                            disabled={saving || !changed}
+                                                            className="h-7 px-2"
+                                                        >
+                                                            {saving ? (
+                                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                                            ) : (
+                                                                <CheckCircle className="h-3 w-3" />
+                                                            )}
+                                                        </Button>
+                                                        {changed && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                onClick={() => {
+                                                                    setEditedConfigs(prev => {
+                                                                        const newConfigs = { ...prev };
+                                                                        delete newConfigs[config.status];
+                                                                        return newConfigs;
+                                                                    });
+                                                                }}
+                                                                disabled={saving}
+                                                                className="h-7 px-2"
+                                                            >
+                                                                <XCircle className="h-3 w-3" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })
+                                )}
+                            </TableBody>
+                        </Table>
                     </div>
-                ) : (
-                    <div className="text-center py-6 text-muted-foreground">
-                        <Settings className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                        <p className="text-sm mb-3">Configurações de alerta não disponíveis</p>
-                        <p className="text-xs">Limites padrão:</p>
-                        <div className="mt-2 space-y-1 text-xs">
-                            <div>🟡 Atenção: 168h (7 dias)</div>
-                            <div>🟠 Urgente: 336h (14 dias)</div>
-                            <div>🔴 Crítico: 504h (21 dias)</div>
-                        </div>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    );
+                </CardContent>
+            </Card>
+        );
+    };
 
     // ======================== EFEITOS ========================
 
@@ -1227,15 +1247,6 @@ function EcomhubStatusPage() {
             {renderHeader()}
             {renderAlertasCriticos()}
             {renderAlertaStatusDesconhecidos()}
-
-            {/* Aviso sobre pedidos finalizados */}
-            <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
-                <Info className="h-4 w-4 text-blue-600" />
-                <AlertDescription className="text-sm text-blue-800 dark:text-blue-200">
-                    <strong>Informação:</strong> Esta página exibe apenas pedidos <strong>ATIVOS</strong>.
-                    Pedidos finalizados (entregues, cancelados ou devolvidos) não são sincronizados e não aparecem nas listagens.
-                </AlertDescription>
-            </Alert>
 
             <Tabs value={abaSelecionada} onValueChange={setAbaSelecionada}>
                 <TabsList className="grid w-fit grid-cols-4">
@@ -1314,16 +1325,24 @@ function EcomhubStatusPage() {
                 </TabsContent>
 
                 <TabsContent value="gerenciar-status" className="space-y-3">
+                    {/* Informação sobre pedidos ativos */}
+                    <Alert className="mb-4 border-muted">
+                        <Info className="h-4 w-4" />
+                        <AlertDescription className="text-xs">
+                            Esta página exibe apenas pedidos <strong>ATIVOS</strong>. Pedidos finalizados (entregues, cancelados ou devolvidos) não são sincronizados.
+                        </AlertDescription>
+                    </Alert>
+
                     {/* Card: Guia de Referência */}
-                    <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950">
-                        <CardHeader>
+                    <Card className="border-muted">
+                        <CardHeader className="pb-2">
                             <div className="flex items-center gap-2">
                                 <Info className="h-5 w-5 text-blue-600" />
                                 <CardTitle>Guia de Referência de Status</CardTitle>
                             </div>
                             <CardDescription>Mapeamento oficial da API ECOMHUB para traduções em português</CardDescription>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="space-y-3">
                             {statusReferenceMap ? (
                                 <div className="space-y-6">
                                     {/* Status Ativos */}
