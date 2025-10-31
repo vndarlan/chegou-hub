@@ -1,8 +1,12 @@
 /* Customização react-datepicker - Tema Laranja e Branco */
 
 /* Força meses lado a lado */
+.react-datepicker {
+  display: flex !important;
+}
+
 .react-datepicker__month-container {
-  float: left;
+  display: inline-block !important;
 }
 
 /* ============================================

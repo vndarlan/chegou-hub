@@ -106,49 +106,7 @@ function EcomhubEfetividadeV2Page() {
     };
 
     const processarDados = async () => {
-        if (!dateRange?.from || !dateRange?.to) {
-            showNotification('error', 'Selecione o período completo');
-            return;
-        }
-
-        if (dateRange.from > dateRange.to) {
-            showNotification('error', 'Data de início deve ser anterior à data fim');
-            return;
-        }
-
-        setLoadingProcessar(true);
-
-        try {
-            const payload = {
-                data_inicio: dateRange.from.toISOString().split('T')[0],
-                data_fim: dateRange.to.toISOString().split('T')[0],
-                store_id: lojaSelecionada === 'todas' ? null : lojaSelecionada
-            };
-
-            const response = await axios.post('/metricas/ecomhub/efetividade-v2/processar_tempo_real/', payload);
-
-            if (response.data.status === 'success') {
-                // Salvar TODA a resposta, não só dados_processados
-                setDadosResultado({
-                    dados_processados: response.data.dados_processados,
-                    estatisticas: response.data.estatisticas,
-                    lojas_processadas: response.data.lojas_processadas,
-                    dados_brutos: response.data.dados_brutos || []
-                });
-                showNotification('success', 'Dados processados com sucesso!');
-
-                const lojaNome = lojaSelecionada === 'todas' ?
-                    'Todas as Lojas' :
-                    lojas.find(l => l.id.toString() === lojaSelecionada)?.name || 'Loja';
-                const dataStr = `${dateRange.from.toLocaleDateString('pt-BR')} - ${dateRange.to.toLocaleDateString('pt-BR')}`;
-                setNomeAnalise(`${lojaNome} ${dataStr}`);
-            }
-        } catch (error) {
-            console.error('Erro no processamento:', error);
-            showNotification('error', `Erro: ${error.response?.data?.message || error.message}`);
-        } finally {
-            setLoadingProcessar(false);
-        }
+        await processarDadosComRange(dateRange?.from, dateRange?.to);
     };
 
     const salvarAnalise = async () => {
@@ -213,7 +171,7 @@ function EcomhubEfetividadeV2Page() {
         }
     };
 
-    const aplicarPreset = (preset) => {
+    const aplicarPreset = async (preset) => {
         const hoje = new Date();
         const dataInicio = new Date();
 
@@ -233,6 +191,54 @@ function EcomhubEfetividadeV2Page() {
 
         setDateRange({ from: dataInicio, to: hoje });
         setPeriodoPreset(preset);
+
+        // Buscar automaticamente após selecionar preset
+        await processarDadosComRange(dataInicio, hoje);
+    };
+
+    const processarDadosComRange = async (dataInicio, dataFim) => {
+        if (!dataInicio || !dataFim) {
+            showNotification('error', 'Selecione o período completo');
+            return;
+        }
+
+        if (dataInicio > dataFim) {
+            showNotification('error', 'Data de início deve ser anterior à data fim');
+            return;
+        }
+
+        setLoadingProcessar(true);
+
+        try {
+            const payload = {
+                data_inicio: dataInicio.toISOString().split('T')[0],
+                data_fim: dataFim.toISOString().split('T')[0],
+                store_id: lojaSelecionada === 'todas' ? null : lojaSelecionada
+            };
+
+            const response = await axios.post('/metricas/ecomhub/efetividade-v2/processar_tempo_real/', payload);
+
+            if (response.data.status === 'success') {
+                setDadosResultado({
+                    dados_processados: response.data.dados_processados,
+                    estatisticas: response.data.estatisticas,
+                    lojas_processadas: response.data.lojas_processadas,
+                    dados_brutos: response.data.dados_brutos || []
+                });
+                showNotification('success', 'Dados processados com sucesso!');
+
+                const lojaNome = lojaSelecionada === 'todas' ?
+                    'Todas as Lojas' :
+                    lojas.find(l => l.id.toString() === lojaSelecionada)?.name || 'Loja';
+                const dataStr = `${dataInicio.toLocaleDateString('pt-BR')} - ${dataFim.toLocaleDateString('pt-BR')}`;
+                setNomeAnalise(`${lojaNome} ${dataStr}`);
+            }
+        } catch (error) {
+            console.error('Erro no processamento:', error);
+            showNotification('error', `Erro: ${error.response?.data?.message || error.message}`);
+        } finally {
+            setLoadingProcessar(false);
+        }
     };
 
     // ======================== FUNÇÕES AUXILIARES ========================
@@ -358,7 +364,7 @@ function EcomhubEfetividadeV2Page() {
     const renderFormulario = () => (
         <div className="mb-6 relative">
             {loadingProcessar && (
-                <div className="fixed inset-0 bg-background/95 backdrop-blur flex items-center justify-center z-50">
+                <div className="absolute inset-0 bg-background/95 backdrop-blur flex items-center justify-center z-10 rounded-lg">
                     <div className="flex items-center gap-3">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
                         <p className="font-medium text-foreground">Buscando</p>
@@ -430,7 +436,13 @@ function EcomhubEfetividadeV2Page() {
                                         </Button>
                                         <Button
                                             size="sm"
-                                            onClick={() => setOpenPopover(false)}
+                                            onClick={async () => {
+                                                if (dateRange?.from && dateRange?.to) {
+                                                    setOpenPopover(false);
+                                                    setPeriodoPreset(null);
+                                                    await processarDadosComRange(dateRange.from, dateRange.to);
+                                                }
+                                            }}
                                             disabled={!dateRange?.from || !dateRange?.to}
                                         >
                                             Aplicar
@@ -447,28 +459,6 @@ function EcomhubEfetividadeV2Page() {
                             Período selecionado: {format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR })} até {format(dateRange.to, 'dd/MM/yyyy', { locale: ptBR })}
                         </p>
                     )}
-                </div>
-
-                {/* Botão Buscar */}
-                <div className="flex justify-center">
-                    <Button
-                        onClick={processarDados}
-                        disabled={!dateRange?.from || !dateRange?.to || loadingProcessar}
-                        size="lg"
-                        className="min-w-48"
-                    >
-                        {loadingProcessar ? (
-                            <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Buscando
-                            </>
-                        ) : (
-                            <>
-                                <Search className="h-4 w-4 mr-2" />
-                                Buscar
-                            </>
-                        )}
-                    </Button>
                 </div>
             </div>
         </div>
