@@ -178,6 +178,7 @@ function EcomhubStatusPage() {
         try {
             const params = {
                 page: paginaAtual,
+                page_size: 10,
                 ordering: ordenacao
             };
 
@@ -816,8 +817,6 @@ function EcomhubStatusPage() {
                 <SelectContent>
                     <SelectItem value="-time_in_status_hours">Tempo no Status (desc)</SelectItem>
                     <SelectItem value="time_in_status_hours">Tempo no Status (asc)</SelectItem>
-                    <SelectItem value="-date">Data (mais recente)</SelectItem>
-                    <SelectItem value="date">Data (mais antigo)</SelectItem>
                 </SelectContent>
             </Select>
         </div>
