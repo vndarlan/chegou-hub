@@ -5,6 +5,19 @@ Todas as mudanças deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [v1.8.0] - 31/10/2025
+
+### ✨ Novidades
+
+#### 🚨 ESTRUTURA DE PÁGINAS COMPLETAMENTE NOVA
+
+- **[📊 ECOMHUB - NOVA ESTRUTURA COMPLETA]** Sistema de gerenciamento ECOMHUB totalmente reformulado com integração direta à API oficial e 3 páginas especializadas:
+
+  **Páginas criadas:**
+  - **📈 Efetividade V2** - Nova versão do sistema de análise de efetividade com API oficial ECOMHUB
+  - **📦 Status** - Rastreamento e monitoramento de status de pedidos em tempo real
+  - **⚙️ Configuração** - Gerenciamento de lojas e configurações de integração ECOMHUB
+
 ## [v1.7.1] - 23/10/2025
 
 ### 🐛 Correções
