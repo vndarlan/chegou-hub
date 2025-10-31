@@ -476,6 +476,7 @@ def processar_efetividade_v2(
                 'visualizacao_total': [],
                 'stats_total': {}
             },
+            'estatisticas': {},
             'lojas_processadas': lojas_processadas
         }
 
