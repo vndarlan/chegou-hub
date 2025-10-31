@@ -296,13 +296,14 @@ class EcomhubStatusHistorySerializer(serializers.ModelSerializer):
 class EcomhubAlertConfigSerializer(serializers.ModelSerializer):
     """Serializer para configurações de alerta"""
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    business_hours_only = serializers.BooleanField(required=False, default=True)
 
     class Meta:
         model = EcomhubAlertConfig
         fields = [
             'id', 'status', 'status_display',
             'yellow_threshold_hours', 'red_threshold_hours', 'critical_threshold_hours',
-            'business_hours_only',  # NOVO CAMPO
+            'business_hours_only',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']

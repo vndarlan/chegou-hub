@@ -1123,7 +1123,8 @@ function EcomhubStatusPage() {
                                             onClick={() => atualizarConfig(config.status, {
                                                 yellow_threshold_hours: getConfigValue(config, 'yellow_threshold_hours'),
                                                 red_threshold_hours: getConfigValue(config, 'red_threshold_hours'),
-                                                critical_threshold_hours: getConfigValue(config, 'critical_threshold_hours')
+                                                critical_threshold_hours: getConfigValue(config, 'critical_threshold_hours'),
+                                                business_hours_only: getConfigValue(config, 'business_hours_only') ?? true
                                             })}
                                             disabled={isSaving || !hasChanges}
                                         >
