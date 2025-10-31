@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { AppSidebar } from '../components/app-sidebar';
+import AdminRoute from '../components/AdminRoute';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -156,11 +157,11 @@ function WorkspacePage({ setIsLoggedIn }) {
               <Route path="mapa" element={<MapaPage />} />
               <Route path="projetos" element={<ProjetoDashboard />} />
               <Route path="logs" element={<LogsPage />} />
-              <Route path="openai-analytics" element={<OpenAIAnalytics />} />
-              <Route path="metricas/primecod" element={<PrimecodPage />} />
+              <Route path="openai-analytics" element={<AdminRoute><OpenAIAnalytics /></AdminRoute>} />
+              <Route path="metricas/primecod" element={<AdminRoute><PrimecodPage /></AdminRoute>} />
               <Route path="metricas/ecomhub" element={<EcomhubPage />} />
               <Route path="metricas/ecomhub-v2" element={<EcomhubEfetividadeV2Page />} />
-              <Route path="metricas/dropi" element={<DropiPage />} />
+              <Route path="metricas/dropi" element={<AdminRoute><DropiPage /></AdminRoute>} />
               <Route path="metricas/n1italia" element={<N1ItaliaPage />} />
               <Route path="status/ecomhub" element={<EcomhubStatusPage />} />
               <Route path="ecomhub/configuracoes" element={<EcomhubConfigPage />} />

@@ -4,7 +4,7 @@ import {
     Calendar as CalendarIcon, Download, Trash2, RefreshCw, Check, X,
     AlertTriangle, TrendingUp, BarChart3, Eye, Search, Store,
     ArrowUpDown, ArrowUp, ArrowDown, Package, Target, Percent,
-    Filter, Rocket, LayoutDashboard, Loader2, Minus, Plus, Database
+    Rocket, LayoutDashboard, Loader2, Minus, Plus, Database
 } from 'lucide-react';
 import axios from 'axios';
 import { format } from 'date-fns';
@@ -24,7 +24,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Separator } from '../../components/ui/separator';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { Progress } from '../../components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
 
@@ -54,9 +53,8 @@ function EcomhubEfetividadeV2Page() {
     const [loadingLojas, setLoadingLojas] = useState(false);
     const [loadingDelete, setLoadingDelete] = useState({});
 
-    // Estados de notificação e progresso
+    // Estados de notificação
     const [notification, setNotification] = useState(null);
-    const [progressoAtual, setProgressoAtual] = useState(null);
 
     // Estado para controlar Popover do Calendar
     const [openPopover, setOpenPopover] = useState(false);
@@ -119,7 +117,6 @@ function EcomhubEfetividadeV2Page() {
         }
 
         setLoadingProcessar(true);
-        setProgressoAtual({ etapa: 'Processando dados da API...', porcentagem: 30 });
 
         try {
             const payload = {
@@ -151,7 +148,6 @@ function EcomhubEfetividadeV2Page() {
             showNotification('error', `Erro: ${error.response?.data?.message || error.message}`);
         } finally {
             setLoadingProcessar(false);
-            setProgressoAtual(null);
         }
     };
 
@@ -360,34 +356,19 @@ function EcomhubEfetividadeV2Page() {
 
     // Formulário
     const renderFormulario = () => (
-        <Card className="mb-6 relative border-border bg-card">
+        <div className="mb-6 relative">
             {loadingProcessar && (
-                <div className="absolute inset-0 bg-background/95 backdrop-blur flex flex-col items-center justify-center z-10 rounded-lg">
-                    <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
-                    <p className="font-medium mb-2 text-foreground">Processando dados...</p>
-                    {progressoAtual && (
-                        <>
-                            <Progress value={progressoAtual.porcentagem} className="w-60 mb-2" />
-                            <p className="text-sm text-muted-foreground">{progressoAtual.etapa}</p>
-                        </>
-                    )}
+                <div className="fixed inset-0 bg-background/95 backdrop-blur flex items-center justify-center z-50">
+                    <div className="flex items-center gap-3">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        <p className="font-medium text-foreground">Buscando</p>
+                    </div>
                 </div>
             )}
 
-            <CardHeader>
-                <div className="flex items-center gap-3">
-                    <Filter className="h-5 w-5 text-primary" />
-                    <div>
-                        <CardTitle className="text-card-foreground">Configuração</CardTitle>
-                        <CardDescription className="text-muted-foreground">Selecione o período e execute</CardDescription>
-                    </div>
-                </div>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
+            <div className="space-y-4">
                 {/* Períodos Rápidos + Período Personalizado */}
-                <div className="space-y-2">
-                    <Label className="text-sm font-medium">Períodos Rápidos:</Label>
+                <div className="space-y-3">
                     <div className="flex gap-2 flex-wrap">
                         <Button
                             onClick={() => aplicarPreset('semana')}
@@ -423,7 +404,7 @@ function EcomhubEfetividadeV2Page() {
                                     Período Personalizado
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
+                            <PopoverContent className="w-auto p-0 max-w-none" align="start">
                                 <div className="p-4 space-y-4">
                                     <ReactDatePicker
                                         selectsRange={true}
@@ -468,7 +449,7 @@ function EcomhubEfetividadeV2Page() {
                     )}
                 </div>
 
-                {/* Botão Processar */}
+                {/* Botão Buscar */}
                 <div className="flex justify-center">
                     <Button
                         onClick={processarDados}
@@ -479,18 +460,18 @@ function EcomhubEfetividadeV2Page() {
                         {loadingProcessar ? (
                             <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Processando...
+                                Buscando
                             </>
                         ) : (
                             <>
                                 <Search className="h-4 w-4 mr-2" />
-                                Processar
+                                Buscar
                             </>
                         )}
                     </Button>
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 
     // Cards de métricas (após processar)

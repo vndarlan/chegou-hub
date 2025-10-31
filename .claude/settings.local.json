@@ -33,7 +33,9 @@
       "Bash(timeout 5 python manage.py check:*)",
       "Bash(timeout 10 python:*)",
       "Bash(railway status:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(git pull:*)",
+      "Bash(git fetch:*)"
     ],
     "deny": [],
     "ask": [],
