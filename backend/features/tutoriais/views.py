@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from rest_framework.response import Response
 from django.db.models import Count, Q
 
+from core.permissions import IsAdminUser
 from .models import CategoriaAula, Aula
 from .serializers import (
     CategoriaAulaSerializer,
@@ -27,7 +28,7 @@ class CategoriaAulaViewSet(viewsets.ModelViewSet):
     """
 
     queryset = CategoriaAula.objects.all()
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAdminUser]
     lookup_field = 'slug'
 
     def get_queryset(self):
@@ -80,7 +81,7 @@ class AulaViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Aula.objects.all()
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAdminUser]
     lookup_field = 'slug'
 
     def get_queryset(self):

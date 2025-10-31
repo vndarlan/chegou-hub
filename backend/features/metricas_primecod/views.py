@@ -3,6 +3,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
+from core.permissions import IsAdminUser
 from .models import AnalisePrimeCOD, StatusMappingPrimeCOD
 from .serializers import (
     AnalisePrimeCODSerializer, 
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class AnalisePrimeCODViewSet(viewsets.ModelViewSet):
     serializer_class = AnalisePrimeCODSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminUser]
     
     def get_queryset(self):
         queryset = AnalisePrimeCOD.objects.all().order_by('-atualizado_em')
@@ -174,7 +175,7 @@ class AnalisePrimeCODViewSet(viewsets.ModelViewSet):
 class StatusMappingPrimeCODViewSet(viewsets.ModelViewSet):
     queryset = StatusMappingPrimeCOD.objects.all()
     serializer_class = StatusMappingPrimeCODSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminUser]
 
 
 # ===== ENDPOINTS PROXY PARA API PRIMECOD =====
@@ -403,7 +404,7 @@ def buscar_orders_primecod(request):
 
 
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([IsAdminUser])
 def processar_dados_primecod(request):
     """
     Processa dados já buscados da API PrimeCOD
@@ -506,7 +507,7 @@ def processar_dados_primecod(request):
 
 
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([IsAdminUser])
 def testar_performance_primecod(request):
     """
     Testa performance comparativa: Paginação vs Coleta Completa
@@ -561,7 +562,7 @@ def testar_performance_primecod(request):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([IsAdminUser])
 def testar_conexao_primecod(request):
     """
     Testa conectividade com API PrimeCOD
@@ -603,7 +604,7 @@ def testar_conexao_primecod(request):
 
 
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([IsAdminUser])
 def iniciar_coleta_async_primecod(request):
     """
     Inicia coleta assíncrona de orders PrimeCOD usando Django-RQ
@@ -733,7 +734,7 @@ def iniciar_coleta_async_primecod(request):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([IsAdminUser])
 def status_job_primecod(request, job_id):
     """
     Verifica status de job assíncrono PrimeCOD

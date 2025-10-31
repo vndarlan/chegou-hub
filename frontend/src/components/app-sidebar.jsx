@@ -89,16 +89,18 @@ export function AppSidebar({
       icon: Map,
       isActive: location.pathname === "/workspace/mapa",
     },
-    {
+  ];
+
+  // Adicionar Tutoriais apenas para admins
+  if (isAdmin) {
+    homeItems.push({
       title: "Tutoriais",
       url: "/tutoriais",
       icon: BookOpen,
       isActive: location.pathname === "/tutoriais",
       external: false,
-    },
-  ];
+    });
 
-  if (isAdmin) {
     homeItems.push({
       title: "Adm",
       url: "https://chegou-hubb-production.up.railway.app/admin/",
@@ -109,6 +111,33 @@ export function AppSidebar({
   }
 
   // Times items (anteriormente Setores)
+  const iaItems = [
+    {
+      title: "Projetos",
+      url: "/workspace/projetos",
+      isActive: location.pathname === "/workspace/projetos",
+    },
+    {
+      title: "Logs de Erros",
+      url: "/workspace/logs",
+      isActive: location.pathname === "/workspace/logs",
+    },
+    {
+      title: "Nicochat",
+      url: "/nicochat",
+      isActive: location.pathname.includes("/nicochat"),
+    },
+  ];
+
+  // Adicionar OpenAI Analytics apenas para admins
+  if (isAdmin) {
+    iaItems.push({
+      title: "OpenAI Analytics",
+      url: "/workspace/openai-analytics",
+      isActive: location.pathname === "/workspace/openai-analytics",
+    });
+  }
+
   const timesItems = [
     {
       title: "IA & Automações",
@@ -117,28 +146,7 @@ export function AppSidebar({
                 location.pathname.includes('/workspace/logs') ||
                 location.pathname.includes('/workspace/nicochat') ||
                 location.pathname.includes('/workspace/openai-analytics'),
-      items: [
-        {
-          title: "Projetos",
-          url: "/workspace/projetos",
-          isActive: location.pathname === "/workspace/projetos",
-        },
-        {
-          title: "Logs de Erros",
-          url: "/workspace/logs",
-          isActive: location.pathname === "/workspace/logs",
-        },
-        {
-          title: "Nicochat",
-          url: "/nicochat",
-          isActive: location.pathname.includes("/nicochat"),
-        },
-        {
-          title: "OpenAI Analytics",
-          url: "/workspace/openai-analytics",
-          isActive: location.pathname === "/workspace/openai-analytics",
-        },
-      ],
+      items: iaItems,
     },
     {
       title: "Operacional",
@@ -185,28 +193,36 @@ export function AppSidebar({
   ];
 
   // Métricas items (nova categoria principal)
+  const efetividadeItems = [
+    {
+      title: "N1 Itália",
+      url: "/workspace/metricas/n1italia",
+      isActive: location.pathname === "/workspace/metricas/n1italia",
+    },
+  ];
+
+  // Adicionar Dropi e PRIMECOD apenas para admins
+  if (isAdmin) {
+    efetividadeItems.unshift(
+      {
+        title: "PRIMECOD",
+        url: "/workspace/metricas/primecod",
+        isActive: location.pathname === "/workspace/metricas/primecod",
+      },
+      {
+        title: "Dropi",
+        url: "/workspace/metricas/dropi",
+        isActive: location.pathname === "/workspace/metricas/dropi",
+      }
+    );
+  }
+
   const metricasItems = [
     {
       title: "Efetividade",
       icon: TrendingUp,
       isActive: location.pathname.includes('/workspace/metricas/') && !location.pathname.includes('/workspace/metricas/ecomhub'),
-      items: [
-        {
-          title: "Dropi",
-          url: "/workspace/metricas/dropi",
-          isActive: location.pathname === "/workspace/metricas/dropi",
-        },
-        {
-          title: "PRIMECOD",
-          url: "/workspace/metricas/primecod",
-          isActive: location.pathname === "/workspace/metricas/primecod",
-        },
-        {
-          title: "N1 Itália",
-          url: "/workspace/metricas/n1italia",
-          isActive: location.pathname === "/workspace/metricas/n1italia",
-        },
-      ],
+      items: efetividadeItems,
     },
     {
       title: "ECOMHUB",

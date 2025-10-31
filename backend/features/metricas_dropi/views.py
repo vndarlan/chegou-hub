@@ -10,6 +10,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone as django_timezone
 
+from core.permissions import IsAdminUser
 from .models import AnaliseDropi, DropiToken
 from .serializers import AnaliseDropiSerializer, ProcessamentoDropiSerializer, ProcessamentoDropiNovaApiSerializer
 
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class AnaliseDropiViewSet(viewsets.ModelViewSet):
     serializer_class = AnaliseDropiSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminUser]
     
     def get_queryset(self):
         return AnaliseDropi.objects.all().order_by('-atualizado_em')

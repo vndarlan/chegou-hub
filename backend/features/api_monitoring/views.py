@@ -8,6 +8,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from core.permissions import IsAdminUser
 from .models import ApiProvider, ApiKey, UsageRecord, CostRecord, DataSync
 from .serializers import (
     ApiProviderSerializer, ApiKeySerializer, UsageRecordSerializer,
@@ -20,14 +21,14 @@ class ApiProviderViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet para gerenciar provedores de API"""
     queryset = ApiProvider.objects.filter(is_active=True)
     serializer_class = ApiProviderSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminUser]
 
 
 class ApiKeyViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet para gerenciar chaves de API"""
     queryset = ApiKey.objects.filter(is_active=True).select_related('provider')
     serializer_class = ApiKeySerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminUser]
     
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -41,7 +42,7 @@ class UsageRecordViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet para registros de uso"""
     queryset = UsageRecord.objects.select_related('api_key', 'api_key__provider')
     serializer_class = UsageRecordSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminUser]
     
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -72,7 +73,7 @@ class CostRecordViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet para registros de custo"""
     queryset = CostRecord.objects.select_related('api_key', 'api_key__provider')
     serializer_class = CostRecordSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminUser]
     
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -263,7 +264,7 @@ class DataSyncViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet para status de sincronização"""
     queryset = DataSync.objects.select_related('provider')
     serializer_class = DataSyncSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminUser]
 
 
 @api_view(['GET'])
@@ -323,7 +324,7 @@ def validate_api_key(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminUser])
 def export_costs_csv(request):
     """
     Endpoint para exportar dados de custos em CSV
@@ -384,7 +385,7 @@ def export_costs_csv(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminUser])
 def export_usage_csv(request):
     """
     Endpoint para exportar dados de uso em CSV
@@ -438,7 +439,7 @@ def export_usage_csv(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminUser])
 def export_summary_json(request):
     """
     Endpoint para exportar resumo em JSON
@@ -544,7 +545,7 @@ def export_summary_json(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminUser])
 def sync_openai_manual(request):
     """
     Endpoint para sincronização manual de dados OpenAI

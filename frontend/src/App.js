@@ -14,6 +14,7 @@ import './globals.css';
 
 // Importa o componente CSRFManager
 import CSRFManager from './components/CSRFManager';
+import AdminRoute from './components/AdminRoute';
 
 // Importa as páginas
 import LoginPage from './pages/LoginPage';
@@ -71,10 +72,10 @@ function App() {
         <Toaster position="top-right" />
         <Router>
           <Routes>
-            {/* Rota pública de tutoriais */}
+            {/* Rota de tutoriais (apenas admin) */}
             <Route
               path="/tutoriais"
-              element={<TutoriaisPage />}
+              element={<AdminRoute><TutoriaisPage /></AdminRoute>}
             />
             {/* Rota independente do Nicochat */}
             <Route

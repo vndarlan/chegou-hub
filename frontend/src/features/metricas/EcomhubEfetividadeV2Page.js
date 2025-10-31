@@ -9,6 +9,9 @@ import {
 import axios from 'axios';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import ReactDatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import '../../datepicker-custom.css';
 
 // shadcn/ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -23,7 +26,6 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Progress } from '../../components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
-import { Calendar } from '../../components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
 
 function EcomhubEfetividadeV2Page() {
@@ -409,7 +411,7 @@ function EcomhubEfetividadeV2Page() {
                             Últimos 3 Meses
                         </Button>
 
-                        {/* Popover com Calendar */}
+                        {/* Popover com ReactDatePicker */}
                         <Popover open={openPopover} onOpenChange={setOpenPopover}>
                             <PopoverTrigger asChild>
                                 <Button
@@ -423,16 +425,19 @@ function EcomhubEfetividadeV2Page() {
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
                                 <div className="p-4 space-y-4">
-                                    <Calendar
-                                        mode="range"
-                                        defaultMonth={dateRange?.from}
-                                        selected={dateRange}
-                                        onSelect={(range) => {
-                                            setDateRange(range);
+                                    <ReactDatePicker
+                                        selectsRange={true}
+                                        startDate={dateRange?.from}
+                                        endDate={dateRange?.to}
+                                        onChange={(dates) => {
+                                            const [start, end] = dates;
+                                            setDateRange({ from: start, to: end });
                                             setPeriodoPreset(null);
                                         }}
-                                        numberOfMonths={2}
-                                        className="rounded-lg"
+                                        monthsShown={2}
+                                        dateFormat="dd/MM/yyyy"
+                                        locale={ptBR}
+                                        inline
                                     />
                                     <div className="flex justify-end gap-2">
                                         <Button
