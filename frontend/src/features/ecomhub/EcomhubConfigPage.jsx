@@ -7,7 +7,9 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
-  Store
+  Store,
+  Info,
+  ChevronDown
 } from 'lucide-react';
 import axios from 'axios';
 import { getCSRFToken } from '../../utils/csrf';
@@ -15,8 +17,9 @@ import { getCSRFToken } from '../../utils/csrf';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../components/ui/collapsible';
 
-import StoreCard from './components/StoreCard';
+import StoreTable from './components/StoreTable';
 import AddStoreModal from './components/AddStoreModal';
 import EditStoreModal from './components/EditStoreModal';
 
@@ -246,51 +249,35 @@ function EcomhubConfigPage() {
               </Button>
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {stores.map((store) => (
-                <div key={store.id} className="relative">
-                  {testingStore === store.id && (
-                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    </div>
-                  )}
-                  <StoreCard
-                    store={store}
-                    onEdit={handleEdit}
-                    onDelete={deleteStore}
-                    onToggleActive={toggleActiveStore}
-                    onTest={testStoreConnection}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            <>
+              <StoreTable
+                stores={stores}
+                onEdit={handleEdit}
+                onDelete={deleteStore}
+                onToggleActive={toggleActiveStore}
+                onTest={testStoreConnection}
+                testingStore={testingStore}
+              />
 
-      {/* Informações Adicionais */}
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <CardTitle className="text-sm text-card-foreground">
-            Informações sobre Credenciais
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-xs text-muted-foreground">
-          <p>
-            • <strong>Token</strong> e <strong>Secret</strong> são fornecidos pela API ECOMHUB
-          </p>
-          <p>
-            • Use o botão <strong>"Testar"</strong> para verificar se as credenciais estão corretas
-          </p>
-          <p>
-            • Lojas <strong>inativas</strong> não serão usadas nas sincronizações automáticas
-          </p>
-          <p>
-            • O sistema detecta automaticamente o país e Store ID baseado nas credenciais
-          </p>
-          <p>
-            • Mantenha suas credenciais seguras e não as compartilhe
-          </p>
+              {/* Seção Colapsável de Informações */}
+              <Collapsible className="mt-6">
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground hover:text-foreground">
+                    <Info className="h-4 w-4 mr-2" />
+                    Informações sobre Credenciais
+                    <ChevronDown className="h-4 w-4 ml-auto transition-transform duration-200" />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-3 space-y-2 text-xs text-muted-foreground pl-6">
+                  <p>• <strong>Token</strong> e <strong>Secret</strong> são fornecidos pela API ECOMHUB</p>
+                  <p>• Use o botão <strong>"Testar"</strong> para verificar se as credenciais estão corretas</p>
+                  <p>• Lojas <strong>inativas</strong> não serão usadas nas sincronizações automáticas</p>
+                  <p>• O sistema detecta automaticamente o país e Store ID baseado nas credenciais</p>
+                  <p>• Mantenha suas credenciais seguras e não as compartilhe</p>
+                </CollapsibleContent>
+              </Collapsible>
+            </>
+          )}
         </CardContent>
       </Card>
 
