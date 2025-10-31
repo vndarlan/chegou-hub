@@ -21,6 +21,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Progress } from '../../components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { Calendar } from '../../components/ui/calendar';
 
 function EcomhubEfetividadeV2Page() {
     // Estados principais
@@ -61,6 +62,9 @@ function EcomhubEfetividadeV2Page() {
         const saved = localStorage.getItem('ecomhub_v2_largura_produto');
         return saved ? parseInt(saved, 10) : 150;
     });
+
+    // Estado para responsividade do Calendar
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
     // ======================== FUNÇÕES DE API ========================
 
@@ -366,87 +370,69 @@ function EcomhubEfetividadeV2Page() {
             )}
 
             <CardHeader>
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Filter className="h-5 w-5 text-primary" />
-                        <div>
-                            <CardTitle className="text-card-foreground">Configuração</CardTitle>
-                            <CardDescription className="text-muted-foreground">Selecione o período e execute</CardDescription>
+                <div className="flex items-center gap-3 mb-4">
+                    <Filter className="h-5 w-5 text-primary" />
+                    <div>
+                        <CardTitle className="text-card-foreground">Configuração</CardTitle>
+                        <CardDescription className="text-muted-foreground">Selecione o período e execute</CardDescription>
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-4">
+                    {/* Presets de período */}
+                    <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">Períodos Rápidos:</Label>
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={() => aplicarPreset('semana')}
+                                variant={periodoPreset === 'semana' ? 'default' : 'outline'}
+                                size="sm"
+                                className="text-xs"
+                            >
+                                Última Semana
+                            </Button>
+                            <Button
+                                onClick={() => aplicarPreset('mes')}
+                                variant={periodoPreset === 'mes' ? 'default' : 'outline'}
+                                size="sm"
+                                className="text-xs"
+                            >
+                                Último Mês
+                            </Button>
+                            <Button
+                                onClick={() => aplicarPreset('3meses')}
+                                variant={periodoPreset === '3meses' ? 'default' : 'outline'}
+                                size="sm"
+                                className="text-xs"
+                            >
+                                Últimos 3 Meses
+                            </Button>
                         </div>
                     </div>
 
-                    <div className="flex items-end gap-4">
-                        {/* Presets de período */}
-                        <div className="flex flex-col gap-2">
-                            <Label className="text-sm font-medium">Períodos Rápidos</Label>
-                            <div className="flex gap-2">
-                                <Button
-                                    onClick={() => aplicarPreset('semana')}
-                                    variant={periodoPreset === 'semana' ? 'default' : 'outline'}
-                                    size="sm"
-                                    className="text-xs"
-                                >
-                                    Última Semana
-                                </Button>
-                                <Button
-                                    onClick={() => aplicarPreset('mes')}
-                                    variant={periodoPreset === 'mes' ? 'default' : 'outline'}
-                                    size="sm"
-                                    className="text-xs"
-                                >
-                                    Último Mês
-                                </Button>
-                                <Button
-                                    onClick={() => aplicarPreset('3meses')}
-                                    variant={periodoPreset === '3meses' ? 'default' : 'outline'}
-                                    size="sm"
-                                    className="text-xs"
-                                >
-                                    Últimos 3 Meses
-                                </Button>
-                            </div>
-                        </div>
+                    {/* Calendário com range */}
+                    <div className="flex items-center justify-center">
+                        <Calendar
+                            mode="range"
+                            defaultMonth={dateRange?.from}
+                            selected={dateRange}
+                            onSelect={(range) => {
+                                setDateRange(range);
+                                setPeriodoPreset(null); // Limpar preset ao selecionar manualmente
+                            }}
+                            numberOfMonths={isMobile ? 1 : 2}
+                            disabled={loadingProcessar}
+                            className="rounded-lg border border-border shadow-sm"
+                        />
+                    </div>
 
-                        <Separator orientation="vertical" className="h-16" />
-
-                        {/* Calendários */}
-                        <div className="flex gap-4">
-                            <div className="flex flex-col gap-2">
-                                <Label className="text-sm font-medium">Data Inicial</Label>
-                                <input
-                                    type="date"
-                                    value={dateRange?.from ? dateRange.from.toISOString().split('T')[0] : ''}
-                                    onChange={(e) => {
-                                        const newDate = e.target.value ? new Date(e.target.value) : undefined;
-                                        setDateRange(prev => ({ ...prev, from: newDate }));
-                                        setPeriodoPreset(null); // Limpar preset ao editar manualmente
-                                    }}
-                                    disabled={loadingProcessar}
-                                    className="px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                                />
-                            </div>
-
-                            <div className="flex flex-col gap-2">
-                                <Label className="text-sm font-medium">Data Final</Label>
-                                <input
-                                    type="date"
-                                    value={dateRange?.to ? dateRange.to.toISOString().split('T')[0] : ''}
-                                    onChange={(e) => {
-                                        const newDate = e.target.value ? new Date(e.target.value) : undefined;
-                                        setDateRange(prev => ({ ...prev, to: newDate }));
-                                        setPeriodoPreset(null); // Limpar preset ao editar manualmente
-                                    }}
-                                    disabled={loadingProcessar}
-                                    className="px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                                />
-                            </div>
-                        </div>
-
+                    {/* Botão Processar centralizado */}
+                    <div className="flex justify-center">
                         <Button
                             onClick={processarDados}
                             disabled={!dateRange?.from || !dateRange?.to || loadingProcessar}
                             size="lg"
-                            className="min-w-36 bg-primary text-primary-foreground hover:bg-primary/90"
+                            className="min-w-48 bg-primary text-primary-foreground hover:bg-primary/90"
                         >
                             {loadingProcessar ? (
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -549,7 +535,6 @@ function EcomhubEfetividadeV2Page() {
         const dadosOrdenados = sortData(dados, sortBy, sortOrder);
 
         const colunasEssenciais = ['Produto', 'Totais', 'Entregues', 'Efetividade_Total'];
-        const isMobile = window.innerWidth < 768;
 
         if (isMobile && tipoVisualizacao === 'otimizada') {
             colunas = colunas.filter(col => colunasEssenciais.includes(col));
@@ -827,6 +812,14 @@ function EcomhubEfetividadeV2Page() {
             to: hoje
         });
         setPeriodoPreset('semana');
+
+        // Listener para responsividade do Calendar
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     // ======================== RENDER PRINCIPAL ========================
