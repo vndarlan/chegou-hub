@@ -13,7 +13,26 @@ import {
   Calendar,
   Map,
   TrendingUp,
-  BookOpen
+  BookOpen,
+  Briefcase,
+  Building2,
+  Globe2,
+  MapPin,
+  ShoppingCart,
+  ShoppingBag,
+  Megaphone,
+  ThumbsUp,
+  Flag,
+  Trophy,
+  Droplet,
+  Package,
+  Zap,
+  Globe,
+  MessageSquare,
+  Target,
+  FileText,
+  Brain,
+  Settings2
 } from 'lucide-react'
 
 import {
@@ -75,185 +94,177 @@ export function AppSidebar({
     }
   };
 
-  // Home items
-  const homeItems = [
+  // GESTÃO EMPRESARIAL items
+  const gestaoItems = [
     {
       title: "Agenda da Empresa",
-      url: "/workspace/agenda",
+      url: "/workspace/gestao/agenda",
       icon: Calendar,
-      isActive: location.pathname === "/workspace/agenda",
+      isActive: location.pathname === "/workspace/gestao/agenda",
     },
     {
       title: "Mapa de Atuação",
-      url: "/workspace/mapa",
+      url: "/workspace/gestao/mapa",
       icon: Map,
-      isActive: location.pathname === "/workspace/mapa",
+      isActive: location.pathname === "/workspace/gestao/mapa",
     },
   ];
 
-  // Adicionar Tutoriais apenas para admins
-  if (isAdmin) {
-    homeItems.push({
-      title: "Tutoriais",
-      url: "/tutoriais",
-      icon: BookOpen,
-      isActive: location.pathname === "/tutoriais",
-      external: false,
-    });
-
-    homeItems.push({
-      title: "Adm",
-      url: "https://chegou-hubb-production.up.railway.app/admin/",
-      icon: Lock,
-      external: true,
-      isActive: false,
-    });
-  }
-
-  // Times items (anteriormente Setores)
-  const iaItems = [
+  // FORNECEDORES items
+  const fornecedoresItems = [
     {
-      title: "Projetos",
-      url: "/workspace/projetos",
-      isActive: location.pathname === "/workspace/projetos",
+      title: "EUROPA",
+      icon: Globe2,
+      isActive: location.pathname.includes('/workspace/fornecedores/europa'),
+      items: [
+        {
+          title: "ECOMHUB",
+          icon: ShoppingBag,
+          isActive: location.pathname.includes('/workspace/fornecedores/europa/ecomhub'),
+          items: [
+            {
+              title: "Análise de Efetividade",
+              url: "/workspace/fornecedores/europa/ecomhub/efetividade",
+              isActive: location.pathname === "/workspace/fornecedores/europa/ecomhub/efetividade",
+            },
+            {
+              title: "Análise Avançada V2",
+              url: "/workspace/fornecedores/europa/ecomhub/efetividade-v2",
+              isActive: location.pathname === "/workspace/fornecedores/europa/ecomhub/efetividade-v2",
+            },
+            {
+              title: "Status de Sincronização",
+              url: "/workspace/fornecedores/europa/ecomhub/status",
+              isActive: location.pathname === "/workspace/fornecedores/europa/ecomhub/status",
+            },
+            {
+              title: "Configurações",
+              url: "/workspace/fornecedores/europa/ecomhub/configuracoes",
+              isActive: location.pathname === "/workspace/fornecedores/europa/ecomhub/configuracoes",
+            },
+          ],
+        },
+        {
+          title: "N1 ITALIA",
+          icon: Flag,
+          isActive: location.pathname.includes('/workspace/fornecedores/europa/n1'),
+          items: [
+            {
+              title: "Efetividade",
+              url: "/workspace/fornecedores/europa/n1/efetividade",
+              isActive: location.pathname === "/workspace/fornecedores/europa/n1/efetividade",
+            },
+          ],
+        },
+        {
+          title: "PRIMECOD",
+          icon: Trophy,
+          isActive: location.pathname.includes('/workspace/fornecedores/europa/primecod'),
+          items: [
+            {
+              title: "Efetividade",
+              url: "/workspace/fornecedores/europa/primecod/efetividade",
+              isActive: location.pathname === "/workspace/fornecedores/europa/primecod/efetividade",
+            },
+          ],
+        },
+      ],
     },
     {
-      title: "Logs de Erros",
-      url: "/workspace/logs",
-      isActive: location.pathname === "/workspace/logs",
-    },
-    {
-      title: "Nicochat",
-      url: "/nicochat",
-      isActive: location.pathname.includes("/nicochat"),
+      title: "LATAM",
+      icon: MapPin,
+      isActive: location.pathname.includes('/workspace/fornecedores/latam'),
+      items: [
+        {
+          title: "DROPI",
+          icon: Droplet,
+          isActive: location.pathname.includes('/workspace/fornecedores/latam/dropi'),
+          items: [
+            {
+              title: "Efetividade",
+              url: "/workspace/fornecedores/latam/dropi/efetividade",
+              isActive: location.pathname === "/workspace/fornecedores/latam/dropi/efetividade",
+            },
+            {
+              title: "Novelties",
+              url: "/workspace/fornecedores/latam/dropi/novelties",
+              isActive: location.pathname === "/workspace/fornecedores/latam/dropi/novelties",
+            },
+          ],
+        },
+      ],
     },
   ];
 
-  // Adicionar OpenAI Analytics apenas para admins
-  if (isAdmin) {
-    iaItems.push({
-      title: "OpenAI Analytics",
-      url: "/workspace/openai-analytics",
-      isActive: location.pathname === "/workspace/openai-analytics",
-    });
-  }
-
-  const timesItems = [
+  // SHOPIFY items
+  const shopifyItems = [
     {
-      title: "IA & Automações",
-      icon: Bot,
-      isActive: location.pathname.includes('/workspace/projetos') ||
-                location.pathname.includes('/workspace/logs') ||
-                location.pathname.includes('/workspace/nicochat') ||
-                location.pathname.includes('/workspace/openai-analytics'),
-      items: iaItems,
+      title: "Controle de Estoque",
+      url: "/workspace/shopify/estoque",
+      icon: Package,
+      isActive: location.pathname === "/workspace/shopify/estoque",
     },
     {
-      title: "Operacional",
-      icon: Settings,
-      isActive: location.pathname.includes('/workspace/engajamento') ||
-                location.pathname.includes('/workspace/novelties'),
+      title: "Processamento",
+      url: "/workspace/shopify/processamento",
+      icon: Zap,
+      isActive: location.pathname === "/workspace/shopify/processamento",
+    },
+    {
+      title: "Detector de IP",
+      url: "/workspace/shopify/detector-ip",
+      icon: Globe,
+      isActive: location.pathname === "/workspace/shopify/detector-ip",
+    },
+  ];
+
+  // PLATAFORMAS DE ANÚNCIO items
+  const plataformasAnuncioItems = [
+    {
+      title: "Facebook",
+      icon: ThumbsUp,
+      isActive: location.pathname.includes('/workspace/anuncios/facebook'),
       items: [
         {
           title: "Engajamento",
-          url: "/workspace/engajamento",
-          isActive: location.pathname === "/workspace/engajamento",
-        },
-        {
-          title: "Novelties",
-          url: "/workspace/novelties",
-          isActive: location.pathname === "/workspace/novelties",
+          url: "/workspace/anuncios/facebook/engajamento",
+          isActive: location.pathname === "/workspace/anuncios/facebook/engajamento",
         },
       ],
     },
-    {
-      title: "Suporte",
-      icon: Phone,
-      isActive: location.pathname.includes('/workspace/processamento') ||
-                location.pathname.includes('/workspace/detector-ip') ||
-                location.pathname.includes('/workspace/estoque'),
-      items: [
-        {
-          title: "Processamento",
-          url: "/workspace/processamento",
-          isActive: location.pathname === "/workspace/processamento",
-        },
-        {
-          title: "Detector de IP",
-          url: "/workspace/detector-ip",
-          isActive: location.pathname === "/workspace/detector-ip",
-        },
-        {
-          title: "Controle de Estoque",
-          url: "/workspace/estoque",
-          isActive: location.pathname === "/workspace/estoque",
-        },
-      ],
-    }
   ];
 
-  // Métricas items (nova categoria principal)
-  const efetividadeItems = [
+  // IA & CHATBOTS items
+  const iaChatbotsItems = [
     {
-      title: "N1 Itália",
-      url: "/workspace/metricas/n1italia",
-      isActive: location.pathname === "/workspace/metricas/n1italia",
+      title: "Nicochat",
+      url: "/workspace/ia/nicochat",
+      icon: MessageSquare,
+      isActive: location.pathname === "/workspace/ia/nicochat",
     },
   ];
 
-  // Adicionar Dropi e PRIMECOD apenas para admins
-  if (isAdmin) {
-    efetividadeItems.unshift(
-      {
-        title: "PRIMECOD",
-        url: "/workspace/metricas/primecod",
-        isActive: location.pathname === "/workspace/metricas/primecod",
-      },
-      {
-        title: "Dropi",
-        url: "/workspace/metricas/dropi",
-        isActive: location.pathname === "/workspace/metricas/dropi",
-      }
-    );
-  }
-
-  const metricasItems = [
+  // FERRAMENTAS INTERNAS items (apenas para time interno)
+  const ferramentasInternasItems = isAdmin ? [
     {
-      title: "Efetividade",
-      icon: TrendingUp,
-      isActive: location.pathname.includes('/workspace/metricas/') && !location.pathname.includes('/workspace/metricas/ecomhub'),
-      items: efetividadeItems,
+      title: "Projetos",
+      url: "/workspace/interno/projetos",
+      icon: Target,
+      isActive: location.pathname === "/workspace/interno/projetos",
     },
     {
-      title: "ECOMHUB",
-      icon: BarChart3,
-      isActive: location.pathname.includes('/workspace/metricas/ecomhub') ||
-                location.pathname.includes('/workspace/status/ecomhub') ||
-                location.pathname.includes('/workspace/ecomhub/configuracoes'),
-      items: [
-        {
-          title: "Efetividade",
-          url: "/workspace/metricas/ecomhub",
-          isActive: location.pathname === "/workspace/metricas/ecomhub",
-        },
-        {
-          title: "Efetividade V2",
-          url: "/workspace/metricas/ecomhub-v2",
-          isActive: location.pathname === "/workspace/metricas/ecomhub-v2",
-        },
-        {
-          title: "Status",
-          url: "/workspace/status/ecomhub",
-          isActive: location.pathname === "/workspace/status/ecomhub",
-        },
-        {
-          title: "Configurações",
-          url: "/workspace/ecomhub/configuracoes",
-          isActive: location.pathname === "/workspace/ecomhub/configuracoes",
-        },
-      ],
-    }
-  ];
+      title: "Logs de Erros",
+      url: "/workspace/interno/logs",
+      icon: FileText,
+      isActive: location.pathname === "/workspace/interno/logs",
+    },
+    {
+      title: "OpenAI Analytics",
+      url: "/workspace/interno/openai-analytics",
+      icon: Brain,
+      isActive: location.pathname === "/workspace/interno/openai-analytics",
+    },
+  ] : [];
 
   return (
     <Sidebar className="h-screen" {...props}>
@@ -280,32 +291,26 @@ export function AppSidebar({
       </SidebarHeader>
       
       <SidebarContent className="flex-1 overflow-y-auto">
+        {/* GESTÃO EMPRESARIAL - sempre no topo */}
         <SidebarGroup>
-          <SidebarGroupLabel>Home</SidebarGroupLabel>
+          <SidebarGroupLabel>GESTÃO EMPRESARIAL</SidebarGroupLabel>
           <SidebarMenu>
-            {homeItems.map((item) => (
+            {gestaoItems.map((item) => (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={item.isActive} 
+                <SidebarMenuButton
+                  asChild
+                  isActive={item.isActive}
                   tooltip={item.title}
                 >
                   <a
-                    href={item.external ? item.url : "#"}
-                    target={item.external ? "_blank" : undefined}
-                    rel={item.external ? "noopener noreferrer" : undefined}
+                    href="#"
                     onClick={(e) => {
-                      if (!item.external) {
-                        e.preventDefault();
-                        handleNavigation(item);
-                      }
+                      e.preventDefault();
+                      handleNavigation(item);
                     }}
                   >
                     <item.icon className="size-4" />
                     <span>{item.title}</span>
-                    {item.external && (
-                      <span className="ml-auto text-xs opacity-60">↗</span>
-                    )}
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -313,43 +318,143 @@ export function AppSidebar({
           </SidebarMenu>
         </SidebarGroup>
 
+        {/* FORNECEDORES - com subcategorias Europa/LATAM */}
         <SidebarGroup>
-          <SidebarGroupLabel>Times</SidebarGroupLabel>
+          <SidebarGroupLabel>FORNECEDORES</SidebarGroupLabel>
           <SidebarMenu>
-            {timesItems.map((item) => (
+            {fornecedoresItems.map((region) => (
               <Collapsible
-                key={item.title}
+                key={region.title}
                 asChild
-                defaultOpen={item.isActive}
+                defaultOpen={region.isActive}
                 className="group/collapsible"
               >
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
-                    <SidebarMenuButton 
-                      tooltip={item.title} 
-                      isActive={item.isActive}
+                    <SidebarMenuButton
+                      tooltip={region.title}
+                      isActive={region.isActive}
                     >
-                      <item.icon className="size-4" />
-                      <span>{item.title}</span>
+                      <region.icon className="size-4" />
+                      <span>{region.title}</span>
                       <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <SidebarMenuSub>
-                      {item.items?.map((subItem) => (
-                        <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton 
+                      {region.items?.map((supplier) => (
+                        <Collapsible
+                          key={supplier.title}
+                          asChild
+                          defaultOpen={supplier.isActive}
+                          className="group/subcollapsible"
+                        >
+                          <SidebarMenuSubItem>
+                            <CollapsibleTrigger asChild>
+                              <SidebarMenuSubButton isActive={supplier.isActive}>
+                                {supplier.icon && <supplier.icon className="size-3 mr-1" />}
+                                <span>{supplier.title}</span>
+                                <ChevronRight className="ml-auto size-3 transition-transform duration-200 group-data-[state=open]/subcollapsible:rotate-90" />
+                              </SidebarMenuSubButton>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <SidebarMenuSub className="ml-3">
+                                {supplier.items?.map((page) => (
+                                  <SidebarMenuSubItem key={page.title}>
+                                    <SidebarMenuSubButton
+                                      asChild
+                                      isActive={page.isActive}
+                                    >
+                                      <a
+                                        href="#"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          handleNavigation(page);
+                                        }}
+                                      >
+                                        <span>{page.title}</span>
+                                      </a>
+                                    </SidebarMenuSubButton>
+                                  </SidebarMenuSubItem>
+                                ))}
+                              </SidebarMenuSub>
+                            </CollapsibleContent>
+                          </SidebarMenuSubItem>
+                        </Collapsible>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+
+        {/* SHOPIFY */}
+        <SidebarGroup>
+          <SidebarGroupLabel>SHOPIFY</SidebarGroupLabel>
+          <SidebarMenu>
+            {shopifyItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={item.isActive}
+                  tooltip={item.title}
+                >
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleNavigation(item);
+                    }}
+                  >
+                    <item.icon className="size-4" />
+                    <span>{item.title}</span>
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+
+        {/* PLATAFORMAS DE ANÚNCIO */}
+        <SidebarGroup>
+          <SidebarGroupLabel>PLATAFORMAS DE ANÚNCIO</SidebarGroupLabel>
+          <SidebarMenu>
+            {plataformasAnuncioItems.map((platform) => (
+              <Collapsible
+                key={platform.title}
+                asChild
+                defaultOpen={platform.isActive}
+                className="group/collapsible"
+              >
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton
+                      tooltip={platform.title}
+                      isActive={platform.isActive}
+                    >
+                      <platform.icon className="size-4" />
+                      <span>{platform.title}</span>
+                      <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {platform.items?.map((item) => (
+                        <SidebarMenuSubItem key={item.title}>
+                          <SidebarMenuSubButton
                             asChild
-                            isActive={subItem.isActive}
+                            isActive={item.isActive}
                           >
                             <a
                               href="#"
                               onClick={(e) => {
                                 e.preventDefault();
-                                handleNavigation(subItem);
+                                handleNavigation(item);
                               }}
                             >
-                              <span>{subItem.title}</span>
+                              <span>{item.title}</span>
                             </a>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
@@ -362,54 +467,61 @@ export function AppSidebar({
           </SidebarMenu>
         </SidebarGroup>
 
+        {/* IA & CHATBOTS */}
         <SidebarGroup>
-          <SidebarGroupLabel>Métricas</SidebarGroupLabel>
+          <SidebarGroupLabel>IA & CHATBOTS</SidebarGroupLabel>
           <SidebarMenu>
-            {metricasItems.map((item) => (
-              <Collapsible
-                key={item.title}
-                asChild
-                defaultOpen={item.isActive}
-                className="group/collapsible"
-              >
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton 
-                      tooltip={item.title} 
-                      isActive={item.isActive}
-                    >
-                      <item.icon className="size-4" />
-                      <span>{item.title}</span>
-                      <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {item.items?.map((subItem) => (
-                        <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton 
-                            asChild
-                            isActive={subItem.isActive}
-                          >
-                            <a
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleNavigation(subItem);
-                              }}
-                            >
-                              <span>{subItem.title}</span>
-                            </a>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
+            {iaChatbotsItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={item.isActive}
+                  tooltip={item.title}
+                >
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleNavigation(item);
+                    }}
+                  >
+                    <item.icon className="size-4" />
+                    <span>{item.title}</span>
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             ))}
           </SidebarMenu>
         </SidebarGroup>
+
+        {/* FERRAMENTAS INTERNAS - apenas para time interno */}
+        {isAdmin && ferramentasInternasItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>FERRAMENTAS INTERNAS</SidebarGroupLabel>
+            <SidebarMenu>
+              {ferramentasInternasItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={item.isActive}
+                    tooltip={item.title}
+                  >
+                    <a
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleNavigation(item);
+                      }}
+                    >
+                      <item.icon className="size-4" />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
 
       </SidebarContent>
       

@@ -91,7 +91,7 @@ def fetch_orders_from_ecomhub_api(
         all_orders = []
         skip = 0
         page_size = 500
-        max_pages = 20  # Limite de segurança: até 10.000 pedidos
+        max_pages = 200  # Limite de segurança: até 100.000 pedidos (comporta períodos longos)
 
         while True:
             response = requests.get(

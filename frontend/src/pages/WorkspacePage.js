@@ -40,25 +40,103 @@ import FeedbackButton from '../components/FeedbackButton';
 import FeedbackNotificationButton from '../components/FeedbackNotificationButton';
 import SimpleN8nWidget from '../components/SimpleN8nWidget';
 
-// Mapeamento de breadcrumbs simplificado
+// Mapeamento de breadcrumbs atualizado
 const breadcrumbMap = {
-  '/workspace/agenda': [{ label: 'HOME', href: '#' }, { label: 'Agenda da Empresa' }],
-  '/workspace/mapa': [{ label: 'HOME', href: '#' }, { label: 'Mapa de Atuação' }],
-  '/workspace/projetos': [{ label: 'IA & Automações', href: '#' }, { label: 'Projetos' }],
-  '/workspace/logs': [{ label: 'IA & Automações', href: '#' }, { label: 'Logs de Erros' }],
-  '/workspace/openai-analytics': [{ label: 'IA & Automações', href: '#' }, { label: 'OpenAI Analytics' }],
-  '/workspace/metricas/primecod': [{ label: 'Efetividade', href: '#' }, { label: 'PRIMECOD' }],
+  // GESTÃO EMPRESARIAL
+  '/workspace/gestao/agenda': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Agenda da Empresa' }],
+  '/workspace/gestao/mapa': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Mapa de Atuação' }],
+
+  // FORNECEDORES > EUROPA
+  '/workspace/fornecedores/europa/ecomhub/efetividade': [
+    { label: 'FORNECEDORES', href: '#' },
+    { label: 'EUROPA', href: '#' },
+    { label: 'ECOMHUB', href: '#' },
+    { label: 'Análise de Efetividade' }
+  ],
+  '/workspace/fornecedores/europa/ecomhub/efetividade-v2': [
+    { label: 'FORNECEDORES', href: '#' },
+    { label: 'EUROPA', href: '#' },
+    { label: 'ECOMHUB', href: '#' },
+    { label: 'Análise Avançada V2' }
+  ],
+  '/workspace/fornecedores/europa/ecomhub/status': [
+    { label: 'FORNECEDORES', href: '#' },
+    { label: 'EUROPA', href: '#' },
+    { label: 'ECOMHUB', href: '#' },
+    { label: 'Status de Sincronização' }
+  ],
+  '/workspace/fornecedores/europa/ecomhub/configuracoes': [
+    { label: 'FORNECEDORES', href: '#' },
+    { label: 'EUROPA', href: '#' },
+    { label: 'ECOMHUB', href: '#' },
+    { label: 'Configurações' }
+  ],
+  '/workspace/fornecedores/europa/n1/efetividade': [
+    { label: 'FORNECEDORES', href: '#' },
+    { label: 'EUROPA', href: '#' },
+    { label: 'N1 ITALIA', href: '#' },
+    { label: 'Efetividade' }
+  ],
+  '/workspace/fornecedores/europa/primecod/efetividade': [
+    { label: 'FORNECEDORES', href: '#' },
+    { label: 'EUROPA', href: '#' },
+    { label: 'PRIMECOD', href: '#' },
+    { label: 'Efetividade' }
+  ],
+
+  // FORNECEDORES > LATAM
+  '/workspace/fornecedores/latam/dropi/efetividade': [
+    { label: 'FORNECEDORES', href: '#' },
+    { label: 'LATAM', href: '#' },
+    { label: 'DROPI', href: '#' },
+    { label: 'Efetividade' }
+  ],
+  '/workspace/fornecedores/latam/dropi/novelties': [
+    { label: 'FORNECEDORES', href: '#' },
+    { label: 'LATAM', href: '#' },
+    { label: 'DROPI', href: '#' },
+    { label: 'Novelties' }
+  ],
+
+  // SHOPIFY
+  '/workspace/shopify/estoque': [{ label: 'SHOPIFY', href: '#' }, { label: 'Controle de Estoque' }],
+  '/workspace/shopify/processamento': [{ label: 'SHOPIFY', href: '#' }, { label: 'Processamento' }],
+  '/workspace/shopify/detector-ip': [{ label: 'SHOPIFY', href: '#' }, { label: 'Detector de IP' }],
+
+  // PLATAFORMAS DE ANÚNCIO
+  '/workspace/anuncios/facebook/engajamento': [
+    { label: 'PLATAFORMAS DE ANÚNCIO', href: '#' },
+    { label: 'Facebook', href: '#' },
+    { label: 'Engajamento' }
+  ],
+
+  // IA & CHATBOTS
+  '/workspace/ia/nicochat': [{ label: 'IA & CHATBOTS', href: '#' }, { label: 'Nicochat' }],
+
+  // FERRAMENTAS INTERNAS
+  '/workspace/interno/projetos': [{ label: 'FERRAMENTAS INTERNAS', href: '#' }, { label: 'Projetos' }],
+  '/workspace/interno/logs': [{ label: 'FERRAMENTAS INTERNAS', href: '#' }, { label: 'Logs de Erros' }],
+  '/workspace/interno/openai-analytics': [{ label: 'FERRAMENTAS INTERNAS', href: '#' }, { label: 'OpenAI Analytics' }],
+
+  // Rotas antigas - manter para compatibilidade temporária
+  '/workspace/agenda': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Agenda da Empresa' }],
+  '/workspace/mapa': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Mapa de Atuação' }],
   '/workspace/metricas/ecomhub': [{ label: 'ECOMHUB', href: '#' }, { label: 'Efetividade' }],
   '/workspace/metricas/ecomhub-v2': [{ label: 'ECOMHUB', href: '#' }, { label: 'Efetividade V2' }],
-  '/workspace/metricas/dropi': [{ label: 'Efetividade', href: '#' }, { label: 'Dropi' }],
-  '/workspace/metricas/n1italia': [{ label: 'Efetividade', href: '#' }, { label: 'N1 Itália' }],
   '/workspace/status/ecomhub': [{ label: 'ECOMHUB', href: '#' }, { label: 'Status' }],
   '/workspace/ecomhub/configuracoes': [{ label: 'ECOMHUB', href: '#' }, { label: 'Configurações' }],
-  '/workspace/engajamento': [{ label: 'Operacional', href: '#' }, { label: 'Engajamento' }],
-  '/workspace/novelties': [{ label: 'Operacional', href: '#' }, { label: 'Novelties' }],
-  '/workspace/processamento': [{ label: 'Suporte', href: '#' }, { label: 'Processamento' }],
-  '/workspace/detector-ip': [{ label: 'Suporte', href: '#' }, { label: 'Detector de IP' }],
-  '/workspace/estoque': [{ label: 'Suporte', href: '#' }, { label: 'Controle de Estoque' }],
+  '/workspace/metricas/n1italia': [{ label: 'N1 ITALIA', href: '#' }, { label: 'Efetividade' }],
+  '/workspace/metricas/primecod': [{ label: 'PRIMECOD', href: '#' }, { label: 'Efetividade' }],
+  '/workspace/metricas/dropi': [{ label: 'DROPI', href: '#' }, { label: 'Efetividade' }],
+  '/workspace/novelties': [{ label: 'DROPI', href: '#' }, { label: 'Novelties' }],
+  '/workspace/estoque': [{ label: 'SHOPIFY', href: '#' }, { label: 'Controle de Estoque' }],
+  '/workspace/processamento': [{ label: 'SHOPIFY', href: '#' }, { label: 'Processamento' }],
+  '/workspace/detector-ip': [{ label: 'SHOPIFY', href: '#' }, { label: 'Detector de IP' }],
+  '/workspace/engajamento': [{ label: 'Facebook', href: '#' }, { label: 'Engajamento' }],
+  '/workspace/projetos': [{ label: 'FERRAMENTAS INTERNAS', href: '#' }, { label: 'Projetos' }],
+  '/workspace/logs': [{ label: 'FERRAMENTAS INTERNAS', href: '#' }, { label: 'Logs de Erros' }],
+  '/workspace/openai-analytics': [{ label: 'FERRAMENTAS INTERNAS', href: '#' }, { label: 'OpenAI Analytics' }],
+  '/nicochat': [{ label: 'IA & CHATBOTS', href: '#' }, { label: 'Nicochat' }],
 };
 
 function WorkspacePage({ setIsLoggedIn }) {
@@ -153,23 +231,58 @@ function WorkspacePage({ setIsLoggedIn }) {
           
           <main className="flex-1 overflow-auto p-4 max-w-full">
             <Routes>
-              <Route path="agenda" element={<AgendaPage />} />
-              <Route path="mapa" element={<MapaPage />} />
-              <Route path="projetos" element={<ProjetoDashboard />} />
-              <Route path="logs" element={<LogsPage />} />
-              <Route path="openai-analytics" element={<AdminRoute><OpenAIAnalytics /></AdminRoute>} />
-              <Route path="metricas/primecod" element={<AdminRoute><PrimecodPage /></AdminRoute>} />
-              <Route path="metricas/ecomhub" element={<EcomhubPage />} />
-              <Route path="metricas/ecomhub-v2" element={<EcomhubEfetividadeV2Page />} />
-              <Route path="metricas/dropi" element={<AdminRoute><DropiPage /></AdminRoute>} />
-              <Route path="metricas/n1italia" element={<N1ItaliaPage />} />
-              <Route path="status/ecomhub" element={<EcomhubStatusPage />} />
-              <Route path="ecomhub/configuracoes" element={<EcomhubConfigPage />} />
-              <Route path="engajamento" element={<EngajamentoPage />} />
-              <Route path="novelties" element={<NoveltiesPage />} />
-              <Route path="processamento" element={<ProcessamentoPage />} />
-              <Route path="detector-ip" element={<DetectorIPPage />} />
-              <Route path="estoque" element={<ControleEstoquePage />} />
+              {/* GESTÃO EMPRESARIAL */}
+              <Route path="gestao/agenda" element={<AgendaPage />} />
+              <Route path="gestao/mapa" element={<MapaPage />} />
+
+              {/* FORNECEDORES > EUROPA */}
+              <Route path="fornecedores/europa/ecomhub/efetividade" element={<EcomhubPage />} />
+              <Route path="fornecedores/europa/ecomhub/efetividade-v2" element={<EcomhubEfetividadeV2Page />} />
+              <Route path="fornecedores/europa/ecomhub/status" element={<EcomhubStatusPage />} />
+              <Route path="fornecedores/europa/ecomhub/configuracoes" element={<EcomhubConfigPage />} />
+              <Route path="fornecedores/europa/n1/efetividade" element={<N1ItaliaPage />} />
+              <Route path="fornecedores/europa/primecod/efetividade" element={<AdminRoute><PrimecodPage /></AdminRoute>} />
+
+              {/* FORNECEDORES > LATAM */}
+              <Route path="fornecedores/latam/dropi/efetividade" element={<AdminRoute><DropiPage /></AdminRoute>} />
+              <Route path="fornecedores/latam/dropi/novelties" element={<NoveltiesPage />} />
+
+              {/* SHOPIFY */}
+              <Route path="shopify/estoque" element={<ControleEstoquePage />} />
+              <Route path="shopify/processamento" element={<ProcessamentoPage />} />
+              <Route path="shopify/detector-ip" element={<DetectorIPPage />} />
+
+              {/* PLATAFORMAS DE ANÚNCIO */}
+              <Route path="anuncios/facebook/engajamento" element={<EngajamentoPage />} />
+
+              {/* IA & CHATBOTS */}
+              <Route path="ia/nicochat" element={<Navigate to="/nicochat" replace />} />
+
+              {/* FERRAMENTAS INTERNAS */}
+              <Route path="interno/projetos" element={<ProjetoDashboard />} />
+              <Route path="interno/logs" element={<LogsPage />} />
+              <Route path="interno/openai-analytics" element={<AdminRoute><OpenAIAnalytics /></AdminRoute>} />
+
+              {/* REDIRECTS - Rotas antigas para novas */}
+              <Route path="agenda" element={<Navigate to="/workspace/gestao/agenda" replace />} />
+              <Route path="mapa" element={<Navigate to="/workspace/gestao/mapa" replace />} />
+              <Route path="metricas/ecomhub" element={<Navigate to="/workspace/fornecedores/europa/ecomhub/efetividade" replace />} />
+              <Route path="metricas/ecomhub-v2" element={<Navigate to="/workspace/fornecedores/europa/ecomhub/efetividade-v2" replace />} />
+              <Route path="status/ecomhub" element={<Navigate to="/workspace/fornecedores/europa/ecomhub/status" replace />} />
+              <Route path="ecomhub/configuracoes" element={<Navigate to="/workspace/fornecedores/europa/ecomhub/configuracoes" replace />} />
+              <Route path="metricas/n1italia" element={<Navigate to="/workspace/fornecedores/europa/n1/efetividade" replace />} />
+              <Route path="metricas/primecod" element={<Navigate to="/workspace/fornecedores/europa/primecod/efetividade" replace />} />
+              <Route path="metricas/dropi" element={<Navigate to="/workspace/fornecedores/latam/dropi/efetividade" replace />} />
+              <Route path="novelties" element={<Navigate to="/workspace/fornecedores/latam/dropi/novelties" replace />} />
+              <Route path="estoque" element={<Navigate to="/workspace/shopify/estoque" replace />} />
+              <Route path="processamento" element={<Navigate to="/workspace/shopify/processamento" replace />} />
+              <Route path="detector-ip" element={<Navigate to="/workspace/shopify/detector-ip" replace />} />
+              <Route path="engajamento" element={<Navigate to="/workspace/anuncios/facebook/engajamento" replace />} />
+              <Route path="projetos" element={<Navigate to="/workspace/interno/projetos" replace />} />
+              <Route path="logs" element={<Navigate to="/workspace/interno/logs" replace />} />
+              <Route path="openai-analytics" element={<Navigate to="/workspace/interno/openai-analytics" replace />} />
+
+              {/* Página padrão */}
               <Route path="*" element={
                 <div className="flex h-full items-center justify-center">
                   <div className="text-center">
