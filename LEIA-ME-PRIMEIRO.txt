@@ -1,0 +1,189 @@
+================================================================================
+  INVESTIGACAO: Por que o sistema nao esta pegando todos os pedidos?
+================================================================================
+
+RESULTADO DA INVESTIGACAO
+================================================================================
+
+PROBLEMA ENCONTRADO: SIM
+Sistema nao esta buscando todos os pedidos da loja.
+
+CAUSA: Funcao fetch_orders_from_api() em sync_service.py NAO implementa 
+       paginacao. Busca apenas 1 pagina (ate 500 pedidos).
+
+IMPACTO: Se loja tem 5.000+ pedidos, apenas ~500 sao sincronizados.
+         Faltam ~90% dos pedidos!
+
+SOLUCAO: Adicionar paginacao usando codigo que ja existe em efetividade_v2_service.py
+
+
+ARQUIVOS CRIADOS
+================================================================================
+
+ANALISE (5 arquivos):
+
+1. RESUMO_PROBLEMA.txt
+   └─ COMECE AQUI! Leia isso primeiro (5 min)
+   └─ Resume o problema, causa, impacto e solucao
+
+2. DIAGNOSTICO_PAGINACAO.md
+   └─ Analise detalhada com evidencias
+   └─ Mostra o codigo problemático lado a lado com o correto
+
+3. ANALISE_PAGINACAO.txt
+   └─ Analise tecnica completa
+   └─ Checklist de implementacao
+
+4. COMPARACAO_LADO_A_LADO.txt
+   └─ Codigo ERRADO vs CORRETO lado a lado
+   └─ Tabela comparativa visivel
+
+5. SNIPPET_CODIGO_PROBLEMA.txt
+   └─ Exatamente o que precisa mudar
+   └─ 3 opcoes de como corrigir
+
+
+TESTES (2 arquivos):
+
+1. backend/test_diagnostico_paginacao.py (NOVO)
+   └─ Compara metodo errado vs correto
+   └─ Mostra quantos pedidos faltam
+   └─ Confirma o problema
+
+2. backend/test_limite_paginacao.py (JA EXISTIA)
+   └─ Descobre volume real de pedidos
+
+
+INDICE (1 arquivo):
+
+1. INDICE_INVESTIGACAO.txt
+   └─ Index completo de tudo criado
+   └─ Guia de leitura
+   └─ FAQ
+
+
+FLUXO RAPIDO
+================================================================================
+
+1. Leia: RESUMO_PROBLEMA.txt (5 minutos)
+
+2. Execute: python backend/test_diagnostico_paginacao.py
+   Resultado esperado: Metodo correto retorna MUITO mais pedidos
+
+3. Leia: SNIPPET_CODIGO_PROBLEMA.txt (5 minutos)
+
+4. Decida: Qual opcao de solucao (A, B ou C)
+
+5. Implemente: ~30 minutos
+
+6. Teste: ~1 hora
+
+
+SUMARIO TECNICO
+================================================================================
+
+ARQUIVO COM PROBLEMA:
+  backend/features/metricas_ecomhub/services/sync_service.py
+  Funcao: fetch_orders_from_api(token, secret)
+  Linhas: 202-235
+
+O QUE ESTA ERRADO:
+  - Nao tem loop de paginacao
+  - skip sempre = 0
+  - Busca apenas 1 pagina (max 500 pedidos)
+  - API retorna max 500, pode ter centenas de paginas
+
+EXEMPLO DE ERRO:
+  response = requests.get(..., skip=0)
+  return response.json()  <- Retorna direto, sem paginacao
+
+O QUE DEVERIA SER:
+  while True:
+      response = requests.get(..., skip=skip)
+      orders = response.json()
+      if not orders: break           <- Para quando vazio
+      all_orders.extend(orders)      <- Acumula
+      if len(orders) < 500: break    <- Para quando < 500 (ultima pagina)
+      skip += 500                    <- CHAVE: incrementa para proxima
+
+
+ONDE ESTA A SOLUCAO:
+  backend/features/metricas_ecomhub/services/efetividade_v2_service.py
+  Funcao: fetch_orders_from_ecomhub_api(...)
+  Linhas: 62-146
+  
+  Ja implementa paginacao corretamente!
+
+
+INFORMACOES CHAVE
+================================================================================
+
+Volume esperado: Sistema deveria buscar ate 100.000 pedidos (200 paginas x 500)
+Volume atual:    Sistema busca apenas 500 pedidos (1 pagina)
+
+Diferenca:       Se loja tem 5.000 pedidos, faltam 4.500!
+
+Usuarios afetados: Todas as lojas com > 500 pedidos
+
+Severidade:      ALTA - Dados incompletos afetam todas as metricas
+
+Risco da solucao: BAIXO - Apenas adiciona mais dados, nao remove
+
+
+COMO CONFIRMAR O PROBLEMA
+================================================================================
+
+Execute:
+  python backend/test_diagnostico_paginacao.py
+
+Saida esperada (se houver problema):
+  [1] BUSCANDO COM METODO INCORRETO (sem paginacao)...
+      Pedidos retornados: 500
+  
+  [2] BUSCANDO COM METODO CORRETO (com paginacao)...
+      Pagina   1... [OK] 500 pedidos
+      Pagina   2... [OK] 500 pedidos
+      Pagina   3... [OK] 250 pedidos
+      [FIM - Menos de 500 retornados]
+      
+      Total acumulado: 1250 pedidos
+  
+  [PROBLEMA CONFIRMADO!]
+  Sistema esta deixando de buscar 750 pedidos!
+
+
+CRONOGRAMA
+================================================================================
+
+Hoje:
+  - Ler RESUMO_PROBLEMA.txt
+  - Executar test_diagnostico_paginacao.py
+
+Esta semana:
+  - Implementar solucao
+  - Testar
+  - Fazer commit
+
+Proxima semana:
+  - Resincronizar dados (se necessario)
+  - Verificar metricas
+
+
+PERGUNTAS?
+================================================================================
+
+Ver arquivo: INDICE_INVESTIGACAO.txt
+Secao:       "PERGUNTAS FREQUENTES"
+
+
+COMECE AQUI
+================================================================================
+
+1. Abra: RESUMO_PROBLEMA.txt
+2. Leia com atencao
+3. Execute: python backend/test_diagnostico_paginacao.py
+4. Veja a diferenca
+5. Vem aqui de novo para proximos passos
+
+================================================================================
+

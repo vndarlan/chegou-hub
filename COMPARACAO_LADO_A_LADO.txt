@@ -1,0 +1,204 @@
+================================================================================
+COMPARACAO LADO A LADO: CODIGO ERRADO VS CORRETO
+================================================================================
+
+CODIGO ERRADO (sync_service.py:202-235)
+================================================================================
+
+def fetch_orders_from_api(token, secret):
+    """
+    Busca pedidos da API ECOMHUB
+
+    Args:
+        token: Token da API
+        secret: Secret da API
+
+    Returns:
+        list: Lista de pedidos
+    """
+    try:
+        response = requests.get(                        <- 1 requisicao apenas!
+            'https://api.ecomhub.app/apps/orders',
+            params={
+                'token': token,
+                'orderBy': 'updatedAt',                 <- Ordena por atualizacao
+                'skip': 0                                <- FIXO em 0
+            },
+            headers={
+                'Secret': secret,
+                'Content-Type': 'application/json'
+            },
+            timeout=30
+        )
+
+        if response.status_code == 200:
+            return response.json()                       <- RETORNA DIRETO
+        else:                                            <- SEM PAGINACAO!
+            logger.error(f"API retornou status {response.status_code}")
+            return []
+    except Exception as e:
+        logger.error(f"Erro ao buscar pedidos da API: {str(e)}")
+        return []
+
+RESULTADO: Maximo 500 pedidos (primeira pagina apenas)
+
+
+CODIGO CORRETO (efetividade_v2_service.py:62-146)
+================================================================================
+
+def fetch_orders_from_ecomhub_api(
+    token: str,
+    secret: str,
+    data_inicio: date,
+    data_fim: date,
+    country_id: Optional[int] = None
+) -> List[Dict[str, Any]]:
+    """Busca pedidos da API ECOMHUB no período especificado
+    
+    CORREÇÃO: Implementa paginação para buscar TODOS os pedidos
+    """
+    logger.info(f"Buscando pedidos da API ECOMHUB ({data_inicio} a {data_fim})")
+
+    try:
+        all_orders = []                                  <- ACUMULA TODOS
+        skip = 0                                         <- COMECA EM 0
+        page_size = 500
+        max_pages = 200                                  <- LIMITE: 100.000 pedidos
+
+        while True:                                      <- LOOP DE PAGINACAO!
+            response = requests.get(
+                f"{API_BASE_URL}/orders",
+                params={
+                    'token': token,
+                    'orderBy': 'date',                   <- Ordena por data
+                    'skip': skip                         <- INCREMENTA!
+                },
+                headers={
+                    'Secret': secret,
+                    'Content-Type': 'application/json'
+                },
+                timeout=REQUEST_TIMEOUT
+            )
+
+            if response.status_code != 200:
+                if skip == 0:
+                    if response.status_code == 401:
+                        logger.error("API ECOMHUB: Credenciais inválidas (401)")
+                        raise ValueError("Token ou Secret inválido")
+                    else:
+                        logger.error(f"API ECOMHUB retornou status {response.status_code}")
+                        raise requests.RequestException(f"Erro na API: {response.status_code}")
+                break
+
+            orders = response.json()
+
+            if not orders or len(orders) == 0:           <- TRATA ARRAY VAZIO
+                break
+
+            all_orders.extend(orders)                    <- ACUMULA
+            logger.info(f"Página {skip//page_size + 1}: {len(orders)} pedidos")
+
+            if len(orders) < page_size:                  <- TRATA ULTIMA PAGINA
+                break
+
+            skip += page_size                            <- INCREMENTA PARA PROXIMA
+                                                         <- !!!! CHAVE !!!
+
+            if skip >= (max_pages * page_size):
+                logger.warning(f"Atingido limite máximo de {max_pages} páginas.")
+                break
+
+        logger.info(f"API retornou {len(all_orders)} pedidos total")
+
+        # Filtrar por período
+        orders_filtrados = []
+        for order in all_orders:
+            try:
+                order_date_str = order.get('date', '')
+                order_date = datetime.fromisoformat(
+                    order_date_str.replace('Z', '+00:00')
+                ).date()
+
+                if data_inicio <= order_date <= data_fim:
+                    if country_id is None or order.get('shippingCountry_id') == country_id:
+                        orders_filtrados.append(order)
+            except Exception as e:
+                logger.warning(f"Erro ao processar data do pedido {order.get('id')}: {e}")
+                continue
+
+        logger.info(f"Após filtro: {len(orders_filtrados)} pedidos no período")
+        return orders_filtrados
+
+RESULTADO: Maximo 100.000 pedidos (200 paginas x 500)
+
+
+COMPARACAO TABULAR
+================================================================================
+
+Aspecto                          | ERRADO            | CORRETO
+---------------------------------+-------------------+-------------------
+Loop de paginacao               | NAO               | SIM (while True)
+Requisicoes                     | 1 apenas          | Ate 200
+Skip incrementado               | NAO               | SIM (+=500)
+Pedidos maximos                 | 500               | 100.000
+Trata array vazio               | NAO               | SIM
+Trata len < 500                 | NAO               | SIM
+Limite de seguranca             | NAO               | SIM (200 paginas)
+Logging de progresso            | Basico            | Detalhado
+Tratamento de erros             | Basico            | Completo
+Filtragem por periodo           | Nao               | SIM
+Filtragem por pais              | Nao               | SIM
+
+
+EXEMPLO DE DIFERENCA NA PRATICA
+================================================================================
+
+LOJA COM 1.250 PEDIDOS:
+
+Requisicao 1 (skip=0):   500 pedidos retornados
+Requisicao 2 (skip=500): 500 pedidos retornados
+Requisicao 3 (skip=1000): 250 pedidos retornados
+
+ERRADO (sync_service.py):
+  - Faz apenas requisicao 1
+  - Retorna: 500 pedidos
+  - Faltam: 750 pedidos (60%)
+  
+CORRETO (efetividade_v2_service.py):
+  - Faz requisicoes 1, 2, 3
+  - Requisicao 3 retorna < 500, para
+  - Retorna: 1.250 pedidos
+  - Nada falta (100%)
+
+
+O PROBLEMA RESUMIDO
+================================================================================
+
+CODIGO ERRADO:
+  response = requests.get(..., skip=0)
+  return response.json()
+
+CODIGO CORRETO:
+  while True:
+      response = requests.get(..., skip=skip)
+      orders = response.json()
+      if not orders: break
+      all_orders.extend(orders)
+      if len(orders) < 500: break
+      skip += 500
+
+A DIFERENCA: 1 requisicao vs ate 200 requisicoes
+
+
+IMPACTO PARA O USUARIO FINAL
+================================================================================
+
+Usuario relata: "Tenho muito mais pedidos do que os 1.093 encontrados"
+
+Por que acontece:
+1. API tem milhares de pedidos
+2. Sistema busca apenas 1 pagina (primeira 500)
+3. Pedidos antigos nao sao sincronizados
+4. Dashboard mostra dados incompletos
+5. Usuario vê menos pedidos do que realmente tem
+

@@ -1,0 +1,153 @@
+================================================================================
+RESUMO EXECUTIVO: PROBLEMA DE PAGINACAO NO ECOMHUB
+================================================================================
+
+PROBLEMA REPORTADO
+================================================================================
+Usuario: "Tenho muito mais pedidos do que os 1.093 encontrados no teste"
+
+Cenario:
+- Loja tem ~5.000 pedidos historicos na API ECOMHUB
+- Sistema sincroniza apenas ~500 pedidos
+- Faltam ~4.500 pedidos (90%)
+
+
+ROOT CAUSE IDENTIFICADA
+================================================================================
+A funcao fetch_orders_from_api() em sync_service.py NAO implementa paginacao.
+
+Arquivo: backend/features/metricas_ecomhub/services/sync_service.py
+Linhas:  202-235
+
+Problema especifico:
+  response = requests.get(..., 'skip': 0)  <- FIXO em 0
+  return response.json()                    <- Sem loop de paginacao
+
+
+PROVA
+================================================================================
+Existem duas implementacoes NO MESMO PROJETO:
+
+1. sync_service.py:
+   - fetch_orders_from_api() [ERRADA]
+   - Busca: 1 pagina apenas (maximo 500 pedidos)
+   - Usado em: sync_ecomhub_orders.py
+
+2. efetividade_v2_service.py:
+   - fetch_orders_from_ecomhub_api() [CORRETA]
+   - Busca: ate 200 paginas (maximo 100.000 pedidos)
+   - Usa paginacao com while loop
+   - Incrementa skip a cada iteracao
+   - Usado em: relatorios de efetividade
+
+
+O QUE ACONTECE
+================================================================================
+
+FLUXO ATUAL (ERRADO):
+  sync_ecomhub_orders.py
+    ↓
+  sync_all_stores()
+    ↓
+  sync_store()
+    ↓
+  fetch_orders_from_api()  ← AQUI: Busca apenas 1 pagina (500 pedidos)
+    ↓
+  EcomhubOrder.objects.create/update()
+    ↓
+  Database sincroniza: 500 pedidos
+
+Resultado: Database nunca ve pedidos antigos!
+
+
+IMPACTO
+================================================================================
+- Dashboard mostra apenas os ultimos 500 pedidos
+- Metricas de efetividade baseadas em dados incompletos
+- Alertas podem estar baseados em amostra pequena
+- Historico de pedidos incompleto
+
+
+SOLUCAO NECESSARIA
+================================================================================
+
+Implementar paginacao em sync_service.py:fetch_orders_from_api()
+
+Opcoes:
+
+A) Refatorar fetch_orders_from_api() para adicionar paginacao (SIMPLES)
+B) Usar fetch_orders_from_ecomhub_api() de efetividade_v2_service.py (REUTILIZAR)
+C) Criar funcao compartilhada (MELHOR DESIGN)
+
+RECOMENDACAO: Opcao B - Reutilizar funcao existente que ja funciona
+
+
+TESTE RAPIDO
+================================================================================
+Para confirmar o problema, executar:
+
+  python backend/test_diagnostico_paginacao.py
+
+Esse script:
+1. Busca com metodo incorreto (sem paginacao) - retorna X pedidos
+2. Busca com metodo correto (com paginacao) - retorna Y pedidos
+3. Mostra diferenca: Y - X = pedidos faltando
+
+
+ARQUIVOS
+================================================================================
+
+Problema em:
+  backend/features/metricas_ecomhub/services/sync_service.py
+  └─ Linhas 202-235: funcao fetch_orders_from_api()
+
+Exemplo correto em:
+  backend/features/metricas_ecomhub/services/efetividade_v2_service.py
+  └─ Linhas 62-146: funcao fetch_orders_from_ecomhub_api()
+
+Usa codigo errado:
+  backend/features/metricas_ecomhub/management/commands/sync_ecomhub_orders.py
+  └─ Chama sync_store() que chama fetch_orders_from_api()
+
+Testes criados:
+  backend/test_diagnostico_paginacao.py
+  backend/test_limite_paginacao.py
+
+
+PROXIMOS PASSOS
+================================================================================
+
+1. URGENTE (hoje):
+   - Executar test_diagnostico_paginacao.py
+   - Confirmar que pedidos estao faltando
+
+2. CURTO PRAZO (esta semana):
+   - Implementar solucao (qualquer uma das opcoes)
+   - Testar com lojas que tem muitos pedidos
+   - Fazer commit e push
+
+3. MEDIO PRAZO (proximos sprints):
+   - Resincronizar database com todos os pedidos historicos
+   - Verificar se metricas estao corretas agora
+
+
+ESTIMATIVA
+================================================================================
+- Diagnostico: 5 minutos (test_diagnostico_paginacao.py)
+- Implementacao: 30 minutos
+- Testes: 1 hora
+- Resincronizacao: Depende do volume
+
+
+CONCLUSAO
+================================================================================
+Sistema esta funcionando, mas de forma INCOMPLETA.
+
+Apenas 1 em cada N paginas de pedidos esta sendo sincronizada.
+
+A solucao e simples: adicionar paginacao (loop while + skip incrementado).
+
+Código correto ja existe no projeto (efetividade_v2_service.py).
+
+Basta aplicar a mesma logica em sync_service.py.
+

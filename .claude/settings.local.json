@@ -35,7 +35,11 @@
       "Bash(railway status:*)",
       "Bash(mkdir:*)",
       "Bash(git pull:*)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "Bash(git restore:*)",
+      "Bash(awk:*)",
+      "Bash(copy frontendsrccomponentsapp-sidebar.jsx backups2025-11-03app-sidebar.jsx.backup)",
+      "Bash(copy frontendsrcpagesWorkspacePage.js backups2025-11-03WorkspacePage.js.backup)"
     ],
     "deny": [],
     "ask": [],

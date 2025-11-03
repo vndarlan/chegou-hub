@@ -126,14 +126,8 @@ export function AppSidebar({
     },
   ];
 
-  // Adicionar Tutoriais e Admin se for admin
+  // Adicionar Admin se for admin (Tutoriais movido para fora dos grupos)
   const gestaoAdminItems = isAdmin ? [
-    {
-      title: "Tutoriais",
-      url: "/tutoriais",
-      icon: BookOpen,
-      isActive: location.pathname === "/tutoriais",
-    },
     {
       title: "Administração",
       url: "https://chegou-hubb-production.up.railway.app/admin/",
@@ -304,8 +298,37 @@ export function AppSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      
+
       <SidebarContent className="flex-1 overflow-y-auto">
+        {/* TUTORIAIS - Item independente, fora de qualquer grupo */}
+        {isAdmin && (
+          <SidebarMenu className="px-3 py-2">
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={location.pathname === "/tutoriais"}
+                tooltip="Tutoriais - Como usar cada página do site"
+                size="lg"
+              >
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate("/tutoriais");
+                  }}
+                  className="font-semibold"
+                >
+                  <BookOpen className="size-4" />
+                  <span>Tutoriais</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        )}
+
+        {/* Separador visual após Tutoriais */}
+        {isAdmin && <div className="mx-3 mb-2 border-b border-sidebar-border" />}
+
         {/* GESTÃO EMPRESARIAL - sempre no topo */}
         <SidebarGroup>
           <SidebarGroupLabel>GESTÃO EMPRESARIAL</SidebarGroupLabel>
