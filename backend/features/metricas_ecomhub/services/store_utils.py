@@ -60,6 +60,8 @@ def get_store_country(token, secret):
     """
     Detecta o país da loja analisando pedidos recentes
 
+    CORREÇÃO: Implementa paginação para buscar TODOS os pedidos (API ECOMHUB limita 500 por requisição)
+
     Returns:
         dict: {
             'country_id': int or None,
@@ -68,24 +70,52 @@ def get_store_country(token, secret):
         }
     """
     try:
-        # Buscar pedidos recentes
-        response = requests.get(
-            f"https://api.ecomhub.app/apps/orders",
-            params={'token': token, 'orderBy': 'date', 'skip': 0},
-            headers={'Secret': secret, 'Content-Type': 'application/json'},
-            timeout=15
-        )
+        # Buscar TODOS os pedidos com paginação
+        all_orders = []
+        skip = 0
+        page_size = 500
+        max_pages = 10  # Limite de segurança: até 5.000 pedidos (10 páginas x 500)
 
-        if response.status_code != 200:
-            return {
-                'country_id': None,
-                'country_name': None,
-                'error_message': f"Erro ao buscar pedidos: status {response.status_code}"
-            }
+        while True:
+            response = requests.get(
+                f"https://api.ecomhub.app/apps/orders",
+                params={'token': token, 'orderBy': 'date', 'skip': skip},
+                headers={'Secret': secret, 'Content-Type': 'application/json'},
+                timeout=15
+            )
 
-        orders = response.json()
+            if response.status_code != 200:
+                # Se primeira página falha, retorna erro
+                if skip == 0:
+                    return {
+                        'country_id': None,
+                        'country_name': None,
+                        'error_message': f"Erro ao buscar pedidos: status {response.status_code}"
+                    }
+                # Se páginas seguintes falham, usa o que já coletou
+                break
 
-        if not orders or len(orders) == 0:
+            orders = response.json()
+
+            # Se retornou vazio, fim da paginação
+            if not orders or len(orders) == 0:
+                break
+
+            all_orders.extend(orders)
+
+            # Se retornou menos que page_size, é a última página
+            if len(orders) < page_size:
+                break
+
+            # Próxima página
+            skip += page_size
+
+            # Limite de segurança
+            if skip >= (max_pages * page_size):
+                break
+
+        # Se não tem nenhum pedido após buscar tudo
+        if not all_orders or len(all_orders) == 0:
             return {
                 'country_id': None,
                 'country_name': None,
@@ -93,7 +123,7 @@ def get_store_country(token, secret):
             }
 
         # Identificar país mais comum nos pedidos
-        country_ids = [order.get('shippingCountry_id') for order in orders if order.get('shippingCountry_id')]
+        country_ids = [order.get('shippingCountry_id') for order in all_orders if order.get('shippingCountry_id')]
 
         if not country_ids:
             return {

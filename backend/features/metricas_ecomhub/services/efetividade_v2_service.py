@@ -69,6 +69,8 @@ def fetch_orders_from_ecomhub_api(
     """
     Busca pedidos da API ECOMHUB no período especificado
 
+    CORREÇÃO: Implementa paginação para buscar TODOS os pedidos (API limita 500 por requisição)
+
     Args:
         token: Token de autenticação da loja
         secret: Secret da loja
@@ -85,57 +87,86 @@ def fetch_orders_from_ecomhub_api(
     logger.info(f"Buscando pedidos da API ECOMHUB ({data_inicio} a {data_fim})")
 
     try:
-        response = requests.get(
-            f"{API_BASE_URL}/orders",
-            params={
-                'token': token,
-                'orderBy': 'date',
-                'skip': 0
-            },
-            headers={
-                'Secret': secret,
-                'Content-Type': 'application/json'
-            },
-            timeout=REQUEST_TIMEOUT
-        )
+        # Buscar TODOS os pedidos com paginação
+        all_orders = []
+        skip = 0
+        page_size = 500
+        max_pages = 20  # Limite de segurança: até 10.000 pedidos
 
-        if response.status_code == 200:
+        while True:
+            response = requests.get(
+                f"{API_BASE_URL}/orders",
+                params={
+                    'token': token,
+                    'orderBy': 'date',
+                    'skip': skip
+                },
+                headers={
+                    'Secret': secret,
+                    'Content-Type': 'application/json'
+                },
+                timeout=REQUEST_TIMEOUT
+            )
+
+            if response.status_code != 200:
+                # Se primeira página falha, lança exceção
+                if skip == 0:
+                    if response.status_code == 401:
+                        logger.error("API ECOMHUB: Credenciais inválidas (401)")
+                        raise ValueError("Token ou Secret inválido")
+                    elif response.status_code == 403:
+                        logger.error("API ECOMHUB: Acesso negado (403)")
+                        raise ValueError("Sem permissão para acessar esta loja")
+                    else:
+                        logger.error(f"API ECOMHUB retornou status {response.status_code}: {response.text}")
+                        raise requests.RequestException(f"Erro na API: {response.status_code}")
+                # Se páginas seguintes falham, usa o que já coletou
+                break
+
             orders = response.json()
-            logger.info(f"API retornou {len(orders)} pedidos")
 
-            # Filtrar por período
-            orders_filtrados = []
-            for order in orders:
-                try:
-                    # Converter data do pedido
-                    order_date_str = order.get('date', '')
-                    order_date = datetime.fromisoformat(
-                        order_date_str.replace('Z', '+00:00')
-                    ).date()
+            # Se retornou vazio, fim da paginação
+            if not orders or len(orders) == 0:
+                break
 
-                    # Filtrar por período
-                    if data_inicio <= order_date <= data_fim:
-                        # Filtrar por país (se especificado)
-                        if country_id is None or order.get('shippingCountry_id') == country_id:
-                            orders_filtrados.append(order)
-                except Exception as e:
-                    logger.warning(f"Erro ao processar data do pedido {order.get('id')}: {e}")
-                    continue
+            all_orders.extend(orders)
+            logger.info(f"Página {skip//page_size + 1}: {len(orders)} pedidos (total acumulado: {len(all_orders)})")
 
-            logger.info(f"Após filtro: {len(orders_filtrados)} pedidos no período")
-            return orders_filtrados
+            # Se retornou menos que page_size, é a última página
+            if len(orders) < page_size:
+                break
 
-        elif response.status_code == 401:
-            logger.error("API ECOMHUB: Credenciais inválidas (401)")
-            raise ValueError("Token ou Secret inválido")
+            # Próxima página
+            skip += page_size
 
-        elif response.status_code == 403:
-            logger.error("API ECOMHUB: Acesso negado (403)")
-            raise ValueError("Sem permissão para acessar esta loja")
+            # Limite de segurança
+            if skip >= (max_pages * page_size):
+                logger.warning(f"Atingido limite máximo de {max_pages} páginas. Interrompendo paginação.")
+                break
 
-        else:
-            logger.error(f"API ECOMHUB retornou status {response.status_code}: {response.text}")
-            raise requests.RequestException(f"Erro na API: {response.status_code}")
+        logger.info(f"API retornou {len(all_orders)} pedidos total após paginação")
+
+        # Filtrar por período
+        orders_filtrados = []
+        for order in all_orders:
+            try:
+                # Converter data do pedido
+                order_date_str = order.get('date', '')
+                order_date = datetime.fromisoformat(
+                    order_date_str.replace('Z', '+00:00')
+                ).date()
+
+                # Filtrar por período
+                if data_inicio <= order_date <= data_fim:
+                    # Filtrar por país (se especificado)
+                    if country_id is None or order.get('shippingCountry_id') == country_id:
+                        orders_filtrados.append(order)
+            except Exception as e:
+                logger.warning(f"Erro ao processar data do pedido {order.get('id')}: {e}")
+                continue
+
+        logger.info(f"Após filtro: {len(orders_filtrados)} pedidos no período")
+        return orders_filtrados
 
     except requests.Timeout:
         logger.error("Timeout ao buscar pedidos da API ECOMHUB")
@@ -326,6 +357,38 @@ def calcular_efetividade(pedidos_raw: List[Dict[str, Any]]) -> Dict[str, Any]:
     # Ordenar por efetividade total (decrescente)
     visualizacao_otimizada.sort(key=lambda x: x['_efetividade_total_num'], reverse=True)
 
+    # Adicionar linha TOTAL com somas de todas as colunas
+    if visualizacao_otimizada:
+        total_finalizados = sum(item['Finalizados'] for item in visualizacao_otimizada)
+        total_em_transito = sum(item['Em_Transito'] for item in visualizacao_otimizada)
+        total_problemas = sum(item['Problemas'] for item in visualizacao_otimizada)
+        total_devolucao = sum(item['Devolucao'] for item in visualizacao_otimizada)
+        total_cancelados = sum(item['Cancelados'] for item in visualizacao_otimizada)
+
+        # Calcular percentuais totais
+        total_pct_a_caminho = (total_em_transito / total_vendas * 100) if total_vendas > 0 else 0
+        total_pct_devolvidos = (total_devolucao / total_vendas * 100) if total_vendas > 0 else 0
+        total_efetividade_parcial = (total_entregues / total_finalizados * 100) if total_finalizados > 0 else 0
+        total_efetividade_total = (total_entregues / total_vendas * 100) if total_vendas > 0 else 0
+
+        visualizacao_otimizada.append({
+            'Produto': 'Total',
+            'Pais': '-',
+            'Totais': total_vendas,
+            'Entregues': total_entregues,
+            'Finalizados': total_finalizados,
+            'Em_Transito': total_em_transito,
+            'Problemas': total_problemas,
+            'Devolucao': total_devolucao,
+            'Cancelados': total_cancelados,
+            'Pct_A_Caminho': f"{total_pct_a_caminho:.1f}%",
+            'Pct_Devolvidos': f"{total_pct_devolvidos:.1f}%",
+            'Efetividade_Parcial': f"{total_efetividade_parcial:.1f}%",
+            'Efetividade_Total': f"{total_efetividade_total:.1f}%",
+            '_efetividade_total_num': total_efetividade_total,
+            '_efetividade_parcial_num': total_efetividade_parcial
+        })
+
     # Estatísticas gerais
     efetividade_media = (total_entregues / total_vendas * 100) if total_vendas > 0 else 0
 
@@ -387,6 +450,25 @@ def _gerar_visualizacao_total(produtos: Dict[str, Dict]) -> List[Dict[str, Any]]
 
     # Ordenar por totais
     visualizacao_total.sort(key=lambda x: x['Totais'], reverse=True)
+
+    # Adicionar linha TOTAL com somas de todas as colunas
+    if visualizacao_total:
+        total_row = {
+            'Produto': 'Total',
+            'Totais': sum(item['Totais'] for item in visualizacao_total),
+            'Processing': sum(item['Processing'] for item in visualizacao_total),
+            'Preparing_For_Shipping': sum(item['Preparing_For_Shipping'] for item in visualizacao_total),
+            'Ready_To_Ship': sum(item['Ready_To_Ship'] for item in visualizacao_total),
+            'Shipped': sum(item['Shipped'] for item in visualizacao_total),
+            'With_Courier': sum(item['With_Courier'] for item in visualizacao_total),
+            'Out_For_Delivery': sum(item['Out_For_Delivery'] for item in visualizacao_total),
+            'Delivered': sum(item['Delivered'] for item in visualizacao_total),
+            'Returning': sum(item['Returning'] for item in visualizacao_total),
+            'Returned': sum(item['Returned'] for item in visualizacao_total),
+            'Cancelled': sum(item['Cancelled'] for item in visualizacao_total),
+            'Issue': sum(item['Issue'] for item in visualizacao_total)
+        }
+        visualizacao_total.append(total_row)
 
     return visualizacao_total
 
