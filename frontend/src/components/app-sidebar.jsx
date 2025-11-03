@@ -1,9 +1,6 @@
 import * as React from "react"
 import {
   Bot,
-  BarChart3,
-  Settings,
-  Phone,
   Lock,
   ChevronRight,
   ChevronsUpDown,
@@ -12,15 +9,10 @@ import {
   Sun,
   Calendar,
   Map,
-  TrendingUp,
   BookOpen,
-  Briefcase,
-  Building2,
   Globe2,
   MapPin,
-  ShoppingCart,
   ShoppingBag,
-  Megaphone,
   ThumbsUp,
   Flag,
   Trophy,
@@ -28,11 +20,7 @@ import {
   Package,
   Zap,
   Globe,
-  MessageSquare,
-  Target,
-  FileText,
-  Brain,
-  Settings2
+  MessageSquare
 } from 'lucide-react'
 
 import {
@@ -95,7 +83,7 @@ export function AppSidebar({
   };
 
   // GESTÃO EMPRESARIAL items
-  const gestaoItems = [
+  const gestaoBaseItems = [
     {
       title: "Agenda da Empresa",
       url: "/workspace/gestao/agenda",
@@ -109,6 +97,54 @@ export function AppSidebar({
       isActive: location.pathname === "/workspace/gestao/mapa",
     },
   ];
+
+  // Submenu IA dentro de Gestão Empresarial
+  const iaSubmenuItems = [
+    {
+      title: "IA",
+      icon: Bot,
+      isActive: location.pathname.includes('/workspace/interno/projetos') ||
+                location.pathname.includes('/workspace/interno/logs') ||
+                location.pathname.includes('/workspace/interno/openai-analytics'),
+      items: [
+        {
+          title: "Projetos",
+          url: "/workspace/interno/projetos",
+          isActive: location.pathname === "/workspace/interno/projetos",
+        },
+        {
+          title: "Logs de Erros",
+          url: "/workspace/interno/logs",
+          isActive: location.pathname === "/workspace/interno/logs",
+        },
+        {
+          title: "OpenAI Analytics",
+          url: "/workspace/interno/openai-analytics",
+          isActive: location.pathname === "/workspace/interno/openai-analytics",
+        },
+      ],
+    },
+  ];
+
+  // Adicionar Tutoriais e Admin se for admin
+  const gestaoAdminItems = isAdmin ? [
+    {
+      title: "Tutoriais",
+      url: "/tutoriais",
+      icon: BookOpen,
+      isActive: location.pathname === "/tutoriais",
+    },
+    {
+      title: "Administração",
+      url: "https://chegou-hubb-production.up.railway.app/admin/",
+      icon: Lock,
+      external: true,
+      isActive: false,
+    },
+  ] : [];
+
+  // Combinar todos os items de gestão
+  const gestaoItems = [...gestaoBaseItems, ...iaSubmenuItems, ...gestaoAdminItems];
 
   // FORNECEDORES items
   const fornecedoresItems = [
@@ -244,27 +280,6 @@ export function AppSidebar({
     },
   ];
 
-  // FERRAMENTAS INTERNAS items (apenas para time interno)
-  const ferramentasInternasItems = isAdmin ? [
-    {
-      title: "Projetos",
-      url: "/workspace/interno/projetos",
-      icon: Target,
-      isActive: location.pathname === "/workspace/interno/projetos",
-    },
-    {
-      title: "Logs de Erros",
-      url: "/workspace/interno/logs",
-      icon: FileText,
-      isActive: location.pathname === "/workspace/interno/logs",
-    },
-    {
-      title: "OpenAI Analytics",
-      url: "/workspace/interno/openai-analytics",
-      icon: Brain,
-      isActive: location.pathname === "/workspace/interno/openai-analytics",
-    },
-  ] : [];
 
   return (
     <Sidebar className="h-screen" {...props}>
@@ -296,24 +311,77 @@ export function AppSidebar({
           <SidebarGroupLabel>GESTÃO EMPRESARIAL</SidebarGroupLabel>
           <SidebarMenu>
             {gestaoItems.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
+              item.items ? (
+                // Submenu IA
+                <Collapsible
+                  key={item.title}
                   asChild
-                  isActive={item.isActive}
-                  tooltip={item.title}
+                  defaultOpen={item.isActive}
+                  className="group/collapsible"
                 >
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleNavigation(item);
-                    }}
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton
+                        tooltip={item.title}
+                        isActive={item.isActive}
+                      >
+                        <item.icon className="size-4" />
+                        <span>{item.title}</span>
+                        <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {item.items?.map((subItem) => (
+                          <SidebarMenuSubItem key={subItem.title}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={subItem.isActive}
+                            >
+                              <a
+                                href="#"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleNavigation(subItem);
+                                }}
+                              >
+                                <span>{subItem.title}</span>
+                              </a>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              ) : (
+                // Items simples (Agenda, Mapa, Tutoriais, Admin)
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={item.isActive}
+                    tooltip={item.title}
                   >
-                    <item.icon className="size-4" />
-                    <span>{item.title}</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                    <a
+                      href={item.external ? item.url : "#"}
+                      target={item.external ? "_blank" : undefined}
+                      rel={item.external ? "noopener noreferrer" : undefined}
+                      onClick={(e) => {
+                        if (!item.external) {
+                          e.preventDefault();
+                          handleNavigation(item);
+                        }
+                      }}
+                    >
+                      <item.icon className="size-4" />
+                      <span>{item.title}</span>
+                      {item.external && (
+                        <span className="ml-auto text-xs opacity-60">↗</span>
+                      )}
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )
             ))}
           </SidebarMenu>
         </SidebarGroup>
@@ -494,34 +562,6 @@ export function AppSidebar({
           </SidebarMenu>
         </SidebarGroup>
 
-        {/* FERRAMENTAS INTERNAS - apenas para time interno */}
-        {isAdmin && ferramentasInternasItems.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>FERRAMENTAS INTERNAS</SidebarGroupLabel>
-            <SidebarMenu>
-              {ferramentasInternasItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={item.isActive}
-                    tooltip={item.title}
-                  >
-                    <a
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleNavigation(item);
-                      }}
-                    >
-                      <item.icon className="size-4" />
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
-        )}
 
       </SidebarContent>
       
