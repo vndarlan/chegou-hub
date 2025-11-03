@@ -279,26 +279,32 @@ def calcular_efetividade(pedidos_raw: List[Dict[str, Any]]) -> Dict[str, Any]:
         'country_id': None
     })
 
-    # Processar cada pedido
+    # Processar cada pedido (CONTAR PEDIDOS, NÃO ITENS!)
     for pedido in pedidos_raw:
         items = extrair_produtos_do_pedido(pedido)
 
-        for item in items:
-            produto_nome = item['produto']
-            status = item['status']
-            price = item['price']
-            country_id = item.get('country_id')
+        # Se o pedido não tem itens, pular
+        if not items:
+            continue
 
-            # Chave única: produto + país
-            chave = (produto_nome, country_id)
+        # Usar o primeiro produto do pedido (representa o pedido inteiro)
+        # Mesmo que o pedido tenha múltiplos itens, conta como 1 pedido
+        item = items[0]
+        produto_nome = item['produto']
+        status = item['status']
+        price = item['price']
+        country_id = item.get('country_id')
 
-            # Contabilizar
-            produtos[chave]['Totais'] += 1
-            produtos[chave]['country_id'] = country_id
+        # Chave única: produto + país
+        chave = (produto_nome, country_id)
 
-            # Contar por status
-            if status in produtos[chave]:
-                produtos[chave][status] += 1
+        # Contabilizar PEDIDO (não item)
+        produtos[chave]['Totais'] += 1
+        produtos[chave]['country_id'] = country_id
+
+        # Contar por status
+        if status in produtos[chave]:
+            produtos[chave][status] += 1
 
     # Gerar visualização otimizada
     visualizacao_otimizada = []
@@ -431,9 +437,10 @@ def _gerar_visualizacao_total(produtos: Dict[str, Dict]) -> List[Dict[str, Any]]
     """
     visualizacao_total = []
 
-    for produto_nome, counts in produtos.items():
+    for chave, counts in produtos.items():
+        produto_nome, country_id = chave  # Desempacotar tupla corretamente
         visualizacao_total.append({
-            'Produto': produto_nome,
+            'Produto': produto_nome,  # Agora apenas o nome, sem country_id
             'Totais': counts['Totais'],
             'Processing': counts['processing'],
             'Preparing_For_Shipping': counts['preparing_for_shipping'],
