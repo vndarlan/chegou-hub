@@ -118,24 +118,7 @@ const breadcrumbMap = {
   '/interno/logs': [{ label: 'FERRAMENTAS INTERNAS', href: '#' }, { label: 'Logs de Erros' }],
   '/interno/openai-analytics': [{ label: 'FERRAMENTAS INTERNAS', href: '#' }, { label: 'OpenAI Analytics' }],
 
-  // Rotas antigas - manter para compatibilidade temporária
-  '/workspace/agenda': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Agenda da Empresa' }],
-  '/workspace/mapa': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Mapa de Atuação' }],
-  '/workspace/metricas/ecomhub': [{ label: 'ECOMHUB', href: '#' }, { label: 'Efetividade' }],
-  '/workspace/metricas/ecomhub-v2': [{ label: 'ECOMHUB', href: '#' }, { label: 'Efetividade V2' }],
-  '/workspace/status/ecomhub': [{ label: 'ECOMHUB', href: '#' }, { label: 'Status' }],
-  '/workspace/ecomhub/configuracoes': [{ label: 'ECOMHUB', href: '#' }, { label: 'Configurações' }],
-  '/workspace/metricas/n1italia': [{ label: 'N1 ITALIA', href: '#' }, { label: 'Efetividade' }],
-  '/workspace/metricas/primecod': [{ label: 'PRIMECOD', href: '#' }, { label: 'Efetividade' }],
-  '/workspace/metricas/dropi': [{ label: 'DROPI', href: '#' }, { label: 'Efetividade' }],
-  '/workspace/novelties': [{ label: 'DROPI', href: '#' }, { label: 'Novelties' }],
-  '/workspace/estoque': [{ label: 'SHOPIFY', href: '#' }, { label: 'Controle de Estoque' }],
-  '/workspace/processamento': [{ label: 'SHOPIFY', href: '#' }, { label: 'Processamento' }],
-  '/workspace/detector-ip': [{ label: 'SHOPIFY', href: '#' }, { label: 'Detector de IP' }],
-  '/workspace/engajamento': [{ label: 'Facebook', href: '#' }, { label: 'Engajamento' }],
-  '/workspace/projetos': [{ label: 'FERRAMENTAS INTERNAS', href: '#' }, { label: 'Projetos' }],
-  '/workspace/logs': [{ label: 'FERRAMENTAS INTERNAS', href: '#' }, { label: 'Logs de Erros' }],
-  '/workspace/openai-analytics': [{ label: 'FERRAMENTAS INTERNAS', href: '#' }, { label: 'OpenAI Analytics' }],
+  // Nicochat
   '/nicochat': [{ label: 'IA & CHATBOTS', href: '#' }, { label: 'Nicochat' }],
 };
 
@@ -263,26 +246,7 @@ function WorkspacePage({ setIsLoggedIn }) {
               <Route path="interno/logs" element={<LogsPage />} />
               <Route path="interno/openai-analytics" element={<AdminRoute><OpenAIAnalytics /></AdminRoute>} />
 
-              {/* REDIRECTS - Rotas antigas com workspace para novas sem workspace */}
-              <Route path="workspace/gestao/agenda" element={<Navigate to="/gestao/agenda" replace />} />
-              <Route path="workspace/gestao/mapa" element={<Navigate to="/gestao/mapa" replace />} />
-              <Route path="workspace/fornecedores/europa/ecomhub/efetividade" element={<Navigate to="/fornecedores/europa/ecomhub/efetividade" replace />} />
-              <Route path="workspace/fornecedores/europa/ecomhub/efetividade-v2" element={<Navigate to="/fornecedores/europa/ecomhub/efetividade-v2" replace />} />
-              <Route path="workspace/fornecedores/europa/ecomhub/status" element={<Navigate to="/fornecedores/europa/ecomhub/status" replace />} />
-              <Route path="workspace/fornecedores/europa/ecomhub/configuracoes" element={<Navigate to="/fornecedores/europa/ecomhub/configuracoes" replace />} />
-              <Route path="workspace/fornecedores/europa/n1/efetividade" element={<Navigate to="/fornecedores/europa/n1/efetividade" replace />} />
-              <Route path="workspace/fornecedores/europa/primecod/efetividade" element={<Navigate to="/fornecedores/europa/primecod/efetividade" replace />} />
-              <Route path="workspace/fornecedores/latam/dropi/efetividade" element={<Navigate to="/fornecedores/latam/dropi/efetividade" replace />} />
-              <Route path="workspace/fornecedores/latam/dropi/novelties" element={<Navigate to="/fornecedores/latam/dropi/novelties" replace />} />
-              <Route path="workspace/shopify/estoque" element={<Navigate to="/shopify/estoque" replace />} />
-              <Route path="workspace/shopify/processamento" element={<Navigate to="/shopify/processamento" replace />} />
-              <Route path="workspace/shopify/detector-ip" element={<Navigate to="/shopify/detector-ip" replace />} />
-              <Route path="workspace/anuncios/facebook/engajamento" element={<Navigate to="/anuncios/facebook/engajamento" replace />} />
-              <Route path="workspace/interno/projetos" element={<Navigate to="/interno/projetos" replace />} />
-              <Route path="workspace/interno/logs" element={<Navigate to="/interno/logs" replace />} />
-              <Route path="workspace/interno/openai-analytics" element={<Navigate to="/interno/openai-analytics" replace />} />
-
-              {/* REDIRECTS - Rotas antigas antigas para novas */}
+              {/* REDIRECTS - Rotas antigas para novas */}
               <Route path="agenda" element={<Navigate to="/gestao/agenda" replace />} />
               <Route path="mapa" element={<Navigate to="/gestao/mapa" replace />} />
               <Route path="metricas/ecomhub" element={<Navigate to="/fornecedores/europa/ecomhub/efetividade" replace />} />

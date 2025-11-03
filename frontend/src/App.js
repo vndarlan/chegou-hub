@@ -72,6 +72,11 @@ function App() {
         <Toaster position="top-right" />
         <Router>
           <Routes>
+            {/* Rotas específicas primeiro */}
+            <Route
+              path="/login"
+              element={!isLoggedIn ? <LoginPage setIsLoggedIn={setIsLoggedIn} /> : <Navigate to="/gestao/agenda" replace />}
+            />
             {/* Rota de tutoriais (apenas admin) */}
             <Route
               path="/tutoriais"
@@ -82,35 +87,19 @@ function App() {
               path="/nicochat/*"
               element={isLoggedIn ? <NicochatPage /> : <Navigate to="/login" replace />}
             />
+            {/* Redirect da rota raiz */}
             <Route
-              path="/login"
-              element={!isLoggedIn ? <LoginPage setIsLoggedIn={setIsLoggedIn} /> : <Navigate to="/workspace/agenda" replace />}
+              path="/"
+              element={isLoggedIn ? <Navigate to="/gestao/agenda" replace /> : <Navigate to="/login" replace />}
             />
+            {/* Rotas do workspace - agora sem /workspace no path */}
             <Route
-              path="/workspace/*"
+              path="/*"
               element={isLoggedIn ?
                 <WorkspacePage setIsLoggedIn={setIsLoggedIn} /> :
                 <Navigate to="/login" replace />
               }
             />
-            <Route
-              path="/"
-              element={isLoggedIn ? <Navigate to="/workspace/agenda" replace /> : <Navigate to="/login" replace />}
-            />
-            <Route path="*" element={
-              <div className="min-h-screen flex items-center justify-center bg-background">
-                <div className="text-center space-y-4">
-                  <h1 className="text-4xl font-bold text-foreground">404</h1>
-                  <p className="text-lg text-muted-foreground">Página não encontrada</p>
-                  <a 
-                    href={isLoggedIn ? "/workspace/agenda" : "/login"}
-                    className="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-                  >
-                    Voltar ao {isLoggedIn ? 'início' : 'login'}
-                  </a>
-                </div>
-              </div>
-            } />
           </Routes>
         </Router>
       </CSRFManager>

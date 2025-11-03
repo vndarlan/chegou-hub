@@ -88,13 +88,13 @@ export function AppSidebar({
       title: "Agenda da Empresa",
       url: "/gestao/agenda",
       icon: Calendar,
-      isActive: location.pathname === "/gestao/agenda" || location.pathname === "/workspace/gestao/agenda",
+      isActive: location.pathname === "/gestao/agenda",
     },
     {
       title: "Mapa de Atuação",
       url: "/gestao/mapa",
       icon: Map,
-      isActive: location.pathname === "/gestao/mapa" || location.pathname === "/workspace/gestao/mapa",
+      isActive: location.pathname === "/gestao/mapa",
     },
   ];
 
@@ -105,23 +105,22 @@ export function AppSidebar({
       icon: Bot,
       isActive: location.pathname.includes('/interno/projetos') ||
                 location.pathname.includes('/interno/logs') ||
-                location.pathname.includes('/interno/openai-analytics') ||
-                location.pathname.includes('/workspace/interno/'),
+                location.pathname.includes('/interno/openai-analytics'),
       items: [
         {
           title: "Projetos",
           url: "/interno/projetos",
-          isActive: location.pathname === "/interno/projetos" || location.pathname === "/workspace/interno/projetos",
+          isActive: location.pathname === "/interno/projetos",
         },
         {
           title: "Logs de Erros",
           url: "/interno/logs",
-          isActive: location.pathname === "/interno/logs" || location.pathname === "/workspace/interno/logs",
+          isActive: location.pathname === "/interno/logs",
         },
         {
           title: "OpenAI Analytics",
           url: "/interno/openai-analytics",
-          isActive: location.pathname === "/interno/openai-analytics" || location.pathname === "/workspace/interno/openai-analytics",
+          isActive: location.pathname === "/interno/openai-analytics",
         },
       ],
     },
@@ -243,12 +242,12 @@ export function AppSidebar({
     {
       title: "Facebook",
       icon: Facebook,
-      isActive: location.pathname.includes('/workspace/anuncios/facebook') || location.pathname.includes('/anuncios/facebook'),
+      isActive: location.pathname.includes('/anuncios/facebook'),
       items: [
         {
           title: "Engajamento",
           url: "/anuncios/facebook/engajamento",
-          isActive: location.pathname === "/anuncios/facebook/engajamento" || location.pathname === "/workspace/anuncios/facebook/engajamento",
+          isActive: location.pathname === "/anuncios/facebook/engajamento",
         },
       ],
     },
