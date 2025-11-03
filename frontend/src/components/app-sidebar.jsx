@@ -13,7 +13,7 @@ import {
   Globe2,
   MapPin,
   ShoppingBag,
-  ThumbsUp,
+  Facebook,
   Flag,
   Trophy,
   Droplet,
@@ -86,15 +86,15 @@ export function AppSidebar({
   const gestaoBaseItems = [
     {
       title: "Agenda da Empresa",
-      url: "/workspace/gestao/agenda",
+      url: "/gestao/agenda",
       icon: Calendar,
-      isActive: location.pathname === "/workspace/gestao/agenda",
+      isActive: location.pathname === "/gestao/agenda" || location.pathname === "/workspace/gestao/agenda",
     },
     {
       title: "Mapa de Atuação",
-      url: "/workspace/gestao/mapa",
+      url: "/gestao/mapa",
       icon: Map,
-      isActive: location.pathname === "/workspace/gestao/mapa",
+      isActive: location.pathname === "/gestao/mapa" || location.pathname === "/workspace/gestao/mapa",
     },
   ];
 
@@ -103,98 +103,88 @@ export function AppSidebar({
     {
       title: "IA",
       icon: Bot,
-      isActive: location.pathname.includes('/workspace/interno/projetos') ||
-                location.pathname.includes('/workspace/interno/logs') ||
-                location.pathname.includes('/workspace/interno/openai-analytics'),
+      isActive: location.pathname.includes('/interno/projetos') ||
+                location.pathname.includes('/interno/logs') ||
+                location.pathname.includes('/interno/openai-analytics') ||
+                location.pathname.includes('/workspace/interno/'),
       items: [
         {
           title: "Projetos",
-          url: "/workspace/interno/projetos",
-          isActive: location.pathname === "/workspace/interno/projetos",
+          url: "/interno/projetos",
+          isActive: location.pathname === "/interno/projetos" || location.pathname === "/workspace/interno/projetos",
         },
         {
           title: "Logs de Erros",
-          url: "/workspace/interno/logs",
-          isActive: location.pathname === "/workspace/interno/logs",
+          url: "/interno/logs",
+          isActive: location.pathname === "/interno/logs" || location.pathname === "/workspace/interno/logs",
         },
         {
           title: "OpenAI Analytics",
-          url: "/workspace/interno/openai-analytics",
-          isActive: location.pathname === "/workspace/interno/openai-analytics",
+          url: "/interno/openai-analytics",
+          isActive: location.pathname === "/interno/openai-analytics" || location.pathname === "/workspace/interno/openai-analytics",
         },
       ],
     },
   ];
 
-  // Adicionar Admin se for admin (Tutoriais movido para fora dos grupos)
-  const gestaoAdminItems = isAdmin ? [
-    {
-      title: "Administração",
-      url: "https://chegou-hubb-production.up.railway.app/admin/",
-      icon: Lock,
-      external: true,
-      isActive: false,
-    },
-  ] : [];
-
-  // Combinar todos os items de gestão
-  const gestaoItems = [...gestaoBaseItems, ...iaSubmenuItems, ...gestaoAdminItems];
+  // Items de gestão sem Admin (Admin movido para fora dos grupos)
+  const gestaoItems = [...gestaoBaseItems, ...iaSubmenuItems];
 
   // FORNECEDORES items
   const fornecedoresItems = [
     {
       title: "EUROPA",
       icon: Globe2,
-      isActive: location.pathname.includes('/workspace/fornecedores/europa'),
+      isActive: location.pathname.includes('/fornecedores/europa'),
       items: [
         {
           title: "ECOMHUB",
           icon: ShoppingBag,
-          isActive: location.pathname.includes('/workspace/fornecedores/europa/ecomhub'),
+          isActive: location.pathname.includes('/fornecedores/europa/ecomhub'),
           items: [
             {
               title: "Análise de Efetividade",
-              url: "/workspace/fornecedores/europa/ecomhub/efetividade",
-              isActive: location.pathname === "/workspace/fornecedores/europa/ecomhub/efetividade",
+              url: "/fornecedores/europa/ecomhub/efetividade",
+              isActive: location.pathname.includes('/fornecedores/europa/ecomhub/efetividade'),
             },
             {
               title: "Análise Avançada V2",
-              url: "/workspace/fornecedores/europa/ecomhub/efetividade-v2",
-              isActive: location.pathname === "/workspace/fornecedores/europa/ecomhub/efetividade-v2",
+              url: "/fornecedores/europa/ecomhub/efetividade-v2",
+              isActive: location.pathname.includes('/fornecedores/europa/ecomhub/efetividade-v2'),
             },
             {
               title: "Status de Sincronização",
-              url: "/workspace/fornecedores/europa/ecomhub/status",
-              isActive: location.pathname === "/workspace/fornecedores/europa/ecomhub/status",
+              url: "/fornecedores/europa/ecomhub/status",
+              isActive: location.pathname.includes('/fornecedores/europa/ecomhub/status'),
             },
             {
               title: "Configurações",
-              url: "/workspace/fornecedores/europa/ecomhub/configuracoes",
-              isActive: location.pathname === "/workspace/fornecedores/europa/ecomhub/configuracoes",
+              url: "/fornecedores/europa/ecomhub/configuracoes",
+              isActive: location.pathname.includes('/fornecedores/europa/ecomhub/configuracoes'),
             },
           ],
         },
         {
           title: "N1 ITALIA",
           icon: Flag,
-          isActive: location.pathname.includes('/workspace/fornecedores/europa/n1'),
+          isActive: location.pathname.includes('/fornecedores/europa/n1'),
           items: [
             {
               title: "Efetividade",
-              url: "/workspace/fornecedores/europa/n1/efetividade",
-              isActive: location.pathname === "/workspace/fornecedores/europa/n1/efetividade",
+              url: "/fornecedores/europa/n1/efetividade",
+              isActive: location.pathname.includes('/fornecedores/europa/n1/efetividade'),
             },
           ],
         },
         {
           title: "PRIMECOD",
           icon: Trophy,
-          isActive: location.pathname.includes('/workspace/fornecedores/europa/primecod'),
+          isActive: location.pathname.includes('/fornecedores/europa/primecod'),
           items: [
             {
               title: "Efetividade",
-              url: "/workspace/fornecedores/europa/primecod/efetividade",
-              isActive: location.pathname === "/workspace/fornecedores/europa/primecod/efetividade",
+              url: "/fornecedores/europa/primecod/efetividade",
+              isActive: location.pathname.includes('/fornecedores/europa/primecod/efetividade'),
             },
           ],
         },
@@ -203,22 +193,22 @@ export function AppSidebar({
     {
       title: "LATAM",
       icon: MapPin,
-      isActive: location.pathname.includes('/workspace/fornecedores/latam'),
+      isActive: location.pathname.includes('/fornecedores/latam'),
       items: [
         {
           title: "DROPI",
           icon: Droplet,
-          isActive: location.pathname.includes('/workspace/fornecedores/latam/dropi'),
+          isActive: location.pathname.includes('/fornecedores/latam/dropi'),
           items: [
             {
               title: "Efetividade",
-              url: "/workspace/fornecedores/latam/dropi/efetividade",
-              isActive: location.pathname === "/workspace/fornecedores/latam/dropi/efetividade",
+              url: "/fornecedores/latam/dropi/efetividade",
+              isActive: location.pathname.includes('/fornecedores/latam/dropi/efetividade'),
             },
             {
               title: "Novelties",
-              url: "/workspace/fornecedores/latam/dropi/novelties",
-              isActive: location.pathname === "/workspace/fornecedores/latam/dropi/novelties",
+              url: "/fornecedores/latam/dropi/novelties",
+              isActive: location.pathname.includes('/fornecedores/latam/dropi/novelties'),
             },
           ],
         },
@@ -230,21 +220,21 @@ export function AppSidebar({
   const shopifyItems = [
     {
       title: "Controle de Estoque",
-      url: "/workspace/shopify/estoque",
+      url: "/shopify/estoque",
       icon: Package,
-      isActive: location.pathname === "/workspace/shopify/estoque",
+      isActive: location.pathname.includes('/shopify/estoque'),
     },
     {
       title: "Processamento",
-      url: "/workspace/shopify/processamento",
+      url: "/shopify/processamento",
       icon: Zap,
-      isActive: location.pathname === "/workspace/shopify/processamento",
+      isActive: location.pathname.includes('/shopify/processamento'),
     },
     {
       title: "Detector de IP",
-      url: "/workspace/shopify/detector-ip",
+      url: "/shopify/detector-ip",
       icon: Globe,
-      isActive: location.pathname === "/workspace/shopify/detector-ip",
+      isActive: location.pathname.includes('/shopify/detector-ip'),
     },
   ];
 
@@ -252,13 +242,13 @@ export function AppSidebar({
   const plataformasAnuncioItems = [
     {
       title: "Facebook",
-      icon: ThumbsUp,
-      isActive: location.pathname.includes('/workspace/anuncios/facebook'),
+      icon: Facebook,
+      isActive: location.pathname.includes('/workspace/anuncios/facebook') || location.pathname.includes('/anuncios/facebook'),
       items: [
         {
           title: "Engajamento",
-          url: "/workspace/anuncios/facebook/engajamento",
-          isActive: location.pathname === "/workspace/anuncios/facebook/engajamento",
+          url: "/anuncios/facebook/engajamento",
+          isActive: location.pathname === "/anuncios/facebook/engajamento" || location.pathname === "/workspace/anuncios/facebook/engajamento",
         },
       ],
     },
@@ -268,9 +258,9 @@ export function AppSidebar({
   const iaChatbotsItems = [
     {
       title: "Nicochat",
-      url: "/workspace/ia/nicochat",
+      url: "/ia/nicochat",
       icon: MessageSquare,
-      isActive: location.pathname === "/workspace/ia/nicochat",
+      isActive: location.pathname.includes('/ia/nicochat'),
     },
   ];
 
@@ -300,7 +290,7 @@ export function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent className="flex-1 overflow-y-auto">
-        {/* TUTORIAIS - Item independente, fora de qualquer grupo */}
+        {/* TUTORIAIS e ADMINISTRAÇÃO - Itens independentes, fora de qualquer grupo */}
         {isAdmin && (
           <SidebarMenu className="px-3 py-2">
             <SidebarMenuItem>
@@ -323,10 +313,28 @@ export function AppSidebar({
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                tooltip="Painel de Administração"
+                size="lg"
+              >
+                <a
+                  href="https://chegou-hubb-production.up.railway.app/admin/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold"
+                >
+                  <Lock className="size-4" />
+                  <span>Administração</span>
+                  <span className="ml-auto text-xs opacity-60">↗</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         )}
 
-        {/* Separador visual após Tutoriais */}
+        {/* Separador visual após items independentes */}
         {isAdmin && <div className="mx-3 mb-2 border-b border-sidebar-border" />}
 
         {/* GESTÃO EMPRESARIAL - sempre no topo */}
