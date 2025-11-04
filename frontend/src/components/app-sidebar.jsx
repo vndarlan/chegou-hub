@@ -12,7 +12,7 @@ import {
   BookOpen,
   Globe2,
   MapPin,
-  Handshake,
+  Users,
   Facebook,
   Package,
   Zap,
@@ -135,7 +135,7 @@ export function AppSidebar({
       items: [
         {
           title: "ECOMHUB",
-          icon: Handshake,
+          icon: Users,
           isActive: location.pathname.includes('/fornecedores/europa/ecomhub'),
           items: [
             {
@@ -162,7 +162,7 @@ export function AppSidebar({
         },
         {
           title: "N1",
-          icon: Handshake,
+          icon: Users,
           isActive: location.pathname.includes('/fornecedores/europa/n1'),
           items: [
             {
@@ -174,7 +174,7 @@ export function AppSidebar({
         },
         {
           title: "PRIMECOD",
-          icon: Handshake,
+          icon: Users,
           isActive: location.pathname.includes('/fornecedores/europa/primecod'),
           items: [
             {
@@ -193,7 +193,7 @@ export function AppSidebar({
       items: [
         {
           title: "DROPI",
-          icon: Handshake,
+          icon: Users,
           isActive: location.pathname.includes('/fornecedores/latam/dropi'),
           items: [
             {
