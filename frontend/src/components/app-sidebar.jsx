@@ -12,11 +12,8 @@ import {
   BookOpen,
   Globe2,
   MapPin,
-  ShoppingBag,
+  Handshake,
   Facebook,
-  Flag,
-  Trophy,
-  Droplet,
   Package,
   Zap,
   Globe,
@@ -138,7 +135,7 @@ export function AppSidebar({
       items: [
         {
           title: "ECOMHUB",
-          icon: ShoppingBag,
+          icon: Handshake,
           isActive: location.pathname.includes('/fornecedores/europa/ecomhub'),
           items: [
             {
@@ -152,7 +149,7 @@ export function AppSidebar({
               isActive: location.pathname.includes('/fornecedores/europa/ecomhub/efetividade-v2'),
             },
             {
-              title: "Status de Sincronização",
+              title: "Status Tracking",
               url: "/fornecedores/europa/ecomhub/status",
               isActive: location.pathname.includes('/fornecedores/europa/ecomhub/status'),
             },
@@ -164,8 +161,8 @@ export function AppSidebar({
           ],
         },
         {
-          title: "N1 ITALIA",
-          icon: Flag,
+          title: "N1",
+          icon: Handshake,
           isActive: location.pathname.includes('/fornecedores/europa/n1'),
           items: [
             {
@@ -177,7 +174,7 @@ export function AppSidebar({
         },
         {
           title: "PRIMECOD",
-          icon: Trophy,
+          icon: Handshake,
           isActive: location.pathname.includes('/fornecedores/europa/primecod'),
           items: [
             {
@@ -196,7 +193,7 @@ export function AppSidebar({
       items: [
         {
           title: "DROPI",
-          icon: Droplet,
+          icon: Handshake,
           isActive: location.pathname.includes('/fornecedores/latam/dropi'),
           items: [
             {
@@ -224,7 +221,7 @@ export function AppSidebar({
       isActive: location.pathname.includes('/shopify/estoque'),
     },
     {
-      title: "Processamento",
+      title: "Pedidos Duplicados",
       url: "/shopify/processamento",
       icon: Zap,
       isActive: location.pathname.includes('/shopify/processamento'),

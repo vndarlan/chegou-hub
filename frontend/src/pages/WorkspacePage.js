@@ -63,7 +63,7 @@ const breadcrumbMap = {
     { label: 'FORNECEDORES', href: '#' },
     { label: 'EUROPA', href: '#' },
     { label: 'ECOMHUB', href: '#' },
-    { label: 'Status de Sincronização' }
+    { label: 'Status Tracking' }
   ],
   '/fornecedores/europa/ecomhub/configuracoes': [
     { label: 'FORNECEDORES', href: '#' },
@@ -74,7 +74,7 @@ const breadcrumbMap = {
   '/fornecedores/europa/n1/efetividade': [
     { label: 'FORNECEDORES', href: '#' },
     { label: 'EUROPA', href: '#' },
-    { label: 'N1 ITALIA', href: '#' },
+    { label: 'N1', href: '#' },
     { label: 'Efetividade' }
   ],
   '/fornecedores/europa/primecod/efetividade': [
@@ -100,7 +100,7 @@ const breadcrumbMap = {
 
   // SHOPIFY
   '/shopify/estoque': [{ label: 'SHOPIFY', href: '#' }, { label: 'Controle de Estoque' }],
-  '/shopify/processamento': [{ label: 'SHOPIFY', href: '#' }, { label: 'Processamento' }],
+  '/shopify/processamento': [{ label: 'SHOPIFY', href: '#' }, { label: 'Pedidos Duplicados' }],
   '/shopify/detector-ip': [{ label: 'SHOPIFY', href: '#' }, { label: 'Detector de IP' }],
 
   // PLATAFORMAS DE ANÚNCIO
