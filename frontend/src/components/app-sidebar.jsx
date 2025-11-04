@@ -18,7 +18,8 @@ import {
   Zap,
   Globe,
   MessageSquare,
-  Settings
+  Settings,
+  UserCircle
 } from 'lucide-react'
 
 import {
@@ -623,7 +624,7 @@ export function AppSidebar({
                   {theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate('/perfil')}>
-                  <Settings className="mr-2 h-4 w-4" />
+                  <UserCircle className="mr-2 h-4 w-4" />
                   Perfil
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
