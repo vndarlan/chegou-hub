@@ -111,3 +111,102 @@ class EnsureCSRFView(APIView):
 
     def get(self, request):
         return Response({'csrf_token': get_token(request)})
+
+class UpdateUserProfileView(APIView):
+    """View para gerenciar o perfil do usuário"""
+
+    def get(self, request):
+        """Retorna os dados atuais do usuário"""
+        if not request.user.is_authenticated:
+            return Response({'error': 'Não autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        return Response({
+            'name': request.user.get_full_name() or request.user.username,
+            'email': request.user.email,
+            'first_name': request.user.first_name,
+            'last_name': request.user.last_name
+        })
+
+    def put(self, request):
+        """Atualiza os dados do perfil do usuário"""
+        if not request.user.is_authenticated:
+            return Response({'error': 'Não autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        user = request.user
+        data = request.data
+
+        # Atualizar nome
+        if 'first_name' in data:
+            user.first_name = data.get('first_name', '').strip()
+        if 'last_name' in data:
+            user.last_name = data.get('last_name', '').strip()
+
+        # Atualizar email (também atualiza username pois usamos email como username)
+        if 'email' in data:
+            new_email = data.get('email', '').strip().lower()
+
+            # Validar se o email já existe para outro usuário
+            if User.objects.filter(email=new_email).exclude(id=user.id).exists():
+                return Response({'error': 'Este email já está em uso por outro usuário.'},
+                              status=status.HTTP_400_BAD_REQUEST)
+
+            user.email = new_email
+            user.username = new_email
+
+        try:
+            user.save()
+            return Response({
+                'message': 'Perfil atualizado com sucesso.',
+                'user': {
+                    'name': user.get_full_name() or user.username,
+                    'email': user.email
+                }
+            })
+        except Exception as e:
+            return Response({'error': f'Erro ao atualizar perfil: {str(e)}'},
+                          status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class ChangePasswordView(APIView):
+    """View para alterar a senha do usuário"""
+
+    def post(self, request):
+        """Altera a senha do usuário"""
+        if not request.user.is_authenticated:
+            return Response({'error': 'Não autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        user = request.user
+        current_password = request.data.get('current_password', '')
+        new_password = request.data.get('new_password', '')
+        confirm_password = request.data.get('confirm_password', '')
+
+        # Validações
+        if not all([current_password, new_password, confirm_password]):
+            return Response({'error': 'Todos os campos são obrigatórios.'},
+                          status=status.HTTP_400_BAD_REQUEST)
+
+        # Verificar se a senha atual está correta
+        if not user.check_password(current_password):
+            return Response({'error': 'Senha atual incorreta.'},
+                          status=status.HTTP_400_BAD_REQUEST)
+
+        # Verificar se as novas senhas coincidem
+        if new_password != confirm_password:
+            return Response({'error': 'As novas senhas não coincidem.'},
+                          status=status.HTTP_400_BAD_REQUEST)
+
+        # Validar força da senha (mínimo 8 caracteres)
+        if len(new_password) < 8:
+            return Response({'error': 'A senha deve ter no mínimo 8 caracteres.'},
+                          status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user.set_password(new_password)
+            user.save()
+
+            # Fazer login novamente com a nova senha para manter a sessão
+            login(request, user)
+
+            return Response({'message': 'Senha alterada com sucesso.'})
+        except Exception as e:
+            return Response({'error': f'Erro ao alterar senha: {str(e)}'},
+                          status=status.HTTP_500_INTERNAL_SERVER_ERROR)

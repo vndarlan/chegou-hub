@@ -17,7 +17,8 @@ import {
   Package,
   Zap,
   Globe,
-  MessageSquare
+  MessageSquare,
+  Settings
 } from 'lucide-react'
 
 import {
@@ -620,6 +621,10 @@ export function AppSidebar({
                 <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
                   {theme === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
                   {theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/configuracoes')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Configurações
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onLogout} className="text-destructive focus:text-destructive">

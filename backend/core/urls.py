@@ -12,6 +12,8 @@ from .views import (
     SelectAreaView,
     RegisterView,
     EnsureCSRFView,
+    UpdateUserProfileView,
+    ChangePasswordView,
 )
 from .views_debug import DebugCorsView, CrossDomainAuthTestView
 from features.feedback.views import FeedbackNotificationsView
@@ -24,6 +26,10 @@ urlpatterns = [
     path('register/', RegisterView.as_view(), name='api_register'),
     path('select-area/', SelectAreaView.as_view(), name='api_select_area'),
     path('ensure-csrf/', EnsureCSRFView.as_view(), name='ensure_csrf'),
+
+    # Gerenciamento de Perfil
+    path('user/profile/', UpdateUserProfileView.as_view(), name='api_user_profile'),
+    path('user/change-password/', ChangePasswordView.as_view(), name='api_change_password'),
     
     # Debug
     path('debug/cors/', DebugCorsView.as_view(), name='debug_cors'),
