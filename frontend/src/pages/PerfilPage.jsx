@@ -8,7 +8,7 @@ import { Alert } from '../components/ui/alert';
 import { AlertCircle, Check, User, Lock, Palette, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../components/theme-provider';
 
-const ConfiguracoesPage = () => {
+const PerfilPage = () => {
   // Estados para Informações Pessoais
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -143,7 +143,7 @@ const ConfiguracoesPage = () => {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Configurações</h1>
+      <h1 className="text-3xl font-bold mb-6">Perfil</h1>
 
       {/* Informações Pessoais */}
       <Card className="mb-6">
@@ -322,4 +322,4 @@ const ConfiguracoesPage = () => {
   );
 };
 
-export default ConfiguracoesPage;
+export default PerfilPage;

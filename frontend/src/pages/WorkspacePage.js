@@ -36,15 +36,15 @@ import NoveltiesPage from '../features/novelties/NoveltiesPage';
 import ProcessamentoPage from '../features/processamento/ProcessamentoPage';
 import DetectorIPPage from '../features/processamento/DetectorIPPage';
 import ControleEstoquePage from '../features/estoque/ControleEstoquePage';
-import ConfiguracoesPage from './ConfiguracoesPage';
+import PerfilPage from './PerfilPage';
 import FeedbackButton from '../components/FeedbackButton';
 import FeedbackNotificationButton from '../components/FeedbackNotificationButton';
 import SimpleN8nWidget from '../components/SimpleN8nWidget';
 
 // Mapeamento de breadcrumbs atualizado
 const breadcrumbMap = {
-  // Configurações do Usuário
-  '/configuracoes': [{ label: 'Configurações' }],
+  // Perfil do Usuário
+  '/perfil': [{ label: 'Perfil' }],
 
   // GESTÃO EMPRESARIAL
   '/gestao/agenda': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Agenda da Empresa' }],
@@ -250,8 +250,8 @@ function WorkspacePage({ setIsLoggedIn }) {
               <Route path="interno/logs" element={<LogsPage />} />
               <Route path="interno/openai-analytics" element={<AdminRoute><OpenAIAnalytics /></AdminRoute>} />
 
-              {/* CONFIGURAÇÕES DO USUÁRIO */}
-              <Route path="configuracoes" element={<ConfiguracoesPage />} />
+              {/* PERFIL DO USUÁRIO */}
+              <Route path="perfil" element={<PerfilPage />} />
 
               {/* REDIRECTS - Rotas antigas para novas */}
               <Route path="agenda" element={<Navigate to="/gestao/agenda" replace />} />
