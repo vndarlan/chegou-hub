@@ -135,6 +135,8 @@ MIDDLEWARE = [
     # Desabilitar CSRF completamente no ambiente de teste
     'django.middleware.csrf.CsrfViewMiddleware' if not (DEBUG and os.getenv('DISABLE_CSRF', 'False').lower() == 'true') else 'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # Middleware de organização (adiciona request.organization)
+    'core.middleware.organization_middleware.OrganizationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # Middleware de error logging para produção
@@ -1012,10 +1014,9 @@ UNFOLD = {
         ],
     },
 
-    # Estilos customizados
-    # TEMPORARIAMENTE DESABILITADO - causando 404 em produção
+    # Estilos customizados (cores do ChegouHub)
     "STYLES": [
-        # lambda request: f"{STATIC_URL}css/unfold_custom.css",
+        lambda request: f"{STATIC_URL}css/unfold_custom.css",
     ],
 
     # Scripts customizados

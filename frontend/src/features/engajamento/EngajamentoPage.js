@@ -4,7 +4,7 @@ import {
     Plus, Trash2, RefreshCw, Send, AlertCircle,
     Check, X, ExternalLink, Copy, Download, DollarSign
 } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 
 // shadcn/ui imports
 import { Button } from '../../components/ui/button';
@@ -59,7 +59,7 @@ function EngajamentoPage() {
     useEffect(() => {
         const initCSRF = async () => {
             try {
-                await axios.get('/current-state/');
+                await apiClient.get('/current-state/');
             } catch (error) {
                 console.error('Erro ao obter CSRF:', error);
             }
@@ -74,7 +74,7 @@ function EngajamentoPage() {
     const carregarSaldo = async () => {
         setLoadingSaldo(true);
         try {
-            const response = await axios.get('/saldo/');
+            const response = await apiClient.get('/saldo/');
             setSaldo(response.data);
         } catch (error) {
             console.error('Erro ao carregar saldo:', error);
@@ -86,7 +86,7 @@ function EngajamentoPage() {
 
     const carregarEngajamentos = async () => {
         try {
-            const response = await axios.get('/engajamentos/');
+            const response = await apiClient.get('/engajamentos/');
             setEngajamentos(response.data);
         } catch (error) {
             console.error('Erro ao carregar engajamentos:', error);
@@ -96,7 +96,7 @@ function EngajamentoPage() {
     const carregarPedidos = async (page = 1) => {
         setLoadingPedidos(true);
         try {
-            const response = await axios.get(`/pedidos/?page=${page}&page_size=${itemsPerPage}`);
+            const response = await apiClient.get(`/pedidos/?page=${page}&page_size=${itemsPerPage}`);
             console.log('Resposta completa da API:', response.data);
             
             // Se a API retorna dados paginados
@@ -151,10 +151,10 @@ function EngajamentoPage() {
 
         setLoading(true);
         try {
-            const csrfResponse = await axios.get('/current-state/');
+            const csrfResponse = await apiClient.get('/current-state/');
             const csrfToken = csrfResponse.data.csrf_token;
             
-            await axios.post('/engajamentos/', formData, {
+            await apiClient.post('/engajamentos/', formData, {
                 headers: {
                     'X-CSRFToken': csrfToken,
                     'Content-Type': 'application/json',
@@ -175,10 +175,10 @@ function EngajamentoPage() {
         if (!window.confirm('Tem certeza que deseja excluir este engajamento?')) return;
 
         try {
-            const csrfResponse = await axios.get('/current-state/');
+            const csrfResponse = await apiClient.get('/current-state/');
             const csrfToken = csrfResponse.data.csrf_token;
             
-            await axios.delete(`/engajamentos/${id}/`, {
+            await apiClient.delete(`/engajamentos/${id}/`, {
                 headers: {
                     'X-CSRFToken': csrfToken,
                 }
@@ -208,10 +208,10 @@ function EngajamentoPage() {
 
         setLoading(true);
         try {
-            const csrfResponse = await axios.get('/current-state/');
+            const csrfResponse = await apiClient.get('/current-state/');
             const csrfToken = csrfResponse.data.csrf_token;
             
-            const response = await axios.post('/criar-pedido/', {
+            const response = await apiClient.post('/criar-pedido/', {
                 urls: urlsInput,
                 engajamentos: engajamentosAtivos
             }, {

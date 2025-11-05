@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../../utils/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
@@ -33,7 +33,7 @@ export default function InteracaoIACard({ configId, totalContatos, onRefresh }) 
         params.force_refresh = 'true';
       }
 
-      const response = await axios.get('/ia/nicochat/subscribers/tags-stats/', {
+      const response = await apiClient.get('/ia/nicochat/subscribers/tags-stats/', {
         params
       });
 

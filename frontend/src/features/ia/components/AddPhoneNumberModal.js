@@ -13,7 +13,7 @@ import { Label } from '../../../components/ui/label';
 import { Textarea } from '../../../components/ui/textarea';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
 import { CalendarDays, Phone, Save, AlertTriangle, X } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../../../utils/axios';
 import { getCSRFToken } from '../../../utils/csrf';
 import { toast } from 'sonner';
 
@@ -89,13 +89,11 @@ const AddPhoneNumberModal = ({ isOpen, onClose, onSuccess }) => {
         token_expira_em: formData.token_expira_em || null
       };
 
-      const response = await axios.post('/ia/whatsapp-numeros/', submitData, {
+      const response = await apiClient.post('/ia/whatsapp-numeros/', submitData, {
         headers: {
           'Content-Type': 'application/json',
           'X-CSRFToken': getCSRFToken()
-        },
-        withCredentials: true
-      });
+        }});
 
       // Sucesso
       toast.success('Número WhatsApp foi adicionado com sucesso!');

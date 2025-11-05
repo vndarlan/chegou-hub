@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 import { getCSRFToken } from '../../utils/csrf';
 import { useWorkspace } from './contexts/WorkspaceContext';
 
@@ -65,7 +65,7 @@ export default function NicochatMetricasPage() {
     try {
       setLoadingFields(true);
 
-      const response = await axios.get('/ia/nicochat/user-fields/', {
+      const response = await apiClient.get('/ia/nicochat/user-fields/', {
         params: { flow_id: FLOW_ID, config_id: selectedWorkspace }
       });
 
@@ -81,7 +81,7 @@ export default function NicochatMetricasPage() {
     try {
       setLoadingStats(true);
 
-      const response = await axios.get('/ia/nicochat/bot-users-count/', {
+      const response = await apiClient.get('/ia/nicochat/bot-users-count/', {
         params: { config_id: selectedWorkspace }
       });
 

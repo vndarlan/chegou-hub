@@ -8,7 +8,7 @@ import { Separator } from './ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useToast } from './ui/use-toast';
-import axios from 'axios';
+import apiClient from '../utils/axios';
 import { getCSRFToken } from '../utils/csrf';
 
 const FeedbackNotificationButton = ({ isAdmin }) => {
@@ -28,8 +28,7 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
     if (!isAdmin) return;
     
     try {
-      const response = await axios.get('/feedback/pending/count/', {
-        withCredentials: true,
+      const response = await apiClient.get('/feedback/pending/count/', {
         headers: {
           'X-CSRFToken': getCSRFToken(),
         }
@@ -49,8 +48,7 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
     if (!isAdmin) return;
     
     try {
-      const response = await axios.get('/feedback/notifications/', {
-        withCredentials: true,
+      const response = await apiClient.get('/feedback/notifications/', {
         headers: {
           'X-CSRFToken': getCSRFToken(),
         }
@@ -73,10 +71,9 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
   // Função para atualizar status do feedback
   const updateFeedbackStatus = async (feedbackId, newStatus) => {
     try {
-      const response = await axios.patch(`/feedback/${feedbackId}/update-status/`, {
+      const response = await apiClient.patch(`/feedback/${feedbackId}/update-status/`, {
         status: newStatus
       }, {
-        withCredentials: true,
         headers: {
           'X-CSRFToken': getCSRFToken(),
         }
@@ -130,8 +127,7 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
     
     try {
       setLoading(true);
-      const response = await axios.get('/feedback/pending/', {
-        withCredentials: true,
+      const response = await apiClient.get('/feedback/pending/', {
         headers: {
           'X-CSRFToken': getCSRFToken(),
         }
@@ -153,8 +149,7 @@ const FeedbackNotificationButton = ({ isAdmin }) => {
     
     try {
       setNotificationsLoading(true);
-      const response = await axios.get('/feedback/notifications/', {
-        withCredentials: true,
+      const response = await apiClient.get('/feedback/notifications/', {
         headers: {
           'X-CSRFToken': getCSRFToken(),
         }

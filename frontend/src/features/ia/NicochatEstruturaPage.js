@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 import { useWorkspace } from './contexts/WorkspaceContext';
 
 // shadcn/ui imports
@@ -44,7 +44,7 @@ export default function NicochatEstruturaPage() {
     try {
       setLoadingSubfluxos(true);
 
-      const response = await axios.get('/ia/nicochat/subflows/', {
+      const response = await apiClient.get('/ia/nicochat/subflows/', {
         params: { flow_id: FLOW_ID, config_id: selectedWorkspace }
       });
 

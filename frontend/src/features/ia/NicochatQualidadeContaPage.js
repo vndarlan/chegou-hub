@@ -4,7 +4,7 @@ import {
   AlertTriangle,
   RefreshCw
 } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 import { useWorkspace } from './contexts/WorkspaceContext';
 
 // Importar componentes necessários
@@ -32,7 +32,7 @@ const NicochatQualidadeContaPage = () => {
       setIsLoading(true);
       setError(null);
 
-      const response = await axios.get('/ia/whatsapp-numeros/');
+      const response = await apiClient.get('/ia/whatsapp-numeros/');
       setPhoneNumbers(response.data.results || response.data);
 
     } catch (err) {
@@ -64,7 +64,7 @@ const NicochatQualidadeContaPage = () => {
     if (!selectedWorkspace) return;
 
     try {
-      const response = await axios.get(`/ia/nicochat-workspaces/${selectedWorkspace}/`);
+      const response = await apiClient.get(`/ia/nicochat-workspaces/${selectedWorkspace}/`);
       setWorkspaceData(response.data);
     } catch (err) {
       console.error('Erro ao buscar dados do workspace:', err);

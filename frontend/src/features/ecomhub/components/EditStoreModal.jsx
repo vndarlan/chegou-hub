@@ -1,7 +1,7 @@
 // frontend/src/features/ecomhub/components/EditStoreModal.jsx
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../../../utils/axios';
 import { getCSRFToken } from '../../../utils/csrf';
 
 import {
@@ -86,7 +86,7 @@ function EditStoreModal({ open, onClose, onSuccess, store }) {
     setTestResult(null);
 
     try {
-      const response = await axios.post(
+      const response = await apiClient.post(
         '/metricas/ecomhub/stores/test_connection/',
         {
           token: formData.token,
@@ -131,7 +131,7 @@ function EditStoreModal({ open, onClose, onSuccess, store }) {
     setError(null);
 
     try {
-      const response = await axios.put(
+      const response = await apiClient.put(
         `/metricas/ecomhub/stores/${store.id}/`,
         formData,
         {

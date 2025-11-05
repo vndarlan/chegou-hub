@@ -1,7 +1,7 @@
 // src/index.js - ATUALIZADO PARA SHADCN/UI
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import axios from 'axios';
+import apiClient from './utils/axios';
 import './globals.css'; // Novo CSS com Tailwind e variáveis do tema
 import App from './App';
 import reportWebVitals from './reportWebVitals';
@@ -63,7 +63,7 @@ root.render(
   <App />
 );
 
-axios.get(`${API_URL}/ensure-csrf/`)
+apiClient.get(`${API_URL}/ensure-csrf/`)
   .then(response => {
     console.log("Conexão com backend estabelecida:", response.status);
     

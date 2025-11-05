@@ -14,7 +14,7 @@ import {
     AlertCircle,
     Loader2
 } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 
 // shadcn/ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -112,7 +112,7 @@ function AgendaPage() {
         setFetchError(null);
         console.log("Buscando calendários (iframe) da API...");
         try {
-            const response = await axios.get('/calendars/');
+            const response = await apiClient.get('/calendars/');
             console.log("Calendários (iframe) recebidos:", response.data);
             
             const calendarData = response.data;
@@ -143,7 +143,7 @@ function AgendaPage() {
             setFetchError(null);
             console.log("Buscando calendários (iframe) da API...");
             try {
-                const response = await axios.get('/calendars/');
+                const response = await apiClient.get('/calendars/');
                 console.log("Calendários (iframe) recebidos:", response.data);
                 
                 const calendarData = response.data;
@@ -239,7 +239,7 @@ function AgendaPage() {
 
         setIsAdding(true);
         try {
-            const response = await axios.post('/calendars/', {
+            const response = await apiClient.post('/calendars/', {
                 name: novoNome.trim(),
                 iframe_code: novoIframeCode.trim()
             });
@@ -301,7 +301,7 @@ function AgendaPage() {
 
         setIsEditing(true);
         try {
-            await axios.put(`/calendars/${editingCalendar.id}/`, {
+            await apiClient.put(`/calendars/${editingCalendar.id}/`, {
                 name: editName.trim(),
                 iframe_code: editIframeCode.trim()
             });
@@ -357,7 +357,7 @@ function AgendaPage() {
 
         setAddNotification(null);
         try {
-            await axios.delete(`/calendars/${idToRemove}/`);
+            await apiClient.delete(`/calendars/${idToRemove}/`);
             
             setAddNotification({ 
                 type: 'info', 

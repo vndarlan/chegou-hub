@@ -12,7 +12,7 @@
 // - Correção aplicada em: loadAnalyticsData, handleSyncData, handleExportCSV, handleExportJSON
 //
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 import { getCSRFToken } from '../../utils/csrf';
 
 // shadcn/ui imports
@@ -146,11 +146,11 @@ const OpenAIAnalytics = () => {
             setError(null);
 
             // Carregar API keys disponíveis
-            const apiKeysResponse = await axios.get(`${API_BASE}/api-keys/`);
+            const apiKeysResponse = await apiClient.get(`${API_BASE}/api-keys/`);
             setApiKeys(apiKeysResponse.data);
 
             // Carregar status da última sincronização
-            const syncResponse = await axios.get(`${API_BASE}/sync/`);
+            const syncResponse = await apiClient.get(`${API_BASE}/sync/`);
             if (syncResponse.data.length > 0) {
                 setSyncStatus(syncResponse.data[0]);
             }
@@ -247,11 +247,11 @@ const OpenAIAnalytics = () => {
 
             // Carregar todos os dados em paralelo
             const [summaryRes, timelineRes, modelRes, insightsRes, detailRes] = await Promise.all([
-                axios.get(`${API_BASE}/costs/summary/?${params.toString()}`),
-                axios.get(`${API_BASE}/costs/daily_timeline/?${params.toString()}`),
-                axios.get(`${API_BASE}/costs/model_breakdown/?${params.toString()}`),
-                axios.get(`${API_BASE}/costs/insights/?${params.toString()}`),
-                axios.get(`${API_BASE}/costs/?${params.toString()}&limit=50`)
+                apiClient.get(`${API_BASE}/costs/summary/?${params.toString()}`),
+                apiClient.get(`${API_BASE}/costs/daily_timeline/?${params.toString()}`),
+                apiClient.get(`${API_BASE}/costs/model_breakdown/?${params.toString()}`),
+                apiClient.get(`${API_BASE}/costs/insights/?${params.toString()}`),
+                apiClient.get(`${API_BASE}/costs/?${params.toString()}&limit=50`)
             ]);
 
             setSummary(summaryRes.data);
@@ -276,7 +276,7 @@ const OpenAIAnalytics = () => {
     const validateApiKey = useCallback(async () => {
         try {
             setValidatingKey(true);
-            const response = await axios.get(`${API_BASE}/validate-key/`);
+            const response = await apiClient.get(`${API_BASE}/validate-key/`);
             
             setApiKeyStatus(response.data);
             
@@ -392,7 +392,7 @@ const OpenAIAnalytics = () => {
                 description: `Buscando dados dos últimos ${daysBack} dias...`,
             });
 
-            const response = await axios.post(`${API_BASE}/sync-openai/`, {
+            const response = await apiClient.post(`${API_BASE}/sync-openai/`, {
                 days_back: daysBack
             });
 
@@ -517,7 +517,7 @@ const OpenAIAnalytics = () => {
             const url = `${API_BASE}/export/${type}/csv/?${params.toString()}`;
             
             // Fazer download do CSV
-            const response = await axios.get(url, {
+            const response = await apiClient.get(url, {
                 responseType: 'blob'
             });
             
@@ -601,7 +601,7 @@ const OpenAIAnalytics = () => {
             
             const url = `${API_BASE}/export/summary/json/?${params.toString()}`;
             
-            const response = await axios.get(url);
+            const response = await apiClient.get(url);
             
             // Criar arquivo JSON para download (método React-safe)
             const jsonStr = JSON.stringify(response.data, null, 2);

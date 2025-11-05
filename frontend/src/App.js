@@ -1,7 +1,7 @@
 // src/App.js - SHADCN/UI THEME
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from './utils/axios';
 
 // shadcn/ui imports
 import { ThemeProvider } from './components/theme-provider';
@@ -15,6 +15,7 @@ import './globals.css';
 // Importa o componente CSRFManager
 import CSRFManager from './components/CSRFManager';
 import AdminRoute from './components/AdminRoute';
+import { OrganizationProvider } from './contexts/OrganizationContext';
 
 // Importa as páginas
 import LoginPage from './pages/LoginPage';
@@ -33,7 +34,7 @@ function App() {
       console.log("Checando status inicial de login...");
       setIsLoading(true);
       try {
-        const response = await axios.get('/current-state/', { withCredentials: true });
+        const response = await apiClient.get('/current-state/');
         if (response.status === 200 && response.data.logged_in) {
           console.log("Sessão backend válida encontrada.");
           setIsLoggedIn(true);
@@ -69,9 +70,10 @@ function App() {
   return (
     <ThemeProvider defaultTheme="light" storageKey="chegou-hub-theme">
       <CSRFManager>
-        <Toaster position="top-right" />
-        <Router>
-          <Routes>
+        <OrganizationProvider>
+          <Toaster position="top-right" />
+          <Router>
+            <Routes>
             {/* Rotas específicas primeiro */}
             <Route
               path="/login"
@@ -100,8 +102,9 @@ function App() {
                 <Navigate to="/login" replace />
               }
             />
-          </Routes>
-        </Router>
+            </Routes>
+          </Router>
+        </OrganizationProvider>
       </CSRFManager>
     </ThemeProvider>
   );

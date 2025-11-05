@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../../utils/axios';
 
 const WorkspaceContext = createContext();
 
@@ -15,7 +15,7 @@ export function WorkspaceProvider({ children }) {
   useEffect(() => {
     if (selectedWorkspace) {
       // Validar se workspace ainda existe
-      axios.get(`/ia/nicochat-workspaces/${selectedWorkspace}/`)
+      apiClient.get(`/ia/nicochat-workspaces/${selectedWorkspace}/`)
         .then(() => {
           // Workspace existe, salvar no localStorage
           localStorage.setItem('nicochat_selected_workspace', selectedWorkspace.toString());

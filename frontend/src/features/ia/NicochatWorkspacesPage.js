@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 import { getCSRFToken } from '../../utils/csrf';
 
 // shadcn/ui imports
@@ -48,7 +48,7 @@ export default function NicochatWorkspacesPage() {
       setLoadingList(true);
       setError(null);
 
-      const response = await axios.get('/ia/nicochat-workspaces/');
+      const response = await apiClient.get('/ia/nicochat-workspaces/');
       setConfigs(response.data.results || response.data);
     } catch (err) {
       console.error('Erro ao carregar configurações:', err);
@@ -74,7 +74,7 @@ export default function NicochatWorkspacesPage() {
       setError(null);
       setSuccess(null);
 
-      const response = await axios.post(
+      const response = await apiClient.post(
         '/ia/nicochat/testar-conexao/',
         { api_key: formData.api_key },
         { headers: { 'X-CSRFToken': getCSRFToken() } }
@@ -106,7 +106,7 @@ export default function NicochatWorkspacesPage() {
       setError(null);
       setSuccess(null);
 
-      await axios.post(
+      await apiClient.post(
         '/ia/nicochat-workspaces/',
         formData,
         { headers: { 'X-CSRFToken': getCSRFToken() } }
@@ -125,7 +125,7 @@ export default function NicochatWorkspacesPage() {
 
   const handleToggleActive = async (configId, currentStatus) => {
     try {
-      await axios.put(
+      await apiClient.put(
         `/ia/nicochat-workspaces/${configId}/`,
         { ativo: !currentStatus },
         { headers: { 'X-CSRFToken': getCSRFToken() } }
@@ -144,7 +144,7 @@ export default function NicochatWorkspacesPage() {
     }
 
     try {
-      await axios.delete(
+      await apiClient.delete(
         `/ia/nicochat-workspaces/${configId}/`,
         { headers: { 'X-CSRFToken': getCSRFToken() } }
       );

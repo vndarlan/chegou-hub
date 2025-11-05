@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../../utils/axios';
 import {
   Select,
   SelectContent,
@@ -30,7 +30,7 @@ export default function WorkspaceSelector({ value, onChange, showLimiteAlert = t
   const fetchWorkspaces = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/ia/nicochat-workspaces/');
+      const response = await apiClient.get('/ia/nicochat-workspaces/');
       const data = response.data.results || response.data;
       setWorkspaces(data);
 
@@ -49,7 +49,7 @@ export default function WorkspaceSelector({ value, onChange, showLimiteAlert = t
 
   const fetchLimiteInfo = async (workspaceId) => {
     try {
-      const response = await axios.get(`/ia/nicochat-workspaces/${workspaceId}/check_limite/`);
+      const response = await apiClient.get(`/ia/nicochat-workspaces/${workspaceId}/check_limite/`);
       setLimiteInfo(response.data);
     } catch (err) {
       console.error('Erro ao verificar limite:', err);

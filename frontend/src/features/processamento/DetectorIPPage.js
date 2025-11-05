@@ -1,6 +1,6 @@
 // frontend/src/features/processamento/DetectorIPPage.js
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 import { Button } from '../../components/ui/button';
 import { Label } from '../../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -91,7 +91,7 @@ function DetectorIPPage() {
 
     const loadLojas = async () => {
         try {
-            const response = await axios.get('/processamento/lojas/');
+            const response = await apiClient.get('/processamento/lojas/');
             setLojas(response.data.lojas || []);
             if (response.data.lojas?.length > 0 && !lojaSelecionada) {
                 setLojaSelecionada(response.data.lojas[0].id);
@@ -146,7 +146,7 @@ function DetectorIPPage() {
 
             console.log('Fazendo requisição para:', '/processamento/buscar-ips-duplicados-simples/');
             
-            const response = await axios.post('/processamento/buscar-ips-duplicados-simples/', {
+            const response = await apiClient.post('/processamento/buscar-ips-duplicados-simples/', {
                 loja_id: parseInt(lojaSelecionada),
                 days: parseInt(searchParams.days)
             }, {
@@ -291,7 +291,7 @@ function DetectorIPPage() {
         setIPDetails(null);
 
         try {
-            const response = await axios.post('/processamento/detalhar-pedidos-ip/', {
+            const response = await apiClient.post('/processamento/detalhar-pedidos-ip/', {
                 loja_id: lojaSelecionada,
                 ip: ipGroup.ip,
                 days: validDays
@@ -320,7 +320,7 @@ function DetectorIPPage() {
             const url = lojaSelecionada 
                 ? `/processamento/historico-logs/?loja_id=${lojaSelecionada}`
                 : '/processamento/historico-logs/';
-            const response = await axios.get(url);
+            const response = await apiClient.get(url);
             setLogs(response.data.logs || []);
         } catch (error) {
             console.error('Erro ao carregar logs:', error);
@@ -354,7 +354,7 @@ function DetectorIPPage() {
         
         setLoadingResolved(true);
         try {
-            const response = await axios.get('/processamento/listar-ips-resolvidos/', {
+            const response = await apiClient.get('/processamento/listar-ips-resolvidos/', {
                 params: { loja_id: lojaSelecionada }
             });
             
@@ -378,7 +378,7 @@ function DetectorIPPage() {
 
         setMarkingIP(ipGroup.ip);
         try {
-            const response = await axios.post('/processamento/marcar-ip-resolvido/', {
+            const response = await apiClient.post('/processamento/marcar-ip-resolvido/', {
                 loja_id: parseInt(lojaSelecionada),
                 ip_address: ipGroup.ip,
                 total_orders: ipGroup.order_count || 0,
@@ -417,7 +417,7 @@ function DetectorIPPage() {
         }
 
         try {
-            const response = await axios.delete('/processamento/desmarcar-ip-resolvido/', {
+            const response = await apiClient.delete('/processamento/desmarcar-ip-resolvido/', {
                 data: {
                     loja_id: parseInt(lojaSelecionada),
                     ip_address: ipAddress
@@ -449,7 +449,7 @@ function DetectorIPPage() {
 
         setLoadingObserved(true);
         try {
-            const response = await axios.get('/processamento/listar-ips-observacao/', {
+            const response = await apiClient.get('/processamento/listar-ips-observacao/', {
                 params: { loja_id: lojaSelecionada }
             });
 
@@ -473,7 +473,7 @@ function DetectorIPPage() {
 
         setMarkingObserved(ipGroup.ip);
         try {
-            const response = await axios.post('/processamento/marcar-ip-observacao/', {
+            const response = await apiClient.post('/processamento/marcar-ip-observacao/', {
                 loja_id: parseInt(lojaSelecionada),
                 ip_address: ipGroup.ip,
                 total_orders: ipGroup.order_count || 0,
@@ -512,7 +512,7 @@ function DetectorIPPage() {
         }
 
         try {
-            const response = await axios.delete('/processamento/desmarcar-ip-observacao/', {
+            const response = await apiClient.delete('/processamento/desmarcar-ip-observacao/', {
                 data: {
                     loja_id: parseInt(lojaSelecionada),
                     ip_address: ipAddress
@@ -546,7 +546,7 @@ function DetectorIPPage() {
         setMarkingIP(observedIP.ip_address);
         try {
             // 1. Marcar como resolvido (com os mesmos dados salvos)
-            const markResolvedResponse = await axios.post('/processamento/marcar-ip-resolvido/', {
+            const markResolvedResponse = await apiClient.post('/processamento/marcar-ip-resolvido/', {
                 loja_id: parseInt(lojaSelecionada),
                 ip_address: observedIP.ip_address,
                 total_orders: observedIP.total_orders_at_observation || 0,
@@ -566,7 +566,7 @@ function DetectorIPPage() {
             }
 
             // 2. Remover da lista de observação
-            const unmarkObservedResponse = await axios.delete('/processamento/desmarcar-ip-observacao/', {
+            const unmarkObservedResponse = await apiClient.delete('/processamento/desmarcar-ip-observacao/', {
                 data: {
                     loja_id: parseInt(lojaSelecionada),
                     ip_address: observedIP.ip_address

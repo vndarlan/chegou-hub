@@ -1,1 +1,4 @@
-# backend/core/middleware/__init__.py
+# Middleware package
+from .organization_middleware import OrganizationMiddleware
+
+__all__ = ['OrganizationMiddleware']

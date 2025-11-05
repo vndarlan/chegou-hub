@@ -10,7 +10,7 @@ import {
   Info,
   ChevronDown
 } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 import { getCSRFToken } from '../../utils/csrf';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -41,7 +41,7 @@ function EcomhubConfigPage() {
   const fetchStores = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('/metricas/ecomhub/stores/', {
+      const response = await apiClient.get('/metricas/ecomhub/stores/', {
         headers: { 'X-CSRFToken': getCSRFToken() }
       });
       setStores(response.data);
@@ -59,7 +59,7 @@ function EcomhubConfigPage() {
     }
 
     try {
-      await axios.delete(`/metricas/ecomhub/stores/${store.id}/`, {
+      await apiClient.delete(`/metricas/ecomhub/stores/${store.id}/`, {
         headers: { 'X-CSRFToken': getCSRFToken() }
       });
       showNotification('success', `Loja "${store.name}" deletada com sucesso!`);
@@ -75,7 +75,7 @@ function EcomhubConfigPage() {
     const action = newStatus ? 'ativar' : 'desativar';
 
     try {
-      await axios.put(
+      await apiClient.put(
         `/metricas/ecomhub/stores/${store.id}/`,
         {
           name: store.name,
@@ -99,7 +99,7 @@ function EcomhubConfigPage() {
     setTestingStore(store.id);
 
     try {
-      const response = await axios.post(
+      const response = await apiClient.post(
         '/metricas/ecomhub/stores/test_connection/',
         {
           token: store.token,

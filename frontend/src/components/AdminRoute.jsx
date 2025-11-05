@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../utils/axios';
 
 /**
  * Componente de proteção de rotas para páginas administrativas.
@@ -16,9 +16,7 @@ const AdminRoute = ({ children }) => {
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
-        const response = await axios.get('/current-state/', {
-          withCredentials: true
-        });
+        const response = await apiClient.get('/current-state/');
 
         if (response.data.logged_in && response.data.is_admin) {
           setIsAdmin(true);

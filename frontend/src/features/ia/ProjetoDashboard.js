@@ -28,7 +28,7 @@ import {
     FileText, Brain
 } from 'lucide-react';
 
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 import { toast } from 'sonner';
 
 // === HOOKS CUSTOMIZADOS ===
@@ -1068,7 +1068,7 @@ function ProjetoDashboard() {
             let statsData = null, opcoesData = null, permissoesData = null;
             
             try {
-                const statsRes = await axios.get('/ia/dashboard-stats/');
+                const statsRes = await apiClient.get('/ia/dashboard-stats/');
                 statsData = statsRes.data;
             } catch (statsErr) {
                 console.error('❌ Erro stats:', statsErr.response?.data || statsErr.message);
@@ -1076,7 +1076,7 @@ function ProjetoDashboard() {
             }
             
             try {
-                const opcoesRes = await axios.get('/ia/opcoes-formulario/');
+                const opcoesRes = await apiClient.get('/ia/opcoes-formulario/');
                 opcoesData = opcoesRes.data;
             } catch (opcoesErr) {
                 console.error('❌ Erro opções:', opcoesErr.response?.data || opcoesErr.message);
@@ -1092,7 +1092,7 @@ function ProjetoDashboard() {
             }
             
             try {
-                const permissoesRes = await axios.get('/ia/verificar-permissoes/');
+                const permissoesRes = await apiClient.get('/ia/verificar-permissoes/');
                 permissoesData = permissoesRes.data;
             } catch (permErr) {
                 console.error('❌ Erro permissões:', permErr.response?.data || permErr.message);
@@ -1126,7 +1126,7 @@ function ProjetoDashboard() {
             
             params.append('ordering', sortOrder === 'desc' ? `-${sortBy}` : sortBy);
             
-            const response = await axios.get(`/ia/projetos/?${params}`);
+            const response = await apiClient.get(`/ia/projetos/?${params}`);
             setProjetos(response.data.results || response.data);
         } catch (err) {
             console.error('Erro ao carregar projetos:', err);
@@ -1145,7 +1145,7 @@ function ProjetoDashboard() {
             // Obter CSRF token
             let csrfToken;
             try {
-                const csrfResponse = await axios.get('/current-state/');
+                const csrfResponse = await apiClient.get('/current-state/');
                 csrfToken = csrfResponse.data.csrf_token;
             } catch (csrfErr) {
                 console.error('❌ Erro CSRF:', csrfErr);
@@ -1237,9 +1237,9 @@ function ProjetoDashboard() {
             
             let response;
             if (selectedProjeto) {
-                response = await axios.patch(`/ia/projetos/${selectedProjeto.id}/`, projetoData, config);
+                response = await apiClient.patch(`/ia/projetos/${selectedProjeto.id}/`, projetoData, config);
             } else {
-                response = await axios.post('/ia/projetos/', projetoData, config);
+                response = await apiClient.post('/ia/projetos/', projetoData, config);
             }
             
             showNotification({
@@ -1290,7 +1290,7 @@ function ProjetoDashboard() {
 
     const handleViewProjeto = async (projeto) => {
         try {
-            const response = await axios.get(`/ia/projetos/${projeto.id}/`);
+            const response = await apiClient.get(`/ia/projetos/${projeto.id}/`);
             setSelectedProjeto(response.data);
             setDetailModalOpen(true);
         } catch (err) {
@@ -1306,7 +1306,7 @@ function ProjetoDashboard() {
     const handleEditProjeto = async (projeto) => {
         try {            
             // Carregar dados completos para edição
-            const response = await axios.get(`/ia/projetos/${projeto.id}/`);            
+            const response = await apiClient.get(`/ia/projetos/${projeto.id}/`);            
             setSelectedProjeto(response.data);
             setFormModalOpen(true);
         } catch (err) {
@@ -1322,7 +1322,7 @@ function ProjetoDashboard() {
     // CORREÇÃO: Nova função para mudança de status
     const handleChangeStatus = async (projeto, novoStatus) => {
         try {
-            const csrfResponse = await axios.get('/current-state/');
+            const csrfResponse = await apiClient.get('/current-state/');
             const csrfToken = csrfResponse.data.csrf_token;
             
             const config = {
@@ -1332,7 +1332,7 @@ function ProjetoDashboard() {
                 }
             };
             
-            await axios.patch(`/ia/projetos/${projeto.id}/`, { status: novoStatus }, config);
+            await apiClient.patch(`/ia/projetos/${projeto.id}/`, { status: novoStatus }, config);
             
             const statusLabels = {
                 'ativo': 'ativado',
@@ -1361,7 +1361,7 @@ function ProjetoDashboard() {
 
     const handleArchiveProjeto = async (projeto) => {
         try {
-            await axios.post(`/ia/projetos/${projeto.id}/arquivar/`);
+            await apiClient.post(`/ia/projetos/${projeto.id}/arquivar/`);
             showNotification({
                 title: 'Sucesso',
                 message: `Projeto ${projeto.status === 'arquivado' ? 'reativado' : 'arquivado'}`,
@@ -1381,7 +1381,7 @@ function ProjetoDashboard() {
 
     const handleDuplicateProjeto = async (projeto) => {
         try {
-            await axios.post(`/ia/projetos/${projeto.id}/duplicar/`);
+            await apiClient.post(`/ia/projetos/${projeto.id}/duplicar/`);
             showNotification({
                 title: 'Sucesso',
                 message: 'Projeto duplicado com sucesso',
@@ -1969,7 +1969,7 @@ const NovaVersaoModal = ({ opened, onClose, projeto, onSave }) => {
         
         try {
             setLoading(true);
-            await axios.post(`/ia/projetos/${projeto.id}/nova_versao/`, formData);
+            await apiClient.post(`/ia/projetos/${projeto.id}/nova_versao/`, formData);
             
             showNotification({
                 title: 'Sucesso',

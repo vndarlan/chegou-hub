@@ -4,7 +4,7 @@ import {
   RefreshCw, TrendingUp, TrendingDown, X, AlertTriangle, Activity, BarChart3, Globe, Target, Zap
 } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, XAxis, Bar, BarChart, YAxis } from 'recharts';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 
 // shadcn/ui components
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
@@ -57,7 +57,7 @@ function NoveltiesPage() {
     useEffect(() => {
         const checkPermissions = async () => {
             try {
-                const response = await axios.get('/novelties/check-permissions/');
+                const response = await apiClient.get('/novelties/check-permissions/');
                 setCanView(response.data.can_view);
                 if (!response.data.can_view) {
                     setError('Você não tem permissão para visualizar esta página.');
@@ -84,15 +84,15 @@ function NoveltiesPage() {
                 const countryParam = selectedCountry === 'all' ? {} : { country: selectedCountry };
 
                 const [statsResponse, recentResponse, trendsResponse] = await Promise.all([
-                    axios.get('/novelties/executions/dashboard_stats/', { params: countryParam }),
-                    axios.get('/novelties/executions/', { 
+                    apiClient.get('/novelties/executions/dashboard_stats/', { params: countryParam }),
+                    apiClient.get('/novelties/executions/', { 
                         params: { 
                             page: currentPage, 
                             page_size: itemsPerPage, 
                             ...countryParam 
                         } 
                     }),
-                    axios.get('/novelties/trends/', { params: { days: filterPeriod, ...countryParam } })
+                    apiClient.get('/novelties/trends/', { params: { days: filterPeriod, ...countryParam } })
                 ]);
 
                 setDashboardStats(statsResponse.data);

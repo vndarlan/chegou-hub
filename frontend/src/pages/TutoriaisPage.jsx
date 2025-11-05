@@ -1,7 +1,7 @@
 // frontend/src/pages/TutoriaisPage.jsx
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronLeft, Home, BookOpen, Play } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../utils/axios';
 
 // shadcn/ui imports
 import { Button } from '../components/ui/button';
@@ -43,9 +43,7 @@ function TutoriaisPage() {
     setError(null);
     try {
       console.log('🔍 Buscando categorias em:', '/tutoriais/categorias/');
-      const response = await axios.get('/tutoriais/categorias/', {
-        withCredentials: false // Página pública
-      });
+      const response = await apiClient.get('/tutoriais/categorias/');
       console.log('✅ Categorias recebidas:', response.data);
       console.log('📊 Total de categorias:', response.data.length);
 
@@ -82,9 +80,7 @@ function TutoriaisPage() {
   const carregarAula = async (slug) => {
     setLoadingAula(true);
     try {
-      const response = await axios.get(`/tutoriais/aulas/${slug}/`, {
-        withCredentials: false
-      });
+      const response = await apiClient.get(`/tutoriais/aulas/${slug}/`);
       setAulaAtual(response.data);
     } catch (error) {
       console.error('Erro ao carregar aula:', error);

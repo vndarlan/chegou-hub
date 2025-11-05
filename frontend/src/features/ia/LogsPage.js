@@ -8,7 +8,7 @@ import {
     Settings, Globe, MessageCircle,
     Wrench, Flag, Calendar
 } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 
 // shadcn/ui imports
 import { Button } from '../../components/ui/button';
@@ -69,7 +69,7 @@ function LogsPage() {
             // Adicionar parâmetro de página
             params.append('page', page);
             
-            const response = await axios.get(`/ia/logs/?${params}`);
+            const response = await apiClient.get(`/ia/logs/?${params}`);
             const data = response.data;
             
             // Estrutura paginada do Django REST Framework
@@ -90,7 +90,7 @@ function LogsPage() {
     const carregarStats = async () => {
         try {
             // CORREÇÃO: Endpoint correto para logs
-            const response = await axios.get('/ia/dashboard-logs-stats/');
+            const response = await apiClient.get('/ia/dashboard-logs-stats/');
             const data = response.data;
             
             // Usar dados dos últimos 7 dias para o total
@@ -116,10 +116,10 @@ function LogsPage() {
 
     const marcarResolvido = async (logId, resolvido) => {
         try {
-            const csrfResponse = await axios.get('/current-state/');
+            const csrfResponse = await apiClient.get('/current-state/');
             const csrfToken = csrfResponse.data.csrf_token;
             
-            await axios.post(`/ia/logs/${logId}/marcar_resolvido/`, {
+            await apiClient.post(`/ia/logs/${logId}/marcar_resolvido/`, {
                 resolvido: resolvido,
                 observacoes: observacoesResolucao
             }, {

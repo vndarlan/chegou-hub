@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../../utils/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
@@ -39,7 +39,7 @@ export default function FeedbackDevolucaoCard({ configId, onRefresh }) {
       while (hasMorePages) {
         console.log(`📄 Buscando página ${currentPage}...`);
 
-        const response = await axios.get('/ia/nicochat/subscribers/', {
+        const response = await apiClient.get('/ia/nicochat/subscribers/', {
           params: {
             config_id: configId,
             limit: 100,

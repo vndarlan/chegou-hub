@@ -7,7 +7,7 @@ import {
     PieChart, Filter, Rocket, LayoutDashboard, Loader2, FileX,
     Gift, Box
 } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 
 // shadcn/ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -82,12 +82,10 @@ function N1ItaliaPage() {
     const fetchAnalises = async () => {
         setLoadingAnalises(true);
         try {
-            const response = await axios.get('/metricas/n1italia/analise-n1italia/', {
+            const response = await apiClient.get('/metricas/n1italia/analise-n1italia/', {
                 headers: {
                     'X-CSRFToken': getCSRFToken()
-                },
-                withCredentials: true
-            });
+                }});
             setAnalisesSalvas(response.data);
         } catch (error) {
             console.error('Erro ao buscar análises:', error);
@@ -129,16 +127,14 @@ function N1ItaliaPage() {
             formData.append('nome_analise', 'Análise N1 Itália');
             formData.append('descricao', 'Análise de efetividade N1 Itália por upload de Excel');
 
-            const uploadResponse = await axios.post(
+            const uploadResponse = await apiClient.post(
                 '/metricas/n1italia/analise-n1italia/upload_excel/',
                 formData,
                 {
                     headers: {
                         'Content-Type': 'multipart/form-data',
                         'X-CSRFToken': getCSRFToken()
-                    },
-                    withCredentials: true
-                }
+                    }}
             );
 
             if (uploadResponse.data.status === 'success') {
@@ -147,7 +143,7 @@ function N1ItaliaPage() {
                 // Processar dados usando os dados retornados do upload
                 const dadosParaProcessamento = uploadResponse.data.dados_para_processamento;
 
-                const processResponse = await axios.post(
+                const processResponse = await apiClient.post(
                     '/metricas/n1italia/analise-n1italia/processar/',
                     {
                         nome_analise: dadosParaProcessamento.nome_analise,
@@ -157,9 +153,7 @@ function N1ItaliaPage() {
                     {
                         headers: {
                             'X-CSRFToken': getCSRFToken()
-                        },
-                        withCredentials: true
-                    }
+                        }}
                 );
 
                 if (processResponse.data.status === 'success') {
@@ -211,7 +205,7 @@ function N1ItaliaPage() {
                 agrupamentos: agrupamentos
             };
 
-            const response = await axios.post('/metricas/n1italia/analise-n1italia/', {
+            const response = await apiClient.post('/metricas/n1italia/analise-n1italia/', {
                 nome: nomeComPrefixo,
                 dados_processados: dadosComAgrupamentos,
                 tipo_metrica: 'n1_italia',
@@ -219,9 +213,7 @@ function N1ItaliaPage() {
             }, {
                 headers: {
                     'X-CSRFToken': getCSRFToken()
-                },
-                withCredentials: true
-            });
+                }});
 
             if (response.data.id) {
                 showNotification('success', `Análise '${nomeAnalise}' salva!`);
@@ -267,12 +259,10 @@ function N1ItaliaPage() {
 
         setLoadingDelete(prev => ({ ...prev, [id]: true }));
         try {
-            await axios.delete(`/metricas/n1italia/analise-n1italia/${id}/`, {
+            await apiClient.delete(`/metricas/n1italia/analise-n1italia/${id}/`, {
                 headers: {
                     'X-CSRFToken': getCSRFToken()
-                },
-                withCredentials: true
-            });
+                }});
             showNotification('success', 'Análise deletada!');
             fetchAnalises();
 

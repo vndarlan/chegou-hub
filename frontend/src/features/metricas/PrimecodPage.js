@@ -6,7 +6,7 @@ import {
     ArrowUpDown, ArrowUp, ArrowDown, Package, Target, Percent, 
     PieChart, Filter, Rocket, LayoutDashboard, Loader2
 } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 
 // shadcn/ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -64,7 +64,7 @@ const STATUS_MAPPING = {
 
 // Cliente Backend Proxy PrimeCOD
 const buscarDadosPrimeCOD = async (dataInicio, dataFim, paisSelecionado) => {
-    const response = await axios.post('/metricas/primecod/buscar-orders/', {
+    const response = await apiClient.post('/metricas/primecod/buscar-orders/', {
         data_inicio: dataInicio,
         data_fim: dataFim,
         pais_filtro: paisSelecionado !== 'todos' ? paisSelecionado : null
@@ -117,7 +117,7 @@ function PrimecodPage() {
     const fetchAnalises = async () => {
         setLoadingAnalises(true);
         try {
-            const response = await axios.get('/metricas/primecod/analises/');
+            const response = await apiClient.get('/metricas/primecod/analises/');
             const primecodAnalises = response.data.filter(a => 
                 a.tipo === 'PRIMECOD' || a.tipo === 'primecod'
             );
@@ -234,7 +234,7 @@ function PrimecodPage() {
                 }
             };
 
-            const response = await axios.post('/metricas/primecod/analises/', dadosParaSalvar, {
+            const response = await apiClient.post('/metricas/primecod/analises/', dadosParaSalvar, {
                 headers: {
                     'X-CSRFToken': getCSRFToken(),
                     'Content-Type': 'application/json'
@@ -287,7 +287,7 @@ function PrimecodPage() {
 
         setLoadingDelete(prev => ({ ...prev, [id]: true }));
         try {
-            await axios.delete(`/metricas/primecod/analises/${id}/`, {
+            await apiClient.delete(`/metricas/primecod/analises/${id}/`, {
                 headers: {
                     'X-CSRFToken': getCSRFToken(),
                     'Content-Type': 'application/json'
@@ -927,7 +927,7 @@ function PrimecodPage() {
         const inicializar = async () => {
             // Verificar autenticação primeiro
             try {
-                const authResponse = await axios.get('/current-state/', { withCredentials: true });
+                const authResponse = await apiClient.get('/current-state/');
                 if (authResponse.status === 200 && authResponse.data.logged_in) {
                     setAuthChecked(true);
                     // Buscar análises apenas se autenticado

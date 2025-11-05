@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../utils/axios';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -33,7 +33,7 @@ const PerfilPage = () => {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await axios.get('/user/profile/', { withCredentials: true });
+      const response = await apiClient.get('/user/profile/');
       if (response.data) {
         setFirstName(response.data.first_name || '');
         setLastName(response.data.last_name || '');
@@ -54,11 +54,11 @@ const PerfilPage = () => {
     setProfileMessage({ type: '', text: '' });
 
     try {
-      const response = await axios.put('/user/profile/', {
+      const response = await apiClient.put('/user/profile/', {
         first_name: firstName,
         last_name: lastName,
         email: email
-      }, { withCredentials: true });
+      });
 
       if (response.data.message) {
         setProfileMessage({
@@ -107,11 +107,11 @@ const PerfilPage = () => {
     setPasswordMessage({ type: '', text: '' });
 
     try {
-      const response = await axios.post('/user/change-password/', {
+      const response = await apiClient.post('/user/change-password/', {
         current_password: currentPassword,
         new_password: newPassword,
         confirm_password: confirmPassword
-      }, { withCredentials: true });
+      });
 
       if (response.data.message) {
         setPasswordMessage({

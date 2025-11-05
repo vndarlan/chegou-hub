@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../../utils/axios';
 import { getCSRFToken } from '../../../utils/csrf';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
@@ -24,7 +24,7 @@ export default function WhatsAppTemplatesCard({ configId, onRefresh }) {
       setLoading(true);
       setError(null);
 
-      const response = await axios.post(
+      const response = await apiClient.post(
         '/ia/nicochat/whatsapp-templates/',
         { config_id: configId },
         {
@@ -49,7 +49,7 @@ export default function WhatsAppTemplatesCard({ configId, onRefresh }) {
       setSyncing(true);
       setError(null);
 
-      await axios.post(
+      await apiClient.post(
         '/ia/nicochat/whatsapp-templates/sync/',
         { config_id: configId },
         {

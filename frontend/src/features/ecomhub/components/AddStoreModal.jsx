@@ -1,7 +1,7 @@
 // frontend/src/features/ecomhub/components/AddStoreModal.jsx
 import React, { useState } from 'react';
 import { Eye, EyeOff, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../../../utils/axios';
 import { getCSRFToken } from '../../../utils/csrf';
 
 import {
@@ -50,7 +50,7 @@ function AddStoreModal({ open, onClose, onSuccess }) {
     setTestResult(null);
 
     try {
-      const response = await axios.post(
+      const response = await apiClient.post(
         '/metricas/ecomhub/stores/test_connection/',
         {
           token: formData.token,
@@ -94,7 +94,7 @@ function AddStoreModal({ open, onClose, onSuccess }) {
     setError(null);
 
     try {
-      const response = await axios.post(
+      const response = await apiClient.post(
         '/metricas/ecomhub/stores/',
         formData,
         {

@@ -16,7 +16,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '../components/ui/sidebar';
-import axios from 'axios';
+import apiClient from '../utils/axios';
 
 // Importar as páginas
 import AgendaPage from '../features/agenda/AgendaPage';
@@ -37,6 +37,7 @@ import ProcessamentoPage from '../features/processamento/ProcessamentoPage';
 import DetectorIPPage from '../features/processamento/DetectorIPPage';
 import ControleEstoquePage from '../features/estoque/ControleEstoquePage';
 import PerfilPage from './PerfilPage';
+import ConfiguracoesOrganizacao from './ConfiguracoesOrganizacao';
 import FeedbackButton from '../components/FeedbackButton';
 import FeedbackNotificationButton from '../components/FeedbackNotificationButton';
 import SimpleN8nWidget from '../components/SimpleN8nWidget';
@@ -45,6 +46,9 @@ import SimpleN8nWidget from '../components/SimpleN8nWidget';
 const breadcrumbMap = {
   // Perfil do Usuário
   '/perfil': [{ label: 'Perfil' }],
+
+  // Configurações
+  '/configuracoes/organizacao': [{ label: 'Configurações', href: '#' }, { label: 'Organização' }],
 
   // GESTÃO EMPRESARIAL
   '/gestao/agenda': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Agenda da Empresa' }],
@@ -135,7 +139,7 @@ function WorkspacePage({ setIsLoggedIn }) {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await axios.get('/current-state/', { withCredentials: true });
+        const response = await apiClient.get('/current-state/');
         
         if (response.data.logged_in) {
           console.log('Dados do usuário:', response.data);
@@ -160,7 +164,7 @@ function WorkspacePage({ setIsLoggedIn }) {
 
   const handleLogout = async () => {
     try {
-      await axios.post('/logout/', {}, { withCredentials: true });
+      await apiClient.post('/logout/', {});
       setIsLoggedIn(false);
     } catch (error) {
       console.error('Erro no logout:', error);
@@ -252,6 +256,9 @@ function WorkspacePage({ setIsLoggedIn }) {
 
               {/* PERFIL DO USUÁRIO */}
               <Route path="perfil" element={<PerfilPage />} />
+
+              {/* CONFIGURAÇÕES DA ORGANIZAÇÃO */}
+              <Route path="configuracoes/organizacao" element={<ConfiguracoesOrganizacao />} />
 
               {/* REDIRECTS - Rotas antigas para novas */}
               <Route path="agenda" element={<Navigate to="/gestao/agenda" replace />} />

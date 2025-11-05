@@ -21,7 +21,7 @@ import {
     Link,
     ExternalLink
 } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../../../utils/axios';
 import { getCSRFToken } from '../../../utils/csrf';
 
 function SyncStatus({ 
@@ -96,7 +96,7 @@ function SyncStatus({
 
         setConfiguringWebhook(true);
         try {
-            const response = await axios.post('/estoque/webhook/configure/', {
+            const response = await apiClient.post('/estoque/webhook/configure/', {
                 loja_id: lojaSelecionada,
                 webhook_url: webhookConfig.webhook_url,
                 webhook_secret: webhookConfig.webhook_secret,

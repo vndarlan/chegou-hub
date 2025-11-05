@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../utils/axios';
 
 function CSRFManager({ children }) {
   useEffect(() => {
@@ -11,7 +11,7 @@ function CSRFManager({ children }) {
     const fetchCSRFToken = async () => {
       try {
         console.log("🔐 Obtendo token CSRF...");
-        const response = await axios.get('/current-state/');
+        const response = await apiClient.get('/current-state/');
         
         // Obter token do JSON response (não do cookie)
         if (response.data && response.data.csrf_token) {

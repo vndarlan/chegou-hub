@@ -48,11 +48,25 @@ class CurrentStateView(APIView):
     def get(self, request):
         csrf_token = get_token(request)
         if request.user.is_authenticated:
+            # Dados da organização (adicionados pelo middleware)
+            organization_data = None
+            organization_role = None
+            if hasattr(request, 'organization') and request.organization:
+                organization_data = {
+                    'id': request.organization.id,
+                    'nome': request.organization.nome,
+                    'plano': request.organization.plano,
+                    'limite_membros': request.organization.limite_membros
+                }
+                organization_role = request.organization_role
+
             return Response({
                 'logged_in': True,
                 'name': request.user.get_full_name() or request.user.username,
                 'email': request.user.email,
                 'is_admin': request.user.is_staff or request.user.is_superuser,
+                'organization': organization_data,
+                'organization_role': organization_role,
                 'csrf_token': csrf_token
             })
         return Response({'logged_in': False, 'csrf_token': csrf_token})

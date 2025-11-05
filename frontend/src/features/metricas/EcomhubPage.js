@@ -6,7 +6,7 @@ import {
     ArrowUpDown, ArrowUp, ArrowDown, Package, Target, Percent,
     PieChart, Filter, Rocket, LayoutDashboard, Loader2, Minus, Plus
 } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 
 // shadcn/ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -76,7 +76,7 @@ function EcomhubPage() {
     const fetchAnalises = async () => {
         setLoadingAnalises(true);
         try {
-            const response = await axios.get('/metricas/ecomhub/analises/');
+            const response = await apiClient.get('/metricas/ecomhub/analises/');
             setAnalisesSalvas(response.data);
         } catch (error) {
             console.error('Erro ao buscar análises:', error);
@@ -109,7 +109,7 @@ function EcomhubPage() {
         setProgressoAtual({ etapa: 'Iniciando...', porcentagem: 0 });
 
         try {
-            const response = await axios.post('/metricas/ecomhub/analises/processar_selenium/', {
+            const response = await apiClient.post('/metricas/ecomhub/analises/processar_selenium/', {
                 data_inicio: dateRange.from.toISOString().split('T')[0],
                 data_fim: dateRange.to.toISOString().split('T')[0],
                 pais_id: paisSelecionado
@@ -146,7 +146,7 @@ function EcomhubPage() {
                 'Automação Selenium - Todos os Países' :
                 `Automação Selenium - ${PAISES.find(p => p.value === paisSelecionado)?.label}`;
 
-            const response = await axios.post('/metricas/ecomhub/analises/', {
+            const response = await apiClient.post('/metricas/ecomhub/analises/', {
                 nome: nomeAnalise,
                 dados_efetividade: dadosResultado,
                 tipo_metrica: 'produto',
@@ -178,7 +178,7 @@ function EcomhubPage() {
 
         setLoadingDelete(prev => ({ ...prev, [id]: true }));
         try {
-            await axios.delete(`/metricas/ecomhub/analises/${id}/`);
+            await apiClient.delete(`/metricas/ecomhub/analises/${id}/`);
             showNotification('success', `Análise deletada!`);
             fetchAnalises();
             

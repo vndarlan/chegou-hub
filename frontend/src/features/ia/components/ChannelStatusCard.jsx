@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../../utils/axios';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
@@ -22,7 +22,7 @@ export default function ChannelStatusCard({ configId, onRefresh }) {
       setLoading(true);
       setError(null);
 
-      const response = await axios.get('/ia/nicochat/channel-status/', {
+      const response = await apiClient.get('/ia/nicochat/channel-status/', {
         params: { config_id: configId }
       });
 

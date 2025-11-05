@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Card, CardContent } from './ui/card';
 import { Alert, AlertDescription } from './ui/alert';
 import { Upload, X, CheckCircle, AlertCircle } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../utils/axios';
 import { getCSRFToken } from '../utils/csrf';
 
 const FeedbackModal = ({ onClose }) => {
@@ -92,8 +92,7 @@ const FeedbackModal = ({ onClose }) => {
         submitData.append('imagem', formData.imagem);
       }
 
-      const response = await axios.post('/feedback/create/', submitData, {
-        withCredentials: true,
+      const response = await apiClient.post('/feedback/create/', submitData, {
         headers: {
           'X-CSRFToken': getCSRFToken(),
         }

@@ -1,6 +1,6 @@
 // src/pages/LoginPage.js - TOTALMENTE MIGRADO PARA SHADCN/UI
 import React, { useState, useCallback } from 'react';
-import axios from 'axios';
+import apiClient from '../utils/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -97,11 +97,11 @@ function LoginPage({ setIsLoggedIn }) {
 
         if (mode === 'login') {
             try {
-                await axios.get('/current-state/');
-                const response = await axios.post('/login/', {
+                await apiClient.get('/current-state/');
+                const response = await apiClient.post('/login/', {
                     email: email, 
                     password: password
-                }, { withCredentials: true });
+                });
 
                 if (response.status === 200) {
                     console.log("Login bem-sucedido!");
@@ -125,7 +125,7 @@ function LoginPage({ setIsLoggedIn }) {
                 return;
             }
             try {
-                const response = await axios.post('/register/', {
+                const response = await apiClient.post('/register/', {
                     name: name,
                     email: email,
                     area: timeSelecionado,

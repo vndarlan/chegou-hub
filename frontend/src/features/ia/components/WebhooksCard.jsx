@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../../utils/axios';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
@@ -23,7 +23,7 @@ export default function WebhooksCard({ configId, onRefresh }) {
       setLoading(true);
       setError(null);
 
-      const response = await axios.get('/ia/nicochat/inbound-webhooks/', {
+      const response = await apiClient.get('/ia/nicochat/inbound-webhooks/', {
         params: { config_id: configId }
       });
 

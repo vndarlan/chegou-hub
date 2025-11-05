@@ -6,7 +6,7 @@ import L from 'leaflet';
 import { 
     AlertCircle, Settings, Plus, Check, X, Loader2
 } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 
 // shadcn/ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -130,7 +130,7 @@ function MapaPage() {
     useEffect(() => {
         const checkPermissions = async () => {
             try {
-                const response = await axios.get('/check-permissions/');
+                const response = await apiClient.get('/check-permissions/');
                 setCanManage(response.data.can_manage);
             } catch (err) {
                 console.log("Erro ao verificar permissões:", err);
@@ -148,7 +148,7 @@ function MapaPage() {
                 setError(null);
                 
                 // Buscar dados dos países
-                const response = await axios.get('/mapa-data/');
+                const response = await apiClient.get('/mapa-data/');
                 const data = response.data;
                 
                 setPaisesData(data.paises);
@@ -156,11 +156,11 @@ function MapaPage() {
                 
                 // Buscar lista de status
                 if (canManage) {
-                    const statusResponse = await axios.get('/status/');
+                    const statusResponse = await apiClient.get('/status/');
                     setStatusList(statusResponse.data);
                     
                     // Buscar países disponíveis
-                    const countriesResponse = await axios.get('/available-countries/');
+                    const countriesResponse = await apiClient.get('/available-countries/');
                     setAvailableCountries(countriesResponse.data);
                 }
                 
@@ -193,11 +193,11 @@ function MapaPage() {
         setAddLoading(true);
         try {
             // Garantir que temos um token CSRF válido
-            await axios.get('/current-state/');
+            await apiClient.get('/current-state/');
             
             const coordinates = COUNTRY_COORDINATES[selectedCountry.nome_geojson] || [0, 0];
             
-            await axios.post('/add-pais/', {
+            await apiClient.post('/add-pais/', {
                 nome_display: selectedCountry.nome_display,
                 nome_geojson: selectedCountry.nome_geojson,
                 status: selectedStatus,

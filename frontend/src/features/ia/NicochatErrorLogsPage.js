@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 import { useWorkspace } from './contexts/WorkspaceContext';
 import {
   Table,
@@ -39,7 +39,7 @@ export default function NicochatErrorLogsPage() {
     setError(null);
 
     try {
-      const response = await axios.get(
+      const response = await apiClient.get(
         `/ia/nicochat-workspaces/${selectedWorkspace}/error_logs/`
       );
 

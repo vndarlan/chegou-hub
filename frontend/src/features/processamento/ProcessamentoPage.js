@@ -1,6 +1,6 @@
 // frontend/src/features/processamento/ProcessamentoPage.js
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -59,7 +59,7 @@ function ProcessamentoPage() {
 
     const loadLojas = async () => {
         try {
-            const response = await axios.get('/processamento/lojas/');
+            const response = await apiClient.get('/processamento/lojas/');
             setLojas(response.data.lojas || []);
             if (response.data.lojas?.length > 0 && !lojaSelecionada) {
                 setLojaSelecionada(response.data.lojas[0].id);
@@ -81,7 +81,7 @@ function ProcessamentoPage() {
         setConnectionResult(null);
 
         try {
-            const response = await axios.post('/processamento/test-connection/', {
+            const response = await apiClient.post('/processamento/test-connection/', {
                 shop_url: newStore.shop_url,
                 access_token: newStore.access_token
             });
@@ -103,7 +103,7 @@ function ProcessamentoPage() {
         }
 
         try {
-            const response = await axios.post('/processamento/lojas/', newStore);
+            const response = await apiClient.post('/processamento/lojas/', newStore);
             showNotification(response.data.message);
             setNewStore({ nome_loja: '', shop_url: '', access_token: '' });
             setConnectionResult(null);
@@ -125,7 +125,7 @@ function ProcessamentoPage() {
         setSelectedDuplicates([]);
 
         try {
-            const response = await axios.post('/processamento/buscar-duplicatas/', {
+            const response = await apiClient.post('/processamento/buscar-duplicatas/', {
                 loja_id: lojaSelecionada
             });
             setDuplicates(response.data.duplicates || []);
@@ -141,7 +141,7 @@ function ProcessamentoPage() {
         setCancellingOrder(duplicate.duplicate_order.id);
 
         try {
-            const response = await axios.post('/processamento/cancelar-pedido/', {
+            const response = await apiClient.post('/processamento/cancelar-pedido/', {
                 loja_id: lojaSelecionada,
                 order_id: duplicate.duplicate_order.id,
                 order_number: duplicate.duplicate_order.number
@@ -168,7 +168,7 @@ function ProcessamentoPage() {
         setConfirmBatchModal(false);
 
         try {
-            const response = await axios.post('/processamento/cancelar-lote/', {
+            const response = await apiClient.post('/processamento/cancelar-lote/', {
                 loja_id: lojaSelecionada,
                 order_ids: selectedDuplicates
             });
@@ -188,7 +188,7 @@ function ProcessamentoPage() {
             const url = lojaSelecionada 
                 ? `/processamento/historico-logs/?loja_id=${lojaSelecionada}`
                 : '/processamento/historico-logs/';
-            const response = await axios.get(url);
+            const response = await apiClient.get(url);
             setLogs(response.data.logs || []);
         } catch (error) {
             console.error('Erro ao carregar logs:', error);

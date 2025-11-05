@@ -6,7 +6,7 @@ import {
     ArrowUpDown, ArrowUp, ArrowDown, Package, Target, Percent,
     Rocket, LayoutDashboard, Loader2, Minus, Plus, Database
 } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import ReactDatePicker from 'react-datepicker';
@@ -74,7 +74,7 @@ function EcomhubEfetividadeV2Page() {
     const fetchLojas = async () => {
         setLoadingLojas(true);
         try {
-            const response = await axios.get('/metricas/ecomhub/efetividade-v2/stores_disponiveis/');
+            const response = await apiClient.get('/metricas/ecomhub/efetividade-v2/stores_disponiveis/');
             setLojas(response.data.stores || []);
         } catch (error) {
             console.error('Erro ao buscar lojas:', error);
@@ -87,7 +87,7 @@ function EcomhubEfetividadeV2Page() {
     const fetchAnalises = async () => {
         setLoadingAnalises(true);
         try {
-            const response = await axios.get('/metricas/ecomhub/efetividade-v2/');
+            const response = await apiClient.get('/metricas/ecomhub/efetividade-v2/');
             setAnalisesSalvas(response.data);
         } catch (error) {
             console.error('Erro ao buscar análises:', error);
@@ -121,7 +121,7 @@ function EcomhubEfetividadeV2Page() {
                 'API Tempo Real - Todas as Lojas' :
                 `API Tempo Real - ${lojas.find(l => l.id.toString() === lojaSelecionada)?.name}`;
 
-            const response = await axios.post('/metricas/ecomhub/efetividade-v2/', {
+            const response = await apiClient.post('/metricas/ecomhub/efetividade-v2/', {
                 nome: nomeAnalise,
                 descricao: lojaNome,
                 data_inicio: dateRange.from.toISOString().split('T')[0],
@@ -157,7 +157,7 @@ function EcomhubEfetividadeV2Page() {
 
         setLoadingDelete(prev => ({ ...prev, [id]: true }));
         try {
-            await axios.delete(`/metricas/ecomhub/efetividade-v2/${id}/`);
+            await apiClient.delete(`/metricas/ecomhub/efetividade-v2/${id}/`);
             showNotification('success', `Análise deletada!`);
             fetchAnalises();
 
@@ -216,7 +216,7 @@ function EcomhubEfetividadeV2Page() {
                 store_id: lojaSelecionada === 'todas' ? null : lojaSelecionada
             };
 
-            const response = await axios.post('/metricas/ecomhub/efetividade-v2/processar_tempo_real/', payload);
+            const response = await apiClient.post('/metricas/ecomhub/efetividade-v2/processar_tempo_real/', payload);
 
             if (response.data.status === 'success') {
                 setDadosResultado({

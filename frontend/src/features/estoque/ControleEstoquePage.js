@@ -1,6 +1,6 @@
 // frontend/src/features/estoque/ControleEstoquePage.js
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -142,7 +142,7 @@ function ControleEstoquePage() {
     // Definir funções com useCallback antes dos useEffect
     const loadLojas = useCallback(async () => {
         try {
-            const response = await axios.get('/processamento/lojas/');
+            const response = await apiClient.get('/processamento/lojas/');
             setLojas(response.data.lojas || []);
         } catch (error) {
             console.error('Erro ao carregar lojas:', error);
@@ -156,7 +156,7 @@ function ControleEstoquePage() {
         setSearchingProdutos(true);
         try {
             // Usar nova API unificada - carrega TODOS os produtos
-            const response = await axios.get('/estoque/produtos-unificados/');
+            const response = await apiClient.get('/estoque/produtos-unificados/');
 
             if (response.data && response.data.results) {
                 setProdutos(response.data.results);
@@ -326,7 +326,7 @@ function ControleEstoquePage() {
 
             console.log(`Carregando movimentações usando endpoint: ${endpoint}`);
 
-            const response = await axios.get(endpoint, { params });
+            const response = await apiClient.get(endpoint, { params });
 
             if (response.data && Array.isArray(response.data)) {
                 setMovimentacoes(response.data);
@@ -466,7 +466,7 @@ function ControleEstoquePage() {
             console.log('⏱️ Fazendo requisição POST...');
             const startTime = Date.now();
 
-            const response = await axios.post('/estoque/produtos-compartilhados/', dados, {
+            const response = await apiClient.post('/estoque/produtos-compartilhados/', dados, {
                 headers: {
                     'X-CSRFToken': getCSRFToken(),
                     'Content-Type': 'application/json'
@@ -579,7 +579,7 @@ function ControleEstoquePage() {
     const loadProdutoSKUs = async (produtoId) => {
         setLoadingSkus(true);
         try {
-            const response = await axios.get(`/estoque/produtos-compartilhados/${produtoId}/`);
+            const response = await apiClient.get(`/estoque/produtos-compartilhados/${produtoId}/`);
             if (response.data && response.data.skus) {
                 setEditingSkus(response.data.skus.map(sku => ({
                     id: sku.id,
@@ -665,7 +665,7 @@ function ControleEstoquePage() {
                 endpoint = `/estoque/produtos/${selectedProduto.id}/`;
             }
 
-            const response = await axios.put(endpoint, dados, {
+            const response = await apiClient.put(endpoint, dados, {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
 
@@ -728,7 +728,7 @@ function ControleEstoquePage() {
 
             console.log(`Usando endpoint: ${endpoint} para produto tipo: ${selectedProduto.tipo_produto}`);
 
-            const response = await axios.post(endpoint, dados, {
+            const response = await apiClient.post(endpoint, dados, {
                 headers: {
                     'X-CSRFToken': getCSRFToken(),
                     'Content-Type': 'application/json'
@@ -808,7 +808,7 @@ function ControleEstoquePage() {
                 ? `/estoque/produtos-compartilhados/${produto.id}/`
                 : `/estoque/produtos/${produto.id}/`;
 
-            const response = await axios.delete(endpoint, {
+            const response = await apiClient.delete(endpoint, {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
 

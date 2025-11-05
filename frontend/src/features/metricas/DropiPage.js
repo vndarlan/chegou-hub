@@ -7,7 +7,7 @@ import {
     Package, Building, Clock, User, ArrowUpDown, 
     ArrowUp, ArrowDown, Image as ImageIcon
 } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 import { getCSRFToken } from '../../utils/csrf';
 
 // shadcn/ui components
@@ -145,7 +145,7 @@ function DropiPage() {
     const fetchAnalises = async () => {
         setLoadingAnalises(true);
         try {
-            const response = await axios.get('/metricas/dropi/analises/');
+            const response = await apiClient.get('/metricas/dropi/analises/');
             setAnalisesSalvas(response.data);
         } catch (error) {
             console.error('Erro ao buscar análises:', error);
@@ -192,7 +192,7 @@ function DropiPage() {
                         porcentagem: porcentagemBase 
                     });
                     
-                    const response = await axios.post('/metricas/dropi/analises/extract_orders_new_api/', {
+                    const response = await apiClient.post('/metricas/dropi/analises/extract_orders_new_api/', {
                         data_inicio: dataInicio,
                         data_fim: dataFim,
                         pais: pais
@@ -228,7 +228,7 @@ function DropiPage() {
                 
             } else {
                 // Processar apenas um país
-                const response = await axios.post('/metricas/dropi/analises/extract_orders_new_api/', {
+                const response = await apiClient.post('/metricas/dropi/analises/extract_orders_new_api/', {
                     data_inicio: dataInicio,
                     data_fim: dataFim,
                     pais: paisSelecionado
@@ -286,7 +286,7 @@ function DropiPage() {
         try {
             const descricaoPais = `Extração Dropi - ${PAISES.find(p => p.value === paisSelecionado)?.label}`;
 
-            const response = await axios.post('/metricas/dropi/analises/', {
+            const response = await apiClient.post('/metricas/dropi/analises/', {
                 nome: nomeAnalise,
                 dados_pedidos: dadosResultado, // Agora está correto, é o array de pedidos
                 data_inicio: dataInicio,
@@ -326,7 +326,7 @@ function DropiPage() {
 
         setLoadingDelete(prev => ({ ...prev, [id]: true }));
         try {
-            await axios.delete(`/metricas/dropi/analises/${id}/`, {
+            await apiClient.delete(`/metricas/dropi/analises/${id}/`, {
                 headers: {
                     'X-CSRFToken': getCSRFToken()
                 }

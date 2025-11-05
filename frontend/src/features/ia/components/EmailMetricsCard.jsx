@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../../utils/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
@@ -24,7 +24,7 @@ export default function EmailMetricsCard({ workspaceId }) {
       setLoading(true);
       setError(null);
 
-      const response = await axios.get(`/ia/nicochat-workspaces/${workspaceId}/email_metrics/`, {
+      const response = await apiClient.get(`/ia/nicochat-workspaces/${workspaceId}/email_metrics/`, {
         params: { range: selectedRange }
       });
 

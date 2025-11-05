@@ -8,7 +8,7 @@ import {
     Loader2, Calendar, ArrowUpDown, ArrowUp, ArrowDown, ArrowRight,
     Info, ShoppingBag, PieChart, ArrowLeft
 } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../../utils/axios';
 import { getCSRFToken } from '../../utils/csrf';
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import {
@@ -123,7 +123,7 @@ function EcomhubStatusPage() {
 
     const fetchLojasDisponiveis = async () => {
         try {
-            const response = await axios.get('/metricas/ecomhub/stores/', {
+            const response = await apiClient.get('/metricas/ecomhub/stores/', {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
 
@@ -161,7 +161,7 @@ function EcomhubStatusPage() {
                 params.store_id = lojaSelecionada;
             }
 
-            const response = await axios.get('/metricas/ecomhub/orders/dashboard/', {
+            const response = await apiClient.get('/metricas/ecomhub/orders/dashboard/', {
                 params,
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
@@ -194,7 +194,7 @@ function EcomhubStatusPage() {
             if (nivelAlertaFiltro !== 'todos') params.alert_level = nivelAlertaFiltro;
             if (buscaTexto.trim()) params.search = buscaTexto.trim();
 
-            const response = await axios.get('/metricas/ecomhub/orders/', {
+            const response = await apiClient.get('/metricas/ecomhub/orders/', {
                 params,
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
@@ -217,7 +217,7 @@ function EcomhubStatusPage() {
     const fetchHistorico = async (orderId) => {
         setLoadingHistorico(true);
         try {
-            const response = await axios.get(`/metricas/ecomhub/orders/${orderId}/history/`, {
+            const response = await apiClient.get(`/metricas/ecomhub/orders/${orderId}/history/`, {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
 
@@ -239,7 +239,7 @@ function EcomhubStatusPage() {
     const sincronizarAgora = async () => {
         setSincronizando(true);
         try {
-            const response = await axios.post('/metricas/ecomhub/orders/sync/', {}, {
+            const response = await apiClient.post('/metricas/ecomhub/orders/sync/', {}, {
                 headers: {
                     'X-CSRFToken': getCSRFToken(),
                     'Content-Type': 'application/json'
@@ -272,7 +272,7 @@ function EcomhubStatusPage() {
     const fetchConfigsAlerta = async () => {
         setLoadingConfigs(true);
         try {
-            const response = await axios.get('/metricas/ecomhub/alert-config/', {
+            const response = await apiClient.get('/metricas/ecomhub/alert-config/', {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
             setConfigsAlerta(response.data || []);
@@ -291,7 +291,7 @@ function EcomhubStatusPage() {
     const fetchUnknownStatuses = async () => {
         setLoadingUnknown(true);
         try {
-            const response = await axios.get('/metricas/ecomhub/unknown-status/', {
+            const response = await apiClient.get('/metricas/ecomhub/unknown-status/', {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
             setUnknownStatuses(response.data || []);
@@ -304,7 +304,7 @@ function EcomhubStatusPage() {
 
     const fetchStatusReferenceMap = async () => {
         try {
-            const response = await axios.get('/metricas/ecomhub/unknown-status/reference_map/', {
+            const response = await apiClient.get('/metricas/ecomhub/unknown-status/reference_map/', {
                 headers: { 'X-CSRFToken': getCSRFToken() }
             });
             setStatusReferenceMap(response.data);
@@ -315,7 +315,7 @@ function EcomhubStatusPage() {
 
     const classificarStatus = async (status, isActive) => {
         try {
-            await axios.post('/metricas/ecomhub/unknown-status/classify/', {
+            await apiClient.post('/metricas/ecomhub/unknown-status/classify/', {
                 status,
                 is_active: isActive
             }, {
@@ -359,7 +359,7 @@ function EcomhubStatusPage() {
 
         setSavingConfig(prev => ({ ...prev, [status]: true }));
         try {
-            await axios.put(`/metricas/ecomhub/alert-config/${status}/`, thresholds, {
+            await apiClient.put(`/metricas/ecomhub/alert-config/${status}/`, thresholds, {
                 headers: {
                     'X-CSRFToken': getCSRFToken(),
                     'Content-Type': 'application/json'
