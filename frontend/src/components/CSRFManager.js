@@ -4,22 +4,22 @@ import apiClient from '../utils/axios';
 function CSRFManager({ children }) {
   useEffect(() => {
     // Configuração axios global
-    axios.defaults.withCredentials = true;
-    
+    apiClient.defaults.withCredentials = true;
+
     let csrfToken = null;
-    
+
     const fetchCSRFToken = async () => {
       try {
         console.log("🔐 Obtendo token CSRF...");
         const response = await apiClient.get('/current-state/');
-        
+
         // Obter token do JSON response (não do cookie)
         if (response.data && response.data.csrf_token) {
           csrfToken = response.data.csrf_token;
           console.log(`✅ Token CSRF obtido: ${csrfToken.substring(0, 8)}...`);
-          
+
           // Definir nos headers padrão
-          axios.defaults.headers.common['X-CSRFToken'] = csrfToken;
+          apiClient.defaults.headers.common['X-CSRFToken'] = csrfToken;
           
           // Armazenar temporariamente
           sessionStorage.setItem('csrf_token', csrfToken);
@@ -32,12 +32,12 @@ function CSRFManager({ children }) {
     };
     
     // Interceptor para incluir CSRF token em todas as requisições
-    const interceptorId = axios.interceptors.request.use(
+    const interceptorId = apiClient.interceptors.request.use(
       (config) => {
         if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
           // Usar token armazenado ou tentar obter do sessionStorage
           let token = csrfToken || sessionStorage.getItem('csrf_token');
-          
+
           // Se não tem token, tentar obter do cookie como fallback
           if (!token) {
             const cookies = document.cookie.split(';');
@@ -48,7 +48,7 @@ function CSRFManager({ children }) {
               token = csrfCookie;
             }
           }
-          
+
           if (token) {
             config.headers['X-CSRFToken'] = token;
             console.log(`🔒 CSRF token adicionado ao ${config.method.toUpperCase()} ${config.url}`);
@@ -60,9 +60,9 @@ function CSRFManager({ children }) {
       },
       (error) => Promise.reject(error)
     );
-    
+
     // Interceptor para response - renovar token se necessário
-    const responseInterceptorId = axios.interceptors.response.use(
+    const responseInterceptorId = apiClient.interceptors.response.use(
       (response) => response,
       async (error) => {
         // Se erro 403 relacionado a CSRF, tentar renovar token
@@ -74,7 +74,7 @@ function CSRFManager({ children }) {
             const originalRequest = error.config;
             if (csrfToken) {
               originalRequest.headers['X-CSRFToken'] = csrfToken;
-              return axios(originalRequest);
+              return apiClient(originalRequest);
             }
           } catch (refreshError) {
             console.error('❌ Erro ao renovar CSRF token:', refreshError);
@@ -83,14 +83,14 @@ function CSRFManager({ children }) {
         return Promise.reject(error);
       }
     );
-    
+
     // Obter token inicial
     fetchCSRFToken();
-    
+
     // Limpar interceptors quando componente for desmontado
     return () => {
-      axios.interceptors.request.eject(interceptorId);
-      axios.interceptors.response.eject(responseInterceptorId);
+      apiClient.interceptors.request.eject(interceptorId);
+      apiClient.interceptors.response.eject(responseInterceptorId);
     };
   }, []);
 

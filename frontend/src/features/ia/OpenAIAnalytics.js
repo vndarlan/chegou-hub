@@ -117,14 +117,14 @@ const OpenAIAnalytics = () => {
     const [detailData, setDetailData] = useState([]);
     const [syncStatus, setSyncStatus] = useState({});
 
-    // URLs da API (sem /api porque já está no axios.defaults.baseURL)
+    // URLs da API (sem /api porque já está no apiClient.defaults.baseURL)
     const API_BASE = '/monitoring';
 
-    // Configurar axios com CSRF token
+    // Configurar apiClient com CSRF token
     useEffect(() => {
         const token = getCSRFToken();
         if (token) {
-            axios.defaults.headers.common['X-CSRFToken'] = token;
+            apiClient.defaults.headers.common['X-CSRFToken'] = token;
         }
     }, []);
 

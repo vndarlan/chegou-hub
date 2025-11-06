@@ -379,10 +379,10 @@ function ControleEstoquePage() {
     const salvarProdutoCompartilhado = async () => {
         console.log('🚀 INICIANDO CRIAÇÃO DE PRODUTO COMPARTILHADO');
         console.log('📊 DEBUG INFO:');
-        console.log('- BaseURL atual:', axios.defaults.baseURL);
+        console.log('- BaseURL atual:', apiClient.defaults.baseURL);
         console.log('- CSRF Token:', getCSRFToken()?.substring(0, 10) + '...');
         console.log('- Cookies:', document.cookie.split(';').map(c => c.trim().split('=')[0]));
-        console.log('- URL completa será:', axios.defaults.baseURL + '/estoque/produtos-compartilhados/');
+        console.log('- URL completa será:', apiClient.defaults.baseURL + '/estoque/produtos-compartilhados/');
 
         if (!novoProdutoCompartilhado.nome.trim()) {
             console.log('❌ ERRO: Nome do produto vazio');
@@ -457,7 +457,7 @@ function ControleEstoquePage() {
             
             console.log('=== DEBUG CRIAÇÃO PRODUTO COMPARTILHADO ===');
             console.log('📤 Dados sendo enviados:', JSON.stringify(dados, null, 2));
-            console.log('📍 URL de destino:', axios.defaults.baseURL + '/estoque/produtos-compartilhados/');
+            console.log('📍 URL de destino:', apiClient.defaults.baseURL + '/estoque/produtos-compartilhados/');
             console.log('🔒 Headers:', {
                 'X-CSRFToken': getCSRFToken(),
                 'Content-Type': 'application/json'
