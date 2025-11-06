@@ -1016,7 +1016,7 @@ UNFOLD = {
 
     # Estilos customizados (cores do ChegouHub)
     "STYLES": [
-        lambda request: f"{STATIC_URL}css/unfold_custom.css",
+        # lambda request: f"{STATIC_URL}css/unfold_custom.css",  # Desabilitado: arquivo não existe
     ],
 
     # Scripts customizados
