@@ -7,30 +7,25 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 
 // Configuração base do Axios - agora usando variável de ambiente
-// Configuração dinâmica baseada em variável de ambiente
 const API_URL = process.env.REACT_APP_API_BASE_URL || 'https://chegou-hubb-production.up.railway.app/api';
 
 // Garantir que a URL sempre tenha protocolo https://
 const normalizedURL = API_URL.startsWith('http') ? API_URL : `https://${API_URL}`;
-axios.defaults.baseURL = normalizedURL;
-axios.defaults.withCredentials = true;
+apiClient.defaults.baseURL = normalizedURL;
 console.log("API Base URL original:", API_URL);
 console.log("API Base URL normalizada:", normalizedURL);
-console.log("API Base URL configurada:", axios.defaults.baseURL);
+console.log("API Base URL configurada:", apiClient.defaults.baseURL);
 console.log("REACT_APP_API_BASE_URL env var:", process.env.REACT_APP_API_BASE_URL);
-
-axios.defaults.xsrfCookieName = 'csrftoken';
-axios.defaults.xsrfHeaderName = 'X-CSRFToken';
 
 const DEBUG_MODE = true; // TEMPORÁRIO: Habilitado para investigação
 
 if (DEBUG_MODE) {
-  axios.interceptors.request.use(config => {
+  apiClient.interceptors.request.use(config => {
     console.log(`[Request] ${config.method.toUpperCase()} ${config.url}`, config);
     return config;
   });
-  
-  axios.interceptors.response.use(
+
+  apiClient.interceptors.response.use(
     response => {
       console.log(`[Response] ${response.status} ${response.config.url}`, response);
       return response;
@@ -42,18 +37,18 @@ if (DEBUG_MODE) {
   );
 }
 
-axios.interceptors.response.use(
+apiClient.interceptors.response.use(
   response => response,
   error => {
-    if (error.response && error.response.status === 403 && 
+    if (error.response && error.response.status === 403 &&
         error.response.data?.detail?.includes('CSRF')) {
       console.error('Erro de CSRF detectado. Tentando recarregar o token...');
     }
-    
+
     if (error.response && error.response.status === 401) {
       console.warn('Sessão expirada ou usuário não autenticado');
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -66,11 +61,11 @@ root.render(
 apiClient.get(`${API_URL}/ensure-csrf/`)
   .then(response => {
     console.log("Conexão com backend estabelecida:", response.status);
-    
+
     const hasCsrfCookie = document.cookie
       .split(';')
       .some(cookie => cookie.trim().startsWith('csrftoken='));
-      
+
     console.log("Cookie CSRF definido:", hasCsrfCookie);
   })
   .catch(error => {
