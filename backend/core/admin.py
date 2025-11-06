@@ -22,8 +22,8 @@ class OrganizationInviteInline(admin.TabularInline):
     """Inline para convites pendentes"""
     model = OrganizationInvite
     extra = 0
-    fields = ('email', 'role', 'status', 'expira_em', 'enviado_por')
-    readonly_fields = ('codigo', 'criado_em', 'enviado_por')
+    fields = ('email', 'role', 'status', 'expira_em')
+    readonly_fields = ('codigo', 'criado_em')
 
     def get_queryset(self, request):
         # Mostrar apenas convites pendentes
@@ -121,11 +121,11 @@ class OrganizationMemberAdmin(admin.ModelAdmin):
 @admin.register(OrganizationInvite)
 class OrganizationInviteAdmin(admin.ModelAdmin):
     """Admin para Convites de Organização"""
-    list_display = ('email', 'organization', 'role', 'get_status_badge', 'expira_em', 'enviado_por')
+    list_display = ('email', 'organization', 'role', 'get_status_badge', 'expira_em', 'criado_em')
     list_filter = ('status', 'role', 'organization', 'criado_em')
     search_fields = ('email', 'organization__nome')
-    readonly_fields = ('codigo', 'criado_em', 'aceito_em', 'rejeitado_em')
-    autocomplete_fields = ('organization', 'enviado_por', 'aceito_por')
+    readonly_fields = ('codigo', 'criado_em', 'aceito_em')
+    autocomplete_fields = ('organization', 'aceito_por')
 
     fieldsets = (
         ('Convite', {
@@ -135,7 +135,7 @@ class OrganizationInviteAdmin(admin.ModelAdmin):
             'fields': ('status', 'expira_em')
         }),
         ('Histórico', {
-            'fields': ('enviado_por', 'criado_em', 'aceito_por', 'aceito_em', 'rejeitado_em'),
+            'fields': ('criado_em', 'aceito_por', 'aceito_em'),
             'classes': ('collapse',)
         }),
     )
@@ -144,7 +144,7 @@ class OrganizationInviteAdmin(admin.ModelAdmin):
         colors = {
             'pending': '#f59e0b',    # amber-500
             'accepted': '#10b981',   # green-500
-            'rejected': '#ef4444',   # red-500
+            'cancelled': '#ef4444',  # red-500
             'expired': '#6b7280'     # gray-500
         }
         color = colors.get(obj.status, '#6b7280')
@@ -157,7 +157,7 @@ class OrganizationInviteAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.select_related('organization', 'enviado_por', 'aceito_por')
+        return qs.select_related('organization', 'aceito_por')
 
 
 @admin.register(UserModulePermission)
