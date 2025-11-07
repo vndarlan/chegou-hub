@@ -102,16 +102,14 @@ const ConfiguracoesOrganizacao = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <CardTitle>{organization.nome}</CardTitle>
-                            <CardDescription className="mt-2">
-                                <span className="flex items-center gap-2">
-                                    <Badge variant="outline" className="capitalize">
-                                        {organization.plano}
-                                    </Badge>
-                                    <span className="text-sm">
-                                        • {organization.total_membros || membros.length}/{organization.limite_membros} membros
-                                    </span>
+                            <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                                <Badge variant="outline" className="capitalize">
+                                    {organization.plano}
+                                </Badge>
+                                <span>
+                                    • {organization.total_membros || membros.length}/{organization.limite_membros} membros
                                 </span>
-                            </CardDescription>
+                            </div>
                         </div>
                         <Badge variant="secondary" className="capitalize">
                             {role === 'owner' ? 'Dono' : 'Administrador'}
