@@ -1,13 +1,14 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.models import Q
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
+from django.conf import settings
 import logging
 
 from .models import Organization, OrganizationMember, OrganizationInvite, UserModulePermission, MODULES
@@ -21,6 +22,71 @@ from .serializers import (
 from .emails import send_invite_email
 
 logger = logging.getLogger(__name__)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def debug_csrf_view(request):
+    """
+    Endpoint de debug para diagnosticar problemas de CSRF
+    GET /api/debug-csrf/
+    """
+    # Pegar informações do usuário
+    user_info = {
+        'is_authenticated': request.user.is_authenticated,
+        'email': request.user.email if request.user.is_authenticated else None,
+        'id': request.user.id if request.user.is_authenticated else None,
+    }
+
+    # Pegar informações de CSRF
+    csrf_info = {
+        'csrf_token_header': request.META.get('HTTP_X_CSRFTOKEN', 'NÃO ENVIADO'),
+        'csrf_cookie': request.COOKIES.get('csrftoken', 'NÃO ENCONTRADO'),
+        'csrf_trusted_origins': settings.CSRF_TRUSTED_ORIGINS,
+        'csrf_cookie_secure': settings.CSRF_COOKIE_SECURE,
+        'csrf_cookie_samesite': settings.CSRF_COOKIE_SAMESITE,
+        'csrf_cookie_httponly': settings.CSRF_COOKIE_HTTPONLY,
+    }
+
+    # Pegar informações de CORS
+    cors_info = {
+        'cors_allowed_origins': settings.CORS_ALLOWED_ORIGINS,
+        'cors_allow_credentials': settings.CORS_ALLOW_CREDENTIALS,
+    }
+
+    # Pegar informações da requisição
+    request_info = {
+        'method': request.method,
+        'path': request.path,
+        'origin': request.META.get('HTTP_ORIGIN', 'NÃO ENVIADO'),
+        'referer': request.META.get('HTTP_REFERER', 'NÃO ENVIADO'),
+        'user_agent': request.META.get('HTTP_USER_AGENT', 'NÃO ENVIADO'),
+    }
+
+    # Verificar organizações do usuário
+    organizations_info = []
+    if request.user.is_authenticated:
+        orgs = Organization.objects.filter(
+            membros__user=request.user,
+            membros__ativo=True
+        ).distinct()
+        for org in orgs:
+            member = OrganizationMember.objects.get(organization=org, user=request.user, ativo=True)
+            organizations_info.append({
+                'id': org.id,
+                'nome': org.nome,
+                'role': member.role,
+                'can_invite': member.role in ['owner', 'admin']
+            })
+
+    return Response({
+        'status': 'debug_info',
+        'user': user_info,
+        'csrf': csrf_info,
+        'cors': cors_info,
+        'request': request_info,
+        'organizations': organizations_info,
+    })
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
@@ -76,11 +142,20 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             "modulos": ["agenda", "mapa"] (apenas se role=member)
         }
         """
+        # DEBUG: Logs detalhados para investigar erro 403
+        logger.info(f"====== CONVIDAR MEMBRO - INÍCIO ======")
+        logger.info(f"Usuário: {request.user.email} (ID: {request.user.id})")
+        logger.info(f"Organização ID: {pk}")
+        logger.info(f"CSRF Token: {request.META.get('HTTP_X_CSRFTOKEN', 'NÃO ENVIADO')}")
+        logger.info(f"Is Authenticated: {request.user.is_authenticated}")
+
         org = self.get_object()
+        logger.info(f"Organização encontrada: {org.nome} (ID: {org.id})")
 
         # Verificar se o usuário é membro
         try:
             member = org.membros.get(user=request.user, ativo=True)
+            logger.info(f"✅ Usuário é membro! Role: {member.role}")
         except OrganizationMember.DoesNotExist:
             logger.warning(f"Usuário {request.user.email} tentou convidar membro mas não pertence à organização {org.id}")
             return Response(
@@ -133,17 +208,23 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             )
 
         # Criar convite
+        logger.info(f"Criando convite para {email} como {role}...")
         convite = OrganizationInvite.objects.create(
             organization=org,
             email=email,
             role=role,
             convidado_por=request.user
         )
+        logger.info(f"✅ Convite criado! ID: {convite.id}, Código: {convite.codigo}")
 
         # Enviar email de convite
         email_enviado = send_invite_email(convite)
         if not email_enviado:
             logger.warning(f"Falha ao enviar email de convite para {convite.email}")
+        else:
+            logger.info(f"✅ Email enviado para {convite.email}")
+
+        logger.info(f"====== CONVIDAR MEMBRO - SUCESSO ======")
 
         serializer = OrganizationInviteSerializer(convite)
         return Response({

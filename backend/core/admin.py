@@ -159,6 +159,12 @@ class OrganizationInviteAdmin(admin.ModelAdmin):
         qs = super().get_queryset(request)
         return qs.select_related('organization', 'aceito_por')
 
+    def save_model(self, request, obj, form, change):
+        """Preenche convidado_por automaticamente com o usuário logado ao criar convite"""
+        if not obj.pk:  # Apenas ao criar (não ao editar)
+            obj.convidado_por = request.user
+        super().save_model(request, obj, form, change)
+
 
 @admin.register(UserModulePermission)
 class UserModulePermissionAdmin(admin.ModelAdmin):

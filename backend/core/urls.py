@@ -17,7 +17,7 @@ from .views import (
     ChangePasswordView,
 )
 from .views_debug import DebugCorsView, CrossDomainAuthTestView
-from .views_organizations import OrganizationViewSet, InviteViewSet
+from .views_organizations import OrganizationViewSet, InviteViewSet, debug_csrf_view
 from features.feedback.views import FeedbackNotificationsView
 
 # Router para APIs de organizações
@@ -45,6 +45,7 @@ urlpatterns = [
     path('debug/cors/', DebugCorsView.as_view(), name='debug_cors'),
     path('cors-debug/', DebugCorsView.as_view(), name='cors_debug'),
     path('debug/cross-domain-auth/', CrossDomainAuthTestView.as_view(), name='debug_cross_domain_auth'),
+    path('debug-csrf/', debug_csrf_view, name='debug_csrf'),
 
     # Notificações centralizadas
     path('notifications/feedbacks/', FeedbackNotificationsView.as_view(), name='notifications_feedbacks'),
