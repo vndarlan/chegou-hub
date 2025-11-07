@@ -77,10 +77,20 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         }
         """
         org = self.get_object()
-        member = org.membros.get(user=request.user, ativo=True)
+
+        # Verificar se o usuário é membro
+        try:
+            member = org.membros.get(user=request.user, ativo=True)
+        except OrganizationMember.DoesNotExist:
+            logger.warning(f"Usuário {request.user.email} tentou convidar membro mas não pertence à organização {org.id}")
+            return Response(
+                {'error': 'Você não é membro desta organização'},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         # Apenas owner e admin podem convidar
         if member.role not in ['owner', 'admin']:
+            logger.warning(f"Usuário {request.user.email} (role: {member.role}) tentou convidar membro sem permissão")
             return Response(
                 {'error': 'Apenas Owner e Admin podem convidar membros'},
                 status=status.HTTP_403_FORBIDDEN
