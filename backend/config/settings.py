@@ -564,10 +564,22 @@ X_FRAME_OPTIONS = 'SAMEORIGIN' if not DEBUG else 'SAMEORIGIN'
 print(f"X-Frame-Options configurado para: {X_FRAME_OPTIONS}")
 
 # --- Configuração REST Framework ---
+# Classe customizada para desabilitar CSRF no DRF quando necessário
+if DEBUG and os.getenv('DISABLE_CSRF', 'False').lower() == 'true':
+    from rest_framework.authentication import SessionAuthentication
+
+    class CsrfExemptSessionAuthentication(SessionAuthentication):
+        """SessionAuthentication sem validação CSRF (apenas para DEBUG)"""
+        def enforce_csrf(self, request):
+            return  # Não fazer nada = não validar CSRF
+
+    DRF_AUTH_CLASSES = ['config.settings.CsrfExemptSessionAuthentication']
+    print("⚠️ DRF usando SessionAuthentication SEM validação CSRF")
+else:
+    DRF_AUTH_CLASSES = ['rest_framework.authentication.SessionAuthentication']
+
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': DRF_AUTH_CLASSES,
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
