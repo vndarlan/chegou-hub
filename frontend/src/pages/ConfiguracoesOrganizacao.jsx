@@ -27,7 +27,7 @@ const ConfiguracoesOrganizacao = () => {
         try {
             setLoadingMembros(true);
             setError(null);
-            const response = await apiClient.get(`/api/organizations/${organization.id}/membros/`);
+            const response = await apiClient.get(`/organizations/${organization.id}/membros/`);
             setMembros(response.data);
         } catch (err) {
             console.error('Erro ao carregar membros:', err);

@@ -367,6 +367,33 @@ if not DEBUG:
     WHITENOISE_ROOT = STATIC_ROOT
     WHITENOISE_AUTOREFRESH = True
 
+# ======================== CONFIGURAÇÃO DE EMAIL ========================
+# Configuração de envio de emails para convites e notificações
+
+# Backend de email padrão
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+# Configuração SMTP (Gmail por padrão, mas pode ser alterado)
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'ChegouHub <noreply@chegouhub.com.br>')
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# Em desenvolvimento local, usar console backend para ver emails no terminal
+if DEBUG and not IS_RAILWAY_DEPLOYMENT:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    print("Email Backend: CONSOLE (desenvolvimento local)")
+else:
+    print(f"Email Backend: SMTP ({EMAIL_HOST}:{EMAIL_PORT})")
+    if EMAIL_HOST_USER:
+        print(f"   Email configurado: {EMAIL_HOST_USER}")
+    else:
+        print("   AVISO: EMAIL_HOST_USER nao configurado")
+
 # ======================== CONFIGURAÇÃO CLOUDINARY ========================
 import cloudinary
 import cloudinary.uploader

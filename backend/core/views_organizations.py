@@ -8,6 +8,7 @@ from django.db.models import Q
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
+import logging
 
 from .models import Organization, OrganizationMember, OrganizationInvite, UserModulePermission, MODULES
 from .serializers import (
@@ -17,6 +18,9 @@ from .serializers import (
     UserModulePermissionSerializer,
     ModuleListSerializer
 )
+from .emails import send_invite_email
+
+logger = logging.getLogger(__name__)
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
@@ -126,13 +130,16 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             convidado_por=request.user
         )
 
-        # TODO: Enviar email de convite aqui
-        # send_invite_email(convite)
+        # Enviar email de convite
+        email_enviado = send_invite_email(convite)
+        if not email_enviado:
+            logger.warning(f"Falha ao enviar email de convite para {convite.email}")
 
         serializer = OrganizationInviteSerializer(convite)
         return Response({
-            'message': 'Convite enviado com sucesso',
-            'convite': serializer.data
+            'message': 'Convite enviado com sucesso' if email_enviado else 'Convite criado, mas houve erro ao enviar email',
+            'convite': serializer.data,
+            'email_enviado': email_enviado
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'])
@@ -411,3 +418,77 @@ class InviteViewSet(viewsets.ReadOnlyModelViewSet):
         convite.save()
 
         return Response({'message': 'Convite rejeitado'})
+
+    @action(detail=False, methods=['post'])
+    @transaction.atomic
+    def aceitar_por_codigo(self, request):
+        """
+        Aceita um convite usando o código único
+        POST /api/invites/aceitar_por_codigo/
+
+        Body: {"codigo": "codigo-do-convite"}
+        """
+        codigo = request.data.get('codigo')
+
+        if not codigo:
+            return Response(
+                {'error': 'Código do convite é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            convite = OrganizationInvite.objects.get(codigo=codigo)
+        except OrganizationInvite.DoesNotExist:
+            return Response(
+                {'error': 'Convite não encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Verificar se o status é pending
+        if convite.status != 'pending':
+            return Response(
+                {'error': f'Este convite não está mais disponível (status: {convite.get_status_display()})'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verificar se expirou
+        if convite.expirado:
+            convite.status = 'expired'
+            convite.save()
+            return Response(
+                {'error': 'Este convite expirou'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verificar se o email do convite bate com o email do usuário logado
+        if convite.email != request.user.email:
+            return Response(
+                {'error': 'Este convite foi enviado para outro email'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Verificar se já é membro
+        if convite.organization.membros.filter(user=request.user, ativo=True).exists():
+            return Response(
+                {'error': 'Você já é membro desta organização'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Criar membro
+        OrganizationMember.objects.create(
+            organization=convite.organization,
+            user=request.user,
+            role=convite.role,
+            convidado_por=convite.convidado_por
+        )
+
+        # Atualizar convite
+        convite.status = 'accepted'
+        convite.aceito_em = timezone.now()
+        convite.aceito_por = request.user
+        convite.save()
+
+        return Response({
+            'message': 'Convite aceito com sucesso! Você agora faz parte da organização.',
+            'organization': OrganizationSerializer(convite.organization).data
+        }, status=status.HTTP_200_OK)

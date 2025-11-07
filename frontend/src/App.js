@@ -22,6 +22,7 @@ import LoginPage from './pages/LoginPage';
 import WorkspacePage from './pages/WorkspacePage';
 import TutoriaisPage from './pages/TutoriaisPage';
 import NicochatPage from './pages/NicochatPage';
+import AceitarConvitePage from './pages/AceitarConvitePage';
 
 
 function App() {
@@ -78,6 +79,11 @@ function App() {
             <Route
               path="/login"
               element={!isLoggedIn ? <LoginPage setIsLoggedIn={setIsLoggedIn} /> : <Navigate to="/gestao/agenda" replace />}
+            />
+            {/* Rota para aceitar convites (pública mas requer login) */}
+            <Route
+              path="/convites/aceitar/:codigo"
+              element={<AceitarConvitePage />}
             />
             {/* Rota de tutoriais (apenas admin) */}
             <Route

@@ -46,7 +46,7 @@ const ConvitarMembroModal = ({ open, onClose, organizationId, onSuccess }) => {
             setLoading(true);
 
             await apiClient.post(
-                `/api/organizations/${organizationId}/convidar_membro/`,
+                `/organizations/${organizationId}/convidar_membro/`,
                 {
                     email: email.trim().toLowerCase(),
                     role: role,
