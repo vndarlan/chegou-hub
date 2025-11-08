@@ -1,5 +1,5 @@
 ╔════════════════════════════════════════════════════════════════╗
-║                        ChegouHub                                ║
+║                       Chegou Hub                                ║
 ║              Gestão Inteligente de E-commerce                   ║
 ╚════════════════════════════════════════════════════════════════╝
 
@@ -8,7 +8,7 @@ VOCÊ FOI CONVIDADO! 🎉
 Olá,
 
 {{ inviter_name }} ({{ inviter_email }}) convidou você para se juntar à
-organização "{{ organization_name }}" no ChegouHub.
+organização "{{ organization_name }}" no Chegou Hub.
 
 ────────────────────────────────────────────────────────────────
 
@@ -41,7 +41,7 @@ Nenhuma ação será tomada e seu email não será adicionado à organização.
 
 ────────────────────────────────────────────────────────────────
 
-© 2025 ChegouHub - Todos os direitos reservados
+© 2025 Chegou Hub - Todos os direitos reservados
 www.chegouhub.com.br
 
 Este é um email automático, por favor não responda.
