@@ -65,13 +65,14 @@ function CSRFManager({ children }) {
     const responseInterceptorId = apiClient.interceptors.response.use(
       (response) => response,
       async (error) => {
-        // Se erro 403 relacionado a CSRF, tentar renovar token
-        if (error.response?.status === 403) {
+        // Se erro 403 relacionado a CSRF, tentar renovar token (apenas uma vez)
+        if (error.response?.status === 403 && !error.config._csrfRetry) {
           console.warn('⚠️ Erro 403 detectado, tentando renovar CSRF token...');
           try {
             await fetchCSRFToken();
             // Tentar requisição novamente com novo token
             const originalRequest = error.config;
+            originalRequest._csrfRetry = true; // Evitar loop infinito
             if (csrfToken) {
               originalRequest.headers['X-CSRFToken'] = csrfToken;
               return apiClient(originalRequest);

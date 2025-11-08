@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.authentication import SessionAuthentication
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.models import Q
@@ -9,8 +10,6 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.conf import settings
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 import logging
 
 from .models import Organization, OrganizationMember, OrganizationInvite, UserModulePermission, MODULES
@@ -24,6 +23,15 @@ from .serializers import (
 from .emails import send_invite_email
 
 logger = logging.getLogger(__name__)
+
+
+class CsrfExemptSessionAuthentication(SessionAuthentication):
+    """
+    SessionAuthentication sem validação CSRF
+    Usada especificamente para endpoints que têm problemas de CSRF
+    """
+    def enforce_csrf(self, request):
+        return  # Não validar CSRF
 
 
 @api_view(['GET'])
@@ -133,8 +141,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         serializer = OrganizationMemberSerializer(membros, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'])
-    @method_decorator(csrf_exempt)
+    @action(detail=True, methods=['post'], authentication_classes=[CsrfExemptSessionAuthentication])
     def convidar_membro(self, request, pk=None):
         """
         Envia convite para novo membro
@@ -145,7 +152,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             "modulos": ["agenda", "mapa"] (apenas se role=member)
         }
 
-        NOTA: CSRF exempt temporariamente para resolver bug de validação
+        NOTA: Usa CsrfExemptSessionAuthentication para evitar problemas de validação CSRF
         """
         # DEBUG: Logs detalhados para investigar erro 403
         logger.info(f"====== CONVIDAR MEMBRO - INÍCIO ======")

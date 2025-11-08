@@ -1,32 +1,14 @@
 import axios from 'axios';
 
 /**
- * Helper para obter CSRF token do cookie
- * @returns {string} CSRF token
- */
-const getCsrfToken = () => {
-    const match = document.cookie.match(/csrftoken=([^;]+)/);
-    return match ? match[1] : '';
-};
-
-/**
- * Cliente Axios configurado com CSRF token automático
- * Usa withCredentials e injeta X-CSRFToken em todos os requests
+ * Cliente Axios configurado para o Chegou Hub
+ *
+ * NOTA: O gerenciamento de CSRF token é feito pelo CSRFManager.js
+ * que obtém o token do endpoint /current-state/ e injeta automaticamente
+ * em todas as requisições POST/PUT/PATCH/DELETE
  */
 export const apiClient = axios.create({
-    withCredentials: true,
-    headers: {
-        'X-CSRFToken': getCsrfToken()
-    }
-});
-
-/**
- * Interceptor para atualizar CSRF token em cada request
- * Garante que o token mais recente seja sempre usado
- */
-apiClient.interceptors.request.use(config => {
-    config.headers['X-CSRFToken'] = getCsrfToken();
-    return config;
+    withCredentials: true
 });
 
 export default apiClient;
