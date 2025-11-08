@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { UserPlus, Settings, Users } from 'lucide-react';
+import { UserPlus, Settings, Users, Mail } from 'lucide-react';
 import MembrosTable from '../components/organizations/MembrosTable';
 import ConvitarMembroModal from '../components/organizations/ConvitarMembroModal';
+import ConvitesPendentesTable from '../components/organizations/ConvitesPendentesTable';
 
 /**
  * Página de Configurações da Organização
@@ -16,7 +17,9 @@ import ConvitarMembroModal from '../components/organizations/ConvitarMembroModal
 const ConfiguracoesOrganizacao = () => {
     const { organization, role, isOwner, isAdmin, loading: orgLoading } = useOrgContext();
     const [membros, setMembros] = useState([]);
+    const [convites, setConvites] = useState([]);
     const [loadingMembros, setLoadingMembros] = useState(true);
+    const [loadingConvites, setLoadingConvites] = useState(true);
     const [showConviteModal, setShowConviteModal] = useState(false);
     const [error, setError] = useState(null);
 
@@ -37,9 +40,31 @@ const ConfiguracoesOrganizacao = () => {
         }
     };
 
+    // Carregar convites pendentes da organização
+    const carregarConvites = async () => {
+        if (!organization) return;
+
+        try {
+            setLoadingConvites(true);
+            const response = await apiClient.get(`/organizations/${organization.id}/convites_pendentes/`);
+            setConvites(response.data);
+        } catch (err) {
+            console.error('Erro ao carregar convites:', err);
+        } finally {
+            setLoadingConvites(false);
+        }
+    };
+
+    // Callback para quando criar novo convite
+    const handleConviteSuccess = () => {
+        carregarMembros();
+        carregarConvites(); // Atualiza lista de convites
+    };
+
     useEffect(() => {
         if (organization) {
             carregarMembros();
+            carregarConvites();
         }
     }, [organization]);
 
@@ -134,6 +159,15 @@ const ConfiguracoesOrganizacao = () => {
                         <Users className="h-4 w-4" />
                         Membros
                     </TabsTrigger>
+                    <TabsTrigger value="convites" className="gap-2">
+                        <Mail className="h-4 w-4" />
+                        Convites
+                        {convites.length > 0 && (
+                            <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                                {convites.length}
+                            </Badge>
+                        )}
+                    </TabsTrigger>
                     <TabsTrigger value="configuracoes" className="gap-2">
                         <Settings className="h-4 w-4" />
                         Configurações
@@ -166,6 +200,37 @@ const ConfiguracoesOrganizacao = () => {
                                 loading={loadingMembros}
                                 isOwner={isOwner}
                                 onRefresh={carregarMembros}
+                                organizationId={organization.id}
+                            />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Tab Convites */}
+                <TabsContent value="convites" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle>Convites Pendentes</CardTitle>
+                                    <CardDescription>
+                                        Gerencie os convites enviados que ainda não foram aceitos
+                                    </CardDescription>
+                                </div>
+                                <Button
+                                    onClick={() => setShowConviteModal(true)}
+                                    className="gap-2"
+                                >
+                                    <UserPlus className="h-4 w-4" />
+                                    Novo Convite
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <ConvitesPendentesTable
+                                convites={convites}
+                                loading={loadingConvites}
+                                onRefresh={carregarConvites}
                                 organizationId={organization.id}
                             />
                         </CardContent>
@@ -209,7 +274,7 @@ const ConfiguracoesOrganizacao = () => {
                     open={showConviteModal}
                     onClose={() => setShowConviteModal(false)}
                     organizationId={organization.id}
-                    onSuccess={carregarMembros}
+                    onSuccess={handleConviteSuccess}
                 />
             )}
         </div>

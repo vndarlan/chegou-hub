@@ -436,6 +436,144 @@ class OrganizationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
+    @action(detail=True, methods=['get'])
+    def convites_pendentes(self, request, pk=None):
+        """
+        Lista todos os convites pendentes da organização
+        GET /api/organizations/{id}/convites_pendentes/
+        """
+        org = self.get_object()
+
+        # Verificar se o usuário é membro
+        try:
+            member = org.membros.get(user=request.user, ativo=True)
+        except OrganizationMember.DoesNotExist:
+            return Response(
+                {'error': 'Você não é membro desta organização'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Apenas owner e admin podem ver convites
+        if member.role not in ['owner', 'admin']:
+            return Response(
+                {'error': 'Apenas Owner e Admin podem visualizar convites'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Listar convites pendentes
+        convites = org.convites.filter(status='pending').select_related('convidado_por').order_by('-criado_em')
+        serializer = OrganizationInviteSerializer(convites, many=True)
+
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], authentication_classes=[CsrfExemptSessionAuthentication])
+    def reenviar_convite(self, request, pk=None):
+        """
+        Reenvia email de um convite pendente
+        POST /api/organizations/{id}/reenviar_convite/
+        Body: {"convite_id": 123}
+        """
+        org = self.get_object()
+
+        # Verificar se o usuário é membro
+        try:
+            member = org.membros.get(user=request.user, ativo=True)
+        except OrganizationMember.DoesNotExist:
+            return Response(
+                {'error': 'Você não é membro desta organização'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Apenas owner e admin podem reenviar
+        if member.role not in ['owner', 'admin']:
+            return Response(
+                {'error': 'Apenas Owner e Admin podem reenviar convites'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        convite_id = request.data.get('convite_id')
+        if not convite_id:
+            return Response({'error': 'convite_id é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Buscar convite
+        try:
+            convite = org.convites.get(id=convite_id, status='pending')
+        except OrganizationInvite.DoesNotExist:
+            return Response(
+                {'error': 'Convite não encontrado ou não está mais pendente'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Verificar se expirou
+        if convite.expirado:
+            convite.status = 'expired'
+            convite.save()
+            return Response(
+                {'error': 'Este convite expirou'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Reenviar email
+        email_enviado = send_invite_email(convite)
+
+        if email_enviado:
+            logger.info(f"✅ Convite reenviado com sucesso para {convite.email} por {request.user.email}")
+            return Response({
+                'message': 'Email de convite reenviado com sucesso',
+                'email_enviado': True
+            })
+        else:
+            logger.error(f"❌ Falha ao reenviar convite para {convite.email}")
+            return Response(
+                {'error': 'Falha ao enviar email. Tente novamente.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['post'])
+    def cancelar_convite(self, request, pk=None):
+        """
+        Cancela um convite pendente
+        POST /api/organizations/{id}/cancelar_convite/
+        Body: {"convite_id": 123}
+        """
+        org = self.get_object()
+
+        # Verificar se o usuário é membro
+        try:
+            member = org.membros.get(user=request.user, ativo=True)
+        except OrganizationMember.DoesNotExist:
+            return Response(
+                {'error': 'Você não é membro desta organização'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Apenas owner e admin podem cancelar
+        if member.role not in ['owner', 'admin']:
+            return Response(
+                {'error': 'Apenas Owner e Admin podem cancelar convites'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        convite_id = request.data.get('convite_id')
+        if not convite_id:
+            return Response({'error': 'convite_id é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Buscar convite
+        try:
+            convite = org.convites.get(id=convite_id, status='pending')
+        except OrganizationInvite.DoesNotExist:
+            return Response(
+                {'error': 'Convite não encontrado ou não está mais pendente'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Cancelar convite
+        convite.status = 'cancelled'
+        convite.save()
+
+        logger.info(f"✅ Convite para {convite.email} cancelado por {request.user.email}")
+        return Response({'message': 'Convite cancelado com sucesso'})
+
 
 class InviteViewSet(viewsets.ReadOnlyModelViewSet):
     """
