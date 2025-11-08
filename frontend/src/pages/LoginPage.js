@@ -1,11 +1,12 @@
 // src/pages/LoginPage.js - TOTALMENTE MIGRADO PARA SHADCN/UI
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import apiClient from '../utils/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Alert, AlertDescription, LoadingSpinner } from '../components/ui';
 import { IconCheck, IconX } from '@tabler/icons-react';
+import { useTheme } from '../components/theme-provider';
 
 // shadcn/ui Select
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
@@ -31,6 +32,14 @@ function LoginPage({ setIsLoggedIn }) {
     const [timeSelecionado, setTimeSelecionado] = useState(null);
     const [notification, setNotification] = useState(null);
     const [loading, setLoading] = useState(false);
+
+    // Força tema light na página de login
+    const { setTheme } = useTheme();
+
+    useEffect(() => {
+        // Sempre força o tema light ao carregar a página de login
+        setTheme('light');
+    }, [setTheme]);
 
     const particlesInit = useCallback(async (engine) => {
         await loadSlim(engine);

@@ -21,9 +21,14 @@ export const useOrgContext = () => {
 
 /**
  * Provider que envolve a aplicação com dados da organização
+ * Suporta múltiplas organizações por usuário
  */
 export const OrganizationProvider = ({ children }) => {
     const orgData = useOrganization();
+
+    // Expor setOrganization para permitir troca de organização
+    // Nota: useOrganization retorna organization e refetch, mas não setOrganization
+    // O OrganizationSwitcher usa o endpoint backend + reload para garantir sincronia
 
     return (
         <OrganizationContext.Provider value={orgData}>

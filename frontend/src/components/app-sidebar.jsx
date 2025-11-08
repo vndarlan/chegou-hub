@@ -21,6 +21,7 @@ import {
   Settings,
   UserCircle
 } from 'lucide-react'
+import OrganizationSwitcher from './organizations/OrganizationSwitcher'
 
 import {
   Collapsible,
@@ -271,8 +272,8 @@ export function AppSidebar({
             <SidebarMenuButton size="lg" asChild>
               <a href="#">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <img 
-                    src="/logo192.png" 
+                  <img
+                    src="/logo192.png"
                     alt="Chegou Hub Logo"
                     className="size-8 rounded-lg object-contain"
                   />
@@ -283,6 +284,11 @@ export function AppSidebar({
                 </div>
               </a>
             </SidebarMenuButton>
+          </SidebarMenuItem>
+
+          {/* Seletor de Organização */}
+          <SidebarMenuItem>
+            <OrganizationSwitcher variant="outline" className="w-full" />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

@@ -141,7 +141,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         serializer = OrganizationMemberSerializer(membros, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'], authentication_classes=[CsrfExemptSessionAuthentication])
+    @action(detail=True, methods=['post'])
     def convidar_membro(self, request, pk=None):
         """
         Envia convite para novo membro
@@ -466,7 +466,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'], authentication_classes=[CsrfExemptSessionAuthentication])
+    @action(detail=True, methods=['post'])
     def reenviar_convite(self, request, pk=None):
         """
         Reenvia email de um convite pendente
@@ -660,16 +660,82 @@ class InviteViewSet(viewsets.ReadOnlyModelViewSet):
 
         return Response({'message': 'Convite rejeitado'})
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
+    def verificar_convite(self, request):
+        """
+        Verifica status de um convite e se o email já tem conta
+        GET /api/invites/verificar_convite/?codigo={codigo}
+
+        Retorna:
+        - convite_valido: bool
+        - email: string (email do convite)
+        - email_tem_conta: bool
+        - organizacao: string (nome da organização)
+        - role: string (cargo oferecido)
+        - erro: string (se houver)
+        """
+        codigo = request.query_params.get('codigo')
+
+        if not codigo:
+            return Response(
+                {'erro': 'Código do convite é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            convite = OrganizationInvite.objects.select_related('organization').get(codigo=codigo)
+        except OrganizationInvite.DoesNotExist:
+            return Response({
+                'convite_valido': False,
+                'erro': 'Convite não encontrado'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Verificar se status é pending
+        if convite.status != 'pending':
+            return Response({
+                'convite_valido': False,
+                'erro': f'Este convite não está mais disponível (status: {convite.get_status_display()})'
+            })
+
+        # Verificar se expirou
+        if convite.expirado:
+            convite.status = 'expired'
+            convite.save()
+            return Response({
+                'convite_valido': False,
+                'erro': 'Este convite expirou'
+            })
+
+        # Verificar se email já tem conta
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        email_tem_conta = User.objects.filter(email=convite.email).exists()
+
+        return Response({
+            'convite_valido': True,
+            'email': convite.email,
+            'email_tem_conta': email_tem_conta,
+            'organizacao': convite.organization.nome,
+            'role': convite.get_role_display(),
+            'expira_em': convite.expira_em
+        })
+
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     @transaction.atomic
     def aceitar_por_codigo(self, request):
         """
-        Aceita um convite usando o código único
+        Aceita um convite usando o código único (com auto-registro se necessário)
         POST /api/invites/aceitar_por_codigo/
 
-        Body: {"codigo": "codigo-do-convite"}
+        Body:
+        - codigo: string (obrigatório)
+        - senha: string (obrigatório se email não tem conta)
         """
+        from django.contrib.auth import get_user_model, login
+        User = get_user_model()
+
         codigo = request.data.get('codigo')
+        senha = request.data.get('senha')
 
         if not codigo:
             return Response(
@@ -701,15 +767,54 @@ class InviteViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Verificar se o email do convite bate com o email do usuário logado
-        if convite.email != request.user.email:
-            return Response(
-                {'error': 'Este convite foi enviado para outro email'},
-                status=status.HTTP_403_FORBIDDEN
+        # Verificar se email já tem conta
+        usuario_existente = User.objects.filter(email=convite.email).first()
+
+        if not usuario_existente:
+            # ===== FLUXO: NOVO USUÁRIO (AUTO-REGISTRO) =====
+            if not senha:
+                return Response(
+                    {'error': 'Senha é obrigatória para criar conta'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Validar senha mínima
+            if len(senha) < 6:
+                return Response(
+                    {'error': 'Senha deve ter no mínimo 6 caracteres'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Criar novo usuário
+            logger.info(f"🆕 Criando conta automaticamente para {convite.email}")
+            usuario = User.objects.create_user(
+                username=convite.email,  # Usar email como username
+                email=convite.email,
+                password=senha
             )
 
+            # Auto-login do usuário recém-criado
+            login(request, usuario, backend='django.contrib.auth.backends.ModelBackend')
+            logger.info(f"✅ Conta criada e usuário autologado: {usuario.email}")
+
+        else:
+            # ===== FLUXO: USUÁRIO EXISTENTE =====
+            if not request.user.is_authenticated:
+                return Response(
+                    {'error': 'Você precisa fazer login primeiro'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+
+            if request.user.email != convite.email:
+                return Response(
+                    {'error': 'Este convite foi enviado para outro email'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            usuario = request.user
+
         # Verificar se já é membro
-        if convite.organization.membros.filter(user=request.user, ativo=True).exists():
+        if convite.organization.membros.filter(user=usuario, ativo=True).exists():
             return Response(
                 {'error': 'Você já é membro desta organização'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -718,7 +823,7 @@ class InviteViewSet(viewsets.ReadOnlyModelViewSet):
         # Criar membro
         OrganizationMember.objects.create(
             organization=convite.organization,
-            user=request.user,
+            user=usuario,
             role=convite.role,
             convidado_por=convite.convidado_por
         )
@@ -726,10 +831,105 @@ class InviteViewSet(viewsets.ReadOnlyModelViewSet):
         # Atualizar convite
         convite.status = 'accepted'
         convite.aceito_em = timezone.now()
-        convite.aceito_por = request.user
+        convite.aceito_por = usuario
         convite.save()
+
+        logger.info(f"✅ Convite aceito! {usuario.email} → {convite.organization.nome} como {convite.role}")
 
         return Response({
             'message': 'Convite aceito com sucesso! Você agora faz parte da organização.',
-            'organization': OrganizationSerializer(convite.organization).data
+            'organization': OrganizationSerializer(convite.organization).data,
+            'conta_criada': not usuario_existente,  # Informar se conta foi criada
         }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def minhas_organizacoes(self, request):
+        """
+        Lista todas as organizações do usuário autenticado
+        GET /organizations/minhas_organizacoes/
+
+        Retorna lista com:
+        - id, nome, plano
+        - role do usuário (owner/admin/member)
+        """
+        try:
+            # Buscar todos os memberships ativos do usuário
+            memberships = OrganizationMember.objects.select_related('organization').filter(
+                user=request.user,
+                ativo=True,
+                organization__ativo=True
+            ).order_by('-role', 'organization__nome')  # Ordenar: owner > admin > member > alfabético
+
+            organizacoes = []
+            for member in memberships:
+                organizacoes.append({
+                    'id': member.organization.id,
+                    'nome': member.organization.nome,
+                    'plano': member.organization.plano,
+                    'limite_membros': member.organization.limite_membros,
+                    'role': member.role,
+                    'ativo': member.organization.id == request.session.get('active_organization_id')
+                })
+
+            return Response(organizacoes, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"❌ Erro ao listar organizações: {str(e)}")
+            return Response(
+                {'error': 'Erro ao listar organizações'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def selecionar_organizacao(self, request):
+        """
+        Seleciona uma organização como ativa
+        POST /organizations/selecionar_organizacao/
+
+        Body:
+        {
+            "organization_id": 123
+        }
+
+        Atualiza a sessão do usuário com a organização selecionada
+        """
+        try:
+            organization_id = request.data.get('organization_id')
+
+            if not organization_id:
+                return Response(
+                    {'error': 'organization_id é obrigatório'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Verificar se usuário é membro desta organização
+            try:
+                member = OrganizationMember.objects.select_related('organization').get(
+                    user=request.user,
+                    organization_id=organization_id,
+                    ativo=True,
+                    organization__ativo=True
+                )
+            except OrganizationMember.DoesNotExist:
+                return Response(
+                    {'error': 'Você não é membro desta organização'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            # Atualizar sessão
+            request.session['active_organization_id'] = organization_id
+
+            logger.info(f"✅ Organização trocada: {request.user.email} → {member.organization.nome}")
+
+            return Response({
+                'message': 'Organização selecionada com sucesso',
+                'organization': OrganizationSerializer(member.organization).data,
+                'role': member.role
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"❌ Erro ao selecionar organização: {str(e)}")
+            return Response(
+                {'error': 'Erro ao selecionar organização'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
