@@ -133,6 +133,12 @@ class OrganizationInvite(models.Model):
         default='member',
         verbose_name="Função"
     )
+    modulos_permitidos = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="Módulos Permitidos",
+        help_text="Lista de module_keys que serão atribuídos ao aceitar o convite"
+    )
 
     # Token e controle
     codigo = models.CharField(max_length=64, unique=True, editable=False, verbose_name="Código")

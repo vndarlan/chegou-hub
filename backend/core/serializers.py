@@ -74,7 +74,8 @@ class OrganizationInviteSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'organization', 'organization_name', 'email', 'role', 'role_display',
             'codigo', 'convidado_por', 'convidado_por_nome', 'criado_em', 'expira_em',
-            'aceito_em', 'aceito_por', 'status', 'status_display', 'expirado'
+            'aceito_em', 'aceito_por', 'status', 'status_display', 'expirado',
+            'modulos_permitidos'
         ]
         read_only_fields = [
             'id', 'codigo', 'criado_em', 'expira_em', 'aceito_em', 'aceito_por',

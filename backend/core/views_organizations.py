@@ -200,6 +200,19 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         if role not in ['admin', 'member']:
             return Response({'error': 'Role deve ser "admin" ou "member"'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Validar módulos apenas se role='member'
+        if role == 'member' and modulos:
+            modulos_validos = {m['key'] for m in MODULES}  # Usar set para melhor performance
+            modulos_invalidos = [m for m in modulos if m not in modulos_validos]
+            if modulos_invalidos:
+                return Response(
+                    {'error': f'Módulos inválidos: {", ".join(modulos_invalidos)}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        elif role in ['admin', 'owner']:
+            # Admin/Owner não precisa de módulos (acesso total)
+            modulos = []
+
         # Verificar se já é membro
         if org.membros.filter(user__email=email, ativo=True).exists():
             return Response({'error': 'Este usuário já é membro da organização'}, status=status.HTTP_400_BAD_REQUEST)
@@ -220,14 +233,15 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             )
 
         # Criar convite
-        logger.info(f"Criando convite para {email} como {role}...")
+        logger.info(f"Criando convite para {email} como {role} com módulos: {modulos}...")
         convite = OrganizationInvite.objects.create(
             organization=org,
             email=email,
             role=role,
-            convidado_por=request.user
+            convidado_por=request.user,
+            modulos_permitidos=modulos
         )
-        logger.info(f"✅ Convite criado! ID: {convite.id}, Código: {convite.codigo}")
+        logger.info(f"✅ Convite criado! ID: {convite.id}, Código: {convite.codigo}, Módulos: {modulos}")
 
         # Enviar email de convite
         email_enviado = send_invite_email(convite)
@@ -635,12 +649,29 @@ class InviteViewSet(viewsets.ReadOnlyModelViewSet):
             )
 
         # Criar membro
-        OrganizationMember.objects.create(
+        membro = OrganizationMember.objects.create(
             organization=convite.organization,
             user=request.user,
             role=convite.role,
             convidado_por=convite.convidado_por
         )
+
+        # Criar permissões se role='member' e tem módulos
+        if convite.role == 'member' and convite.modulos_permitidos:
+            modulos_validos = {m['key'] for m in MODULES}  # Filtrar módulos válidos
+            modulos_criados = []
+
+            for module_key in convite.modulos_permitidos:
+                if module_key in modulos_validos:  # Garantir que módulo ainda existe
+                    UserModulePermission.objects.create(
+                        member=membro,
+                        module_key=module_key,
+                        concedido_por=convite.convidado_por,
+                        ativo=True
+                    )
+                    modulos_criados.append(module_key)
+
+            logger.info(f"✅ Permissões criadas para {request.user.email}: {modulos_criados}")
 
         # Atualizar convite
         convite.status = 'accepted'
@@ -833,12 +864,29 @@ class InviteViewSet(viewsets.ReadOnlyModelViewSet):
             )
 
         # Criar membro
-        OrganizationMember.objects.create(
+        membro = OrganizationMember.objects.create(
             organization=convite.organization,
             user=usuario,
             role=convite.role,
             convidado_por=convite.convidado_por
         )
+
+        # Criar permissões se role='member' e tem módulos
+        if convite.role == 'member' and convite.modulos_permitidos:
+            modulos_validos = {m['key'] for m in MODULES}  # Filtrar módulos válidos
+            modulos_criados = []
+
+            for module_key in convite.modulos_permitidos:
+                if module_key in modulos_validos:  # Garantir que módulo ainda existe
+                    UserModulePermission.objects.create(
+                        member=membro,
+                        module_key=module_key,
+                        concedido_por=convite.convidado_por,
+                        ativo=True
+                    )
+                    modulos_criados.append(module_key)
+
+            logger.info(f"✅ Permissões criadas para {usuario.email}: {modulos_criados}")
 
         # Atualizar convite
         convite.status = 'accepted'

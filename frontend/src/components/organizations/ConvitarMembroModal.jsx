@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import apiClient from '../../utils/axios';
 import {
     Dialog,
@@ -20,16 +20,83 @@ import {
 } from '../ui/select';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Loader2, Mail, UserPlus } from 'lucide-react';
+import { ScrollArea } from '../ui/scroll-area';
+import { Checkbox } from '../ui/checkbox';
+import { useToast } from '../ui/use-toast';
 
 /**
  * Modal para convidar novo membro
  */
 const ConvitarMembroModal = ({ open, onClose, organizationId, onSuccess }) => {
+    const { toast } = useToast();
     const [email, setEmail] = useState('');
     const [role, setRole] = useState('member');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
+    const [modulos, setModulos] = useState([]);
+    const [grupos, setGrupos] = useState({});
+    const [modulosSelecionados, setModulosSelecionados] = useState([]);
+    const [loadingModulos, setLoadingModulos] = useState(false);
+
+    // Carregar módulos disponíveis quando o modal abre
+    useEffect(() => {
+        const carregarModulos = async () => {
+            if (!open || !organizationId) return;
+
+            try {
+                setLoadingModulos(true);
+                const response = await apiClient.get(
+                    `/organizations/${organizationId}/modulos_disponiveis/`
+                );
+                setModulos(response.data.modulos || []);
+                setGrupos(response.data.grupos || {});
+            } catch (err) {
+                console.error('Erro ao carregar módulos:', err);
+                toast({
+                    title: "Erro ao carregar módulos",
+                    description: "Não foi possível carregar a lista de módulos disponíveis.",
+                    variant: "destructive",
+                });
+            } finally {
+                setLoadingModulos(false);
+            }
+        };
+
+        carregarModulos();
+    }, [open, organizationId, toast]);
+
+    // Handler para toggle de módulo individual
+    const handleToggleModulo = (moduleKey) => {
+        setModulosSelecionados(prev => {
+            if (prev.includes(moduleKey)) {
+                return prev.filter(k => k !== moduleKey);
+            } else {
+                return [...prev, moduleKey];
+            }
+        });
+    };
+
+    // Handler para toggle de grupo inteiro
+    const handleToggleGrupo = (nomeGrupo) => {
+        const modulosDoGrupo = grupos[nomeGrupo].map(m => m.key);
+        const todosSelecionados = modulosDoGrupo.every(k =>
+            modulosSelecionados.includes(k)
+        );
+
+        if (todosSelecionados) {
+            // Desmarcar todos
+            setModulosSelecionados(prev =>
+                prev.filter(k => !modulosDoGrupo.includes(k))
+            );
+        } else {
+            // Marcar todos
+            setModulosSelecionados(prev => {
+                const novos = modulosDoGrupo.filter(k => !prev.includes(k));
+                return [...prev, ...novos];
+            });
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -50,13 +117,20 @@ const ConvitarMembroModal = ({ open, onClose, organizationId, onSuccess }) => {
                 {
                     email: email.trim().toLowerCase(),
                     role: role,
-                    modulos: [] // Permissões serão configuradas depois
+                    modulos: role === 'member' ? modulosSelecionados : []
                 }
             );
 
             setSuccess(true);
+            toast({
+                title: "Convite enviado!",
+                description: role === 'member' && modulosSelecionados.length > 0
+                    ? `Convite enviado para ${email} com acesso a ${modulosSelecionados.length} módulo(s).`
+                    : `Convite enviado para ${email}.`,
+            });
             setEmail('');
             setRole('member');
+            setModulosSelecionados([]);
 
             // Fechar modal após 1 segundo
             setTimeout(() => {
@@ -77,6 +151,7 @@ const ConvitarMembroModal = ({ open, onClose, organizationId, onSuccess }) => {
         if (!loading) {
             setEmail('');
             setRole('member');
+            setModulosSelecionados([]);
             setError(null);
             setSuccess(false);
             onClose();
@@ -85,7 +160,7 @@ const ConvitarMembroModal = ({ open, onClose, organizationId, onSuccess }) => {
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <UserPlus className="h-5 w-5" />
@@ -122,7 +197,16 @@ const ConvitarMembroModal = ({ open, onClose, organizationId, onSuccess }) => {
                         <Label htmlFor="role">
                             Função
                         </Label>
-                        <Select value={role} onValueChange={setRole} disabled={loading}>
+                        <Select
+                            value={role}
+                            onValueChange={(newRole) => {
+                                setRole(newRole);
+                                if (newRole === 'admin') {
+                                    setModulosSelecionados([]);
+                                }
+                            }}
+                            disabled={loading}
+                        >
                             <SelectTrigger id="role">
                                 <SelectValue placeholder="Selecione uma função" />
                             </SelectTrigger>
@@ -148,9 +232,97 @@ const ConvitarMembroModal = ({ open, onClose, organizationId, onSuccess }) => {
                         <p className="text-xs text-muted-foreground">
                             {role === 'admin'
                                 ? 'Admins têm acesso a todos os módulos automaticamente'
-                                : 'As permissões de módulos podem ser configuradas depois'}
+                                : 'Selecione abaixo quais módulos este membro poderá acessar'}
                         </p>
                     </div>
+
+                    {/* Seletor de Módulos - Apenas para Members */}
+                    {role === 'member' && (
+                        <div className="space-y-2">
+                            <Label>Módulos Permitidos</Label>
+                            <p className="text-xs text-muted-foreground">
+                                Selecione quais páginas este membro poderá acessar. Você pode alterar isso depois.
+                            </p>
+
+                            {loadingModulos ? (
+                                <div className="flex flex-col items-center justify-center py-8 space-y-2">
+                                    <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+                                    <p className="text-sm text-muted-foreground">Carregando módulos...</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <ScrollArea className="h-[280px] border rounded-md p-3">
+                                        <div className="space-y-3">
+                                            {Object.entries(grupos).map(([nomeGrupo, modulosDoGrupo]) => {
+                                                const todosSelecionados = modulosDoGrupo.every(m =>
+                                                    modulosSelecionados.includes(m.key)
+                                                );
+                                                const algunsSelecionados = modulosDoGrupo.some(m =>
+                                                    modulosSelecionados.includes(m.key)
+                                                ) && !todosSelecionados;
+
+                                                return (
+                                                    <div key={nomeGrupo} className="space-y-2">
+                                                        {/* Checkbox do grupo */}
+                                                        <div className="flex items-center gap-2 border-b pb-2">
+                                                            <Checkbox
+                                                                id={`grupo-${nomeGrupo}`}
+                                                                checked={todosSelecionados}
+                                                                ref={algunsSelecionados ? (el) => {
+                                                                    if (el) el.indeterminate = true;
+                                                                } : undefined}
+                                                                onCheckedChange={() => handleToggleGrupo(nomeGrupo)}
+                                                            />
+                                                            <Label
+                                                                htmlFor={`grupo-${nomeGrupo}`}
+                                                                className="font-semibold cursor-pointer flex-1"
+                                                            >
+                                                                {nomeGrupo}
+                                                            </Label>
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {modulosDoGrupo.filter(m => modulosSelecionados.includes(m.key)).length}/{modulosDoGrupo.length}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Checkboxes dos módulos */}
+                                                        <div className="pl-6 space-y-1.5">
+                                                            {modulosDoGrupo.map(modulo => (
+                                                                <div key={modulo.key} className="flex items-center gap-2">
+                                                                    <Checkbox
+                                                                        id={`modulo-${modulo.key}`}
+                                                                        checked={modulosSelecionados.includes(modulo.key)}
+                                                                        onCheckedChange={() => handleToggleModulo(modulo.key)}
+                                                                    />
+                                                                    <Label
+                                                                        htmlFor={`modulo-${modulo.key}`}
+                                                                        className="text-sm cursor-pointer font-normal"
+                                                                    >
+                                                                        {modulo.name}
+                                                                    </Label>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </ScrollArea>
+
+                                    {/* Contador de módulos selecionados */}
+                                    <div className="flex items-center justify-between text-xs bg-muted p-2 rounded">
+                                        <span className="text-muted-foreground">
+                                            <strong className="text-foreground">{modulosSelecionados.length}</strong> módulo(s) selecionado(s)
+                                        </span>
+                                        {modulosSelecionados.length === 0 && (
+                                            <span className="text-amber-600">
+                                                ⚠️ Membro não terá acesso a nenhuma página
+                                            </span>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
 
                     {/* Erro */}
                     {error && (
