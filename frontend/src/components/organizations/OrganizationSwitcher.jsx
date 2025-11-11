@@ -11,7 +11,8 @@ import {
 } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Building2, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { Building2, Check, ChevronsUpDown, Loader2, AlertTriangle } from 'lucide-react';
+import { useToast } from '../ui/use-toast';
 
 /**
  * Componente de seleção de organização
@@ -19,9 +20,15 @@ import { Building2, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
  */
 const OrganizationSwitcher = ({ variant = 'default', className = '' }) => {
     const { organization, loading: orgLoading } = useOrgContext();
+    const { toast } = useToast();
     const [organizations, setOrganizations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [switching, setSwitching] = useState(false);
+
+    // Logs de debug do context
+    console.log('🏢 [OrganizationSwitcher] Organization from context:', organization);
+    console.log('⏳ [OrganizationSwitcher] orgLoading:', orgLoading);
+    console.log('📋 [OrganizationSwitcher] organizations state:', organizations);
 
     // Carregar todas as organizações do usuário
     useEffect(() => {
@@ -31,10 +38,21 @@ const OrganizationSwitcher = ({ variant = 'default', className = '' }) => {
     const carregarOrganizacoes = async () => {
         try {
             setLoading(true);
+            console.log('🔍 [OrganizationSwitcher] Carregando organizações...');
             const response = await apiClient.get('/organizations/minhas_organizacoes/');
+            console.log('✅ [OrganizationSwitcher] Organizações carregadas:', response.data);
+            console.log('📊 [OrganizationSwitcher] Total de organizações:', response.data.length);
             setOrganizations(response.data);
         } catch (err) {
-            console.error('Erro ao carregar organizações:', err);
+            console.error('❌ [OrganizationSwitcher] Erro ao carregar organizações:', err);
+            console.error('❌ [OrganizationSwitcher] Status:', err.response?.status);
+            console.error('❌ [OrganizationSwitcher] Data:', err.response?.data);
+            console.error('❌ [OrganizationSwitcher] Message:', err.message);
+            toast({
+                title: "Erro ao carregar organizações",
+                description: "Não foi possível carregar a lista de organizações. Tente recarregar a página.",
+                variant: "destructive",
+            });
         } finally {
             setLoading(false);
         }
@@ -73,11 +91,23 @@ const OrganizationSwitcher = ({ variant = 'default', className = '' }) => {
     }
 
     if (!organization) {
-        return null;
+        console.warn('⚠️ [OrganizationSwitcher] Nenhuma organização ativa no contexto');
+        return (
+            <div className="flex flex-col gap-1 p-2 border border-dashed border-amber-500 rounded-md bg-amber-50">
+                <div className="flex items-center gap-2 text-xs text-amber-700">
+                    <AlertTriangle className="h-3 w-3" />
+                    <span className="font-medium">Nenhuma organização ativa</span>
+                </div>
+                <p className="text-xs text-muted-foreground pl-5">
+                    Entre em contato com o suporte
+                </p>
+            </div>
+        );
     }
 
     // Se só tem uma organização, mostra botão simples (sem dropdown)
     if (organizations.length <= 1) {
+        console.log('✨ [OrganizationSwitcher] Renderizando botão simples (1 organização)');
         return (
             <Button
                 variant={variant}
@@ -90,6 +120,7 @@ const OrganizationSwitcher = ({ variant = 'default', className = '' }) => {
         );
     }
 
+    console.log('✨ [OrganizationSwitcher] Renderizando seletor com', organizations.length, 'organizações');
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>

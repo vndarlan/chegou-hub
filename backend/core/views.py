@@ -1,4 +1,5 @@
 # backend/core/views.py
+import logging
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User, Group
 from django.middleware.csrf import get_token
@@ -8,6 +9,9 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from core.models import OrganizationMember
+
+logger = logging.getLogger(__name__)
 
 class SimpleLoginView(APIView):
     permission_classes = [AllowAny]
@@ -48,9 +52,10 @@ class CurrentStateView(APIView):
     def get(self, request):
         csrf_token = get_token(request)
         if request.user.is_authenticated:
-            # Dados da organização (adicionados pelo middleware)
             organization_data = None
             organization_role = None
+
+            # Tentar pegar do middleware primeiro
             if hasattr(request, 'organization') and request.organization:
                 organization_data = {
                     'id': request.organization.id,
@@ -59,6 +64,27 @@ class CurrentStateView(APIView):
                     'limite_membros': request.organization.limite_membros
                 }
                 organization_role = request.organization_role
+            else:
+                # FALLBACK: Buscar primeira organização diretamente
+                # Isso resolve race conditions onde o middleware ainda não processou
+                member = OrganizationMember.objects.select_related('organization').filter(
+                    user=request.user,
+                    ativo=True,
+                    organization__ativo=True
+                ).first()
+
+                if member:
+                    organization_data = {
+                        'id': member.organization.id,
+                        'nome': member.organization.nome,
+                        'plano': member.organization.plano,
+                        'limite_membros': member.organization.limite_membros
+                    }
+                    organization_role = member.role
+                    # Salvar na sessão para próximas requisições
+                    request.session['active_organization_id'] = member.organization.id
+
+                    logger.info(f"✅ Fallback: Organização {member.organization.nome} definida para {request.user.email}")
 
             return Response({
                 'logged_in': True,
