@@ -48,7 +48,7 @@ const EditarPermissoesModal = ({ open, onClose, membro, organizationId, onSucces
 
                 // Carregar módulos disponíveis
                 const modulosResponse = await apiClient.get(
-                    `/api/organizations/${organizationId}/modulos_disponiveis/`
+                    `/organizations/${organizationId}/modulos_disponiveis/`
                 );
 
                 setModulos(modulosResponse.data.modulos || []);
@@ -126,7 +126,7 @@ const EditarPermissoesModal = ({ open, onClose, membro, organizationId, onSucces
             setError(null);
 
             await apiClient.post(
-                `/api/organizations/${organizationId}/atualizar_permissoes/`,
+                `/organizations/${organizationId}/atualizar_permissoes/`,
                 {
                     membro_id: membro.id,
                     modulos: modulosSelecionados

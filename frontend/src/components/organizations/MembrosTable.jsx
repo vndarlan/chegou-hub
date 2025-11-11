@@ -66,7 +66,7 @@ const MembrosTable = ({ membros, loading, isOwner, onRefresh, organizationId }) 
 
         try {
             await apiClient.post(
-                `/api/organizations/${organizationId}/remover_membro/`,
+                `/organizations/${organizationId}/remover_membro/`,
                 { membro_id: removendoMembro.id }
             );
 
