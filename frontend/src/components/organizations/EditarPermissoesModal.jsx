@@ -12,8 +12,19 @@ import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription } from '../ui/alert';
-import { Loader2, Shield } from 'lucide-react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '../ui/alert-dialog';
+import { Loader2, Shield, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
+import { useToast } from '../ui/use-toast';
 
 /**
  * Modal para editar permissões de módulos de um membro
@@ -25,7 +36,8 @@ const EditarPermissoesModal = ({ open, onClose, membro, organizationId, onSucces
     const [loading, setLoading] = useState(true);
     const [salvando, setSalvando] = useState(false);
     const [error, setError] = useState(null);
-    const [success, setSuccess] = useState(false);
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+    const { toast } = useToast();
 
     // Carregar módulos disponíveis e permissões atuais
     useEffect(() => {
@@ -47,7 +59,17 @@ const EditarPermissoesModal = ({ open, onClose, membro, organizationId, onSucces
 
             } catch (err) {
                 console.error('Erro ao carregar módulos:', err);
-                setError('Erro ao carregar dados. Tente novamente.');
+                const errorMessage = err.response?.data?.error ||
+                    err.response?.data?.detail ||
+                    'Erro ao carregar módulos disponíveis. Verifique sua conexão e tente novamente.';
+
+                setError(errorMessage);
+
+                toast({
+                    title: "Erro ao carregar dados",
+                    description: errorMessage,
+                    variant: "destructive",
+                });
             } finally {
                 setLoading(false);
             }
@@ -56,7 +78,7 @@ const EditarPermissoesModal = ({ open, onClose, membro, organizationId, onSucces
         if (open) {
             carregarDados();
         }
-    }, [open, organizationId, membro]);
+    }, [open, organizationId, membro, toast]);
 
     // Toggle módulo
     const handleToggleModulo = (moduleKey) => {
@@ -86,12 +108,22 @@ const EditarPermissoesModal = ({ open, onClose, membro, organizationId, onSucces
         }
     };
 
+    // Validar e iniciar salvamento
+    const handleIniciarSalvamento = () => {
+        // Validação: verificar se há pelo menos um módulo selecionado
+        if (modulosSelecionados.length === 0) {
+            setShowConfirmDialog(true);
+            return;
+        }
+
+        handleSalvar();
+    };
+
     // Salvar permissões
     const handleSalvar = async () => {
         try {
             setSalvando(true);
             setError(null);
-            setSuccess(false);
 
             await apiClient.post(
                 `/api/organizations/${organizationId}/atualizar_permissoes/`,
@@ -101,18 +133,30 @@ const EditarPermissoesModal = ({ open, onClose, membro, organizationId, onSucces
                 }
             );
 
-            setSuccess(true);
+            // Mostrar toast de sucesso
+            toast({
+                title: "Permissões atualizadas",
+                description: `As permissões de ${membro.user.full_name} foram atualizadas com sucesso!`,
+                variant: "default",
+            });
 
-            // Fechar modal após 1 segundo
-            setTimeout(() => {
-                onSuccess();
-                onClose();
-            }, 1000);
+            // Chamar callback de sucesso e fechar modal
+            onSuccess();
+            onClose();
 
         } catch (err) {
             console.error('Erro ao salvar permissões:', err);
-            const mensagem = err.response?.data?.error || 'Erro ao salvar permissões. Tente novamente.';
-            setError(mensagem);
+            const errorMessage = err.response?.data?.error ||
+                err.response?.data?.detail ||
+                'Erro ao salvar permissões. Tente novamente.';
+
+            setError(errorMessage);
+
+            toast({
+                title: "Erro ao salvar",
+                description: errorMessage,
+                variant: "destructive",
+            });
         } finally {
             setSalvando(false);
         }
@@ -122,7 +166,6 @@ const EditarPermissoesModal = ({ open, onClose, membro, organizationId, onSucces
         if (!salvando) {
             setModulosSelecionados([]);
             setError(null);
-            setSuccess(false);
             onClose();
         }
     };
@@ -150,9 +193,17 @@ const EditarPermissoesModal = ({ open, onClose, membro, organizationId, onSucces
                 </DialogHeader>
 
                 {loading ? (
-                    <div className="flex justify-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+                    <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                        <Loader2 className="h-10 w-10 animate-spin text-orange-500" />
+                        <p className="text-sm text-muted-foreground">Carregando módulos disponíveis...</p>
                     </div>
+                ) : error ? (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>
+                            {error}
+                        </AlertDescription>
+                    </Alert>
                 ) : isAdminOuOwner ? (
                     <Alert>
                         <AlertDescription>
@@ -217,25 +268,20 @@ const EditarPermissoesModal = ({ open, onClose, membro, organizationId, onSucces
                     </ScrollArea>
                 )}
 
-                {/* Erro */}
-                {error && (
-                    <Alert variant="destructive">
-                        <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                )}
-
-                {/* Sucesso */}
-                {success && (
-                    <Alert className="border-green-500 text-green-700">
-                        <AlertDescription>
-                            ✓ Permissões atualizadas com sucesso!
-                        </AlertDescription>
-                    </Alert>
-                )}
-
-                {!isAdminOuOwner && (
-                    <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
-                        <strong>{modulosSelecionados.length}</strong> módulo(s) selecionado(s)
+                {!isAdminOuOwner && !loading && !error && (
+                    <div className="flex items-center justify-between text-sm bg-muted p-3 rounded-md">
+                        <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-orange-500" />
+                            <span className="text-muted-foreground">
+                                <strong className="text-foreground">{modulosSelecionados.length}</strong> módulo(s) selecionado(s)
+                            </span>
+                        </div>
+                        {modulosSelecionados.length === 0 && (
+                            <span className="text-xs text-amber-600 flex items-center gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                Nenhum módulo selecionado
+                            </span>
+                        )}
                     </div>
                 )}
 
@@ -244,18 +290,53 @@ const EditarPermissoesModal = ({ open, onClose, membro, organizationId, onSucces
                         type="button"
                         variant="outline"
                         onClick={handleClose}
-                        disabled={salvando}
+                        disabled={salvando || loading}
                     >
                         {isAdminOuOwner ? 'Fechar' : 'Cancelar'}
                     </Button>
                     {!isAdminOuOwner && (
-                        <Button onClick={handleSalvar} disabled={salvando}>
+                        <Button
+                            onClick={handleIniciarSalvamento}
+                            disabled={salvando || loading || error}
+                        >
                             {salvando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {salvando ? 'Salvando...' : 'Salvar Permissões'}
                         </Button>
                     )}
                 </DialogFooter>
             </DialogContent>
+
+            {/* Dialog de confirmação quando nenhum módulo está selecionado */}
+            <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-amber-600" />
+                            Confirmar ação
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Você está prestes a remover <strong>todas as permissões</strong> de{' '}
+                            <strong>{membro.user.full_name}</strong>.
+                            <br /><br />
+                            Isso significa que este membro não terá acesso a nenhum módulo da organização.
+                            <br /><br />
+                            Deseja continuar?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                setShowConfirmDialog(false);
+                                handleSalvar();
+                            }}
+                            className="bg-amber-600 hover:bg-amber-700"
+                        >
+                            Sim, remover todas
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Dialog>
     );
 };

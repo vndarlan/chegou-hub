@@ -393,7 +393,19 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         """
         Lista todos os módulos disponíveis agrupados por categoria
         GET /api/organizations/{id}/modulos_disponiveis/
+
+        NOTA: Não valida se usuário é membro da organização.
+        Apenas verifica se a organização existe.
         """
+        # Verificar se a organização existe (sem validar membership)
+        try:
+            Organization.objects.get(pk=pk, ativo=True)
+        except Organization.DoesNotExist:
+            return Response(
+                {'error': 'Organização não encontrada'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
         # Agrupar módulos por categoria
         grupos = {}
         for modulo in MODULES:
