@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { AppSidebar } from '../components/app-sidebar';
 import AdminRoute from '../components/AdminRoute';
-import ProtectedRoute from '../components/ProtectedRoute';
+import { ProtectedRoute } from '../components/ProtectedRoute';
 import {
   Breadcrumb,
   BreadcrumbItem,
