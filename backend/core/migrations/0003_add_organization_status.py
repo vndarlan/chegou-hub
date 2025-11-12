@@ -3,6 +3,16 @@
 from django.db import migrations, models
 
 
+def set_existing_organizations_to_approved(apps, schema_editor):
+    """
+    Marca todas as organizações existentes como 'approved' (aprovadas)
+    para não quebrar o funcionamento atual do sistema.
+    Apenas organizações criadas APÓS esta migration começarão como 'pending'.
+    """
+    Organization = apps.get_model('core', 'Organization')
+    Organization.objects.all().update(status='approved')
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,9 +20,28 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # 1. Adicionar campo com default temporário 'approved'
         migrations.AddField(
             model_name='organization',
             name='status',
-            field=models.CharField(choices=[('pending', 'Pendente de Aprovação'), ('approved', 'Aprovada'), ('rejected', 'Rejeitada')], default='pending', max_length=20, verbose_name='Status'),
+            field=models.CharField(
+                choices=[('pending', 'Pendente de Aprovação'), ('approved', 'Aprovada'), ('rejected', 'Rejeitada')],
+                default='approved',  # Temporário: organizações existentes ficam aprovadas
+                max_length=20,
+                verbose_name='Status'
+            ),
+        ),
+        # 2. Data migration: garantir que todas as organizações existentes sejam 'approved'
+        migrations.RunPython(set_existing_organizations_to_approved, migrations.RunPython.noop),
+        # 3. Alterar default para 'pending' (novas organizações começam pendentes)
+        migrations.AlterField(
+            model_name='organization',
+            name='status',
+            field=models.CharField(
+                choices=[('pending', 'Pendente de Aprovação'), ('approved', 'Aprovada'), ('rejected', 'Rejeitada')],
+                default='pending',  # Default final: novas organizações começam pendentes
+                max_length=20,
+                verbose_name='Status'
+            ),
         ),
     ]
