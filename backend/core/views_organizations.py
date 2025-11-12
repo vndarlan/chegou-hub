@@ -119,17 +119,19 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        """Retorna apenas organizações que o usuário é membro"""
+        """Retorna apenas organizações aprovadas que o usuário é membro"""
         return Organization.objects.filter(
             membros__user=self.request.user,
-            membros__ativo=True
+            membros__ativo=True,
+            status='approved'  # Apenas organizações aprovadas
         ).distinct()
 
     def perform_create(self, serializer):
         """
         Ao criar organização, automaticamente adiciona o usuário como owner
+        NOTA: Organização será criada com status='pending' e aguarda aprovação do administrador
         """
-        organization = serializer.save()
+        organization = serializer.save()  # Status='pending' por padrão
 
         # Criar membership como owner
         OrganizationMember.objects.create(
@@ -140,10 +142,8 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             ativo=True
         )
 
-        # Definir como organização ativa na sessão
-        self.request.session['active_organization_id'] = organization.id
-
-        logger.info(f"✅ Organização '{organization.nome}' criada por {self.request.user.email} como owner")
+        # NÃO define como organização ativa - aguarda aprovação
+        logger.info(f"📝 Organização '{organization.nome}' criada por {self.request.user.email} - Status: PENDENTE DE APROVAÇÃO")
 
     def perform_destroy(self, instance):
         """Desativa ao invés de deletar"""
@@ -710,6 +710,100 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             return Response(
                 {'error': 'Erro ao selecionar organização'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def aprovar_organizacao(self, request, pk=None):
+        """
+        Aprova uma organização pendente (apenas superuser/staff)
+        POST /api/organizations/{id}/aprovar_organizacao/
+        """
+        # Verificar se usuário é admin do sistema
+        if not request.user.is_staff:
+            return Response(
+                {'error': 'Apenas administradores do sistema podem aprovar organizações'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            # Buscar organização independente do queryset filtrado
+            organization = Organization.objects.get(pk=pk)
+
+            if organization.status == 'approved':
+                return Response(
+                    {'error': 'Esta organização já está aprovada'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if organization.status == 'rejected':
+                return Response(
+                    {'error': 'Esta organização foi rejeitada anteriormente'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Aprovar organização
+            organization.status = 'approved'
+            organization.save()
+
+            logger.info(f"✅ Organização '{organization.nome}' (ID: {organization.id}) APROVADA por {request.user.email}")
+
+            return Response({
+                'message': f'Organização "{organization.nome}" aprovada com sucesso',
+                'organization': OrganizationSerializer(organization).data
+            }, status=status.HTTP_200_OK)
+
+        except Organization.DoesNotExist:
+            return Response(
+                {'error': 'Organização não encontrada'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def rejeitar_organizacao(self, request, pk=None):
+        """
+        Rejeita uma organização pendente (apenas superuser/staff)
+        POST /api/organizations/{id}/rejeitar_organizacao/
+        Body (opcional): {"motivo": "..."}
+        """
+        # Verificar se usuário é admin do sistema
+        if not request.user.is_staff:
+            return Response(
+                {'error': 'Apenas administradores do sistema podem rejeitar organizações'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            # Buscar organização independente do queryset filtrado
+            organization = Organization.objects.get(pk=pk)
+
+            if organization.status == 'approved':
+                return Response(
+                    {'error': 'Não é possível rejeitar uma organização já aprovada'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if organization.status == 'rejected':
+                return Response(
+                    {'error': 'Esta organização já foi rejeitada'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Rejeitar organização
+            organization.status = 'rejected'
+            organization.save()
+
+            motivo = request.data.get('motivo', 'Não especificado')
+            logger.info(f"❌ Organização '{organization.nome}' (ID: {organization.id}) REJEITADA por {request.user.email} - Motivo: {motivo}")
+
+            return Response({
+                'message': f'Organização "{organization.nome}" rejeitada',
+                'motivo': motivo
+            }, status=status.HTTP_200_OK)
+
+        except Organization.DoesNotExist:
+            return Response(
+                {'error': 'Organização não encontrada'},
+                status=status.HTTP_404_NOT_FOUND
             )
 
 

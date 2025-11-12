@@ -26,8 +26,9 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '../ui/alert-dialog';
-import { MoreVertical, Shield, User, Trash2, Edit } from 'lucide-react';
+import { MoreVertical, Shield, User, Trash2, Edit, UserCog } from 'lucide-react';
 import EditarPermissoesModal from './EditarPermissoesModal';
+import EditarRoleModal from './EditarRoleModal';
 
 /**
  * Tabela de membros da organização
@@ -37,6 +38,8 @@ const MembrosTable = ({ membros, loading, isOwner, onRefresh, organizationId }) 
     const [showRemoverDialog, setShowRemoverDialog] = useState(false);
     const [editandoPermissoes, setEditandoPermissoes] = useState(null);
     const [showPermissoesModal, setShowPermissoesModal] = useState(false);
+    const [editandoRole, setEditandoRole] = useState(null);
+    const [showRoleModal, setShowRoleModal] = useState(false);
 
     // Formatar data
     const formatarData = (dataString) => {
@@ -83,6 +86,12 @@ const MembrosTable = ({ membros, loading, isOwner, onRefresh, organizationId }) 
     const handleEditarPermissoes = (membro) => {
         setEditandoPermissoes(membro);
         setShowPermissoesModal(true);
+    };
+
+    // Abrir modal de editar role
+    const handleEditarRole = (membro) => {
+        setEditandoRole(membro);
+        setShowRoleModal(true);
     };
 
     if (loading) {
@@ -148,6 +157,12 @@ const MembrosTable = ({ membros, loading, isOwner, onRefresh, organizationId }) 
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuItem
+                                                        onClick={() => handleEditarRole(membro)}
+                                                    >
+                                                        <UserCog className="mr-2 h-4 w-4" />
+                                                        Alterar Cargo
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
                                                         onClick={() => handleEditarPermissoes(membro)}
                                                     >
                                                         <Edit className="mr-2 h-4 w-4" />
@@ -200,6 +215,24 @@ const MembrosTable = ({ membros, loading, isOwner, onRefresh, organizationId }) 
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Modal de editar role */}
+            {showRoleModal && editandoRole && (
+                <EditarRoleModal
+                    open={showRoleModal}
+                    onClose={() => {
+                        setShowRoleModal(false);
+                        setEditandoRole(null);
+                    }}
+                    membro={{
+                        id: editandoRole.id,
+                        nome: editandoRole.user.full_name || editandoRole.user.username,
+                        role: editandoRole.role
+                    }}
+                    organizationId={organizationId}
+                    onSuccess={onRefresh}
+                />
+            )}
 
             {/* Modal de editar permissões */}
             {showPermissoesModal && editandoPermissoes && (

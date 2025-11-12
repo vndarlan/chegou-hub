@@ -9,7 +9,6 @@ import {
 } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Button } from '../ui/button';
 import { Alert, AlertDescription } from '../ui/alert';
@@ -19,7 +18,6 @@ import apiClient from '../../utils/axios';
 
 const CriarOrganizacaoModal = ({ open, onClose, onSuccess }) => {
   const [nome, setNome] = useState('');
-  const [descricao, setDescricao] = useState('');
   const [plano, setPlano] = useState('free');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -40,28 +38,22 @@ const CriarOrganizacaoModal = ({ open, onClose, onSuccess }) => {
 
       console.log('📤 [CriarOrganizacao] Enviando requisição...');
 
-      // Criar organização
+      // Criar organização (ficará com status='pending')
       const response = await apiClient.post('/organizations/', {
         nome: nome.trim(),
-        descricao: descricao.trim() || undefined,
         plano,
       });
 
-      console.log('✅ [CriarOrganizacao] Organização criada:', response.data);
+      console.log('✅ [CriarOrganizacao] Organização criada com status pendente:', response.data);
 
-      // Selecionar nova organização
-      await apiClient.post('/organizations/selecionar_organizacao/', {
-        organization_id: response.data.id
-      });
-
-      console.log('✅ [CriarOrganizacao] Organização selecionada');
-
+      // Mensagem informando sobre aprovação
       toast({
-        title: "Organização criada!",
-        description: `${nome} foi criada com sucesso. Você é o proprietário.`,
+        title: "Solicitação enviada!",
+        description: `A organização "${nome}" foi criada e está aguardando aprovação do administrador. Você será notificado assim que for aprovada.`,
+        duration: 6000,
       });
 
-      // Callback de sucesso (recarrega lista)
+      // Callback de sucesso (recarrega lista, mas não vai mostrar ainda)
       if (onSuccess) {
         console.log('🔄 [CriarOrganizacao] Recarregando lista de organizações...');
         await onSuccess();
@@ -69,10 +61,6 @@ const CriarOrganizacaoModal = ({ open, onClose, onSuccess }) => {
 
       // Fechar modal
       handleClose();
-
-      // Navegar para workspace
-      console.log('✅ [CriarOrganizacao] Organização criada com sucesso! Navegando...');
-      window.location.href = '/workspace';
 
     } catch (err) {
       console.error('❌ [CriarOrganizacao] Erro ao criar organização:', err);
@@ -94,7 +82,6 @@ const CriarOrganizacaoModal = ({ open, onClose, onSuccess }) => {
   const handleClose = () => {
     if (!loading) {
       setNome('');
-      setDescricao('');
       setPlano('free');
       setError('');
       onClose();
@@ -110,7 +97,7 @@ const CriarOrganizacaoModal = ({ open, onClose, onSuccess }) => {
             Criar Nova Organização
           </DialogTitle>
           <DialogDescription>
-            Crie uma nova workspace para sua empresa ou projeto. Você será o proprietário.
+            Crie uma solicitação de nova organização. Após a aprovação do administrador, você será o proprietário e poderá convidar membros.
           </DialogDescription>
         </DialogHeader>
 
@@ -130,23 +117,6 @@ const CriarOrganizacaoModal = ({ open, onClose, onSuccess }) => {
               />
               <p className="text-xs text-muted-foreground">
                 Mínimo 3 caracteres
-              </p>
-            </div>
-
-            {/* Descrição */}
-            <div className="grid gap-2">
-              <Label htmlFor="descricao">Descrição (opcional)</Label>
-              <Textarea
-                id="descricao"
-                value={descricao}
-                onChange={(e) => setDescricao(e.target.value)}
-                placeholder="Descreva o propósito desta organização..."
-                rows={3}
-                maxLength={500}
-                disabled={loading}
-              />
-              <p className="text-xs text-muted-foreground">
-                Máximo 500 caracteres
               </p>
             </div>
 

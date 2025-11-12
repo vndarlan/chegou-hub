@@ -23,6 +23,19 @@ class Organization(models.Model):
     plano = models.CharField(max_length=20, choices=PLANO_CHOICES, default='free')
     limite_membros = models.IntegerField(default=5, verbose_name="Limite de Membros")
 
+    # Status de aprovação
+    STATUS_CHOICES = [
+        ('pending', 'Pendente de Aprovação'),
+        ('approved', 'Aprovada'),
+        ('rejected', 'Rejeitada'),
+    ]
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        verbose_name="Status"
+    )
+
     # Metadados
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
