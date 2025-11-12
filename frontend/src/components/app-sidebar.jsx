@@ -185,6 +185,12 @@ export function AppSidebar({
               moduleKey: "ecomhub_efetividade_v2",
             },
             {
+              title: "Pedidos",
+              url: "/fornecedores/europa/ecomhub/pedidos",
+              isActive: location.pathname.includes('/fornecedores/europa/ecomhub/pedidos'),
+              moduleKey: "ecomhub_pedidos",
+            },
+            {
               title: "Status Tracking",
               url: "/fornecedores/europa/ecomhub/status",
               isActive: location.pathname.includes('/fornecedores/europa/ecomhub/status'),

@@ -28,6 +28,7 @@ import OpenAIAnalytics from '../features/ia/OpenAIAnalytics';
 import PrimecodPage from '../features/metricas/PrimecodPage';
 import EcomhubPage from '../features/metricas/EcomhubPage';
 import EcomhubEfetividadeV2Page from '../features/metricas/EcomhubEfetividadeV2Page';
+import EcomhubPedidosPage from '../features/metricas/EcomhubPedidosPage';
 import DropiPage from '../features/metricas/DropiPage';
 import N1ItaliaPage from '../features/metricas/N1ItaliaPage';
 import EcomhubStatusPage from '../features/status/EcomhubStatusPage';
@@ -79,6 +80,12 @@ const breadcrumbMap = {
     { label: 'EUROPA', href: '#' },
     { label: 'ECOMHUB', href: '#' },
     { label: 'Configurações' }
+  ],
+  '/fornecedores/europa/ecomhub/pedidos': [
+    { label: 'FORNECEDORES', href: '#' },
+    { label: 'EUROPA', href: '#' },
+    { label: 'ECOMHUB', href: '#' },
+    { label: 'Pedidos' }
   ],
   '/fornecedores/europa/n1/efetividade': [
     { label: 'FORNECEDORES', href: '#' },
@@ -257,6 +264,11 @@ function WorkspacePage({ setIsLoggedIn }) {
               <Route path="fornecedores/europa/ecomhub/configuracoes" element={
                 <ProtectedRoute moduleKey="ecomhub_config">
                   <EcomhubConfigPage />
+                </ProtectedRoute>
+              } />
+              <Route path="fornecedores/europa/ecomhub/pedidos" element={
+                <ProtectedRoute moduleKey="ecomhub_pedidos">
+                  <EcomhubPedidosPage />
                 </ProtectedRoute>
               } />
               <Route path="fornecedores/europa/n1/efetividade" element={
