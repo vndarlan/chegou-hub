@@ -3,6 +3,30 @@
 from django.db import migrations, models
 
 
+def add_unique_sku_constraint_safe(apps, schema_editor):
+    """
+    Adiciona constraint unique_sku_global apenas se não existir.
+    Função idempotente: pode rodar múltiplas vezes sem erro.
+    """
+    if schema_editor.connection.vendor == 'postgresql':
+        with schema_editor.connection.cursor() as cursor:
+            # Verificar se constraint já existe
+            cursor.execute("""
+                SELECT 1 FROM pg_constraint
+                WHERE conname = 'unique_sku_global';
+            """)
+
+            if not cursor.fetchone():
+                # Constraint não existe, criar
+                cursor.execute("""
+                    ALTER TABLE estoque_produtosku
+                    ADD CONSTRAINT unique_sku_global UNIQUE (sku);
+                """)
+                print("✅ Constraint unique_sku_global criada com sucesso")
+            else:
+                print("ℹ️ Constraint unique_sku_global já existe, pulando criação")
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -17,14 +41,27 @@ class Migration(migrations.Migration):
             field=models.CharField(help_text='SKU único em todo o sistema', max_length=100),
         ),
 
-        # Adicionar constraint de SKU único global
-        # Nota: Se já existir, PostgreSQL vai ignorar (idempotente)
-        migrations.AddConstraint(
-            model_name='produtosku',
-            constraint=models.UniqueConstraint(
-                fields=('sku',),
-                name='unique_sku_global',
-                violation_error_message='Este SKU já existe em outro produto. SKUs devem ser únicos em todo o sistema.'
-            ),
+        # Separar estado do Django vs operações de banco
+        # Estado: dizer ao Django que a constraint existe
+        # Banco: criar constraint apenas se não existir (via função Python)
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                # Atualizar estado do Django: constraint existe
+                migrations.AddConstraint(
+                    model_name='produtosku',
+                    constraint=models.UniqueConstraint(
+                        fields=('sku',),
+                        name='unique_sku_global',
+                        violation_error_message='Este SKU já existe em outro produto. SKUs devem ser únicos em todo o sistema.'
+                    ),
+                ),
+            ],
+            database_operations=[
+                # Operação real no banco: criar apenas se não existir
+                migrations.RunPython(
+                    add_unique_sku_constraint_safe,
+                    reverse_code=migrations.RunPython.noop
+                ),
+            ]
         ),
     ]
