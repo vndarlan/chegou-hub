@@ -620,6 +620,98 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         logger.info(f"✅ Convite para {convite.email} cancelado por {request.user.email}")
         return Response({'message': 'Convite cancelado com sucesso'})
 
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def minhas_organizacoes(self, request):
+        """
+        Lista todas as organizações do usuário autenticado
+        GET /api/organizations/minhas_organizacoes/
+
+        Retorna lista com:
+        - id, nome, plano
+        - role do usuário (owner/admin/member)
+        """
+        try:
+            # Buscar todos os memberships ativos do usuário
+            memberships = OrganizationMember.objects.select_related('organization').filter(
+                user=request.user,
+                ativo=True,
+                organization__ativo=True
+            ).order_by('-role', 'organization__nome')  # Ordenar: owner > admin > member > alfabético
+
+            organizacoes = []
+            for member in memberships:
+                organizacoes.append({
+                    'id': member.organization.id,
+                    'nome': member.organization.nome,
+                    'plano': member.organization.plano,
+                    'limite_membros': member.organization.limite_membros,
+                    'role': member.role,
+                    'ativo': member.organization.id == request.session.get('active_organization_id')
+                })
+
+            return Response(organizacoes, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"❌ Erro ao listar organizações: {str(e)}")
+            return Response(
+                {'error': 'Erro ao listar organizações'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def selecionar_organizacao(self, request):
+        """
+        Seleciona uma organização como ativa
+        POST /api/organizations/selecionar_organizacao/
+
+        Body:
+        {
+            "organization_id": 123
+        }
+
+        Atualiza a sessão do usuário com a organização selecionada
+        """
+        try:
+            organization_id = request.data.get('organization_id')
+
+            if not organization_id:
+                return Response(
+                    {'error': 'organization_id é obrigatório'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Verificar se usuário é membro desta organização
+            try:
+                member = OrganizationMember.objects.select_related('organization').get(
+                    user=request.user,
+                    organization_id=organization_id,
+                    ativo=True,
+                    organization__ativo=True
+                )
+            except OrganizationMember.DoesNotExist:
+                return Response(
+                    {'error': 'Você não é membro desta organização'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            # Atualizar sessão
+            request.session['active_organization_id'] = organization_id
+
+            logger.info(f"✅ Organização trocada: {request.user.email} → {member.organization.nome}")
+
+            return Response({
+                'message': 'Organização selecionada com sucesso',
+                'organization': OrganizationSerializer(member.organization).data,
+                'role': member.role
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"❌ Erro ao selecionar organização: {str(e)}")
+            return Response(
+                {'error': 'Erro ao selecionar organização'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 class InviteViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -925,95 +1017,3 @@ class InviteViewSet(viewsets.ReadOnlyModelViewSet):
             'organization': OrganizationSerializer(convite.organization).data,
             'conta_criada': not usuario_existente,  # Informar se conta foi criada
         }, status=status.HTTP_200_OK)
-
-    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
-    def minhas_organizacoes(self, request):
-        """
-        Lista todas as organizações do usuário autenticado
-        GET /organizations/minhas_organizacoes/
-
-        Retorna lista com:
-        - id, nome, plano
-        - role do usuário (owner/admin/member)
-        """
-        try:
-            # Buscar todos os memberships ativos do usuário
-            memberships = OrganizationMember.objects.select_related('organization').filter(
-                user=request.user,
-                ativo=True,
-                organization__ativo=True
-            ).order_by('-role', 'organization__nome')  # Ordenar: owner > admin > member > alfabético
-
-            organizacoes = []
-            for member in memberships:
-                organizacoes.append({
-                    'id': member.organization.id,
-                    'nome': member.organization.nome,
-                    'plano': member.organization.plano,
-                    'limite_membros': member.organization.limite_membros,
-                    'role': member.role,
-                    'ativo': member.organization.id == request.session.get('active_organization_id')
-                })
-
-            return Response(organizacoes, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            logger.error(f"❌ Erro ao listar organizações: {str(e)}")
-            return Response(
-                {'error': 'Erro ao listar organizações'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
-    def selecionar_organizacao(self, request):
-        """
-        Seleciona uma organização como ativa
-        POST /organizations/selecionar_organizacao/
-
-        Body:
-        {
-            "organization_id": 123
-        }
-
-        Atualiza a sessão do usuário com a organização selecionada
-        """
-        try:
-            organization_id = request.data.get('organization_id')
-
-            if not organization_id:
-                return Response(
-                    {'error': 'organization_id é obrigatório'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            # Verificar se usuário é membro desta organização
-            try:
-                member = OrganizationMember.objects.select_related('organization').get(
-                    user=request.user,
-                    organization_id=organization_id,
-                    ativo=True,
-                    organization__ativo=True
-                )
-            except OrganizationMember.DoesNotExist:
-                return Response(
-                    {'error': 'Você não é membro desta organização'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-
-            # Atualizar sessão
-            request.session['active_organization_id'] = organization_id
-
-            logger.info(f"✅ Organização trocada: {request.user.email} → {member.organization.nome}")
-
-            return Response({
-                'message': 'Organização selecionada com sucesso',
-                'organization': OrganizationSerializer(member.organization).data,
-                'role': member.role
-            }, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            logger.error(f"❌ Erro ao selecionar organização: {str(e)}")
-            return Response(
-                {'error': 'Erro ao selecionar organização'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
