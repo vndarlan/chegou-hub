@@ -115,22 +115,7 @@ const OrganizationSwitcher = ({ variant = 'default', className = '' }) => {
         );
     }
 
-    // Se só tem uma organização, mostra botão simples (sem dropdown)
-    if (organizations.length <= 1) {
-        console.log('✨ [OrganizationSwitcher] Renderizando botão simples (1 organização)');
-        return (
-            <Button
-                variant={variant}
-                className={`${className} justify-start gap-2`}
-                disabled
-            >
-                <Building2 className="h-4 w-4" />
-                <span className="truncate">{organization.nome}</span>
-            </Button>
-        );
-    }
-
-    console.log('✨ [OrganizationSwitcher] Renderizando seletor com', organizations.length, 'organizações');
+    console.log('✨ [OrganizationSwitcher] Renderizando seletor com', organizations.length, 'organização(ões)');
     return (
         <>
         <DropdownMenu>
