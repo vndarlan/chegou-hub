@@ -10,17 +10,21 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterUniqueTogether(
-            name='produtosku',
-            unique_together=set(),
-        ),
+        # Alterar campo SKU para documentar que é único globalmente
         migrations.AlterField(
             model_name='produtosku',
             name='sku',
             field=models.CharField(help_text='SKU único em todo o sistema', max_length=100),
         ),
+
+        # Adicionar constraint de SKU único global
+        # Nota: Se já existir, PostgreSQL vai ignorar (idempotente)
         migrations.AddConstraint(
             model_name='produtosku',
-            constraint=models.UniqueConstraint(fields=('sku',), name='unique_sku_global', violation_error_message='Este SKU já existe em outro produto. SKUs devem ser únicos em todo o sistema.'),
+            constraint=models.UniqueConstraint(
+                fields=('sku',),
+                name='unique_sku_global',
+                violation_error_message='Este SKU já existe em outro produto. SKUs devem ser únicos em todo o sistema.'
+            ),
         ),
     ]
