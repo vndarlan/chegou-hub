@@ -20,6 +20,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
     """Serializer para organização"""
     total_membros = serializers.IntegerField(read_only=True)
     limite_atingido = serializers.BooleanField(read_only=True)
+    slug = serializers.SlugField(required=False, allow_blank=True)  # Slug opcional (gerado automaticamente)
 
     class Meta:
         model = Organization

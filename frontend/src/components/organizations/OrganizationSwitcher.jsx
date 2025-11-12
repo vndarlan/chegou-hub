@@ -11,8 +11,9 @@ import {
 } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Building2, Check, ChevronsUpDown, Loader2, AlertTriangle } from 'lucide-react';
+import { Building2, Check, ChevronsUpDown, Loader2, AlertTriangle, Plus } from 'lucide-react';
 import { useToast } from '../ui/use-toast';
+import CriarOrganizacaoModal from './CriarOrganizacaoModal';
 
 /**
  * Componente de seleção de organização
@@ -24,6 +25,7 @@ const OrganizationSwitcher = ({ variant = 'default', className = '' }) => {
     const [organizations, setOrganizations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [switching, setSwitching] = useState(false);
+    const [showCriarModal, setShowCriarModal] = useState(false);
 
     // Logs de debug do context
     console.log('🏢 [OrganizationSwitcher] Organization from context:', organization);
@@ -70,13 +72,21 @@ const OrganizationSwitcher = ({ variant = 'default', className = '' }) => {
                 organization_id: org.id
             });
 
-            // Recarregar página para atualizar todos os dados
-            // (O middleware irá carregar a nova organização automaticamente)
-            window.location.reload();
+            console.log(`✅ [OrganizationSwitcher] Organização trocada para: ${org.nome}`);
+
+            // Recarregar lista para atualizar organização ativa
+            await carregarOrganizacoes();
+
+            // Navegar para workspace
+            window.location.href = '/workspace';
 
         } catch (err) {
-            console.error('Erro ao trocar organização:', err);
-            alert('Erro ao trocar organização. Tente novamente.');
+            console.error('❌ [OrganizationSwitcher] Erro ao trocar organização:', err);
+            toast({
+                title: "Erro ao trocar organização",
+                description: "Não foi possível trocar de organização. Tente novamente.",
+                variant: "destructive",
+            });
         } finally {
             setSwitching(false);
         }
@@ -122,6 +132,7 @@ const OrganizationSwitcher = ({ variant = 'default', className = '' }) => {
 
     console.log('✨ [OrganizationSwitcher] Renderizando seletor com', organizations.length, 'organizações');
     return (
+        <>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button
@@ -167,8 +178,28 @@ const OrganizationSwitcher = ({ variant = 'default', className = '' }) => {
                         </div>
                     </DropdownMenuItem>
                 ))}
+
+                {/* Separador */}
+                <DropdownMenuSeparator />
+
+                {/* Botão Criar Nova Organização */}
+                <DropdownMenuItem
+                    onClick={() => setShowCriarModal(true)}
+                    className="text-orange-600 focus:text-orange-700 focus:bg-orange-50"
+                >
+                    <Plus className="mr-2 h-4 w-4" />
+                    <span className="font-medium">Criar Nova Organização</span>
+                </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Modal de Criar Organização */}
+        <CriarOrganizacaoModal
+            open={showCriarModal}
+            onClose={() => setShowCriarModal(false)}
+            onSuccess={carregarOrganizacoes}
+        />
+        </>
     );
 };
 

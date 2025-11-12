@@ -22,6 +22,7 @@ import {
   UserCircle
 } from 'lucide-react'
 import OrganizationSwitcher from './organizations/OrganizationSwitcher'
+import { useOrgContext } from '../contexts/OrganizationContext'
 
 import {
   Collapsible,
@@ -52,17 +53,18 @@ import {
 } from './ui/sidebar'
 import { useTheme } from './theme-provider'
 
-export function AppSidebar({ 
-  userName = "Usuário", 
-  userEmail = "", 
-  onLogout, 
+export function AppSidebar({
+  userName = "Usuário",
+  userEmail = "",
+  onLogout,
   isAdmin = false,
-  ...props 
+  ...props
 }) {
   // Importações do react-router-dom devem ser passadas via props
   const navigate = props.navigate || (() => {})
   const location = props.location || { pathname: '/' }
   const { theme, setTheme } = useTheme()
+  const { hasModuleAccess, loadingModules } = useOrgContext()
 
   const getInitials = (name) => {
     if (!name) return 'U';
@@ -82,6 +84,30 @@ export function AppSidebar({
     }
   };
 
+  /**
+   * Filtra itens da sidebar baseado em permissões de módulos
+   * Remove recursivamente itens sem acesso e grupos vazios
+   */
+  const filterByPermission = (items) => {
+    if (loadingModules) return items; // Durante loading, mostra tudo
+
+    return items.map(item => ({...item})).filter(item => {
+      // Se o item tem moduleKey, verificar permissão
+      if (item.moduleKey && !hasModuleAccess(item.moduleKey)) {
+        return false;
+      }
+
+      // Se o item tem subitens, filtrar recursivamente
+      if (item.items) {
+        item.items = filterByPermission(item.items);
+        // Se todos os subitens foram removidos, remover o grupo também
+        return item.items.length > 0;
+      }
+
+      return true;
+    });
+  };
+
   // GESTÃO EMPRESARIAL items
   const gestaoBaseItems = [
     {
@@ -89,12 +115,14 @@ export function AppSidebar({
       url: "/gestao/agenda",
       icon: Calendar,
       isActive: location.pathname === "/gestao/agenda",
+      moduleKey: "agenda",
     },
     {
       title: "Mapa de Atuação",
       url: "/gestao/mapa",
       icon: Map,
       isActive: location.pathname === "/gestao/mapa",
+      moduleKey: "mapa",
     },
   ];
 
@@ -111,16 +139,19 @@ export function AppSidebar({
           title: "Projetos",
           url: "/interno/projetos",
           isActive: location.pathname === "/interno/projetos",
+          moduleKey: "ia_projetos",
         },
         {
           title: "Logs de Erros",
           url: "/interno/logs",
           isActive: location.pathname === "/interno/logs",
+          moduleKey: "ia_logs",
         },
         {
           title: "OpenAI Analytics",
           url: "/interno/openai-analytics",
           isActive: location.pathname === "/interno/openai-analytics",
+          moduleKey: "ia_openai",
         },
       ],
     },
@@ -145,21 +176,25 @@ export function AppSidebar({
               title: "Análise de Efetividade",
               url: "/fornecedores/europa/ecomhub/efetividade",
               isActive: location.pathname.includes('/fornecedores/europa/ecomhub/efetividade'),
+              moduleKey: "ecomhub_efetividade",
             },
             {
               title: "Análise Avançada V2",
               url: "/fornecedores/europa/ecomhub/efetividade-v2",
               isActive: location.pathname.includes('/fornecedores/europa/ecomhub/efetividade-v2'),
+              moduleKey: "ecomhub_efetividade_v2",
             },
             {
               title: "Status Tracking",
               url: "/fornecedores/europa/ecomhub/status",
               isActive: location.pathname.includes('/fornecedores/europa/ecomhub/status'),
+              moduleKey: "ecomhub_status",
             },
             {
               title: "Configurações",
               url: "/fornecedores/europa/ecomhub/configuracoes",
               isActive: location.pathname.includes('/fornecedores/europa/ecomhub/configuracoes'),
+              moduleKey: "ecomhub_config",
             },
           ],
         },
@@ -172,6 +207,7 @@ export function AppSidebar({
               title: "Efetividade",
               url: "/fornecedores/europa/n1/efetividade",
               isActive: location.pathname.includes('/fornecedores/europa/n1/efetividade'),
+              moduleKey: "n1_efetividade",
             },
           ],
         },
@@ -184,6 +220,7 @@ export function AppSidebar({
               title: "Efetividade",
               url: "/fornecedores/europa/primecod/efetividade",
               isActive: location.pathname.includes('/fornecedores/europa/primecod/efetividade'),
+              moduleKey: "primecod_efetividade",
             },
           ],
         },
@@ -203,11 +240,13 @@ export function AppSidebar({
               title: "Efetividade",
               url: "/fornecedores/latam/dropi/efetividade",
               isActive: location.pathname.includes('/fornecedores/latam/dropi/efetividade'),
+              moduleKey: "dropi_efetividade",
             },
             {
               title: "Novelties",
               url: "/fornecedores/latam/dropi/novelties",
               isActive: location.pathname.includes('/fornecedores/latam/dropi/novelties'),
+              moduleKey: "dropi_novelties",
             },
           ],
         },
@@ -222,18 +261,21 @@ export function AppSidebar({
       url: "/shopify/estoque",
       icon: Package,
       isActive: location.pathname.includes('/shopify/estoque'),
+      moduleKey: "shopify_estoque",
     },
     {
       title: "Pedidos Duplicados",
       url: "/shopify/processamento",
       icon: Zap,
       isActive: location.pathname.includes('/shopify/processamento'),
+      moduleKey: "shopify_processamento",
     },
     {
       title: "Detector de IP",
       url: "/shopify/detector-ip",
       icon: Globe,
       isActive: location.pathname.includes('/shopify/detector-ip'),
+      moduleKey: "shopify_detector_ip",
     },
   ];
 
@@ -248,6 +290,7 @@ export function AppSidebar({
           title: "Engajamento",
           url: "/anuncios/facebook/engajamento",
           isActive: location.pathname === "/anuncios/facebook/engajamento",
+          moduleKey: "facebook_engajamento",
         },
       ],
     },
@@ -260,6 +303,7 @@ export function AppSidebar({
       url: "/ia/nicochat",
       icon: MessageSquare,
       isActive: location.pathname.includes('/ia/nicochat'),
+      moduleKey: "nicochat",
     },
   ];
 
@@ -342,10 +386,11 @@ export function AppSidebar({
         {isAdmin && <div className="mx-3 mb-2 border-b border-sidebar-border" />}
 
         {/* GESTÃO EMPRESARIAL - sempre no topo */}
-        <SidebarGroup>
-          <SidebarGroupLabel>GESTÃO EMPRESARIAL</SidebarGroupLabel>
-          <SidebarMenu>
-            {gestaoItems.map((item) => (
+        {filterByPermission(gestaoItems).length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>GESTÃO EMPRESARIAL</SidebarGroupLabel>
+            <SidebarMenu>
+              {filterByPermission(gestaoItems).map((item) => (
               item.items ? (
                 // Submenu IA
                 <Collapsible
@@ -417,15 +462,17 @@ export function AppSidebar({
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
 
         {/* FORNECEDORES - com subcategorias Europa/LATAM */}
-        <SidebarGroup>
-          <SidebarGroupLabel>FORNECEDORES</SidebarGroupLabel>
-          <SidebarMenu>
-            {fornecedoresItems.map((region) => (
+        {filterByPermission(fornecedoresItems).length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>FORNECEDORES</SidebarGroupLabel>
+            <SidebarMenu>
+              {filterByPermission(fornecedoresItems).map((region) => (
               <Collapsible
                 key={region.title}
                 asChild
@@ -489,15 +536,17 @@ export function AppSidebar({
                   </CollapsibleContent>
                 </SidebarMenuItem>
               </Collapsible>
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
 
         {/* SHOPIFY */}
-        <SidebarGroup>
-          <SidebarGroupLabel>SHOPIFY</SidebarGroupLabel>
-          <SidebarMenu>
-            {shopifyItems.map((item) => (
+        {filterByPermission(shopifyItems).length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>SHOPIFY</SidebarGroupLabel>
+            <SidebarMenu>
+              {filterByPermission(shopifyItems).map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
                   asChild
@@ -516,15 +565,17 @@ export function AppSidebar({
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
 
         {/* PLATAFORMAS DE ANÚNCIO */}
-        <SidebarGroup>
-          <SidebarGroupLabel>PLATAFORMAS DE ANÚNCIO</SidebarGroupLabel>
-          <SidebarMenu>
-            {plataformasAnuncioItems.map((platform) => (
+        {filterByPermission(plataformasAnuncioItems).length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>PLATAFORMAS DE ANÚNCIO</SidebarGroupLabel>
+            <SidebarMenu>
+              {filterByPermission(plataformasAnuncioItems).map((platform) => (
               <Collapsible
                 key={platform.title}
                 asChild
@@ -566,15 +617,17 @@ export function AppSidebar({
                   </CollapsibleContent>
                 </SidebarMenuItem>
               </Collapsible>
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
 
         {/* IA & CHATBOTS */}
-        <SidebarGroup>
-          <SidebarGroupLabel>IA & CHATBOTS</SidebarGroupLabel>
-          <SidebarMenu>
-            {iaChatbotsItems.map((item) => (
+        {filterByPermission(iaChatbotsItems).length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>IA & CHATBOTS</SidebarGroupLabel>
+            <SidebarMenu>
+              {filterByPermission(iaChatbotsItems).map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
                   asChild
@@ -593,9 +646,10 @@ export function AppSidebar({
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
 
 
       </SidebarContent>

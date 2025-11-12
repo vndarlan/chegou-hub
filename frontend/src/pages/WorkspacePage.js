@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { AppSidebar } from '../components/app-sidebar';
 import AdminRoute from '../components/AdminRoute';
+import ProtectedRoute from '../components/ProtectedRoute';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -222,37 +223,108 @@ function WorkspacePage({ setIsLoggedIn }) {
           
           <main className="flex-1 overflow-auto p-4 max-w-full">
             <Routes>
+              {/* Rota de fallback / página inicial */}
+              <Route index element={<Navigate to="/workspace/gestao/agenda" replace />} />
+
               {/* GESTÃO EMPRESARIAL */}
-              <Route path="gestao/agenda" element={<AgendaPage />} />
-              <Route path="gestao/mapa" element={<MapaPage />} />
+              <Route path="gestao/agenda" element={
+                <ProtectedRoute moduleKey="agenda">
+                  <AgendaPage />
+                </ProtectedRoute>
+              } />
+              <Route path="gestao/mapa" element={
+                <ProtectedRoute moduleKey="mapa">
+                  <MapaPage />
+                </ProtectedRoute>
+              } />
 
               {/* FORNECEDORES > EUROPA */}
-              <Route path="fornecedores/europa/ecomhub/efetividade" element={<EcomhubPage />} />
-              <Route path="fornecedores/europa/ecomhub/efetividade-v2" element={<EcomhubEfetividadeV2Page />} />
-              <Route path="fornecedores/europa/ecomhub/status" element={<EcomhubStatusPage />} />
-              <Route path="fornecedores/europa/ecomhub/configuracoes" element={<EcomhubConfigPage />} />
-              <Route path="fornecedores/europa/n1/efetividade" element={<N1ItaliaPage />} />
-              <Route path="fornecedores/europa/primecod/efetividade" element={<AdminRoute><PrimecodPage /></AdminRoute>} />
+              <Route path="fornecedores/europa/ecomhub/efetividade" element={
+                <ProtectedRoute moduleKey="ecomhub_efetividade">
+                  <EcomhubPage />
+                </ProtectedRoute>
+              } />
+              <Route path="fornecedores/europa/ecomhub/efetividade-v2" element={
+                <ProtectedRoute moduleKey="ecomhub_efetividade_v2">
+                  <EcomhubEfetividadeV2Page />
+                </ProtectedRoute>
+              } />
+              <Route path="fornecedores/europa/ecomhub/status" element={
+                <ProtectedRoute moduleKey="ecomhub_status">
+                  <EcomhubStatusPage />
+                </ProtectedRoute>
+              } />
+              <Route path="fornecedores/europa/ecomhub/configuracoes" element={
+                <ProtectedRoute moduleKey="ecomhub_config">
+                  <EcomhubConfigPage />
+                </ProtectedRoute>
+              } />
+              <Route path="fornecedores/europa/n1/efetividade" element={
+                <ProtectedRoute moduleKey="n1_efetividade">
+                  <N1ItaliaPage />
+                </ProtectedRoute>
+              } />
+              <Route path="fornecedores/europa/primecod/efetividade" element={
+                <ProtectedRoute moduleKey="primecod_efetividade">
+                  <AdminRoute><PrimecodPage /></AdminRoute>
+                </ProtectedRoute>
+              } />
 
               {/* FORNECEDORES > LATAM */}
-              <Route path="fornecedores/latam/dropi/efetividade" element={<AdminRoute><DropiPage /></AdminRoute>} />
-              <Route path="fornecedores/latam/dropi/novelties" element={<NoveltiesPage />} />
+              <Route path="fornecedores/latam/dropi/efetividade" element={
+                <ProtectedRoute moduleKey="dropi_efetividade">
+                  <AdminRoute><DropiPage /></AdminRoute>
+                </ProtectedRoute>
+              } />
+              <Route path="fornecedores/latam/dropi/novelties" element={
+                <ProtectedRoute moduleKey="dropi_novelties">
+                  <NoveltiesPage />
+                </ProtectedRoute>
+              } />
 
               {/* SHOPIFY */}
-              <Route path="shopify/estoque" element={<ControleEstoquePage />} />
-              <Route path="shopify/processamento" element={<ProcessamentoPage />} />
-              <Route path="shopify/detector-ip" element={<DetectorIPPage />} />
+              <Route path="shopify/estoque" element={
+                <ProtectedRoute moduleKey="shopify_estoque">
+                  <ControleEstoquePage />
+                </ProtectedRoute>
+              } />
+              <Route path="shopify/processamento" element={
+                <ProtectedRoute moduleKey="shopify_processamento">
+                  <ProcessamentoPage />
+                </ProtectedRoute>
+              } />
+              <Route path="shopify/detector-ip" element={
+                <ProtectedRoute moduleKey="shopify_detector_ip">
+                  <DetectorIPPage />
+                </ProtectedRoute>
+              } />
 
               {/* PLATAFORMAS DE ANÚNCIO */}
-              <Route path="anuncios/facebook/engajamento" element={<EngajamentoPage />} />
+              <Route path="anuncios/facebook/engajamento" element={
+                <ProtectedRoute moduleKey="facebook_engajamento">
+                  <EngajamentoPage />
+                </ProtectedRoute>
+              } />
 
               {/* IA & CHATBOTS */}
               <Route path="ia/nicochat" element={<Navigate to="/nicochat" replace />} />
 
               {/* FERRAMENTAS INTERNAS */}
-              <Route path="interno/projetos" element={<ProjetoDashboard />} />
-              <Route path="interno/logs" element={<LogsPage />} />
-              <Route path="interno/openai-analytics" element={<AdminRoute><OpenAIAnalytics /></AdminRoute>} />
+              <Route path="interno/projetos" element={
+                <ProtectedRoute moduleKey="ia_projetos">
+                  <ProjetoDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="interno/logs" element={
+                <ProtectedRoute moduleKey="ia_logs">
+                  <LogsPage />
+                </ProtectedRoute>
+              } />
+              <Route path="interno/openai-analytics" element={
+                <ProtectedRoute moduleKey="ia_openai">
+                  <AdminRoute><OpenAIAnalytics /></AdminRoute>
+                </ProtectedRoute>
+              } />
 
               {/* PERFIL DO USUÁRIO */}
               <Route path="perfil" element={<PerfilPage />} />

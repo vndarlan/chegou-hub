@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.utils.text import slugify
 import secrets
 
 
@@ -35,6 +36,18 @@ class Organization(models.Model):
             models.Index(fields=['slug']),
             models.Index(fields=['ativo']),
         ]
+
+    def save(self, *args, **kwargs):
+        """Gera slug automaticamente a partir do nome"""
+        if not self.slug:
+            self.slug = slugify(self.nome)
+            # Garantir unicidade do slug
+            original_slug = self.slug
+            counter = 1
+            while Organization.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
+                self.slug = f"{original_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.nome

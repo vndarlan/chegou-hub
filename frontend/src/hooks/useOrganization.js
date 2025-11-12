@@ -19,6 +19,8 @@ export const useOrganization = () => {
     const [role, setRole] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [allowedModules, setAllowedModules] = useState(null);
+    const [loadingModules, setLoadingModules] = useState(false);
 
     const fetchOrganization = useCallback(async () => {
         try {
@@ -48,6 +50,38 @@ export const useOrganization = () => {
         fetchOrganization();
     }, [fetchOrganization]);
 
+    // Buscar módulos permitidos quando organização carregar
+    useEffect(() => {
+        const fetchModules = async () => {
+            if (!organization || !role) {
+                setAllowedModules(null);
+                return;
+            }
+
+            // Owner e Admin têm acesso a tudo
+            if (role === 'owner' || role === 'admin') {
+                setAllowedModules('all');
+                return;
+            }
+
+            // Member: buscar módulos permitidos
+            try {
+                setLoadingModules(true);
+                const response = await apiClient.get(`/organizations/${organization.id}/meus_modulos/`);
+
+                // Backend retorna: { role: 'member', modulos: ['agenda', 'mapa'] }
+                setAllowedModules(response.data.modulos || []);
+            } catch (err) {
+                console.error('Erro ao buscar módulos:', err);
+                setAllowedModules([]);
+            } finally {
+                setLoadingModules(false);
+            }
+        };
+
+        fetchModules();
+    }, [organization, role]);
+
     // Helpers de role
     const isOwner = role === 'owner';
     const isAdmin = role === 'admin' || role === 'owner';
@@ -59,15 +93,18 @@ export const useOrganization = () => {
      * @returns {boolean} Se tem acesso
      */
     const hasModuleAccess = useCallback((moduleKey) => {
-        if (!organization || !role) return false;
+        if (!organization || !role || !moduleKey) return false;
 
         // Owner e Admin têm acesso a tudo
-        if (isAdmin || isOwner) return true;
+        if (allowedModules === 'all') return true;
 
-        // Member: verificar permissões (precisa fazer chamada à API ou ter cache)
-        // Por enquanto, retorna false e será implementado com cache
+        // Member: verificar no array de módulos permitidos
+        if (Array.isArray(allowedModules)) {
+            return allowedModules.includes(moduleKey);
+        }
+
         return false;
-    }, [organization, role, isAdmin, isOwner]);
+    }, [organization, role, allowedModules]);
 
     return {
         organization,
@@ -78,6 +115,8 @@ export const useOrganization = () => {
         loading,
         error,
         refetch: fetchOrganization,
-        hasModuleAccess
+        hasModuleAccess,
+        allowedModules,
+        loadingModules
     };
 };

@@ -125,6 +125,26 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             membros__ativo=True
         ).distinct()
 
+    def perform_create(self, serializer):
+        """
+        Ao criar organização, automaticamente adiciona o usuário como owner
+        """
+        organization = serializer.save()
+
+        # Criar membership como owner
+        OrganizationMember.objects.create(
+            organization=organization,
+            user=self.request.user,
+            role='owner',
+            convidado_por=self.request.user,  # Criador é o próprio usuário
+            ativo=True
+        )
+
+        # Definir como organização ativa na sessão
+        self.request.session['active_organization_id'] = organization.id
+
+        logger.info(f"✅ Organização '{organization.nome}' criada por {self.request.user.email} como owner")
+
     def perform_destroy(self, instance):
         """Desativa ao invés de deletar"""
         instance.ativo = False
@@ -870,6 +890,10 @@ class InviteViewSet(viewsets.ReadOnlyModelViewSet):
             role=convite.role,
             convidado_por=convite.convidado_por
         )
+
+        # CORREÇÃO: Atualizar sessão para definir nova organização como ativa
+        request.session['active_organization_id'] = convite.organization.id
+        logger.info(f"✅ Sessão atualizada: organização {convite.organization.nome} (ID: {convite.organization.id}) agora está ativa")
 
         # Criar permissões se role='member' e tem módulos
         if convite.role == 'member' and convite.modulos_permitidos:
