@@ -3,6 +3,17 @@
 from django.db import migrations, models
 
 
+def set_existing_organizations_to_approved(apps, schema_editor):
+    """
+    Marca TODAS as organizações existentes como 'approved' (aprovadas).
+    Isso garante que organizações criadas ANTES desta migration continuem funcionando.
+    Apenas organizações criadas APÓS esta migration começarão como 'pending'.
+    """
+    Organization = apps.get_model('core', 'Organization')
+    updated = Organization.objects.all().update(status='approved')
+    print(f"✅ {updated} organização(ões) marcada(s) como 'approved'")
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -12,7 +23,6 @@ class Migration(migrations.Migration):
     operations = [
         # Adicionar campo status com default='approved'
         # Isso garante que todas as organizações existentes sejam aprovadas automaticamente
-        # Novas organizações usarão default='pending' definido no models.py
         migrations.AddField(
             model_name='organization',
             name='status',
@@ -22,5 +32,12 @@ class Migration(migrations.Migration):
                 max_length=20,
                 verbose_name='Status'
             ),
+        ),
+
+        # Data migration: garantir explicitamente que todas as organizações existentes sejam 'approved'
+        # Isso é crucial para não quebrar organizações que já existem no Railway
+        migrations.RunPython(
+            set_existing_organizations_to_approved,
+            reverse_code=migrations.RunPython.noop
         ),
     ]
