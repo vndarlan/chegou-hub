@@ -1330,6 +1330,8 @@ class EcomhubPedidosViewSet(viewsets.ViewSet):
             country_ids = request.data.get('country_ids')
             status_list = request.data.get('status')
 
+            logger.info(f"📥 Request recebido - data_inicio: {data_inicio_str}, data_fim: {data_fim_str}, country_ids: {country_ids}")
+
             if not data_inicio_str or not data_fim_str:
                 return Response({
                     'status': 'error',
@@ -1338,8 +1340,15 @@ class EcomhubPedidosViewSet(viewsets.ViewSet):
 
             # Converter strings para date
             from datetime import datetime
-            data_inicio = datetime.strptime(data_inicio_str, '%Y-%m-%d').date()
-            data_fim = datetime.strptime(data_fim_str, '%Y-%m-%d').date()
+            try:
+                data_inicio = datetime.strptime(data_inicio_str, '%Y-%m-%d').date()
+                data_fim = datetime.strptime(data_fim_str, '%Y-%m-%d').date()
+            except Exception as date_error:
+                logger.error(f"❌ Erro ao converter datas: {date_error}")
+                return Response({
+                    'status': 'error',
+                    'message': f'Formato de data inválido. Use YYYY-MM-DD: {str(date_error)}'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
             # Validar período
             if data_inicio > data_fim:
@@ -1348,15 +1357,22 @@ class EcomhubPedidosViewSet(viewsets.ViewSet):
                     'message': 'data_inicio deve ser anterior a data_fim'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            logger.info(f"Buscando pedidos via Selenium+API: {data_inicio} a {data_fim}")
+            logger.info(f"✅ Dados validados - Iniciando busca: {data_inicio} a {data_fim}")
 
             # Buscar pedidos
-            resultado = pedidos_api_service.buscar_todos_pedidos_periodo(
-                data_inicio=data_inicio,
-                data_fim=data_fim,
-                country_ids=country_ids,
-                status_list=status_list
-            )
+            try:
+                resultado = pedidos_api_service.buscar_todos_pedidos_periodo(
+                    data_inicio=data_inicio,
+                    data_fim=data_fim,
+                    country_ids=country_ids,
+                    status_list=status_list
+                )
+            except Exception as service_error:
+                logger.error(f"❌ Erro no serviço de pedidos: {service_error}", exc_info=True)
+                return Response({
+                    'status': 'error',
+                    'message': f'Erro ao buscar pedidos: {str(service_error)}'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             if resultado['status'] == 'success':
                 return Response({
