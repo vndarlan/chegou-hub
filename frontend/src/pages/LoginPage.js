@@ -8,28 +8,15 @@ import { Alert, AlertDescription, LoadingSpinner } from '../components/ui';
 import { IconCheck, IconX } from '@tabler/icons-react';
 import { useTheme } from '../components/theme-provider';
 
-// shadcn/ui Select
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-
 // Partículas
 import Particles from "react-tsparticles";
 import { loadSlim } from "tsparticles-slim";
-
-const TIMES = [
-    { value: 'Diretoria', label: 'Diretoria' },
-    { value: 'IA & Automação', label: 'IA & Automação' },
-    { value: 'Gestão', label: 'Gestão' },
-    { value: 'Operacional', label: 'Operacional' },
-    { value: 'Gestão de Tráfego', label: 'Gestão de Tráfego' },
-    { value: 'Suporte', label: 'Suporte' },
-];
 
 function LoginPage({ setIsLoggedIn }) {
     const [mode, setMode] = useState('login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
-    const [timeSelecionado, setTimeSelecionado] = useState(null);
     const [notification, setNotification] = useState(null);
     const [loading, setLoading] = useState(false);
 
@@ -90,7 +77,6 @@ function LoginPage({ setIsLoggedIn }) {
         setEmail('');
         setPassword('');
         setName('');
-        setTimeSelecionado(null);
         setNotification(null);
     };
 
@@ -128,7 +114,7 @@ function LoginPage({ setIsLoggedIn }) {
                 setLoading(false);
             }
         } else {
-            if (!name || !email || !timeSelecionado || !password) {
+            if (!name || !email || !password) {
                 setNotification({ type: 'error', message: 'Todos os campos são obrigatórios para o registro.' });
                 setLoading(false);
                 return;
@@ -137,7 +123,6 @@ function LoginPage({ setIsLoggedIn }) {
                 const response = await apiClient.post('/register/', {
                     name: name,
                     email: email,
-                    area: timeSelecionado,
                     password: password
                 });
 
@@ -227,30 +212,6 @@ function LoginPage({ setIsLoggedIn }) {
                                     disabled={loading}
                                 />
                             </div>
-
-                            {mode === 'register' && (
-                                <div>
-                                    <label className="text-sm font-medium text-foreground block mb-1">
-                                        Time
-                                    </label>
-                                    <Select 
-                                        value={timeSelecionado} 
-                                        onValueChange={setTimeSelecionado}
-                                        disabled={loading}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione seu time" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {TIMES.map((time) => (
-                                                <SelectItem key={time.value} value={time.value}>
-                                                    {time.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
 
                             <div>
                                 <label className="text-sm font-medium text-foreground block mb-1">

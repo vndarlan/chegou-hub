@@ -70,7 +70,8 @@ class CurrentStateView(APIView):
                 member = OrganizationMember.objects.select_related('organization').filter(
                     user=request.user,
                     ativo=True,
-                    organization__ativo=True
+                    organization__ativo=True,
+                    organization__status='approved'
                 ).first()
 
                 if member:
@@ -103,10 +104,9 @@ class RegisterView(APIView):
     def post(self, request):
         name = request.data.get('name', '').strip()
         email = request.data.get('email', '').strip().lower()
-        area = request.data.get('area', '').strip()
         password = request.data.get('password', '')
-        
-        if not all([name, email, area, password]):
+
+        if not all([name, email, password]):
             return Response({'error': 'Todos os campos são obrigatórios.'}, status=status.HTTP_400_BAD_REQUEST)
         
         if User.objects.filter(email=email).exists():
@@ -121,14 +121,7 @@ class RegisterView(APIView):
             last_name=' '.join(name.split()[1:]) if len(name.split()) > 1 else '',
             is_active=False
         )
-        
-        # Adicionar ao grupo/área
-        try:
-            group = Group.objects.get(name=area)
-            user.groups.add(group)
-        except Group.DoesNotExist:
-            pass
-        
+
         return Response({'message': 'Conta criada! Aguarde aprovação do administrador.'}, status=status.HTTP_201_CREATED)
 
 class SelectAreaView(APIView):
