@@ -16,6 +16,7 @@ import json
 import urllib.parse
 from datetime import date
 from typing import Dict, Any, List, Optional
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -74,9 +75,13 @@ def obter_tokens_selenium() -> Dict[str, Any]:
     """
     logger.info("Buscando tokens do middleware Selenium...")
 
+    # Buscar API Key do settings (variável de ambiente)
+    api_key = getattr(settings, 'ECOMHUB_SELENIUM_API_KEY', 'cacn29cn49bhcxno32jkcmu2801jplsjq')
+
     try:
         response = requests.get(
             SELENIUM_AUTH_URL,
+            headers={'X-API-Key': api_key},
             timeout=60  # Selenium demora ~50 segundos
         )
 
