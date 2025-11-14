@@ -91,10 +91,14 @@ def obter_tokens_selenium() -> Dict[str, Any]:
 
         tokens = response.json()
 
+        # Log da resposta para debug
+        logger.info(f"Resposta do Selenium: {tokens}")
+
         # Validar campos necessários
         required_fields = ['token', 'e_token', 'refresh_token']
         for field in required_fields:
             if field not in tokens:
+                logger.error(f"Resposta completa do Selenium: {json.dumps(tokens, indent=2)}")
                 raise ValueError(f"Campo '{field}' ausente na resposta do Selenium")
 
         logger.info("Tokens obtidos com sucesso do Selenium")
