@@ -22,6 +22,7 @@ from .serializers import (
     FiltrosPedidosSerializer
 )
 from .services import status_tracking_service
+from .services import pedidos_api_service
 from core.middleware.ultra_logging import ultra_logging
 
 logger = logging.getLogger(__name__)
@@ -1280,5 +1281,107 @@ class EfetividadeV2ViewSet(viewsets.ModelViewSet):
             return Response({
                 'status': 'error',
                 'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ===========================================
+# VIEWSET DE PEDIDOS TEMPO REAL (SELENIUM + API ECOMHUB)
+# ===========================================
+
+class EcomhubPedidosViewSet(viewsets.ViewSet):
+    """
+    ViewSet para consulta de pedidos em tempo real via Selenium + API EcomHub
+
+    Endpoints:
+    - POST /pedidos/buscar/ - Busca pedidos com filtros de data
+
+    NÃO usa lojas cadastradas. Usa middleware Selenium para tokens.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=False, methods=['post'])
+    def buscar(self, request):
+        """
+        POST /api/metricas/ecomhub/pedidos/buscar/
+
+        Busca pedidos em tempo real (Selenium + API EcomHub)
+
+        Body:
+        {
+            "data_inicio": "2025-01-01",
+            "data_fim": "2025-01-31",
+            "country_ids": [164, 82],  # Opcional
+            "status": ["delivered", "shipped"]  # Opcional
+        }
+
+        Response:
+        {
+            "status": "success",
+            "pedidos": [array de pedidos],
+            "total": 150,
+            "message": "150 pedidos encontrados"
+        }
+        """
+        try:
+            # Validar dados
+            data_inicio_str = request.data.get('data_inicio')
+            data_fim_str = request.data.get('data_fim')
+            country_ids = request.data.get('country_ids')
+            status_list = request.data.get('status')
+
+            if not data_inicio_str or not data_fim_str:
+                return Response({
+                    'status': 'error',
+                    'message': 'data_inicio e data_fim são obrigatórios'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Converter strings para date
+            from datetime import datetime
+            data_inicio = datetime.strptime(data_inicio_str, '%Y-%m-%d').date()
+            data_fim = datetime.strptime(data_fim_str, '%Y-%m-%d').date()
+
+            # Validar período
+            if data_inicio > data_fim:
+                return Response({
+                    'status': 'error',
+                    'message': 'data_inicio deve ser anterior a data_fim'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            logger.info(f"Buscando pedidos via Selenium+API: {data_inicio} a {data_fim}")
+
+            # Buscar pedidos
+            resultado = pedidos_api_service.buscar_todos_pedidos_periodo(
+                data_inicio=data_inicio,
+                data_fim=data_fim,
+                country_ids=country_ids,
+                status_list=status_list
+            )
+
+            if resultado['status'] == 'success':
+                return Response({
+                    'status': 'success',
+                    'pedidos': resultado['pedidos'],
+                    'total': resultado['total'],
+                    'message': resultado['message']
+                })
+            else:
+                return Response(
+                    resultado,
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+        except ValueError as e:
+            logger.error(f"Erro de validação: {e}")
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            logger.error(f"Erro ao buscar pedidos: {e}", exc_info=True)
+            return Response({
+                'status': 'error',
+                'message': f'Erro inesperado: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

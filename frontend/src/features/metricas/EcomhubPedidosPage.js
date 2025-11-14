@@ -24,12 +24,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/pop
 
 function EcomhubPedidosPage() {
     // Estados principais
-    const [lojas, setLojas] = useState([]);
     const [pedidos, setPedidos] = useState([]);
     const [totalPedidos, setTotalPedidos] = useState(0);
 
     // Estados do formulário
-    const [lojaSelecionada, setLojaSelecionada] = useState('todas');
     const [periodoPreset, setPeriodoPreset] = useState(null);
     const [dateRange, setDateRange] = useState({
         from: undefined,
@@ -42,7 +40,6 @@ function EcomhubPedidosPage() {
 
     // Estados de loading
     const [loadingBuscar, setLoadingBuscar] = useState(false);
-    const [loadingLojas, setLoadingLojas] = useState(false);
 
     // Estados de notificação
     const [notification, setNotification] = useState(null);
@@ -55,19 +52,6 @@ function EcomhubPedidosPage() {
     const itemsPerPage = 50;
 
     // ======================== FUNÇÕES DE API ========================
-
-    const fetchLojas = async () => {
-        setLoadingLojas(true);
-        try {
-            const response = await apiClient.get('/metricas/ecomhub/efetividade-v2/stores_disponiveis/');
-            setLojas(response.data.stores || []);
-        } catch (error) {
-            console.error('Erro ao buscar lojas:', error);
-            showNotification('error', 'Erro ao carregar lojas disponíveis');
-        } finally {
-            setLoadingLojas(false);
-        }
-    };
 
     const buscarPedidos = async () => {
         if (!dateRange?.from || !dateRange?.to) {
@@ -87,19 +71,17 @@ function EcomhubPedidosPage() {
         try {
             const payload = {
                 data_inicio: dateRange.from.toISOString().split('T')[0],
-                data_fim: dateRange.to.toISOString().split('T')[0],
-                store_id: lojaSelecionada === 'todas' ? null : lojaSelecionada
+                data_fim: dateRange.to.toISOString().split('T')[0]
             };
 
-            const response = await apiClient.post('/metricas/ecomhub/efetividade-v2/processar_tempo_real/', payload);
+            const response = await apiClient.post('/metricas/ecomhub/pedidos/buscar/', payload);
 
             if (response.data.status === 'success') {
-                // Adaptar estrutura de resposta para lista de pedidos
-                const pedidosData = response.data.dados_brutos || [];
+                const pedidosData = response.data.pedidos || [];
                 setPedidos(pedidosData);
-                setTotalPedidos(pedidosData.length);
+                setTotalPedidos(response.data.total || pedidosData.length);
                 setCurrentPage(1);
-                showNotification('success', `${pedidosData.length} pedidos encontrados!`);
+                showNotification('success', response.data.message || `${pedidosData.length} pedidos encontrados!`);
             } else {
                 showNotification('error', response.data.message || 'Erro ao buscar pedidos');
             }
@@ -204,27 +186,8 @@ function EcomhubPedidosPage() {
                 <Package className="h-6 w-6 text-primary" />
                 <div>
                     <h1 className="text-2xl font-bold text-foreground">Pedidos - API Tempo Real</h1>
-                    <p className="text-sm text-muted-foreground">Consulta de pedidos da API ECOMHUB</p>
+                    <p className="text-sm text-muted-foreground">Consulta de pedidos da API ECOMHUB via Selenium</p>
                 </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-                <Select value={lojaSelecionada} onValueChange={setLojaSelecionada}>
-                    <SelectTrigger className="w-64 border-border bg-background text-foreground">
-                        <Database className="h-4 w-4 mr-2" />
-                        <SelectValue placeholder="Selecione uma loja" />
-                    </SelectTrigger>
-                    <SelectContent className="border-border bg-popover">
-                        <SelectItem value="todas" className="text-popover-foreground hover:bg-accent">
-                            Todas as Lojas
-                        </SelectItem>
-                        {lojas.map(loja => (
-                            <SelectItem key={loja.id} value={loja.id.toString()} className="text-popover-foreground hover:bg-accent">
-                                {loja.name} ({loja.country_name})
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
             </div>
         </div>
     );
@@ -403,7 +366,7 @@ function EcomhubPedidosPage() {
                                 <TableRow className="bg-muted/50 border-border">
                                     <TableHead className="w-10"></TableHead>
                                     <TableHead className="min-w-[200px]">ID Pedido</TableHead>
-                                    <TableHead className="min-w-[150px]">Processando</TableHead>
+                                    <TableHead className="min-w-[150px]">Data de Criação</TableHead>
                                     <TableHead className="min-w-[120px]">Status</TableHead>
                                     <TableHead className="min-w-[100px]">País</TableHead>
                                 </TableRow>
@@ -525,8 +488,6 @@ function EcomhubPedidosPage() {
     // ======================== EFEITOS ========================
 
     useEffect(() => {
-        fetchLojas();
-
         // Definir período padrão (última semana)
         const hoje = new Date();
         const semanaPassada = new Date();

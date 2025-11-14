@@ -4,7 +4,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     AnaliseEcomhubViewSet, StatusTrackingViewSet, PedidoStatusViewSet,
     EcomhubStoreViewSet, EcomhubOrderViewSet, EcomhubAlertConfigViewSet,
-    EcomhubUnknownStatusViewSet, EfetividadeV2ViewSet
+    EcomhubUnknownStatusViewSet, EfetividadeV2ViewSet, EcomhubPedidosViewSet
 )
 
 router = DefaultRouter()
@@ -32,6 +32,11 @@ router.register(r'unknown-status', EcomhubUnknownStatusViewSet, basename='ecomhu
 # EFETIVIDADE V2: ANÁLISES COM API DIRETA
 # ===========================================
 router.register(r'efetividade-v2', EfetividadeV2ViewSet, basename='efetividade-v2')
+
+# ===========================================
+# PEDIDOS TEMPO REAL: SELENIUM + API ECOMHUB
+# ===========================================
+router.register(r'pedidos', EcomhubPedidosViewSet, basename='ecomhub-pedidos')
 
 urlpatterns = [
     path('', include(router.urls)),
