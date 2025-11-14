@@ -194,7 +194,7 @@ def buscar_pedidos_ecomhub(
         tokens: Dict com token, e_token, refresh_token (do Selenium)
         data_inicio: Data inicial
         data_fim: Data final
-        offset: Página (0-indexed, múltiplo de 48)
+        offset: Número da página (0, 1, 2, 3...) - NÃO é offset de registros!
         country_ids: Filtro de países (opcional)
         status_list: Filtro de status (opcional)
 
@@ -338,7 +338,8 @@ def buscar_todos_pedidos_periodo(
                 logger.info(f"Renovando tokens na página {page + 1}...")
                 tokens = obter_tokens_selenium()
 
-            offset = page * page_size
+            # IMPORTANTE: offset é o NÚMERO DA PÁGINA (0, 1, 2...), não offset de registros!
+            offset = page
             logger.info(f"Buscando página {page + 1} (offset={offset})...")
 
             try:
