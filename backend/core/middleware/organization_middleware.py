@@ -1,4 +1,5 @@
 from core.models import OrganizationMember
+from django.db.models import Q
 
 
 class OrganizationMiddleware:
@@ -28,15 +29,18 @@ class OrganizationMiddleware:
 
             if org_id:
                 # Buscar membership específico
-                try:
-                    member = OrganizationMember.objects.select_related('organization').get(
-                        user=request.user,
-                        organization_id=org_id,
-                        ativo=True,
-                        organization__ativo=True
-                    )
+                member = OrganizationMember.objects.select_related('organization').filter(
+                    Q(user=request.user) &
+                    Q(organization_id=org_id) &
+                    Q(ativo=True) &
+                    Q(organization__ativo=True) &
+                    # Aceitar approved OU NULL (organizações antigas sem migration)
+                    (Q(organization__status='approved') | Q(organization__status__isnull=True))
+                ).first()
+
+                if member:
                     self._set_organization_data(request, member)
-                except OrganizationMember.DoesNotExist:
+                else:
                     # Organização não encontrada ou usuário não é mais membro
                     # Limpar sessão e tentar pegar primeira organização
                     request.session.pop('active_organization_id', None)
@@ -51,9 +55,11 @@ class OrganizationMiddleware:
     def _set_first_organization(self, request):
         """Define a primeira organização do usuário como ativa"""
         member = OrganizationMember.objects.select_related('organization').filter(
-            user=request.user,
-            ativo=True,
-            organization__ativo=True
+            Q(user=request.user) &
+            Q(ativo=True) &
+            Q(organization__ativo=True) &
+            # Aceitar approved OU NULL (organizações antigas sem migration)
+            (Q(organization__status='approved') | Q(organization__status__isnull=True))
         ).first()
 
         if member:

@@ -5,6 +5,7 @@ from django.contrib.auth.models import User, Group
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -68,9 +69,11 @@ class CurrentStateView(APIView):
                 # FALLBACK: Buscar primeira organização diretamente
                 # Isso resolve race conditions onde o middleware ainda não processou
                 member = OrganizationMember.objects.select_related('organization').filter(
-                    user=request.user,
-                    ativo=True,
-                    organization__ativo=True
+                    Q(user=request.user) &
+                    Q(ativo=True) &
+                    Q(organization__ativo=True) &
+                    # Aceitar approved OU NULL (organizações antigas sem migration)
+                    (Q(organization__status='approved') | Q(organization__status__isnull=True))
                 ).first()
 
                 if member:
@@ -99,37 +102,29 @@ class CurrentStateView(APIView):
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
-    
+
     def post(self, request):
         name = request.data.get('name', '').strip()
         email = request.data.get('email', '').strip().lower()
-        area = request.data.get('area', '').strip()
         password = request.data.get('password', '')
-        
-        if not all([name, email, area, password]):
+
+        if not all([name, email, password]):
             return Response({'error': 'Todos os campos são obrigatórios.'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         if User.objects.filter(email=email).exists():
             return Response({'error': 'Já existe uma conta com este email.'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Criar usuário inativo
+
+        # Criar usuário ativo (não precisa mais de aprovação de admin)
         user = User.objects.create_user(
             username=email,
             email=email,
             password=password,
             first_name=name.split()[0] if name else '',
             last_name=' '.join(name.split()[1:]) if len(name.split()) > 1 else '',
-            is_active=False
+            is_active=True  # Usuário já nasce ativo
         )
-        
-        # Adicionar ao grupo/área
-        try:
-            group = Group.objects.get(name=area)
-            user.groups.add(group)
-        except Group.DoesNotExist:
-            pass
-        
-        return Response({'message': 'Conta criada! Aguarde aprovação do administrador.'}, status=status.HTTP_201_CREATED)
+
+        return Response({'message': 'Conta criada com sucesso! Faça login para continuar.'}, status=status.HTTP_201_CREATED)
 
 class SelectAreaView(APIView):
     def post(self, request):

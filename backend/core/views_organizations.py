@@ -121,9 +121,9 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Retorna apenas organizações aprovadas que o usuário é membro"""
         return Organization.objects.filter(
-            membros__user=self.request.user,
-            membros__ativo=True,
-            status='approved'  # Apenas organizações aprovadas
+            Q(membros__user=self.request.user) &
+            Q(membros__ativo=True) &
+            (Q(status='approved') | Q(status__isnull=True))  # Aprovadas OU NULL (fallback)
         ).distinct()
 
     def perform_create(self, serializer):
@@ -633,9 +633,11 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         try:
             # Buscar todos os memberships ativos do usuário
             memberships = OrganizationMember.objects.select_related('organization').filter(
-                user=request.user,
-                ativo=True,
-                organization__ativo=True
+                Q(user=request.user) &
+                Q(ativo=True) &
+                Q(organization__ativo=True) &
+                # Aceitar approved OU NULL (organizações antigas sem migration)
+                (Q(organization__status='approved') | Q(organization__status__isnull=True))
             ).order_by('-role', 'organization__nome')  # Ordenar: owner > admin > member > alfabético
 
             organizacoes = []
@@ -681,14 +683,16 @@ class OrganizationViewSet(viewsets.ModelViewSet):
                 )
 
             # Verificar se usuário é membro desta organização
-            try:
-                member = OrganizationMember.objects.select_related('organization').get(
-                    user=request.user,
-                    organization_id=organization_id,
-                    ativo=True,
-                    organization__ativo=True
-                )
-            except OrganizationMember.DoesNotExist:
+            member = OrganizationMember.objects.select_related('organization').filter(
+                Q(user=request.user) &
+                Q(organization_id=organization_id) &
+                Q(ativo=True) &
+                Q(organization__ativo=True) &
+                # Aceitar approved OU NULL (organizações antigas sem migration)
+                (Q(organization__status='approved') | Q(organization__status__isnull=True))
+            ).first()
+
+            if not member:
                 return Response(
                     {'error': 'Você não é membro desta organização'},
                     status=status.HTTP_403_FORBIDDEN

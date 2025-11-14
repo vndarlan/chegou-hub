@@ -21,6 +21,8 @@ export const useOrganization = () => {
     const [error, setError] = useState(null);
     const [allowedModules, setAllowedModules] = useState(null);
     const [loadingModules, setLoadingModules] = useState(false);
+    const [retryCount, setRetryCount] = useState(0);
+    const MAX_RETRIES = 3;
 
     const fetchOrganization = useCallback(async () => {
         try {
@@ -29,26 +31,59 @@ export const useOrganization = () => {
 
             const response = await apiClient.get('/current-state/');
 
-            if (response.data.logged_in) {
+            if (response.data.logged_in && response.data.organization) {
                 setOrganization(response.data.organization);
                 setRole(response.data.organization_role);
+                setRetryCount(0); // Resetar contador em caso de sucesso
             } else {
+                // Incrementar contador de retry usando função
+                setRetryCount(prev => {
+                    const newCount = prev + 1;
+                    if (newCount <= MAX_RETRIES) {
+                        console.warn(`⚠️ [useOrganization] Nenhuma organização retornada (tentativa ${newCount}/${MAX_RETRIES})`);
+                    }
+                    return newCount;
+                });
                 setOrganization(null);
                 setRole(null);
             }
         } catch (err) {
             console.error('Erro ao buscar organização:', err);
             setError(err.message);
+            setRetryCount(prev => {
+                const newCount = prev + 1;
+                if (newCount <= MAX_RETRIES) {
+                    console.warn(`⚠️ [useOrganization] Erro na tentativa ${newCount}/${MAX_RETRIES}`);
+                }
+                return newCount;
+            });
             setOrganization(null);
             setRole(null);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, []); // ✅ SEM DEPENDÊNCIAS - evita loop infinito!
 
+    // useEffect separado para verificar limite
     useEffect(() => {
-        fetchOrganization();
-    }, [fetchOrganization]);
+        if (retryCount >= MAX_RETRIES) {
+            console.error(
+                '❌ [useOrganization] Limite de tentativas atingido!\n' +
+                'Possíveis causas:\n' +
+                '1. Usuário não pertence a nenhuma organização\n' +
+                '2. Todas as organizações do usuário foram desativadas\n' +
+                '3. Problema de conectividade com o backend'
+            );
+            setLoading(false);
+        }
+    }, [retryCount]);
+
+    // useEffect principal para chamar fetchOrganization
+    useEffect(() => {
+        if (retryCount < MAX_RETRIES) {
+            fetchOrganization();
+        }
+    }, [retryCount, fetchOrganization]); // ✅ Agora fetchOrganization não muda mais
 
     // Buscar módulos permitidos quando organização carregar
     useEffect(() => {
