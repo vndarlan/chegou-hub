@@ -1175,7 +1175,8 @@ class EfetividadeV2ViewSet(viewsets.ModelViewSet):
                     'message': resultado['message'],
                     'dados_processados': resultado['dados_processados'],
                     'estatisticas': resultado['estatisticas'],
-                    'lojas_processadas': resultado['lojas_processadas']
+                    'lojas_processadas': resultado['lojas_processadas'],
+                    'dados_brutos': resultado.get('dados_brutos', [])  # Incluir pedidos brutos para página de Pedidos
                 })
             else:
                 return Response(

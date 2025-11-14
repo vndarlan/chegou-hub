@@ -160,6 +160,14 @@ def fetch_orders_from_ecomhub_api(
                 if data_inicio <= order_date <= data_fim:
                     # Filtrar por país (se especificado)
                     if country_id is None or order.get('shippingCountry_id') == country_id:
+                        # Garantir que o campo countries.name existe (para página de Pedidos)
+                        if 'countries' not in order or not order.get('countries', {}).get('name'):
+                            country_id_pedido = order.get('shippingCountry_id')
+                            country_name = PAISES.get(country_id_pedido, order.get('shippingCountry', 'N/A'))
+                            order['countries'] = {
+                                'id': country_id_pedido,
+                                'name': country_name
+                            }
                         orders_filtrados.append(order)
             except Exception as e:
                 logger.warning(f"Erro ao processar data do pedido {order.get('id')}: {e}")
