@@ -137,13 +137,13 @@ def debug_user_invites(request):
     Debug: Mostra TODOS os convites do usuário
     Endpoint temporário - REMOVER após debug!
     """
-    from core.models import Invite
+    from core.models import OrganizationInvite
 
     user = request.user
     email = user.email
 
     # Buscar convites por email
-    all_invites = Invite.objects.filter(email=email).select_related('organization', 'convidado_por', 'aceito_por')
+    all_invites = OrganizationInvite.objects.filter(email=email).select_related('organization', 'convidado_por', 'aceito_por')
 
     invites_data = []
     for invite in all_invites:
