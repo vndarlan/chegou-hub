@@ -58,6 +58,7 @@ export function AppSidebar({
   userEmail = "",
   onLogout,
   isAdmin = false,
+  isOrgAdmin = false,
   ...props
 }) {
   // Importações do react-router-dom devem ser passadas via props
@@ -693,7 +694,7 @@ export function AppSidebar({
                   <UserCircle className="mr-2 h-4 w-4" />
                   Perfil
                 </DropdownMenuItem>
-                {(isAdmin) && (
+                {(isOrgAdmin) && (
                   <DropdownMenuItem onClick={() => navigate('/configuracoes/organizacao')}>
                     <Settings className="mr-2 h-4 w-4" />
                     Configurações da Organização

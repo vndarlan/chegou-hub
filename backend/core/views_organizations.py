@@ -252,6 +252,13 @@ class OrganizationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Auto-aprovar organização se ainda estiver pendente
+        # Lógica: Se owner/admin está convidando membros, a organização é legítima
+        if org.status == 'pending':
+            org.status = 'approved'
+            org.save()
+            logger.info(f"✅ Organização '{org.nome}' auto-aprovada ao enviar primeiro convite")
+
         # Criar convite
         logger.info(f"Criando convite para {email} como {role} com módulos: {modulos}...")
         convite = OrganizationInvite.objects.create(

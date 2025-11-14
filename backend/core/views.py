@@ -94,6 +94,7 @@ class CurrentStateView(APIView):
                 'name': request.user.get_full_name() or request.user.username,
                 'email': request.user.email,
                 'is_admin': request.user.is_staff or request.user.is_superuser,
+                'is_org_admin': organization_role in ['admin', 'owner'] if organization_role else False,
                 'organization': organization_data,
                 'organization_role': organization_role,
                 'csrf_token': csrf_token

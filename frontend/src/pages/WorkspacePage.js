@@ -154,7 +154,8 @@ function WorkspacePage({ setIsLoggedIn }) {
           setUserData({
             name: response.data.user_name || response.data.name || 'Usuário',
             email: response.data.user_email || response.data.email || '',
-            isAdmin: response.data.is_admin || false
+            isAdmin: response.data.is_admin || false,
+            isOrgAdmin: response.data.is_org_admin || false
           });
         } else {
           setIsLoggedIn(false);
@@ -194,11 +195,12 @@ function WorkspacePage({ setIsLoggedIn }) {
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full">
-        <AppSidebar 
+        <AppSidebar
           userName={userData?.name}
           userEmail={userData?.email}
           onLogout={handleLogout}
           isAdmin={userData?.isAdmin}
+          isOrgAdmin={userData?.isOrgAdmin}
           navigate={navigate}
           location={location}
         />
