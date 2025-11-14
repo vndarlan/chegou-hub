@@ -232,6 +232,11 @@ def buscar_pedidos_ecomhub(
             'search': ''
         }
 
+        # DEBUG: Logar URL completa
+        logger.info(f"🔍 DEBUG PAGINAÇÃO:")
+        logger.info(f"   Offset: {offset}")
+        logger.info(f"   Conditions: {urllib.parse.unquote(conditions)[:100]}...")
+
         # Fazer requisição
         response = requests.get(
             ECOMHUB_API_BASE,
@@ -240,6 +245,9 @@ def buscar_pedidos_ecomhub(
             headers=REQUIRED_HEADERS,
             timeout=REQUEST_TIMEOUT
         )
+
+        # DEBUG: Logar URL final
+        logger.info(f"   URL chamada: {response.url}")
 
         if response.status_code != 200:
             logger.error(f"API EcomHub retornou status {response.status_code}: {response.text}")
@@ -258,6 +266,11 @@ def buscar_pedidos_ecomhub(
             raise ValueError("API retornou formato inesperado (esperado: array)")
 
         logger.info(f"API retornou {len(pedidos)} pedidos (offset={offset})")
+
+        # DEBUG: Logar primeiros IDs para detectar duplicatas
+        if pedidos:
+            primeiros_ids = [p.get('id', 'N/A')[:20] for p in pedidos[:3]]
+            logger.info(f"   Primeiros 3 IDs: {primeiros_ids}")
 
         # Garantir que cada pedido tenha countries.name
         for pedido in pedidos:
@@ -355,7 +368,7 @@ def buscar_todos_pedidos_periodo(
 
             # Se retornou vazio, fim da paginação
             if not pedidos_pagina:
-                logger.info(f"Página {page + 1} retornou vazia. Fim da paginação.")
+                logger.info(f"⛔ Página {page + 1} retornou vazia. Fim da paginação.")
                 break
 
             todos_pedidos.extend(pedidos_pagina)
@@ -363,9 +376,11 @@ def buscar_todos_pedidos_periodo(
 
             # Se retornou menos que page_size, é a última página
             if len(pedidos_pagina) < page_size:
-                logger.info(f"Página {page + 1} retornou {len(pedidos_pagina)} pedidos (< {page_size}). Última página.")
+                logger.info(f"⛔ Página {page + 1} retornou {len(pedidos_pagina)} pedidos (< {page_size}). Última página.")
                 break
 
+            # DEBUG: Se retornou exatamente page_size, continuar
+            logger.info(f"🔄 Página {page + 1} retornou {len(pedidos_pagina)} pedidos (= {page_size}). Continuando paginação...")
             page += 1
 
         logger.info(f"Busca concluída: {len(todos_pedidos)} pedidos total em {page + 1} páginas")
