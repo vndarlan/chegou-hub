@@ -33,6 +33,7 @@ function EcomhubPedidosPage() {
         from: undefined,
         to: undefined
     });
+    const [paisSelecionado, setPaisSelecionado] = useState('todos');
 
     // Estados de expansão
     const [expandedRows, setExpandedRows] = useState({});
@@ -74,6 +75,11 @@ function EcomhubPedidosPage() {
                 data_fim: dateRange.to.toISOString().split('T')[0]
             };
 
+            // Adicionar filtro de país se selecionado
+            if (paisSelecionado !== 'todos') {
+                payload.country_ids = [parseInt(paisSelecionado)];
+            }
+
             const response = await apiClient.post('/metricas/ecomhub/pedidos/buscar/', payload);
 
             if (response.data.status === 'success') {
@@ -113,11 +119,6 @@ function EcomhubPedidosPage() {
 
         setDateRange({ from: dataInicio, to: hoje });
         setPeriodoPreset(preset);
-
-        // Buscar automaticamente após selecionar preset
-        setTimeout(() => {
-            buscarPedidos();
-        }, 100);
     };
 
     // ======================== FUNÇÕES AUXILIARES ========================
@@ -273,7 +274,6 @@ function EcomhubPedidosPage() {
                                                     if (dateRange?.from && dateRange?.to) {
                                                         setOpenPopover(false);
                                                         setPeriodoPreset(null);
-                                                        buscarPedidos();
                                                     }
                                                 }}
                                                 disabled={!dateRange?.from || !dateRange?.to}
@@ -285,25 +285,40 @@ function EcomhubPedidosPage() {
                                 </PopoverContent>
                             </Popover>
 
-                            <Button
-                                onClick={buscarPedidos}
-                                variant="default"
-                                size="sm"
-                                disabled={loadingBuscar || !dateRange?.from || !dateRange?.to}
-                                className="ml-auto"
-                            >
-                                {loadingBuscar ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Buscando...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Search className="h-4 w-4 mr-2" />
-                                        Buscar Pedidos
-                                    </>
-                                )}
-                            </Button>
+                            {/* Filtro de País */}
+                            <div className="ml-auto">
+                                <Select value={paisSelecionado} onValueChange={setPaisSelecionado} disabled={loadingBuscar}>
+                                    <SelectTrigger className="w-48 border-border bg-background text-foreground">
+                                        <SelectValue placeholder="Filtrar por país" />
+                                    </SelectTrigger>
+                                    <SelectContent className="border-border bg-popover">
+                                        <SelectItem value="todos" className="text-popover-foreground hover:bg-accent">
+                                            Todos os Países
+                                        </SelectItem>
+                                        <SelectItem value="164" className="text-popover-foreground hover:bg-accent">
+                                            🇪🇸 Espanha
+                                        </SelectItem>
+                                        <SelectItem value="41" className="text-popover-foreground hover:bg-accent">
+                                            🇭🇷 Croácia
+                                        </SelectItem>
+                                        <SelectItem value="66" className="text-popover-foreground hover:bg-accent">
+                                            🇬🇷 Grécia
+                                        </SelectItem>
+                                        <SelectItem value="82" className="text-popover-foreground hover:bg-accent">
+                                            🇮🇹 Itália
+                                        </SelectItem>
+                                        <SelectItem value="142" className="text-popover-foreground hover:bg-accent">
+                                            🇷🇴 Romênia
+                                        </SelectItem>
+                                        <SelectItem value="44" className="text-popover-foreground hover:bg-accent">
+                                            🇨🇿 República Tcheca
+                                        </SelectItem>
+                                        <SelectItem value="139" className="text-popover-foreground hover:bg-accent">
+                                            🇵🇱 Polônia
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
 
                         {/* Mostrar período selecionado */}
@@ -324,7 +339,7 @@ function EcomhubPedidosPage() {
                 <Alert className="border-border bg-background">
                     <Package className="h-4 w-4 text-muted-foreground" />
                     <AlertDescription className="text-muted-foreground">
-                        Nenhum pedido encontrado. Selecione um período e clique em "Buscar Pedidos".
+                        Nenhum pedido encontrado. Selecione um período para buscar.
                     </AlertDescription>
                 </Alert>
             );
@@ -499,6 +514,13 @@ function EcomhubPedidosPage() {
         });
         setPeriodoPreset('semana');
     }, []);
+
+    // Buscar automaticamente quando período ou país mudar
+    useEffect(() => {
+        if (dateRange?.from && dateRange?.to) {
+            buscarPedidos();
+        }
+    }, [dateRange, paisSelecionado]);
 
     // ======================== RENDER PRINCIPAL ========================
 
