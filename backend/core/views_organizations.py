@@ -635,8 +635,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             memberships = OrganizationMember.objects.select_related('organization').filter(
                 user=request.user,
                 ativo=True,
-                organization__ativo=True,
-                organization__status='approved'
+                organization__ativo=True
             ).order_by('-role', 'organization__nome')  # Ordenar: owner > admin > member > alfabético
 
             organizacoes = []
@@ -687,8 +686,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
                     user=request.user,
                     organization_id=organization_id,
                     ativo=True,
-                    organization__ativo=True,
-                    organization__status='approved'
+                    organization__ativo=True
                 )
             except OrganizationMember.DoesNotExist:
                 return Response(

@@ -33,8 +33,7 @@ class OrganizationMiddleware:
                         user=request.user,
                         organization_id=org_id,
                         ativo=True,
-                        organization__ativo=True,
-                        organization__status='approved'
+                        organization__ativo=True
                     )
                     self._set_organization_data(request, member)
                 except OrganizationMember.DoesNotExist:
@@ -54,8 +53,7 @@ class OrganizationMiddleware:
         member = OrganizationMember.objects.select_related('organization').filter(
             user=request.user,
             ativo=True,
-            organization__ativo=True,
-            organization__status='approved'
+            organization__ativo=True
         ).first()
 
         if member:
