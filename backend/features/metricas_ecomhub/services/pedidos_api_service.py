@@ -288,18 +288,16 @@ def buscar_todos_pedidos_periodo(
     data_inicio: date,
     data_fim: date,
     country_ids: Optional[List[int]] = None,
-    status_list: Optional[List[str]] = None,
-    max_pages: int = 500
+    status_list: Optional[List[str]] = None
 ) -> Dict[str, Any]:
     """
-    Busca TODOS os pedidos de um período (com paginação automática)
+    Busca TODOS os pedidos de um período (com paginação automática infinita)
 
     Args:
         data_inicio: Data inicial
         data_fim: Data final
         country_ids: Filtro de países (opcional)
         status_list: Filtro de status (opcional)
-        max_pages: Máximo de páginas a buscar (segurança, permite até 24.000 pedidos)
 
     Returns:
         dict: {
@@ -316,12 +314,12 @@ def buscar_todos_pedidos_periodo(
         # Buscar tokens
         tokens = obter_tokens_selenium()
 
-        # Buscar pedidos com paginação
+        # Buscar pedidos com paginação infinita
         todos_pedidos = []
         page = 0
         page_size = 48
 
-        while page < max_pages:
+        while True:
             offset = page * page_size
 
             pedidos_pagina = buscar_pedidos_ecomhub(
