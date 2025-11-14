@@ -427,9 +427,8 @@ function EcomhubPedidosPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div className="w-full overflow-x-auto overflow-y-visible">
-                        <div className="min-w-max">
-                            <Table>
+                    <div className="w-full max-w-[calc(100vw-280px)] overflow-x-auto">
+                        <Table className="w-full table-fixed" style={{ minWidth: '2000px' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     <TableHead className="w-10"></TableHead>
@@ -618,8 +617,7 @@ function EcomhubPedidosPage() {
                                     );
                                 })}
                             </TableBody>
-                            </Table>
-                        </div>
+                        </Table>
                     </div>
 
                     {/* Paginação */}
