@@ -289,7 +289,7 @@ def buscar_todos_pedidos_periodo(
     data_fim: date,
     country_ids: Optional[List[int]] = None,
     status_list: Optional[List[str]] = None,
-    max_pages: int = 20
+    max_pages: int = 500
 ) -> Dict[str, Any]:
     """
     Busca TODOS os pedidos de um período (com paginação automática)
@@ -299,7 +299,7 @@ def buscar_todos_pedidos_periodo(
         data_fim: Data final
         country_ids: Filtro de países (opcional)
         status_list: Filtro de status (opcional)
-        max_pages: Máximo de páginas a buscar (segurança)
+        max_pages: Máximo de páginas a buscar (segurança, permite até 24.000 pedidos)
 
     Returns:
         dict: {
