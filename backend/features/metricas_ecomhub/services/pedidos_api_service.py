@@ -89,20 +89,33 @@ def obter_tokens_selenium() -> Dict[str, Any]:
             logger.error(f"Selenium retornou status {response.status_code}: {response.text}")
             raise requests.RequestException(f"Erro ao buscar tokens: HTTP {response.status_code}")
 
-        tokens = response.json()
+        data = response.json()
 
-        # Log da resposta para debug
-        logger.info(f"Resposta do Selenium: {tokens}")
+        # Validar estrutura da resposta
+        if 'cookies' not in data:
+            logger.error(f"Resposta inválida do Selenium: {json.dumps(data, indent=2)}")
+            raise ValueError("Campo 'cookies' ausente na resposta do Selenium")
 
-        # Validar campos necessários
+        cookies = data['cookies']
+
+        # Validar campos necessários dentro de cookies
         required_fields = ['token', 'e_token', 'refresh_token']
         for field in required_fields:
-            if field not in tokens:
-                logger.error(f"Resposta completa do Selenium: {json.dumps(tokens, indent=2)}")
-                raise ValueError(f"Campo '{field}' ausente na resposta do Selenium")
+            if field not in cookies:
+                logger.error(f"Resposta completa do Selenium: {json.dumps(data, indent=2)}")
+                raise ValueError(f"Campo '{field}' ausente em cookies")
 
         logger.info("Tokens obtidos com sucesso do Selenium")
-        return tokens
+
+        # Retornar estrutura compatível
+        return {
+            'token': cookies['token'],
+            'e_token': cookies['e_token'],
+            'refresh_token': cookies['refresh_token'],
+            'cookie_string': data.get('cookie_string', ''),
+            'timestamp': data.get('timestamp', ''),
+            'headers': data.get('headers', {})
+        }
 
     except requests.Timeout:
         logger.error("Timeout ao buscar tokens do Selenium (>60s)")
