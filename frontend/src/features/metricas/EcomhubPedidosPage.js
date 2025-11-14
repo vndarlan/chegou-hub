@@ -52,6 +52,37 @@ function EcomhubPedidosPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 50;
 
+    // ======================== FUNÇÕES AUXILIARES ========================
+
+    // Função auxiliar para formatar arrays de ordersItems
+    const formatOrdersItems = (items, field) => {
+        if (!items || items.length === 0) return 'N/A';
+        return items.map(item => item[field]).filter(Boolean).join(', ') || 'N/A';
+    };
+
+    // Função auxiliar para formatar datas com segurança
+    const formatSafeDate = (dateString, formatStr = 'dd/MM/yyyy HH:mm') => {
+        if (!dateString) return '-';
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return '-';
+            return format(date, formatStr, { locale: ptBR });
+        } catch {
+            return '-';
+        }
+    };
+
+    // Função auxiliar para validar URLs
+    const isValidUrl = (url) => {
+        if (!url) return false;
+        try {
+            const parsed = new URL(url);
+            return ['http:', 'https:'].includes(parsed.protocol);
+        } catch {
+            return false;
+        }
+    };
+
     // ======================== FUNÇÕES DE API ========================
 
     const buscarPedidos = async () => {
@@ -327,6 +358,27 @@ function EcomhubPedidosPage() {
                                 Período selecionado: {format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR })} até {format(dateRange.to, 'dd/MM/yyyy', { locale: ptBR })}
                             </p>
                         )}
+
+                        {/* Botão de busca */}
+                        <div className="flex justify-end mt-4">
+                            <Button
+                                onClick={buscarPedidos}
+                                disabled={loadingBuscar || !dateRange?.from || !dateRange?.to}
+                                className="gap-2"
+                            >
+                                {loadingBuscar ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Buscando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Search className="h-4 w-4" />
+                                        Buscar Pedidos
+                                    </>
+                                )}
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </CardContent>
@@ -380,10 +432,33 @@ function EcomhubPedidosPage() {
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     <TableHead className="w-10"></TableHead>
-                                    <TableHead className="min-w-[200px]">ID Pedido</TableHead>
-                                    <TableHead className="min-w-[150px]">Data de Criação</TableHead>
-                                    <TableHead className="min-w-[120px]">Status</TableHead>
-                                    <TableHead className="min-w-[100px]">País</TableHead>
+                                    <TableHead className="min-w-[150px]">countries_name</TableHead>
+                                    <TableHead className="min-w-[180px]">revenueReleaseWindow</TableHead>
+                                    <TableHead className="min-w-[150px]">shopifyOrderNumber</TableHead>
+                                    <TableHead className="min-w-[200px]">customerName</TableHead>
+                                    <TableHead className="min-w-[150px]">customerPhone</TableHead>
+                                    <TableHead className="min-w-[250px]">billingAddress</TableHead>
+                                    <TableHead className="min-w-[300px]">trackingUrl</TableHead>
+                                    <TableHead className="min-w-[150px]">waybill</TableHead>
+                                    <TableHead className="min-w-[180px]">createdAt</TableHead>
+                                    <TableHead className="min-w-[120px]">status</TableHead>
+                                    <TableHead className="min-w-[180px]">updatedAt</TableHead>
+                                    <TableHead className="min-w-[150px]">revenueReleaseDate</TableHead>
+                                    <TableHead className="min-w-[200px]">ordersItems[].sku</TableHead>
+                                    <TableHead className="min-w-[250px]">ordersItems[].name</TableHead>
+                                    <TableHead className="min-w-[100px]">volume</TableHead>
+                                    <TableHead className="min-w-[120px]">priceOriginal</TableHead>
+                                    <TableHead className="min-w-[100px]">price</TableHead>
+                                    <TableHead className="min-w-[150px]">ordersItems[].cost</TableHead>
+                                    <TableHead className="min-w-[120px]">costCourier</TableHead>
+                                    <TableHead className="min-w-[130px]">costWarehouse</TableHead>
+                                    <TableHead className="min-w-[130px]">costCommission</TableHead>
+                                    <TableHead className="min-w-[180px]">costCommissionReturn</TableHead>
+                                    <TableHead className="min-w-[180px]">costWarehouseReturn</TableHead>
+                                    <TableHead className="min-w-[170px]">costCourierReturn</TableHead>
+                                    <TableHead className="min-w-[170px]">costPaymentMethod</TableHead>
+                                    <TableHead className="min-w-[200px]">isCostManuallyOverwritten</TableHead>
+                                    <TableHead className="min-w-[250px]">note</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -407,13 +482,41 @@ function EcomhubPedidosPage() {
                                                         )}
                                                     </Button>
                                                 </TableCell>
-                                                <TableCell className="font-mono text-xs">
-                                                    <div className="truncate max-w-[200px]" title={pedido.id}>
-                                                        {pedido.id}
-                                                    </div>
+                                                <TableCell className="text-xs">
+                                                    {pedido.countries?.name || '-'}
                                                 </TableCell>
                                                 <TableCell className="text-xs">
-                                                    {pedido.createdAt ? format(new Date(pedido.createdAt), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : '-'}
+                                                    {pedido.revenueReleaseWindow || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {pedido.shopifyOrderNumber || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {pedido.customerName || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {pedido.customerPhone || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {pedido.billingAddress || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {pedido.trackingUrl && isValidUrl(pedido.trackingUrl) ? (
+                                                        <a
+                                                            href={pedido.trackingUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-blue-600 hover:underline break-all"
+                                                        >
+                                                            {pedido.trackingUrl}
+                                                        </a>
+                                                    ) : (pedido.trackingUrl || '-')}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {pedido.waybill || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {formatSafeDate(pedido.createdAt)}
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge className={getStatusBadgeColor(pedido.status)}>
@@ -421,14 +524,62 @@ function EcomhubPedidosPage() {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-xs">
-                                                    {pedido.countries?.name || 'N/A'}
+                                                    {formatSafeDate(pedido.updatedAt)}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {formatSafeDate(pedido.revenueReleaseDate, 'dd/MM/yyyy')}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {formatOrdersItems(pedido.ordersItems, 'sku')}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {formatOrdersItems(pedido.ordersItems, 'name')}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {pedido.volume || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {pedido.priceOriginal || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {pedido.price || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {formatOrdersItems(pedido.ordersItems, 'cost')}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {pedido.costCourier || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {pedido.costWarehouse || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {pedido.costCommission || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {pedido.costCommissionReturn || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {pedido.costWarehouseReturn || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {pedido.costCourierReturn || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {pedido.costPaymentMethod || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {pedido.isCostManuallyOverwritten !== undefined ? (pedido.isCostManuallyOverwritten ? 'Sim' : 'Não') : '-'}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {pedido.note || '-'}
                                                 </TableCell>
                                             </TableRow>
 
                                             {/* Linha expandida (JSON completo) */}
                                             {isExpanded && (
                                                 <TableRow className="bg-muted/10 border-border">
-                                                    <TableCell colSpan={5} className="p-4">
+                                                    <TableCell colSpan={28} className="p-4">
                                                         <div className="space-y-3">
                                                             <div className="flex items-center justify-between">
                                                                 <div className="flex items-center gap-2">
@@ -514,13 +665,6 @@ function EcomhubPedidosPage() {
         });
         setPeriodoPreset('semana');
     }, []);
-
-    // Buscar automaticamente quando período ou país mudar
-    useEffect(() => {
-        if (dateRange?.from && dateRange?.to) {
-            buscarPedidos();
-        }
-    }, [dateRange, paisSelecionado]);
 
     // ======================== RENDER PRINCIPAL ========================
 
