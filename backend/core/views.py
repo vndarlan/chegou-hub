@@ -114,17 +114,17 @@ class RegisterView(APIView):
         if User.objects.filter(email=email).exists():
             return Response({'error': 'Já existe uma conta com este email.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Criar usuário ativo (não precisa mais de aprovação de admin)
+        # Criar usuário inativo (aguarda aprovação do administrador)
         user = User.objects.create_user(
             username=email,
             email=email,
             password=password,
             first_name=name.split()[0] if name else '',
             last_name=' '.join(name.split()[1:]) if len(name.split()) > 1 else '',
-            is_active=True  # Usuário já nasce ativo
+            is_active=False  # Usuário aguarda aprovação do admin
         )
 
-        return Response({'message': 'Conta criada com sucesso! Faça login para continuar.'}, status=status.HTTP_201_CREATED)
+        return Response({'message': 'Conta criada! Em breve vamos confirmar seu acesso na plataforma.'}, status=status.HTTP_201_CREATED)
 
 class SelectAreaView(APIView):
     def post(self, request):

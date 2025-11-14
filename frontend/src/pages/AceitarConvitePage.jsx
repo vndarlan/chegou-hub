@@ -7,6 +7,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { CheckCircle2, XCircle, Loader2, Mail, Building2, Lock, UserPlus } from 'lucide-react';
+import { useOrgContext } from '../contexts/OrganizationContext';
 
 /**
  * Página para aceitar convites de organizações
@@ -21,6 +22,7 @@ import { CheckCircle2, XCircle, Loader2, Mail, Building2, Lock, UserPlus } from 
 const AceitarConvitePage = () => {
     const { codigo } = useParams();
     const navigate = useNavigate();
+    const { refetch } = useOrgContext();
 
     const [verificando, setVerificando] = useState(true);
     const [accepting, setAccepting] = useState(false);
@@ -126,11 +128,24 @@ const AceitarConvitePage = () => {
             setOrganization(response.data.organization);
             setContaCriada(response.data.conta_criada || false);
 
-            // Redirecionar para a página inicial após 3 segundos
-            setTimeout(() => {
-                navigate('/');
-                window.location.reload(); // Recarregar para atualizar OrganizationContext
-            }, 3000);
+            // Logs para debug
+            console.log('✅ Convite aceito com sucesso!');
+            console.log('📍 Organization ID:', response.data.organization?.id);
+            console.log('📍 Organization Nome:', response.data.organization?.nome);
+
+            // Aguardar um pouco para garantir que backend processou
+            setTimeout(async () => {
+                try {
+                    // Refetch da organização SEM reload da página
+                    await refetch();
+                    console.log('✅ Organização atualizada após aceitar convite');
+                    navigate('/');
+                } catch (error) {
+                    console.error('❌ Erro ao atualizar organização:', error);
+                    // Em caso de erro, fazer reload como fallback
+                    window.location.reload();
+                }
+            }, 1500); // Reduzir timeout para 1.5s (suficiente para backend processar)
 
         } catch (err) {
             console.error('Erro ao aceitar convite:', err);
