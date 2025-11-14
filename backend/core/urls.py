@@ -19,7 +19,7 @@ from .views import (
 from .views_debug import DebugCorsView, CrossDomainAuthTestView
 from .views_organizations import OrganizationViewSet, InviteViewSet, debug_csrf_view
 from features.feedback.views import FeedbackNotificationsView
-from .debug_views import debug_user_organizations, debug_all_organizations, debug_user_invites
+from .debug_views import debug_user_organizations, debug_all_organizations, debug_user_invites, debug_create_membership
 
 # Router para APIs de organizações
 router = DefaultRouter()
@@ -51,6 +51,7 @@ urlpatterns = [
     path('debug/user-organizations/', debug_user_organizations, name='debug_user_organizations'),
     path('debug/all-organizations/', debug_all_organizations, name='debug_all_organizations'),
     path('debug/user-invites/', debug_user_invites, name='debug_user_invites'),
+    path('debug/create-membership/', debug_create_membership, name='debug_create_membership'),
 
     # Notificações centralizadas
     path('notifications/feedbacks/', FeedbackNotificationsView.as_view(), name='notifications_feedbacks'),

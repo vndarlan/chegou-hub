@@ -169,3 +169,46 @@ def debug_user_invites(request):
         'total_invites': all_invites.count(),
         'invites': invites_data
     })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def debug_create_membership(request):
+    """
+    Debug: Tenta criar membership manualmente
+    Endpoint temporário - REMOVER após debug!
+    """
+    from core.models import Organization, OrganizationMember
+
+    user = request.user
+    org_id = request.data.get('organization_id', 1)  # Default org ID 1
+
+    try:
+        org = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        return Response({'error': f'Organization {org_id} não encontrada'}, status=404)
+
+    # Tentar criar membership
+    try:
+        member = OrganizationMember.objects.create(
+            organization=org,
+            user=user,
+            role='member',
+            convidado_por=None
+        )
+        return Response({
+            'success': True,
+            'message': 'Membership criado com sucesso!',
+            'member_id': member.id,
+            'organization': org.nome,
+            'user': user.email
+        })
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e),
+            'error_type': type(e).__name__,
+            'organization_id': org_id,
+            'user_id': user.id,
+            'user_email': user.email
+        }, status=400)
