@@ -128,3 +128,44 @@ def debug_all_organizations(request):
         'total': all_orgs.count(),
         'organizations': orgs_data
     })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def debug_user_invites(request):
+    """
+    Debug: Mostra TODOS os convites do usuário
+    Endpoint temporário - REMOVER após debug!
+    """
+    from core.models import Invite
+
+    user = request.user
+    email = user.email
+
+    # Buscar convites por email
+    all_invites = Invite.objects.filter(email=email).select_related('organization', 'convidado_por', 'aceito_por')
+
+    invites_data = []
+    for invite in all_invites:
+        invites_data.append({
+            'id': invite.id,
+            'codigo': invite.codigo[:20] + '...',  # Apenas parte do código
+            'email': invite.email,
+            'organization_id': invite.organization.id,
+            'organization_nome': invite.organization.nome,
+            'organization_status': invite.organization.status,
+            'organization_ativo': invite.organization.ativo,
+            'role': invite.role,
+            'status': invite.status,
+            'criado_em': str(invite.criado_em),
+            'expira_em': str(invite.expira_em),
+            'aceito_em': str(invite.aceito_em) if invite.aceito_em else None,
+            'convidado_por': invite.convidado_por.email if invite.convidado_por else None,
+            'aceito_por': invite.aceito_por.email if invite.aceito_por else None,
+        })
+
+    return Response({
+        'user_email': email,
+        'total_invites': all_invites.count(),
+        'invites': invites_data
+    })
