@@ -33,15 +33,15 @@ class OrganizationInviteInline(admin.TabularInline):
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
     """Admin para Organizações (Workspaces)"""
-    list_display = ('nome', 'plano', 'get_total_membros', 'limite_membros', 'get_limite_status', 'ativo', 'criado_em')
-    list_filter = ('plano', 'ativo', 'criado_em')
+    list_display = ('nome', 'get_status_badge', 'plano', 'get_total_membros', 'limite_membros', 'get_limite_status', 'ativo', 'criado_em')
+    list_filter = ('status', 'plano', 'ativo', 'criado_em')
     search_fields = ('nome', 'slug', 'descricao')
     prepopulated_fields = {'slug': ('nome',)}
     readonly_fields = ('criado_em', 'atualizado_em', 'get_total_membros', 'get_limite_atingido')
 
     fieldsets = (
         ('Informações Básicas', {
-            'fields': ('nome', 'slug', 'descricao', 'ativo')
+            'fields': ('nome', 'slug', 'descricao', 'status', 'ativo')
         }),
         ('Plano e Limites', {
             'fields': ('plano', 'limite_membros', 'get_total_membros', 'get_limite_atingido')
@@ -54,6 +54,21 @@ class OrganizationAdmin(admin.ModelAdmin):
 
     inlines = [OrganizationMemberInline, OrganizationInviteInline]
 
+    def get_status_badge(self, obj):
+        """Exibe badge colorido do status de aprovação"""
+        colors = {
+            'pending': '#f59e0b',    # amber
+            'approved': '#10b981',   # green
+            'rejected': '#ef4444'    # red
+        }
+        color = colors.get(obj.status, '#6b7280')
+        return format_html(
+            '<span style="background: {}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">{}</span>',
+            color,
+            obj.get_status_display()
+        )
+    get_status_badge.short_description = 'Status de Aprovação'
+
     def get_total_membros(self, obj):
         return obj.total_membros
     get_total_membros.short_description = 'Total de Membros'
@@ -63,7 +78,7 @@ class OrganizationAdmin(admin.ModelAdmin):
             return format_html('<span style="color: red;">⚠️ Limite atingido</span>')
         else:
             return format_html('<span style="color: green;">✓ OK</span>')
-    get_limite_status.short_description = 'Status'
+    get_limite_status.short_description = 'Status Limite'
 
     def get_limite_atingido(self, obj):
         return obj.limite_atingido
