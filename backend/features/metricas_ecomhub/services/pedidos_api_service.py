@@ -320,26 +320,50 @@ def buscar_todos_pedidos_periodo(
         page_size = 48
 
         while True:
-            offset = page * page_size
+            # Renovar tokens a cada 5 páginas (tokens expiram em ~3 min)
+            if page > 0 and page % 5 == 0:
+                logger.info(f"Renovando tokens na página {page + 1}...")
+                tokens = obter_tokens_selenium()
 
-            pedidos_pagina = buscar_pedidos_ecomhub(
-                tokens=tokens,
-                data_inicio=data_inicio,
-                data_fim=data_fim,
-                offset=offset,
-                country_ids=country_ids,
-                status_list=status_list
-            )
+            offset = page * page_size
+            logger.info(f"Buscando página {page + 1} (offset={offset})...")
+
+            try:
+                pedidos_pagina = buscar_pedidos_ecomhub(
+                    tokens=tokens,
+                    data_inicio=data_inicio,
+                    data_fim=data_fim,
+                    offset=offset,
+                    country_ids=country_ids,
+                    status_list=status_list
+                )
+            except ValueError as e:
+                # Se der erro de token expirado, renovar e tentar novamente
+                if "Tokens inválidos ou expirados" in str(e):
+                    logger.warning(f"Token expirado na página {page + 1}. Renovando...")
+                    tokens = obter_tokens_selenium()
+                    pedidos_pagina = buscar_pedidos_ecomhub(
+                        tokens=tokens,
+                        data_inicio=data_inicio,
+                        data_fim=data_fim,
+                        offset=offset,
+                        country_ids=country_ids,
+                        status_list=status_list
+                    )
+                else:
+                    raise
 
             # Se retornou vazio, fim da paginação
             if not pedidos_pagina:
+                logger.info(f"Página {page + 1} retornou vazia. Fim da paginação.")
                 break
 
             todos_pedidos.extend(pedidos_pagina)
-            logger.info(f"Página {page + 1}: {len(pedidos_pagina)} pedidos (total acumulado: {len(todos_pedidos)})")
+            logger.info(f"✓ Página {page + 1}: {len(pedidos_pagina)} pedidos (total acumulado: {len(todos_pedidos)})")
 
             # Se retornou menos que page_size, é a última página
             if len(pedidos_pagina) < page_size:
+                logger.info(f"Página {page + 1} retornou {len(pedidos_pagina)} pedidos (< {page_size}). Última página.")
                 break
 
             page += 1
