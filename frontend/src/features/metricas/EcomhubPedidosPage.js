@@ -428,7 +428,7 @@ function EcomhubPedidosPage() {
 
                 <CardContent className="p-0">
                     <div className="w-full max-w-[calc(100vw-280px)] overflow-x-auto">
-                        <Table className="w-full table-fixed" style={{ minWidth: '2000px' }}>
+                        <Table className="w-full" style={{ minWidth: '4000px' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     <TableHead className="w-10"></TableHead>
@@ -497,10 +497,10 @@ function EcomhubPedidosPage() {
                                                 <TableCell className="text-xs">
                                                     {pedido.customerPhone || '-'}
                                                 </TableCell>
-                                                <TableCell className="text-xs">
+                                                <TableCell className="text-xs max-w-[250px] break-words">
                                                     {pedido.billingAddress || '-'}
                                                 </TableCell>
-                                                <TableCell className="text-xs">
+                                                <TableCell className="text-xs max-w-[300px]">
                                                     {pedido.trackingUrl && isValidUrl(pedido.trackingUrl) ? (
                                                         <a
                                                             href={pedido.trackingUrl}
@@ -529,10 +529,10 @@ function EcomhubPedidosPage() {
                                                 <TableCell className="text-xs">
                                                     {formatSafeDate(pedido.revenueReleaseDate, 'dd/MM/yyyy')}
                                                 </TableCell>
-                                                <TableCell className="text-xs">
+                                                <TableCell className="text-xs max-w-[200px] break-words">
                                                     {formatOrdersItems(pedido.ordersItems, 'sku')}
                                                 </TableCell>
-                                                <TableCell className="text-xs">
+                                                <TableCell className="text-xs max-w-[300px] break-words">
                                                     {formatOrdersItems(pedido.ordersItems, 'name')}
                                                 </TableCell>
                                                 <TableCell className="text-xs">
@@ -544,7 +544,7 @@ function EcomhubPedidosPage() {
                                                 <TableCell className="text-xs">
                                                     {pedido.price || '-'}
                                                 </TableCell>
-                                                <TableCell className="text-xs">
+                                                <TableCell className="text-xs max-w-[200px] break-words">
                                                     {formatOrdersItems(pedido.ordersItems, 'cost')}
                                                 </TableCell>
                                                 <TableCell className="text-xs">
@@ -571,7 +571,7 @@ function EcomhubPedidosPage() {
                                                 <TableCell className="text-xs">
                                                     {pedido.isCostManuallyOverwritten !== undefined ? (pedido.isCostManuallyOverwritten ? 'Sim' : 'Não') : '-'}
                                                 </TableCell>
-                                                <TableCell className="text-xs">
+                                                <TableCell className="text-xs max-w-[200px] break-words">
                                                     {pedido.note || '-'}
                                                 </TableCell>
                                             </TableRow>
