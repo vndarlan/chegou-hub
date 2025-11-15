@@ -7,6 +7,11 @@ import {
     PieChart, Filter, Rocket, LayoutDashboard, Loader2, Minus, Plus
 } from 'lucide-react';
 import apiClient from '../../utils/axios';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import ReactDatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import '../../datepicker-custom.css';
 
 // shadcn/ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -22,6 +27,7 @@ import { Label } from '../../components/ui/label';
 import { Progress } from '../../components/ui/progress';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
 
 const PAISES = [
     { value: 'todos', label: 'Todos os Países' },
@@ -47,10 +53,12 @@ function EcomhubPage() {
         to: undefined
     });
     const [paisSelecionado, setPaisSelecionado] = useState('todos');
-    
+    const [periodoPreset, setPeriodoPreset] = useState(null);
+
     // Estados de modal e loading
     const [modalSalvar, setModalSalvar] = useState(false);
     const [modalInstrucoes, setModalInstrucoes] = useState(false);
+    const [openPopover, setOpenPopover] = useState(false);
     const [nomeAnalise, setNomeAnalise] = useState('');
     const [loadingProcessar, setLoadingProcessar] = useState(false);
     const [loadingSalvar, setLoadingSalvar] = useState(false);
@@ -192,6 +200,34 @@ function EcomhubPage() {
         }
     };
 
+    const aplicarPreset = async (preset) => {
+        const hoje = new Date();
+        const dataInicio = new Date();
+
+        switch (preset) {
+            case 'semana':
+                dataInicio.setDate(hoje.getDate() - 7);
+                break;
+            case 'mes':
+                dataInicio.setDate(hoje.getDate() - 30);
+                break;
+            case '3meses':
+                dataInicio.setDate(hoje.getDate() - 90);
+                break;
+            default:
+                return;
+        }
+
+        setDateRange({ from: dataInicio, to: hoje });
+        setPeriodoPreset(preset);
+
+        // Buscar automaticamente após selecionar preset
+        // Aguarda um momento para garantir que o estado foi atualizado
+        setTimeout(async () => {
+            await processarDados();
+        }, 100);
+    };
+
     // ======================== FUNÇÕES AUXILIARES ========================
 
     const showNotification = (type, message) => {
@@ -305,9 +341,9 @@ function EcomhubPage() {
         </div>
     );
 
-    // Formulário com input type="date" (mais confiável)
+    // Formulário com presets e período personalizado
     const renderFormulario = () => (
-        <Card className="mb-6 relative border-border bg-card">
+        <div className="mb-6 relative">
             {loadingProcessar && (
                 <div className="absolute inset-0 bg-background/95 backdrop-blur flex flex-col items-center justify-center z-10 rounded-lg">
                     <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
@@ -321,65 +357,96 @@ function EcomhubPage() {
                 </div>
             )}
 
-            <CardHeader>
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Filter className="h-5 w-5 text-primary" />
-                        <div>
-                            <CardTitle className="text-card-foreground">Configuração</CardTitle>
-                            <CardDescription className="text-muted-foreground">Configure o período e execute</CardDescription>
-                        </div>
+            <div className="space-y-4">
+                {/* Períodos Rápidos + Período Personalizado */}
+                <div className="space-y-3">
+                    <div className="flex gap-2 flex-wrap">
+                        <Button
+                            onClick={() => aplicarPreset('semana')}
+                            variant={periodoPreset === 'semana' ? 'default' : 'outline'}
+                            size="sm"
+                        >
+                            Última Semana
+                        </Button>
+                        <Button
+                            onClick={() => aplicarPreset('mes')}
+                            variant={periodoPreset === 'mes' ? 'default' : 'outline'}
+                            size="sm"
+                        >
+                            Último Mês
+                        </Button>
+                        <Button
+                            onClick={() => aplicarPreset('3meses')}
+                            variant={periodoPreset === '3meses' ? 'default' : 'outline'}
+                            size="sm"
+                        >
+                            Últimos 3 Meses
+                        </Button>
+
+                        {/* Popover com ReactDatePicker */}
+                        <Popover open={openPopover} onOpenChange={setOpenPopover}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant={periodoPreset === null && dateRange?.from ? 'default' : 'outline'}
+                                    size="sm"
+                                    className="gap-2"
+                                >
+                                    <CalendarIcon className="h-4 w-4" />
+                                    Período Personalizado
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 max-w-none" align="start">
+                                <div className="p-4 space-y-4">
+                                    <ReactDatePicker
+                                        selectsRange={true}
+                                        startDate={dateRange?.from}
+                                        endDate={dateRange?.to}
+                                        onChange={(dates) => {
+                                            const [start, end] = dates;
+                                            setDateRange({ from: start, to: end });
+                                            setPeriodoPreset(null);
+                                        }}
+                                        monthsShown={2}
+                                        dateFormat="dd/MM/yyyy"
+                                        locale={ptBR}
+                                        inline
+                                    />
+                                    <div className="flex justify-end gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setOpenPopover(false)}
+                                        >
+                                            Cancelar
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            onClick={async () => {
+                                                if (dateRange?.from && dateRange?.to) {
+                                                    setOpenPopover(false);
+                                                    setPeriodoPreset(null);
+                                                    await processarDados();
+                                                }
+                                            }}
+                                            disabled={!dateRange?.from || !dateRange?.to}
+                                        >
+                                            Aplicar
+                                        </Button>
+                                    </div>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                     </div>
 
-                    <div className="flex items-end gap-4">
-                        {/* Dois calendários separados - simples e funcional */}
-                        <div className="flex gap-4">
-                            <div className="flex flex-col gap-2">
-                                <Label className="text-sm font-medium">Data Inicial</Label>
-                                <input
-                                    type="date"
-                                    value={dateRange?.from ? dateRange.from.toISOString().split('T')[0] : ''}
-                                    onChange={(e) => {
-                                        const newDate = e.target.value ? new Date(e.target.value) : undefined;
-                                        setDateRange(prev => ({ ...prev, from: newDate }));
-                                    }}
-                                    disabled={loadingProcessar}
-                                    className="px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                                />
-                            </div>
-                            
-                            <div className="flex flex-col gap-2">
-                                <Label className="text-sm font-medium">Data Final</Label>
-                                <input
-                                    type="date"
-                                    value={dateRange?.to ? dateRange.to.toISOString().split('T')[0] : ''}
-                                    onChange={(e) => {
-                                        const newDate = e.target.value ? new Date(e.target.value) : undefined;
-                                        setDateRange(prev => ({ ...prev, to: newDate }));
-                                    }}
-                                    disabled={loadingProcessar}
-                                    className="px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                                />
-                            </div>
-                        </div>
-                        
-                        <Button
-                            onClick={processarDados}
-                            disabled={!dateRange?.from || !dateRange?.to || !paisSelecionado || loadingProcessar}
-                            size="lg"
-                            className="min-w-36 bg-primary text-primary-foreground hover:bg-primary/90"
-                        >
-                            {loadingProcessar ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                                <Search className="h-4 w-4 mr-2" />
-                            )}
-                            {loadingProcessar ? 'Buscando...' : 'Buscar Dados'}
-                        </Button>
-                    </div>
+                    {/* Mostrar período selecionado */}
+                    {dateRange?.from && dateRange?.to && (
+                        <p className="text-xs text-muted-foreground">
+                            Período selecionado: {format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR })} até {format(dateRange.to, 'dd/MM/yyyy', { locale: ptBR })}
+                        </p>
+                    )}
                 </div>
-            </CardHeader>
-        </Card>
+            </div>
+        </div>
     );
 
     // Estatísticas
@@ -722,16 +789,17 @@ function EcomhubPage() {
 
     useEffect(() => {
         fetchAnalises();
-        
+
         // Definir período padrão (última semana)
         const hoje = new Date();
         const setemantepassada = new Date();
         setemantepassada.setDate(hoje.getDate() - 7);
-        
+
         setDateRange({
             from: setemantepassada,
             to: hoje
         });
+        setPeriodoPreset('semana');
     }, []);
 
     // ======================== RENDER PRINCIPAL ========================
