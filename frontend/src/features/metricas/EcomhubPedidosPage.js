@@ -1,9 +1,24 @@
 // frontend/src/features/metricas/EcomhubPedidosPage.js
 import React, { useState, useEffect } from 'react';
 import {
-    Calendar as CalendarIcon, ChevronDown, ChevronRight, FileJson,
-    Filter, Loader2, Package, RefreshCw, Copy, Check, X,
-    AlertTriangle, Search, Database
+    Calendar as CalendarIcon,
+    FileJson,
+    Filter,
+    Loader2,
+    Package,
+    RefreshCw,
+    Copy,
+    Check,
+    X,
+    Search,
+    MoreHorizontal,
+    Eye,
+    ExternalLink,
+    Download,
+    ChevronsLeft,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsRight
 } from 'lucide-react';
 import apiClient from '../../utils/axios';
 import { format } from 'date-fns';
@@ -21,6 +36,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Separator } from '../../components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Input } from '../../components/ui/input';
 
 function EcomhubPedidosPage() {
     // Estados principais
@@ -50,7 +75,11 @@ function EcomhubPedidosPage() {
 
     // Paginação
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 50;
+    const [rowsPerPage, setRowsPerPage] = useState(50);
+
+    // Estados para as novas funcionalidades
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedRows, setSelectedRows] = useState([]);
 
     // ======================== FUNÇÕES AUXILIARES ========================
 
@@ -99,6 +128,9 @@ function EcomhubPedidosPage() {
         setLoadingBuscar(true);
         setPedidos([]);
         setExpandedRows({});
+        setSelectedRows([]);
+        setSearchTerm('');
+        setCurrentPage(1);
 
         try {
             const payload = {
@@ -117,7 +149,6 @@ function EcomhubPedidosPage() {
                 const pedidosData = response.data.pedidos || [];
                 setPedidos(pedidosData);
                 setTotalPedidos(response.data.total || pedidosData.length);
-                setCurrentPage(1);
                 showNotification('success', response.data.message || `${pedidosData.length} pedidos encontrados!`);
             } else {
                 showNotification('error', response.data.message || 'Erro ao buscar pedidos');
@@ -175,6 +206,40 @@ function EcomhubPedidosPage() {
         } catch (error) {
             showNotification('error', 'Erro ao copiar JSON');
         }
+    };
+
+    const copiarParaAreaTransferencia = async (pedidoId) => {
+        try {
+            await navigator.clipboard.writeText(pedidoId);
+            showNotification('success', 'ID do pedido copiado!');
+        } catch (error) {
+            showNotification('error', 'Erro ao copiar ID');
+        }
+    };
+
+    const exportarPedidoIndividual = (pedido) => {
+        const dataStr = JSON.stringify(pedido, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `pedido-${pedido.shopifyOrderNumber || pedido.id}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+        showNotification('success', 'Pedido exportado com sucesso!');
+    };
+
+    const exportarSelecionados = () => {
+        const pedidosSelecionados = pedidos.filter(p => selectedRows.includes(p.id));
+        const dataStr = JSON.stringify(pedidosSelecionados, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `pedidos-selecionados-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+        showNotification('success', `${pedidosSelecionados.length} pedidos exportados!`);
     };
 
     const getStatusBadgeVariant = (status) => {
@@ -397,20 +462,32 @@ function EcomhubPedidosPage() {
             );
         }
 
+        // Aplicar filtro de busca
+        const pedidosFiltrados = pedidos.filter(pedido => {
+            if (!searchTerm) return true;
+            const search = searchTerm.toLowerCase();
+            return (
+                pedido.shopifyOrderNumber?.toLowerCase().includes(search) ||
+                pedido.customerName?.toLowerCase().includes(search) ||
+                pedido.waybill?.toLowerCase().includes(search) ||
+                pedido.id?.toLowerCase().includes(search)
+            );
+        });
+
         // Paginação
-        const indexInicio = (currentPage - 1) * itemsPerPage;
-        const indexFim = indexInicio + itemsPerPage;
-        const pedidosPaginados = pedidos.slice(indexInicio, indexFim);
-        const totalPaginas = Math.ceil(pedidos.length / itemsPerPage);
+        const totalPaginas = Math.ceil(pedidosFiltrados.length / rowsPerPage);
+        const indexInicio = (currentPage - 1) * rowsPerPage;
+        const indexFim = indexInicio + rowsPerPage;
+        const pedidosPaginados = pedidosFiltrados.slice(indexInicio, indexFim);
 
         return (
             <Card className="border-border bg-card">
                 <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-4">
                         <div>
                             <CardTitle className="text-lg text-card-foreground">Pedidos Encontrados</CardTitle>
                             <CardDescription className="text-muted-foreground">
-                                {pedidos.length} pedidos | Página {currentPage} de {totalPaginas}
+                                {pedidosFiltrados.length} de {pedidos.length} pedidos | Página {currentPage} de {totalPaginas}
                             </CardDescription>
                         </div>
                         <Button
@@ -424,6 +501,38 @@ function EcomhubPedidosPage() {
                             Atualizar
                         </Button>
                     </div>
+
+                    {/* Campo de Busca Global */}
+                    <div className="flex items-center gap-4 mb-4">
+                        <div className="relative flex-1 max-w-sm">
+                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Buscar por número, cliente ou rastreio..."
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setCurrentPage(1); // Reset para primeira página ao buscar
+                                }}
+                                className="pl-8"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Contador de Seleção */}
+                    {selectedRows.length > 0 && (
+                        <div className="flex items-center gap-2 mb-2 p-2 bg-muted rounded">
+                            <p className="text-sm text-muted-foreground">
+                                {selectedRows.length} de {pedidosFiltrados.length} pedido(s) selecionado(s)
+                            </p>
+                            <Button variant="outline" size="sm" onClick={() => setSelectedRows([])}>
+                                Limpar seleção
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => exportarSelecionados()}>
+                                <Download className="h-4 w-4 mr-2" />
+                                Exportar Selecionados
+                            </Button>
+                        </div>
+                    )}
                 </CardHeader>
 
                 <CardContent className="p-0">
@@ -431,7 +540,19 @@ function EcomhubPedidosPage() {
                         <Table className="w-full" style={{ minWidth: '4000px' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
-                                    <TableHead className="w-10"></TableHead>
+                                    <TableHead className="w-12">
+                                        <Checkbox
+                                            checked={selectedRows.length === pedidosFiltrados.length && pedidosFiltrados.length > 0}
+                                            onCheckedChange={(checked) => {
+                                                if (checked) {
+                                                    setSelectedRows(pedidosFiltrados.map(p => p.id));
+                                                } else {
+                                                    setSelectedRows([]);
+                                                }
+                                            }}
+                                            aria-label="Selecionar todos"
+                                        />
+                                    </TableHead>
                                     <TableHead className="min-w-[150px]">countries_name</TableHead>
                                     <TableHead className="min-w-[180px]">revenueReleaseWindow</TableHead>
                                     <TableHead className="min-w-[150px]">shopifyOrderNumber</TableHead>
@@ -459,6 +580,7 @@ function EcomhubPedidosPage() {
                                     <TableHead className="min-w-[170px]">costPaymentMethod</TableHead>
                                     <TableHead className="min-w-[200px]">isCostManuallyOverwritten</TableHead>
                                     <TableHead className="min-w-[250px]">note</TableHead>
+                                    <TableHead className="text-right min-w-[80px]">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -469,18 +591,17 @@ function EcomhubPedidosPage() {
                                             {/* Linha principal */}
                                             <TableRow className="border-border hover:bg-muted/20">
                                                 <TableCell>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => toggleExpandRow(pedido.id)}
-                                                        className="h-8 w-8 p-0"
-                                                    >
-                                                        {isExpanded ? (
-                                                            <ChevronDown className="h-4 w-4" />
-                                                        ) : (
-                                                            <ChevronRight className="h-4 w-4" />
-                                                        )}
-                                                    </Button>
+                                                    <Checkbox
+                                                        checked={selectedRows.includes(pedido.id)}
+                                                        onCheckedChange={(checked) => {
+                                                            if (checked) {
+                                                                setSelectedRows([...selectedRows, pedido.id]);
+                                                            } else {
+                                                                setSelectedRows(selectedRows.filter(id => id !== pedido.id));
+                                                            }
+                                                        }}
+                                                        aria-label={`Selecionar pedido ${pedido.shopifyOrderNumber}`}
+                                                    />
                                                 </TableCell>
                                                 <TableCell className="text-xs">
                                                     {pedido.countries?.name || '-'}
@@ -574,6 +695,38 @@ function EcomhubPedidosPage() {
                                                 <TableCell className="text-xs max-w-[200px] break-words">
                                                     {pedido.note || '-'}
                                                 </TableCell>
+                                                <TableCell className="text-right">
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                <span className="sr-only">Abrir menu</span>
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                                                            <DropdownMenuItem onClick={() => toggleExpandRow(pedido.id)}>
+                                                                <Eye className="mr-2 h-4 w-4" />
+                                                                Ver JSON Completo
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => copiarParaAreaTransferencia(pedido.id)}>
+                                                                <Copy className="mr-2 h-4 w-4" />
+                                                                Copiar ID do Pedido
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                            {pedido.trackingUrl && isValidUrl(pedido.trackingUrl) && (
+                                                                <DropdownMenuItem onClick={() => window.open(pedido.trackingUrl, '_blank')}>
+                                                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                                                    Abrir Tracking
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            <DropdownMenuItem onClick={() => exportarPedidoIndividual(pedido)}>
+                                                                <Download className="mr-2 h-4 w-4" />
+                                                                Exportar Pedido
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </TableCell>
                                             </TableRow>
 
                                             {/* Linha expandida (JSON completo) */}
@@ -620,30 +773,73 @@ function EcomhubPedidosPage() {
                         </Table>
                     </div>
 
-                    {/* Paginação */}
-                    {totalPaginas > 1 && (
-                        <div className="flex items-center justify-center gap-2 py-4 border-t border-border">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                                disabled={currentPage === 1}
-                                className="border-border bg-background text-foreground hover:bg-accent"
-                            >
-                                Anterior
-                            </Button>
-                            <span className="text-sm text-muted-foreground">
-                                Página {currentPage} de {totalPaginas}
-                            </span>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPage(prev => Math.min(totalPaginas, prev + 1))}
-                                disabled={currentPage === totalPaginas}
-                                className="border-border bg-background text-foreground hover:bg-accent"
-                            >
-                                Próxima
-                            </Button>
+                    {/* Paginação Avançada */}
+                    {totalPaginas > 0 && (
+                        <div className="flex items-center justify-between px-4 py-4 border-t border-border">
+                            <div className="flex items-center gap-2">
+                                <p className="text-sm text-muted-foreground">Linhas por página</p>
+                                <Select
+                                    value={rowsPerPage.toString()}
+                                    onValueChange={(value) => {
+                                        setRowsPerPage(Number(value));
+                                        setCurrentPage(1);
+                                    }}
+                                >
+                                    <SelectTrigger className="h-8 w-[70px] border-border bg-background text-foreground">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="border-border bg-popover">
+                                        <SelectItem value="10" className="text-popover-foreground hover:bg-accent">10</SelectItem>
+                                        <SelectItem value="25" className="text-popover-foreground hover:bg-accent">25</SelectItem>
+                                        <SelectItem value="50" className="text-popover-foreground hover:bg-accent">50</SelectItem>
+                                        <SelectItem value="100" className="text-popover-foreground hover:bg-accent">100</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                                <p className="text-sm text-muted-foreground">
+                                    Página {currentPage} de {totalPaginas}
+                                </p>
+                                <div className="flex gap-1">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(1)}
+                                        disabled={currentPage === 1}
+                                        className="h-8 w-8 p-0 border-border bg-background text-foreground hover:bg-accent"
+                                    >
+                                        <ChevronsLeft className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                        disabled={currentPage === 1}
+                                        className="h-8 w-8 p-0 border-border bg-background text-foreground hover:bg-accent"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(prev => Math.min(totalPaginas, prev + 1))}
+                                        disabled={currentPage === totalPaginas}
+                                        className="h-8 w-8 p-0 border-border bg-background text-foreground hover:bg-accent"
+                                    >
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(totalPaginas)}
+                                        disabled={currentPage === totalPaginas}
+                                        className="h-8 w-8 p-0 border-border bg-background text-foreground hover:bg-accent"
+                                    >
+                                        <ChevronsRight className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </CardContent>

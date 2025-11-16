@@ -58,7 +58,9 @@
       "Bash(timeout:*)",
       "Bash(del test_modulos_convite.py test_fluxo_convite_completo.py)",
       "Bash(npx eslint:*)",
-      "Bash(git clean:*)"
+      "Bash(git clean:*)",
+      "Bash(git mv:*)",
+      "Bash(npm run lint:*)"
     ],
     "deny": [],
     "ask": [],
