@@ -596,12 +596,13 @@ class EstoqueService:
             safe_print(f"[ITEM PROCESSOR] Estoque disponível: {estoque_atual}")
             safe_print(f"[ITEM PROCESSOR] Quantidade solicitada: {quantity}")
 
+            # Permitir estoque negativo para rastrear pedidos pendentes
             if estoque_atual < quantity:
-                safe_print(f"[ITEM PROCESSOR] ERROR Estoque INSUFICIENTE!")
-                item_result['message'] = f"Estoque insuficiente. Disponível: {estoque_atual}, Solicitado: {quantity}"
-                return item_result
-
-            safe_print(f"[ITEM PROCESSOR] OK Estoque suficiente! Prosseguindo com remoção...")
+                estoque_final = estoque_atual - quantity
+                safe_print(f"[ITEM PROCESSOR] AVISO: Estoque ficará negativo ({estoque_final})")
+                safe_print(f"[ITEM PROCESSOR] Processando mesmo assim para rastrear pedidos pendentes...")
+            else:
+                safe_print(f"[ITEM PROCESSOR] OK Estoque suficiente! Prosseguindo com remoção...")
 
             # Decrementar estoque (adaptado para ambos os tipos)
             estoque_anterior = estoque_atual
