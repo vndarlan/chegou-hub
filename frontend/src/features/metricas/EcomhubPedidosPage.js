@@ -481,7 +481,7 @@ function EcomhubPedidosPage() {
         const pedidosPaginados = pedidosFiltrados.slice(indexInicio, indexFim);
 
         return (
-            <Card className="border-border bg-card">
+            <Card className="border-border bg-card overflow-x-hidden">
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-4">
                         <div>
@@ -535,9 +535,9 @@ function EcomhubPedidosPage() {
                     )}
                 </CardHeader>
 
-                <CardContent className="p-0">
-                    <div className="w-full max-w-[calc(100vw-280px)] overflow-x-auto">
-                        <Table className="w-full" style={{ minWidth: '4000px' }}>
+                <CardContent className="p-0 overflow-x-auto">
+                    <div style={{ minWidth: '100%', width: 'max-content', maxWidth: '100%' }}>
+                        <Table style={{ minWidth: '3500px', width: '100%' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     <TableHead className="w-12">
