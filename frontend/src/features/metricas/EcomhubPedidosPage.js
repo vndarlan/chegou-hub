@@ -481,7 +481,7 @@ function EcomhubPedidosPage() {
         const pedidosPaginados = pedidosFiltrados.slice(indexInicio, indexFim);
 
         return (
-            <Card className="border-border bg-card overflow-x-hidden">
+            <Card className="border-border bg-card">
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-4">
                         <div>
@@ -535,9 +535,9 @@ function EcomhubPedidosPage() {
                     )}
                 </CardHeader>
 
-                <CardContent className="p-0 overflow-x-auto">
-                    <div style={{ minWidth: '100%', width: 'max-content', maxWidth: '100%' }}>
-                        <Table style={{ minWidth: '3500px', width: '100%' }}>
+                <CardContent className="p-0">
+                    <div className="w-full max-w-[calc(100vw-280px)] overflow-x-auto">
+                        <Table className="w-full table-fixed" style={{ minWidth: '2500px' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     <TableHead className="w-12">
@@ -865,7 +865,7 @@ function EcomhubPedidosPage() {
     // ======================== RENDER PRINCIPAL ========================
 
     return (
-        <div className="flex-1 space-y-4 p-6 min-h-screen bg-background overflow-x-hidden">
+        <div className="flex-1 space-y-4 p-6 min-h-screen bg-background">
             {/* Notificações */}
             {notification && (
                 <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4 border-border">
