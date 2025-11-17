@@ -651,7 +651,7 @@ function EcomhubPedidosPage() {
                         <Table className="w-full">
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
-                                    <TableHead className="w-12 sticky left-0 z-10 bg-muted/50">
+                                    <TableHead className="w-12 sticky left-0 z-20 bg-muted/50">
                                         <Checkbox
                                             checked={selectedRows.length === pedidosFiltrados.length && pedidosFiltrados.length > 0}
                                             onCheckedChange={(checked) => {
@@ -691,7 +691,7 @@ function EcomhubPedidosPage() {
                                     {isColumnVisible('costPaymentMethod') && <TableHead className="min-w-[170px]">Custo Método Pag.</TableHead>}
                                     {isColumnVisible('isCostManuallyOverwritten') && <TableHead className="min-w-[150px]">Custo Manual?</TableHead>}
                                     {isColumnVisible('note') && <TableHead className="min-w-[250px]">Nota</TableHead>}
-                                    <TableHead className="text-right min-w-[80px] sticky right-0 z-10 bg-muted/50">Ações</TableHead>
+                                    <TableHead className="text-right min-w-[80px] sticky right-0 z-50 bg-muted/50">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -701,7 +701,7 @@ function EcomhubPedidosPage() {
                                         <React.Fragment key={pedido.id}>
                                             {/* Linha principal */}
                                             <TableRow className="border-border hover:bg-muted/20">
-                                                <TableCell className="sticky left-0 z-10 bg-background">
+                                                <TableCell className="sticky left-0 z-20 bg-background">
                                                     <Checkbox
                                                         checked={selectedRows.includes(pedido.id)}
                                                         onCheckedChange={(checked) => {
@@ -860,7 +860,7 @@ function EcomhubPedidosPage() {
                                                         {pedido.note || '-'}
                                                     </TableCell>
                                                 )}
-                                                <TableCell className="text-right sticky right-0 z-10 bg-background">
+                                                <TableCell className="text-right sticky right-0 z-50 bg-background">
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
                                                             <Button variant="ghost" className="h-8 w-8 p-0">
