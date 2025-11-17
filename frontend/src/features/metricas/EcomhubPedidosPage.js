@@ -20,7 +20,8 @@ import {
     ChevronRight,
     ChevronsRight,
     Settings2,
-    Columns
+    Columns,
+    FileSpreadsheet
 } from 'lucide-react';
 import apiClient from '../../utils/axios';
 import { format } from 'date-fns';
@@ -82,6 +83,9 @@ function EcomhubPedidosPage() {
     // Estados para as novas funcionalidades
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedRows, setSelectedRows] = useState([]);
+
+    // Estado para controlar se o usuário já interagiu (para evitar auto-busca no load)
+    const [hasUserInteracted, setHasUserInteracted] = useState(false);
 
     // Estado para colunas visíveis
     const [visibleColumns, setVisibleColumns] = useState(() => {
@@ -197,6 +201,7 @@ function EcomhubPedidosPage() {
 
         setDateRange({ from: dataInicio, to: hoje });
         setPeriodoPreset(preset);
+        setHasUserInteracted(true); // Marcar que o usuário interagiu
     };
 
     // ======================== FUNÇÕES AUXILIARES ========================
@@ -256,6 +261,91 @@ function EcomhubPedidosPage() {
         link.click();
         URL.revokeObjectURL(url);
         showNotification('success', `${pedidosSelecionados.length} pedidos exportados!`);
+    };
+
+    // ======================== FUNÇÕES DE EXPORTAÇÃO CSV ========================
+
+    const escapeCsvValue = (value) => {
+        if (value === null || value === undefined) return '';
+        const stringValue = String(value);
+        // Se contém vírgula, aspas ou quebra de linha, envolver em aspas e duplicar aspas existentes
+        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+    };
+
+    const pedidoToCsvRow = (pedido) => {
+        const row = [];
+
+        if (isColumnVisible('countries_name')) row.push(escapeCsvValue(pedido.countries?.name || ''));
+        if (isColumnVisible('revenueReleaseWindow')) row.push(escapeCsvValue(pedido.revenueReleaseWindow || ''));
+        if (isColumnVisible('shopifyOrderNumber')) row.push(escapeCsvValue(pedido.shopifyOrderNumber || ''));
+        if (isColumnVisible('customerName')) row.push(escapeCsvValue(pedido.customerName || ''));
+        if (isColumnVisible('customerPhone')) row.push(escapeCsvValue(pedido.customerPhone || ''));
+        if (isColumnVisible('billingAddress')) row.push(escapeCsvValue(pedido.billingAddress || ''));
+        if (isColumnVisible('trackingUrl')) row.push(escapeCsvValue(pedido.trackingUrl || ''));
+        if (isColumnVisible('waybill')) row.push(escapeCsvValue(pedido.waybill || ''));
+        if (isColumnVisible('createdAt')) row.push(escapeCsvValue(formatSafeDate(pedido.createdAt)));
+        if (isColumnVisible('status')) row.push(escapeCsvValue(pedido.status || ''));
+        if (isColumnVisible('updatedAt')) row.push(escapeCsvValue(formatSafeDate(pedido.updatedAt)));
+        if (isColumnVisible('revenueReleaseDate')) row.push(escapeCsvValue(formatSafeDate(pedido.revenueReleaseDate, 'dd/MM/yyyy')));
+        if (isColumnVisible('ordersItems_sku')) row.push(escapeCsvValue(formatOrdersItems(pedido.ordersItems, 'sku')));
+        if (isColumnVisible('ordersItems_name')) row.push(escapeCsvValue(formatOrdersItems(pedido.ordersItems, 'name')));
+        if (isColumnVisible('volume')) row.push(escapeCsvValue(pedido.volume || ''));
+        if (isColumnVisible('priceOriginal')) row.push(escapeCsvValue(pedido.priceOriginal || ''));
+        if (isColumnVisible('price')) row.push(escapeCsvValue(pedido.price || ''));
+        if (isColumnVisible('ordersItems_cost')) row.push(escapeCsvValue(formatOrdersItems(pedido.ordersItems, 'cost')));
+        if (isColumnVisible('costCourier')) row.push(escapeCsvValue(pedido.costCourier || ''));
+        if (isColumnVisible('costWarehouse')) row.push(escapeCsvValue(pedido.costWarehouse || ''));
+        if (isColumnVisible('costCommission')) row.push(escapeCsvValue(pedido.costCommission || ''));
+        if (isColumnVisible('costCommissionReturn')) row.push(escapeCsvValue(pedido.costCommissionReturn || ''));
+        if (isColumnVisible('costWarehouseReturn')) row.push(escapeCsvValue(pedido.costWarehouseReturn || ''));
+        if (isColumnVisible('costCourierReturn')) row.push(escapeCsvValue(pedido.costCourierReturn || ''));
+        if (isColumnVisible('costPaymentMethod')) row.push(escapeCsvValue(pedido.costPaymentMethod || ''));
+        if (isColumnVisible('isCostManuallyOverwritten')) row.push(escapeCsvValue(pedido.isCostManuallyOverwritten !== undefined ? (pedido.isCostManuallyOverwritten ? 'Sim' : 'Não') : ''));
+        if (isColumnVisible('note')) row.push(escapeCsvValue(pedido.note || ''));
+
+        return row.join(',');
+    };
+
+    const getCsvHeaders = () => {
+        const headers = [];
+        availableColumns.forEach(column => {
+            if (isColumnVisible(column.id)) {
+                headers.push(escapeCsvValue(column.label));
+            }
+        });
+        return headers.join(',');
+    };
+
+    const exportarPedidoIndividualCsv = (pedido) => {
+        const csvContent = '\uFEFF' + getCsvHeaders() + '\n' + pedidoToCsvRow(pedido);
+        const dataBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `pedido-${pedido.shopifyOrderNumber || pedido.id}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+        showNotification('success', 'Pedido exportado em CSV com sucesso!');
+    };
+
+    const exportarSelecionadosCsv = () => {
+        const pedidosSelecionados = pedidos.filter(p => selectedRows.includes(p.id));
+        const csvRows = [getCsvHeaders()];
+        pedidosSelecionados.forEach(pedido => {
+            csvRows.push(pedidoToCsvRow(pedido));
+        });
+        const csvContent = '\uFEFF' + csvRows.join('\n');
+        const dataBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `pedidos-selecionados-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+        showNotification('success', `${pedidosSelecionados.length} pedidos exportados em CSV!`);
     };
 
     const getStatusBadgeVariant = (status) => {
@@ -411,6 +501,9 @@ function EcomhubPedidosPage() {
                                                 const [start, end] = dates;
                                                 setDateRange({ from: start, to: end });
                                                 setPeriodoPreset(null);
+                                                if (start && end) {
+                                                    setHasUserInteracted(true); // Marcar interação apenas quando período completo
+                                                }
                                             }}
                                             monthsShown={2}
                                             dateFormat="dd/MM/yyyy"
@@ -639,8 +732,12 @@ function EcomhubPedidosPage() {
                                 Limpar seleção
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => exportarSelecionados()}>
-                                <Download className="h-4 w-4 mr-2" />
-                                Exportar Selecionados
+                                <FileJson className="h-4 w-4 mr-2" />
+                                Exportar JSON
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => exportarSelecionadosCsv()}>
+                                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                                Exportar CSV
                             </Button>
                         </div>
                     )}
@@ -886,8 +983,12 @@ function EcomhubPedidosPage() {
                                                                 </DropdownMenuItem>
                                                             )}
                                                             <DropdownMenuItem onClick={() => exportarPedidoIndividual(pedido)}>
-                                                                <Download className="mr-2 h-4 w-4" />
-                                                                Exportar Pedido
+                                                                <FileJson className="mr-2 h-4 w-4" />
+                                                                Exportar JSON
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => exportarPedidoIndividualCsv(pedido)}>
+                                                                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                                                Exportar CSV
                                                             </DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
@@ -1027,8 +1128,11 @@ function EcomhubPedidosPage() {
         setPeriodoPreset('semana');
     }, []);
 
-    // Busca automática quando filtros mudarem
+    // Busca automática quando filtros mudarem (somente após interação do usuário)
     useEffect(() => {
+        // Não executar se o usuário ainda não interagiu (evita busca automática no load)
+        if (!hasUserInteracted) return;
+
         // Debounce para evitar múltiplas chamadas
         const timer = setTimeout(() => {
             if (dateRange?.from && dateRange?.to) {
@@ -1038,7 +1142,7 @@ function EcomhubPedidosPage() {
 
         return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dateRange, paisSelecionado]);
+    }, [dateRange, paisSelecionado, hasUserInteracted]);
 
     // Salvar preferências de colunas
     useEffect(() => {
