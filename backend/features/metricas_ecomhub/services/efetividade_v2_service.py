@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # ===========================================
 
 API_BASE_URL = "https://api.ecomhub.app/apps"
-REQUEST_TIMEOUT = 30  # segundos
+REQUEST_TIMEOUT = 120  # segundos (aumentado de 30s para 120s para evitar timeouts)
 
 # Mapeamento de status (baseado em dados reais)
 STATUS_ATIVOS = [

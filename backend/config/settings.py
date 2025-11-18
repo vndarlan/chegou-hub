@@ -802,6 +802,14 @@ print(f"RQ configurado com Redis: {REDIS_URL}")
 ECOMHUB_SELENIUM_SERVER = os.getenv('ECOMHUB_SELENIUM_SERVER', 'https://ecomhub-selenium-production.up.railway.app')
 print(f"Servidor Selenium EcomHub configurado: {ECOMHUB_SELENIUM_SERVER}")
 
+# ===== EcomHub Selenium API =====
+# Chave de autenticação para EcomHub Selenium
+ECOMHUB_SELENIUM_API_KEY = os.getenv('ECOMHUB_SELENIUM_API_KEY')
+
+# Validação em produção
+if not ECOMHUB_SELENIUM_API_KEY and IS_RAILWAY_DEPLOYMENT:
+    print("⚠️  AVISO: ECOMHUB_SELENIUM_API_KEY não configurada. Integração EcomHub Selenium não funcionará!")
+
 # ======================== CONFIGURAÇÃO SERVIDOR EXTRATOR DROPI ========================
 DROPI_EXTRACTOR_SERVER = os.getenv('DROPI_EXTRACTOR_SERVER', 'http://localhost:8002')
 print(f"Servidor Extrator Dropi configurado: {DROPI_EXTRACTOR_SERVER}")

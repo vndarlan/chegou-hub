@@ -222,7 +222,7 @@ def fetch_orders_from_api(token, secret):
                 'Secret': secret,
                 'Content-Type': 'application/json'
             },
-            timeout=30
+            timeout=120  # aumentado de 30s para 120s para evitar timeouts
         )
 
         if response.status_code == 200:
