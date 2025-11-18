@@ -2,7 +2,10 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from django.utils.html import format_html
-from .models import Organization, OrganizationMember, OrganizationInvite, UserModulePermission
+from django.utils import timezone
+from django.db import transaction
+from django.contrib import messages
+from .models import Organization, OrganizationMember, OrganizationInvite, UserModulePermission, MODULES
 
 
 # ============================================================================
@@ -173,6 +176,90 @@ class OrganizationInviteAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related('organization', 'aceito_por')
+
+    @admin.action(description='✅ Aceitar convites selecionados e vincular membros')
+    @transaction.atomic
+    def aceitar_convites_selecionados(self, request, queryset):
+        """
+        Admin Action que aceita convites e executa a lógica completa de vinculação
+        Similar ao endpoint aceitar_por_codigo, garante:
+        - Criação do OrganizationMember
+        - Criação das UserModulePermission
+        - Atualização dos metadados do convite
+        """
+        sucesso = 0
+        erros = []
+
+        for convite in queryset:
+            try:
+                # Validação 1: Status deve ser pending
+                if convite.status != 'pending':
+                    erros.append(f"Convite para {convite.email}: não está pendente (status: {convite.get_status_display()})")
+                    continue
+
+                # Validação 2: Não pode estar expirado
+                if convite.expirado:
+                    erros.append(f"Convite para {convite.email}: expirado em {convite.expira_em}")
+                    continue
+
+                # Validação 3: Buscar usuário pelo email
+                try:
+                    usuario = User.objects.get(email=convite.email)
+                except User.DoesNotExist:
+                    erros.append(f"Convite para {convite.email}: usuário não existe. Crie a conta primeiro.")
+                    continue
+
+                # Validação 4: Verificar se já é membro
+                if convite.organization.membros.filter(user=usuario, ativo=True).exists():
+                    erros.append(f"Convite para {convite.email}: usuário já é membro de {convite.organization.nome}")
+                    continue
+
+                # ===== EXECUTAR LÓGICA DE ACEITAÇÃO =====
+
+                # 1. Criar OrganizationMember
+                membro = OrganizationMember.objects.create(
+                    organization=convite.organization,
+                    user=usuario,
+                    role=convite.role,
+                    convidado_por=convite.convidado_por
+                )
+
+                # 2. Criar permissões se role='member' e tem módulos
+                if convite.role == 'member' and convite.modulos_permitidos:
+                    modulos_validos = {m['key'] for m in MODULES}
+                    for module_key in convite.modulos_permitidos:
+                        if module_key in modulos_validos:
+                            UserModulePermission.objects.create(
+                                member=membro,
+                                module_key=module_key,
+                                concedido_por=convite.convidado_por,
+                                ativo=True
+                            )
+
+                # 3. Atualizar convite
+                convite.status = 'accepted'
+                convite.aceito_em = timezone.now()
+                convite.aceito_por = usuario
+                convite.save()
+
+                sucesso += 1
+
+            except Exception as e:
+                erros.append(f"Convite para {convite.email}: {str(e)}")
+
+        # Mensagens de feedback
+        if sucesso > 0:
+            self.message_user(
+                request,
+                f"✅ {sucesso} convite(s) aceito(s) e membro(s) vinculado(s) com sucesso!",
+                level=messages.SUCCESS
+            )
+
+        if erros:
+            for erro in erros:
+                self.message_user(request, f"❌ {erro}", level=messages.ERROR)
+
+    actions = ['aceitar_convites_selecionados']
 
     def save_model(self, request, obj, form, change):
         """Preenche convidado_por automaticamente com o usuário logado ao criar convite"""
