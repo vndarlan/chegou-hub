@@ -654,38 +654,6 @@ function EcomhubPedidosPage() {
                 </Select>
             </div>
 
-            <Separator />
-
-            {/* Filtro de Status */}
-            <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-foreground mb-2">Status</h3>
-                <Select value={statusSelecionado} onValueChange={setStatusSelecionado} disabled={loadingBuscar}>
-                    <SelectTrigger className="w-full border-border bg-background text-foreground">
-                        <SelectValue placeholder="Todos os status" />
-                    </SelectTrigger>
-                    <SelectContent className="border-border bg-popover">
-                        <SelectItem value="todos" className="text-popover-foreground hover:bg-accent">
-                            Todos os Status
-                        </SelectItem>
-                        <SelectItem value="delivered" className="text-popover-foreground hover:bg-accent">
-                            ✅ Entregue
-                        </SelectItem>
-                        <SelectItem value="em_transito" className="text-popover-foreground hover:bg-accent">
-                            🚚 Em Trânsito
-                        </SelectItem>
-                        <SelectItem value="preparando" className="text-popover-foreground hover:bg-accent">
-                            📦 Preparando
-                        </SelectItem>
-                        <SelectItem value="problemas" className="text-popover-foreground hover:bg-accent">
-                            ⚠️ Problemas
-                        </SelectItem>
-                        <SelectItem value="cancelado" className="text-popover-foreground hover:bg-accent">
-                            ❌ Cancelado/Devolvido
-                        </SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-
             {loadingBuscar && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-4">
                     <Loader2 className="h-3 w-3 animate-spin" />
@@ -848,7 +816,7 @@ function EcomhubPedidosPage() {
                         </div>
                     </div>
 
-                    {/* Campo de Busca Global */}
+                    {/* Campo de Busca Global e Filtro de Status */}
                     <div className="flex items-center gap-4 mb-4">
                         <div className="relative flex-1 max-w-sm">
                             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -862,6 +830,33 @@ function EcomhubPedidosPage() {
                                 className="pl-8"
                             />
                         </div>
+
+                        {/* Filtro de Status */}
+                        <Select value={statusSelecionado} onValueChange={setStatusSelecionado}>
+                            <SelectTrigger className="w-[200px] border-border bg-background text-foreground">
+                                <SelectValue placeholder="Filtrar por status" />
+                            </SelectTrigger>
+                            <SelectContent className="border-border bg-popover">
+                                <SelectItem value="todos" className="text-popover-foreground hover:bg-accent">
+                                    Todos os Status
+                                </SelectItem>
+                                <SelectItem value="delivered" className="text-popover-foreground hover:bg-accent">
+                                    ✅ Entregue
+                                </SelectItem>
+                                <SelectItem value="em_transito" className="text-popover-foreground hover:bg-accent">
+                                    🚚 Em Trânsito
+                                </SelectItem>
+                                <SelectItem value="preparando" className="text-popover-foreground hover:bg-accent">
+                                    📦 Preparando
+                                </SelectItem>
+                                <SelectItem value="problemas" className="text-popover-foreground hover:bg-accent">
+                                    ⚠️ Problemas
+                                </SelectItem>
+                                <SelectItem value="cancelado" className="text-popover-foreground hover:bg-accent">
+                                    ❌ Cancelado/Devolvido
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     {/* Contador de Seleção */}
