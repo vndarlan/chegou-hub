@@ -5,6 +5,9 @@ from django.utils.html import format_html
 from django.utils import timezone
 from django.db import transaction
 from django.contrib import messages
+from django.urls import path
+from django.shortcuts import redirect, get_object_or_404
+from django.http import HttpResponseRedirect
 from .models import Organization, OrganizationMember, OrganizationInvite, UserModulePermission, MODULES
 
 
@@ -139,7 +142,7 @@ class OrganizationMemberAdmin(admin.ModelAdmin):
 @admin.register(OrganizationInvite)
 class OrganizationInviteAdmin(admin.ModelAdmin):
     """Admin para Convites de Organização"""
-    list_display = ('email', 'organization', 'role', 'get_status_badge', 'expira_em', 'criado_em')
+    list_display = ('email', 'organization', 'role', 'get_status_badge', 'expira_em', 'criado_em', 'get_aceitar_button')
     list_filter = ('status', 'role', 'organization', 'criado_em')
     search_fields = ('email', 'organization__nome')
     readonly_fields = ('codigo', 'criado_em', 'aceito_em')
@@ -172,6 +175,17 @@ class OrganizationInviteAdmin(admin.ModelAdmin):
             obj.get_status_display()
         )
     get_status_badge.short_description = 'Status'
+
+    def get_aceitar_button(self, obj):
+        """Botão para aceitar convite diretamente da lista"""
+        if obj.status == 'pending' and not obj.expirado:
+            url = f'/admin/core/organizationinvite/{obj.id}/aceitar/'
+            return format_html(
+                '<a href="{}" style="background: #10b981; color: white; padding: 4px 12px; border-radius: 4px; text-decoration: none; font-size: 11px; display: inline-block;">✅ Aceitar</a>',
+                url
+            )
+        return format_html('<span style="color: #9ca3af; font-size: 11px;">-</span>')
+    get_aceitar_button.short_description = 'Ação'
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -260,6 +274,76 @@ class OrganizationInviteAdmin(admin.ModelAdmin):
                 self.message_user(request, f"❌ {erro}", level=messages.ERROR)
 
     actions = ['aceitar_convites_selecionados']
+
+    def get_urls(self):
+        """Adiciona URL customizada para aceitar convite"""
+        urls = super().get_urls()
+        custom_urls = [
+            path('<int:convite_id>/aceitar/', self.admin_site.admin_view(self.aceitar_convite_view), name='organizationinvite-aceitar'),
+        ]
+        return custom_urls + urls
+
+    def aceitar_convite_view(self, request, convite_id):
+        """View customizada para aceitar um convite específico"""
+        convite = get_object_or_404(OrganizationInvite, id=convite_id)
+
+        try:
+            # Validação 1: Status deve ser pending
+            if convite.status != 'pending':
+                self.message_user(request, f"❌ Convite para {convite.email}: não está pendente (status: {convite.get_status_display()})", level=messages.ERROR)
+                return redirect('admin:core_organizationinvite_changelist')
+
+            # Validação 2: Não pode estar expirado
+            if convite.expirado:
+                self.message_user(request, f"❌ Convite para {convite.email}: expirado em {convite.expira_em}", level=messages.ERROR)
+                return redirect('admin:core_organizationinvite_changelist')
+
+            # Validação 3: Buscar usuário pelo email
+            try:
+                usuario = User.objects.get(email=convite.email)
+            except User.DoesNotExist:
+                self.message_user(request, f"❌ Convite para {convite.email}: usuário não existe. Crie a conta primeiro.", level=messages.ERROR)
+                return redirect('admin:core_organizationinvite_changelist')
+
+            # Validação 4: Verificar se já é membro
+            if convite.organization.membros.filter(user=usuario, ativo=True).exists():
+                self.message_user(request, f"❌ Convite para {convite.email}: usuário já é membro de {convite.organization.nome}", level=messages.ERROR)
+                return redirect('admin:core_organizationinvite_changelist')
+
+            # Executar vinculação
+            with transaction.atomic():
+                # 1. Criar OrganizationMember
+                membro = OrganizationMember.objects.create(
+                    organization=convite.organization,
+                    user=usuario,
+                    role=convite.role,
+                    convidado_por=convite.convidado_por
+                )
+
+                # 2. Criar permissões se role='member' e tem módulos
+                if convite.role == 'member' and convite.modulos_permitidos:
+                    modulos_validos = {m['key'] for m in MODULES}
+                    for module_key in convite.modulos_permitidos:
+                        if module_key in modulos_validos:
+                            UserModulePermission.objects.create(
+                                member=membro,
+                                module_key=module_key,
+                                concedido_por=convite.convidado_por,
+                                ativo=True
+                            )
+
+                # 3. Atualizar convite
+                convite.status = 'accepted'
+                convite.aceito_em = timezone.now()
+                convite.aceito_por = usuario
+                convite.save()
+
+            self.message_user(request, f"✅ Convite para {convite.email} aceito e membro vinculado com sucesso!", level=messages.SUCCESS)
+
+        except Exception as e:
+            self.message_user(request, f"❌ Erro ao aceitar convite: {str(e)}", level=messages.ERROR)
+
+        return redirect('admin:core_organizationinvite_changelist')
 
     def save_model(self, request, obj, form, change):
         """Preenche convidado_por automaticamente com o usuário logado ao criar convite"""
