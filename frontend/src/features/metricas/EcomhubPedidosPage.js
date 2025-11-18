@@ -744,7 +744,7 @@ function EcomhubPedidosPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div className="w-full overflow-x-auto">
+                    <div className="w-full overflow-x-auto" style={{ overflowX: 'auto', overflowY: 'visible' }}>
                         <Table className="w-auto min-w-full">
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
