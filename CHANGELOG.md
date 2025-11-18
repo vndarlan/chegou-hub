@@ -9,31 +9,31 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ### ✨ Novidades
 
-#### 🚨 SISTEMA MULTI-TENANCY COMPLETO
+#### 🚨 SISTEMA DE MÚLTIPLAS ORGANIZAÇÕES
 
-- **[🏢 Sistema de Organizações]** Arquitetura multi-tenancy implementada permitindo que cada usuário participe de múltiplas organizações simultaneamente, cada uma com dados completamente isolados, sistema de roles e permissões modulares, interface de troca entre organizações, e workflow administrativo de aprovação (Pending, Active, Inactive, Suspended). **Multi-tenancy** = sistema único servindo múltiplas organizações, cada uma com espaço de trabalho, dados e acessos independentes.
+- **[🏢 Sistema de Organizações]** Agora cada usuário pode participar de várias organizações ao mesmo tempo, alternando facilmente entre elas. Cada organização tem seus próprios dados separados, controles de acesso personalizados e sistema de aprovação administrativa
 
-- **[📧 Sistema de Convites]** Gestão completa de convites por email com templates visuais profissionais, permissões pré-configuradas por role, e suporte para novos usuários e usuários existentes da plataforma
+- **[📧 Sistema de Convites]** Convide membros para sua organização por email, com controles de acesso já configurados para novos usuários ou usuários já cadastrados na plataforma
 
-- **[📦 ECOMHUB - Pedidos]** Nova página de visualização de pedidos com integração Selenium + API oficial ECOMHUB, 27 colunas de dados detalhados, busca automática com filtros por país, configurador de colunas, exportação CSV para Google Sheets, e paginação inteligente
+- **[📦 ECOMHUB - Pedidos]** Nova página completa para visualizar pedidos com 27 colunas de informações, busca por país, escolha de quais colunas mostrar, exportação para Google Sheets e carregamento automático dos dados
 
-- **[👤 Página de Perfil]** Nova página de Perfil substituindo Configurações, centralizando gerenciamento de conta e preferências do usuário
+- **[👤 Página de Perfil]** Nova página de Perfil substituindo Configurações para gerenciar sua conta e preferências
 
-- **[🧭 Navegação Reformulada]** Layout da sidebar completamente reorganizado com design comercial, tutoriais como item independente, URLs simplificadas (sem /workspace), e largura otimizada
+- **[🧭 Navegação Reformulada]** Menu lateral redesenhado com melhor organização, tutoriais em destaque e URLs mais simples
 
 ### 🔧 Melhorias
 
-- **[ECOMHUB - Tabela]** Modernização visual com padrões shadcn/ui, seletor de período renovado, responsividade corrigida e scroll horizontal otimizado
-- **[Estoque Shopify]** Suporte para valores negativos no controle de estoque
-- **[Segurança]** CSRF tokens implementados em todo frontend com CSRFManager centralizado
-- **[Interface]** Componente alert-dialog adicionado e ícones da navegação ajustados
+- **[ECOMHUB - Tabela]** Visual modernizado, seletor de datas renovado e tabela totalmente responsiva
+- **[Estoque Shopify]** Agora aceita valores negativos no estoque
+- **[Segurança]** Sistema de proteção aprimorado contra acessos não autorizados
+- **[Interface]** Novos componentes visuais e ícones ajustados
 
 ### ⚠️ Importante
 
-- **Multi-tenancy revolucionário**: Sistema permite que usuários participem de múltiplas organizações com dados isolados e permissões independentes
-- **Gestão de equipes facilitada**: Convites com permissões pré-configuradas aceleram onboarding de membros
-- **ECOMHUB expandido**: Página de Pedidos com 27 colunas e integração automatizada via Selenium
-- **Migração suave**: Todas as mudanças são retrocompatíveis
+- **Múltiplas organizações**: Cada usuário pode agora participar e alternar entre várias organizações, cada uma com seus dados separados
+- **Gestão de equipes facilitada**: Convide membros com controles de acesso já configurados
+- **ECOMHUB expandido**: Nova página de Pedidos com 27 colunas de dados
+- **Migração suave**: Todas as mudanças são compatíveis com organizações existentes
 
 ## [v1.8.0] - 31/10/2025
 
