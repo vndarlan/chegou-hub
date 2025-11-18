@@ -27,14 +27,9 @@ logger = logging.getLogger(__name__)
 
 SELENIUM_AUTH_URL = "https://ecomhub-selenium-production.up.railway.app/api/auth"
 ECOMHUB_API_BASE = "https://api.ecomhub.app/api/orders"
-REQUEST_TIMEOUT = 120  # segundos (aumentado de 30s para 120s para evitar timeouts)
+REQUEST_TIMEOUT = None  # SEM LIMITE de timeout (conforme solicitado pelo usuário)
 MAX_RETRIES = 3  # número máximo de tentativas em caso de falha
 RETRY_BACKOFF_FACTOR = 2  # fator de multiplicação para backoff exponencial (1s, 2s, 4s)
-
-# Proteções para paginação infinita
-MAX_PAGES = 100  # limite máximo de páginas para evitar loops infinitos
-TIMEOUT_TOTAL = 600  # timeout total em segundos (10 minutos)
-MAX_FALHAS_CONSECUTIVAS = 3  # circuit breaker: parar após N falhas seguidas
 
 # Headers obrigatórios (conforme documentação)
 REQUIRED_HEADERS = {
@@ -87,12 +82,14 @@ def executar_com_retry(
     """
     for tentativa in range(1, max_retries + 1):
         try:
-            logger.info(f"Tentativa {tentativa}/{max_retries} (timeout: {timeout}s)")
+            timeout_msg = "SEM LIMITE" if timeout is None else f"{timeout}s"
+            logger.info(f"Tentativa {tentativa}/{max_retries} (timeout: {timeout_msg})")
             return funcao(*args, **kwargs)
 
         except requests.Timeout as e:
             if tentativa == max_retries:
-                logger.error(f"❌ Timeout após {max_retries} tentativas (timeout total: {timeout}s)")
+                timeout_msg = "SEM LIMITE" if timeout is None else f"{timeout}s"
+                logger.error(f"❌ Timeout após {max_retries} tentativas (timeout configurado: {timeout_msg})")
                 raise
 
             # Calcular tempo de espera com backoff exponencial
@@ -153,7 +150,7 @@ def obter_tokens_selenium() -> Dict[str, Any]:
         response = requests.get(
             SELENIUM_AUTH_URL,
             headers={'X-API-Key': api_key},
-            timeout=60  # Selenium demora ~50 segundos
+            timeout=None  # SEM LIMITE (Selenium pode demorar, mas esperará indefinidamente)
         )
 
         if response.status_code != 200:
@@ -189,7 +186,7 @@ def obter_tokens_selenium() -> Dict[str, Any]:
         }
 
     except requests.Timeout:
-        logger.error("Timeout ao buscar tokens do Selenium (>60s)")
+        logger.error("Timeout ao buscar tokens do Selenium (improvável com timeout=None)")
         raise
 
     except requests.ConnectionError as e:
@@ -285,9 +282,10 @@ def _buscar_pedidos_ecomhub_requisicao(
     }
 
     # DEBUG: Logar informações da requisição
+    timeout_msg = "SEM LIMITE" if REQUEST_TIMEOUT is None else f"{REQUEST_TIMEOUT}s"
     logger.info(f"🔍 DEBUG PAGINAÇÃO:")
     logger.info(f"   Offset: {offset}")
-    logger.info(f"   Timeout: {REQUEST_TIMEOUT}s")
+    logger.info(f"   Timeout: {timeout_msg}")
     logger.info(f"   Conditions: {urllib.parse.unquote(conditions)[:100]}...")
 
     # Fazer requisição com timeout configurado
@@ -387,8 +385,9 @@ def buscar_pedidos_ecomhub(
         return pedidos
 
     except requests.Timeout:
+        timeout_msg = "SEM LIMITE" if REQUEST_TIMEOUT is None else f"{REQUEST_TIMEOUT}s"
         logger.error(f"❌ Timeout definitivo ao buscar pedidos (offset={offset}) após {MAX_RETRIES} tentativas")
-        logger.error(f"   Timeout configurado: {REQUEST_TIMEOUT}s por tentativa")
+        logger.error(f"   Timeout configurado: {timeout_msg} por tentativa")
         raise
 
     except requests.ConnectionError as e:
@@ -409,10 +408,8 @@ def buscar_todos_pedidos_periodo(
     """
     Busca TODOS os pedidos de um período (com paginação automática)
 
-    Proteções implementadas:
-    - Timeout total (TIMEOUT_TOTAL)
-    - Limite máximo de páginas (MAX_PAGES)
-    - Circuit breaker (MAX_FALHAS_CONSECUTIVAS)
+    ATENÇÃO: SEM LIMITES de timeout ou circuit breaker.
+    A busca continuará indefinidamente até obter todos os dados.
 
     Args:
         data_inicio: Data inicial
@@ -422,14 +419,12 @@ def buscar_todos_pedidos_periodo(
 
     Returns:
         dict: {
-            'status': 'success' | 'error' | 'partial',
+            'status': 'success' | 'error',
             'pedidos': [array de pedidos],
             'total': int,
             'pages_fetched': int,
             'message': str,
-            'timeout_atingido': bool,
-            'limite_paginas_atingido': bool,
-            'circuit_breaker_ativado': bool
+            'tempo_total_segundos': float
         }
     """
     logger.info(f"Buscando todos os pedidos do período {data_inicio} a {data_fim}")
@@ -438,48 +433,15 @@ def buscar_todos_pedidos_periodo(
         # Buscar tokens
         tokens = obter_tokens_selenium()
 
-        # Buscar pedidos com paginação controlada
+        # Buscar pedidos com paginação automática (sem limites)
         todos_pedidos = []
         page = 0
         page_size = 48
-        falhas_consecutivas = 0
 
-        # Controle de tempo total
+        # Controle de tempo total (para informação apenas)
         inicio_operacao = time.time()
 
-        # Flags de controle
-        timeout_atingido = False
-        limite_paginas_atingido = False
-        circuit_breaker_ativado = False
-
         while True:
-            # PROTEÇÃO 1: Verificar timeout total
-            tempo_decorrido = time.time() - inicio_operacao
-            if tempo_decorrido > TIMEOUT_TOTAL:
-                timeout_atingido = True
-                logger.warning(
-                    f"⏱️ Timeout total atingido ({TIMEOUT_TOTAL}s = {TIMEOUT_TOTAL/60:.1f}min). "
-                    f"Páginas processadas: {page + 1}"
-                )
-                break
-
-            # PROTEÇÃO 2: Verificar limite de páginas
-            if page >= MAX_PAGES:
-                limite_paginas_atingido = True
-                logger.warning(
-                    f"📄 Limite de páginas atingido ({MAX_PAGES}). "
-                    f"Parando paginação por segurança."
-                )
-                break
-
-            # PROTEÇÃO 3: Verificar circuit breaker
-            if falhas_consecutivas >= MAX_FALHAS_CONSECUTIVAS:
-                circuit_breaker_ativado = True
-                logger.error(
-                    f"🔴 Circuit breaker ativado: {MAX_FALHAS_CONSECUTIVAS} "
-                    f"falhas consecutivas. Parando para evitar sobrecarga."
-                )
-                break
 
             # Renovar tokens a cada 5 páginas (tokens expiram em ~3 min)
             if page > 0 and page % 5 == 0:
@@ -488,9 +450,10 @@ def buscar_todos_pedidos_periodo(
 
             # IMPORTANTE: offset é o NÚMERO DA PÁGINA (0, 1, 2...), não offset de registros!
             offset = page
+            tempo_decorrido = time.time() - inicio_operacao
             logger.info(
                 f"Buscando página {page + 1} (offset={offset}, "
-                f"tempo decorrido: {tempo_decorrido:.1f}s/{TIMEOUT_TOTAL}s)..."
+                f"tempo decorrido: {tempo_decorrido:.1f}s)..."
             )
 
             try:
@@ -503,45 +466,24 @@ def buscar_todos_pedidos_periodo(
                     status_list=status_list
                 )
 
-                # Reset falhas consecutivas em caso de sucesso
-                falhas_consecutivas = 0
-
             except ValueError as e:
                 # Se der erro de token expirado, renovar e tentar novamente
                 if "Tokens inválidos ou expirados" in str(e):
                     logger.warning(f"Token expirado na página {page + 1}. Renovando...")
                     tokens = obter_tokens_selenium()
-                    try:
-                        pedidos_pagina = buscar_pedidos_ecomhub(
-                            tokens=tokens,
-                            data_inicio=data_inicio,
-                            data_fim=data_fim,
-                            offset=offset,
-                            country_ids=country_ids,
-                            status_list=status_list
-                        )
-                        # Reset falhas consecutivas em caso de sucesso
-                        falhas_consecutivas = 0
-                    except Exception as retry_error:
-                        falhas_consecutivas += 1
-                        logger.warning(
-                            f"⚠️ Falha {falhas_consecutivas}/{MAX_FALHAS_CONSECUTIVAS} "
-                            f"ao tentar novamente após renovar token: {retry_error}"
-                        )
-                        raise
-                else:
-                    falhas_consecutivas += 1
-                    logger.warning(
-                        f"⚠️ Falha {falhas_consecutivas}/{MAX_FALHAS_CONSECUTIVAS}: {e}"
+                    pedidos_pagina = buscar_pedidos_ecomhub(
+                        tokens=tokens,
+                        data_inicio=data_inicio,
+                        data_fim=data_fim,
+                        offset=offset,
+                        country_ids=country_ids,
+                        status_list=status_list
                     )
+                else:
                     raise
 
             except Exception as e:
-                falhas_consecutivas += 1
-                logger.warning(
-                    f"⚠️ Falha {falhas_consecutivas}/{MAX_FALHAS_CONSECUTIVAS}: "
-                    f"{type(e).__name__}: {e}"
-                )
+                logger.error(f"❌ Erro na página {page + 1}: {type(e).__name__}: {e}")
                 raise
 
             # Se retornou vazio, fim da paginação
@@ -570,29 +512,19 @@ def buscar_todos_pedidos_periodo(
             )
             page += 1
 
-        # Determinar status final
-        if timeout_atingido or limite_paginas_atingido or circuit_breaker_ativado:
-            status_final = 'partial'
-            mensagem = f'{len(todos_pedidos)} pedidos encontrados (busca interrompida)'
-        else:
-            status_final = 'success'
-            mensagem = f'{len(todos_pedidos)} pedidos encontrados'
-
+        # Busca concluída com sucesso
         tempo_total = time.time() - inicio_operacao
         logger.info(
-            f"Busca concluída: {len(todos_pedidos)} pedidos total em {page + 1} páginas "
+            f"✅ Busca concluída: {len(todos_pedidos)} pedidos total em {page + 1} páginas "
             f"(tempo total: {tempo_total:.1f}s)"
         )
 
         return {
-            'status': status_final,
+            'status': 'success',
             'pedidos': todos_pedidos,
             'total': len(todos_pedidos),
             'pages_fetched': page + 1,
-            'message': mensagem,
-            'timeout_atingido': timeout_atingido,
-            'limite_paginas_atingido': limite_paginas_atingido,
-            'circuit_breaker_ativado': circuit_breaker_ativado,
+            'message': f'{len(todos_pedidos)} pedidos encontrados',
             'tempo_total_segundos': round(tempo_total, 2)
         }
 
@@ -603,8 +535,5 @@ def buscar_todos_pedidos_periodo(
             'pedidos': [],
             'total': 0,
             'pages_fetched': 0,
-            'message': f'Erro: {str(e)}',
-            'timeout_atingido': False,
-            'limite_paginas_atingido': False,
-            'circuit_breaker_ativado': False
+            'message': f'Erro: {str(e)}'
         }
