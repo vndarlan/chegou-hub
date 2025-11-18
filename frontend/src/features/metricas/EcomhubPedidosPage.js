@@ -92,7 +92,41 @@ function EcomhubPedidosPage() {
 
     // Estado para colunas visíveis
     const [visibleColumns, setVisibleColumns] = useState(() => {
+        const COLUMNS_VERSION = '2'; // Versão das colunas padrão
+        const savedVersion = localStorage.getItem('ecomhub-columns-version');
         const saved = localStorage.getItem('ecomhub-visible-columns');
+
+        // Se não tem versão salva OU versão diferente, usar padrão novo
+        if (!savedVersion || savedVersion !== COLUMNS_VERSION) {
+            localStorage.setItem('ecomhub-columns-version', COLUMNS_VERSION);
+            const defaultColumns = [
+                'countries_name',
+                'shopifyOrderNumber',
+                'revenueReleaseWindow',
+                'createdAt',
+                'status',
+                'updatedAt',
+                'revenueReleaseDate',
+                'ordersItems_name',
+                'volume',
+                'priceOriginal',
+                'price',
+                'ordersItems_cost',
+                'costCourier',
+                'costWarehouse',
+                'costCommission',
+                'costCommissionReturn',
+                'costWarehouseReturn',
+                'costCourierReturn',
+                'costPaymentMethod',
+                'isCostManuallyOverwritten',
+                'note'
+            ];
+            localStorage.setItem('ecomhub-visible-columns', JSON.stringify(defaultColumns));
+            return defaultColumns;
+        }
+
+        // Versão correta, usar colunas salvas
         return saved ? JSON.parse(saved) : [
             'countries_name',
             'shopifyOrderNumber',
@@ -881,8 +915,8 @@ function EcomhubPedidosPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div className="w-full overflow-x-auto">
-                        <Table className="w-full" style={{ minWidth: 'max-content' }}>
+                    <div className="overflow-x-auto relative">
+                        <Table style={{ width: 'max-content', minWidth: '100%' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     <TableHead className="w-12 sticky left-0 z-20 bg-muted/50">
@@ -1284,6 +1318,9 @@ function EcomhubPedidosPage() {
     // Salvar preferências de colunas
     useEffect(() => {
         localStorage.setItem('ecomhub-visible-columns', JSON.stringify(visibleColumns));
+        // Garantir que a versão está sempre sincronizada
+        const COLUMNS_VERSION = '2';
+        localStorage.setItem('ecomhub-columns-version', COLUMNS_VERSION);
     }, [visibleColumns]);
 
     // ======================== RENDER PRINCIPAL ========================
