@@ -95,11 +95,25 @@ function EcomhubPedidosPage() {
         return saved ? JSON.parse(saved) : [
             'countries_name',
             'shopifyOrderNumber',
-            'customerName',
-            'status',
-            'waybill',
+            'revenueReleaseWindow',
             'createdAt',
-            'price'
+            'status',
+            'updatedAt',
+            'revenueReleaseDate',
+            'ordersItems_name',
+            'volume',
+            'priceOriginal',
+            'price',
+            'ordersItems_cost',
+            'costCourier',
+            'costWarehouse',
+            'costCommission',
+            'costCommissionReturn',
+            'costWarehouseReturn',
+            'costCourierReturn',
+            'costPaymentMethod',
+            'isCostManuallyOverwritten',
+            'note'
         ];
     });
 
@@ -677,38 +691,84 @@ function EcomhubPedidosPage() {
                                         </DropdownMenuItem>
                                     ))}
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                        className="cursor-pointer font-medium"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
+                                    <div
+                                        role="button"
+                                        tabIndex={0}
+                                        className="flex items-center px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm font-medium transition-colors"
+                                        onClick={() => {
                                             setVisibleColumns(availableColumns.map(col => col.id));
                                         }}
-                                        onSelect={(e) => e.preventDefault()}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                setVisibleColumns(availableColumns.map(col => col.id));
+                                            }
+                                        }}
                                     >
                                         <Check className="h-4 w-4 mr-2" />
                                         Selecionar Todas
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        className="cursor-pointer font-medium"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
+                                    </div>
+                                    <div
+                                        role="button"
+                                        tabIndex={0}
+                                        className="flex items-center px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm font-medium transition-colors"
+                                        onClick={() => {
                                             setVisibleColumns([
                                                 'countries_name',
                                                 'shopifyOrderNumber',
-                                                'customerName',
-                                                'status',
-                                                'waybill',
+                                                'revenueReleaseWindow',
                                                 'createdAt',
-                                                'price'
+                                                'status',
+                                                'updatedAt',
+                                                'revenueReleaseDate',
+                                                'ordersItems_name',
+                                                'volume',
+                                                'priceOriginal',
+                                                'price',
+                                                'ordersItems_cost',
+                                                'costCourier',
+                                                'costWarehouse',
+                                                'costCommission',
+                                                'costCommissionReturn',
+                                                'costWarehouseReturn',
+                                                'costCourierReturn',
+                                                'costPaymentMethod',
+                                                'isCostManuallyOverwritten',
+                                                'note'
                                             ]);
                                         }}
-                                        onSelect={(e) => e.preventDefault()}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                setVisibleColumns([
+                                                    'countries_name',
+                                                    'shopifyOrderNumber',
+                                                    'revenueReleaseWindow',
+                                                    'createdAt',
+                                                    'status',
+                                                    'updatedAt',
+                                                    'revenueReleaseDate',
+                                                    'ordersItems_name',
+                                                    'volume',
+                                                    'priceOriginal',
+                                                    'price',
+                                                    'ordersItems_cost',
+                                                    'costCourier',
+                                                    'costWarehouse',
+                                                    'costCommission',
+                                                    'costCommissionReturn',
+                                                    'costWarehouseReturn',
+                                                    'costCourierReturn',
+                                                    'costPaymentMethod',
+                                                    'isCostManuallyOverwritten',
+                                                    'note'
+                                                ]);
+                                            }
+                                        }}
                                     >
                                         <Settings2 className="h-4 w-4 mr-2" />
                                         Restaurar Padrão
-                                    </DropdownMenuItem>
+                                    </div>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                             <Button
@@ -762,8 +822,8 @@ function EcomhubPedidosPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div className="w-full max-w-[calc(100vw-280px)] overflow-x-auto">
-                        <Table className="w-full table-fixed" style={{ minWidth: '1000px' }}>
+                    <div className="w-full overflow-x-auto">
+                        <Table className="w-full" style={{ minWidth: 'max-content' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     <TableHead className="w-12 sticky left-0 z-20 bg-muted/50">
