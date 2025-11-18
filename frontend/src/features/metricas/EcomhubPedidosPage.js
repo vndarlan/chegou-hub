@@ -170,6 +170,7 @@ function EcomhubPedidosPage() {
         setExpandedRows({});
         setSelectedRows([]);
         setSearchTerm('');
+        setStatusSelecionado('todos');
         setCurrentPage(1);
 
         try {
