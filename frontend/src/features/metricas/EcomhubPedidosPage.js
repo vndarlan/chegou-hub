@@ -404,7 +404,7 @@ function EcomhubPedidosPage() {
         { id: 'ordersItems_name', label: 'Produto(s)', apiPath: 'ordersItems[].name' },
         { id: 'volume', label: 'Volume', apiPath: 'volume' },
         { id: 'priceOriginal', label: 'Preço Original', apiPath: 'priceOriginal' },
-        { id: 'price', label: 'Preço', apiPath: 'price' },
+        { id: 'price', label: 'Preço Convertido', apiPath: 'price' },
         { id: 'ordersItems_cost', label: 'Custo(s)', apiPath: 'ordersItems[].cost' },
         { id: 'costCourier', label: 'Custo Courier', apiPath: 'costCourier' },
         { id: 'costWarehouse', label: 'Custo Armazém', apiPath: 'costWarehouse' },
