@@ -5,6 +5,73 @@ Todas as mudanças deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [v1.9.0] - 17/11/2025
+
+### ✨ Novidades
+
+#### 🏢 Sistema de Organizações Multi-tenancy
+- **[Sistema de Organizações]** Arquitetura completa **multi-tenancy** implementada, permitindo que cada usuário participe de **múltiplas organizações simultaneamente**, onde cada organização possui seus próprios dados completamente isolados, sistema independente de roles e permissões modulares, interface visual para troca rápida entre organizações, e workflow administrativo de aprovação com status (Pending, Active, Inactive, Suspended). **Multi-tenancy significa**: um único sistema que serve múltiplas organizações, cada uma com seu próprio espaço de trabalho isolado, dados separados e controles de acesso independentes.
+
+#### 📧 Sistema de Convites por Email
+- **[Gestão de Membros]** Sistema completo de convites para organizações com envio automático por email, templates visuais aprimorados profissionais, gerenciamento centralizado de convites pendentes, permissões pré-configuradas por role antes do aceite, e suporte completo para convidar tanto novos usuários (que precisam criar conta) quanto usuários já existentes na plataforma
+
+#### 📦 Página de Pedidos ECOMHUB
+- **[ECOMHUB - Pedidos]** Nova página dedicada à visualização detalhada de pedidos com integração robusta via Selenium + API oficial ECOMHUB, tabela expansível com **27 colunas de informações detalhadas**, sistema de busca automática com filtros avançados por país, configurador visual interativo de colunas visíveis/ocultas, exportação CSV direta para Google Sheets, e sistema de paginação inteligente com retry automático e renovação de tokens de autenticação
+
+#### 👤 Página de Perfil do Usuário
+- **[Usuário]** Nova página de Perfil substituindo a antiga página "Configurações", centralizando gerenciamento de conta, preferências pessoais e informações do usuário em interface modernizada
+
+#### 🧭 Navegação Reformulada com Novo Layout
+- **[Interface - Barra de Navegação]** **Reorganização completa do layout da sidebar** com novo design focado em navegação comercial, tutoriais promovidos a item independente fora de grupos para maior visibilidade, URLs simplificadas removendo prefixo /workspace de todas as rotas, e largura da sidebar otimizada para melhor aproveitamento do espaço e experiência visual aprimorada
+
+### 🔧 Melhorias
+
+- **[ECOMHUB - Tabela]** Modernização visual completa com padrões shadcn/ui aplicados consistentemente, seletor de período de datas renovado com interface moderna, responsividade definitivamente corrigida para todos os tamanhos de tela, scroll horizontal corrigido com estrutura otimizada, e ajustes precisos de z-index para evitar sobreposição indevida de elementos
+- **[Estoque Shopify]** Suporte adicionado para valores negativos no controle de estoque, permitindo melhor rastreamento de produtos em falta ou backorder
+- **[Segurança]** Implementação completa de CSRF tokens em todo o frontend com componente CSRFManager centralizado para gerenciamento unificado, e substituição de axios por apiClient padronizado em todas as features para maior consistência
+- **[Interface]** Adição de componente alert-dialog do shadcn/ui, ajuste de ícones na navegação (UserCircle substituindo Settings para melhor semântica), e limpeza de referências a CSS customizado inexistente no admin Unfold
+
+### 🐛 Correções
+
+#### Críticas (Hotfixes)
+- **[Organizações]** Corrigido erro 404 crítico causado por campo status de organizações já existentes (HOTFIX de produção)
+- **[Estoque]** Migrations completamente idempotentes para evitar erros de constraint "already exists" em produção (HOTFIX de banco de dados)
+- **[Autenticação]** Corrigido loop infinito de erro 403 CSRF impedindo login de usuários (HOTFIX de segurança)
+- **[Organizações]** Corrigida race condition crítica impedindo aparecimento do OrganizationSwitcher na interface (HOTFIX de UI)
+
+#### Importantes
+- **[Convites]** Múltiplas correções e melhorias incrementais no sistema de convites para usuários existentes na plataforma
+- **[ECOMHUB]** Corrigido cálculo de offset na paginação de pedidos causando dados incorretos
+- **[ECOMHUB]** Corrigidos bugs críticos na contagem total de pedidos retornados pela API
+- **[ECOMHUB]** Corrigido crash completo do React causado por erros não tratados de paginação
+- **[Roteamento]** Endpoints de organizações corrigidos para seguir padrões RESTful corretos
+- **[Autenticação]** Import de ProtectedRoute corrigido para named export ao invés de default export
+- **[Organizações]** Resolvidos 3 problemas críticos interligados de organizações e sistema de permissões
+
+#### Menores
+- **[Admin]** Corrigida view administrativa de convites e campo status adicionado para gerenciamento de organizações
+- **[Interface]** Corrigido HTML inválido (elemento div dentro de p) no componente CardDescription
+- **[Frontend]** Corrigido erro "axios not defined" no arquivo index.js principal
+- **[API]** Removida duplicação indevida de /api/ nas URLs de chamadas do frontend
+- **[ECOMHUB]** Corrigido endpoint modulos_disponiveis e extração correta de tokens da resposta do Selenium
+- **[Email]** Corrigida configuração de templates de email para envio correto de convites
+- **[Convites]** Corrigido IntegrityError no banco de dados do sistema de convites
+
+### 🧹 Limpeza & Refatoração
+
+- **[Debug]** Removidos 5 endpoints temporários de debug criados para investigação após correções bem-sucedidas
+- **[Deploy]** Removido Procfile para permitir aplicação correta e automática de migrations no Railway
+- **[Ferramentas]** Adicionado comando management Django personalizado para diagnosticar permissões de organizações em produção
+
+### ⚠️ Importante
+
+- **🏢 SISTEMA MULTI-TENANCY**: Esta release introduz arquitetura multi-organizações revolucionária permitindo que cada usuário participe de múltiplas organizações simultaneamente, cada uma com roles e permissões diferentes. Cada organização tem seus dados completamente isolados das demais.
+- **📧 GESTÃO DE EQUIPES**: Sistema completo de convites facilita onboarding ágil de novos membros com permissões pré-configuradas por role
+- **📦 ECOMHUB EXPANDIDO**: Nova página de Pedidos com 27 colunas de dados detalhados e integração robusta via Selenium para autenticação automatizada
+- **🧭 NOVA NAVEGAÇÃO**: Layout da barra de navegação completamente reformulado para melhor experiência do usuário
+- **🔐 SEGURANÇA APRIMORADA**: CSRF tokens implementados em todo frontend para maior proteção contra ataques
+- **Migração Suave**: Todas as mudanças são retrocompatíveis - organizações e dados existentes mantêm funcionalidade completa
+
 ## [v1.8.0] - 31/10/2025
 
 ### ✨ Novidades
