@@ -21,7 +21,8 @@ import {
     ChevronsRight,
     Settings2,
     Columns,
-    FileSpreadsheet
+    FileSpreadsheet,
+    Info
 } from 'lucide-react';
 import apiClient from '../../utils/axios';
 import { format } from 'date-fns';
@@ -49,6 +50,7 @@ import {
 } from '../../components/ui/dropdown-menu';
 import { Checkbox } from '../../components/ui/checkbox';
 import { Input } from '../../components/ui/input';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '../../components/ui/sheet';
 
 function EcomhubPedidosPage() {
     // Estados principais
@@ -100,6 +102,9 @@ function EcomhubPedidosPage() {
             'price'
         ];
     });
+
+    // Estado para controlar o Sheet de Referência de Colunas
+    const [openReferenceSheet, setOpenReferenceSheet] = useState(false);
 
     // ======================== FUNÇÕES AUXILIARES ========================
 
@@ -383,33 +388,33 @@ function EcomhubPedidosPage() {
 
     // Gerenciamento de colunas visíveis
     const availableColumns = [
-        { id: 'countries_name', label: 'País' },
-        { id: 'revenueReleaseWindow', label: 'Janela de Liberação' },
-        { id: 'shopifyOrderNumber', label: 'Nº Pedido Shopify' },
-        { id: 'customerName', label: 'Nome Cliente' },
-        { id: 'customerPhone', label: 'Telefone Cliente' },
-        { id: 'billingAddress', label: 'Endereço' },
-        { id: 'trackingUrl', label: 'URL Rastreio' },
-        { id: 'waybill', label: 'Código Rastreio' },
-        { id: 'createdAt', label: 'Data Criação' },
-        { id: 'status', label: 'Status' },
-        { id: 'updatedAt', label: 'Última Atualização' },
-        { id: 'revenueReleaseDate', label: 'Data Liberação' },
-        { id: 'ordersItems_sku', label: 'SKU(s)' },
-        { id: 'ordersItems_name', label: 'Produto(s)' },
-        { id: 'volume', label: 'Volume' },
-        { id: 'priceOriginal', label: 'Preço Original' },
-        { id: 'price', label: 'Preço' },
-        { id: 'ordersItems_cost', label: 'Custo(s)' },
-        { id: 'costCourier', label: 'Custo Courier' },
-        { id: 'costWarehouse', label: 'Custo Armazém' },
-        { id: 'costCommission', label: 'Custo Comissão' },
-        { id: 'costCommissionReturn', label: 'Custo Comissão Devolução' },
-        { id: 'costWarehouseReturn', label: 'Custo Armazém Devolução' },
-        { id: 'costCourierReturn', label: 'Custo Courier Devolução' },
-        { id: 'costPaymentMethod', label: 'Custo Método Pagamento' },
-        { id: 'isCostManuallyOverwritten', label: 'Custo Manual?' },
-        { id: 'note', label: 'Nota' }
+        { id: 'countries_name', label: 'País', apiPath: 'countries.name' },
+        { id: 'revenueReleaseWindow', label: 'Janela de Liberação', apiPath: 'revenueReleaseWindow' },
+        { id: 'shopifyOrderNumber', label: 'Nº Pedido Shopify', apiPath: 'shopifyOrderNumber' },
+        { id: 'customerName', label: 'Nome Cliente', apiPath: 'customerName' },
+        { id: 'customerPhone', label: 'Telefone Cliente', apiPath: 'customerPhone' },
+        { id: 'billingAddress', label: 'Endereço', apiPath: 'billingAddress' },
+        { id: 'trackingUrl', label: 'URL Rastreio', apiPath: 'trackingUrl' },
+        { id: 'waybill', label: 'Código Rastreio', apiPath: 'waybill' },
+        { id: 'createdAt', label: 'Data Criação', apiPath: 'createdAt' },
+        { id: 'status', label: 'Status', apiPath: 'status' },
+        { id: 'updatedAt', label: 'Última Atualização', apiPath: 'updatedAt' },
+        { id: 'revenueReleaseDate', label: 'Data Liberação', apiPath: 'revenueReleaseDate' },
+        { id: 'ordersItems_sku', label: 'SKU(s)', apiPath: 'ordersItems[].sku' },
+        { id: 'ordersItems_name', label: 'Produto(s)', apiPath: 'ordersItems[].name' },
+        { id: 'volume', label: 'Volume', apiPath: 'volume' },
+        { id: 'priceOriginal', label: 'Preço Original', apiPath: 'priceOriginal' },
+        { id: 'price', label: 'Preço', apiPath: 'price' },
+        { id: 'ordersItems_cost', label: 'Custo(s)', apiPath: 'ordersItems[].cost' },
+        { id: 'costCourier', label: 'Custo Courier', apiPath: 'costCourier' },
+        { id: 'costWarehouse', label: 'Custo Armazém', apiPath: 'costWarehouse' },
+        { id: 'costCommission', label: 'Custo Comissão', apiPath: 'costCommission' },
+        { id: 'costCommissionReturn', label: 'Custo Comissão Devolução', apiPath: 'costCommissionReturn' },
+        { id: 'costWarehouseReturn', label: 'Custo Armazém Devolução', apiPath: 'costWarehouseReturn' },
+        { id: 'costCourierReturn', label: 'Custo Courier Devolução', apiPath: 'costCourierReturn' },
+        { id: 'costPaymentMethod', label: 'Custo Método Pagamento', apiPath: 'costPaymentMethod' },
+        { id: 'isCostManuallyOverwritten', label: 'Custo Manual?', apiPath: 'isCostManuallyOverwritten' },
+        { id: 'note', label: 'Nota', apiPath: 'note' }
     ];
 
     const toggleColumn = (columnId) => {
@@ -437,6 +442,15 @@ function EcomhubPedidosPage() {
                     <p className="text-sm text-muted-foreground">Consulta de pedidos da API ECOMHUB via Selenium</p>
                 </div>
             </div>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setOpenReferenceSheet(true)}
+                className="gap-2"
+            >
+                <Info className="h-4 w-4" />
+                Referência de Colunas
+            </Button>
         </div>
     );
 
@@ -1179,6 +1193,38 @@ function EcomhubPedidosPage() {
 
             {/* Tabela de Resultados */}
             {!loadingBuscar && renderTabela()}
+
+            {/* Sheet de Referência de Colunas */}
+            <Sheet open={openReferenceSheet} onOpenChange={setOpenReferenceSheet}>
+                <SheetContent side="right" className="w-[500px] sm:w-[600px] overflow-y-auto">
+                    <SheetHeader>
+                        <SheetTitle>Referência de Colunas</SheetTitle>
+                        <SheetDescription>
+                            Mapeamento entre colunas da tabela e campos da API ECOMHUB
+                        </SheetDescription>
+                    </SheetHeader>
+                    <div className="mt-6 space-y-3">
+                        {availableColumns.map((column) => (
+                            <div
+                                key={column.id}
+                                className="flex items-start gap-3 p-3 rounded-lg border border-border bg-muted/30 hover:bg-muted/50 transition-colors"
+                            >
+                                <div className="flex-1 space-y-1">
+                                    <p className="font-semibold text-sm text-foreground">
+                                        {column.label}
+                                    </p>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-muted-foreground">API:</span>
+                                        <code className="font-mono text-xs bg-background px-2 py-1 rounded border border-border text-primary">
+                                            {column.apiPath}
+                                        </code>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </SheetContent>
+            </Sheet>
         </div>
     );
 }
