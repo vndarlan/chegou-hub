@@ -657,7 +657,7 @@ function EcomhubPedidosPage() {
                                         Colunas
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-64 max-h-96 overflow-y-auto">
+                                <DropdownMenuContent align="end" className="w-64 max-h-96 overflow-y-auto z-[100]">
                                     <DropdownMenuLabel>Selecionar Colunas</DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     {availableColumns.map(column => (
@@ -678,19 +678,22 @@ function EcomhubPedidosPage() {
                                     ))}
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
-                                        className="cursor-pointer"
-                                        onSelect={(e) => {
+                                        className="cursor-pointer font-medium"
+                                        onClick={(e) => {
                                             e.preventDefault();
+                                            e.stopPropagation();
                                             setVisibleColumns(availableColumns.map(col => col.id));
                                         }}
+                                        onSelect={(e) => e.preventDefault()}
                                     >
                                         <Check className="h-4 w-4 mr-2" />
                                         Selecionar Todas
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
-                                        className="cursor-pointer"
-                                        onSelect={(e) => {
+                                        className="cursor-pointer font-medium"
+                                        onClick={(e) => {
                                             e.preventDefault();
+                                            e.stopPropagation();
                                             setVisibleColumns([
                                                 'countries_name',
                                                 'shopifyOrderNumber',
@@ -701,6 +704,7 @@ function EcomhubPedidosPage() {
                                                 'price'
                                             ]);
                                         }}
+                                        onSelect={(e) => e.preventDefault()}
                                     >
                                         <Settings2 className="h-4 w-4 mr-2" />
                                         Restaurar Padrão
