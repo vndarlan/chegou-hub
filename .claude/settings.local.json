@@ -60,7 +60,8 @@
       "Bash(npx eslint:*)",
       "Bash(git clean:*)",
       "Bash(git mv:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(npx shadcn@latest add:*)"
     ],
     "deny": [],
     "ask": [],

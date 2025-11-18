@@ -1,5 +1,5 @@
 // frontend/src/features/metricas/EcomhubPedidosPage.js
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Calendar as CalendarIcon,
     FileJson,
@@ -447,6 +447,53 @@ function EcomhubPedidosPage() {
 
     const isColumnVisible = (columnId) => visibleColumns.includes(columnId);
 
+    // ======================== FILTRO DE PEDIDOS (MEMOIZADO) ========================
+
+    // Aplicar filtros de busca e status com useMemo para otimizar performance
+    const pedidosFiltrados = useMemo(() => {
+        return pedidos.filter(pedido => {
+            // Filtro de busca por texto
+            if (searchTerm) {
+                const search = searchTerm.toLowerCase();
+                const matchSearch = (
+                    pedido.shopifyOrderNumber?.toLowerCase().includes(search) ||
+                    pedido.customerName?.toLowerCase().includes(search) ||
+                    pedido.waybill?.toLowerCase().includes(search) ||
+                    pedido.id?.toLowerCase().includes(search)
+                );
+                if (!matchSearch) return false;
+            }
+
+            // Filtro de status
+            // Nota: Os valores 'em_transito', 'preparando', etc são categorias do frontend
+            // que agrupam múltiplos status reais da API ECOMHUB
+            if (statusSelecionado !== 'todos') {
+                const statusLower = pedido.status?.toLowerCase() || '';
+
+                switch (statusSelecionado) {
+                    case 'delivered':
+                        return statusLower === 'delivered';
+                    case 'em_transito':
+                        // Agrupa: shipped, with_courier, out_for_delivery
+                        return ['shipped', 'with_courier', 'out_for_delivery'].includes(statusLower);
+                    case 'preparando':
+                        // Agrupa: processing, preparing_for_shipping, ready_to_ship
+                        return ['processing', 'preparing_for_shipping', 'ready_to_ship'].includes(statusLower);
+                    case 'problemas':
+                        // Agrupa: issue, returning
+                        return ['issue', 'returning'].includes(statusLower);
+                    case 'cancelado':
+                        // Agrupa: returned, cancelled
+                        return ['returned', 'cancelled'].includes(statusLower);
+                    default:
+                        return true;
+                }
+            }
+
+            return true;
+        });
+    }, [pedidos, searchTerm, statusSelecionado]);
+
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
     const renderHeader = () => (
@@ -660,44 +707,7 @@ function EcomhubPedidosPage() {
             );
         }
 
-        // Aplicar filtro de busca e status
-        const pedidosFiltrados = pedidos.filter(pedido => {
-            // Filtro de busca por texto
-            if (searchTerm) {
-                const search = searchTerm.toLowerCase();
-                const matchSearch = (
-                    pedido.shopifyOrderNumber?.toLowerCase().includes(search) ||
-                    pedido.customerName?.toLowerCase().includes(search) ||
-                    pedido.waybill?.toLowerCase().includes(search) ||
-                    pedido.id?.toLowerCase().includes(search)
-                );
-                if (!matchSearch) return false;
-            }
-
-            // Filtro de status
-            if (statusSelecionado !== 'todos') {
-                const statusLower = pedido.status?.toLowerCase() || '';
-
-                switch (statusSelecionado) {
-                    case 'delivered':
-                        return statusLower === 'delivered';
-                    case 'em_transito':
-                        return ['shipped', 'with_courier', 'out_for_delivery'].includes(statusLower);
-                    case 'preparando':
-                        return ['processing', 'preparing_for_shipping', 'ready_to_ship'].includes(statusLower);
-                    case 'problemas':
-                        return ['issue', 'returning'].includes(statusLower);
-                    case 'cancelado':
-                        return ['returned', 'cancelled'].includes(statusLower);
-                    default:
-                        return true;
-                }
-            }
-
-            return true;
-        });
-
-        // Paginação
+        // Paginação (usa pedidosFiltrados do useMemo)
         const totalPaginas = Math.ceil(pedidosFiltrados.length / rowsPerPage);
         const indexInicio = (currentPage - 1) * rowsPerPage;
         const indexFim = indexInicio + rowsPerPage;
@@ -890,7 +900,7 @@ function EcomhubPedidosPage() {
                                                     setSelectedRows([]);
                                                 }
                                             }}
-                                            aria-label="Selecionar todos"
+                                            aria-label="Selecionar todos os pedidos da página atual"
                                         />
                                     </TableHead>
                                     {isColumnVisible('countries_name') && <TableHead className="min-w-[150px]">País</TableHead>}
