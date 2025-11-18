@@ -66,15 +66,39 @@ class CurrentStateView(APIView):
                 }
                 organization_role = request.organization_role
             else:
-                # FALLBACK: Buscar primeira organização diretamente
-                # Isso resolve race conditions onde o middleware ainda não processou
-                member = OrganizationMember.objects.select_related('organization').filter(
-                    Q(user=request.user) &
-                    Q(ativo=True) &
-                    Q(organization__ativo=True) &
-                    # Aceitar approved OU NULL (organizações antigas sem migration)
-                    (Q(organization__status='approved') | Q(organization__status__isnull=True))
-                ).first()
+                # FALLBACK: Buscar organização do usuário
+                # Prioridade: 1) active_organization_id da sessão, 2) primeira organização
+                active_org_id = request.session.get('active_organization_id')
+                member = None
+
+                # Tentar buscar organização ativa da sessão primeiro
+                if active_org_id:
+                    member = OrganizationMember.objects.select_related('organization').filter(
+                        Q(user=request.user) &
+                        Q(organization_id=active_org_id) &
+                        Q(ativo=True) &
+                        Q(organization__ativo=True) &
+                        (Q(organization__status='approved') | Q(organization__status__isnull=True))
+                    ).first()
+
+                    if member:
+                        logger.info(f"✅ Organização da sessão carregada: {member.organization.nome} para {request.user.email}")
+                    else:
+                        logger.warning(f"⚠️ active_organization_id={active_org_id} inválido, buscando primeira organização")
+
+                # Se não encontrou pela sessão, buscar primeira organização
+                if not member:
+                    member = OrganizationMember.objects.select_related('organization').filter(
+                        Q(user=request.user) &
+                        Q(ativo=True) &
+                        Q(organization__ativo=True) &
+                        (Q(organization__status='approved') | Q(organization__status__isnull=True))
+                    ).first()
+
+                    if member:
+                        # Salvar na sessão para próximas requisições
+                        request.session['active_organization_id'] = member.organization.id
+                        logger.info(f"✅ Fallback: Primeira organização {member.organization.nome} definida para {request.user.email}")
 
                 if member:
                     organization_data = {
@@ -84,10 +108,6 @@ class CurrentStateView(APIView):
                         'limite_membros': member.organization.limite_membros
                     }
                     organization_role = member.role
-                    # Salvar na sessão para próximas requisições
-                    request.session['active_organization_id'] = member.organization.id
-
-                    logger.info(f"✅ Fallback: Organização {member.organization.nome} definida para {request.user.email}")
 
             return Response({
                 'logged_in': True,
