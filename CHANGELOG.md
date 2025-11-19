@@ -5,11 +5,9 @@ Todas as mudanças deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
-## [v1.9.0] - 17/11/2025
+## [v1.9.0] - 19/11/2025
 
 ### ✨ Novidades
-
-#### 🚨 SISTEMA DE MÚLTIPLAS ORGANIZAÇÕES
 
 - **[🏢 Sistema de Organizações]** Agora cada usuário pode participar de várias organizações ao mesmo tempo, alternando facilmente entre elas. Cada organização tem seus próprios dados separados, controles de acesso personalizados e sistema de aprovação administrativa
 
@@ -23,17 +21,10 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ### 🔧 Melhorias
 
-- **[ECOMHUB - Tabela]** Visual modernizado, seletor de datas renovado e tabela totalmente responsiva
-- **[Estoque Shopify]** Agora aceita valores negativos no estoque
+- **[ECOMHUB - Análise de Efetividade]** Visual modernizado, seletor de datas renovado e tabela totalmente responsiva
+- **[Shopify - Controle de Estoque]** Agora aceita valores negativos no estoque
 - **[Segurança]** Sistema de proteção aprimorado contra acessos não autorizados
 - **[Interface]** Novos componentes visuais e ícones ajustados
-
-### ⚠️ Importante
-
-- **Múltiplas organizações**: Cada usuário pode agora participar e alternar entre várias organizações, cada uma com seus dados separados
-- **Gestão de equipes facilitada**: Convide membros com controles de acesso já configurados
-- **ECOMHUB expandido**: Nova página de Pedidos com 27 colunas de dados
-- **Migração suave**: Todas as mudanças são compatíveis com organizações existentes
 
 ## [v1.8.0] - 31/10/2025
 
