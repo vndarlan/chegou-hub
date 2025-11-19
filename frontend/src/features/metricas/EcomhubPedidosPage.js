@@ -895,8 +895,8 @@ function EcomhubPedidosPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div className="w-full max-w-[calc(100vw-16rem)] overflow-x-auto">
-                        <Table style={{ width: 'max-content', minWidth: '100%' }}>
+                    <div className="overflow-x-auto">
+                        <Table className="min-w-full" style={{ width: 'max-content' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     <TableHead className="w-12 sticky left-0 z-20 bg-muted/50">
@@ -1116,7 +1116,7 @@ function EcomhubPedidosPage() {
                                                                 <MoreHorizontal className="h-4 w-4" />
                                                             </Button>
                                                         </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end" className="z-[9999]">
+                                                        <DropdownMenuContent align="end">
                                                             <DropdownMenuLabel>Ações</DropdownMenuLabel>
                                                             <DropdownMenuItem onClick={() => toggleExpandRow(pedido.id)}>
                                                                 <Eye className="mr-2 h-4 w-4" />
