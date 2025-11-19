@@ -94,12 +94,13 @@
       sans-serif;
     font-feature-settings: 'cv11', 'ss01';
     font-variation-settings: 'opsz' 32;
-    /* Removido overflow-x: hidden para permitir scroll horizontal em tabelas */
+    /* Previne scroll horizontal desnecessário */
+    overflow-x: hidden;
   }
 
-  /* Removido overflow-x: hidden para permitir scroll horizontal quando necessário */
+  /* Garante que elementos root não ultrapassem a viewport */
   html {
-    /* overflow-x controlado individualmente por componentes */
+    overflow-x: hidden;
   }
 }
 

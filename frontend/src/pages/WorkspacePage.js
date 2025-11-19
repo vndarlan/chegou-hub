@@ -230,7 +230,7 @@ function WorkspacePage({ setIsLoggedIn }) {
             </div>
           </header>
           
-          <main className="flex-1 overflow-y-auto p-4 w-full">
+          <main className="flex-1 overflow-auto p-4 w-full">
             <Routes>
               {/* Rota de fallback / página inicial */}
               <Route index element={<Navigate to="/workspace/gestao/agenda" replace />} />

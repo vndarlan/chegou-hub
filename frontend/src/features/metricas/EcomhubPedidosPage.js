@@ -895,8 +895,8 @@ function EcomhubPedidosPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                        <Table className="min-w-full" style={{ width: 'max-content' }}>
+                    <div className="relative ecomhub-pedidos-table-wrapper">
+                        <Table className="min-w-full" style={{ width: 'max-content', minWidth: '100%' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     <TableHead className="w-12 sticky left-0 z-20 bg-muted/50">
@@ -1303,6 +1303,44 @@ function EcomhubPedidosPage() {
         localStorage.setItem('ecomhub-columns-version', COLUMNS_VERSION);
     }, [visibleColumns]);
 
+    // Forçar overflow horizontal localmente
+    useEffect(() => {
+        // Adicionar styles específicos apenas para esta página
+        const style = document.createElement('style');
+        style.textContent = `
+            /* Forçar scroll horizontal apenas nesta página */
+            .ecomhub-pedidos-table-wrapper {
+                overflow-x: auto !important;
+                max-width: 100% !important;
+                width: 100% !important;
+            }
+
+            .ecomhub-pedidos-table-wrapper::-webkit-scrollbar {
+                height: 8px;
+            }
+
+            .ecomhub-pedidos-table-wrapper::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 10px;
+            }
+
+            .ecomhub-pedidos-table-wrapper::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 10px;
+            }
+
+            .ecomhub-pedidos-table-wrapper::-webkit-scrollbar-thumb:hover {
+                background: #555;
+            }
+        `;
+        document.head.appendChild(style);
+
+        return () => {
+            // Limpar styles ao desmontar componente
+            document.head.removeChild(style);
+        };
+    }, []);
+
     // ======================== RENDER PRINCIPAL ========================
 
     return (
@@ -1319,7 +1357,7 @@ function EcomhubPedidosPage() {
             {renderHeader()}
 
             {/* Layout principal: Tabela em largura total */}
-            <div className="w-full">
+            <div className="w-full relative">
                 {/* Loading Overlay */}
                 {loadingBuscar && (
                     <div className="flex items-center justify-center py-12">
