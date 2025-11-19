@@ -207,6 +207,31 @@ function EcomhubPedidosPage() {
         setStatusSelecionado('todos');
         setCurrentPage(1);
 
+        // Resetar colunas para padrão ao buscar novos pedidos
+        setVisibleColumns([
+            'countries_name',
+            'shopifyOrderNumber',
+            'revenueReleaseWindow',
+            'createdAt',
+            'status',
+            'updatedAt',
+            'revenueReleaseDate',
+            'ordersItems_name',
+            'volume',
+            'priceOriginal',
+            'price',
+            'ordersItems_cost',
+            'costCourier',
+            'costWarehouse',
+            'costCommission',
+            'costCommissionReturn',
+            'costWarehouseReturn',
+            'costCourierReturn',
+            'costPaymentMethod',
+            'isCostManuallyOverwritten',
+            'note'
+        ]);
+
         try {
             const payload = {
                 data_inicio: dateRange.from.toISOString().split('T')[0],
@@ -817,16 +842,6 @@ function EcomhubPedidosPage() {
                                     </div>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={buscarPedidos}
-                                disabled={loadingBuscar}
-                                className="border-border bg-background text-foreground hover:bg-accent"
-                            >
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                                Atualizar
-                            </Button>
                         </div>
                     </div>
 
@@ -1302,44 +1317,6 @@ function EcomhubPedidosPage() {
         const COLUMNS_VERSION = '2';
         localStorage.setItem('ecomhub-columns-version', COLUMNS_VERSION);
     }, [visibleColumns]);
-
-    // Forçar overflow horizontal localmente
-    useEffect(() => {
-        // Adicionar styles específicos apenas para esta página
-        const style = document.createElement('style');
-        style.textContent = `
-            /* Forçar scroll horizontal apenas nesta página */
-            .ecomhub-pedidos-table-wrapper {
-                overflow-x: auto !important;
-                max-width: 100% !important;
-                width: 100% !important;
-            }
-
-            .ecomhub-pedidos-table-wrapper::-webkit-scrollbar {
-                height: 8px;
-            }
-
-            .ecomhub-pedidos-table-wrapper::-webkit-scrollbar-track {
-                background: #f1f1f1;
-                border-radius: 10px;
-            }
-
-            .ecomhub-pedidos-table-wrapper::-webkit-scrollbar-thumb {
-                background: #888;
-                border-radius: 10px;
-            }
-
-            .ecomhub-pedidos-table-wrapper::-webkit-scrollbar-thumb:hover {
-                background: #555;
-            }
-        `;
-        document.head.appendChild(style);
-
-        return () => {
-            // Limpar styles ao desmontar componente
-            document.head.removeChild(style);
-        };
-    }, []);
 
     // ======================== RENDER PRINCIPAL ========================
 
