@@ -532,166 +532,174 @@ function EcomhubPedidosPage() {
 
     const renderHeader = () => (
         <div className="space-y-4 mb-6">
-            <div className="flex items-center gap-3">
-                <Package className="h-6 w-6 text-primary" />
-                <h1 className="text-2xl font-bold text-foreground">Lista de Pedidos</h1>
-            </div>
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setOpenReferenceSheet(true)}
-                className="gap-2 w-fit"
-            >
-                <Info className="h-4 w-4" />
-                Referência de Colunas
-            </Button>
-        </div>
-    );
+            {/* Linha superior: Título à esquerda, Filtros à direita */}
+            <div className="flex items-center justify-between gap-6">
+                {/* Lado Esquerdo - Título */}
+                <div className="flex items-center gap-3">
+                    <Package className="h-6 w-6 text-primary" />
+                    <h1 className="text-2xl font-bold text-foreground">Lista de Pedidos</h1>
+                </div>
 
-    const renderFiltrosLaterais = () => (
-        <div className="space-y-4 w-80">
-            {/* Períodos Rápidos */}
-            <div className="space-y-2">
-                <div className="flex flex-col gap-2">
-                    <Button
-                        onClick={() => aplicarPreset('semana')}
-                        variant={periodoPreset === 'semana' ? 'default' : 'outline'}
-                        size="sm"
-                        disabled={loadingBuscar}
-                        className="w-full justify-start"
-                    >
-                        Última Semana
-                    </Button>
-                    <Button
-                        onClick={() => aplicarPreset('mes')}
-                        variant={periodoPreset === 'mes' ? 'default' : 'outline'}
-                        size="sm"
-                        disabled={loadingBuscar}
-                        className="w-full justify-start"
-                    >
-                        Último Mês
-                    </Button>
-                    <Button
-                        onClick={() => aplicarPreset('3meses')}
-                        variant={periodoPreset === '3meses' ? 'default' : 'outline'}
-                        size="sm"
-                        disabled={loadingBuscar}
-                        className="w-full justify-start"
-                    >
-                        Últimos 3 Meses
-                    </Button>
+                {/* Lado Direito - Filtros Horizontais */}
+                <div className="flex items-center gap-3">
+                    {/* Filtro de Período */}
+                    <div className="flex items-center gap-2">
+                        <Button
+                            onClick={() => aplicarPreset('semana')}
+                            variant={periodoPreset === 'semana' ? 'default' : 'outline'}
+                            size="sm"
+                            disabled={loadingBuscar}
+                        >
+                            Última Semana
+                        </Button>
+                        <Button
+                            onClick={() => aplicarPreset('mes')}
+                            variant={periodoPreset === 'mes' ? 'default' : 'outline'}
+                            size="sm"
+                            disabled={loadingBuscar}
+                        >
+                            Último Mês
+                        </Button>
+                        <Button
+                            onClick={() => aplicarPreset('3meses')}
+                            variant={periodoPreset === '3meses' ? 'default' : 'outline'}
+                            size="sm"
+                            disabled={loadingBuscar}
+                        >
+                            Últimos 3 Meses
+                        </Button>
 
-                    {/* Popover com ReactDatePicker */}
-                    <Popover open={openPopover} onOpenChange={setOpenPopover}>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant={periodoPreset === null && dateRange?.from ? 'default' : 'outline'}
-                                size="sm"
-                                className="gap-2 w-full justify-start"
-                                disabled={loadingBuscar}
-                            >
-                                <CalendarIcon className="h-4 w-4" />
-                                Período Personalizado
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 max-w-none" align="start">
-                            <div className="p-4 space-y-4">
-                                <ReactDatePicker
-                                    selectsRange={true}
-                                    startDate={dateRange?.from}
-                                    endDate={dateRange?.to}
-                                    onChange={(dates) => {
-                                        const [start, end] = dates;
-                                        setDateRange({ from: start, to: end });
-                                        setPeriodoPreset(null);
-                                        if (start && end) {
-                                            setHasUserInteracted(true);
-                                        }
-                                    }}
-                                    monthsShown={2}
-                                    dateFormat="dd/MM/yyyy"
-                                    locale={ptBR}
-                                    inline
-                                />
-                                <div className="flex justify-end gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setOpenPopover(false)}
-                                    >
-                                        Cancelar
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        onClick={() => {
-                                            if (dateRange?.from && dateRange?.to) {
-                                                setOpenPopover(false);
-                                                setPeriodoPreset(null);
+                        {/* Popover Período Personalizado */}
+                        <Popover open={openPopover} onOpenChange={setOpenPopover}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant={periodoPreset === null && dateRange?.from ? 'default' : 'outline'}
+                                    size="sm"
+                                    className="gap-2"
+                                    disabled={loadingBuscar}
+                                >
+                                    <CalendarIcon className="h-4 w-4" />
+                                    Personalizado
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 max-w-none" align="end">
+                                <div className="p-4 space-y-4">
+                                    <ReactDatePicker
+                                        selectsRange={true}
+                                        startDate={dateRange?.from}
+                                        endDate={dateRange?.to}
+                                        onChange={(dates) => {
+                                            const [start, end] = dates;
+                                            setDateRange({ from: start, to: end });
+                                            setPeriodoPreset(null);
+                                            if (start && end) {
+                                                setHasUserInteracted(true);
                                             }
                                         }}
-                                        disabled={!dateRange?.from || !dateRange?.to}
-                                    >
-                                        Aplicar
-                                    </Button>
+                                        monthsShown={2}
+                                        dateFormat="dd/MM/yyyy"
+                                        locale={ptBR}
+                                        inline
+                                    />
+                                    <div className="flex justify-end gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setOpenPopover(false)}
+                                        >
+                                            Cancelar
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            onClick={() => {
+                                                if (dateRange?.from && dateRange?.to) {
+                                                    setOpenPopover(false);
+                                                    setPeriodoPreset(null);
+                                                }
+                                            }}
+                                            disabled={!dateRange?.from || !dateRange?.to}
+                                        >
+                                            Aplicar
+                                        </Button>
+                                    </div>
                                 </div>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-                </div>
-
-                {/* Mostrar período selecionado */}
-                {dateRange?.from && dateRange?.to && (
-                    <div className="mt-2">
-                        <p className="text-xs text-muted-foreground">
-                            {format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR })} até {format(dateRange.to, 'dd/MM/yyyy', { locale: ptBR })}
-                        </p>
+                            </PopoverContent>
+                        </Popover>
                     </div>
-                )}
-            </div>
 
-            <Separator />
+                    <Separator orientation="vertical" className="h-8" />
 
-            {/* Filtro de País */}
-            <div className="space-y-2">
-                <Select value={paisSelecionado} onValueChange={setPaisSelecionado} disabled={loadingBuscar}>
-                    <SelectTrigger className="w-full border-border bg-background text-foreground">
-                        <SelectValue placeholder="Todos os países" />
-                    </SelectTrigger>
-                    <SelectContent className="border-border bg-popover">
-                        <SelectItem value="todos" className="text-popover-foreground hover:bg-accent">
-                            Todos os Países
-                        </SelectItem>
-                        <SelectItem value="164" className="text-popover-foreground hover:bg-accent">
-                            🇪🇸 Espanha
-                        </SelectItem>
-                        <SelectItem value="41" className="text-popover-foreground hover:bg-accent">
-                            🇭🇷 Croácia
-                        </SelectItem>
-                        <SelectItem value="66" className="text-popover-foreground hover:bg-accent">
-                            🇬🇷 Grécia
-                        </SelectItem>
-                        <SelectItem value="82" className="text-popover-foreground hover:bg-accent">
-                            🇮🇹 Itália
-                        </SelectItem>
-                        <SelectItem value="142" className="text-popover-foreground hover:bg-accent">
-                            🇷🇴 Romênia
-                        </SelectItem>
-                        <SelectItem value="44" className="text-popover-foreground hover:bg-accent">
-                            🇨🇿 República Tcheca
-                        </SelectItem>
-                        <SelectItem value="139" className="text-popover-foreground hover:bg-accent">
-                            🇵🇱 Polônia
-                        </SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
+                    {/* Filtro de País */}
+                    <Select value={paisSelecionado} onValueChange={setPaisSelecionado} disabled={loadingBuscar}>
+                        <SelectTrigger className="w-[180px] border-border bg-background text-foreground">
+                            <SelectValue placeholder="Todos os países" />
+                        </SelectTrigger>
+                        <SelectContent className="border-border bg-popover">
+                            <SelectItem value="todos" className="text-popover-foreground hover:bg-accent">
+                                Todos os Países
+                            </SelectItem>
+                            <SelectItem value="164" className="text-popover-foreground hover:bg-accent">
+                                🇪🇸 Espanha
+                            </SelectItem>
+                            <SelectItem value="41" className="text-popover-foreground hover:bg-accent">
+                                🇭🇷 Croácia
+                            </SelectItem>
+                            <SelectItem value="66" className="text-popover-foreground hover:bg-accent">
+                                🇬🇷 Grécia
+                            </SelectItem>
+                            <SelectItem value="82" className="text-popover-foreground hover:bg-accent">
+                                🇮🇹 Itália
+                            </SelectItem>
+                            <SelectItem value="142" className="text-popover-foreground hover:bg-accent">
+                                🇷🇴 Romênia
+                            </SelectItem>
+                            <SelectItem value="44" className="text-popover-foreground hover:bg-accent">
+                                🇨🇿 República Tcheca
+                            </SelectItem>
+                            <SelectItem value="139" className="text-popover-foreground hover:bg-accent">
+                                🇵🇱 Polônia
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
 
-            {loadingBuscar && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-4">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    <span>Buscando pedidos...</span>
+                    {/* Botão de Buscar */}
+                    <Button
+                        onClick={buscarPedidos}
+                        disabled={loadingBuscar || !dateRange?.from || !dateRange?.to}
+                        className="gap-2"
+                    >
+                        {loadingBuscar ? (
+                            <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Buscando...
+                            </>
+                        ) : (
+                            <>
+                                <RefreshCw className="h-4 w-4" />
+                                Buscar
+                            </>
+                        )}
+                    </Button>
                 </div>
-            )}
+            </div>
+
+            {/* Segunda linha: Período selecionado e botão de referência */}
+            <div className="flex items-center justify-between">
+                {dateRange?.from && dateRange?.to && (
+                    <p className="text-sm text-muted-foreground">
+                        Período: {format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR })} até {format(dateRange.to, 'dd/MM/yyyy', { locale: ptBR })}
+                    </p>
+                )}
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setOpenReferenceSheet(true)}
+                    className="gap-2"
+                >
+                    <Info className="h-4 w-4" />
+                    Referência de Colunas
+                </Button>
+            </div>
         </div>
     );
 
@@ -1135,7 +1143,7 @@ function EcomhubPedidosPage() {
                                                                 <MoreHorizontal className="h-4 w-4" />
                                                             </Button>
                                                         </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end" className="z-[60]">
+                                                        <DropdownMenuContent align="end" className="z-[9999]">
                                                             <DropdownMenuLabel>Ações</DropdownMenuLabel>
                                                             <DropdownMenuItem onClick={() => toggleExpandRow(pedido.id)}>
                                                                 <Eye className="mr-2 h-4 w-4" />
@@ -1338,28 +1346,20 @@ function EcomhubPedidosPage() {
             {/* Header */}
             {renderHeader()}
 
-            {/* Layout principal: Tabela à esquerda, Filtros à direita */}
-            <div className="flex gap-6">
-                {/* Conteúdo Principal (Tabela) */}
-                <div className="flex-1 min-w-0">
-                    {/* Loading Overlay */}
-                    {loadingBuscar && (
-                        <div className="flex items-center justify-center py-12">
-                            <div className="flex items-center gap-3">
-                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                                <p className="font-medium text-foreground">Buscando pedidos...</p>
-                            </div>
+            {/* Layout principal: Tabela em largura total */}
+            <div className="w-full">
+                {/* Loading Overlay */}
+                {loadingBuscar && (
+                    <div className="flex items-center justify-center py-12">
+                        <div className="flex items-center gap-3">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                            <p className="font-medium text-foreground">Buscando pedidos...</p>
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {/* Tabela de Resultados */}
-                    {!loadingBuscar && renderTabela()}
-                </div>
-
-                {/* Filtros Laterais */}
-                <div className="flex-shrink-0">
-                    {renderFiltrosLaterais()}
-                </div>
+                {/* Tabela de Resultados */}
+                {!loadingBuscar && renderTabela()}
             </div>
 
             {/* Sheet de Referência de Colunas */}
