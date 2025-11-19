@@ -8,13 +8,160 @@ import django.db.models.deletion
 
 def ensure_table_exists_and_add_field(apps, schema_editor):
     """
-    Garante que a tabela core_organizationinvite existe e adiciona o campo modulos_permitidos.
+    Garante que TODAS as tabelas do core app existem e adiciona o campo modulos_permitidos.
     Isso resolve o problema onde a migration 0001 não foi aplicada corretamente em produção.
     """
     from django.db import connection
 
     with connection.cursor() as cursor:
-        # Verifica se a tabela existe
+        # 1. Verifica e cria tabela core_organization
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables
+                WHERE table_schema = 'public'
+                AND table_name = 'core_organization'
+            );
+        """)
+        org_table_exists = cursor.fetchone()[0]
+
+        if not org_table_exists:
+            print("❌ Tabela core_organization não existe. Criando...")
+            cursor.execute("""
+                CREATE TABLE core_organization (
+                    id BIGSERIAL PRIMARY KEY,
+                    nome VARCHAR(200) NOT NULL,
+                    slug VARCHAR(200) NOT NULL UNIQUE,
+                    descricao TEXT NOT NULL DEFAULT '',
+                    plano VARCHAR(20) NOT NULL DEFAULT 'free',
+                    limite_membros INTEGER NOT NULL DEFAULT 5,
+                    criado_em TIMESTAMP WITH TIME ZONE NOT NULL,
+                    atualizado_em TIMESTAMP WITH TIME ZONE NOT NULL,
+                    ativo BOOLEAN NOT NULL DEFAULT TRUE
+                );
+            """)
+            cursor.execute("""
+                CREATE INDEX core_organi_slug_517c11_idx ON core_organization (slug);
+            """)
+            cursor.execute("""
+                CREATE INDEX core_organi_ativo_a6b465_idx ON core_organization (ativo);
+            """)
+            print("✅ Tabela core_organization criada!")
+        else:
+            print("✅ Tabela core_organization já existe.")
+
+        # 2. Verifica e cria tabela core_organizationmember
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables
+                WHERE table_schema = 'public'
+                AND table_name = 'core_organizationmember'
+            );
+        """)
+        member_table_exists = cursor.fetchone()[0]
+
+        if not member_table_exists:
+            print("❌ Tabela core_organizationmember não existe. Criando...")
+            cursor.execute("""
+                CREATE TABLE core_organizationmember (
+                    id BIGSERIAL PRIMARY KEY,
+                    role VARCHAR(10) NOT NULL DEFAULT 'member',
+                    joined_at TIMESTAMP WITH TIME ZONE NOT NULL,
+                    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+                    convidado_por_id BIGINT NULL,
+                    organization_id BIGINT NOT NULL,
+                    user_id BIGINT NOT NULL,
+                    CONSTRAINT core_organizationmember_convidado_por_id_fk
+                        FOREIGN KEY (convidado_por_id) REFERENCES auth_user(id)
+                        ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
+                    CONSTRAINT core_organizationmember_organization_id_fk
+                        FOREIGN KEY (organization_id) REFERENCES core_organization(id)
+                        ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+                    CONSTRAINT core_organizationmember_user_id_fk
+                        FOREIGN KEY (user_id) REFERENCES auth_user(id)
+                        ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+                    CONSTRAINT core_organizationmember_organization_id_user_id_unique
+                        UNIQUE (organization_id, user_id)
+                );
+            """)
+            cursor.execute("""
+                CREATE INDEX core_organi_organiz_3e713d_idx
+                ON core_organizationmember (organization_id, user_id);
+            """)
+            cursor.execute("""
+                CREATE INDEX core_organi_role_cb87bf_idx
+                ON core_organizationmember (role);
+            """)
+            cursor.execute("""
+                CREATE INDEX core_organi_ativo_d5aca6_idx
+                ON core_organizationmember (ativo);
+            """)
+            cursor.execute("""
+                CREATE INDEX core_organizationmember_convidado_por_id_idx
+                ON core_organizationmember (convidado_por_id);
+            """)
+            cursor.execute("""
+                CREATE INDEX core_organizationmember_organization_id_idx
+                ON core_organizationmember (organization_id);
+            """)
+            cursor.execute("""
+                CREATE INDEX core_organizationmember_user_id_idx
+                ON core_organizationmember (user_id);
+            """)
+            print("✅ Tabela core_organizationmember criada!")
+        else:
+            print("✅ Tabela core_organizationmember já existe.")
+
+        # 3. Verifica e cria tabela core_usermodulepermission
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables
+                WHERE table_schema = 'public'
+                AND table_name = 'core_usermodulepermission'
+            );
+        """)
+        permission_table_exists = cursor.fetchone()[0]
+
+        if not permission_table_exists:
+            print("❌ Tabela core_usermodulepermission não existe. Criando...")
+            cursor.execute("""
+                CREATE TABLE core_usermodulepermission (
+                    id BIGSERIAL PRIMARY KEY,
+                    module_key VARCHAR(50) NOT NULL,
+                    concedido_em TIMESTAMP WITH TIME ZONE NOT NULL,
+                    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+                    concedido_por_id BIGINT NULL,
+                    member_id BIGINT NOT NULL,
+                    CONSTRAINT core_usermodulepermission_concedido_por_id_fk
+                        FOREIGN KEY (concedido_por_id) REFERENCES auth_user(id)
+                        ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
+                    CONSTRAINT core_usermodulepermission_member_id_fk
+                        FOREIGN KEY (member_id) REFERENCES core_organizationmember(id)
+                        ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+                    CONSTRAINT core_usermodulepermission_member_id_module_key_unique
+                        UNIQUE (member_id, module_key)
+                );
+            """)
+            cursor.execute("""
+                CREATE INDEX core_usermo_member__f158bb_idx
+                ON core_usermodulepermission (member_id, module_key);
+            """)
+            cursor.execute("""
+                CREATE INDEX core_usermo_ativo_b66bb7_idx
+                ON core_usermodulepermission (ativo);
+            """)
+            cursor.execute("""
+                CREATE INDEX core_usermodulepermission_concedido_por_id_idx
+                ON core_usermodulepermission (concedido_por_id);
+            """)
+            cursor.execute("""
+                CREATE INDEX core_usermodulepermission_member_id_idx
+                ON core_usermodulepermission (member_id);
+            """)
+            print("✅ Tabela core_usermodulepermission criada!")
+        else:
+            print("✅ Tabela core_usermodulepermission já existe.")
+
+        # 4. Verifica e cria tabela core_organizationinvite
         cursor.execute("""
             SELECT EXISTS (
                 SELECT FROM information_schema.tables
@@ -22,12 +169,10 @@ def ensure_table_exists_and_add_field(apps, schema_editor):
                 AND table_name = 'core_organizationinvite'
             );
         """)
-        table_exists = cursor.fetchone()[0]
+        invite_table_exists = cursor.fetchone()[0]
 
-        if not table_exists:
-            print("❌ Tabela core_organizationinvite não existe. Criando tabela completa...")
-
-            # Cria a tabela completa com todos os campos (incluindo modulos_permitidos)
+        if not invite_table_exists:
+            print("❌ Tabela core_organizationinvite não existe. Criando...")
             cursor.execute("""
                 CREATE TABLE core_organizationinvite (
                     id BIGSERIAL PRIMARY KEY,
@@ -53,39 +198,31 @@ def ensure_table_exists_and_add_field(apps, schema_editor):
                         ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED
                 );
             """)
-
-            # Cria índices
             cursor.execute("""
                 CREATE INDEX core_organi_codigo_dc88e7_idx
                 ON core_organizationinvite (codigo);
             """)
-
             cursor.execute("""
                 CREATE INDEX core_organi_email_b09687_idx
                 ON core_organizationinvite (email, status);
             """)
-
             cursor.execute("""
                 CREATE INDEX core_organi_organiz_b16aa0_idx
                 ON core_organizationinvite (organization_id, status);
             """)
-
             cursor.execute("""
                 CREATE INDEX core_organizationinvite_aceito_por_id_idx
                 ON core_organizationinvite (aceito_por_id);
             """)
-
             cursor.execute("""
                 CREATE INDEX core_organizationinvite_convidado_por_id_idx
                 ON core_organizationinvite (convidado_por_id);
             """)
-
             cursor.execute("""
                 CREATE INDEX core_organizationinvite_organization_id_idx
                 ON core_organizationinvite (organization_id);
             """)
-
-            print("✅ Tabela core_organizationinvite criada com sucesso com campo modulos_permitidos!")
+            print("✅ Tabela core_organizationinvite criada com campo modulos_permitidos!")
         else:
             print("✅ Tabela core_organizationinvite já existe.")
 
@@ -106,7 +243,7 @@ def ensure_table_exists_and_add_field(apps, schema_editor):
                     ALTER TABLE core_organizationinvite
                     ADD COLUMN modulos_permitidos JSONB NOT NULL DEFAULT '[]'::jsonb;
                 """)
-                print("✅ Campo modulos_permitidos adicionado com sucesso!")
+                print("✅ Campo modulos_permitidos adicionado!")
             else:
                 print("✅ Campo modulos_permitidos já existe.")
 
