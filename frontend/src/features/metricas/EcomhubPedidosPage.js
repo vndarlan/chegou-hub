@@ -1312,11 +1312,79 @@ function EcomhubPedidosPage() {
 
     // Salvar preferências de colunas
     useEffect(() => {
-        localStorage.setItem('ecomhub-visible-columns', JSON.stringify(visibleColumns));
+        localStorage.setItem('ecomhub-pedidos-visible-columns', JSON.stringify(visibleColumns));
         // Garantir que a versão está sempre sincronizada
         const COLUMNS_VERSION = '2';
         localStorage.setItem('ecomhub-columns-version', COLUMNS_VERSION);
     }, [visibleColumns]);
+
+    // SOLUÇÃO DEFINITIVA: Força scroll horizontal removendo bloqueio do body
+    useEffect(() => {
+        // Salvar estilos originais
+        const originalBodyOverflowX = document.body.style.overflowX;
+        const originalHtmlOverflowX = document.documentElement.style.overflowX;
+        const originalBodyOverflow = document.body.style.overflow;
+        const originalHtmlOverflow = document.documentElement.style.overflow;
+
+        // Remover bloqueio de overflow horizontal
+        document.body.style.overflowX = 'visible';
+        document.documentElement.style.overflowX = 'visible';
+        document.body.style.overflow = 'visible';
+        document.documentElement.style.overflow = 'visible';
+
+        // Adicionar CSS específico para esta página via JavaScript
+        const styleEl = document.createElement('style');
+        styleEl.id = 'ecomhub-pedidos-scroll-fix';
+        styleEl.textContent = `
+            /* Força scroll horizontal APENAS nesta página */
+            .ecomhub-pedidos-table-wrapper {
+                overflow-x: auto !important;
+                overflow-y: visible !important;
+                max-width: 100% !important;
+                width: 100% !important;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .ecomhub-pedidos-table-wrapper table {
+                width: max-content !important;
+                min-width: 100% !important;
+                table-layout: auto !important;
+            }
+
+            /* Scrollbar customizada */
+            .ecomhub-pedidos-table-wrapper::-webkit-scrollbar {
+                height: 12px;
+            }
+
+            .ecomhub-pedidos-table-wrapper::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 6px;
+            }
+
+            .ecomhub-pedidos-table-wrapper::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 6px;
+            }
+
+            .ecomhub-pedidos-table-wrapper::-webkit-scrollbar-thumb:hover {
+                background: #555;
+            }
+        `;
+        document.head.appendChild(styleEl);
+
+        // Cleanup ao desmontar: restaurar tudo
+        return () => {
+            document.body.style.overflowX = originalBodyOverflowX;
+            document.documentElement.style.overflowX = originalHtmlOverflowX;
+            document.body.style.overflow = originalBodyOverflow;
+            document.documentElement.style.overflow = originalHtmlOverflow;
+
+            const el = document.getElementById('ecomhub-pedidos-scroll-fix');
+            if (el) {
+                el.remove();
+            }
+        };
+    }, []);
 
     // ======================== RENDER PRINCIPAL ========================
 
