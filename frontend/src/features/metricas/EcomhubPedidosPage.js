@@ -714,7 +714,7 @@ function EcomhubPedidosPage() {
         const pedidosPaginados = pedidosFiltrados.slice(indexInicio, indexFim);
 
         return (
-            <Card className="w-full border-border bg-card">
+            <Card className="w-full max-w-full overflow-hidden border-border bg-card">
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-4">
                         <div>
@@ -912,9 +912,10 @@ function EcomhubPedidosPage() {
                     )}
                 </CardHeader>
 
-                <CardContent className="p-0">
-                    <div className="overflow-x-auto relative w-full">
-                        <Table style={{ width: 'max-content', minWidth: '100%' }}>
+                <CardContent className="p-0 overflow-hidden">
+                    <div className="w-full overflow-x-auto">
+                        <div className="inline-block min-w-full align-middle">
+                            <Table style={{ width: 'max-content', minWidth: '100%' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     <TableHead className="w-12 sticky left-0 z-20 bg-muted/50">
@@ -1206,6 +1207,7 @@ function EcomhubPedidosPage() {
                                 })}
                             </TableBody>
                         </Table>
+                        </div>
                     </div>
 
                     {/* Paginação Avançada */}
