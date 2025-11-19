@@ -535,9 +535,20 @@ function EcomhubPedidosPage() {
             {/* Linha superior: Título à esquerda, Filtros à direita */}
             <div className="flex items-center justify-between gap-6">
                 {/* Lado Esquerdo - Título */}
-                <div className="flex items-center gap-3">
-                    <Package className="h-6 w-6 text-primary" />
-                    <h1 className="text-2xl font-bold text-foreground">Lista de Pedidos</h1>
+                <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                        <Package className="h-6 w-6 text-primary" />
+                        <h1 className="text-2xl font-bold text-foreground">Lista de Pedidos</h1>
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setOpenReferenceSheet(true)}
+                        className="gap-2 w-fit"
+                    >
+                        <Info className="h-4 w-4" />
+                        Referência de Colunas
+                    </Button>
                 </div>
 
                 {/* Lado Direito - Filtros Horizontais */}
@@ -661,44 +672,7 @@ function EcomhubPedidosPage() {
                             </SelectItem>
                         </SelectContent>
                     </Select>
-
-                    {/* Botão de Buscar */}
-                    <Button
-                        onClick={buscarPedidos}
-                        disabled={loadingBuscar || !dateRange?.from || !dateRange?.to}
-                        className="gap-2"
-                    >
-                        {loadingBuscar ? (
-                            <>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                Buscando...
-                            </>
-                        ) : (
-                            <>
-                                <RefreshCw className="h-4 w-4" />
-                                Buscar
-                            </>
-                        )}
-                    </Button>
                 </div>
-            </div>
-
-            {/* Segunda linha: Período selecionado e botão de referência */}
-            <div className="flex items-center justify-between">
-                {dateRange?.from && dateRange?.to && (
-                    <p className="text-sm text-muted-foreground">
-                        Período: {format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR })} até {format(dateRange.to, 'dd/MM/yyyy', { locale: ptBR })}
-                    </p>
-                )}
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setOpenReferenceSheet(true)}
-                    className="gap-2"
-                >
-                    <Info className="h-4 w-4" />
-                    Referência de Colunas
-                </Button>
             </div>
         </div>
     );
@@ -920,10 +894,9 @@ function EcomhubPedidosPage() {
                     )}
                 </CardHeader>
 
-                <CardContent className="p-0 overflow-hidden">
-                    <div className="w-full overflow-x-auto">
-                        <div className="inline-block min-w-full align-middle">
-                            <Table style={{ width: 'max-content', minWidth: '100%' }}>
+                <CardContent className="p-0">
+                    <div className="w-full max-w-[calc(100vw-16rem)] overflow-x-auto">
+                        <Table style={{ width: 'max-content', minWidth: '100%' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     <TableHead className="w-12 sticky left-0 z-20 bg-muted/50">
@@ -1215,7 +1188,6 @@ function EcomhubPedidosPage() {
                                 })}
                             </TableBody>
                         </Table>
-                        </div>
                     </div>
 
                     {/* Paginação Avançada */}
