@@ -531,7 +531,7 @@ function EcomhubPedidosPage() {
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
     const renderHeader = () => (
-        <div className="flex items-center justify-between mb-6">
+        <div className="space-y-4 mb-6">
             <div className="flex items-center gap-3">
                 <Package className="h-6 w-6 text-primary" />
                 <h1 className="text-2xl font-bold text-foreground">Lista de Pedidos</h1>
@@ -540,7 +540,7 @@ function EcomhubPedidosPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setOpenReferenceSheet(true)}
-                className="gap-2"
+                className="gap-2 w-fit"
             >
                 <Info className="h-4 w-4" />
                 Referência de Colunas
@@ -552,7 +552,6 @@ function EcomhubPedidosPage() {
         <div className="space-y-4 w-80">
             {/* Períodos Rápidos */}
             <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-foreground mb-3">Período</h3>
                 <div className="flex flex-col gap-2">
                     <Button
                         onClick={() => aplicarPreset('semana')}
@@ -654,7 +653,6 @@ function EcomhubPedidosPage() {
 
             {/* Filtro de País */}
             <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-foreground mb-2">País</h3>
                 <Select value={paisSelecionado} onValueChange={setPaisSelecionado} disabled={loadingBuscar}>
                     <SelectTrigger className="w-full border-border bg-background text-foreground">
                         <SelectValue placeholder="Todos os países" />
@@ -1136,7 +1134,7 @@ function EcomhubPedidosPage() {
                                                                 <MoreHorizontal className="h-4 w-4" />
                                                             </Button>
                                                         </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
+                                                        <DropdownMenuContent align="end" className="z-[60]">
                                                             <DropdownMenuLabel>Ações</DropdownMenuLabel>
                                                             <DropdownMenuItem onClick={() => toggleExpandRow(pedido.id)}>
                                                                 <Eye className="mr-2 h-4 w-4" />
