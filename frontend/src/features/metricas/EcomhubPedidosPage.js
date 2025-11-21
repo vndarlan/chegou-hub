@@ -919,7 +919,7 @@ function EcomhubPedidosPage() {
                             overflowX: 'scroll',
                             overflowY: 'visible',
                             width: '100%',
-                            maxWidth: 'calc(100vw - 100px)',
+                            maxWidth: 'calc(100vw - 3rem)',
                             display: 'block',
                             WebkitOverflowScrolling: 'touch',
                             boxSizing: 'border-box'
@@ -1432,7 +1432,7 @@ function EcomhubPedidosPage() {
     // ======================== RENDER PRINCIPAL ========================
 
     return (
-        <div className="flex-1 p-6 min-h-screen bg-background">
+        <div className="flex-1 p-6 min-h-screen bg-background" style={{ overflowX: 'hidden', maxWidth: '100vw' }}>
             {/* Notificações */}
             {notification && (
                 <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4 border-border">
