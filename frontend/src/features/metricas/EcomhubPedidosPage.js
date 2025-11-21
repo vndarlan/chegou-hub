@@ -1435,7 +1435,7 @@ function EcomhubPedidosPage() {
     // ======================== RENDER PRINCIPAL ========================
 
     return (
-        <div className="flex-1 p-6 min-h-screen bg-background" style={{ overflowX: 'hidden', maxWidth: '100vw', boxSizing: 'border-box' }}>
+        <div className="flex-1 min-w-0 p-6 min-h-screen bg-background" style={{ overflowX: 'hidden', boxSizing: 'border-box' }}>
             {/* Notificações */}
             {notification && (
                 <Alert variant={notification.type === 'error' ? 'destructive' : 'default'} className="mb-4 border-border">

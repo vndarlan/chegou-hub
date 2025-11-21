@@ -172,7 +172,7 @@ const DropdownMenuContent = React.forwardRef(({
     <div
       ref={contentRef}
       className={cn(
-        "fixed z-[9999] min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95",
+        "fixed z-[9999] min-w-[8rem] max-h-[80vh] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95",
         className
       )}
       style={{
