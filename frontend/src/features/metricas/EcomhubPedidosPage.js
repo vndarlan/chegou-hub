@@ -918,14 +918,15 @@ function EcomhubPedidosPage() {
                         style={{
                             overflowX: 'scroll',
                             overflowY: 'visible',
-                            width: '100%',
-                            maxWidth: 'calc(100vw - 3rem)',
+                            width: 'calc(100vw - 4rem)',
+                            maxWidth: '100%',
                             display: 'block',
                             WebkitOverflowScrolling: 'touch',
-                            boxSizing: 'border-box'
+                            boxSizing: 'border-box',
+                            position: 'relative'
                         }}
                     >
-                        <div style={{ display: 'inline-block', minWidth: '100%' }}>
+                        <div style={{ minWidth: '100%', width: 'fit-content' }}>
                             <Table style={{ width: 'max-content', display: 'table', tableLayout: 'auto' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
