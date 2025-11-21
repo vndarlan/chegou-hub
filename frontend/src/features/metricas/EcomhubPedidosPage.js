@@ -916,18 +916,14 @@ function EcomhubPedidosPage() {
                     <div
                         id="table-scroll-container"
                         style={{
-                            overflowX: 'scroll',
+                            overflowX: 'auto',
                             overflowY: 'visible',
                             width: '100%',
-                            maxWidth: '100%',
                             display: 'block',
-                            WebkitOverflowScrolling: 'touch',
-                            boxSizing: 'border-box',
-                            position: 'relative'
+                            WebkitOverflowScrolling: 'touch'
                         }}
                     >
-                        <div style={{ minWidth: '100%', width: 'fit-content' }}>
-                            <Table style={{ width: 'max-content', display: 'table', tableLayout: 'auto' }}>
+                        <Table style={{ width: 'max-content', display: 'table', tableLayout: 'auto' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     <TableHead className="w-12 sticky left-0 z-20 bg-muted/50">
@@ -1219,7 +1215,6 @@ function EcomhubPedidosPage() {
                                 })}
                             </TableBody>
                         </Table>
-                        </div>
                     </div>
 
                     {/* Paginação Avançada */}
