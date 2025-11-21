@@ -724,7 +724,7 @@ function EcomhubPedidosPage() {
         const pedidosPaginados = pedidosFiltrados.slice(indexInicio, indexFim);
 
         return (
-            <Card className="border-border bg-card" style={{ width: '100%', maxWidth: '100%', overflow: 'visible', boxSizing: 'border-box' }}>
+            <Card className="border-border bg-card">
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-4">
                         <div>
@@ -913,19 +913,18 @@ function EcomhubPedidosPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div
-                        id="table-scroll-container"
-                        style={{
-                            overflowX: 'scroll',
-                            overflowY: 'visible',
-                            width: '100%',
-                            maxWidth: '100%',
-                            display: 'block',
-                            WebkitOverflowScrolling: 'touch',
-                            boxSizing: 'border-box'
-                        }}
-                    >
-                        <Table style={{ width: 'max-content', display: 'table', tableLayout: 'auto' }}>
+                    {/* GRID WRAPPER - FORÇA CONTENÇÃO REAL */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', minWidth: 0 }}>
+                        <div
+                            id="table-scroll-container"
+                            style={{
+                                overflowX: 'auto',
+                                overflowY: 'visible',
+                                minWidth: 0,
+                                WebkitOverflowScrolling: 'touch'
+                            }}
+                        >
+                            <Table style={{ width: 'max-content', display: 'table', tableLayout: 'auto' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     <TableHead className="w-12 sticky left-0 z-20 bg-muted/50">
@@ -1217,6 +1216,7 @@ function EcomhubPedidosPage() {
                                 })}
                             </TableBody>
                         </Table>
+                        </div>
                     </div>
 
                     {/* Paginação Avançada */}
