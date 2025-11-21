@@ -919,11 +919,10 @@ function EcomhubPedidosPage() {
                             overflowX: 'scroll',
                             overflowY: 'visible',
                             width: '100%',
-                            maxWidth: '100%',
+                            maxWidth: 'calc(100vw - 100px)',
                             display: 'block',
                             WebkitOverflowScrolling: 'touch',
-                            position: 'relative',
-                            contain: 'layout'
+                            boxSizing: 'border-box'
                         }}
                     >
                         <Table style={{ width: 'max-content', minWidth: '100%', display: 'table', tableLayout: 'auto' }}>
