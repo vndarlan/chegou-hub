@@ -724,7 +724,7 @@ function EcomhubPedidosPage() {
         const pedidosPaginados = pedidosFiltrados.slice(indexInicio, indexFim);
 
         return (
-            <Card className="w-full border-border bg-card" style={{ maxWidth: '100%', overflowX: 'auto', overflowY: 'visible' }}>
+            <Card className="w-full border-border bg-card" style={{ maxWidth: '100%', overflow: 'visible' }}>
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-4">
                         <div>
@@ -916,11 +916,13 @@ function EcomhubPedidosPage() {
                     <div
                         id="table-scroll-container"
                         style={{
-                            overflowX: 'auto',
+                            overflowX: 'scroll',
                             overflowY: 'visible',
                             width: '100%',
+                            maxWidth: '100%',
                             display: 'block',
-                            WebkitOverflowScrolling: 'touch'
+                            WebkitOverflowScrolling: 'touch',
+                            boxSizing: 'border-box'
                         }}
                     >
                         <Table style={{ width: 'max-content', display: 'table', tableLayout: 'auto' }}>
@@ -1384,37 +1386,42 @@ function EcomhubPedidosPage() {
         styleEl.id = 'ecomhub-pedidos-scroll-fix';
         styleEl.textContent = `
             /* Scrollbar GRANDE e SEMPRE visível */
-            div[style*="overflowX: scroll"]::-webkit-scrollbar {
+            #table-scroll-container::-webkit-scrollbar {
                 height: 20px !important;
                 background: #f8fafc;
             }
 
-            div[style*="overflowX: scroll"]::-webkit-scrollbar-track {
+            #table-scroll-container::-webkit-scrollbar-track {
                 background: #e2e8f0 !important;
                 border: 2px solid #cbd5e1;
                 border-radius: 10px;
             }
 
-            div[style*="overflowX: scroll"]::-webkit-scrollbar-thumb {
+            #table-scroll-container::-webkit-scrollbar-thumb {
                 background: #64748b !important;
                 border-radius: 8px;
                 border: 3px solid #e2e8f0;
                 min-width: 50px;
             }
 
-            div[style*="overflowX: scroll"]::-webkit-scrollbar-thumb:hover {
+            #table-scroll-container::-webkit-scrollbar-thumb:hover {
                 background: #475569 !important;
             }
 
-            div[style*="overflowX: scroll"]::-webkit-scrollbar-thumb:active {
+            #table-scroll-container::-webkit-scrollbar-thumb:active {
                 background: #334155 !important;
             }
 
-            /* Garantir que o container do Card não bloqueia */
-            div[style*="overflowX: scroll"] {
+            /* Garantir contenção e scroll suave */
+            #table-scroll-container {
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: thin;
                 scrollbar-color: #64748b #e2e8f0;
+            }
+
+            /* Garantir que o Card contém o conteúdo */
+            #table-scroll-container table {
+                margin: 0 !important;
             }
         `;
         document.head.appendChild(styleEl);
