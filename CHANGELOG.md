@@ -5,6 +5,18 @@ Todas as mudanças deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [v1.9.1] - 21/11/2025
+
+### 🐛 Correções
+
+- **[📦 ECOMHUB - Pedidos]** Corrigido scroll horizontal da tabela com implementação definitiva usando CSS Grid e `minWidth: 0` - a tabela agora permanece dentro dos limites da tela e permite rolagem horizontal correta quando necessário
+- **[🏢 Sistema de Organizações]** Corrigidas migrations críticas para garantir criação correta das tabelas de organizações em produção
+- **[Interface]** Corrigido comportamento do dropdown que estava modificando indevidamente as propriedades do body/html
+
+### 🔧 Melhorias
+
+- **[📦 ECOMHUB - Pedidos]** Adicionado `overflow-x-hidden` na página principal para prevenir scroll horizontal indesejado no layout geral
+
 ## [v1.9.0] - 19/11/2025
 
 ### ✨ Novidades
