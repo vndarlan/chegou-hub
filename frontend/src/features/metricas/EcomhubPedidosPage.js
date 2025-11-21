@@ -1443,7 +1443,7 @@ function EcomhubPedidosPage() {
             {renderHeader()}
 
             {/* Layout principal: Tabela em largura total */}
-            <div className="w-full relative" style={{ maxWidth: '100%', overflow: 'hidden' }}>
+            <div className="w-full relative" style={{ maxWidth: '100%' }}>
                 {/* Loading Overlay */}
                 {loadingBuscar && (
                     <div className="flex items-center justify-center py-12">
