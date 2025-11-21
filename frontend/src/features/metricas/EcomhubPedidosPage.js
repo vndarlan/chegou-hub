@@ -925,7 +925,8 @@ function EcomhubPedidosPage() {
                             boxSizing: 'border-box'
                         }}
                     >
-                        <Table style={{ width: 'max-content', minWidth: '100%', display: 'table', tableLayout: 'auto' }}>
+                        <div style={{ display: 'inline-block', minWidth: '100%' }}>
+                            <Table style={{ width: 'max-content', display: 'table', tableLayout: 'auto' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     <TableHead className="w-12 sticky left-0 z-20 bg-muted/50">
@@ -1217,6 +1218,7 @@ function EcomhubPedidosPage() {
                                 })}
                             </TableBody>
                         </Table>
+                        </div>
                     </div>
 
                     {/* Paginação Avançada */}
