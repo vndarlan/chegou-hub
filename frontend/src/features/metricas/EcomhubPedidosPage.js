@@ -724,7 +724,7 @@ function EcomhubPedidosPage() {
         const pedidosPaginados = pedidosFiltrados.slice(indexInicio, indexFim);
 
         return (
-            <Card className="w-full border-border bg-card" style={{ maxWidth: '100%', overflow: 'visible' }}>
+            <Card className="w-full border-border bg-card" style={{ maxWidth: '100%', overflowX: 'auto', overflowY: 'visible' }}>
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-4">
                         <div>
@@ -918,7 +918,7 @@ function EcomhubPedidosPage() {
                         style={{
                             overflowX: 'scroll',
                             overflowY: 'visible',
-                            width: 'calc(100vw - 4rem)',
+                            width: '100%',
                             maxWidth: '100%',
                             display: 'block',
                             WebkitOverflowScrolling: 'touch',
