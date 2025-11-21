@@ -721,7 +721,7 @@ function EcomhubPedidosPage() {
         const pedidosPaginados = pedidosFiltrados.slice(indexInicio, indexFim);
 
         return (
-            <Card className="w-full max-w-full overflow-hidden border-border bg-card">
+            <Card className="w-full border-border bg-card">
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-4">
                         <div>
@@ -910,8 +910,8 @@ function EcomhubPedidosPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div className="ecomhub-table-scroll-container">
-                        <Table className="min-w-full" style={{ width: 'max-content', minWidth: '100%' }}>
+                    <div className="overflow-x-auto w-full">
+                        <Table style={{ width: 'max-content', minWidth: '100%' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     <TableHead className="w-12 sticky left-0 z-20 bg-muted/50">
@@ -1318,44 +1318,33 @@ function EcomhubPedidosPage() {
         localStorage.setItem('ecomhub-columns-version', COLUMNS_VERSION);
     }, [visibleColumns]);
 
-    // CSS inline para tabela com scroll - NÃO modifica body para não quebrar dropdowns
+    // CSS customizado para scrollbar visível e bonito
     useEffect(() => {
         const styleEl = document.createElement('style');
         styleEl.id = 'ecomhub-pedidos-scroll-fix';
         styleEl.textContent = `
-            /* Container com scroll isolado */
-            .ecomhub-table-scroll-container {
-                position: relative;
-                width: 100%;
-                overflow-x: scroll !important;
-                overflow-y: visible !important;
-                -webkit-overflow-scrolling: touch;
+            /* Scrollbar customizado - apenas estilo visual */
+            .overflow-x-auto::-webkit-scrollbar {
+                height: 18px;
             }
 
-            .ecomhub-table-scroll-container table {
-                width: max-content !important;
-                min-width: 100% !important;
-                table-layout: auto !important;
+            .overflow-x-auto::-webkit-scrollbar-track {
+                background: #f1f5f9;
+                border-radius: 10px;
             }
 
-            /* Scrollbar grande e visível */
-            .ecomhub-table-scroll-container::-webkit-scrollbar {
-                height: 14px !important;
-                display: block !important;
+            .overflow-x-auto::-webkit-scrollbar-thumb {
+                background: #94a3b8;
+                border-radius: 10px;
+                border: 4px solid #f1f5f9;
             }
 
-            .ecomhub-table-scroll-container::-webkit-scrollbar-track {
-                background: #f3f4f6 !important;
-                border-radius: 8px !important;
+            .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+                background: #64748b;
             }
 
-            .ecomhub-table-scroll-container::-webkit-scrollbar-thumb {
-                background: #6b7280 !important;
-                border-radius: 8px !important;
-            }
-
-            .ecomhub-table-scroll-container::-webkit-scrollbar-thumb:hover {
-                background: #4b5563 !important;
+            .overflow-x-auto::-webkit-scrollbar-thumb:active {
+                background: #475569;
             }
         `;
         document.head.appendChild(styleEl);
