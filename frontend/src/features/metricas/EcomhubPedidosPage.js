@@ -910,8 +910,15 @@ function EcomhubPedidosPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    <div className="overflow-x-auto w-full">
-                        <Table style={{ width: 'max-content', minWidth: '100%' }}>
+                    <div
+                        style={{
+                            overflowX: 'scroll',
+                            width: '100%',
+                            maxWidth: '100%',
+                            display: 'block'
+                        }}
+                    >
+                        <Table style={{ width: 'max-content', minWidth: '100%', display: 'table' }}>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-border">
                                     <TableHead className="w-12 sticky left-0 z-20 bg-muted/50">
@@ -1318,33 +1325,61 @@ function EcomhubPedidosPage() {
         localStorage.setItem('ecomhub-columns-version', COLUMNS_VERSION);
     }, [visibleColumns]);
 
-    // CSS customizado para scrollbar visível e bonito
+    // Debug: Verificar larguras para diagnosticar scroll
+    useEffect(() => {
+        if (pedidos.length > 0) {
+            setTimeout(() => {
+                const container = document.querySelector('div[style*="overflowX: scroll"]');
+                const table = container?.querySelector('table');
+                if (container && table) {
+                    console.log('🔍 DEBUG SCROLL HORIZONTAL:');
+                    console.log('Container width:', container.offsetWidth, 'px');
+                    console.log('Table width:', table.offsetWidth, 'px');
+                    console.log('Scroll necessário?', table.offsetWidth > container.offsetWidth);
+                    console.log('ScrollWidth:', container.scrollWidth, 'px');
+                    console.log('ClientWidth:', container.clientWidth, 'px');
+                }
+            }, 1000);
+        }
+    }, [pedidos]);
+
+    // CSS customizado para scrollbar ULTRA visível
     useEffect(() => {
         const styleEl = document.createElement('style');
         styleEl.id = 'ecomhub-pedidos-scroll-fix';
         styleEl.textContent = `
-            /* Scrollbar customizado - apenas estilo visual */
-            .overflow-x-auto::-webkit-scrollbar {
-                height: 18px;
+            /* Scrollbar GRANDE e SEMPRE visível */
+            div[style*="overflowX: scroll"]::-webkit-scrollbar {
+                height: 20px !important;
+                background: #f8fafc;
             }
 
-            .overflow-x-auto::-webkit-scrollbar-track {
-                background: #f1f5f9;
+            div[style*="overflowX: scroll"]::-webkit-scrollbar-track {
+                background: #e2e8f0 !important;
+                border: 2px solid #cbd5e1;
                 border-radius: 10px;
             }
 
-            .overflow-x-auto::-webkit-scrollbar-thumb {
-                background: #94a3b8;
-                border-radius: 10px;
-                border: 4px solid #f1f5f9;
+            div[style*="overflowX: scroll"]::-webkit-scrollbar-thumb {
+                background: #64748b !important;
+                border-radius: 8px;
+                border: 3px solid #e2e8f0;
+                min-width: 50px;
             }
 
-            .overflow-x-auto::-webkit-scrollbar-thumb:hover {
-                background: #64748b;
+            div[style*="overflowX: scroll"]::-webkit-scrollbar-thumb:hover {
+                background: #475569 !important;
             }
 
-            .overflow-x-auto::-webkit-scrollbar-thumb:active {
-                background: #475569;
+            div[style*="overflowX: scroll"]::-webkit-scrollbar-thumb:active {
+                background: #334155 !important;
+            }
+
+            /* Garantir que o container do Card não bloqueia */
+            div[style*="overflowX: scroll"] {
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: thin;
+                scrollbar-color: #64748b #e2e8f0;
             }
         `;
         document.head.appendChild(styleEl);
