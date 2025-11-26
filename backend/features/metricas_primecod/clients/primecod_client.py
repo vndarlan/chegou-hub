@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from django.conf import settings
 from django.core.cache import cache
+from ..models import PrimeCODConfig
 
 logger = logging.getLogger(__name__)
 
@@ -19,14 +20,33 @@ class PrimeCODAPIError(Exception):
 
 class PrimeCODClient:
     """Cliente para comunicação segura com API PrimeCOD"""
-    
-    def __init__(self):
+
+    def __init__(self, token=None):
+        """
+        Inicializa cliente PrimeCOD.
+
+        Args:
+            token: Token da API (opcional). Se None, busca de PrimeCODConfig.get_token()
+        """
         self.base_url = "https://api.primecod.app/api"
-        self.token = getattr(settings, 'PRIMECOD_API_TOKEN', None)
-        
+
+        # Prioridade: token passado > PrimeCODConfig > settings (fallback)
+        if token:
+            self.token = token
+        else:
+            # Buscar token do model PrimeCODConfig
+            self.token = PrimeCODConfig.get_token()
+
+            # Fallback: settings (para compatibilidade com testes)
+            if not self.token:
+                self.token = getattr(settings, 'PRIMECOD_API_TOKEN', None)
+
         if not self.token:
-            raise PrimeCODAPIError("PRIMECOD_API_TOKEN não configurado no settings")
-        
+            raise PrimeCODAPIError(
+                "Token da API PrimeCOD não configurado. "
+                "Configure em: Fornecedor > PrimeCOD > Configuração"
+            )
+
         self.headers = {
             'Authorization': f'Bearer {self.token}',
             'Content-Type': 'application/json',

@@ -277,6 +277,22 @@ def sync_primecod_catalog() -> Dict:
     start_time = time.time()
 
     try:
+        # Validar token antes de inicializar cliente
+        from .models import PrimeCODConfig
+        token = PrimeCODConfig.get_token()
+
+        if not token:
+            error_msg = (
+                "Token da API PrimeCOD não configurado. "
+                "Configure em: Fornecedor > PrimeCOD > Configuração"
+            )
+            logger.error(f"❌ [SYNC CATALOG] {error_msg}")
+            return {
+                'status': 'error',
+                'message': error_msg,
+                'error_type': 'config_error'
+            }
+
         # Inicializar cliente PrimeCOD
         client = PrimeCODClient()
         logger.info("✅ [SYNC CATALOG] Cliente PrimeCOD inicializado com sucesso")

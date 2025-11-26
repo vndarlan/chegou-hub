@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
 from core.permissions import IsAdminUser
+from .decorators import require_primecod_token
 from .models import (
     AnalisePrimeCOD,
     StatusMappingPrimeCOD,
@@ -194,6 +195,7 @@ class StatusMappingPrimeCODViewSet(viewsets.ModelViewSet):
 # ===== ENDPOINTS PROXY PARA API PRIMECOD =====
 
 @api_view(['POST'])
+@require_primecod_token
 def buscar_orders_primecod(request):
     """
     Proxy para buscar orders da API PrimeCOD de forma segura
@@ -201,33 +203,33 @@ def buscar_orders_primecod(request):
     """
     print("[CRITICAL] PRIMECOD VIEW CHAMADA!")
     logger.error("[CRITICAL] PRIMECOD VIEW CHAMADA!")
-    
+
     # Verificar autenticação manualmente
     logger.error(f"User authenticated: {request.user.is_authenticated}")
     logger.error(f"User: {request.user}")
-    
+
     if not request.user.is_authenticated:
         logger.error("[EMOJI] Usuario nao autenticado!")
         return Response({
             'status': 'error',
             'message': 'Usuário não autenticado'
         }, status=status.HTTP_401_UNAUTHORIZED)
-    
+
     try:
         logger.info("=== INÍCIO DA BUSCA PRIMECOD ===")
-        
+
         # Extrair parâmetros da requisição
         data_inicio = request.data.get('data_inicio')
         data_fim = request.data.get('data_fim')
         pais_filtro = request.data.get('pais_filtro')
         max_paginas = request.data.get('max_paginas', 99999)  # SEM LIMITES! Coletar TUDO
-        
+
         logger.info(f"Usuário: {request.user.username}")
         logger.info(f"Parâmetros recebidos: data_inicio={data_inicio}, data_fim={data_fim}, pais_filtro={pais_filtro}")
         logger.info(f"[SUCCESS] SEM LIMITES: max_paginas={max_paginas} - coletará TUDO até não haver mais dados")
         logger.info(f"[SUCCESS] ULTRA-OTIMIZAÇÃO: Rate limit 50ms (4x mais rápido) + Heartbeat logs!")
         logger.info(f"Request data completo: {request.data}")
-        
+
         # Validar parâmetros
         if not data_inicio or not data_fim:
             logger.error("Parâmetros obrigatórios ausentes")
@@ -235,21 +237,6 @@ def buscar_orders_primecod(request):
                 'status': 'error',
                 'message': 'Parâmetros data_inicio e data_fim são obrigatórios'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Verificar configuração do token antes de inicializar cliente
-        from django.conf import settings
-        token = getattr(settings, 'PRIMECOD_API_TOKEN', None)
-        
-        logger.info(f"Token configurado: {'Sim' if token else 'Não'}")
-        logger.info(f"Token length: {len(token) if token else 0}")
-        
-        if not token or token == 'your_primecod_api_token_here':
-            logger.warning("PRIMECOD_API_TOKEN não configurado no ambiente")
-            return Response({
-                'status': 'error',
-                'message': 'Token PrimeCOD não configurado. Adicione PRIMECOD_API_TOKEN nas variáveis de ambiente do Railway.',
-                'configured': False
-            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         
         # Inicializar cliente PrimeCOD
         logger.info("Inicializando cliente PrimeCOD...")
@@ -402,10 +389,21 @@ def buscar_orders_primecod(request):
             return Response(resposta)
             
         except PrimeCODAPIError as e:
-            logger.error(f"Erro na API PrimeCOD: {str(e)}")
+            logger.error(f"Erro na API PrimeCOD ao buscar orders: {str(e)}")
+            # Mensagens específicas baseadas no tipo de erro
+            error_msg = str(e)
+            if "401" in error_msg or "inválido" in error_msg.lower():
+                message = "Token de autenticação inválido ou expirado. Verifique a configuração em: Fornecedor > PrimeCOD > Configuração"
+            elif "429" in error_msg or "rate limit" in error_msg.lower():
+                message = "Limite de requisições excedido na API PrimeCOD. Aguarde alguns minutos e tente novamente."
+            elif "timeout" in error_msg.lower() or "conectividade" in error_msg.lower():
+                message = "Erro de conexão com a API PrimeCOD. Verifique sua conexão com a internet e tente novamente."
+            else:
+                message = f"Erro ao buscar dados da API PrimeCOD: {error_msg}"
+
             return Response({
                 'status': 'error',
-                'message': f'Erro na API PrimeCOD: {str(e)}'
+                'message': message
             }, status=status.HTTP_502_BAD_GATEWAY)
             
     except Exception as e:
@@ -418,6 +416,7 @@ def buscar_orders_primecod(request):
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
+@require_primecod_token
 def processar_dados_primecod(request):
     """
     Processa dados já buscados da API PrimeCOD
@@ -428,26 +427,14 @@ def processar_dados_primecod(request):
         orders_data = request.data.get('orders_data', [])
         pais_filtro = request.data.get('pais_filtro')
         nome_analise = request.data.get('nome_analise')
-        
+
         if not orders_data:
             return Response({
                 'status': 'error',
                 'message': 'Dados de orders são obrigatórios para processamento'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
         logger.info(f"Processamento de dados PrimeCOD para {request.user.username}: {len(orders_data)} orders")
-        
-        # Verificar configuração do token antes de inicializar cliente
-        from django.conf import settings
-        token = getattr(settings, 'PRIMECOD_API_TOKEN', None)
-        
-        if not token or token == 'your_primecod_api_token_here':
-            logger.warning("PRIMECOD_API_TOKEN não configurado no ambiente")
-            return Response({
-                'status': 'error',
-                'message': 'Token PrimeCOD não configurado. Adicione PRIMECOD_API_TOKEN nas variáveis de ambiente do Railway.',
-                'configured': False
-            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         
         # Inicializar cliente para processar dados
         try:
@@ -521,6 +508,7 @@ def processar_dados_primecod(request):
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
+@require_primecod_token
 def testar_performance_primecod(request):
     """
     Testa performance comparativa: Paginação vs Coleta Completa
@@ -530,20 +518,10 @@ def testar_performance_primecod(request):
         # Extrair período do request ou usar padrão
         data_inicio = request.data.get('data_inicio', '2025-08-01')
         data_fim = request.data.get('data_fim', '2025-09-10')
-        
+
         logger.info(f"=== TESTE DE PERFORMANCE PRIMECOD ===")
         logger.info(f"Usuário: {request.user.username}")
         logger.info(f"Período: {data_inicio} até {data_fim}")
-        
-        # Verificar configuração do token
-        from django.conf import settings
-        token = getattr(settings, 'PRIMECOD_API_TOKEN', None)
-        
-        if not token or token == 'your_primecod_api_token_here':
-            return Response({
-                'status': 'error',
-                'message': 'Token PrimeCOD não configurado'
-            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         
         # Importar teste de performance
         from .clients.performance_test import PrimeCODPerformanceTest
@@ -576,23 +554,13 @@ def testar_performance_primecod(request):
 
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
+@require_primecod_token
 def testar_conexao_primecod(request):
     """
     Testa conectividade com API PrimeCOD
     Endpoint útil para verificar se as credenciais estão funcionando
     """
     try:
-        # Primeiro verifica se o token está configurado
-        from django.conf import settings
-        token = getattr(settings, 'PRIMECOD_API_TOKEN', None)
-        
-        if not token or token == 'your_primecod_api_token_here':
-            logger.warning("PRIMECOD_API_TOKEN não configurado no ambiente")
-            return Response({
-                'status': 'error',
-                'message': 'Token PrimeCOD não configurado. Adicione PRIMECOD_API_TOKEN nas variáveis de ambiente do Railway.',
-                'configured': False
-            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         
         client = PrimeCODClient()
         resultado = client.test_connection()
@@ -618,6 +586,7 @@ def testar_conexao_primecod(request):
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
+@require_primecod_token
 def iniciar_coleta_async_primecod(request):
     """
     Inicia coleta assíncrona de orders PrimeCOD usando Django-RQ
@@ -630,29 +599,17 @@ def iniciar_coleta_async_primecod(request):
         pais_filtro = request.data.get('pais_filtro')
         max_paginas = request.data.get('max_paginas', 1000)  # [SUCCESS] ULTRA-OTIMIZADO: 1000+ páginas sem timeout
         nome_analise = request.data.get('nome_analise')
-        
+
         logger.info(f"Iniciando coleta assíncrona PrimeCOD para {request.user.username}")
         logger.info(f"Parâmetros: data_inicio={data_inicio}, data_fim={data_fim}, pais_filtro={pais_filtro}")
         logger.info(f"[SUCCESS] ULTRA-OTIMIZADO: {max_paginas} páginas com rate limit 50ms + heartbeat logs")
-        
+
         # Validar parâmetros obrigatórios
         if not data_inicio or not data_fim:
             return Response({
                 'status': 'error',
                 'message': 'Parâmetros data_inicio e data_fim são obrigatórios'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Verificar configuração do token
-        from django.conf import settings
-        token = getattr(settings, 'PRIMECOD_API_TOKEN', None)
-        
-        if not token or token == 'your_primecod_api_token_here':
-            logger.warning("PRIMECOD_API_TOKEN não configurado no ambiente")
-            return Response({
-                'status': 'error',
-                'message': 'Token PrimeCOD não configurado. Adicione PRIMECOD_API_TOKEN nas variáveis de ambiente do Railway.',
-                'configured': False
-            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         
         # Verificar se Django-RQ está disponível
         try:
@@ -902,34 +859,30 @@ class PrimeCODCatalogViewSet(viewsets.ReadOnlyModelViewSet):
             "create_snapshot": true  // Cria snapshot após sync
         }
         """
+        # Validar token antes de processar
+        token = PrimeCODConfig.get_token()
+        if not token:
+            return Response({
+                'status': 'error',
+                'message': 'Token da API não configurado. Configure em: Fornecedor > PrimeCOD > Configuração',
+                'configured': False
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             force = request.data.get('force', False)
             create_snapshot = request.data.get('create_snapshot', True)
 
             logger.info(f"Iniciando sync manual do catálogo PrimeCOD - Usuário: {request.user.username}")
 
-            # Verificar token PrimeCOD
-            from django.conf import settings
-            token = getattr(settings, 'PRIMECOD_API_TOKEN', None)
+            # Chamar job de sincronização
+            from .jobs import sync_primecod_catalog
 
-            if not token or token == 'your_primecod_api_token_here':
-                return Response({
-                    'status': 'error',
-                    'message': 'Token PrimeCOD não configurado. Adicione PRIMECOD_API_TOKEN nas variáveis de ambiente.',
-                    'configured': False
-                }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            resultado = sync_primecod_catalog()
 
-            # TODO: Implementar integração com API PrimeCOD para buscar catálogo
-            # Por enquanto, retorna placeholder
-
-            return Response({
-                'status': 'success',
-                'message': 'Sincronização do catálogo será implementada em breve',
-                'products_synced': 0,
-                'snapshots_created': 0,
-                'force': force,
-                'create_snapshot': create_snapshot
-            })
+            if resultado.get('status') == 'success':
+                return Response(resultado)
+            else:
+                return Response(resultado, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         except Exception as e:
             logger.error(f"Erro em sync manual do catálogo: {str(e)}")

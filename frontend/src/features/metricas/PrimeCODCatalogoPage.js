@@ -81,8 +81,16 @@ function PrimeCODCatalogoPage() {
                 showNotification('info', 'Nenhum produto encontrado com os filtros selecionados');
             }
         } catch (error) {
-            console.error('Erro ao buscar catálogo:', error);
-            showNotification('error', `Erro ao carregar catálogo: ${error.response?.data?.message || error.message}`);
+            console.error('Erro ao carregar catálogo:', error);
+
+            // Verificar se realmente é erro de token ou outro erro 400
+            if (error.response?.status === 400 && error.response?.data?.configured === false) {
+                // Definitivamente é erro de token não configurado
+                showNotification('error', 'Token da API não configurado. Configure em: Fornecedor > PrimeCOD > Configuração');
+            } else {
+                // Outro tipo de erro
+                showNotification('error', error.response?.data?.message || 'Erro ao carregar catálogo');
+            }
         } finally {
             setLoading(false);
         }
@@ -106,7 +114,15 @@ function PrimeCODCatalogoPage() {
             }
         } catch (error) {
             console.error('Erro ao sincronizar:', error);
-            showNotification('error', `Erro na sincronização: ${error.response?.data?.message || error.message}`);
+
+            // Verificar se realmente é erro de token ou outro erro 400
+            if (error.response?.status === 400 && error.response?.data?.configured === false) {
+                // Definitivamente é erro de token não configurado
+                showNotification('error', 'Token da API não configurado. Configure em: Fornecedor > PrimeCOD > Configuração');
+            } else {
+                // Outro tipo de erro
+                showNotification('error', error.response?.data?.message || 'Erro ao sincronizar catálogo');
+            }
         } finally {
             setSyncing(false);
         }
