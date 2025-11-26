@@ -309,18 +309,6 @@ function PrimecodConfigPage() {
                 </CardContent>
             </Card>
 
-            {/* Info adicional */}
-            <Card>
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Informações da API</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm text-muted-foreground">
-                    <p><strong>URL Base:</strong> https://api.primecod.app/api</p>
-                    <p><strong>Rate Limit:</strong> 300 requisições / 24 horas</p>
-                    <p><strong>Paginação:</strong> 10 itens por página (fixo)</p>
-                    <p><strong>Países:</strong> 15 países europeus suportados</p>
-                </CardContent>
-            </Card>
         </div>
     );
 }

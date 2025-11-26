@@ -1117,7 +1117,7 @@ def testar_token_primecod(request):
                 return Response({
                     'status': 'success',
                     'valid': True,
-                    'message': f'Token válido! {total_products} produtos encontrados no catálogo.',
+                    'message': 'Token válido!',
                     'total_products': total_products
                 })
             elif response.status_code == 401:
