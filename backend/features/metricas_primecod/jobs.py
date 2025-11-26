@@ -396,12 +396,14 @@ def sync_primecod_catalog() -> Dict:
                         'cost': cost,
                         'countries': countries,
                         'images': images,
-                        # is_new só é True se for criação
-                        'is_new': created,
+                        'is_new': False,  # Valor padrão fixo
                     }
                 )
 
+                # Se foi criado agora, marcar como novo
                 if created:
+                    product.is_new = True
+                    product.save(update_fields=['is_new'])
                     products_created += 1
                     logger.info(f"✨ [SYNC CATALOG] Produto NOVO criado: [{sku}] {name}")
                 else:
