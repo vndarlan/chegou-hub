@@ -174,11 +174,13 @@ function PrimeCODCatalogoPage() {
 
         return (
             <div className="flex flex-wrap gap-1">
-                {countries.map((countryCode, idx) => {
+                {countries.map((country, idx) => {
+                    // country pode ser string (código) ou objeto {name, code}
+                    const countryCode = typeof country === 'string' ? country : country.code;
                     const pais = PAISES_PRIMECOD.find(p => p.code === countryCode.toLowerCase());
                     return (
                         <Badge key={idx} variant="secondary" className="text-xs">
-                            {pais?.code.toUpperCase() || countryCode}
+                            {pais?.code.toUpperCase() || countryCode.toUpperCase()}
                         </Badge>
                     );
                 })}
