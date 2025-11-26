@@ -242,13 +242,8 @@ class PrimeCODConfigSerializer(serializers.ModelSerializer):
         }
 
     def get_token_mascarado(self, obj):
-        """Retorna token parcialmente mascarado para exibição"""
-        if obj.api_token:
-            token = obj.api_token
-            if len(token) > 8:
-                return f"{'*' * (len(token) - 4)}{token[-4:]}"
-            return '*' * len(token)
-        return None
+        """Retorna token completo para exibição"""
+        return obj.api_token if obj.api_token else None
 
     def create(self, validated_data):
         validated_data['updated_by'] = self.context['request'].user
