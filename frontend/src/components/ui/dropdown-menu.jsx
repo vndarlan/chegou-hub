@@ -80,9 +80,13 @@ const DropdownMenuContent = React.forwardRef(({
 
   // Calcular posição baseada no trigger
   React.useEffect(() => {
-    if (open && triggerRef?.current) {
+    if (open && triggerRef?.current && contentRef?.current) {
       const rect = triggerRef.current.getBoundingClientRect()
-      const contentWidth = 200 // largura estimada do dropdown
+      const contentRect = contentRef.current.getBoundingClientRect()
+
+      // Obter dimensões reais do conteúdo
+      const contentWidth = contentRect.width || 280
+      const contentHeight = contentRect.height || 300
 
       let top = 0
       let left = 0
@@ -91,7 +95,7 @@ const DropdownMenuContent = React.forwardRef(({
       if (side === "bottom") {
         top = rect.bottom + sideOffset
       } else if (side === "top") {
-        top = rect.top - sideOffset
+        top = rect.top - contentHeight - sideOffset  // Subtrai altura real do conteúdo
       } else if (side === "right") {
         top = rect.top
       } else if (side === "left") {
@@ -117,19 +121,32 @@ const DropdownMenuContent = React.forwardRef(({
       const viewportWidth = window.innerWidth
       const viewportHeight = window.innerHeight
 
-      if (left + contentWidth > viewportWidth) {
+      // Ajustar horizontalmente
+      if (left + contentWidth > viewportWidth - 10) {
         left = viewportWidth - contentWidth - 10
       }
       if (left < 10) {
         left = 10
       }
+
+      // Ajustar verticalmente (topo)
       if (top < 10) {
-        top = 10
+        if (side === "top") {
+          // Se estava abrindo para cima e não cabe, abrir para baixo
+          top = rect.bottom + sideOffset
+        } else {
+          top = 10
+        }
       }
 
-      // Se o dropdown sair pela parte de baixo, mostrar acima
-      if (top + 300 > viewportHeight && side === "bottom") {
-        top = rect.top - sideOffset
+      // Ajustar verticalmente (fundo)
+      if (top + contentHeight > viewportHeight - 10) {
+        if (side === "bottom") {
+          // Se estava abrindo para baixo e não cabe, abrir para cima
+          top = rect.top - contentHeight - sideOffset
+        } else {
+          top = viewportHeight - contentHeight - 10
+        }
       }
 
       setPosition({ top, left })
