@@ -3,7 +3,8 @@ from .models import (
     AnalisePrimeCOD,
     StatusMappingPrimeCOD,
     PrimeCODCatalogProduct,
-    PrimeCODCatalogSnapshot
+    PrimeCODCatalogSnapshot,
+    PrimeCODConfig
 )
 
 @admin.register(AnalisePrimeCOD)
@@ -115,3 +116,27 @@ class PrimeCODCatalogSnapshotAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         })
     )
+
+
+@admin.register(PrimeCODConfig)
+class PrimeCODConfigAdmin(admin.ModelAdmin):
+    list_display = ('id', 'is_active', 'updated_by', 'updated_at')
+    readonly_fields = ('created_at', 'updated_at')
+
+    fieldsets = (
+        ('Configuração', {
+            'fields': ('api_token', 'is_active')
+        }),
+        ('Auditoria', {
+            'fields': ('updated_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+
+    def has_add_permission(self, request):
+        # Singleton - só permite um registro
+        return not PrimeCODConfig.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        # Não permitir deleção do singleton
+        return False

@@ -4,10 +4,12 @@ Background Jobs para coleta assíncrona PrimeCOD
 import logging
 import time
 from typing import Dict, Optional, List
+from datetime import datetime, timedelta
 from django.core.cache import cache
 from django.contrib.auth.models import User
+from django.utils import timezone
 from .clients.primecod_client import PrimeCODClient, PrimeCODAPIError
-from .models import AnalisePrimeCOD
+from .models import AnalisePrimeCOD, PrimeCODCatalogProduct, PrimeCODCatalogSnapshot
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +238,7 @@ def coletar_orders_primecod_async(
     except Exception as e:
         error_msg = f"Erro inesperado: {str(e)}"
         logger.error(error_msg)
-        
+
         if progress_key:
             cache.set(progress_key, {
                 'status': 'erro',
@@ -244,10 +246,219 @@ def coletar_orders_primecod_async(
                 'message': error_msg,
                 'error': str(e)
             }, timeout=3600)
-        
+
         return {
             'status': 'error',
             'job_id': job_id,
             'user_id': user_id,
             'message': error_msg
+        }
+
+
+def sync_primecod_catalog() -> Dict:
+    """
+    Sincroniza catálogo PrimeCOD automaticamente.
+
+    Executa diariamente às 6h da manhã (horário de Brasília).
+
+    Fluxo:
+    1. Busca todas as páginas da API do catálogo PrimeCOD
+    2. Para cada produto:
+       - Se não existe (by primecod_id): criar como is_new=True
+       - Se existe: atualizar dados
+    3. Criar snapshot diário para todos os produtos
+    4. Marcar is_new=False para produtos > 24h
+
+    Returns:
+        Dict com resultado da sincronização
+    """
+
+    logger.info("🔄 [SYNC CATALOG] Iniciando sincronização automática do catálogo PrimeCOD")
+    start_time = time.time()
+
+    try:
+        # Inicializar cliente PrimeCOD
+        client = PrimeCODClient()
+        logger.info("✅ [SYNC CATALOG] Cliente PrimeCOD inicializado com sucesso")
+
+        # Buscar todas as páginas do catálogo
+        logger.info("📡 [SYNC CATALOG] Buscando produtos da API PrimeCOD...")
+
+        all_products = []
+        current_page = 1
+
+        # URL da API de catálogo
+        catalog_url = f"{client.base_url}/catalog/products"
+
+        while True:
+            logger.info(f"📄 [SYNC CATALOG] Buscando página {current_page}...")
+
+            try:
+                # Fazer requisição POST para o catálogo
+                response = client._make_request('POST', catalog_url, json={"page": current_page})
+                data = response.json()
+
+                # Extrair produtos da resposta
+                products = data.get('data', [])
+
+                if not products:
+                    logger.info(f"✅ [SYNC CATALOG] Página {current_page} sem produtos - fim da coleta")
+                    break
+
+                logger.info(f"✅ [SYNC CATALOG] Página {current_page}: {len(products)} produtos coletados")
+                all_products.extend(products)
+
+                # Verificar paginação
+                current_page_api = data.get('current_page', current_page)
+                last_page = data.get('last_page', 1)
+
+                if current_page_api >= last_page:
+                    logger.info(f"✅ [SYNC CATALOG] Última página ({last_page}) alcançada")
+                    break
+
+                current_page += 1
+
+            except Exception as e:
+                logger.error(f"❌ [SYNC CATALOG] Erro ao buscar página {current_page}: {str(e)}")
+                break
+
+        logger.info(f"✅ [SYNC CATALOG] Total de produtos coletados: {len(all_products)}")
+
+        # Estatísticas
+        products_created = 0
+        products_updated = 0
+        products_error = 0
+        snapshots_created = 0
+
+        # Data de hoje para snapshots
+        today = timezone.now().date()
+
+        # Processar cada produto
+        for product_data in all_products:
+            try:
+                primecod_id = product_data.get('id')
+
+                if not primecod_id:
+                    logger.warning(f"⚠️ [SYNC CATALOG] Produto sem ID, pulando: {product_data}")
+                    products_error += 1
+                    continue
+
+                # Extrair dados do produto
+                sku = product_data.get('sku', '')
+                name = product_data.get('name', '')
+                description = product_data.get('description', '')
+                quantity = product_data.get('quantity', 0)
+                stock_label = product_data.get('stock_label') or product_data.get('stock', '')
+                total_units_sold = product_data.get('total_units_sold', 0)
+                total_orders = product_data.get('total_orders', 0)
+                price = product_data.get('price', 0)
+                cost = product_data.get('cost', 0)
+
+                # Processar countries (array de objetos)
+                countries_raw = product_data.get('countries', [])
+                countries = [
+                    {'name': c.get('name', ''), 'code': c.get('code', '')}
+                    for c in countries_raw
+                ] if countries_raw else []
+
+                # Processar images (array de objetos com path)
+                images_raw = product_data.get('images', [])
+                images = [img.get('path', '') for img in images_raw] if images_raw else []
+
+                # Buscar ou criar produto
+                product, created = PrimeCODCatalogProduct.objects.update_or_create(
+                    primecod_id=primecod_id,
+                    defaults={
+                        'sku': sku,
+                        'name': name,
+                        'description': description,
+                        'quantity': quantity,
+                        'stock_label': stock_label,
+                        'total_units_sold': total_units_sold,
+                        'total_orders': total_orders,
+                        'price': price,
+                        'cost': cost,
+                        'countries': countries,
+                        'images': images,
+                        # is_new só é True se for criação
+                        'is_new': created,
+                    }
+                )
+
+                if created:
+                    products_created += 1
+                    logger.info(f"✨ [SYNC CATALOG] Produto NOVO criado: [{sku}] {name}")
+                else:
+                    products_updated += 1
+                    logger.info(f"🔄 [SYNC CATALOG] Produto atualizado: [{sku}] {name}")
+
+                # Criar snapshot diário para este produto
+                snapshot, snapshot_created = PrimeCODCatalogSnapshot.objects.update_or_create(
+                    product=product,
+                    snapshot_date=today,
+                    defaults={
+                        'quantity': quantity,
+                        'total_units_sold': total_units_sold,
+                    }
+                )
+
+                if snapshot_created:
+                    snapshots_created += 1
+
+            except Exception as e:
+                logger.error(f"❌ [SYNC CATALOG] Erro ao processar produto {product_data.get('id', 'unknown')}: {str(e)}")
+                products_error += 1
+                continue
+
+        # Marcar is_new=False para produtos > 24h
+        yesterday = timezone.now() - timedelta(hours=24)
+        old_products_count = PrimeCODCatalogProduct.objects.filter(
+            is_new=True,
+            first_seen_at__lt=yesterday
+        ).update(is_new=False)
+
+        logger.info(f"🔄 [SYNC CATALOG] Produtos marcados como não-novos: {old_products_count}")
+
+        # Resultado final
+        duration = time.time() - start_time
+
+        result = {
+            'status': 'success',
+            'duration': duration,
+            'total_products_api': len(all_products),
+            'products_created': products_created,
+            'products_updated': products_updated,
+            'products_error': products_error,
+            'snapshots_created': snapshots_created,
+            'old_products_updated': old_products_count,
+            'sync_date': today.isoformat(),
+            'message': f'Sincronização concluída: {products_created} novos, {products_updated} atualizados, {snapshots_created} snapshots'
+        }
+
+        logger.info(f"✅ [SYNC CATALOG] Sincronização finalizada com sucesso em {duration:.1f}s")
+        logger.info(f"📊 [SYNC CATALOG] Produtos novos: {products_created}")
+        logger.info(f"📊 [SYNC CATALOG] Produtos atualizados: {products_updated}")
+        logger.info(f"📊 [SYNC CATALOG] Snapshots criados: {snapshots_created}")
+        logger.info(f"📊 [SYNC CATALOG] Erros: {products_error}")
+
+        return result
+
+    except PrimeCODAPIError as e:
+        error_msg = f"Erro na API PrimeCOD: {str(e)}"
+        logger.error(f"❌ [SYNC CATALOG] {error_msg}")
+
+        return {
+            'status': 'error',
+            'message': error_msg,
+            'error_type': 'api_error'
+        }
+
+    except Exception as e:
+        error_msg = f"Erro inesperado na sincronização: {str(e)}"
+        logger.error(f"❌ [SYNC CATALOG] {error_msg}")
+
+        return {
+            'status': 'error',
+            'message': error_msg,
+            'error_type': 'unexpected_error'
         }
