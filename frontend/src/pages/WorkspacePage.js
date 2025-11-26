@@ -26,6 +26,8 @@ import ProjetoDashboard from '../features/ia/ProjetoDashboard';
 import LogsPage from '../features/ia/LogsPage';
 import OpenAIAnalytics from '../features/ia/OpenAIAnalytics';
 import PrimecodPage from '../features/metricas/PrimecodPage';
+import PrimecodConfigPage from '../features/metricas/PrimecodConfigPage';
+import PrimeCODCatalogoPage from '../features/metricas/PrimeCODCatalogoPage';
 import EcomhubPage from '../features/metricas/EcomhubPage';
 import EcomhubEfetividadeV2Page from '../features/metricas/EcomhubEfetividadeV2Page';
 import EcomhubPedidosPage from '../features/metricas/EcomhubPedidosPage';
@@ -98,6 +100,18 @@ const breadcrumbMap = {
     { label: 'EUROPA', href: '#' },
     { label: 'PRIMECOD', href: '#' },
     { label: 'Efetividade' }
+  ],
+  '/fornecedores/europa/primecod/catalogo': [
+    { label: 'FORNECEDORES', href: '#' },
+    { label: 'EUROPA', href: '#' },
+    { label: 'PRIMECOD', href: '#' },
+    { label: 'Catálogo' }
+  ],
+  '/fornecedores/europa/primecod/configuracoes': [
+    { label: 'FORNECEDORES', href: '#' },
+    { label: 'EUROPA', href: '#' },
+    { label: 'PRIMECOD', href: '#' },
+    { label: 'Configurações' }
   ],
 
   // FORNECEDORES > LATAM
@@ -281,6 +295,16 @@ function WorkspacePage({ setIsLoggedIn }) {
               <Route path="fornecedores/europa/primecod/efetividade" element={
                 <ProtectedRoute moduleKey="primecod_efetividade">
                   <AdminRoute><PrimecodPage /></AdminRoute>
+                </ProtectedRoute>
+              } />
+              <Route path="fornecedores/europa/primecod/catalogo" element={
+                <ProtectedRoute moduleKey="primecod_catalogo">
+                  <AdminRoute><PrimeCODCatalogoPage /></AdminRoute>
+                </ProtectedRoute>
+              } />
+              <Route path="fornecedores/europa/primecod/configuracoes" element={
+                <ProtectedRoute moduleKey="primecod_config">
+                  <PrimecodConfigPage />
                 </ProtectedRoute>
               } />
 

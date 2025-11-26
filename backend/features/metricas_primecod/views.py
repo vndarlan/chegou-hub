@@ -1,16 +1,27 @@
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status, permissions, filters
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
 from core.permissions import IsAdminUser
-from .models import AnalisePrimeCOD, StatusMappingPrimeCOD
-from .serializers import (
-    AnalisePrimeCODSerializer, 
-    CSVUploadPrimeCODSerializer, 
-    ProcessarAnalisePrimeCODSerializer,
-    StatusMappingPrimeCODSerializer
+from .models import (
+    AnalisePrimeCOD,
+    StatusMappingPrimeCOD,
+    PrimeCODCatalogProduct,
+    PrimeCODCatalogSnapshot,
+    PrimeCODConfig
 )
+from .serializers import (
+    AnalisePrimeCODSerializer,
+    CSVUploadPrimeCODSerializer,
+    ProcessarAnalisePrimeCODSerializer,
+    StatusMappingPrimeCODSerializer,
+    PrimeCODCatalogProductSerializer,
+    PrimeCODCatalogProductResumoSerializer,
+    PrimeCODCatalogSnapshotSerializer,
+    PrimeCODConfigSerializer
+)
+import requests
 from .utils import PrimeCODProcessor
 from .clients.primecod_client import PrimeCODClient, PrimeCODAPIError
 import pandas as pd
@@ -18,6 +29,8 @@ import json
 import re
 import logging
 from collections import defaultdict
+from datetime import date, timedelta
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -810,4 +823,394 @@ def status_job_primecod(request, job_id):
         return Response({
             'status': 'error',
             'message': f'Erro ao verificar status: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ===========================================
+# VIEWSET PARA CATÁLOGO PRIMECOD
+# ===========================================
+
+class PrimeCODCatalogViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet para catálogo de produtos PrimeCOD
+
+    Endpoints:
+    - GET /api/primecod/catalog/ - Lista todos produtos com variações
+    - GET /api/primecod/catalog/{id}/ - Detalhes de um produto
+    - POST /api/primecod/catalog/sync/ - Força sincronização manual
+
+    Filtros disponíveis:
+    - country: Filtra por país (ex: ?country=Brazil)
+    - stock_label: Filtra por nível de estoque (High/Medium/Low)
+    - is_new: Filtra produtos novos (true/false)
+    - search: Busca por nome ou SKU
+
+    Ordenação:
+    - ordering: total_units_sold, quantity, name, -updated_at (- para descendente)
+    """
+
+    permission_classes = [IsAdminUser]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'sku', 'description']
+    ordering_fields = ['total_units_sold', 'quantity', 'name', 'updated_at', 'price', 'cost']
+    ordering = ['-total_units_sold']  # Padrão: ordenar por mais vendidos
+
+    def get_queryset(self):
+        """
+        Retorna queryset com filtros aplicados
+        """
+        queryset = PrimeCODCatalogProduct.objects.all()
+
+        # Filtro por país
+        country = self.request.query_params.get('country', None)
+        if country:
+            # Filtra produtos que contêm o país na lista de países disponíveis
+            queryset = queryset.filter(countries__icontains=country)
+
+        # Filtro por nível de estoque
+        stock_label = self.request.query_params.get('stock_label', None)
+        if stock_label:
+            queryset = queryset.filter(stock_label__iexact=stock_label)
+
+        # Filtro por produtos novos
+        is_new = self.request.query_params.get('is_new', None)
+        if is_new is not None:
+            is_new_bool = is_new.lower() in ['true', '1', 'yes']
+            queryset = queryset.filter(is_new=is_new_bool)
+
+        # Prefetch snapshots para otimizar cálculo de deltas
+        queryset = queryset.prefetch_related('snapshots')
+
+        return queryset
+
+    def get_serializer_class(self):
+        """
+        Usa serializer resumido para listagem, completo para detalhes
+        """
+        if self.action == 'list':
+            return PrimeCODCatalogProductResumoSerializer
+        return PrimeCODCatalogProductSerializer
+
+    @action(detail=False, methods=['post'])
+    def sync(self, request):
+        """
+        Força sincronização manual do catálogo PrimeCOD
+
+        Body (todos opcionais):
+        {
+            "force": true,  // Força sync mesmo se recente
+            "create_snapshot": true  // Cria snapshot após sync
+        }
+        """
+        try:
+            force = request.data.get('force', False)
+            create_snapshot = request.data.get('create_snapshot', True)
+
+            logger.info(f"Iniciando sync manual do catálogo PrimeCOD - Usuário: {request.user.username}")
+
+            # Verificar token PrimeCOD
+            from django.conf import settings
+            token = getattr(settings, 'PRIMECOD_API_TOKEN', None)
+
+            if not token or token == 'your_primecod_api_token_here':
+                return Response({
+                    'status': 'error',
+                    'message': 'Token PrimeCOD não configurado. Adicione PRIMECOD_API_TOKEN nas variáveis de ambiente.',
+                    'configured': False
+                }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+            # TODO: Implementar integração com API PrimeCOD para buscar catálogo
+            # Por enquanto, retorna placeholder
+
+            return Response({
+                'status': 'success',
+                'message': 'Sincronização do catálogo será implementada em breve',
+                'products_synced': 0,
+                'snapshots_created': 0,
+                'force': force,
+                'create_snapshot': create_snapshot
+            })
+
+        except Exception as e:
+            logger.error(f"Erro em sync manual do catálogo: {str(e)}")
+            return Response({
+                'status': 'error',
+                'message': f'Erro ao sincronizar catálogo: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'])
+    def statistics(self, request):
+        """
+        Retorna estatísticas gerais do catálogo
+
+        Response:
+        {
+            "total_products": 150,
+            "new_products": 12,
+            "by_stock_level": {
+                "High": 80,
+                "Medium": 50,
+                "Low": 20
+            },
+            "by_country": {
+                "Brazil": 100,
+                "Portugal": 80
+            },
+            "top_selling": [...],  // Top 10 produtos mais vendidos
+            "low_stock_alerts": [...]  // Produtos com estoque baixo
+        }
+        """
+        try:
+            queryset = self.get_queryset()
+
+            # Estatísticas básicas
+            total_products = queryset.count()
+            new_products = queryset.filter(is_new=True).count()
+
+            # Distribuição por nível de estoque
+            by_stock_level = {}
+            for label in ['High', 'Medium', 'Low']:
+                count = queryset.filter(stock_label=label).count()
+                if count > 0:
+                    by_stock_level[label] = count
+
+            # Top 10 mais vendidos
+            top_selling = queryset.order_by('-total_units_sold')[:10]
+            top_selling_data = PrimeCODCatalogProductResumoSerializer(top_selling, many=True).data
+
+            # Produtos com estoque baixo (Low + menos de 10 unidades)
+            low_stock = queryset.filter(stock_label='Low', quantity__lt=10)
+            low_stock_data = PrimeCODCatalogProductResumoSerializer(low_stock, many=True).data
+
+            # Distribuição por país (análise do campo JSON countries)
+            by_country = {}
+            for product in queryset:
+                if product.countries:
+                    for country in product.countries:
+                        country_name = country if isinstance(country, str) else country.get('name', 'Unknown')
+                        by_country[country_name] = by_country.get(country_name, 0) + 1
+
+            return Response({
+                'status': 'success',
+                'total_products': total_products,
+                'new_products': new_products,
+                'by_stock_level': by_stock_level,
+                'by_country': by_country,
+                'top_selling': top_selling_data,
+                'low_stock_alerts': low_stock_data
+            })
+
+        except Exception as e:
+            logger.error(f"Erro ao calcular estatísticas do catálogo: {str(e)}")
+            return Response({
+                'status': 'error',
+                'message': f'Erro ao calcular estatísticas: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['get'])
+    def history(self, request, pk=None):
+        """
+        Retorna histórico de snapshots de um produto específico
+
+        Query params:
+        - days: número de dias de histórico (padrão: 30)
+        """
+        try:
+            product = self.get_object()
+            days = int(request.query_params.get('days', 30))
+
+            # Buscar snapshots dos últimos N dias
+            since_date = date.today() - timedelta(days=days)
+            snapshots = product.snapshots.filter(
+                snapshot_date__gte=since_date
+            ).order_by('-snapshot_date')
+
+            serializer = PrimeCODCatalogSnapshotSerializer(snapshots, many=True)
+
+            return Response({
+                'status': 'success',
+                'product_id': product.id,
+                'product_sku': product.sku,
+                'product_name': product.name,
+                'days_requested': days,
+                'snapshots_count': snapshots.count(),
+                'snapshots': serializer.data
+            })
+
+        except Exception as e:
+            logger.error(f"Erro ao buscar histórico do produto {pk}: {str(e)}")
+            return Response({
+                'status': 'error',
+                'message': f'Erro ao buscar histórico: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ===========================================
+# ENDPOINTS PARA CONFIGURAÇÃO PRIMECOD
+# ===========================================
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_primecod_config(request):
+    """
+    Retorna a configuração atual da API PrimeCOD (token mascarado)
+    """
+    try:
+        config = PrimeCODConfig.get_config()
+
+        if config:
+            serializer = PrimeCODConfigSerializer(config)
+            return Response({
+                'status': 'success',
+                'configured': True,
+                'config': serializer.data
+            })
+        else:
+            return Response({
+                'status': 'success',
+                'configured': False,
+                'config': None,
+                'message': 'Nenhuma configuração encontrada'
+            })
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar config PrimeCOD: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Erro ao buscar configuração: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def testar_token_primecod(request):
+    """
+    Testa um token da API PrimeCOD antes de salvar
+    Faz uma requisição ao endpoint de catálogo para validar
+    """
+    try:
+        token = request.data.get('api_token')
+
+        if not token:
+            return Response({
+                'status': 'error',
+                'message': 'Token é obrigatório'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Testar token fazendo requisição ao endpoint de catálogo
+        try:
+            response = requests.post(
+                "https://api.primecod.app/api/catalog/products",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                params={"page": 1},
+                json={},
+                timeout=30
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                total_products = data.get('total', 0)
+                return Response({
+                    'status': 'success',
+                    'valid': True,
+                    'message': f'Token válido! {total_products} produtos encontrados no catálogo.',
+                    'total_products': total_products
+                })
+            elif response.status_code == 401:
+                return Response({
+                    'status': 'error',
+                    'valid': False,
+                    'message': 'Token inválido ou expirado'
+                })
+            elif response.status_code == 429:
+                return Response({
+                    'status': 'error',
+                    'valid': False,
+                    'message': 'Rate limit excedido. Aguarde 24h para testar novamente.'
+                })
+            else:
+                return Response({
+                    'status': 'error',
+                    'valid': False,
+                    'message': f'Erro na API PrimeCOD: Status {response.status_code}'
+                })
+
+        except requests.exceptions.Timeout:
+            return Response({
+                'status': 'error',
+                'valid': False,
+                'message': 'Timeout ao conectar com API PrimeCOD'
+            })
+        except requests.exceptions.RequestException as e:
+            return Response({
+                'status': 'error',
+                'valid': False,
+                'message': f'Erro de conexão: {str(e)}'
+            })
+
+    except Exception as e:
+        logger.error(f"Erro ao testar token PrimeCOD: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Erro interno: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def salvar_primecod_config(request):
+    """
+    Salva a configuração da API PrimeCOD
+    O token deve ser testado antes de chamar este endpoint
+    """
+    try:
+        token = request.data.get('api_token')
+
+        if not token:
+            return Response({
+                'status': 'error',
+                'message': 'Token é obrigatório'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Buscar config existente ou criar nova
+        config = PrimeCODConfig.get_config()
+
+        if config:
+            # Atualizar existente
+            serializer = PrimeCODConfigSerializer(
+                config,
+                data={'api_token': token},
+                partial=True,
+                context={'request': request}
+            )
+        else:
+            # Criar nova
+            serializer = PrimeCODConfigSerializer(
+                data={'api_token': token},
+                context={'request': request}
+            )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'status': 'success',
+                'message': 'Configuração salva com sucesso!',
+                'config': serializer.data
+            })
+        else:
+            return Response({
+                'status': 'error',
+                'message': 'Dados inválidos',
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        logger.error(f"Erro ao salvar config PrimeCOD: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Erro ao salvar: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

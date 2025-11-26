@@ -20,6 +20,8 @@ export const ROUTE_TO_MODULE = {
   '/fornecedores/europa/ecomhub/configuracoes': 'ecomhub_config',
   '/fornecedores/europa/n1/efetividade': 'n1_efetividade',
   '/fornecedores/europa/primecod/efetividade': 'primecod_efetividade',
+  '/fornecedores/europa/primecod/catalogo': 'primecod_catalogo',
+  '/fornecedores/europa/primecod/configuracoes': 'primecod_config',
 
   // FORNECEDORES > LATAM
   '/fornecedores/latam/dropi/efetividade': 'dropi_efetividade',

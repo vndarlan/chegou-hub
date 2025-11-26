@@ -1,19 +1,24 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    AnalisePrimeCODViewSet, 
+    AnalisePrimeCODViewSet,
     StatusMappingPrimeCODViewSet,
+    PrimeCODCatalogViewSet,
     buscar_orders_primecod,
     processar_dados_primecod,
     testar_performance_primecod,
     testar_conexao_primecod,
     iniciar_coleta_async_primecod,
-    status_job_primecod
+    status_job_primecod,
+    get_primecod_config,
+    testar_token_primecod,
+    salvar_primecod_config
 )
 
 router = DefaultRouter()
 router.register(r'analises', AnalisePrimeCODViewSet, basename='analise_primecod')
 router.register(r'status-mapping', StatusMappingPrimeCODViewSet)
+router.register(r'catalog', PrimeCODCatalogViewSet, basename='primecod_catalog')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -27,4 +32,9 @@ urlpatterns = [
     # Endpoints Assíncronos (OTIMIZAÇÃO CRÍTICA!)
     path('coleta-async/', iniciar_coleta_async_primecod, name='iniciar_coleta_async_primecod'),
     path('status-job/<str:job_id>/', status_job_primecod, name='status_job_primecod'),
+
+    # Endpoints de Configuração
+    path('config/', get_primecod_config, name='get_primecod_config'),
+    path('config/testar/', testar_token_primecod, name='testar_token_primecod'),
+    path('config/salvar/', salvar_primecod_config, name='salvar_primecod_config'),
 ]

@@ -229,6 +229,18 @@ export function AppSidebar({
               isActive: location.pathname.includes('/fornecedores/europa/primecod/efetividade'),
               moduleKey: "primecod_efetividade",
             },
+            {
+              title: "Catálogo",
+              url: "/fornecedores/europa/primecod/catalogo",
+              isActive: location.pathname.includes('/fornecedores/europa/primecod/catalogo'),
+              moduleKey: "primecod_catalogo",
+            },
+            {
+              title: "Configurações",
+              url: "/fornecedores/europa/primecod/configuracoes",
+              isActive: location.pathname.includes('/fornecedores/europa/primecod/configuracoes'),
+              moduleKey: "primecod_config",
+            },
           ],
         },
       ],
@@ -681,7 +693,7 @@ export function AppSidebar({
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                className="min-w-56 rounded-lg"
                 side="top"
                 align="end"
                 sideOffset={4}
