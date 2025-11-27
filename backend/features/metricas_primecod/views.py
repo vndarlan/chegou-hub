@@ -1266,7 +1266,7 @@ def get_product_history(request, product_id):
                 units_sold_delta = snapshot.total_units_sold - prev_snapshot.total_units_sold
 
             history.append({
-                'date': snapshot.snapshot_date.isoformat(),
+                'snapshot_date': snapshot.snapshot_date.isoformat(),
                 'quantity': snapshot.quantity,
                 'quantity_delta': quantity_delta,
                 'total_units_sold': snapshot.total_units_sold,

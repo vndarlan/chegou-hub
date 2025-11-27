@@ -835,8 +835,8 @@ function PrimeCODCatalogoPage() {
                                         <TableRow key={idx} className="hover:bg-muted/50">
                                             <TableCell className="font-medium">
                                                 {(() => {
-                                                    if (!snapshot.date) return '-';
-                                                    const date = new Date(snapshot.date);
+                                                    if (!snapshot.snapshot_date) return '-';
+                                                    const date = new Date(snapshot.snapshot_date);
                                                     return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('pt-BR', {
                                                         day: '2-digit',
                                                         month: '2-digit',
