@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import AnalisePrimeCOD, StatusMappingPrimeCOD, PrimeCODCatalogProduct, PrimeCODCatalogSnapshot, PrimeCODConfig
+from .models import AnalisePrimeCOD, StatusMappingPrimeCOD, PrimeCODCatalogProduct, PrimeCODCatalogSnapshot, PrimeCODConfig, CatalogSyncLog
 import pandas as pd
 import json
 import re
@@ -180,7 +180,7 @@ class PrimeCODCatalogProductResumoSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'primecod_id', 'sku', 'name',
             'quantity', 'stock_label', 'total_units_sold',
-            'price', 'cost', 'countries',
+            'price', 'cost', 'countries', 'images',
             'is_new', 'quantity_delta', 'units_sold_delta',
             'updated_at'
         ]
@@ -252,3 +252,40 @@ class PrimeCODConfigSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         validated_data['updated_by'] = self.context['request'].user
         return super().update(instance, validated_data)
+
+
+class CatalogSyncLogSerializer(serializers.ModelSerializer):
+    """Serializer para logs de sincronização do catálogo"""
+
+    duration_display = serializers.SerializerMethodField()
+    total_products_processed = serializers.SerializerMethodField()
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = CatalogSyncLog
+        fields = [
+            'id', 'started_at', 'completed_at', 'duration', 'duration_display',
+            'status', 'status_display', 'total_products_api', 'products_created',
+            'products_updated', 'products_error', 'snapshots_created',
+            'total_products_processed', 'error_message', 'error_type'
+        ]
+        read_only_fields = [
+            'id', 'started_at', 'completed_at', 'duration',
+            'total_products_api', 'products_created', 'products_updated',
+            'products_error', 'snapshots_created', 'error_message', 'error_type'
+        ]
+
+    def get_duration_display(self, obj):
+        """Formata duração em formato legível"""
+        if obj.duration is None:
+            return None
+        if obj.duration < 60:
+            return f"{obj.duration:.1f}s"
+        else:
+            minutes = int(obj.duration // 60)
+            seconds = int(obj.duration % 60)
+            return f"{minutes}m {seconds}s"
+
+    def get_total_products_processed(self, obj):
+        """Total de produtos processados (criados + atualizados)"""
+        return obj.products_created + obj.products_updated

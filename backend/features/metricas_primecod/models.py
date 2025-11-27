@@ -246,3 +246,48 @@ class PrimeCODConfig(models.Model):
 
     def __str__(self):
         return "Configuração API PrimeCOD"
+
+
+class CatalogSyncLog(models.Model):
+    """Histórico de sincronizações do catálogo PrimeCOD"""
+
+    # Execução
+    started_at = models.DateTimeField(auto_now_add=True, verbose_name="Iniciado em")
+    completed_at = models.DateTimeField(null=True, blank=True, verbose_name="Concluído em")
+    duration = models.FloatField(null=True, blank=True, verbose_name="Duração (segundos)")
+
+    # Status
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('running', 'Executando'),
+            ('success', 'Sucesso'),
+            ('error', 'Erro'),
+        ],
+        default='running',
+        verbose_name="Status"
+    )
+
+    # Resultados
+    total_products_api = models.IntegerField(default=0, verbose_name="Total produtos API")
+    products_created = models.IntegerField(default=0, verbose_name="Produtos criados")
+    products_updated = models.IntegerField(default=0, verbose_name="Produtos atualizados")
+    products_error = models.IntegerField(default=0, verbose_name="Produtos com erro")
+    snapshots_created = models.IntegerField(default=0, verbose_name="Snapshots criados")
+
+    # Erro
+    error_message = models.TextField(null=True, blank=True, verbose_name="Mensagem de erro")
+    error_type = models.CharField(max_length=50, null=True, blank=True, verbose_name="Tipo de erro")
+
+    class Meta:
+        db_table = 'metricas_primecod_catalogsynclog'
+        verbose_name = "Log de Sincronização do Catálogo"
+        verbose_name_plural = "Logs de Sincronização do Catálogo"
+        ordering = ['-started_at']
+        indexes = [
+            models.Index(fields=['-started_at'], name='idx_catalog_sync_started'),
+            models.Index(fields=['status'], name='idx_catalog_sync_status'),
+        ]
+
+    def __str__(self):
+        return f"Sync {self.started_at.strftime('%d/%m/%Y %H:%M')} - {self.get_status_display()}"

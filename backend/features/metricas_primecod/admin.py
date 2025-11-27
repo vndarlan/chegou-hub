@@ -4,7 +4,8 @@ from .models import (
     StatusMappingPrimeCOD,
     PrimeCODCatalogProduct,
     PrimeCODCatalogSnapshot,
-    PrimeCODConfig
+    PrimeCODConfig,
+    CatalogSyncLog
 )
 
 @admin.register(AnalisePrimeCOD)
@@ -140,3 +141,52 @@ class PrimeCODConfigAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # Não permitir deleção do singleton
         return False
+
+
+@admin.register(CatalogSyncLog)
+class CatalogSyncLogAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'started_at', 'status', 'duration_display',
+        'products_created', 'products_updated', 'products_error', 'snapshots_created'
+    )
+    list_filter = ('status', 'started_at')
+    search_fields = ('error_message',)
+    readonly_fields = ('started_at', 'completed_at', 'duration')
+    date_hierarchy = 'started_at'
+
+    fieldsets = (
+        ('Execução', {
+            'fields': ('started_at', 'completed_at', 'duration', 'status')
+        }),
+        ('Resultados', {
+            'fields': (
+                'total_products_api', 'products_created',
+                'products_updated', 'products_error', 'snapshots_created'
+            )
+        }),
+        ('Erro', {
+            'fields': ('error_type', 'error_message'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def duration_display(self, obj):
+        """Formata duração em formato legível"""
+        if obj.duration is None:
+            return '-'
+        if obj.duration < 60:
+            return f"{obj.duration:.1f}s"
+        else:
+            minutes = int(obj.duration // 60)
+            seconds = int(obj.duration % 60)
+            return f"{minutes}m {seconds}s"
+    duration_display.short_description = "Duração"
+    duration_display.admin_order_field = 'duration'
+
+    def has_add_permission(self, request):
+        # Logs são criados automaticamente
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        # Apenas superuser pode deletar
+        return request.user.is_superuser

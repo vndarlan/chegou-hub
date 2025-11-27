@@ -2,7 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import {
     RefreshCw, Search, Package, TrendingUp, TrendingDown,
-    Filter, Loader2, ArrowUpDown, ArrowUp, ArrowDown, Globe
+    Filter, Loader2, ArrowUpDown, ArrowUp, ArrowDown, Globe,
+    ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight,
+    LayoutGrid, Table2, Clock, CheckCircle, XCircle, History, X
 } from 'lucide-react';
 import apiClient from '../../utils/axios';
 
@@ -14,6 +16,7 @@ import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Input } from '../../components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 import { getCSRFToken } from '../../utils/csrf';
 
 // Países PrimeCOD disponíveis
@@ -44,6 +47,145 @@ const STOCK_LEVELS = [
     { value: 'low', label: 'Baixo' }
 ];
 
+// Componente ProductCard
+const ProductCard = ({ produto, onVerHistorico }) => {
+    const primeiraImagem = produto.images?.[0]?.path || null;
+    const [imagemFalhou, setImagemFalhou] = useState(false);
+
+    return (
+        <Card className="overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
+            {/* Imagem */}
+            <div className="relative h-48 bg-muted">
+                {primeiraImagem && !imagemFalhou ? (
+                    <img
+                        src={primeiraImagem}
+                        alt={produto.name}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={() => setImagemFalhou(true)}
+                    />
+                ) : (
+                    <div className="flex items-center justify-center h-full">
+                        <Package className="h-16 w-16 text-muted-foreground" />
+                    </div>
+                )}
+
+                {/* Badge NOVO */}
+                {produto.is_new && (
+                    <Badge className="absolute top-2 right-2 bg-yellow-500 text-white">
+                        NOVO
+                    </Badge>
+                )}
+            </div>
+
+            <CardContent className="p-4">
+                {/* Nome */}
+                <h3 className="font-semibold text-lg mb-2 truncate" title={produto.name}>
+                    {produto.name}
+                </h3>
+
+                {/* SKU */}
+                <p className="text-xs text-muted-foreground font-mono mb-3">
+                    {produto.sku}
+                </p>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div>
+                        <p className="text-xs text-muted-foreground">Vendas</p>
+                        <div className="flex items-center gap-1">
+                            <p className="font-semibold">{produto.total_units_sold}</p>
+                            {produto.units_sold_delta !== 0 && (
+                                <Badge variant="outline" className={
+                                    produto.units_sold_delta > 0
+                                        ? 'text-green-600 border-green-600'
+                                        : 'text-red-600 border-red-600'
+                                }>
+                                    <span className="flex items-center">
+                                        {produto.units_sold_delta > 0 ? (
+                                            <TrendingUp className="h-3 w-3 mr-1" />
+                                        ) : (
+                                            <TrendingDown className="h-3 w-3 mr-1" />
+                                        )}
+                                        {produto.units_sold_delta > 0 ? '+' : ''}
+                                        {produto.units_sold_delta}
+                                    </span>
+                                </Badge>
+                            )}
+                        </div>
+                    </div>
+
+                    <div>
+                        <p className="text-xs text-muted-foreground">Estoque</p>
+                        <div className="flex items-center gap-1">
+                            <p className="font-semibold">{produto.quantity}</p>
+                            {produto.quantity_delta !== 0 && (
+                                <Badge variant="outline" className={
+                                    produto.quantity_delta > 0
+                                        ? 'text-green-600 border-green-600'
+                                        : 'text-red-600 border-red-600'
+                                }>
+                                    <span className="flex items-center">
+                                        {produto.quantity_delta > 0 ? (
+                                            <TrendingUp className="h-3 w-3 mr-1" />
+                                        ) : (
+                                            <TrendingDown className="h-3 w-3 mr-1" />
+                                        )}
+                                        {produto.quantity_delta > 0 ? '+' : ''}
+                                        {produto.quantity_delta}
+                                    </span>
+                                </Badge>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Nível de Estoque */}
+                <Badge className={
+                    produto.stock_label === 'High'
+                        ? 'bg-green-500 text-white'
+                        : produto.stock_label === 'Medium'
+                            ? 'bg-yellow-500 text-white'
+                            : 'bg-red-500 text-white'
+                }>
+                    {produto.stock_label}
+                </Badge>
+
+                {/* Disponível em */}
+                <div className="mt-2">
+                    <p className="text-xs text-muted-foreground mb-1">Disponível em:</p>
+                    <div className="flex flex-wrap gap-1">
+                        {produto.countries?.slice(0, 3).map((country, idx) => {
+                            const countryCode = typeof country === 'string' ? country : country.code;
+                            return (
+                                <Badge key={idx} variant="secondary" className="text-xs">
+                                    {countryCode?.toUpperCase()}
+                                </Badge>
+                            );
+                        })}
+                        {produto.countries?.length > 3 && (
+                            <Badge variant="secondary" className="text-xs">
+                                +{produto.countries.length - 3}
+                            </Badge>
+                        )}
+                    </div>
+                </div>
+
+                {/* Botão Ver Histórico */}
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-3"
+                    onClick={() => onVerHistorico(produto)}
+                >
+                    <History className="h-4 w-4 mr-2" />
+                    Ver Histórico
+                </Button>
+            </CardContent>
+        </Card>
+    );
+};
+
 function PrimeCODCatalogoPage() {
     // Estados principais
     const [produtos, setProdutos] = useState([]);
@@ -60,12 +202,31 @@ function PrimeCODCatalogoPage() {
     const [sortBy, setSortBy] = useState(null);
     const [sortOrder, setSortOrder] = useState('asc');
 
+    // Estados de paginação
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalProdutos, setTotalProdutos] = useState(0);
+    const [totalPaginas, setTotalPaginas] = useState(0);
+
+    // Estado de visualização
+    const [viewMode, setViewMode] = useState('cards'); // 'cards' ou 'table'
+
+    // Estado de última sincronização
+    const [ultimaSync, setUltimaSync] = useState(null);
+    const [loadingSync, setLoadingSync] = useState(false);
+
+    // Estado do modal de histórico
+    const [modalHistorico, setModalHistorico] = useState(false);
+    const [produtoHistorico, setProdutoHistorico] = useState(null);
+    const [historico, setHistorico] = useState([]);
+    const [loadingHistorico, setLoadingHistorico] = useState(false);
+
     // ======================== FUNÇÕES DE API ========================
 
     const fetchCatalogo = async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
+            params.append('page', currentPage);
             if (paisSelecionado !== 'all') params.append('country', paisSelecionado);
             if (nivelEstoque !== 'all') params.append('stock_label', nivelEstoque);
             if (searchTerm) params.append('search', searchTerm);
@@ -75,9 +236,13 @@ function PrimeCODCatalogoPage() {
             }
 
             const response = await apiClient.get(`/metricas/primecod/catalog/?${params.toString()}`);
-            setProdutos(response.data.results || response.data || []);
+            const data = response.data;
 
-            if ((response.data.results || response.data || []).length === 0) {
+            setProdutos(data.results || []);
+            setTotalProdutos(data.count || 0);
+            setTotalPaginas(Math.ceil((data.count || 0) / 10));
+
+            if ((data.results || []).length === 0) {
                 showNotification('info', 'Nenhum produto encontrado com os filtros selecionados');
             }
         } catch (error) {
@@ -96,6 +261,42 @@ function PrimeCODCatalogoPage() {
         }
     };
 
+    const fetchUltimaSync = async () => {
+        setLoadingSync(true);
+        try {
+            const response = await apiClient.get('/metricas/primecod/catalog/last-sync/');
+            setUltimaSync(response.data);
+        } catch (error) {
+            console.error('Erro ao carregar última sincronização:', error);
+            // Não mostra notificação para não poluir a UI
+        } finally {
+            setLoadingSync(false);
+        }
+    };
+
+    const abrirHistorico = async (produto) => {
+        setProdutoHistorico(produto);
+        setModalHistorico(true);
+        setLoadingHistorico(true);
+        setHistorico([]);
+
+        try {
+            const response = await apiClient.get(`/metricas/primecod/catalog/${produto.id}/history/?days=30`);
+            setHistorico(response.data.snapshots || []);
+        } catch (error) {
+            console.error('Erro ao carregar histórico:', error);
+            showNotification('error', 'Erro ao carregar histórico do produto');
+        } finally {
+            setLoadingHistorico(false);
+        }
+    };
+
+    const fecharHistorico = () => {
+        setModalHistorico(false);
+        setProdutoHistorico(null);
+        setHistorico([]);
+    };
+
     const sincronizarCatalogo = async () => {
         setSyncing(true);
         try {
@@ -109,6 +310,7 @@ function PrimeCODCatalogoPage() {
             if (response.data.status === 'success') {
                 showNotification('success', `Catálogo sincronizado! ${response.data.total_produtos || 0} produtos atualizados`);
                 await fetchCatalogo(); // Recarregar após sincronização
+                await fetchUltimaSync(); // Atualizar última sync
             } else {
                 showNotification('error', response.data.message || 'Erro ao sincronizar');
             }
@@ -133,6 +335,24 @@ function PrimeCODCatalogoPage() {
     const showNotification = (type, message) => {
         setNotification({ type, message });
         setTimeout(() => setNotification(null), 5000);
+    };
+
+    const formatarDataSync = (dataISO) => {
+        if (!dataISO) return 'Nunca';
+        const data = new Date(dataISO);
+        const agora = new Date();
+        const diffMs = agora - data;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHoras = Math.floor(diffMs / 3600000);
+        const diffDias = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'Agora mesmo';
+        if (diffMins < 60) return `Há ${diffMins} minuto${diffMins > 1 ? 's' : ''}`;
+        if (diffHoras < 24) return `Há ${diffHoras} hora${diffHoras > 1 ? 's' : ''}`;
+        if (diffDias === 1) return 'Ontem';
+        if (diffDias < 7) return `Há ${diffDias} dias`;
+
+        return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     };
 
     const handleSort = (column) => {
@@ -192,18 +412,25 @@ function PrimeCODCatalogoPage() {
 
     useEffect(() => {
         fetchCatalogo();
-    }, [paisSelecionado, nivelEstoque, sortBy, sortOrder]);
+        fetchUltimaSync(); // Carregar última sync na montagem
+    }, [currentPage, paisSelecionado, nivelEstoque, sortBy, sortOrder]);
 
-    // Debounce para busca
+    // Debounce para busca e resetar página
     useEffect(() => {
         const timer = setTimeout(() => {
             if (searchTerm !== undefined) {
+                setCurrentPage(1); // Resetar para página 1 ao buscar
                 fetchCatalogo();
             }
         }, 500);
 
         return () => clearTimeout(timer);
     }, [searchTerm]);
+
+    // Resetar para página 1 quando filtros mudarem
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [paisSelecionado, nivelEstoque, sortBy, sortOrder]);
 
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
 
@@ -217,18 +444,46 @@ function PrimeCODCatalogoPage() {
                 </div>
             </div>
 
-            <Button
-                onClick={sincronizarCatalogo}
-                disabled={syncing}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-                {syncing ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
+            <div className="flex items-center gap-3">
+                {/* Informação da Última Sincronização */}
+                {ultimaSync && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md">
+                        {ultimaSync.status === 'success' ? (
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                        ) : ultimaSync.status === 'error' ? (
+                            <XCircle className="h-4 w-4 text-red-600" />
+                        ) : (
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        <div className="flex flex-col">
+                            <span className="text-xs font-medium text-foreground">
+                                {ultimaSync.status === 'success' ? 'Última sync' : 'Última tentativa'}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                                {formatarDataSync(ultimaSync.completed_at || ultimaSync.started_at)}
+                            </span>
+                        </div>
+                        {ultimaSync.status === 'success' && ultimaSync.total_products_processed > 0 && (
+                            <Badge variant="secondary" className="ml-2">
+                                {ultimaSync.total_products_processed} produtos
+                            </Badge>
+                        )}
+                    </div>
                 )}
-                {syncing ? 'Sincronizando...' : 'Sincronizar'}
-            </Button>
+
+                <Button
+                    onClick={sincronizarCatalogo}
+                    disabled={syncing}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                    {syncing ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    {syncing ? 'Sincronizando...' : 'Sincronizar'}
+                </Button>
+            </div>
         </div>
     );
 
@@ -296,132 +551,61 @@ function PrimeCODCatalogoPage() {
         </Card>
     );
 
-    const renderTabela = () => (
-        <Card className="border-border bg-card">
-            {loading && (
-                <div className="absolute inset-0 bg-background/95 backdrop-blur flex items-center justify-center z-10 rounded-lg">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-            )}
+    const renderPaginacao = () => {
+        if (totalPaginas <= 1) return null;
 
-            <CardHeader>
-                <div className="flex items-center justify-between">
-                    <div>
-                        <CardTitle className="text-lg text-card-foreground">Produtos</CardTitle>
-                        <CardDescription className="text-muted-foreground">
-                            {produtos.length} produtos encontrados
-                        </CardDescription>
+        return (
+            <div className="flex items-center justify-between px-4 py-4 border-t border-border">
+                <div className="text-sm text-muted-foreground">
+                    Mostrando {((currentPage - 1) * 10) + 1} a {Math.min(currentPage * 10, totalProdutos)} de {totalProdutos} produtos
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <p className="text-sm text-muted-foreground">
+                        Página {currentPage} de {totalPaginas}
+                    </p>
+                    <div className="flex gap-1">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(1)}
+                            disabled={currentPage === 1}
+                            className="h-8 w-8 p-0"
+                        >
+                            <ChevronsLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                            className="h-8 w-8 p-0"
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.min(totalPaginas, prev + 1))}
+                            disabled={currentPage === totalPaginas}
+                            className="h-8 w-8 p-0"
+                        >
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(totalPaginas)}
+                            disabled={currentPage === totalPaginas}
+                            className="h-8 w-8 p-0"
+                        >
+                            <ChevronsRight className="h-4 w-4" />
+                        </Button>
                     </div>
                 </div>
-            </CardHeader>
-
-            <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="bg-muted/50 border-border">
-                                <TableHead className="text-muted-foreground">
-                                    <button
-                                        className="flex items-center gap-1 text-xs hover:text-foreground transition-colors"
-                                        onClick={() => handleSort('name')}
-                                    >
-                                        Nome
-                                        {sortBy === 'name' ? (
-                                            sortOrder === 'asc' ?
-                                                <ArrowUp className="h-3 w-3" /> :
-                                                <ArrowDown className="h-3 w-3" />
-                                        ) : (
-                                            <ArrowUpDown className="h-3 w-3 opacity-50" />
-                                        )}
-                                    </button>
-                                </TableHead>
-                                <TableHead className="text-muted-foreground">Descrição</TableHead>
-                                <TableHead className="text-center text-muted-foreground">
-                                    <button
-                                        className="flex items-center gap-1 text-xs hover:text-foreground transition-colors mx-auto"
-                                        onClick={() => handleSort('total_units_sold')}
-                                    >
-                                        Vendas
-                                        {sortBy === 'total_units_sold' ? (
-                                            sortOrder === 'asc' ?
-                                                <ArrowUp className="h-3 w-3" /> :
-                                                <ArrowDown className="h-3 w-3" />
-                                        ) : (
-                                            <ArrowUpDown className="h-3 w-3 opacity-50" />
-                                        )}
-                                    </button>
-                                </TableHead>
-                                <TableHead className="text-center text-muted-foreground">
-                                    <button
-                                        className="flex items-center gap-1 text-xs hover:text-foreground transition-colors mx-auto"
-                                        onClick={() => handleSort('quantity')}
-                                    >
-                                        Estoque
-                                        {sortBy === 'quantity' ? (
-                                            sortOrder === 'asc' ?
-                                                <ArrowUp className="h-3 w-3" /> :
-                                                <ArrowDown className="h-3 w-3" />
-                                        ) : (
-                                            <ArrowUpDown className="h-3 w-3 opacity-50" />
-                                        )}
-                                    </button>
-                                </TableHead>
-                                <TableHead className="text-center text-muted-foreground">Nível</TableHead>
-                                <TableHead className="text-muted-foreground">Países</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {produtos.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                                        {loading ? 'Carregando...' : 'Nenhum produto encontrado'}
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                produtos.map((produto, idx) => (
-                                    <TableRow key={idx} className="border-border hover:bg-muted/50 transition-colors">
-                                        <TableCell className="font-medium text-card-foreground">
-                                            <div className="flex items-center gap-2">
-                                                {produto.name}
-                                                {produto.is_new && (
-                                                    <Badge className="bg-yellow-600 text-white">NOVO</Badge>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-sm text-muted-foreground max-w-xs">
-                                            <div className="truncate" title={produto.description}>
-                                                {produto.description || '-'}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-center text-card-foreground">
-                                            <div className="flex items-center justify-center">
-                                                {produto.total_units_sold?.toLocaleString() || 0}
-                                                {renderVariationBadge(produto.units_sold_delta, produto.total_units_sold)}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-center text-card-foreground">
-                                            <div className="flex items-center justify-center">
-                                                {produto.quantity?.toLocaleString() || 0}
-                                                {renderVariationBadge(produto.quantity_delta, produto.quantity)}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            <Badge className={getStockBadgeColor(produto.stock_label)}>
-                                                {produto.stock_label?.toUpperCase() || 'N/A'}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            {renderCountryBadges(produto.countries)}
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
-            </CardContent>
-        </Card>
-    );
+            </div>
+        );
+    };
 
     // ======================== RENDER PRINCIPAL ========================
 
@@ -443,8 +627,276 @@ function PrimeCODCatalogoPage() {
             {/* Filtros */}
             {renderFiltros()}
 
-            {/* Tabela de Produtos */}
-            {renderTabela()}
+            {/* Card de Produtos com Toggle */}
+            <Card className="border-border bg-card">
+                {loading && (
+                    <div className="absolute inset-0 bg-background/95 backdrop-blur flex items-center justify-center z-10 rounded-lg">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                )}
+
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle className="text-lg text-card-foreground">Produtos</CardTitle>
+                            <CardDescription className="text-muted-foreground">
+                                {totalProdutos} produtos encontrados
+                            </CardDescription>
+                        </div>
+
+                        {/* Toggle de Visualização */}
+                        <div className="flex gap-1 border rounded-md p-1 bg-muted">
+                            <Button
+                                variant={viewMode === 'cards' ? 'default' : 'ghost'}
+                                size="sm"
+                                onClick={() => setViewMode('cards')}
+                                className="h-8"
+                            >
+                                <LayoutGrid className="h-4 w-4 mr-2" />
+                                Cards
+                            </Button>
+                            <Button
+                                variant={viewMode === 'table' ? 'default' : 'ghost'}
+                                size="sm"
+                                onClick={() => setViewMode('table')}
+                                className="h-8"
+                            >
+                                <Table2 className="h-4 w-4 mr-2" />
+                                Tabela
+                            </Button>
+                        </div>
+                    </div>
+                </CardHeader>
+
+                <CardContent>
+                    {viewMode === 'cards' ? (
+                        <>
+                            {/* Grid de Cards */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {produtos.length === 0 ? (
+                                    <div className="col-span-full text-center text-muted-foreground py-8">
+                                        {loading ? 'Carregando...' : 'Nenhum produto encontrado'}
+                                    </div>
+                                ) : (
+                                    produtos.map(produto => (
+                                        <ProductCard key={produto.id} produto={produto} onVerHistorico={abrirHistorico} />
+                                    ))
+                                )}
+                            </div>
+                            {/* Paginação para Cards */}
+                            {renderPaginacao()}
+                        </>
+                    ) : (
+                        /* Tabela */
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/50 border-border">
+                                        <TableHead className="text-muted-foreground">
+                                            <button
+                                                className="flex items-center gap-1 text-xs hover:text-foreground transition-colors"
+                                                onClick={() => handleSort('name')}
+                                            >
+                                                Nome
+                                                {sortBy === 'name' ? (
+                                                    sortOrder === 'asc' ?
+                                                        <ArrowUp className="h-3 w-3" /> :
+                                                        <ArrowDown className="h-3 w-3" />
+                                                ) : (
+                                                    <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                                )}
+                                            </button>
+                                        </TableHead>
+                                        <TableHead className="text-muted-foreground">Descrição</TableHead>
+                                        <TableHead className="text-center text-muted-foreground">
+                                            <button
+                                                className="flex items-center gap-1 text-xs hover:text-foreground transition-colors mx-auto"
+                                                onClick={() => handleSort('total_units_sold')}
+                                            >
+                                                Vendas
+                                                {sortBy === 'total_units_sold' ? (
+                                                    sortOrder === 'asc' ?
+                                                        <ArrowUp className="h-3 w-3" /> :
+                                                        <ArrowDown className="h-3 w-3" />
+                                                ) : (
+                                                    <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                                )}
+                                            </button>
+                                        </TableHead>
+                                        <TableHead className="text-center text-muted-foreground">
+                                            <button
+                                                className="flex items-center gap-1 text-xs hover:text-foreground transition-colors mx-auto"
+                                                onClick={() => handleSort('quantity')}
+                                            >
+                                                Estoque
+                                                {sortBy === 'quantity' ? (
+                                                    sortOrder === 'asc' ?
+                                                        <ArrowUp className="h-3 w-3" /> :
+                                                        <ArrowDown className="h-3 w-3" />
+                                                ) : (
+                                                    <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                                )}
+                                            </button>
+                                        </TableHead>
+                                        <TableHead className="text-center text-muted-foreground">Nível</TableHead>
+                                        <TableHead className="text-muted-foreground">Disponível em</TableHead>
+                                        <TableHead className="text-center text-muted-foreground">Ações</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {produtos.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                                                {loading ? 'Carregando...' : 'Nenhum produto encontrado'}
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        produtos.map((produto, idx) => (
+                                            <TableRow key={idx} className="border-border hover:bg-muted/50 transition-colors">
+                                                <TableCell className="font-medium text-card-foreground">
+                                                    <div className="flex items-center gap-2">
+                                                        {produto.name}
+                                                        {produto.is_new && (
+                                                            <Badge className="bg-yellow-600 text-white">NOVO</Badge>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-sm text-muted-foreground max-w-xs">
+                                                    <div className="truncate" title={produto.description}>
+                                                        {produto.description || '-'}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-center text-card-foreground">
+                                                    <div className="flex items-center justify-center">
+                                                        {produto.total_units_sold?.toLocaleString() || 0}
+                                                        {renderVariationBadge(produto.units_sold_delta, produto.total_units_sold)}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-center text-card-foreground">
+                                                    <div className="flex items-center justify-center">
+                                                        {produto.quantity?.toLocaleString() || 0}
+                                                        {renderVariationBadge(produto.quantity_delta, produto.quantity)}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <Badge className={getStockBadgeColor(produto.stock_label)}>
+                                                        {produto.stock_label?.toUpperCase() || 'N/A'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {renderCountryBadges(produto.countries)}
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => abrirHistorico(produto)}
+                                                    >
+                                                        <History className="h-4 w-4" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                            {/* Paginação para Tabela */}
+                            {renderPaginacao()}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Modal de Histórico */}
+            <Dialog open={modalHistorico} onOpenChange={fecharHistorico}>
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <History className="h-5 w-5" />
+                            Histórico de Vendas e Estoque
+                        </DialogTitle>
+                        {produtoHistorico && (
+                            <DialogDescription className="text-sm">
+                                <span className="font-semibold">{produtoHistorico.name}</span>
+                                <span className="text-muted-foreground ml-2">({produtoHistorico.sku})</span>
+                            </DialogDescription>
+                        )}
+                    </DialogHeader>
+
+                    {loadingHistorico ? (
+                        <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : historico.length === 0 ? (
+                        <div className="text-center text-muted-foreground py-8">
+                            Nenhum histórico disponível para este produto
+                        </div>
+                    ) : (
+                        <div className="mt-4">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/50">
+                                        <TableHead>Data</TableHead>
+                                        <TableHead className="text-center">Vendas</TableHead>
+                                        <TableHead className="text-center">Variação</TableHead>
+                                        <TableHead className="text-center">Estoque</TableHead>
+                                        <TableHead className="text-center">Variação</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {historico.map((snapshot, idx) => (
+                                        <TableRow key={idx} className="hover:bg-muted/50">
+                                            <TableCell className="font-medium">
+                                                {new Date(snapshot.date).toLocaleDateString('pt-BR', {
+                                                    day: '2-digit',
+                                                    month: '2-digit',
+                                                    year: 'numeric'
+                                                })}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                {snapshot.total_units_sold?.toLocaleString() || 0}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                {snapshot.units_sold_delta !== 0 && (
+                                                    <Badge
+                                                        variant="outline"
+                                                        className={
+                                                            snapshot.units_sold_delta > 0
+                                                                ? 'text-green-600 border-green-600'
+                                                                : 'text-red-600 border-red-600'
+                                                        }
+                                                    >
+                                                        {snapshot.units_sold_delta > 0 ? '+' : ''}
+                                                        {snapshot.units_sold_delta}
+                                                    </Badge>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                {snapshot.quantity?.toLocaleString() || 0}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                {snapshot.quantity_delta !== 0 && (
+                                                    <Badge
+                                                        variant="outline"
+                                                        className={
+                                                            snapshot.quantity_delta > 0
+                                                                ? 'text-green-600 border-green-600'
+                                                                : 'text-red-600 border-red-600'
+                                                        }
+                                                    >
+                                                        {snapshot.quantity_delta > 0 ? '+' : ''}
+                                                        {snapshot.quantity_delta}
+                                                    </Badge>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

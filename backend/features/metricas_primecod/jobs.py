@@ -272,9 +272,14 @@ def sync_primecod_catalog() -> Dict:
     Returns:
         Dict com resultado da sincronização
     """
+    from .models import CatalogSyncLog
 
     logger.info("🔄 [SYNC CATALOG] Iniciando sincronização automática do catálogo PrimeCOD")
     start_time = time.time()
+
+    # Criar log de execução
+    sync_log = CatalogSyncLog.objects.create(status='running')
+    logger.info(f"📝 [SYNC CATALOG] Log de sincronização criado: ID {sync_log.id}")
 
     try:
         # Validar token antes de inicializar cliente
@@ -440,6 +445,17 @@ def sync_primecod_catalog() -> Dict:
         # Resultado final
         duration = time.time() - start_time
 
+        # Atualizar log com sucesso
+        sync_log.status = 'success'
+        sync_log.completed_at = timezone.now()
+        sync_log.duration = duration
+        sync_log.total_products_api = len(all_products)
+        sync_log.products_created = products_created
+        sync_log.products_updated = products_updated
+        sync_log.products_error = products_error
+        sync_log.snapshots_created = snapshots_created
+        sync_log.save()
+
         result = {
             'status': 'success',
             'duration': duration,
@@ -450,6 +466,7 @@ def sync_primecod_catalog() -> Dict:
             'snapshots_created': snapshots_created,
             'old_products_updated': old_products_count,
             'sync_date': today.isoformat(),
+            'sync_log_id': sync_log.id,
             'message': f'Sincronização concluída: {products_created} novos, {products_updated} atualizados, {snapshots_created} snapshots'
         }
 
@@ -458,6 +475,7 @@ def sync_primecod_catalog() -> Dict:
         logger.info(f"📊 [SYNC CATALOG] Produtos atualizados: {products_updated}")
         logger.info(f"📊 [SYNC CATALOG] Snapshots criados: {snapshots_created}")
         logger.info(f"📊 [SYNC CATALOG] Erros: {products_error}")
+        logger.info(f"📝 [SYNC CATALOG] Log salvo com ID: {sync_log.id}")
 
         return result
 
@@ -465,18 +483,36 @@ def sync_primecod_catalog() -> Dict:
         error_msg = f"Erro na API PrimeCOD: {str(e)}"
         logger.error(f"❌ [SYNC CATALOG] {error_msg}")
 
+        # Atualizar log com erro
+        sync_log.status = 'error'
+        sync_log.completed_at = timezone.now()
+        sync_log.duration = time.time() - start_time
+        sync_log.error_message = str(e)
+        sync_log.error_type = 'PrimeCODAPIError'
+        sync_log.save()
+
         return {
             'status': 'error',
             'message': error_msg,
-            'error_type': 'api_error'
+            'error_type': 'api_error',
+            'sync_log_id': sync_log.id
         }
 
     except Exception as e:
         error_msg = f"Erro inesperado na sincronização: {str(e)}"
         logger.error(f"❌ [SYNC CATALOG] {error_msg}")
 
+        # Atualizar log com erro
+        sync_log.status = 'error'
+        sync_log.completed_at = timezone.now()
+        sync_log.duration = time.time() - start_time
+        sync_log.error_message = str(e)
+        sync_log.error_type = type(e).__name__
+        sync_log.save()
+
         return {
             'status': 'error',
             'message': error_msg,
-            'error_type': 'unexpected_error'
+            'error_type': 'unexpected_error',
+            'sync_log_id': sync_log.id
         }

@@ -12,7 +12,10 @@ from .views import (
     status_job_primecod,
     get_primecod_config,
     testar_token_primecod,
-    salvar_primecod_config
+    salvar_primecod_config,
+    get_last_sync,
+    get_scheduler_status,
+    get_product_history
 )
 
 router = DefaultRouter()
@@ -37,4 +40,13 @@ urlpatterns = [
     path('config/', get_primecod_config, name='get_primecod_config'),
     path('config/testar/', testar_token_primecod, name='testar_token_primecod'),
     path('config/salvar/', salvar_primecod_config, name='salvar_primecod_config'),
+
+    # Endpoint de Última Sincronização
+    path('catalog/last-sync/', get_last_sync, name='catalog_last_sync'),
+
+    # Endpoint de Status do Scheduler
+    path('catalog/scheduler-status/', get_scheduler_status, name='catalog_scheduler_status'),
+
+    # Endpoint de Histórico de Produto
+    path('catalog/<int:product_id>/history/', get_product_history, name='product_history'),
 ]

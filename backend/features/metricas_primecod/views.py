@@ -5,6 +5,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
 from core.permissions import IsAdminUser
 from .decorators import require_primecod_token
+from .pagination import CatalogPagination
 from .models import (
     AnalisePrimeCOD,
     StatusMappingPrimeCOD,
@@ -20,7 +21,8 @@ from .serializers import (
     PrimeCODCatalogProductSerializer,
     PrimeCODCatalogProductResumoSerializer,
     PrimeCODCatalogSnapshotSerializer,
-    PrimeCODConfigSerializer
+    PrimeCODConfigSerializer,
+    CatalogSyncLogSerializer
 )
 import requests
 from .utils import PrimeCODProcessor
@@ -804,9 +806,14 @@ class PrimeCODCatalogViewSet(viewsets.ReadOnlyModelViewSet):
 
     Ordenação:
     - ordering: total_units_sold, quantity, name, -updated_at (- para descendente)
+
+    Paginação:
+    - page_size: 10 produtos por página (padrão)
+    - Customizável via ?page_size=N (máximo 100)
     """
 
     permission_classes = [IsAdminUser]
+    pagination_class = CatalogPagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'sku', 'description']
     ordering_fields = ['total_units_sold', 'quantity', 'name', 'updated_at', 'price', 'cost']
@@ -1113,6 +1120,38 @@ def testar_token_primecod(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def get_last_sync(request):
+    """
+    Retorna informações da última sincronização bem-sucedida do catálogo PrimeCOD
+    """
+    try:
+        from .models import CatalogSyncLog
+
+        last_sync = CatalogSyncLog.objects.filter(status='success').first()
+
+        if last_sync:
+            serializer = CatalogSyncLogSerializer(last_sync)
+            return Response({
+                'status': 'success',
+                'last_sync': serializer.data
+            })
+
+        return Response({
+            'status': 'success',
+            'last_sync': None,
+            'message': 'Nenhuma sincronização bem-sucedida encontrada'
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar última sincronização: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Erro ao buscar última sincronização: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def salvar_primecod_config(request):
@@ -1166,4 +1205,146 @@ def salvar_primecod_config(request):
         return Response({
             'status': 'error',
             'message': f'Erro ao salvar: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def get_product_history(request, product_id):
+    """
+    Retorna histórico de snapshots de um produto
+
+    GET /api/primecod/catalog/{product_id}/history/?days=30
+
+    Query params:
+        - days: número de dias para retornar (padrão: 30)
+
+    Returns:
+        {
+            "product": {...},
+            "snapshots": [
+                {
+                    "date": "2025-01-15",
+                    "quantity": 100,
+                    "quantity_delta": +10,
+                    "total_units_sold": 50,
+                    "units_sold_delta": +5
+                },
+                ...
+            ]
+        }
+    """
+    try:
+        from datetime import datetime, timedelta
+
+        # Buscar produto
+        product = get_object_or_404(PrimeCODCatalogProduct, id=product_id)
+
+        # Número de dias para retornar (padrão 30)
+        days = int(request.GET.get('days', 30))
+
+        # Data inicial
+        start_date = datetime.now().date() - timedelta(days=days)
+
+        # Buscar snapshots do produto
+        snapshots = PrimeCODCatalogSnapshot.objects.filter(
+            product=product,
+            snapshot_date__gte=start_date
+        ).order_by('snapshot_date')
+
+        # Processar snapshots com deltas
+        history = []
+        prev_snapshot = None
+
+        for snapshot in snapshots:
+            # Calcular deltas
+            quantity_delta = 0
+            units_sold_delta = 0
+
+            if prev_snapshot:
+                quantity_delta = snapshot.quantity - prev_snapshot.quantity
+                units_sold_delta = snapshot.total_units_sold - prev_snapshot.total_units_sold
+
+            history.append({
+                'date': snapshot.snapshot_date.isoformat(),
+                'quantity': snapshot.quantity,
+                'quantity_delta': quantity_delta,
+                'total_units_sold': snapshot.total_units_sold,
+                'units_sold_delta': units_sold_delta,
+            })
+
+            prev_snapshot = snapshot
+
+        # Serializar produto
+        product_serializer = PrimeCODCatalogProductResumoSerializer(product)
+
+        return Response({
+            'product': product_serializer.data,
+            'snapshots': history,
+            'total_days': len(history)
+        })
+
+    except ValueError:
+        return Response({
+            'status': 'error',
+            'message': 'Parâmetro "days" inválido'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        logger.error(f"Erro ao obter histórico do produto {product_id}: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Erro ao obter histórico: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def get_scheduler_status(request):
+    """
+    Retorna status do scheduler automático de sincronização
+
+    GET /api/primecod/catalog/scheduler-status/
+
+    Returns:
+        {
+            "enabled": true/false,
+            "schedule": "Diariamente às 6h (horário de Brasília)",
+            "next_run_estimated": "2025-01-15T06:00:00-03:00",
+            "timezone": "America/Sao_Paulo"
+        }
+    """
+    from django.conf import settings
+    from datetime import datetime, time, timedelta
+    import pytz
+
+    try:
+        # Verificar se scheduler está habilitado
+        should_enable_scheduler = (
+            not settings.DEBUG or
+            getattr(settings, 'ENABLE_SCHEDULER', False)
+        )
+
+        # Timezone de Brasília
+        tz = pytz.timezone('America/Sao_Paulo')
+        now = datetime.now(tz)
+
+        # Calcular próxima execução (6h da manhã)
+        next_run = now.replace(hour=6, minute=0, second=0, microsecond=0)
+        if now.hour >= 6:
+            # Se já passou das 6h hoje, agendar para amanhã
+            next_run = next_run + timedelta(days=1)
+
+        return Response({
+            'enabled': should_enable_scheduler,
+            'schedule': 'Diariamente às 6h (horário de Brasília)',
+            'next_run_estimated': next_run.isoformat(),
+            'timezone': 'America/Sao_Paulo',
+            'current_time': now.isoformat()
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao obter status do scheduler: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Erro ao obter status: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
