@@ -49,7 +49,8 @@ const STOCK_LEVELS = [
 
 // Componente ProductCard
 const ProductCard = ({ produto, onVerHistorico }) => {
-    const primeiraImagem = produto.images?.[0]?.path || null;
+    // Backend retorna images como array de strings, não objetos
+    const primeiraImagem = produto.images?.[0] || null;
     const [imagemFalhou, setImagemFalhou] = useState(false);
 
     return (
@@ -265,7 +266,7 @@ function PrimeCODCatalogoPage() {
         setLoadingSync(true);
         try {
             const response = await apiClient.get('/metricas/primecod/catalog/last-sync/');
-            setUltimaSync(response.data);
+            setUltimaSync(response.data.last_sync); // Extrair apenas last_sync do response
         } catch (error) {
             console.error('Erro ao carregar última sincronização:', error);
             // Não mostra notificação para não poluir a UI
@@ -488,67 +489,59 @@ function PrimeCODCatalogoPage() {
     );
 
     const renderFiltros = () => (
-        <Card className="mb-6 border-border bg-card">
-            <CardHeader>
-                <CardTitle className="text-lg text-card-foreground flex items-center gap-2">
-                    <Filter className="h-5 w-5" />
-                    Filtros
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Select de País */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-foreground">País</label>
-                        <Select value={paisSelecionado} onValueChange={setPaisSelecionado}>
-                            <SelectTrigger className="border-border bg-background text-foreground">
-                                <Globe className="h-4 w-4 mr-2" />
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="border-border bg-popover">
-                                {PAISES_PRIMECOD.map(pais => (
-                                    <SelectItem key={pais.code} value={pais.code} className="text-popover-foreground hover:bg-accent">
-                                        {pais.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+        <div className="mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Select de País */}
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">País</label>
+                    <Select value={paisSelecionado} onValueChange={setPaisSelecionado}>
+                        <SelectTrigger className="border-border bg-background text-foreground">
+                            <Globe className="h-4 w-4 mr-2" />
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="border-border bg-popover">
+                            {PAISES_PRIMECOD.map(pais => (
+                                <SelectItem key={pais.code} value={pais.code} className="text-popover-foreground hover:bg-accent">
+                                    {pais.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
 
-                    {/* Select de Nível de Estoque */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-foreground">Nível de Estoque</label>
-                        <Select value={nivelEstoque} onValueChange={setNivelEstoque}>
-                            <SelectTrigger className="border-border bg-background text-foreground">
-                                <Package className="h-4 w-4 mr-2" />
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="border-border bg-popover">
-                                {STOCK_LEVELS.map(level => (
-                                    <SelectItem key={level.value} value={level.value} className="text-popover-foreground hover:bg-accent">
-                                        {level.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+                {/* Select de Nível de Estoque */}
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Nível de Estoque</label>
+                    <Select value={nivelEstoque} onValueChange={setNivelEstoque}>
+                        <SelectTrigger className="border-border bg-background text-foreground">
+                            <Package className="h-4 w-4 mr-2" />
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="border-border bg-popover">
+                            {STOCK_LEVELS.map(level => (
+                                <SelectItem key={level.value} value={level.value} className="text-popover-foreground hover:bg-accent">
+                                    {level.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
 
-                    {/* Input de Busca */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-foreground">Buscar</label>
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Nome ou descrição..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-10 border-border bg-background text-foreground"
-                            />
-                        </div>
+                {/* Input de Busca */}
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Buscar</label>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Nome ou descrição..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10 border-border bg-background text-foreground"
+                        />
                     </div>
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 
     const renderPaginacao = () => {
@@ -707,7 +700,6 @@ function PrimeCODCatalogoPage() {
                                                 )}
                                             </button>
                                         </TableHead>
-                                        <TableHead className="text-muted-foreground">Descrição</TableHead>
                                         <TableHead className="text-center text-muted-foreground">
                                             <button
                                                 className="flex items-center gap-1 text-xs hover:text-foreground transition-colors mx-auto"
@@ -746,7 +738,7 @@ function PrimeCODCatalogoPage() {
                                 <TableBody>
                                     {produtos.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                                            <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                                                 {loading ? 'Carregando...' : 'Nenhum produto encontrado'}
                                             </TableCell>
                                         </TableRow>
@@ -759,11 +751,6 @@ function PrimeCODCatalogoPage() {
                                                         {produto.is_new && (
                                                             <Badge className="bg-yellow-600 text-white">NOVO</Badge>
                                                         )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-sm text-muted-foreground max-w-xs">
-                                                    <div className="truncate" title={produto.description}>
-                                                        {produto.description || '-'}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-center text-card-foreground">
@@ -847,11 +834,15 @@ function PrimeCODCatalogoPage() {
                                     {historico.map((snapshot, idx) => (
                                         <TableRow key={idx} className="hover:bg-muted/50">
                                             <TableCell className="font-medium">
-                                                {new Date(snapshot.date).toLocaleDateString('pt-BR', {
-                                                    day: '2-digit',
-                                                    month: '2-digit',
-                                                    year: 'numeric'
-                                                })}
+                                                {(() => {
+                                                    if (!snapshot.date) return '-';
+                                                    const date = new Date(snapshot.date);
+                                                    return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('pt-BR', {
+                                                        day: '2-digit',
+                                                        month: '2-digit',
+                                                        year: 'numeric'
+                                                    });
+                                                })()}
                                             </TableCell>
                                             <TableCell className="text-center">
                                                 {snapshot.total_units_sold?.toLocaleString() || 0}

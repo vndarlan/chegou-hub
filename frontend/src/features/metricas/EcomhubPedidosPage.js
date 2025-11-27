@@ -155,9 +155,6 @@ function EcomhubPedidosPage() {
     // Estado para controlar o Sheet de Referência de Colunas
     const [openReferenceSheet, setOpenReferenceSheet] = useState(false);
 
-    // Estado para diagnóstico de larguras (DEBUG)
-    const [debugInfo, setDebugInfo] = useState(null);
-
     // ======================== FUNÇÕES AUXILIARES ========================
 
     // Função auxiliar para formatar arrays de ordersItems
@@ -1288,27 +1285,6 @@ function EcomhubPedidosPage() {
                             </div>
                         </div>
                     )}
-
-                    {/* DEBUG: Informações de Scroll - VISÍVEL NA TELA */}
-                    {debugInfo && (
-                        <div className="p-4 bg-yellow-50 border-t-4 border-yellow-400">
-                            <div className="text-xs font-mono space-y-1">
-                                <div className="font-bold text-yellow-800 mb-2">🔍 DEBUG SCROLL HORIZONTAL:</div>
-                                <div>Container width: <span className="font-bold">{debugInfo.containerWidth}px</span></div>
-                                <div>Table width: <span className="font-bold">{debugInfo.tableWidth}px</span></div>
-                                <div>ScrollWidth: <span className="font-bold">{debugInfo.scrollWidth}px</span></div>
-                                <div>ClientWidth: <span className="font-bold">{debugInfo.clientWidth}px</span></div>
-                                <div className={debugInfo.needsScroll ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
-                                    Tabela ultrapassa container? {debugInfo.needsScroll ? '✅ SIM' : '❌ NÃO'}
-                                </div>
-                                <div className={debugInfo.hasScroll ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
-                                    Scroll disponível? {debugInfo.hasScroll ? '✅ SIM' : '❌ NÃO'}
-                                </div>
-                                <div>CSS overflow-x: <span className="font-bold">{debugInfo.computedOverflow}</span></div>
-                                <div>Card overflow: <span className="font-bold">{debugInfo.cardOverflow}</span></div>
-                            </div>
-                        </div>
-                    )}
                 </CardContent>
             </Card>
         );
@@ -1352,33 +1328,6 @@ function EcomhubPedidosPage() {
         const COLUMNS_VERSION = '2';
         localStorage.setItem('ecomhub-columns-version', COLUMNS_VERSION);
     }, [visibleColumns]);
-
-    // Debug: Verificar larguras para diagnosticar scroll - MOSTRA NA TELA
-    useEffect(() => {
-        if (pedidos.length > 0) {
-            setTimeout(() => {
-                const container = document.getElementById('table-scroll-container');
-                const table = container?.querySelector('table');
-                const card = container?.closest('[class*="card"]');
-
-                if (container && table) {
-                    const info = {
-                        containerWidth: container.offsetWidth,
-                        tableWidth: table.offsetWidth,
-                        scrollWidth: container.scrollWidth,
-                        clientWidth: container.clientWidth,
-                        needsScroll: table.offsetWidth > container.offsetWidth,
-                        hasScroll: container.scrollWidth > container.clientWidth,
-                        computedOverflow: window.getComputedStyle(container).overflowX,
-                        cardOverflow: card ? window.getComputedStyle(card).overflow : 'N/A'
-                    };
-
-                    setDebugInfo(info);
-                    console.log('🔍 DEBUG SCROLL:', info);
-                }
-            }, 1000);
-        }
-    }, [pedidos, visibleColumns]);
 
     // CSS customizado para scrollbar ULTRA visível
     useEffect(() => {
