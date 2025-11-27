@@ -262,8 +262,8 @@ class PrimeCODClient:
                     logger.info(f"[HEARTBEAT] {pages_processed} páginas processadas, {len(all_orders)} orders coletados")
                     logger.info(f"[ALIVE] Worker ativo - tempo: {loop_duration:.1f}s")
                 
-                # Proteção de segurança: timeout depois de 25 minutos (evitar timeout Railway)
-                if loop_duration > 25 * 60:  # 25 minutos
+                # Proteção de segurança: timeout depois de 60 minutos (mais seguro para grandes coletas)
+                if loop_duration > 60 * 60:  # 60 minutos
                     logger.warning(f"[TIMEOUT] Timeout de segurança aos {loop_duration/60:.1f} min - salvando {len(all_orders)} orders coletados")
                     break
                 
@@ -301,12 +301,7 @@ class PrimeCODClient:
                 to_value = data.get('to')
                 
                 logger.info(f"[PAGINATION] Página {current_page}: current_page={current_page_api}, last_page={last_page}, from={from_value}, to={to_value}")
-                
-                # CORREÇÃO DEFINITIVA: Parar quando API indica fim real dos dados
-                if from_value is None and to_value is None:
-                    logger.info(f"[FIM] Página {current_page_api} sem range (from/to = None) - fim dos dados")
-                    break
-                
+
                 # Log informações de paginação na primeira página
                 if current_page == 1:
                     total = data.get('total', 0)
@@ -375,15 +370,7 @@ class PrimeCODClient:
                     if first_order.get('products'):
                         logger.info(f"   - primeiro produto: {first_order['products'][0].get('name', 'N/A')}")
                     logger.info(f"   - campos disponíveis: {list(first_order.keys())}")
-                
-                # CORREÇÃO DEFINITIVA: Parar quando não há orders (fim real dos dados)
-                if not orders or len(orders) == 0:
-                    logger.info(f"[FIM] Página {current_page} sem orders - fim dos dados")
-                    break
-                else:
-                    # Resetar contador se encontrou dados
-                    consecutive_empty_pages = 0
-                
+
                 # PROTEÇÃO ADICIONAL: Se orders é muito pequeno, pode indicar fim da coleta
                 if len(orders) < 50:   # API POST retorna variável orders por página, menos orders indica fim ou última página
                     logger.info(f"[DEBUG] Página {current_page} com {len(orders)} orders - possível fim da coleta (esperado: 50/página)")
@@ -426,9 +413,16 @@ class PrimeCODClient:
             logger.info(f"[RAPIDO] RESULTADO: {pages_processed} páginas × {orders_per_page:.1f} = {len(all_orders)} orders!")
             logger.info(f"[PAGE] Última página: {current_page - 1}/{total_pages or '?'}")
             logger.info(f"[CRITICO] OTIMIZAÇÃO: Para automaticamente quando API acabar")
-            
+
             logger.info(f"[SUCCESS] Coleta finalizada normalmente: encontrou página vazia na página {current_page}")
-            
+
+            # Validação de completude
+            total_api = total_pages * 50 if total_pages else 0  # Estimativa baseada em 50 orders/página
+            logger.info(f"[VALIDAÇÃO] Total indicado pela API: {total_api}")
+            logger.info(f"[VALIDAÇÃO] Total coletado: {len(all_orders)}")
+            if total_api > 0 and len(all_orders) < total_api * 0.95:
+                logger.warning(f"[ALERTA] Coleta possivelmente incompleta! Esperado ~{total_api}, coletado {len(all_orders)}")
+
             # Salvar dados completos no cache ANTES de aplicar filtros
             if cache_key:
                 try:
@@ -709,22 +703,7 @@ class PrimeCODClient:
                             logger.warning(f"[FALLBACK] Nenhuma estrutura de dados válida encontrada em página assíncrona válida")
                 elif not orders:
                     logger.info(f"[NORMAL] Campo 'data' vazio em página assíncrona {current_page_api} (normal se > last_page)")
-                
-                # CONDIÇÃO DE PARADA ASSÍNCRONA: página vazia ou fim da paginação
-                if not orders or len(orders) == 0:
-                    logger.info(f"[FIM] Página assíncrona {current_page} sem orders")
-                    
-                    # Se chegamos ao fim da paginação ou não há dados, parar
-                    if current_page_api >= last_page:
-                        logger.info(f"[FIM] Confirmado assíncrono: página {current_page_api} >= last_page {last_page} - fim natural")
-                        break
-                    elif current_page > 1:
-                        logger.info(f"[FIM] Página assíncrona vazia encontrada - assumindo fim da coleta")
-                        break
-                    else:
-                        logger.warning(f"[FIM] Primeira página assíncrona sem dados - possível problema na API")
-                        break
-                
+
                 # PROTEÇÃO ADICIONAL: Se orders é muito pequeno, pode indicar fim da coleta
                 if len(orders) < 50:   # API POST retorna variável orders por página, menos orders indica fim ou última página
                     logger.info(f"[DEBUG] Página {current_page} com {len(orders)} orders - possível fim da coleta (esperado: 50/página)")
@@ -788,7 +767,14 @@ class PrimeCODClient:
                 logger.warning(f"[SUCCESS] Para coletar mais dados, aumente o parâmetro max_pages")
             else:
                 logger.info(f"[SUCCESS] Coleta finalizada normalmente: encontrou página vazia na página {current_page}")
-            
+
+            # Validação de completude
+            total_api = total_pages * 50 if total_pages else 0  # Estimativa baseada em 50 orders/página
+            logger.info(f"[VALIDAÇÃO] Total indicado pela API: {total_api}")
+            logger.info(f"[VALIDAÇÃO] Total coletado: {len(all_orders)}")
+            if total_api > 0 and len(all_orders) < total_api * 0.95:
+                logger.warning(f"[ALERTA] Coleta possivelmente incompleta! Esperado ~{total_api}, coletado {len(all_orders)}")
+
             # Salvar dados completos no cache ANTES de aplicar filtros
             if cache_key:
                 try:
