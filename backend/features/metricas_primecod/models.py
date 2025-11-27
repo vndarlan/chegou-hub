@@ -105,8 +105,8 @@ class PrimeCODCatalogSnapshot(models.Model):
     quantity = models.IntegerField(verbose_name="Quantidade em Estoque")
     total_units_sold = models.IntegerField(verbose_name="Total de Unidades Vendidas")
 
-    # Data do Snapshot
-    snapshot_date = models.DateField(verbose_name="Data do Snapshot")
+    # Data e Hora do Snapshot
+    snapshot_date = models.DateTimeField(verbose_name="Data e Hora do Snapshot")
 
     # Timestamp
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
@@ -114,7 +114,6 @@ class PrimeCODCatalogSnapshot(models.Model):
     class Meta:
         verbose_name = "Snapshot Catálogo PrimeCOD"
         verbose_name_plural = "Snapshots Catálogo PrimeCOD"
-        unique_together = [['product', 'snapshot_date']]
         ordering = ['-snapshot_date']
         indexes = [
             models.Index(fields=['snapshot_date']),

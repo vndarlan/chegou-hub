@@ -415,18 +415,14 @@ def sync_primecod_catalog() -> Dict:
                     products_updated += 1
                     logger.info(f"🔄 [SYNC CATALOG] Produto atualizado: [{sku}] {name}")
 
-                # Criar snapshot diário para este produto
-                snapshot, snapshot_created = PrimeCODCatalogSnapshot.objects.update_or_create(
+                # Criar snapshot com data e hora exata para este produto
+                snapshot = PrimeCODCatalogSnapshot.objects.create(
                     product=product,
-                    snapshot_date=today,
-                    defaults={
-                        'quantity': quantity,
-                        'total_units_sold': total_units_sold,
-                    }
+                    snapshot_date=timezone.now(),  # Data + Hora exata
+                    quantity=quantity,
+                    total_units_sold=total_units_sold
                 )
-
-                if snapshot_created:
-                    snapshots_created += 1
+                snapshots_created += 1
 
             except Exception as e:
                 logger.error(f"❌ [SYNC CATALOG] Erro ao processar produto {product_data.get('id', 'unknown')}: {str(e)}")

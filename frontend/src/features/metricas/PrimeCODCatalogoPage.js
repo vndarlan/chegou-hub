@@ -837,10 +837,12 @@ function PrimeCODCatalogoPage() {
                                                 {(() => {
                                                     if (!snapshot.snapshot_date) return '-';
                                                     const date = new Date(snapshot.snapshot_date);
-                                                    return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('pt-BR', {
+                                                    return isNaN(date.getTime()) ? '-' : date.toLocaleString('pt-BR', {
                                                         day: '2-digit',
                                                         month: '2-digit',
-                                                        year: 'numeric'
+                                                        year: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
                                                     });
                                                 })()}
                                             </TableCell>
