@@ -792,11 +792,11 @@ function EcomhubPage() {
 
         // Definir período padrão (última semana)
         const hoje = new Date();
-        const setemantepassada = new Date();
-        setemantepassada.setDate(hoje.getDate() - 7);
+        const semanaPassada = new Date();
+        semanaPassada.setDate(hoje.getDate() - 7);
 
         setDateRange({
-            from: setemantepassada,
+            from: semanaPassada,
             to: hoje
         });
         setPeriodoPreset('semana');

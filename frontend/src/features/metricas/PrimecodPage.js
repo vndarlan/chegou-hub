@@ -1,12 +1,17 @@
 // frontend/src/features/metricas/PrimecodPage.js - INTEGRAÇÃO VIA PROXY BACKEND
 import React, { useState, useEffect } from 'react';
 import {
-    Calendar as CalendarIcon, Download, Trash2, RefreshCw, Check, X, 
-    AlertTriangle, TrendingUp, BarChart3, Eye, Search, Globe, 
-    ArrowUpDown, ArrowUp, ArrowDown, Package, Target, Percent, 
-    PieChart, Filter, Rocket, LayoutDashboard, Loader2
+    Calendar as CalendarIcon, Download, Trash2, RefreshCw, Check, X,
+    AlertTriangle, TrendingUp, BarChart3, Eye, Search, Globe,
+    ArrowUpDown, ArrowUp, ArrowDown, Package, Target, Percent,
+    PieChart, Filter, Rocket, LayoutDashboard, Loader2, Minus, Plus
 } from 'lucide-react';
 import apiClient from '../../utils/axios';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import ReactDatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import '../../datepicker-custom.css';
 
 // shadcn/ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -22,6 +27,7 @@ import { Label } from '../../components/ui/label';
 import { Progress } from '../../components/ui/progress';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
 import { getCSRFToken } from '../../utils/csrf';
 
 // Países PrimeCOD disponíveis
@@ -91,25 +97,32 @@ function PrimecodPage() {
         to: undefined
     });
     const [paisSelecionado, setPaisSelecionado] = useState('todos');
-    
+    const [periodoPreset, setPeriodoPreset] = useState(null);
+
     // Estados de modal e loading
     const [modalSalvar, setModalSalvar] = useState(false);
     const [modalInstrucoes, setModalInstrucoes] = useState(false);
+    const [openPopover, setOpenPopover] = useState(false);
     const [nomeAnalise, setNomeAnalise] = useState('');
     const [loadingProcessar, setLoadingProcessar] = useState(false);
     const [loadingSalvar, setLoadingSalvar] = useState(false);
     const [loadingAnalises, setLoadingAnalises] = useState(false);
     const [loadingDelete, setLoadingDelete] = useState({});
-    
+
     // Estados de notificação e progresso
     const [notification, setNotification] = useState(null);
     const [progressoAtual, setProgressoAtual] = useState(null);
     const [authChecked, setAuthChecked] = useState(false);
-    
 
     // Estados para ordenação
     const [sortBy, setSortBy] = useState(null);
     const [sortOrder, setSortOrder] = useState('asc');
+
+    // Estado para largura da coluna Produto
+    const [larguraProduto, setLarguraProduto] = useState(() => {
+        const saved = localStorage.getItem('primecod_largura_produto');
+        return saved ? parseInt(saved, 10) : 200;
+    });
 
 
     // ======================== FUNÇÕES DE API ========================
@@ -293,17 +306,17 @@ function PrimecodPage() {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             showNotification('success', `Análise '${nome}' deletada com sucesso!`);
             await fetchAnalises(); // Aguardar recarga das análises
-            
+
             // Limpar dados se for a análise atualmente carregada
             if (dadosResultado && Array.isArray(dadosResultado) && dadosResultado.some(item => item.id === id)) {
                 setDadosResultado(null);
             }
         } catch (error) {
             console.error('Erro ao deletar análise:', error);
-            
+
             // Error handling específico para deleção
             if (error.response?.status === 404) {
                 showNotification('error', 'Análise não encontrada (pode ter sido deletada)');
@@ -316,6 +329,33 @@ function PrimecodPage() {
         } finally {
             setLoadingDelete(prev => ({ ...prev, [id]: false }));
         }
+    };
+
+    const aplicarPreset = async (preset) => {
+        const hoje = new Date();
+        const dataInicio = new Date();
+
+        switch (preset) {
+            case 'semana':
+                dataInicio.setDate(hoje.getDate() - 7);
+                break;
+            case 'mes':
+                dataInicio.setDate(hoje.getDate() - 30);
+                break;
+            case '3meses':
+                dataInicio.setDate(hoje.getDate() - 90);
+                break;
+            default:
+                return;
+        }
+
+        setDateRange({ from: dataInicio, to: hoje });
+        setPeriodoPreset(preset);
+
+        // Buscar automaticamente após selecionar preset
+        setTimeout(async () => {
+            await processarDados();
+        }, 100);
     };
 
     // ======================== FUNÇÕES AUXILIARES ========================
@@ -361,40 +401,14 @@ function PrimecodPage() {
     };
 
     const getEfetividadeCor = (valor) => {
-        if (!valor) return { className: '', style: {} };
-        
-        let numero;
-        if (typeof valor === 'string') {
-            numero = parseFloat(valor.replace('%', '').replace('(Média)', ''));
-        } else {
-            numero = parseFloat(valor);
-        }
-        
-        if (isNaN(numero)) return { className: '', style: {} };
-        
-        // Usando cores sólidas com inline styles para garantir que funcionem
-        if (numero >= 70) {
-            return { 
-                className: 'text-white font-bold', 
-                style: { backgroundColor: '#16a34a' } // green-600
-            };
-        }
-        if (numero >= 50) {
-            return { 
-                className: 'text-white font-bold', 
-                style: { backgroundColor: '#22c55e' } // green-500
-            };
-        }
-        if (numero >= 40) {
-            return { 
-                className: 'text-black font-bold', 
-                style: { backgroundColor: '#eab308' } // yellow-500
-            };
-        }
-        return { 
-            className: 'text-white font-bold', 
-            style: { backgroundColor: '#ef4444' } // red-500
-        };
+        if (!valor || typeof valor !== 'string') return '';
+
+        const numero = parseFloat(valor.replace('%', '').replace('(Média)', ''));
+
+        if (numero >= 60) return 'bg-green-600 text-white';
+        if (numero >= 50) return 'bg-green-500 text-white';
+        if (numero >= 40) return 'bg-yellow-500 text-black';
+        return 'bg-red-500 text-white';
     };
 
     const sortData = (data, sortBy, sortOrder) => {
@@ -422,6 +436,22 @@ function PrimecodPage() {
             setSortBy(column);
             setSortOrder('asc');
         }
+    };
+
+    const aumentarLarguraProduto = () => {
+        setLarguraProduto(prev => {
+            const novaLargura = Math.min(prev + 30, 400);
+            localStorage.setItem('primecod_largura_produto', novaLargura);
+            return novaLargura;
+        });
+    };
+
+    const diminuirLarguraProduto = () => {
+        setLarguraProduto(prev => {
+            const novaLargura = Math.max(prev - 30, 120);
+            localStorage.setItem('primecod_largura_produto', novaLargura);
+            return novaLargura;
+        });
     };
 
     // ======================== COMPONENTES DE RENDERIZAÇÃO ========================
@@ -463,11 +493,11 @@ function PrimecodPage() {
     );
 
     const renderFormulario = () => (
-        <Card className="mb-6 relative border-border bg-card">
+        <div className="mb-6 relative">
             {loadingProcessar && (
-                <div className="absolute inset-0 bg-background/95 backdrop-blur flex flex-col items-center justify-center z-50 rounded-lg">
+                <div className="absolute inset-0 bg-background/95 backdrop-blur flex flex-col items-center justify-center z-10 rounded-lg">
                     <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
-                    <p className="font-medium mb-2 text-foreground">Processando dados via backend...</p>
+                    <p className="font-medium mb-2 text-foreground">Processando dados...</p>
                     {progressoAtual && (
                         <>
                             <Progress value={progressoAtual.porcentagem} className="w-60 mb-2" />
@@ -477,144 +507,113 @@ function PrimecodPage() {
                 </div>
             )}
 
-            <CardHeader>
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Filter className="h-5 w-5 text-primary" />
-                        <div>
-                            <CardTitle className="text-card-foreground">Configuração</CardTitle>
-                            <CardDescription className="text-muted-foreground">Configure o período e execute</CardDescription>
-                        </div>
+            <div className="space-y-4">
+                {/* Períodos Rápidos + Período Personalizado */}
+                <div className="space-y-3">
+                    <div className="flex gap-2 flex-wrap">
+                        <Button
+                            onClick={() => aplicarPreset('semana')}
+                            variant={periodoPreset === 'semana' ? 'default' : 'outline'}
+                            size="sm"
+                        >
+                            Última Semana
+                        </Button>
+                        <Button
+                            onClick={() => aplicarPreset('mes')}
+                            variant={periodoPreset === 'mes' ? 'default' : 'outline'}
+                            size="sm"
+                        >
+                            Último Mês
+                        </Button>
+                        <Button
+                            onClick={() => aplicarPreset('3meses')}
+                            variant={periodoPreset === '3meses' ? 'default' : 'outline'}
+                            size="sm"
+                        >
+                            Últimos 3 Meses
+                        </Button>
+
+                        {/* Popover com ReactDatePicker */}
+                        <Popover open={openPopover} onOpenChange={setOpenPopover}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant={periodoPreset === null && dateRange?.from ? 'default' : 'outline'}
+                                    size="sm"
+                                    className="gap-2"
+                                >
+                                    <CalendarIcon className="h-4 w-4" />
+                                    Período Personalizado
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 max-w-none" align="start">
+                                <div className="p-4 space-y-4">
+                                    <ReactDatePicker
+                                        selectsRange={true}
+                                        startDate={dateRange?.from}
+                                        endDate={dateRange?.to}
+                                        onChange={(dates) => {
+                                            const [start, end] = dates;
+                                            setDateRange({ from: start, to: end });
+                                            setPeriodoPreset(null);
+                                        }}
+                                        monthsShown={2}
+                                        dateFormat="dd/MM/yyyy"
+                                        locale={ptBR}
+                                        inline
+                                    />
+                                    <div className="flex justify-end gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setOpenPopover(false)}
+                                        >
+                                            Cancelar
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            onClick={async () => {
+                                                if (dateRange?.from && dateRange?.to) {
+                                                    setOpenPopover(false);
+                                                    setPeriodoPreset(null);
+                                                    await processarDados();
+                                                }
+                                            }}
+                                            disabled={!dateRange?.from || !dateRange?.to}
+                                        >
+                                            Aplicar
+                                        </Button>
+                                    </div>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                     </div>
 
-                    <div className="flex items-end gap-4">
-                        {/* Dois calendários separados - simples e funcional */}
-                        <div className="flex gap-4">
-                            <div className="flex flex-col gap-2">
-                                <Label className="text-sm font-medium">Data Inicial</Label>
-                                <input
-                                    type="date"
-                                    value={dateRange?.from ? dateRange.from.toISOString().split('T')[0] : ''}
-                                    onChange={(e) => {
-                                        const newDate = e.target.value ? new Date(e.target.value) : undefined;
-                                        setDateRange(prev => ({ ...prev, from: newDate }));
-                                    }}
-                                    disabled={loadingProcessar}
-                                    className="px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                                />
-                            </div>
-                            
-                            <div className="flex flex-col gap-2">
-                                <Label className="text-sm font-medium">Data Final</Label>
-                                <input
-                                    type="date"
-                                    value={dateRange?.to ? dateRange.to.toISOString().split('T')[0] : ''}
-                                    onChange={(e) => {
-                                        const newDate = e.target.value ? new Date(e.target.value) : undefined;
-                                        setDateRange(prev => ({ ...prev, to: newDate }));
-                                    }}
-                                    disabled={loadingProcessar}
-                                    className="px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                                />
-                            </div>
-                        </div>
-                        
-                        <Button
-                            onClick={processarDados}
-                            disabled={!dateRange?.from || !dateRange?.to || loadingProcessar || !authChecked}
-                            size="lg"
-                            className="min-w-36 bg-primary text-primary-foreground hover:bg-primary/90"
-                        >
-                            {loadingProcessar ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                                <Search className="h-4 w-4 mr-2" />
-                            )}
-                            {!authChecked ? 'Verificando...' : (loadingProcessar ? 'Buscando...' : 'Buscar Dados')}
-                        </Button>
-                    </div>
+                    {/* Mostrar período selecionado */}
+                    {dateRange?.from && dateRange?.to && (
+                        <p className="text-xs text-muted-foreground">
+                            Período selecionado: {format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR })} até {format(dateRange.to, 'dd/MM/yyyy', { locale: ptBR })}
+                        </p>
+                    )}
                 </div>
-            </CardHeader>
-        </Card>
+            </div>
+        </div>
     );
 
     const renderEstatisticas = () => {
         if (!dadosResultado || !Array.isArray(dadosResultado)) return null;
-        
-        if (tipoVisualizacao === 'otimizada') {
-            const dadosAgrupados = agruparDadosPrimeCOD(dadosResultado);
-            const totalRow = dadosAgrupados.find(item => item.produto === 'TOTAL');
-            
-            if (!totalRow) return null;
-            
-            return (
-                <div className="grid grid-cols-4 gap-4 mb-6">
-                    <Card className="border-border bg-card">
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Efetividade Total</p>
-                                    <p className={`text-xl font-bold px-2 py-1 rounded ${getEfetividadeCor(totalRow.Efetividade_Total || 0).className}`} style={getEfetividadeCor(totalRow.Efetividade_Total || 0).style}>
-                                        {totalRow.Efetividade_Total || 0}
-                                    </p>
-                                </div>
-                                <Target className="h-5 w-5 text-blue-500" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    
-                    <Card className="border-border bg-card">
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Efetividade Parcial</p>
-                                    <p className={`text-xl font-bold px-2 py-1 rounded ${getEfetividadeCor(totalRow.Efetividade_Parcial || 0).className}`} style={getEfetividadeCor(totalRow.Efetividade_Parcial || 0).style}>
-                                        {totalRow.Efetividade_Parcial || 0}
-                                    </p>
-                                </div>
-                                <TrendingUp className="h-5 w-5 text-green-500" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    
-                    <Card className="border-border bg-card">
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Total de Pedidos</p>
-                                    <p className="text-xl font-bold text-blue-600">{(totalRow.Totais || 0).toLocaleString()}</p>
-                                </div>
-                                <Package className="h-5 w-5 text-blue-500" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    
-                    <Card className="border-border bg-card">
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">% Processamento</p>
-                                    <p className={`text-xl font-bold px-2 py-1 rounded ${getEfetividadeCor(totalRow['% Processamento'] || 0).className}`} style={getEfetividadeCor(totalRow['% Processamento'] || 0).style}>
-                                        {totalRow['% Processamento'] || 0}
-                                    </p>
-                                </div>
-                                <Percent className="h-5 w-5 text-orange-500" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            );
-        }
-        
-        // Versão padrão para visualização total
-        const produtos = dadosResultado.filter(item => item.produto !== 'TOTAL');
-        const totalRow = dadosResultado.find(item => item.produto === 'TOTAL');
-        
+
+        const dadosAgrupados = agruparDadosPrimeCOD(dadosResultado);
+        const produtos = dadosAgrupados.filter(item => item.produto !== 'TOTAL');
         const totalProdutos = produtos.length;
-        const totalOrders = totalRow?.total || 0;
-        const totalDelivered = totalRow?.Entregue || 0;
-        const totalReturned = totalRow?.Devolvido || 0;
-        
+        const totalEntregues = produtos.reduce((sum, item) => sum + (item.Entregues || 0), 0);
+        const totalOrders = produtos.reduce((sum, item) => sum + (item.Totais || 0), 0);
+
+        // Calcular efetividade média
+        const efetividadeMedia = produtos.reduce((sum, item) => {
+            const ef = parseFloat(item.Efetividade_Total?.replace('%', '') || 0);
+            return sum + ef;
+        }, 0) / (totalProdutos || 1);
+
         return (
             <div className="grid grid-cols-4 gap-4 mb-6">
                 <Card className="border-border bg-card">
@@ -628,7 +627,19 @@ function PrimecodPage() {
                         </div>
                     </CardContent>
                 </Card>
-                
+
+                <Card className="border-border bg-card">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm text-muted-foreground">Entregues</p>
+                                <p className="text-xl font-bold text-green-600">{totalEntregues.toLocaleString()}</p>
+                            </div>
+                            <TrendingUp className="h-5 w-5 text-green-500" />
+                        </div>
+                    </CardContent>
+                </Card>
+
                 <Card className="border-border bg-card">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
@@ -640,27 +651,15 @@ function PrimecodPage() {
                         </div>
                     </CardContent>
                 </Card>
-                
+
                 <Card className="border-border bg-card">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-muted-foreground">Entregues</p>
-                                <p className="text-xl font-bold text-green-600">{totalDelivered.toLocaleString()}</p>
+                                <p className="text-sm text-muted-foreground">Efetividade</p>
+                                <p className="text-xl font-bold text-orange-600">{efetividadeMedia.toFixed(1)}%</p>
                             </div>
-                            <TrendingUp className="h-5 w-5 text-green-500" />
-                        </div>
-                    </CardContent>
-                </Card>
-                
-                <Card className="border-border bg-card">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-muted-foreground">Devolvidos</p>
-                                <p className="text-xl font-bold text-red-600">{totalReturned.toLocaleString()}</p>
-                            </div>
-                            <Percent className="h-5 w-5 text-red-500" />
+                            <Percent className="h-5 w-5 text-orange-500" />
                         </div>
                     </CardContent>
                 </Card>
@@ -672,10 +671,10 @@ function PrimecodPage() {
         if (!dadosResultado || !Array.isArray(dadosResultado)) return null;
 
         const dadosOrdenados = sortData(dadosResultado, sortBy, sortOrder);
-        const dadosParaExibir = tipoVisualizacao === 'otimizada' 
+        const dadosParaExibir = tipoVisualizacao === 'otimizada'
             ? agruparDadosPrimeCOD(dadosOrdenados)
             : dadosOrdenados;
-        
+
         let colunas;
         if (tipoVisualizacao === 'otimizada') {
             colunas = ['produto', 'pais', 'Totais', 'Finalizados', 'Em Processamento', 'Em Trânsito', 'Entregues', 'Devoluções', 'Cancelados', 'Problemas', '% Processamento', '% A Caminho', '% Devolvidos', 'Efetividade_Parcial', 'Efetividade_Total'];
@@ -683,22 +682,15 @@ function PrimecodPage() {
             const statusColumns = Object.values(STATUS_MAPPING);
             colunas = ['produto', 'pais', ...statusColumns, 'total'];
         }
-            
-        // Debug temporário para verificar os dados
-        if (dadosParaExibir.length > 0) {
-            console.log('Primeira linha de dados:', dadosParaExibir[0]);
-            console.log('Tipo de visualização:', tipoVisualizacao);
-            console.log('Colunas:', colunas);
-        }
+
+        if (dadosParaExibir.length === 0) return null;
 
         return (
             <Card className="mb-6 border-border bg-card">
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle className="text-lg text-card-foreground">
-                                {tipoVisualizacao === 'otimizada' ? 'Resultados' : 'Resultados'}
-                            </CardTitle>
+                            <CardTitle className="text-lg text-card-foreground">Resultados</CardTitle>
                             <CardDescription className="text-muted-foreground">{dadosResultado.length} registros</CardDescription>
                         </div>
                         <div className="flex items-center gap-2">
@@ -708,9 +700,9 @@ function PrimecodPage() {
                                     <TabsTrigger value="otimizada" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Otimizada</TabsTrigger>
                                 </TabsList>
                             </Tabs>
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
+                            <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={() => setModalSalvar(true)}
                                 className="border-border bg-background text-foreground hover:bg-accent"
                             >
@@ -722,114 +714,133 @@ function PrimecodPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                    {/* SOLUÇÃO: Separar overflow do sticky - container externo SEM overflow */}
-                    <div className="relative border-t" style={{ height: `${Math.min(300, (dadosParaExibir.length + 1) * 45)}px`, overflow: 'visible' }}>
-                        {/* Container interno COM overflow para scroll */}
-                        <div 
-                            className="absolute inset-0 overflow-auto"
-                            style={{ overflowX: 'auto', overflowY: 'auto' }}
-                        >
-                            <table className="w-full text-sm border-collapse" style={{ minWidth: `${350 + colunas.length * 120}px` }}>
-                                <thead>
-                                    <tr className="bg-muted/50">
+                    <div className="w-full max-w-[calc(100vw-280px)] overflow-x-auto">
+                        <Table className="w-full table-fixed" style={{ minWidth: '1000px' }}>
+                            <TableHeader>
+                                <TableRow className="bg-muted/50 border-border">
+                                    {colunas.map(col => {
+                                        const isProduto = col === 'produto';
+                                        const isPais = col === 'pais';
+
+                                        let classesHeader = 'whitespace-nowrap px-2 py-2 text-xs text-muted-foreground';
+                                        let styleHeader = {};
+
+                                        if (isProduto) {
+                                            classesHeader += ' sticky left-0 z-20 bg-background border-r border-border';
+                                            styleHeader = { minWidth: `${larguraProduto}px`, width: `${larguraProduto}px` };
+                                        } else if (isPais) {
+                                            styleHeader = { minWidth: '100px', width: '100px', maxWidth: '100px' };
+                                        }
+
+                                        return (
+                                            <TableHead key={col} className={classesHeader} style={styleHeader}>
+                                                {isProduto ? (
+                                                    <div className="flex items-center justify-between gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-auto p-0 font-medium text-xs text-muted-foreground hover:text-foreground"
+                                                            onClick={() => handleSort(col)}
+                                                        >
+                                                            {col.replace('_', ' ').toUpperCase()}
+                                                            {sortBy === col ? (
+                                                                sortOrder === 'asc' ?
+                                                                    <ArrowUp className="ml-1 h-3 w-3" /> :
+                                                                    <ArrowDown className="ml-1 h-3 w-3" />
+                                                            ) : (
+                                                                <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
+                                                            )}
+                                                        </Button>
+                                                        <div className="flex items-center gap-0.5">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={diminuirLarguraProduto}
+                                                                disabled={larguraProduto <= 120}
+                                                                className="h-5 w-5 p-0 hover:bg-accent"
+                                                                title="Diminuir largura"
+                                                            >
+                                                                <Minus className="h-3 w-3" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={aumentarLarguraProduto}
+                                                                disabled={larguraProduto >= 400}
+                                                                className="h-5 w-5 p-0 hover:bg-accent"
+                                                                title="Aumentar largura"
+                                                            >
+                                                                <Plus className="h-3 w-3" />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-auto p-0 font-medium text-xs text-muted-foreground hover:text-foreground"
+                                                        onClick={() => handleSort(col)}
+                                                    >
+                                                        {col.replace('_', ' ').toUpperCase()}
+                                                        {sortBy === col ? (
+                                                            sortOrder === 'asc' ?
+                                                                <ArrowUp className="ml-1 h-3 w-3" /> :
+                                                                <ArrowDown className="ml-1 h-3 w-3" />
+                                                        ) : (
+                                                            <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
+                                                        )}
+                                                    </Button>
+                                                )}
+                                            </TableHead>
+                                        );
+                                    })}
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {dadosParaExibir.map((row, idx) => (
+                                    <TableRow key={idx} className={`border-border ${row.produto === 'TOTAL' ? 'bg-muted/20 font-medium' : ''}`}>
                                         {colunas.map(col => {
                                             const isProduto = col === 'produto';
                                             const isPais = col === 'pais';
-                                            
+
+                                            let classesCelula = 'px-2 py-2 text-xs text-card-foreground';
+                                            let styleCelula = {};
+
+                                            if (tipoVisualizacao === 'otimizada' && (col === 'Efetividade_Total' || col === 'Efetividade_Parcial')) {
+                                                classesCelula += ` font-bold ${getEfetividadeCor(row[col])} px-2 py-1 rounded text-center`;
+                                            }
+
+                                            if (isProduto) {
+                                                classesCelula += ' sticky left-0 z-10 bg-background border-r border-border';
+                                                styleCelula = { minWidth: `${larguraProduto}px`, width: `${larguraProduto}px`, maxWidth: `${larguraProduto}px` };
+                                            } else if (isPais) {
+                                                styleCelula = { minWidth: '100px', width: '100px', maxWidth: '100px' };
+                                            }
+
                                             return (
-                                                <th 
-                                                    key={col} 
-                                                    className={`px-3 py-2 text-left text-xs font-medium text-muted-foreground border-r border-border last:border-r-0 ${
-                                                        isProduto || isPais ? '' : 'text-center'
-                                                    }`}
-                                                    style={{
-                                                        position: isProduto ? 'sticky' : isPais ? 'sticky' : 'static',
-                                                        left: isProduto ? '0px' : isPais ? '200px' : 'auto',
-                                                        backgroundColor: isProduto || isPais ? 'hsl(var(--muted)/0.5)' : 'hsl(var(--muted)/0.5)',
-                                                        zIndex: isProduto || isPais ? 30 : 20,
-                                                        minWidth: isProduto ? '200px' : isPais ? '150px' : '120px',
-                                                        width: isProduto ? '200px' : isPais ? '150px' : '120px',
-                                                        boxShadow: isProduto || isPais ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none'
-                                                    }}
+                                                <TableCell
+                                                    key={col}
+                                                    className={classesCelula}
+                                                    style={styleCelula}
                                                 >
-                                                    <button
-                                                        className="flex items-center gap-1 text-xs hover:text-foreground transition-colors w-full"
-                                                        onClick={() => handleSort(col)}
-                                                    >
-                                                        <span className="truncate">
-                                                            {col.toUpperCase()}
-                                                        </span>
-                                                        {sortBy === col ? (
-                                                            sortOrder === 'asc' ? 
-                                                                <ArrowUp className="h-3 w-3 flex-shrink-0" /> : 
-                                                                <ArrowDown className="h-3 w-3 flex-shrink-0" />
-                                                        ) : (
-                                                            <ArrowUpDown className="h-3 w-3 opacity-50 flex-shrink-0" />
-                                                        )}
-                                                    </button>
-                                                </th>
+                                                    {col === 'produto' ? (
+                                                        <div className="truncate" style={{ maxWidth: `${larguraProduto - 16}px` }} title={row[col]}>
+                                                            {row[col]}
+                                                        </div>
+                                                    ) : col === 'pais' ? (
+                                                        <div className="truncate text-center" style={{ maxWidth: '100px' }} title={row[col]}>
+                                                            {row[col]}
+                                                        </div>
+                                                    ) : (
+                                                        typeof row[col] === 'number' ? row[col].toLocaleString() : row[col]
+                                                    )}
+                                                </TableCell>
                                             );
                                         })}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {dadosParaExibir.map((row, idx) => (
-                                        <tr 
-                                            key={idx} 
-                                            className={`border-b border-border hover:bg-muted/50 transition-colors ${
-                                                row.produto === 'TOTAL' ? 'bg-muted/20 font-medium' : ''
-                                            }`}
-                                        >
-                                            {colunas.map(col => {
-                                                const isProduto = col === 'produto';
-                                                const isPais = col === 'pais';
-                                                
-                                                // Aplicar cores nas métricas da versão otimizada
-                                                const isMetrica = tipoVisualizacao === 'otimizada' && 
-                                                    (col === 'Efetividade_Total' || col === 'Efetividade_Parcial' || 
-                                                     col === '% Processamento' || col === '% A Caminho' || col === '% Devolvidos');
-                                                
-                                                let cellClassesAdicionais = `px-3 py-2 text-xs border-r border-border last:border-r-0 ${
-                                                    isProduto || isPais ? '' : 'text-center'
-                                                }`;
-                                                
-                                                const corMetrica = isMetrica ? getEfetividadeCor(row[col]) : { className: '', style: {} };
-                                                
-                                                return (
-                                                    <td 
-                                                        key={col} 
-                                                        className={cellClassesAdicionais}
-                                                        style={{
-                                                            position: isProduto ? 'sticky' : isPais ? 'sticky' : 'static',
-                                                            left: isProduto ? '0px' : isPais ? '200px' : 'auto',
-                                                            backgroundColor: isProduto || isPais ? 'hsl(var(--background))' : 'transparent',
-                                                            zIndex: isProduto || isPais ? 10 : 1,
-                                                            minWidth: isProduto ? '200px' : isPais ? '150px' : '120px',
-                                                            width: isProduto ? '200px' : isPais ? '150px' : '120px',
-                                                            boxShadow: isProduto || isPais ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none'
-                                                        }}
-                                                    >
-                                                        {isMetrica ? (
-                                                            <div 
-                                                                className={`truncate px-2 py-1 rounded ${corMetrica.className}`}
-                                                                style={corMetrica.style}
-                                                                title={row[col]}
-                                                            >
-                                                                {typeof row[col] === 'number' ? row[col].toLocaleString() : (row[col] || 0)}
-                                                            </div>
-                                                        ) : (
-                                                            <div className="truncate" title={row[col]}>
-                                                                {typeof row[col] === 'number' ? row[col].toLocaleString() : (row[col] || 0)}
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                );
-                                            })}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
                     </div>
                 </CardContent>
             </Card>
@@ -945,18 +956,19 @@ function PrimecodPage() {
                     window.location.href = '/login';
                 }, 2000);
             }
-            
+
             // Definir período padrão (última semana)
             const hoje = new Date();
             const semanaPassada = new Date();
             semanaPassada.setDate(hoje.getDate() - 7);
-            
+
             setDateRange({
                 from: semanaPassada,
                 to: hoje
             });
+            setPeriodoPreset('semana');
         };
-        
+
         inicializar();
     }, []);
 
@@ -976,146 +988,117 @@ function PrimecodPage() {
             {renderHeader()}
 
             {/* Navegação */}
-            <Tabs value={secaoAtiva} onValueChange={setSecaoAtiva} className="w-full">
-                <TabsList className="grid w-fit grid-cols-2 bg-muted">
-                    <TabsTrigger value="gerar" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
-                        <Rocket className="h-4 w-4 mr-2" />
-                        Gerar
-                    </TabsTrigger>
-                    <TabsTrigger value="salvas" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
-                        <BarChart3 className="h-4 w-4 mr-2" />
-                        Salvas
-                    </TabsTrigger>
-                </TabsList>
+            {paisSelecionado && (
+                <Tabs value={secaoAtiva} onValueChange={setSecaoAtiva} className="w-full">
+                    <TabsList className="grid w-fit grid-cols-2 bg-muted">
+                        <TabsTrigger value="gerar" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
+                            <Rocket className="h-4 w-4 mr-2" />
+                            Gerar
+                        </TabsTrigger>
+                        <TabsTrigger value="salvas" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
+                            <BarChart3 className="h-4 w-4 mr-2" />
+                            Salvas
+                        </TabsTrigger>
+                    </TabsList>
 
-                <TabsContent value="gerar" className="space-y-4">
-                    {renderFormulario()}
-                    {renderEstatisticas()}
-                    {renderResultados()}
-                </TabsContent>
+                    <TabsContent value="gerar" className="space-y-4">
+                        {renderFormulario()}
+                        {renderEstatisticas()}
+                        {renderResultados()}
+                    </TabsContent>
 
-                <TabsContent value="salvas">
-                    {renderAnalisesSalvas()}
-                </TabsContent>
-            </Tabs>
+                    <TabsContent value="salvas">
+                        {renderAnalisesSalvas()}
+                    </TabsContent>
+                </Tabs>
+            )}
 
             {/* Modal instruções */}
             <Dialog open={modalInstrucoes} onOpenChange={setModalInstrucoes}>
                 <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto border-border bg-popover">
                     <DialogHeader>
-                        <DialogTitle className="text-blue-600">Manual - PrimeCOD API Analytics</DialogTitle>
+                        <DialogTitle className="text-blue-600">Manual de Instruções - Métricas PrimeCOD</DialogTitle>
                         <DialogDescription className="text-muted-foreground">
-                            Integração direta com a API do PrimeCOD
+                            Guia completo para uso da ferramenta
                         </DialogDescription>
                     </DialogHeader>
-                    
+
                     <div className="space-y-6">
+                        <div>
+                            <h4 className="text-lg font-semibold text-green-600 mb-3">Visualização Otimizada</h4>
+                            <p className="text-sm text-muted-foreground mb-4">Colunas agrupadas para análise mais eficiente:</p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Card className="border-blue-200 bg-card">
+                                    <CardContent className="p-4">
+                                        <h5 className="font-semibold text-blue-600 text-sm">Totais</h5>
+                                        <p className="text-xs text-muted-foreground">Soma de todos os pedidos (todos os status)</p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border-green-200 bg-card">
+                                    <CardContent className="p-4">
+                                        <h5 className="font-semibold text-green-600 text-sm">Finalizados</h5>
+                                        <p className="text-xs text-muted-foreground">Entregues + Devoluções + Cancelados + Problemas</p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border-orange-200 bg-card">
+                                    <CardContent className="p-4">
+                                        <h5 className="font-semibold text-orange-600 text-sm">Em Trânsito</h5>
+                                        <p className="text-xs text-muted-foreground">Despachado + Enviado + Chegada ao Destino + Saiu para Entrega</p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border-purple-200 bg-card">
+                                    <CardContent className="p-4">
+                                        <h5 className="font-semibold text-purple-600 text-sm">Em Processamento</h5>
+                                        <p className="text-xs text-muted-foreground">Efetuado + Empacotado</p>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+
+                        <Separator className="bg-border" />
 
                         <div>
-                            <h4 className="text-lg font-semibold text-green-600 mb-3">🔗 Integração via Backend</h4>
-                            <p className="text-sm text-muted-foreground mb-4">
-                                Esta ferramenta usa o backend Django como proxy para a API do PrimeCOD, garantindo segurança e performance.
-                            </p>
-                            
+                            <h5 className="font-semibold text-teal-600 mb-2">Percentuais Calculados:</h5>
+                            <div className="space-y-1">
+                                <p className="text-sm text-foreground">• <strong>Efetividade Total:</strong> (Entregues ÷ Totais) × 100</p>
+                                <p className="text-sm text-foreground">• <strong>Efetividade Parcial:</strong> (Entregues ÷ Finalizados) × 100</p>
+                                <p className="text-sm text-foreground">• <strong>% A Caminho:</strong> (Em Trânsito ÷ Totais) × 100</p>
+                                <p className="text-sm text-foreground">• <strong>% Processamento:</strong> (Em Processamento ÷ Totais) × 100</p>
+                                <p className="text-sm text-foreground">• <strong>% Devolvidos:</strong> (Devoluções ÷ Totais) × 100</p>
+                            </div>
+                        </div>
+
+                        <Separator className="bg-border" />
+
+                        <div>
+                            <h4 className="text-lg font-semibold text-orange-600 mb-3">Visualização Total</h4>
+                            <p className="text-sm text-muted-foreground">Mostra todos os 15 status individuais conforme retornados da API PrimeCOD, sem agrupamentos.</p>
+                        </div>
+
+                        <Separator className="bg-border" />
+
+                        <div>
+                            <h5 className="font-semibold text-indigo-600 mb-2">Cores das Métricas:</h5>
                             <div className="space-y-2">
-                                <p className="text-sm text-foreground">• <strong>Arquitetura:</strong> Frontend → Backend Django → API PrimeCOD</p>
-                                <p className="text-sm text-foreground">• <strong>Segurança:</strong> Token API protegido no backend</p>
-                                <p className="text-sm text-foreground">• <strong>Filtros:</strong> Período de datas e países</p>
-                                <p className="text-sm text-foreground">• <strong>Processamento:</strong> Backend otimizado com cache</p>
-                            </div>
-                        </div>
-
-                        <Separator className="bg-border" />
-
-                        <div>
-                            <h4 className="text-lg font-semibold text-purple-600 mb-3">📊 Status Disponíveis</h4>
-                            <div className="grid grid-cols-2 gap-4">
-                                {Object.entries(STATUS_MAPPING).map(([id, status]) => (
-                                    <Card key={id} className="border-blue-200 bg-card">
-                                        <CardContent className="p-3">
-                                            <div className="flex items-center justify-between">
-                                                <span className="font-semibold text-blue-600 text-sm">{status}</span>
-                                                <Badge variant="outline" className="text-xs">ID: {id}</Badge>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                            </div>
-                        </div>
-
-                        <Separator className="bg-border" />
-
-                        <div>
-                            <h4 className="text-lg font-semibold text-orange-600 mb-3">🌍 Países Suportados</h4>
-                            <div className="grid grid-cols-3 gap-2">
-                                {PAISES_PRIMECOD.slice(1).map(pais => (
-                                    <span key={pais.value} className="text-sm text-foreground">{pais.label}</span>
-                                ))}
-                            </div>
-                        </div>
-
-                        <Separator className="bg-border" />
-
-                        <div>
-                            <h4 className="text-lg font-semibold text-teal-600 mb-3">📈 Modos de Visualização</h4>
-                            
-                            <div className="space-y-4">
-                                <div>
-                                    <h5 className="font-semibold text-blue-600 mb-2">🔹 Visualização Total</h5>
-                                    <p className="text-sm text-muted-foreground mb-2">
-                                        Visualização completa com todas as 15 colunas de status individuais:
-                                    </p>
-                                    <div className="space-y-1 text-xs">
-                                        <p className="text-foreground">• <strong>Produto:</strong> SKU do produto</p>
-                                        <p className="text-foreground">• <strong>País:</strong> País de envio</p>
-                                        <p className="text-foreground">• <strong>Status:</strong> Colunas individuais para cada um dos 15 status</p>
-                                        <p className="text-foreground">• <strong>Total:</strong> Soma de todos os status</p>
-                                    </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-4 bg-green-600 rounded"></div>
+                                    <span className="text-sm text-foreground">Efetividade ≥ 60% (Excelente)</span>
                                 </div>
-
-                                <Separator className="bg-border" />
-
-                                <div>
-                                    <h5 className="font-semibold text-purple-600 mb-2">🔹 Visualização Otimizada</h5>
-                                    <p className="text-sm text-muted-foreground mb-3">
-                                        Versão agrupada com métricas calculadas para análise rápida:
-                                    </p>
-                                    
-                                    <div className="space-y-3">
-                                        <div className="bg-card border rounded-lg p-3">
-                                            <h6 className="font-medium text-green-600 mb-2">📊 Categorias de Status:</h6>
-                                            <div className="space-y-1 text-xs">
-                                                <p><strong>Em Processamento:</strong> Efetuado + Empacotado</p>
-                                                <p><strong>A Caminho:</strong> Despachado + Enviado + Chegada ao Destino + Saiu para Entrega</p>
-                                                <p><strong>Entregues:</strong> Entregue</p>
-                                                <p><strong>Devoluções:</strong> Recusado + Retornando + Devolvido</p>
-                                                <p><strong>Cancelados:</strong> Cancelado + Fora de Estoque</p>
-                                                <p><strong>Problemas:</strong> Erro + Erro de Fulfillment + Incidente</p>
-                                                <p><strong>Finalizados:</strong> Entregues + Devoluções + Cancelados + Problemas</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-card border rounded-lg p-3">
-                                            <h6 className="font-medium text-orange-600 mb-2">🧮 Métricas Calculadas:</h6>
-                                            <div className="space-y-1 text-xs">
-                                                <p><strong>Efetividade Total:</strong> (Entregues ÷ Total) × 100</p>
-                                                <p><strong>Efetividade Parcial:</strong> (Entregues ÷ Finalizados) × 100</p>
-                                                <p><strong>% Processamento:</strong> (Em Processamento ÷ Total) × 100</p>
-                                                <p><strong>% A Caminho:</strong> (A Caminho ÷ Total) × 100</p>
-                                                <p><strong>% Devolvidos:</strong> (Devoluções ÷ Total) × 100</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-card border rounded-lg p-3">
-                                            <h6 className="font-medium text-red-600 mb-2">🎨 Código de Cores:</h6>
-                                            <div className="space-y-1 text-xs">
-                                                <p className="text-green-600"><strong>Verde:</strong> ≥ 70% (Excelente)</p>
-                                                <p className="text-yellow-600"><strong>Amarelo:</strong> 50-69% (Bom)</p>
-                                                <p className="text-orange-600"><strong>Laranja:</strong> 30-49% (Regular)</p>
-                                                <p className="text-red-600"><strong>Vermelho:</strong> &lt; 30% (Crítico)</p>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-4 bg-green-500 rounded"></div>
+                                    <span className="text-sm text-foreground">Efetividade ≥ 50% (Boa)</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-4 bg-yellow-500 rounded"></div>
+                                    <span className="text-sm text-foreground">Efetividade ≥ 40% (Regular)</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-4 bg-red-500 rounded"></div>
+                                    <span className="text-sm text-foreground">Efetividade &lt; 40% (Ruim)</span>
                                 </div>
                             </div>
                         </div>
