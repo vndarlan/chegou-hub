@@ -299,8 +299,13 @@ class PrimeCODClient:
                 last_page = data.get('last_page', 1)
                 from_value = data.get('from')
                 to_value = data.get('to')
-                
+
                 logger.info(f"[PAGINATION] Página {current_page}: current_page={current_page_api}, last_page={last_page}, from={from_value}, to={to_value}")
+
+                # CORREÇÃO CRÍTICA: Parar quando ultrapassar last_page (fim da paginação da API)
+                if current_page > last_page:
+                    logger.info(f"[FIM] Todas as páginas coletadas: {current_page-1}/{last_page} - parando coleta")
+                    break
 
                 # Log informações de paginação na primeira página
                 if current_page == 1:
