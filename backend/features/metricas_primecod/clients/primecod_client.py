@@ -149,64 +149,70 @@ class PrimeCODClient:
             logger.error(f"[ERROR] Tipo: {type(e)}")
             raise PrimeCODAPIError(f"Erro inesperado: {str(e)}")
     
-    def get_orders(self, 
-                   page: int = 1, 
+    def get_orders(self,
+                   page: int = 1,
                    date_range: Optional[Dict[str, str]] = None,
                    max_pages: Optional[int] = None,  # SEM LIMITE - para automaticamente quando API acabar
                    country_filter: Optional[str] = None) -> Dict:
         """
         [RAPIDO] ULTRA-OTIMIZADO: Suporte completo a 1000+ páginas sem timeout!
-        
+
         IMPLEMENTAÇÃO ULTRA-RÁPIDA (4x mais rápida):
         - Rate limit 50ms (vs 200ms anterior) = 4x mais rápido
         - Heartbeat logs a cada 10 páginas para manter worker vivo no Railway
         - Timeout handling: continua coleta mesmo com falhas pontuais
         - Chunk progress: ETA e métricas de performance em tempo real
         - Suporte nativo: 1000 páginas = ~50k orders em ~10-15 segundos!
-        
+
         RESULTADO ESPERADO:
         - 89 páginas: ~4,5 segundos (vs 18s anterior)
         - 1000 páginas: ~50 segundos (vs timeout anterior)
-        
+
         Args:
             page: Página inicial (sempre 1 para coleta completa)
             date_range: {'start': 'YYYY-MM-DD', 'end': 'YYYY-MM-DD'} - filtro nativo API
             max_pages: Máximo de páginas (padrão 1000 = 50k orders)
             country_filter: País para filtrar localmente
-            
+
         Returns:
             Dict com orders coletados ultra-rapidamente + métricas de performance
         """
-        
-        # Cache baseado apenas em coleta completa (sem filtros na API)
+
+        # CORREÇÃO: Cache só deve ser usado quando NÃO há filtro de data
+        # Filtros de data são aplicados na API via creationDatesRange, então cache armazena dados já filtrados
         cached_result = None
         cache_key = None
-        try:
-            import hashlib
-            # Cache para coleta completa - não inclui filtros pois são aplicados localmente
-            cache_data = "primecod_orders_complete_collection"
-            cache_key = hashlib.md5(cache_data.encode()).hexdigest()[:20]
-            cached_result = cache.get(cache_key)
-            if cached_result:
-                logger.info("[CACHE] Usando dados completos em cache, aplicando filtros localmente")
-                # Aplicar filtros nos dados em cache
-                all_orders = cached_result.get('all_orders_raw', [])
-                filtered_orders = self._apply_local_filters(all_orders, date_range, country_filter)
-                
-                return {
-                    'orders': filtered_orders,
-                    'total_orders': len(filtered_orders),
-                    'total_orders_raw': len(all_orders),
-                    'pages_processed': cached_result.get('pages_processed', 0),
-                    'total_pages': cached_result.get('total_pages', 0),
-                    'date_range_applied': date_range,
-                    'country_filter_applied': country_filter,
-                    'status': 'success',
-                    'data_source': 'cache'
-                }
-        except Exception as e:
-            logger.warning(f"Cache não disponível, prosseguindo com coleta completa: {str(e)}")
-            cached_result = None
+
+        # Só usar cache se NÃO houver filtro de data
+        if not (date_range and date_range.get('start') and date_range.get('end')):
+            try:
+                import hashlib
+                # Cache para coleta completa - sem filtros de data
+                cache_data = "primecod_orders_complete_collection"
+                cache_key = hashlib.md5(cache_data.encode()).hexdigest()[:20]
+                cached_result = cache.get(cache_key)
+                if cached_result:
+                    logger.info("[CACHE] Usando dados completos em cache (sem filtro de data)")
+                    # Aplicar apenas filtro de país localmente
+                    all_orders = cached_result.get('all_orders_raw', [])
+                    filtered_orders = self._apply_local_filters(all_orders, None, country_filter)
+
+                    return {
+                        'orders': filtered_orders,
+                        'total_orders': len(filtered_orders),
+                        'total_orders_raw': len(all_orders),
+                        'pages_processed': cached_result.get('pages_processed', 0),
+                        'total_pages': cached_result.get('total_pages', 0),
+                        'date_range_applied': None,
+                        'country_filter_applied': country_filter,
+                        'status': 'success',
+                        'data_source': 'cache'
+                    }
+            except Exception as e:
+                logger.warning(f"Cache não disponível, prosseguindo com coleta completa: {str(e)}")
+                cached_result = None
+        else:
+            logger.info("[CACHE] Filtro de data presente - PULANDO cache para evitar dados incorretos")
         
         url = f"{self.base_url}/orders"
         
@@ -488,8 +494,8 @@ class PrimeCODClient:
             logger.error(f"[ERROR] Erro ao buscar orders PrimeCOD: {str(e)}")
             raise PrimeCODAPIError(f"Erro na busca de orders: {str(e)}")
     
-    def get_orders_with_progress(self, 
-                                page: int = 1, 
+    def get_orders_with_progress(self,
+                                page: int = 1,
                                 date_range: Optional[Dict[str, str]] = None,
                                 max_pages: int = 1000,  # [RAPIDO] ULTRA-OTIMIZADO: Suporta 1000+ páginas
                                 country_filter: Optional[str] = None,
@@ -497,58 +503,64 @@ class PrimeCODClient:
                                 timeout_limite: Optional[int] = None) -> Dict:
         """
         [RAPIDO] VERSÃO ASSÍNCRONA ULTRA-OTIMIZADA: Background jobs com 1000+ páginas!
-        
+
         OTIMIZAÇÕES ESPECÍFICAS PARA WORKERS:
         - Rate limit 50ms + heartbeat logs para manter processo vivo
         - Callback de progresso avançado com métricas de performance
         - Timeout handling robusto para ambientes serverless
         - Monitoramento de chunks: ETA, velocidade, orders/segundo
-        
+
         IDEAL PARA:
         - Django-RQ workers no Railway
-        - Processos background de longa duração  
+        - Processos background de longa duração
         - Coleta completa com feedback em tempo real
-        
+
         Args:
             page: Página inicial (sempre 1)
             date_range: Filtro de data nativo da API
             max_pages: Máximo páginas (padrão 1000 para 50k orders)
             country_filter: Filtro de país local
             progress_callback: callback(dict_with_metrics) - métricas avançadas!
-            
+
         Returns:
             Dict com orders + métricas de performance ultra-detalhadas
         """
-        
-        # Cache baseado apenas em coleta completa (sem filtros na API)
+
+        # CORREÇÃO: Cache só deve ser usado quando NÃO há filtro de data
+        # Filtros de data são aplicados na API via creationDatesRange, então cache armazena dados já filtrados
         cached_result = None
         cache_key = None
-        try:
-            import hashlib
-            # Cache para coleta completa - não inclui filtros pois são aplicados localmente
-            cache_data = "primecod_orders_complete_collection"
-            cache_key = hashlib.md5(cache_data.encode()).hexdigest()[:20]
-            cached_result = cache.get(cache_key)
-            if cached_result:
-                logger.info("[CACHE] Usando dados completos em cache, aplicando filtros localmente")
-                # Aplicar filtros nos dados em cache
-                all_orders = cached_result.get('all_orders_raw', [])
-                filtered_orders = self._apply_local_filters(all_orders, date_range, country_filter)
-                
-                return {
-                    'orders': filtered_orders,
-                    'total_orders': len(filtered_orders),
-                    'total_orders_raw': len(all_orders),
-                    'pages_processed': cached_result.get('pages_processed', 0),
-                    'total_pages': cached_result.get('total_pages', 0),
-                    'date_range_applied': date_range,
-                    'country_filter_applied': country_filter,
-                    'status': 'success',
-                    'data_source': 'cache'
-                }
-        except Exception as e:
-            logger.warning(f"Cache não disponível, prosseguindo com coleta completa: {str(e)}")
-            cached_result = None
+
+        # Só usar cache se NÃO houver filtro de data
+        if not (date_range and date_range.get('start') and date_range.get('end')):
+            try:
+                import hashlib
+                # Cache para coleta completa - sem filtros de data
+                cache_data = "primecod_orders_complete_collection"
+                cache_key = hashlib.md5(cache_data.encode()).hexdigest()[:20]
+                cached_result = cache.get(cache_key)
+                if cached_result:
+                    logger.info("[CACHE] Usando dados completos em cache (sem filtro de data)")
+                    # Aplicar apenas filtro de país localmente
+                    all_orders = cached_result.get('all_orders_raw', [])
+                    filtered_orders = self._apply_local_filters(all_orders, None, country_filter)
+
+                    return {
+                        'orders': filtered_orders,
+                        'total_orders': len(filtered_orders),
+                        'total_orders_raw': len(all_orders),
+                        'pages_processed': cached_result.get('pages_processed', 0),
+                        'total_pages': cached_result.get('total_pages', 0),
+                        'date_range_applied': None,
+                        'country_filter_applied': country_filter,
+                        'status': 'success',
+                        'data_source': 'cache'
+                    }
+            except Exception as e:
+                logger.warning(f"Cache não disponível, prosseguindo com coleta completa: {str(e)}")
+                cached_result = None
+        else:
+            logger.info("[CACHE] Filtro de data presente - PULANDO cache para evitar dados incorretos")
         
         url = f"{self.base_url}/orders"
         
