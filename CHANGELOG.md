@@ -5,33 +5,18 @@ Todas as mudanças deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
-## [Unreleased]
+## [v1.10.0] - 28/11/2025
 
 ### ✨ Novidades
 
 - **[📦 Catálogo PrimeCOD]** Nova página para gerenciar produtos do fornecedor PrimeCOD
-  - Visualização completa com filtros por país, estoque e busca
-  - Histórico detalhado de vendas e estoque por produto
-  - Sincronização manual com rastreamento de data/hora
-  - Suporte a múltiplos snapshots diários
-  - Modos de visualização: cards e tabela
-
 - **[⚙️ Configuração PrimeCOD]** Página dedicada para configurar integração com API
-  - Teste de conexão antes de salvar credenciais
-  - Token protegido com mascaramento
-  - Auditoria de configurações (data e usuário)
-
-### 🔧 Melhorias
-
-- **[Interface PrimeCOD]** Layout padronizado seguindo design da página Ecomhub
 
 ### 🐛 Correções
 
 - **[Interface]** Dropdown de perfil/configurações agora é totalmente responsivo e não fica fora da tela
-- **[📦 Catálogo PrimeCOD]** Correção na renderização de países disponíveis
-- **[📦 Histórico PrimeCOD]** Campo de data exibido corretamente
-- **[📦 Backend PrimeCOD]** Coleta completa de pedidos sem perdas de dados
-- **[Sistema]** Remoção de migration duplicada no módulo core
+- **[📦 ECOMHUB - Pedidos]** Corrigida e renomeada coluna "Custo(s)" para "Preço Item(s)" - agora exibe corretamente `ordersItems[].price` refletindo o dado real da API
+- **[📦 ECOMHUB - Pedidos]** Ajustado botão "Referência de Colunas" com os caminhos corretos da estrutura de dados da API ECOMHUB
 
 ## [v1.9.1] - 21/11/2025
 
