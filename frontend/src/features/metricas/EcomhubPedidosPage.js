@@ -166,15 +166,17 @@ function EcomhubPedidosPage() {
             const products = productsVariants?.products;
 
             if (field === 'name') {
+                // Nome do produto
                 return products?.name;
             } else if (field === 'sku') {
-                // SKU está dentro de stockItems (array)
-                const stockItems = products?.stockItems || [];
-                return stockItems.map(si => si.sku).filter(Boolean).join(', ');
-            } else if (field === 'cost') {
-                // Cost também está em stockItems
-                const stockItems = products?.stockItems || [];
-                return stockItems.map(si => si.cost).filter(Boolean).join(', ');
+                // SKU está em productsVariants (não em stockItems)
+                return productsVariants?.sku;
+            } else if (field === 'price') {
+                // Preço do item
+                return item?.price;
+            } else if (field === 'quantity') {
+                // Quantidade do item
+                return item?.quantity;
             }
 
             return null;
@@ -395,7 +397,7 @@ function EcomhubPedidosPage() {
         if (isColumnVisible('volume')) row.push(escapeCsvValue(pedido.volume || ''));
         if (isColumnVisible('priceOriginal')) row.push(escapeCsvValue(pedido.priceOriginal || ''));
         if (isColumnVisible('price')) row.push(escapeCsvValue(pedido.price || ''));
-        if (isColumnVisible('ordersItems_cost')) row.push(escapeCsvValue(formatOrdersItems(pedido.ordersItems, 'cost')));
+        if (isColumnVisible('ordersItems_cost')) row.push(escapeCsvValue(formatOrdersItems(pedido.ordersItems, 'price')));
         if (isColumnVisible('costCourier')) row.push(escapeCsvValue(pedido.costCourier || ''));
         if (isColumnVisible('costWarehouse')) row.push(escapeCsvValue(pedido.costWarehouse || ''));
         if (isColumnVisible('costCommission')) row.push(escapeCsvValue(pedido.costCommission || ''));
@@ -495,12 +497,12 @@ function EcomhubPedidosPage() {
         { id: 'status', label: 'Status', apiPath: 'status' },
         { id: 'updatedAt', label: 'Última Atualização', apiPath: 'updatedAt' },
         { id: 'revenueReleaseDate', label: 'Data Liberação', apiPath: 'revenueReleaseDate' },
-        { id: 'ordersItems_sku', label: 'SKU(s)', apiPath: 'ordersItems[].productsVariants.products.stockItems[].sku' },
+        { id: 'ordersItems_sku', label: 'SKU(s)', apiPath: 'ordersItems[].productsVariants.sku' },
         { id: 'ordersItems_name', label: 'Produto(s)', apiPath: 'ordersItems[].productsVariants.products.name' },
         { id: 'volume', label: 'Volume', apiPath: 'volume' },
         { id: 'priceOriginal', label: 'Preço Original', apiPath: 'priceOriginal' },
         { id: 'price', label: 'Preço Convertido', apiPath: 'price' },
-        { id: 'ordersItems_cost', label: 'Custo(s)', apiPath: 'ordersItems[].productsVariants.products.stockItems[].cost' },
+        { id: 'ordersItems_cost', label: 'Preço Item(s)', apiPath: 'ordersItems[].price' },
         { id: 'costCourier', label: 'Custo Courier', apiPath: 'costCourier' },
         { id: 'costWarehouse', label: 'Custo Armazém', apiPath: 'costWarehouse' },
         { id: 'costCommission', label: 'Custo Comissão', apiPath: 'costCommission' },
@@ -974,7 +976,7 @@ function EcomhubPedidosPage() {
                                     {isColumnVisible('volume') && <TableHead className="min-w-[100px]">Volume</TableHead>}
                                     {isColumnVisible('priceOriginal') && <TableHead className="min-w-[120px]">Preço Original</TableHead>}
                                     {isColumnVisible('price') && <TableHead className="min-w-[100px]">Preço</TableHead>}
-                                    {isColumnVisible('ordersItems_cost') && <TableHead className="min-w-[150px]">Custo(s)</TableHead>}
+                                    {isColumnVisible('ordersItems_cost') && <TableHead className="min-w-[150px]">Preço Item(s)</TableHead>}
                                     {isColumnVisible('costCourier') && <TableHead className="min-w-[120px]">Custo Courier</TableHead>}
                                     {isColumnVisible('costWarehouse') && <TableHead className="min-w-[130px]">Custo Armazém</TableHead>}
                                     {isColumnVisible('costCommission') && <TableHead className="min-w-[130px]">Custo Comissão</TableHead>}
@@ -1105,7 +1107,7 @@ function EcomhubPedidosPage() {
                                                 )}
                                                 {isColumnVisible('ordersItems_cost') && (
                                                     <TableCell className="text-xs max-w-[200px] break-words">
-                                                        {formatOrdersItems(pedido.ordersItems, 'cost')}
+                                                        {formatOrdersItems(pedido.ordersItems, 'price')}
                                                     </TableCell>
                                                 )}
                                                 {isColumnVisible('costCourier') && (
