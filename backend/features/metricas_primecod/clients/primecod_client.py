@@ -216,43 +216,10 @@ class PrimeCODClient:
             Dict com orders coletados ultra-rapidamente + métricas de performance
         """
 
-        # CORREÇÃO: Cache só deve ser usado quando NÃO há filtro de data
-        # Filtros de data são aplicados na API via creationDatesRange, então cache armazena dados já filtrados
+        # ❌ CACHE DESABILITADO - Sempre buscar dados frescos da API
+        logger.info("[NO_CACHE] Cache desabilitado - sempre buscando dados frescos da API PrimeCOD")
         cached_result = None
         cache_key = None
-
-        # Só usar cache se NÃO houver filtro de data
-        if not (date_range and date_range.get('start') and date_range.get('end')):
-            try:
-                import hashlib
-                # Cache para coleta completa - sem filtros de data
-                # CORREÇÃO: Incluir country_filter na chave para evitar conflitos entre países
-                country_suffix = country_filter or "all_countries"
-                cache_data = f"primecod_orders_{country_suffix}_complete_collection"
-                cache_key = hashlib.md5(cache_data.encode()).hexdigest()[:20]
-                cached_result = cache.get(cache_key)
-                if cached_result:
-                    logger.info(f"[CACHE] Usando dados em cache para país: {country_filter or 'TODOS'} (sem filtro de data)")
-                    # Aplicar apenas filtro de país localmente
-                    all_orders = cached_result.get('all_orders_raw', [])
-                    filtered_orders = self._apply_local_filters(all_orders, None, country_filter)
-
-                    return {
-                        'orders': filtered_orders,
-                        'total_orders': len(filtered_orders),
-                        'total_orders_raw': len(all_orders),
-                        'pages_processed': cached_result.get('pages_processed', 0),
-                        'total_pages': cached_result.get('total_pages', 0),
-                        'date_range_applied': None,
-                        'country_filter_applied': country_filter,
-                        'status': 'success',
-                        'data_source': 'cache'
-                    }
-            except Exception as e:
-                logger.warning(f"Cache não disponível, prosseguindo com coleta completa: {str(e)}")
-                cached_result = None
-        else:
-            logger.info("[CACHE] Filtro de data presente - PULANDO cache para evitar dados incorretos")
         
         url = f"{self.base_url}/orders"
         
@@ -487,20 +454,21 @@ class PrimeCODClient:
             if total_api > 0 and len(all_orders) < total_api * 0.95:
                 logger.warning(f"[ALERTA] Coleta possivelmente incompleta! Esperado ~{total_api}, coletado {len(all_orders)}")
 
-            # Salvar dados completos no cache ANTES de aplicar filtros
-            if cache_key:
-                try:
-                    cache_data = {
-                        'all_orders_raw': all_orders,
-                        'pages_processed': pages_processed,
-                        'total_pages': total_pages,
-                        'collected_at': datetime.now().isoformat()
-                    }
-                    cache.set(cache_key, cache_data, 1200)  # Cache por 20 minutos (dados mais estáveis)
-                    logger.info(f"[CACHE] Salvando dados no cache para país: {country_filter or 'TODOS'} (sem filtro de data)")
-                    logger.info(f"[CACHE] Dados salvos com chave: {cache_key[:10]}... (país: {country_filter or 'TODOS'})")
-                except Exception as e:
-                    logger.warning(f"[SUCCESS]️ Falha ao salvar no cache: {str(e)}")
+            # ❌ CACHE DESABILITADO - Não salvar no cache
+            # if cache_key:
+            #     try:
+            #         cache_data = {
+            #             'all_orders_raw': all_orders,
+            #             'pages_processed': pages_processed,
+            #             'total_pages': total_pages,
+            #             'collected_at': datetime.now().isoformat()
+            #         }
+            #         cache.set(cache_key, cache_data, 1200)  # Cache por 20 minutos (dados mais estáveis)
+            #         logger.info(f"[CACHE] Salvando dados no cache para país: {country_filter or 'TODOS'} (sem filtro de data)")
+            #         logger.info(f"[CACHE] Dados salvos com chave: {cache_key[:10]}... (país: {country_filter or 'TODOS'})")
+            #     except Exception as e:
+            #         logger.warning(f"[SUCCESS]️ Falha ao salvar no cache: {str(e)}")
+            logger.info(f"[NO_CACHE] Cache de escrita desabilitado - dados NÃO salvos no cache")
 
             # [RAPIDO] FILTROS INTELIGENTES: Data via payload JSON ou localmente
             logger.info(f"[DEBUG] Aplicando filtros inteligentes aos {len(all_orders)} orders")
@@ -580,43 +548,10 @@ class PrimeCODClient:
             Dict com orders + métricas de performance ultra-detalhadas
         """
 
-        # CORREÇÃO: Cache só deve ser usado quando NÃO há filtro de data
-        # Filtros de data são aplicados na API via creationDatesRange, então cache armazena dados já filtrados
+        # ❌ CACHE DESABILITADO - Sempre buscar dados frescos da API
+        logger.info("[NO_CACHE] Cache desabilitado - sempre buscando dados frescos da API PrimeCOD")
         cached_result = None
         cache_key = None
-
-        # Só usar cache se NÃO houver filtro de data
-        if not (date_range and date_range.get('start') and date_range.get('end')):
-            try:
-                import hashlib
-                # Cache para coleta completa - sem filtros de data
-                # CORREÇÃO: Incluir country_filter na chave para evitar conflitos entre países
-                country_suffix = country_filter or "all_countries"
-                cache_data = f"primecod_orders_{country_suffix}_complete_collection"
-                cache_key = hashlib.md5(cache_data.encode()).hexdigest()[:20]
-                cached_result = cache.get(cache_key)
-                if cached_result:
-                    logger.info(f"[CACHE] Usando dados em cache para país: {country_filter or 'TODOS'} (sem filtro de data)")
-                    # Aplicar apenas filtro de país localmente
-                    all_orders = cached_result.get('all_orders_raw', [])
-                    filtered_orders = self._apply_local_filters(all_orders, None, country_filter)
-
-                    return {
-                        'orders': filtered_orders,
-                        'total_orders': len(filtered_orders),
-                        'total_orders_raw': len(all_orders),
-                        'pages_processed': cached_result.get('pages_processed', 0),
-                        'total_pages': cached_result.get('total_pages', 0),
-                        'date_range_applied': None,
-                        'country_filter_applied': country_filter,
-                        'status': 'success',
-                        'data_source': 'cache'
-                    }
-            except Exception as e:
-                logger.warning(f"Cache não disponível, prosseguindo com coleta completa: {str(e)}")
-                cached_result = None
-        else:
-            logger.info("[CACHE] Filtro de data presente - PULANDO cache para evitar dados incorretos")
         
         url = f"{self.base_url}/orders"
         
@@ -861,20 +796,21 @@ class PrimeCODClient:
             if total_api > 0 and len(all_orders) < total_api * 0.95:
                 logger.warning(f"[ALERTA] Coleta possivelmente incompleta! Esperado ~{total_api}, coletado {len(all_orders)}")
 
-            # Salvar dados completos no cache ANTES de aplicar filtros
-            if cache_key:
-                try:
-                    cache_data = {
-                        'all_orders_raw': all_orders,
-                        'pages_processed': pages_processed,
-                        'total_pages': total_pages,
-                        'collected_at': datetime.now().isoformat()
-                    }
-                    cache.set(cache_key, cache_data, 1200)  # Cache por 20 minutos (dados mais estáveis)
-                    logger.info(f"[CACHE] Salvando dados no cache para país: {country_filter or 'TODOS'} (sem filtro de data)")
-                    logger.info(f"[CACHE] Dados salvos com chave: {cache_key[:10]}... (país: {country_filter or 'TODOS'})")
-                except Exception as e:
-                    logger.warning(f"[SUCCESS]️ Falha ao salvar no cache: {str(e)}")
+            # ❌ CACHE DESABILITADO - Não salvar no cache
+            # if cache_key:
+            #     try:
+            #         cache_data = {
+            #             'all_orders_raw': all_orders,
+            #             'pages_processed': pages_processed,
+            #             'total_pages': total_pages,
+            #             'collected_at': datetime.now().isoformat()
+            #         }
+            #         cache.set(cache_key, cache_data, 1200)  # Cache por 20 minutos (dados mais estáveis)
+            #         logger.info(f"[CACHE] Salvando dados no cache para país: {country_filter or 'TODOS'} (sem filtro de data)")
+            #         logger.info(f"[CACHE] Dados salvos com chave: {cache_key[:10]}... (país: {country_filter or 'TODOS'})")
+            #     except Exception as e:
+            #         logger.warning(f"[SUCCESS]️ Falha ao salvar no cache: {str(e)}")
+            logger.info(f"[NO_CACHE] Cache de escrita desabilitado - dados NÃO salvos no cache")
 
             # [RAPIDO] FILTROS ASSÍNCRONOS: Data via payload JSON, país localmente
             logger.info(f"[DEBUG] Aplicando filtro de PAÍS localmente aos {len(all_orders)} orders ASSÍNCRONOS (data via payload JSON)")
