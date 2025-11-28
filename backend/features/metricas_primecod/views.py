@@ -268,11 +268,19 @@ def buscar_orders_primecod(request):
             start_time = time.time()
             logger.info(f"[TIME] INICIANDO COLETA - Hora de início: {start_time}")
             
+            # Normalizar pais_filtro para None se for "todos"
+            country_filter_normalized = None
+            if pais_filtro and pais_filtro.lower().strip() not in ['todos', 'all', 'todos os países', 'all countries', '']:
+                country_filter_normalized = pais_filtro
+                logger.info(f"[FILTRO] País específico selecionado: {pais_filtro}")
+            else:
+                logger.info(f"[FILTRO] Todos os países selecionado (pais_filtro={pais_filtro})")
+
             resultado = client.get_orders(
                 page=1,
                 date_range=date_range,
                 max_pages=max_paginas,
-                country_filter=pais_filtro if (pais_filtro and pais_filtro.lower() not in ['todos', 'all']) else None
+                country_filter=country_filter_normalized
             )
             
             # LOG DE DEBUG DETALHADO: Verificar o que retornou da API

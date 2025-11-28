@@ -325,12 +325,19 @@ class PrimeCODClient:
                 last_page = data.get('last_page', 1)
                 from_value = data.get('from')
                 to_value = data.get('to')
+                total_api_reported = data.get('total', 0)
 
-                logger.info(f"[PAGINATION] Página {current_page}: current_page={current_page_api}, last_page={last_page}, from={from_value}, to={to_value}")
+                logger.info(f"[PAGINATION] Página {current_page}: current_page={current_page_api}, last_page={last_page}, from={from_value}, to={to_value}, total={total_api_reported}")
+                logger.info(f"[DEBUG_PAYLOAD] Payload enviado: {payload}")
+                logger.info(f"[DEBUG_FILTROS] country_filter={country_filter}, date_range={date_range}")
 
                 # CORREÇÃO CRÍTICA: Parar quando ultrapassar last_page (fim da paginação da API)
                 if current_page > last_page:
-                    logger.info(f"[FIM] Todas as páginas coletadas: {current_page-1}/{last_page} - parando coleta")
+                    logger.warning(f"[FIM] Parando em página {current_page-1}/{last_page}")
+                    logger.warning(f"[FIM] Total API reportou: {total_api_reported}, Coletamos: {len(all_orders)}")
+                    if total_api_reported > len(all_orders):
+                        logger.error(f"[ERRO_CRITICO] API reportou {total_api_reported} orders mas last_page={last_page} só permite {last_page * 50}!")
+                        logger.error(f"[ERRO_CRITICO] Isso pode indicar BUG na API ou filtro incorreto!")
                     break
 
                 # Log informações de paginação na primeira página
