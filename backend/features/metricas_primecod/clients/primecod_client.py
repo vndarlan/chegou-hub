@@ -872,6 +872,8 @@ class PrimeCODClient:
             logger.info(f"[COUNTRY] Após filtro de país: {len(filtered_orders)} orders")
         elif country_filter:
             logger.info(f"[COUNTRY] Filtro de país '{country_filter}' detectado como 'TODOS' - pulando filtro de país")
+        else:
+            logger.info(f"[COUNTRY] Nenhum filtro de país especificado - retornando orders de TODOS os países ({len(filtered_orders)} orders)")
         
         logger.info(f"[SUCCESS] Filtros aplicados: {len(orders)} -> {len(filtered_orders)} orders")
         return filtered_orders
@@ -1054,13 +1056,14 @@ class PrimeCODClient:
             
             # LOG 1: Dados extraídos do order
             logger.info(f"[DEBUG] Order {order_id}: produto='{produto}', país='{pais}', status='{status_original}' (tipo: {type(status_original)})")
-            
-            # Aplicar filtro de país se especificado
-            if pais_filtro and pais.lower() != pais_filtro.lower():
-                logger.info(f"[DEBUG] Order {order_id}: Filtrado por país {pais} != {pais_filtro}")
-                orders_filtrados_por_pais += 1
-                continue
-            
+
+            # NÃO reaplicar filtro de país - orders já foram filtrados pela API via get_orders()
+            # A filtragem por país deve ser feita APENAS na API para melhor performance
+            # if pais_filtro and pais.lower() != pais_filtro.lower():
+            #     logger.info(f"[DEBUG] Order {order_id}: Filtrado por país {pais} != {pais_filtro}")
+            #     orders_filtrados_por_pais += 1
+            #     continue
+
             # Mapear status para português
             status = self.status_mapping.get(status_original, status_original)
             if status == status_original and status_original not in self.status_mapping:

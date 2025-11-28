@@ -73,7 +73,7 @@ const buscarDadosPrimeCOD = async (dataInicio, dataFim, paisSelecionado) => {
     const response = await apiClient.post('/metricas/primecod/buscar-orders/', {
         data_inicio: dataInicio,
         data_fim: dataFim,
-        pais_filtro: paisSelecionado !== 'todos' ? paisSelecionado : null
+        pais_filtro: paisSelecionado === 'todos' ? null : paisSelecionado
     }, {
         headers: {
             'X-CSRFToken': getCSRFToken(),

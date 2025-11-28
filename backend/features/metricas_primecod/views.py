@@ -272,7 +272,7 @@ def buscar_orders_primecod(request):
                 page=1,
                 date_range=date_range,
                 max_pages=max_paginas,
-                country_filter=pais_filtro  # Aplicar filtro de país no cliente
+                country_filter=pais_filtro if (pais_filtro and pais_filtro.lower() not in ['todos', 'all']) else None
             )
             
             # LOG DE DEBUG DETALHADO: Verificar o que retornou da API
@@ -335,11 +335,11 @@ def buscar_orders_primecod(request):
             logger.info(f"Busca concluída. Resultado: {type(resultado)}")
             logger.info(f"Keys do resultado: {list(resultado.keys()) if isinstance(resultado, dict) else 'Não é dict'}")
             
-            # Processar os dados dos orders (filtros já aplicados)
-            logger.info(f"[SUCCESS] DEBUG VIEW: Processando {len(resultado['orders'])} orders")
+            # Processar os dados dos orders (filtros já aplicados pela API)
+            logger.info(f"[SUCCESS] DEBUG VIEW: Processando {len(resultado['orders'])} orders (filtrados pela API)")
             orders_processados = client.process_orders_data(
-                orders=resultado['orders'],  # resultado já contém os orders filtrados
-                pais_filtro=None  # Não reaplicar filtro de país aqui
+                orders=resultado['orders'],  # Orders já filtrados pela API
+                pais_filtro=None  # NÃO reaplicar filtro - API já filtrou
             )
             
             logger.info(f"[SUCCESS] DEBUG VIEW: Dados processados - {len(orders_processados['dados_processados'])} linhas")
