@@ -160,7 +160,27 @@ function EcomhubPedidosPage() {
     // Função auxiliar para formatar arrays de ordersItems
     const formatOrdersItems = (items, field) => {
         if (!items || items.length === 0) return 'N/A';
-        return items.map(item => item[field]).filter(Boolean).join(', ') || 'N/A';
+
+        const values = items.map(item => {
+            const productsVariants = item?.productsVariants;
+            const products = productsVariants?.products;
+
+            if (field === 'name') {
+                return products?.name;
+            } else if (field === 'sku') {
+                // SKU está dentro de stockItems (array)
+                const stockItems = products?.stockItems || [];
+                return stockItems.map(si => si.sku).filter(Boolean).join(', ');
+            } else if (field === 'cost') {
+                // Cost também está em stockItems
+                const stockItems = products?.stockItems || [];
+                return stockItems.map(si => si.cost).filter(Boolean).join(', ');
+            }
+
+            return null;
+        }).filter(Boolean);
+
+        return values.length > 0 ? values.join(', ') : 'N/A';
     };
 
     // Função auxiliar para formatar datas com segurança
@@ -475,12 +495,12 @@ function EcomhubPedidosPage() {
         { id: 'status', label: 'Status', apiPath: 'status' },
         { id: 'updatedAt', label: 'Última Atualização', apiPath: 'updatedAt' },
         { id: 'revenueReleaseDate', label: 'Data Liberação', apiPath: 'revenueReleaseDate' },
-        { id: 'ordersItems_sku', label: 'SKU(s)', apiPath: 'ordersItems[].sku' },
-        { id: 'ordersItems_name', label: 'Produto(s)', apiPath: 'ordersItems[].name' },
+        { id: 'ordersItems_sku', label: 'SKU(s)', apiPath: 'ordersItems[].productsVariants.products.stockItems[].sku' },
+        { id: 'ordersItems_name', label: 'Produto(s)', apiPath: 'ordersItems[].productsVariants.products.name' },
         { id: 'volume', label: 'Volume', apiPath: 'volume' },
         { id: 'priceOriginal', label: 'Preço Original', apiPath: 'priceOriginal' },
         { id: 'price', label: 'Preço Convertido', apiPath: 'price' },
-        { id: 'ordersItems_cost', label: 'Custo(s)', apiPath: 'ordersItems[].cost' },
+        { id: 'ordersItems_cost', label: 'Custo(s)', apiPath: 'ordersItems[].productsVariants.products.stockItems[].cost' },
         { id: 'costCourier', label: 'Custo Courier', apiPath: 'costCourier' },
         { id: 'costWarehouse', label: 'Custo Armazém', apiPath: 'costWarehouse' },
         { id: 'costCommission', label: 'Custo Comissão', apiPath: 'costCommission' },
