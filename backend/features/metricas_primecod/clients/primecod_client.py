@@ -98,6 +98,40 @@ class PrimeCODClient:
             'Fulfilment Error': 'Erro de Fulfillment',
             'Incident': 'Incidente',
         }
+
+        # Mapeamento de nomes de países para códigos ISO (PrimeCOD API)
+        # A API aceita country_code (código ISO de 2 letras) para filtrar pedidos
+        self.COUNTRY_CODE_MAP = {
+            'Austria': 'at',
+            'Bulgaria': 'bg',
+            'Croatia': 'hr',
+            'Czech Republic': 'cz',
+            'Greece': 'gr',
+            'Hungary': 'hu',
+            'Italy': 'it',
+            'Poland': 'pl',
+            'Romania': 'ro',
+            'Slovakia': 'sk',
+            'Slovenia': 'si',
+            'Spain': 'es',
+            'Ukraine': 'ua',
+            'United Kingdom': 'gb',
+            # Versões lowercase para compatibilidade
+            'austria': 'at',
+            'bulgaria': 'bg',
+            'croatia': 'hr',
+            'czech republic': 'cz',
+            'greece': 'gr',
+            'hungary': 'hu',
+            'italy': 'it',
+            'poland': 'pl',
+            'romania': 'ro',
+            'slovakia': 'sk',
+            'slovenia': 'si',
+            'spain': 'es',
+            'ukraine': 'ua',
+            'united kingdom': 'gb',
+        }
     
     def _rate_limit(self):
         """Implementa rate limiting básico"""
@@ -192,11 +226,13 @@ class PrimeCODClient:
             try:
                 import hashlib
                 # Cache para coleta completa - sem filtros de data
-                cache_data = "primecod_orders_complete_collection"
+                # CORREÇÃO: Incluir country_filter na chave para evitar conflitos entre países
+                country_suffix = country_filter or "all_countries"
+                cache_data = f"primecod_orders_{country_suffix}_complete_collection"
                 cache_key = hashlib.md5(cache_data.encode()).hexdigest()[:20]
                 cached_result = cache.get(cache_key)
                 if cached_result:
-                    logger.info("[CACHE] Usando dados completos em cache (sem filtro de data)")
+                    logger.info(f"[CACHE] Usando dados em cache para país: {country_filter or 'TODOS'} (sem filtro de data)")
                     # Aplicar apenas filtro de país localmente
                     all_orders = cached_result.get('all_orders_raw', [])
                     filtered_orders = self._apply_local_filters(all_orders, None, country_filter)
@@ -240,7 +276,20 @@ class PrimeCODClient:
             logger.info(f"[FILTRO_API] Usando creationDatesRange (FUNCIONA): {date_range['start']} até {date_range['end']}")
         else:
             logger.info(f"[SEM_FILTRO] Nenhum filtro de data especificado")
-        
+
+        # ✅ NOVO: Adicionar filtro de país via country_code
+        country_code_applied = False
+        if country_filter and country_filter.lower() not in ['todos', 'all', 'todos os países', 'all countries']:
+            # Converter nome do país para código ISO
+            country_code = self.COUNTRY_CODE_MAP.get(country_filter) or self.COUNTRY_CODE_MAP.get(country_filter.lower())
+
+            if country_code:
+                payload["country_code"] = country_code
+                country_code_applied = True
+                logger.info(f"[FILTRO_API] Aplicando country_code: {country_filter} → {country_code}")
+            else:
+                logger.warning(f"[FILTRO_API] País '{country_filter}' não encontrado no mapeamento, será filtrado localmente")
+
         logger.info(f"[INICIO] Iniciando coleta de orders PrimeCOD com filtros inteligentes")
         logger.info(f"[INICIO] URL base: {url}")
         logger.info(f"[RAPIDO] JSON Payload: {payload}")
@@ -448,10 +497,11 @@ class PrimeCODClient:
                         'collected_at': datetime.now().isoformat()
                     }
                     cache.set(cache_key, cache_data, 1200)  # Cache por 20 minutos (dados mais estáveis)
-                    logger.info(f"[SAVE] Dados completos salvos no cache")
+                    logger.info(f"[CACHE] Salvando dados no cache para país: {country_filter or 'TODOS'} (sem filtro de data)")
+                    logger.info(f"[CACHE] Dados salvos com chave: {cache_key[:10]}... (país: {country_filter or 'TODOS'})")
                 except Exception as e:
                     logger.warning(f"[SUCCESS]️ Falha ao salvar no cache: {str(e)}")
-            
+
             # [RAPIDO] FILTROS INTELIGENTES: Data via payload JSON ou localmente
             logger.info(f"[DEBUG] Aplicando filtros inteligentes aos {len(all_orders)} orders")
             logger.info(f"[DEBUG] Filtro de data aplicado via API (creationDatesRange): {date_filter_applied}")
@@ -540,11 +590,13 @@ class PrimeCODClient:
             try:
                 import hashlib
                 # Cache para coleta completa - sem filtros de data
-                cache_data = "primecod_orders_complete_collection"
+                # CORREÇÃO: Incluir country_filter na chave para evitar conflitos entre países
+                country_suffix = country_filter or "all_countries"
+                cache_data = f"primecod_orders_{country_suffix}_complete_collection"
                 cache_key = hashlib.md5(cache_data.encode()).hexdigest()[:20]
                 cached_result = cache.get(cache_key)
                 if cached_result:
-                    logger.info("[CACHE] Usando dados completos em cache (sem filtro de data)")
+                    logger.info(f"[CACHE] Usando dados em cache para país: {country_filter or 'TODOS'} (sem filtro de data)")
                     # Aplicar apenas filtro de país localmente
                     all_orders = cached_result.get('all_orders_raw', [])
                     filtered_orders = self._apply_local_filters(all_orders, None, country_filter)
@@ -587,7 +639,20 @@ class PrimeCODClient:
             logger.info(f"[FILTRO_API] Usando creationDatesRange (FUNCIONA): {date_range['start']} até {date_range['end']}")
         else:
             logger.info(f"[SEM_FILTRO] Nenhum filtro de data especificado")
-        
+
+        # ✅ NOVO: Adicionar filtro de país via country_code
+        country_code_applied = False
+        if country_filter and country_filter.lower() not in ['todos', 'all', 'todos os países', 'all countries']:
+            # Converter nome do país para código ISO
+            country_code = self.COUNTRY_CODE_MAP.get(country_filter) or self.COUNTRY_CODE_MAP.get(country_filter.lower())
+
+            if country_code:
+                payload["country_code"] = country_code
+                country_code_applied = True
+                logger.info(f"[FILTRO_API] Aplicando country_code: {country_filter} → {country_code}")
+            else:
+                logger.warning(f"[FILTRO_API] País '{country_filter}' não encontrado no mapeamento, será filtrado localmente")
+
         logger.info(f"[INICIO] Iniciando coleta ASSÍNCRONA de orders PrimeCOD!")
         logger.info(f"[INICIO] URL base: {url}")
         logger.info(f"[RAPIDO] JSON Payload: {payload}")
@@ -806,10 +871,11 @@ class PrimeCODClient:
                         'collected_at': datetime.now().isoformat()
                     }
                     cache.set(cache_key, cache_data, 1200)  # Cache por 20 minutos (dados mais estáveis)
-                    logger.info(f"[SAVE] Dados completos salvos no cache")
+                    logger.info(f"[CACHE] Salvando dados no cache para país: {country_filter or 'TODOS'} (sem filtro de data)")
+                    logger.info(f"[CACHE] Dados salvos com chave: {cache_key[:10]}... (país: {country_filter or 'TODOS'})")
                 except Exception as e:
                     logger.warning(f"[SUCCESS]️ Falha ao salvar no cache: {str(e)}")
-            
+
             # [RAPIDO] FILTROS ASSÍNCRONOS: Data via payload JSON, país localmente
             logger.info(f"[DEBUG] Aplicando filtro de PAÍS localmente aos {len(all_orders)} orders ASSÍNCRONOS (data via payload JSON)")
             # Se filtro foi aplicado via API, NÃO aplicar localmente
