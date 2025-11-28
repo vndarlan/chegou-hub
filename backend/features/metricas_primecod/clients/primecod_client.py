@@ -112,34 +112,38 @@ class PrimeCODClient:
     
     def _make_request(self, method: str, url: str, **kwargs) -> requests.Response:
         """Faz requisição HTTP com tratamento de erros e rate limiting"""
-        logger.error(f"[REQUEST] _make_request chamado: {method} {url}")
-        logger.error(f"[REQUEST] Headers: {self.headers}")
-        logger.error(f"[REQUEST] Kwargs: {kwargs}")
-        
+        # Sanitizar headers para logging (remover token)
+        safe_headers = {k: '***REDACTED***' if k.lower() == 'authorization' else v
+                       for k, v in self.headers.items()}
+
+        logger.debug(f"[REQUEST] _make_request chamado: {method} {url}")
+        logger.debug(f"[REQUEST] Headers: {safe_headers}")
+        logger.debug(f"[REQUEST] Kwargs: {kwargs}")
+
         self._rate_limit()
-        logger.error(f"[REQUEST] Rate limit OK, fazendo requisição...")
-        
+        logger.debug(f"[REQUEST] Rate limit OK, fazendo requisição...")
+
         try:
-            logger.error(f"[REQUEST] Fazendo requests.request com sessão reutilizável...")
+            logger.debug(f"[REQUEST] Fazendo requests.request com sessão reutilizável...")
             response = self.session.request(
                 method=method,
                 url=url,
                 timeout=120,  # Timeout maior para requisições longas e estabilidade
                 **kwargs
             )
-            logger.error(f"[REQUEST] Response recebido: {response.status_code}")
-            
+            logger.debug(f"[REQUEST] Response recebido: {response.status_code}")
+
             logger.info(f"PrimeCOD API {method} {url} - Status: {response.status_code}")
-            
+
             if response.status_code == 401:
                 raise PrimeCODAPIError("Token de autenticação inválido ou expirado")
             elif response.status_code == 429:
                 raise PrimeCODAPIError("Rate limit excedido. Tente novamente em alguns minutos")
             elif response.status_code >= 400:
                 raise PrimeCODAPIError(f"Erro da API PrimeCOD: {response.status_code} - {response.text}")
-            
+
             return response
-            
+
         except requests.RequestException as e:
             logger.error(f"[ERROR] RequestException: {str(e)}")
             logger.error(f"[ERROR] Erro na requisição para PrimeCOD: {str(e)}")

@@ -17,7 +17,7 @@ anthropic>=0.40.0
 psycopg2-binary==2.9.10
 pydantic==2.11.3
 pydantic_core==2.33.1
-python-dotenv==1.1.0
+python-dotenv>=1.0.1
 sniffio==1.3.1
 sqlparse==0.5.3
 tqdm==4.67.1
@@ -31,7 +31,7 @@ requests==2.32.3
 gunicorn==21.2.0
 pandas>=2.0.0
 openpyxl>=3.1.0
-cryptography==41.0.4
+cryptography>=43.0.0  # Atualizado para versão segura (CVE-2024-XXXX)
 python-dateutil==2.8.2
 pytz==2023.3
 django-rq==2.8.1

@@ -614,15 +614,22 @@ def create_test_superuser():
             
             # Só cria se não existir nenhum superusuário
             if not User.objects.filter(is_superuser=True).exists():
+                # Gerar senha aleatória segura para superusuário de teste
+                import secrets
+                import string
+                alphabet = string.ascii_letters + string.digits + string.punctuation
+                random_password = ''.join(secrets.choice(alphabet) for i in range(16))
+
                 User.objects.create_superuser(
                     username='admin',
-                    email='admin@teste.com', 
-                    password='123456'
+                    email='admin@teste.com',
+                    password=random_password
                 )
                 print("SUPERUSUARIO CRIADO AUTOMATICAMENTE:")
                 print("   Username: admin")
-                print("   Password: 123456")
+                print(f"   Password: {random_password}")
                 print("   Email: admin@teste.com")
+                print("   ⚠️  IMPORTANTE: Salve esta senha! Ela não será exibida novamente.")
             else:
                 print("INFO: Superusuário já existe no banco de teste")
                 
