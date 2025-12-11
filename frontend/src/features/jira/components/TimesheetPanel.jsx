@@ -75,7 +75,7 @@ export function TimesheetPanel({ data, loading, selectedUser }) {
                   </TableCell>
                   <TableCell className="font-medium">{issue.summary}</TableCell>
                   <TableCell className="text-right">
-                    <Badge variant="outline">{issue.hours.toFixed(2)}h</Badge>
+                    <Badge variant="outline">{(issue.hours || 0).toFixed(2)}h</Badge>
                   </TableCell>
                 </TableRow>
               ))}

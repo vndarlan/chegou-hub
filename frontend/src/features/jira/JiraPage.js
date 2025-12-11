@@ -107,9 +107,17 @@ function JiraPage() {
     try {
       const params = buildParams();
       const response = await apiClient.get(`/jira/metrics/resolved/?${params}`);
-      setAtividadesResolvidas(response.data);
+      // Backend retorna {status, data: [{assignee, count}], total, period}
+      // Chart espera [{name, count}]
+      const rawData = response.data?.data || [];
+      const chartData = rawData.map(item => ({
+        name: item.assignee,
+        count: item.count
+      }));
+      setAtividadesResolvidas(chartData);
     } catch (error) {
       console.error('Erro ao buscar atividades resolvidas:', error);
+      setAtividadesResolvidas([]);
     } finally {
       setLoadingResolvidas(false);
     }
@@ -121,9 +129,18 @@ function JiraPage() {
     try {
       const params = buildParams();
       const response = await apiClient.get(`/jira/metrics/created-vs-resolved/?${params}`);
-      setCriadoVsResolvido(response.data);
+      // Backend retorna {status, data: [{week, created, resolved, delta}], period}
+      // Chart espera [{period, created, resolved}]
+      const rawData = response.data?.data || [];
+      const chartData = rawData.map(item => ({
+        period: item.week,
+        created: item.created,
+        resolved: item.resolved
+      }));
+      setCriadoVsResolvido(chartData);
     } catch (error) {
       console.error('Erro ao buscar criado vs resolvido:', error);
+      setCriadoVsResolvido([]);
     } finally {
       setLoadingCriadoVsResolvido(false);
     }
@@ -135,9 +152,17 @@ function JiraPage() {
     try {
       const params = buildParams();
       const response = await apiClient.get(`/jira/metrics/by-status/?${params}`);
-      setStatusData(response.data);
+      // Backend retorna {status: 'success', data: [{status, count}], total}
+      // Panel espera [{name, count}]
+      const rawData = response.data?.data || [];
+      const panelData = rawData.map(item => ({
+        name: item.status,
+        count: item.count
+      }));
+      setStatusData(panelData);
     } catch (error) {
       console.error('Erro ao buscar por status:', error);
+      setStatusData([]);
     } finally {
       setLoadingStatus(false);
     }
@@ -154,9 +179,21 @@ function JiraPage() {
     try {
       const params = buildParams();
       const response = await apiClient.get(`/jira/timesheet/?${params}`);
-      setTimesheetData(response.data);
+      // Backend retorna {status, data: {total_seconds, total_hours, worklogs}, period}
+      // Panel espera {total_hours, issues: [{key, summary, hours}]}
+      const rawData = response.data?.data || {};
+      const panelData = {
+        total_hours: rawData.total_hours || 0,
+        issues: (rawData.worklogs || []).map(wl => ({
+          key: wl.issue_key,
+          summary: wl.comment || wl.issue_key,
+          hours: wl.time_spent_hours || 0
+        }))
+      };
+      setTimesheetData(panelData);
     } catch (error) {
       console.error('Erro ao buscar timesheet:', error);
+      setTimesheetData({ total_hours: 0, issues: [] });
     } finally {
       setLoadingTimesheet(false);
     }
@@ -168,9 +205,22 @@ function JiraPage() {
     try {
       const params = buildParams();
       const response = await apiClient.get(`/jira/lead-time/?${params}`);
-      setLeadTimeData(response.data);
+      // Backend retorna {status, data: {average_total_days, average_by_column, issues_analyzed, details}, period}
+      // Table espera array de issues: [{key, summary, assignee, created, resolved, lead_time_hours}]
+      const rawData = response.data?.data || {};
+      const details = rawData.details || [];
+      const tableData = details.map(item => ({
+        key: item.issue_key,
+        summary: item.summary,
+        assignee: item.assignee || 'Não atribuído',
+        created: item.created,
+        resolved: item.resolved,
+        lead_time_hours: (item.total_days || 0) * 24
+      }));
+      setLeadTimeData(tableData);
     } catch (error) {
       console.error('Erro ao buscar lead time:', error);
+      setLeadTimeData([]);
     } finally {
       setLoadingLeadTime(false);
     }

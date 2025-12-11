@@ -29,6 +29,9 @@ const formatDuration = (hours) => {
 };
 
 export function LeadTimeTable({ data, loading }) {
+  // Garantir que issues seja sempre um array
+  const issues = Array.isArray(data) ? data : [];
+
   if (loading) {
     return (
       <Card>
@@ -42,8 +45,6 @@ export function LeadTimeTable({ data, loading }) {
       </Card>
     );
   }
-
-  const issues = data || [];
 
   return (
     <Card>
