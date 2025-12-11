@@ -220,7 +220,7 @@ class JiraClient:
 
     def search_issues(self, jql: str, fields: List[str] = None, max_results: int = 100) -> List[Dict]:
         """
-        Busca issues usando JQL
+        Busca issues usando JQL (nova API /search/jql)
 
         Args:
             jql: Query JQL
@@ -231,9 +231,10 @@ class JiraClient:
             fields = ['summary', 'status', 'assignee', 'created', 'updated', 'resolutiondate']
 
         try:
+            # Nova API: /rest/api/3/search/jql (migração obrigatória desde 2024)
             response = self._make_request(
                 'POST',
-                'search',
+                'search/jql',
                 json={
                     'jql': jql,
                     'fields': fields,
