@@ -7,6 +7,7 @@ import { IssueListModal } from './IssueListModal';
 export function StatusCardsPanel({ data, loading }) {
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const statusList = Array.isArray(data) ? data : [];
 
   const handleCardClick = (status) => {
     setSelectedStatus(status);
@@ -21,10 +22,18 @@ export function StatusCardsPanel({ data, loading }) {
     );
   }
 
+  if (statusList.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 text-muted-foreground">
+        Nenhum status encontrado
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {data.map((status) => (
+        {statusList.map((status) => (
           <Card
             key={status.name}
             className="cursor-pointer hover:shadow-lg transition-shadow"

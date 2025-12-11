@@ -5,6 +5,8 @@ import { ChartContainer } from '../../../components/ui/chart';
 import { Loader2 } from 'lucide-react';
 
 export function CriadoVsResolvidoChart({ data, loading }) {
+  const chartData = Array.isArray(data) ? data : [];
+
   if (loading) {
     return (
       <Card>
@@ -14,6 +16,20 @@ export function CriadoVsResolvidoChart({ data, loading }) {
         </CardHeader>
         <CardContent className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (chartData.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Criado vs Resolvido</CardTitle>
+          <CardDescription>Evolução de issues criados e resolvidos ao longo do tempo</CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center h-64 text-muted-foreground">
+          Nenhum dado disponível para o período
         </CardContent>
       </Card>
     );
@@ -40,7 +56,7 @@ export function CriadoVsResolvidoChart({ data, loading }) {
           className="h-[400px]"
         >
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="period" />
               <YAxis />
