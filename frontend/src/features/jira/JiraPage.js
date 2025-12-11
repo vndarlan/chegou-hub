@@ -56,9 +56,9 @@ function JiraPage() {
       setConfigError(null);
       try {
         const [configRes, boardsRes, usersRes] = await Promise.all([
-          apiClient.get('/api/jira/config/'),
-          apiClient.get('/api/jira/boards/'),
-          apiClient.get('/api/jira/users/'),
+          apiClient.get('/jira/config/'),
+          apiClient.get('/jira/boards/'),
+          apiClient.get('/jira/users/'),
         ]);
 
         setConfig(configRes.data);
@@ -106,7 +106,7 @@ function JiraPage() {
     setLoadingResolvidas(true);
     try {
       const params = buildParams();
-      const response = await apiClient.get(`/api/jira/metrics/resolved/?${params}`);
+      const response = await apiClient.get(`/jira/metrics/resolved/?${params}`);
       setAtividadesResolvidas(response.data);
     } catch (error) {
       console.error('Erro ao buscar atividades resolvidas:', error);
@@ -120,7 +120,7 @@ function JiraPage() {
     setLoadingCriadoVsResolvido(true);
     try {
       const params = buildParams();
-      const response = await apiClient.get(`/api/jira/metrics/created-vs-resolved/?${params}`);
+      const response = await apiClient.get(`/jira/metrics/created-vs-resolved/?${params}`);
       setCriadoVsResolvido(response.data);
     } catch (error) {
       console.error('Erro ao buscar criado vs resolvido:', error);
@@ -134,7 +134,7 @@ function JiraPage() {
     setLoadingStatus(true);
     try {
       const params = buildParams();
-      const response = await apiClient.get(`/api/jira/metrics/by-status/?${params}`);
+      const response = await apiClient.get(`/jira/metrics/by-status/?${params}`);
       setStatusData(response.data);
     } catch (error) {
       console.error('Erro ao buscar por status:', error);
@@ -153,7 +153,7 @@ function JiraPage() {
     setLoadingTimesheet(true);
     try {
       const params = buildParams();
-      const response = await apiClient.get(`/api/jira/timesheet/?${params}`);
+      const response = await apiClient.get(`/jira/timesheet/?${params}`);
       setTimesheetData(response.data);
     } catch (error) {
       console.error('Erro ao buscar timesheet:', error);
@@ -167,7 +167,7 @@ function JiraPage() {
     setLoadingLeadTime(true);
     try {
       const params = buildParams();
-      const response = await apiClient.get(`/api/jira/lead-time/?${params}`);
+      const response = await apiClient.get(`/jira/lead-time/?${params}`);
       setLeadTimeData(response.data);
     } catch (error) {
       console.error('Erro ao buscar lead time:', error);
