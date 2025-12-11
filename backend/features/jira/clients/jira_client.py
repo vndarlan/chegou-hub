@@ -87,9 +87,11 @@ class JiraClient:
 
         self.last_request_time = time.time()
 
-    def _make_request(self, method: str, endpoint: str, **kwargs) -> requests.Response:
+    def _make_request(self, method: str, endpoint: str, use_agile_api: bool = False, **kwargs) -> requests.Response:
         """Faz requisição HTTP com tratamento de erros e rate limiting"""
-        url = f"{self.jira_url}/rest/api/3/{endpoint}"
+        # Agile API para boards, API v3 para o resto
+        api_path = "rest/agile/1.0" if use_agile_api else "rest/api/3"
+        url = f"{self.jira_url}/{api_path}/{endpoint}"
 
         # Sanitizar headers para logging (remover token)
         safe_headers = {k: '***REDACTED***' if k.lower() == 'authorization' else v
@@ -178,11 +180,12 @@ class JiraClient:
             raise JiraAPIError(f"Erro ao buscar usuários: {str(e)}")
 
     def get_boards(self) -> List[Dict]:
-        """Lista boards do projeto"""
+        """Lista boards do projeto usando Agile API"""
         try:
             response = self._make_request(
                 'GET',
                 'board',
+                use_agile_api=True,  # Boards usam Agile API, não REST API v3
                 params={'projectKeyOrId': self.project_key}
             )
             data = response.json()

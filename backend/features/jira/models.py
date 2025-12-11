@@ -105,6 +105,13 @@ class JiraConfig(models.Model):
         try:
             config = cls.objects.filter(ativo=True).first()
             if not config:
+                print("[JIRA] Nenhuma configuração ativa encontrada no banco")
+                return None
+
+            # Buscar token descriptografado
+            api_token = cls.get_token()
+            if not api_token:
+                print("[JIRA] Token não pôde ser descriptografado (verifique JIRA_ENCRYPTION_KEY)")
                 return None
 
             # Criar dict com configuração
@@ -112,9 +119,10 @@ class JiraConfig(models.Model):
                 'jira_url': config.jira_url,
                 'jira_email': config.jira_email,
                 'jira_project_key': config.jira_project_key,
-                'api_token': cls.get_token(),
+                'api_token': api_token,
             }
 
+            print(f"[JIRA] Configuração carregada: {config.jira_url} | {config.jira_email} | {config.jira_project_key}")
             return config_dict
 
         except Exception as e:

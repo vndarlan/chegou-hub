@@ -91,6 +91,91 @@ class JiraConfigViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    @action(detail=False, methods=['get'], url_path='diagnostico')
+    def diagnostico(self, request):
+        """Endpoint de diagnóstico para identificar problemas de configuração"""
+        from django.conf import settings
+
+        diagnostico = {
+            'status': 'ok',
+            'checks': {}
+        }
+
+        # Check 1: JIRA_ENCRYPTION_KEY configurada
+        has_encryption_key = bool(getattr(settings, 'JIRA_ENCRYPTION_KEY', None))
+        diagnostico['checks']['encryption_key'] = {
+            'status': 'ok' if has_encryption_key else 'error',
+            'message': 'JIRA_ENCRYPTION_KEY configurada' if has_encryption_key else 'JIRA_ENCRYPTION_KEY não encontrada nas variáveis de ambiente'
+        }
+
+        # Check 2: Configuração no banco
+        config = JiraConfig.objects.filter(ativo=True).first()
+        if config:
+            diagnostico['checks']['config_banco'] = {
+                'status': 'ok',
+                'message': f'Configuração ativa encontrada (ID: {config.id})',
+                'jira_url': config.jira_url,
+                'jira_email': config.jira_email,
+                'jira_project_key': config.jira_project_key,
+                'token_encrypted_length': len(config.api_token_encrypted) if config.api_token_encrypted else 0
+            }
+        else:
+            diagnostico['checks']['config_banco'] = {
+                'status': 'error',
+                'message': 'Nenhuma configuração Jira ATIVA encontrada no banco. Crie uma em Admin > Jira > Configuração Jira e marque como ativa.'
+            }
+            diagnostico['status'] = 'error'
+
+        # Check 3: Token descriptografável
+        if config and has_encryption_key:
+            try:
+                token = JiraConfig.get_token()
+                if token:
+                    diagnostico['checks']['token_decrypt'] = {
+                        'status': 'ok',
+                        'message': 'Token descriptografado com sucesso',
+                        'token_length': len(token)
+                    }
+                else:
+                    diagnostico['checks']['token_decrypt'] = {
+                        'status': 'error',
+                        'message': 'Não foi possível descriptografar o token. Verifique se a JIRA_ENCRYPTION_KEY é a mesma usada para criptografar.'
+                    }
+                    diagnostico['status'] = 'error'
+            except Exception as e:
+                diagnostico['checks']['token_decrypt'] = {
+                    'status': 'error',
+                    'message': f'Erro ao descriptografar token: {str(e)}'
+                }
+                diagnostico['status'] = 'error'
+        elif config and not has_encryption_key:
+            diagnostico['checks']['token_decrypt'] = {
+                'status': 'error',
+                'message': 'Não é possível descriptografar sem JIRA_ENCRYPTION_KEY'
+            }
+            diagnostico['status'] = 'error'
+
+        # Check 4: Teste de conexão (só se tudo acima estiver ok)
+        if diagnostico['status'] == 'ok':
+            try:
+                client = JiraClient()
+                result = client.test_connection()
+                diagnostico['checks']['conexao_jira'] = {
+                    'status': result['status'],
+                    'message': result.get('message', ''),
+                    'user': result.get('user')
+                }
+                if result['status'] != 'success':
+                    diagnostico['status'] = 'error'
+            except JiraAPIError as e:
+                diagnostico['checks']['conexao_jira'] = {
+                    'status': 'error',
+                    'message': str(e)
+                }
+                diagnostico['status'] = 'error'
+
+        return Response(diagnostico)
+
 
 class JiraUsersViewSet(viewsets.ViewSet):
     """ViewSet para usuários Jira"""
