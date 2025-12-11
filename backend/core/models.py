@@ -238,6 +238,7 @@ MODULES = [
     {'key': 'ia_projetos', 'name': 'IA - Projetos', 'group': 'GESTÃO EMPRESARIAL'},
     {'key': 'ia_logs', 'name': 'IA - Logs de Erros', 'group': 'GESTÃO EMPRESARIAL'},
     {'key': 'ia_openai', 'name': 'IA - OpenAI Analytics', 'group': 'GESTÃO EMPRESARIAL'},
+    {'key': 'jira', 'name': 'Jira - Métricas', 'group': 'GESTÃO EMPRESARIAL'},
 
     # FORNECEDORES - EUROPA
     {'key': 'ecomhub_efetividade', 'name': 'ECOMHUB - Análise de Efetividade', 'group': 'FORNECEDORES > EUROPA'},

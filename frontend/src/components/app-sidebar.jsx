@@ -19,7 +19,8 @@ import {
   Globe,
   MessageSquare,
   Settings,
-  UserCircle
+  UserCircle,
+  BarChart3
 } from 'lucide-react'
 import OrganizationSwitcher from './organizations/OrganizationSwitcher'
 import { useOrgContext } from '../contexts/OrganizationContext'
@@ -124,6 +125,13 @@ export function AppSidebar({
       icon: Map,
       isActive: location.pathname === "/gestao/mapa",
       moduleKey: "mapa",
+    },
+    {
+      title: "Jira",
+      url: "/gestao/jira",
+      icon: BarChart3,
+      isActive: location.pathname === "/gestao/jira",
+      moduleKey: "jira",
     },
   ];
 

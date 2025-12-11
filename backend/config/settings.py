@@ -31,6 +31,11 @@ NICOCHAT_ENCRYPTION_KEY = os.getenv('NICOCHAT_ENCRYPTION_KEY', '7Dfkjjc4Jc27vwl2
 if not NICOCHAT_ENCRYPTION_KEY:
     print("AVISO CRÍTICO: NICOCHAT_ENCRYPTION_KEY não está configurada!")
 
+# Chave de criptografia para Jira API
+JIRA_ENCRYPTION_KEY = os.getenv('JIRA_ENCRYPTION_KEY', NICOCHAT_ENCRYPTION_KEY)
+if not JIRA_ENCRYPTION_KEY:
+    print("AVISO CRÍTICO: JIRA_ENCRYPTION_KEY não está configurada!")
+
 # Chave de autenticação para n8n (sincronização automática)
 N8N_API_KEY = os.getenv('N8N_API_KEY')
 if not N8N_API_KEY and IS_RAILWAY_DEPLOYMENT:
@@ -115,8 +120,11 @@ INSTALLED_APPS = [
 
     # Sistema de Tutoriais
     'features.tutoriais.apps.TutoriaisConfig',
-    
-    
+
+    # Integração Jira
+    'features.jira.apps.JiraConfig',
+
+
     # Cloudinary para storage de imagens
     'cloudinary_storage',
     'cloudinary',
@@ -833,6 +841,13 @@ PRIMECOD_API_TOKEN = os.getenv('PRIMECOD_API_TOKEN', '')
 print(f"PrimeCOD API configurado: {'Sim' if PRIMECOD_API_TOKEN else 'Não'}")
 
 # Cache para tokens (já configurado acima com Redis)
+
+# ======================== CONFIGURAÇÃO JIRA ========================
+JIRA_BASE_URL = os.getenv('JIRA_BASE_URL', 'https://grupochegou.atlassian.net')
+JIRA_EMAIL = os.getenv('JIRA_EMAIL', '')
+JIRA_API_TOKEN = os.getenv('JIRA_API_TOKEN', '')
+JIRA_PROJECT_KEY = os.getenv('JIRA_PROJECT_KEY', 'CHEGOU')
+print(f"Jira API configurado: {'Sim' if JIRA_API_TOKEN else 'Não'}")
 
 # ======================== CONFIGURAÇÃO DJANGO CHANNELS ========================
 

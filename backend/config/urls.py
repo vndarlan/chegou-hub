@@ -88,6 +88,9 @@ urlpatterns = [
 
     # URLs do API Monitoring
     path('api/monitoring/', include('features.api_monitoring.urls')),
+
+    # URLs do Jira
+    path('api/jira/', include('features.jira.urls')),
 ]
 
 # Servir arquivos de media

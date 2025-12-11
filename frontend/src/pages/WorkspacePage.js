@@ -22,6 +22,7 @@ import apiClient from '../utils/axios';
 // Importar as páginas
 import AgendaPage from '../features/agenda/AgendaPage';
 import MapaPage from '../features/mapa/MapaPage';
+import JiraPage from '../features/jira/JiraPage';
 import ProjetoDashboard from '../features/ia/ProjetoDashboard';
 import LogsPage from '../features/ia/LogsPage';
 import OpenAIAnalytics from '../features/ia/OpenAIAnalytics';
@@ -57,6 +58,7 @@ const breadcrumbMap = {
   // GESTÃO EMPRESARIAL
   '/gestao/agenda': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Agenda da Empresa' }],
   '/gestao/mapa': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Mapa de Atuação' }],
+  '/gestao/jira': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Jira' }],
 
   // FORNECEDORES > EUROPA
   '/fornecedores/europa/ecomhub/efetividade': [
@@ -258,6 +260,11 @@ function WorkspacePage({ setIsLoggedIn }) {
               <Route path="gestao/mapa" element={
                 <ProtectedRoute moduleKey="mapa">
                   <MapaPage />
+                </ProtectedRoute>
+              } />
+              <Route path="gestao/jira" element={
+                <ProtectedRoute moduleKey="jira">
+                  <JiraPage />
                 </ProtectedRoute>
               } />
 
