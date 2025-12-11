@@ -29,24 +29,41 @@ class JiraClient:
         Inicializa cliente Jira.
 
         Args:
-            email: Email do usuário Jira (opcional, busca de JiraConfig)
-            token: API Token (opcional, busca de JiraConfig)
-            jira_url: URL base do Jira (opcional, busca de JiraConfig)
-            project_key: Chave do projeto (opcional, busca de JiraConfig)
+            email: Email do usuário Jira (opcional, busca de env ou JiraConfig)
+            token: API Token (opcional, busca de env ou JiraConfig)
+            jira_url: URL base do Jira (opcional, busca de env ou JiraConfig)
+            project_key: Chave do projeto (opcional, busca de env ou JiraConfig)
         """
-        # Buscar configuração do banco se não fornecida
-        if not all([email, token, jira_url, project_key]):
-            config = JiraConfig.get_config()
-            if not config:
-                raise JiraAPIError(
-                    "Configuração Jira não encontrada. "
-                    "Configure em: Admin > Jira Integration > Configuração Jira"
-                )
+        # Prioridade 1: Variáveis de ambiente (Railway)
+        import os
+        env_email = os.environ.get('JIRA_EMAIL')
+        env_token = os.environ.get('JIRA_API_TOKEN')
+        env_url = os.environ.get('JIRA_BASE_URL')
+        env_project = os.environ.get('JIRA_PROJECT_KEY')
 
-            email = email or config.get('jira_email')
-            token = token or config.get('api_token')
-            jira_url = jira_url or config.get('jira_url')
-            project_key = project_key or config.get('jira_project_key')
+        # Se todas as variáveis de ambiente estão disponíveis, usar elas
+        if all([env_email, env_token, env_url, env_project]):
+            email = email or env_email
+            token = token or env_token
+            jira_url = jira_url or env_url
+            project_key = project_key or env_project
+            logger.info("[JIRA] Usando configuração das variáveis de ambiente")
+        else:
+            # Prioridade 2: Buscar do banco de dados (JiraConfig)
+            if not all([email, token, jira_url, project_key]):
+                config = JiraConfig.get_config()
+                if not config:
+                    raise JiraAPIError(
+                        "Configuração Jira não encontrada. "
+                        "Configure as variáveis de ambiente (JIRA_EMAIL, JIRA_API_TOKEN, JIRA_BASE_URL, JIRA_PROJECT_KEY) "
+                        "ou crie uma configuração em: Admin > Jira > Configuração Jira"
+                    )
+
+                email = email or config.get('jira_email')
+                token = token or config.get('api_token')
+                jira_url = jira_url or config.get('jira_url')
+                project_key = project_key or config.get('jira_project_key')
+                logger.info("[JIRA] Usando configuração do banco de dados")
 
         if not all([email, token, jira_url, project_key]):
             raise JiraAPIError("Configuração Jira incompleta")

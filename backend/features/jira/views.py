@@ -94,21 +94,39 @@ class JiraConfigViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='diagnostico')
     def diagnostico(self, request):
         """Endpoint de diagnóstico para identificar problemas de configuração"""
-        from django.conf import settings
+        import os
 
         diagnostico = {
             'status': 'ok',
             'checks': {}
         }
 
-        # Check 1: JIRA_ENCRYPTION_KEY configurada
-        has_encryption_key = bool(getattr(settings, 'JIRA_ENCRYPTION_KEY', None))
-        diagnostico['checks']['encryption_key'] = {
-            'status': 'ok' if has_encryption_key else 'error',
-            'message': 'JIRA_ENCRYPTION_KEY configurada' if has_encryption_key else 'JIRA_ENCRYPTION_KEY não encontrada nas variáveis de ambiente'
+        # Check 1: Variáveis de ambiente (prioridade)
+        env_email = os.environ.get('JIRA_EMAIL')
+        env_token = os.environ.get('JIRA_API_TOKEN')
+        env_url = os.environ.get('JIRA_BASE_URL')
+        env_project = os.environ.get('JIRA_PROJECT_KEY')
+
+        has_env_config = all([env_email, env_token, env_url, env_project])
+
+        diagnostico['checks']['env_vars'] = {
+            'status': 'ok' if has_env_config else 'warning',
+            'message': 'Todas as variáveis de ambiente configuradas' if has_env_config else 'Variáveis de ambiente incompletas (usando banco de dados)',
+            'JIRA_EMAIL': '✓' if env_email else '✗',
+            'JIRA_API_TOKEN': '✓' if env_token else '✗',
+            'JIRA_BASE_URL': '✓' if env_url else '✗',
+            'JIRA_PROJECT_KEY': '✓' if env_project else '✗',
         }
 
-        # Check 2: Configuração no banco
+        if has_env_config:
+            diagnostico['checks']['env_vars']['config'] = {
+                'jira_url': env_url,
+                'jira_email': env_email,
+                'jira_project_key': env_project,
+                'token_length': len(env_token) if env_token else 0
+            }
+
+        # Check 2: Configuração no banco (fallback)
         config = JiraConfig.objects.filter(ativo=True).first()
         if config:
             diagnostico['checks']['config_banco'] = {
@@ -117,62 +135,33 @@ class JiraConfigViewSet(viewsets.ModelViewSet):
                 'jira_url': config.jira_url,
                 'jira_email': config.jira_email,
                 'jira_project_key': config.jira_project_key,
-                'token_encrypted_length': len(config.api_token_encrypted) if config.api_token_encrypted else 0
             }
         else:
             diagnostico['checks']['config_banco'] = {
+                'status': 'info' if has_env_config else 'error',
+                'message': 'Nenhuma configuração no banco (não necessário se usando env vars)' if has_env_config else 'Nenhuma configuração encontrada'
+            }
+            if not has_env_config:
+                diagnostico['status'] = 'error'
+
+        # Check 3: Teste de conexão
+        try:
+            client = JiraClient()
+            result = client.test_connection()
+            diagnostico['checks']['conexao_jira'] = {
+                'status': result['status'],
+                'message': result.get('message', ''),
+                'user': result.get('user'),
+                'fonte': 'env_vars' if has_env_config else 'banco_de_dados'
+            }
+            if result['status'] != 'success':
+                diagnostico['status'] = 'error'
+        except JiraAPIError as e:
+            diagnostico['checks']['conexao_jira'] = {
                 'status': 'error',
-                'message': 'Nenhuma configuração Jira ATIVA encontrada no banco. Crie uma em Admin > Jira > Configuração Jira e marque como ativa.'
+                'message': str(e)
             }
             diagnostico['status'] = 'error'
-
-        # Check 3: Token descriptografável
-        if config and has_encryption_key:
-            try:
-                token = JiraConfig.get_token()
-                if token:
-                    diagnostico['checks']['token_decrypt'] = {
-                        'status': 'ok',
-                        'message': 'Token descriptografado com sucesso',
-                        'token_length': len(token)
-                    }
-                else:
-                    diagnostico['checks']['token_decrypt'] = {
-                        'status': 'error',
-                        'message': 'Não foi possível descriptografar o token. Verifique se a JIRA_ENCRYPTION_KEY é a mesma usada para criptografar.'
-                    }
-                    diagnostico['status'] = 'error'
-            except Exception as e:
-                diagnostico['checks']['token_decrypt'] = {
-                    'status': 'error',
-                    'message': f'Erro ao descriptografar token: {str(e)}'
-                }
-                diagnostico['status'] = 'error'
-        elif config and not has_encryption_key:
-            diagnostico['checks']['token_decrypt'] = {
-                'status': 'error',
-                'message': 'Não é possível descriptografar sem JIRA_ENCRYPTION_KEY'
-            }
-            diagnostico['status'] = 'error'
-
-        # Check 4: Teste de conexão (só se tudo acima estiver ok)
-        if diagnostico['status'] == 'ok':
-            try:
-                client = JiraClient()
-                result = client.test_connection()
-                diagnostico['checks']['conexao_jira'] = {
-                    'status': result['status'],
-                    'message': result.get('message', ''),
-                    'user': result.get('user')
-                }
-                if result['status'] != 'success':
-                    diagnostico['status'] = 'error'
-            except JiraAPIError as e:
-                diagnostico['checks']['conexao_jira'] = {
-                    'status': 'error',
-                    'message': str(e)
-                }
-                diagnostico['status'] = 'error'
 
         return Response(diagnostico)
 
