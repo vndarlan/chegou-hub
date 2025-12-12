@@ -121,38 +121,33 @@ class JiraMetricsService:
 
             # Buscar issues criadas
             jql_created = f"{jql_base} AND ({period_jql})"
-            issues_created = self.client.search_issues(jql_created, fields=['created'])
+            issues_created = self.client.search_issues(jql_created, fields=['created', 'assignee'])
 
             # Buscar issues resolvidas (usa 'resolutiondate' para filtrar por data de resolução)
             resolved_period_jql = self.client._build_period_jql(period, start_date, end_date, field='resolutiondate')
             jql_resolved = f"{jql_base} AND status = Done AND ({resolved_period_jql})"
-            issues_resolved = self.client.search_issues(jql_resolved, fields=['resolutiondate'])
+            issues_resolved = self.client.search_issues(jql_resolved, fields=['resolutiondate', 'assignee'])
 
-            # Agrupar por semana
-            created_by_week = defaultdict(int)
-            resolved_by_week = defaultdict(int)
+            # Agrupar por usuário
+            by_user = defaultdict(lambda: {'created': 0, 'resolved': 0})
 
             for issue in issues_created:
-                created_date = issue.get('fields', {}).get('created')
-                if created_date:
-                    week = self._get_week_key(created_date)
-                    created_by_week[week] += 1
+                assignee_data = issue.get('fields', {}).get('assignee')
+                name = assignee_data.get('displayName') if assignee_data else 'Sem assignee'
+                by_user[name]['created'] += 1
 
             for issue in issues_resolved:
-                resolved_date = issue.get('fields', {}).get('resolutiondate')
-                if resolved_date:
-                    week = self._get_week_key(resolved_date)
-                    resolved_by_week[week] += 1
+                assignee_data = issue.get('fields', {}).get('assignee')
+                name = assignee_data.get('displayName') if assignee_data else 'Sem assignee'
+                by_user[name]['resolved'] += 1
 
-            # Combinar dados
-            all_weeks = sorted(set(created_by_week.keys()) | set(resolved_by_week.keys()))
-
+            # Converter para lista ordenada
             result = [{
-                'week': week,
-                'created': created_by_week.get(week, 0),
-                'resolved': resolved_by_week.get(week, 0),
-                'delta': created_by_week.get(week, 0) - resolved_by_week.get(week, 0),
-            } for week in all_weeks]
+                'user': name,
+                'created': counts['created'],
+                'resolved': counts['resolved'],
+                'delta': counts['created'] - counts['resolved'],
+            } for name, counts in sorted(by_user.items(), key=lambda x: x[1]['created'] + x[1]['resolved'], reverse=True)]
 
             return {
                 'status': 'success',
@@ -167,21 +162,36 @@ class JiraMetricsService:
                 'message': str(e)
             }
 
-    def get_by_status(self, board_id: int = None) -> Dict:
+    def get_by_status(
+        self,
+        period: str = '30d',
+        board_id: int = None,
+        start_date: str = None,
+        end_date: str = None
+    ) -> Dict:
         """
         Retorna contagem de issues por status
 
         Args:
+            period: Período de filtro (default: 30d)
             board_id: ID do board (opcional)
+            start_date: Data início (para period=custom)
+            end_date: Data fim (para period=custom)
         """
         try:
             # JQL base
-            jql = f"project = {self.client.project_key}"
+            jql_parts = [f"project = {self.client.project_key}"]
+
+            # Filtro de período
+            period_jql = self.client._build_period_jql(period, start_date, end_date)
+            jql_parts.append(f"({period_jql})")
 
             if board_id:
-                jql += f" AND Sprint in openSprints()"
+                jql_parts.append("Sprint in openSprints()")
 
-            # Buscar todas as issues
+            jql = " AND ".join(jql_parts)
+
+            # Buscar issues
             issues = self.client.search_issues(jql, fields=['status'], max_results=1000)
 
             # Agrupar por status

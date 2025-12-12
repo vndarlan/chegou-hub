@@ -302,7 +302,10 @@ class JiraMetricsViewSet(viewsets.ViewSet):
         """Contagem por status"""
         try:
             # Parâmetros
+            period = request.query_params.get('period', '30d')
             board_id = request.query_params.get('board')
+            start_date = request.query_params.get('start_date')
+            end_date = request.query_params.get('end_date')
 
             # Converter board_id para int se fornecido
             if board_id:
@@ -310,7 +313,12 @@ class JiraMetricsViewSet(viewsets.ViewSet):
 
             # Buscar métricas
             service = JiraMetricsService()
-            result = service.get_by_status(board_id=board_id)
+            result = service.get_by_status(
+                period=period,
+                board_id=board_id,
+                start_date=start_date,
+                end_date=end_date
+            )
 
             if result['status'] == 'error':
                 return Response(result, status=status.HTTP_400_BAD_REQUEST)

@@ -129,11 +129,11 @@ function JiraPage() {
     try {
       const params = buildParams();
       const response = await apiClient.get(`/jira/metrics/created-vs-resolved/?${params}`);
-      // Backend retorna {status, data: [{week, created, resolved, delta}], period}
+      // Backend retorna {status, data: [{user, created, resolved, delta}], period}
       // Chart espera [{period, created, resolved}]
       const rawData = response.data?.data || [];
       const chartData = rawData.map(item => ({
-        period: item.week,
+        period: item.user,
         created: item.created,
         resolved: item.resolved
       }));
