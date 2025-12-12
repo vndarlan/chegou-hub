@@ -95,7 +95,7 @@ function JiraPage() {
     }
 
     if (selectedUser !== 'all') {
-      params.append('user_id', selectedUser);
+      params.append('assignee', selectedUser);
     }
 
     return params;

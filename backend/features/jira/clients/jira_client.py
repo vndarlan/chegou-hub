@@ -295,7 +295,7 @@ class JiraClient:
             logger.error(f"[JIRA] Erro ao buscar worklog: {str(e)}")
             raise JiraAPIError(f"Erro ao buscar worklog: {str(e)}")
 
-    def _build_period_jql(self, period: str, start_date: str = None, end_date: str = None) -> str:
+    def _build_period_jql(self, period: str, start_date: str = None, end_date: str = None, field: str = 'created') -> str:
         """
         Constrói filtro JQL para período
 
@@ -303,6 +303,12 @@ class JiraClient:
         - current_week, last_week, 2_weeks_ago
         - 15d, 30d, 45d, 3m, 6m
         - custom (requer start_date e end_date)
+
+        Args:
+            period: Período de filtro
+            start_date: Data início (para period=custom)
+            end_date: Data fim (para period=custom)
+            field: Campo JQL para filtrar (created, resolved, updated)
         """
         today = datetime.now().date()
 
@@ -311,37 +317,37 @@ class JiraClient:
             days_since_monday = today.weekday()
             start = today - timedelta(days=days_since_monday)
             end = start + timedelta(days=6)
-            return f"created >= '{start}' AND created <= '{end}'"
+            return f"{field} >= '{start}' AND {field} <= '{end}'"
 
         elif period == 'last_week':
             # Semana passada
             days_since_monday = today.weekday()
             last_week_monday = today - timedelta(days=days_since_monday + 7)
             last_week_sunday = last_week_monday + timedelta(days=6)
-            return f"created >= '{last_week_monday}' AND created <= '{last_week_sunday}'"
+            return f"{field} >= '{last_week_monday}' AND {field} <= '{last_week_sunday}'"
 
         elif period == '2_weeks_ago':
             # Duas semanas atrás
             days_since_monday = today.weekday()
             two_weeks_monday = today - timedelta(days=days_since_monday + 14)
             two_weeks_sunday = two_weeks_monday + timedelta(days=6)
-            return f"created >= '{two_weeks_monday}' AND created <= '{two_weeks_sunday}'"
+            return f"{field} >= '{two_weeks_monday}' AND {field} <= '{two_weeks_sunday}'"
 
         elif period.endswith('d'):
             # Dias (15d, 30d, 45d)
             days = int(period[:-1])
             start = today - timedelta(days=days)
-            return f"created >= '-{days}d'"
+            return f"{field} >= '-{days}d'"
 
         elif period.endswith('m'):
             # Meses (3m, 6m)
             months = int(period[:-1])
-            return f"created >= '-{months * 30}d'"
+            return f"{field} >= '-{months * 30}d'"
 
         elif period == 'custom':
             if not start_date or not end_date:
                 raise ValueError("Período 'custom' requer start_date e end_date")
-            return f"created >= '{start_date}' AND created <= '{end_date}'"
+            return f"{field} >= '{start_date}' AND {field} <= '{end_date}'"
 
         else:
             raise ValueError(f"Período inválido: {period}")

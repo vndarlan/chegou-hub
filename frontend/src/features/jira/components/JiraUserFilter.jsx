@@ -13,8 +13,8 @@ export function JiraUserFilter({ user, onUserChange, users = [] }) {
         <SelectContent>
           <SelectItem value="all">Todos</SelectItem>
           {users.map((u) => (
-            <SelectItem key={u.accountId} value={u.accountId}>
-              {u.displayName}
+            <SelectItem key={u.account_id} value={u.account_id}>
+              {u.display_name}
             </SelectItem>
           ))}
         </SelectContent>
