@@ -47,8 +47,8 @@ class JiraMetricsService:
             jql_parts = [f"project = {self.client.project_key}"]
             jql_parts.append("status = Done")
 
-            # Filtro de período (usa 'resolved' pois estamos buscando atividades resolvidas)
-            period_jql = self.client._build_period_jql(period, start_date, end_date, field='resolved')
+            # Filtro de período (usa 'resolutiondate' pois estamos buscando atividades resolvidas)
+            period_jql = self.client._build_period_jql(period, start_date, end_date, field='resolutiondate')
             jql_parts.append(f"({period_jql})")
 
             # Filtro de assignee
@@ -123,8 +123,8 @@ class JiraMetricsService:
             jql_created = f"{jql_base} AND ({period_jql})"
             issues_created = self.client.search_issues(jql_created, fields=['created'])
 
-            # Buscar issues resolvidas (usa 'resolved' para filtrar por data de resolução)
-            resolved_period_jql = self.client._build_period_jql(period, start_date, end_date, field='resolved')
+            # Buscar issues resolvidas (usa 'resolutiondate' para filtrar por data de resolução)
+            resolved_period_jql = self.client._build_period_jql(period, start_date, end_date, field='resolutiondate')
             jql_resolved = f"{jql_base} AND status = Done AND ({resolved_period_jql})"
             issues_resolved = self.client.search_issues(jql_resolved, fields=['resolutiondate'])
 

@@ -308,7 +308,7 @@ class JiraClient:
             period: Período de filtro
             start_date: Data início (para period=custom)
             end_date: Data fim (para period=custom)
-            field: Campo JQL para filtrar (created, resolved, updated)
+            field: Campo JQL para filtrar (created, resolutiondate, updated)
         """
         today = datetime.now().date()
 
