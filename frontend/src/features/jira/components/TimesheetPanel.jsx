@@ -41,8 +41,10 @@ export function TimesheetPanel({ data, loading, selectedUser }) {
     <Card>
       <CardHeader>
         <CardTitle>Timesheet</CardTitle>
-        <CardDescription>
-          Total de horas trabalhadas: <Badge variant="secondary">{totalHours.toFixed(2)}h</Badge>
+        <CardDescription asChild>
+          <div>
+            Total de horas trabalhadas: <Badge variant="secondary">{totalHours.toFixed(2)}h</Badge>
+          </div>
         </CardDescription>
       </CardHeader>
       <CardContent>

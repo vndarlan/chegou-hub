@@ -178,7 +178,7 @@ function JiraPage() {
     setLoadingTimesheet(true);
     try {
       const params = buildParams();
-      const response = await apiClient.get(`/jira/timesheet/?${params}`);
+      const response = await apiClient.get(`/jira/metrics/timesheet/?${params}`);
       // Backend retorna {status, data: {total_seconds, total_hours, worklogs}, period}
       // Panel espera {total_hours, issues: [{key, summary, hours}]}
       const rawData = response.data?.data || {};
