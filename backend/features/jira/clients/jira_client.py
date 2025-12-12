@@ -218,6 +218,34 @@ class JiraClient:
             logger.error(f"[JIRA] Erro ao buscar boards: {str(e)}")
             raise JiraAPIError(f"Erro ao buscar boards: {str(e)}")
 
+    def get_board_sprints(self, board_id: int) -> List[int]:
+        """
+        Busca IDs de sprints de um board específico
+
+        Args:
+            board_id: ID do board
+
+        Returns:
+            Lista de IDs de sprints (abertos e fechados)
+        """
+        try:
+            response = self._make_request(
+                'GET',
+                f'board/{board_id}/sprint',
+                use_agile_api=True,
+                params={'maxResults': 100}
+            )
+            data = response.json()
+            sprints = data.get('values', [])
+
+            sprint_ids = [sprint['id'] for sprint in sprints]
+            logger.info(f"[JIRA] Board {board_id} tem {len(sprint_ids)} sprints")
+            return sprint_ids
+
+        except Exception as e:
+            logger.error(f"[JIRA] Erro ao buscar sprints do board {board_id}: {str(e)}")
+            return []
+
     def search_issues(self, jql: str, fields: List[str] = None, max_results: int = 100) -> List[Dict]:
         """
         Busca issues usando JQL (nova API /search/jql)
@@ -253,6 +281,8 @@ class JiraClient:
         """
         Busca TODAS as issues usando paginação automática
 
+        Usa o endpoint /rest/api/3/search (não /search/jql) pois este suporta paginação
+
         Args:
             jql: Query JQL
             fields: Lista de campos para retornar
@@ -269,12 +299,13 @@ class JiraClient:
 
         try:
             while True:
+                # Usar endpoint /search (não /search/jql) para suportar paginação
                 response = self._make_request(
-                    'POST',
-                    'search/jql',
-                    json={
+                    'GET',
+                    'search',
+                    params={
                         'jql': jql,
-                        'fields': fields,
+                        'fields': ','.join(fields),  # Campos separados por vírgula para GET
                         'maxResults': max_results,
                         'startAt': start_at,
                     }
@@ -291,7 +322,7 @@ class JiraClient:
 
                 start_at += max_results
 
-            logger.info(f"[JIRA] Buscadas {len(all_issues)} issues no total (JQL: {jql[:100]}...)")
+            logger.info(f"[JIRA] Buscadas {len(all_issues)} issues no total")
             return all_issues
 
         except Exception as e:

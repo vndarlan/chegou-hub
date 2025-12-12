@@ -55,9 +55,12 @@ class JiraMetricsService:
             if assignee:
                 jql_parts.append(f"assignee = '{assignee}'")
 
-            # Filtro de board (sprint)
+            # Filtro de board (busca sprints específicos do board)
             if board_id:
-                jql_parts.append(f"Sprint in openSprints() OR Sprint in closedSprints()")
+                sprint_ids = self.client.get_board_sprints(board_id)
+                if sprint_ids:
+                    sprint_list = ','.join(str(sid) for sid in sprint_ids)
+                    jql_parts.append(f"Sprint in ({sprint_list})")
 
             jql = " AND ".join(jql_parts)
 
@@ -192,8 +195,12 @@ class JiraMetricsService:
             if assignee:
                 jql_parts.append(f"assignee = '{assignee}'")
 
+            # Filtro de board (busca sprints específicos do board)
             if board_id:
-                jql_parts.append("Sprint in openSprints()")
+                sprint_ids = self.client.get_board_sprints(board_id)
+                if sprint_ids:
+                    sprint_list = ','.join(str(sid) for sid in sprint_ids)
+                    jql_parts.append(f"Sprint in ({sprint_list})")
 
             jql = " AND ".join(jql_parts)
 
