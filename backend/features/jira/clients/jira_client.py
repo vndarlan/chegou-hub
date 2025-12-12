@@ -249,6 +249,55 @@ class JiraClient:
             logger.error(f"[JIRA] Erro ao buscar issues: {str(e)}")
             raise JiraAPIError(f"Erro ao buscar issues: {str(e)}")
 
+    def search_issues_paginated(self, jql: str, fields: List[str] = None, max_results: int = 1000) -> List[Dict]:
+        """
+        Busca TODAS as issues usando paginação automática
+
+        Args:
+            jql: Query JQL
+            fields: Lista de campos para retornar
+            max_results: Tamanho da página (padrão 1000, máximo por request)
+
+        Returns:
+            Lista completa de issues (sem limite)
+        """
+        if fields is None:
+            fields = ['summary', 'status', 'assignee', 'created', 'updated', 'resolutiondate']
+
+        all_issues = []
+        start_at = 0
+
+        try:
+            while True:
+                response = self._make_request(
+                    'POST',
+                    'search/jql',
+                    json={
+                        'jql': jql,
+                        'fields': fields,
+                        'maxResults': max_results,
+                        'startAt': start_at,
+                    }
+                )
+                data = response.json()
+
+                issues = data.get('issues', [])
+                all_issues.extend(issues)
+
+                # Verificar se há mais páginas
+                total = data.get('total', 0)
+                if start_at + len(issues) >= total:
+                    break
+
+                start_at += max_results
+
+            logger.info(f"[JIRA] Buscadas {len(all_issues)} issues no total (JQL: {jql[:100]}...)")
+            return all_issues
+
+        except Exception as e:
+            logger.error(f"[JIRA] Erro ao buscar issues paginadas: {str(e)}")
+            raise JiraAPIError(f"Erro ao buscar issues: {str(e)}")
+
     def get_issue_with_changelog(self, issue_key: str) -> Dict:
         """
         Busca detalhes de uma issue incluindo changelog

@@ -61,8 +61,8 @@ class JiraMetricsService:
 
             jql = " AND ".join(jql_parts)
 
-            # Buscar issues
-            issues = self.client.search_issues(jql, fields=['assignee', 'resolutiondate'])
+            # Buscar issues (com paginação para garantir todos os resultados)
+            issues = self.client.search_issues_paginated(jql, fields=['assignee', 'resolutiondate'])
 
             # Agrupar por assignee
             by_assignee = defaultdict(int)
@@ -119,14 +119,14 @@ class JiraMetricsService:
             # Filtro de período
             period_jql = self.client._build_period_jql(period, start_date, end_date)
 
-            # Buscar issues criadas
+            # Buscar issues criadas (com paginação)
             jql_created = f"{jql_base} AND ({period_jql})"
-            issues_created = self.client.search_issues(jql_created, fields=['created', 'assignee'])
+            issues_created = self.client.search_issues_paginated(jql_created, fields=['created', 'assignee'])
 
-            # Buscar issues resolvidas (usa 'resolutiondate' para filtrar por data de resolução)
+            # Buscar issues resolvidas (usa 'resolutiondate' para filtrar por data de resolução, com paginação)
             resolved_period_jql = self.client._build_period_jql(period, start_date, end_date, field='resolutiondate')
             jql_resolved = f"{jql_base} AND status = Done AND ({resolved_period_jql})"
-            issues_resolved = self.client.search_issues(jql_resolved, fields=['resolutiondate', 'assignee'])
+            issues_resolved = self.client.search_issues_paginated(jql_resolved, fields=['resolutiondate', 'assignee'])
 
             # Agrupar por usuário
             by_user = defaultdict(lambda: {'created': 0, 'resolved': 0})
@@ -197,8 +197,8 @@ class JiraMetricsService:
 
             jql = " AND ".join(jql_parts)
 
-            # Buscar issues
-            issues = self.client.search_issues(jql, fields=['status'], max_results=1000)
+            # Buscar issues (com paginação para garantir todos os resultados)
+            issues = self.client.search_issues_paginated(jql, fields=['status'])
 
             # Agrupar por status
             by_status = defaultdict(int)
@@ -249,8 +249,8 @@ class JiraMetricsService:
             period_jql = self.client._build_period_jql(period, start_date, end_date)
             jql += f" AND ({period_jql})"
 
-            # Buscar issues
-            issues = self.client.search_issues(jql, fields=['summary'])
+            # Buscar issues (com paginação para garantir todos os resultados)
+            issues = self.client.search_issues_paginated(jql, fields=['summary'])
 
             # Buscar worklog de cada issue
             total_seconds = 0
