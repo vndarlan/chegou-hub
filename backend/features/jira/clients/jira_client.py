@@ -281,7 +281,7 @@ class JiraClient:
         """
         Busca TODAS as issues usando paginação automática
 
-        Usa o endpoint /rest/api/3/search (não /search/jql) pois este suporta paginação
+        Usa POST /rest/api/3/search/jql com startAt para paginação
 
         Args:
             jql: Query JQL
@@ -299,15 +299,15 @@ class JiraClient:
 
         try:
             while True:
-                # Usar endpoint /search (não /search/jql) para suportar paginação
+                # POST /search/jql com startAt no body (API migrada desde 2024)
                 response = self._make_request(
-                    'GET',
-                    'search',
-                    params={
+                    'POST',
+                    'search/jql',
+                    json={
                         'jql': jql,
-                        'fields': ','.join(fields),  # Campos separados por vírgula para GET
-                        'maxResults': max_results,
+                        'fields': fields,
                         'startAt': start_at,
+                        'maxResults': max_results,
                     }
                 )
                 data = response.json()
