@@ -166,6 +166,7 @@ class JiraMetricsService:
         self,
         period: str = '30d',
         board_id: int = None,
+        assignee: str = None,
         start_date: str = None,
         end_date: str = None
     ) -> Dict:
@@ -175,6 +176,7 @@ class JiraMetricsService:
         Args:
             period: Período de filtro (default: 30d)
             board_id: ID do board (opcional)
+            assignee: Account ID do assignee (opcional)
             start_date: Data início (para period=custom)
             end_date: Data fim (para period=custom)
         """
@@ -185,6 +187,10 @@ class JiraMetricsService:
             # Filtro de período
             period_jql = self.client._build_period_jql(period, start_date, end_date)
             jql_parts.append(f"({period_jql})")
+
+            # Filtro de assignee
+            if assignee:
+                jql_parts.append(f"assignee = '{assignee}'")
 
             if board_id:
                 jql_parts.append("Sprint in openSprints()")
