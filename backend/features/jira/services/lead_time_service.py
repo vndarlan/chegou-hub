@@ -80,7 +80,7 @@ class JiraLeadTimeService:
             jql = " AND ".join(jql_parts)
 
             # Buscar issues
-            issues = self.client.search_issues(jql, fields=['created', 'resolutiondate'])
+            issues = self.client.search_issues(jql, fields=['created', 'resolutiondate', 'assignee', 'summary'])
 
             # Calcular lead time para cada issue
             lead_times = []
@@ -166,9 +166,16 @@ class JiraLeadTimeService:
             # Calcular tempo em cada coluna
             breakdown = self._calculate_column_breakdown(created_dt, resolved_dt, changelog)
 
+            # Extrair assignee
+            assignee_data = fields.get('assignee')
+            assignee_name = None
+            if assignee_data:
+                assignee_name = assignee_data.get('displayName')
+
             return {
                 'issue_key': issue_detail.get('key'),
                 'summary': fields.get('summary'),
+                'assignee': assignee_name,
                 'created': created,
                 'resolved': resolved,
                 'total_days': round(total_days, 2),

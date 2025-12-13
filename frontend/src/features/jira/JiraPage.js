@@ -1,6 +1,6 @@
 // frontend/src/features/jira/JiraPage.js - Métricas Jira
 import React, { useState, useEffect, useCallback } from 'react';
-import { BarChart3, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
+import { BarChart3, AlertCircle, Loader2, RefreshCw, Activity } from 'lucide-react';
 import apiClient from '../../utils/axios';
 
 // shadcn/ui components
@@ -47,6 +47,13 @@ function JiraPage() {
   const [loadingTimesheet, setLoadingTimesheet] = useState(false);
   const [loadingLeadTime, setLoadingLeadTime] = useState(false);
 
+  // Estados de erro por tab
+  const [errorResolvidas, setErrorResolvidas] = useState(null);
+  const [errorCriadoVsResolvido, setErrorCriadoVsResolvido] = useState(null);
+  const [errorStatus, setErrorStatus] = useState(null);
+  const [errorTimesheet, setErrorTimesheet] = useState(null);
+  const [errorLeadTime, setErrorLeadTime] = useState(null);
+
   const [activeTab, setActiveTab] = useState('resolvidas');
 
   // Buscar configuração inicial
@@ -64,13 +71,57 @@ function JiraPage() {
         setConfig(configRes.data);
         setBoards(boardsRes.data);
         setUsers(usersRes.data);
+
+        // DIAGNÓSTICO: Logging detalhado
+        console.log('[JIRA DEBUG] Config recebida:', configRes.data);
+        console.log('[JIRA DEBUG] Boards recebidas:', boardsRes.data);
+        console.log('[JIRA DEBUG] Users recebidos:', usersRes.data);
+
+        // Validar configuração
+        const config = configRes.data;
+        if (!config.jira_url || !config.jira_email || !config.jira_project_key) {
+          setConfigError('Configuração Jira incompleta. Verifique URL, email e chave do projeto.');
+          return;
+        }
+        if (!config.ativo) {
+          setConfigError('Configuração Jira está inativa. Ative nas configurações.');
+          return;
+        }
       } catch (error) {
-        console.error('Erro ao buscar configuração Jira:', error);
-        setConfigError(
-          error.response?.status === 404
-            ? 'Configuração do Jira não encontrada. Configure o módulo Jira nas configurações.'
-            : 'Erro ao carregar configurações do Jira.'
-        );
+        console.error('[JIRA ERROR] Erro ao buscar configuração:', error);
+        console.error('[JIRA ERROR] Response:', error.response?.data);
+        console.error('[JIRA ERROR] Status:', error.response?.status);
+
+        // Tentar diagnóstico automático
+        try {
+          const diagRes = await apiClient.get('/jira/config/diagnostico/');
+          console.error('[JIRA DIAGNÓSTICO]', diagRes.data);
+
+          const checks = diagRes.data.checks || {};
+          let errorDetails = [];
+
+          if (checks.env_vars?.status === 'error') {
+            errorDetails.push('Variáveis de ambiente não configuradas');
+          }
+          if (checks.config_banco?.status === 'error') {
+            errorDetails.push('Configuração no banco não encontrada');
+          }
+          if (checks.conexao_jira?.status === 'error') {
+            errorDetails.push(`Erro de conexão: ${checks.conexao_jira.message}`);
+          }
+
+          setConfigError(
+            errorDetails.length > 0
+              ? errorDetails.join('. ')
+              : 'Erro ao carregar configurações do Jira.'
+          );
+        } catch (diagError) {
+          setConfigError(
+            error.response?.status === 404
+              ? 'Configuração do Jira não encontrada. Configure o módulo Jira nas configurações.'
+              : 'Erro ao carregar configurações do Jira.'
+          );
+        }
       } finally {
         setLoadingConfig(false);
       }
@@ -104,6 +155,7 @@ function JiraPage() {
   // Buscar atividades resolvidas
   const fetchAtividadesResolvidas = useCallback(async () => {
     setLoadingResolvidas(true);
+    setErrorResolvidas(null);
     try {
       const params = buildParams();
       const response = await apiClient.get(`/jira/metrics/resolved/?${params}`);
@@ -116,7 +168,16 @@ function JiraPage() {
       }));
       setAtividadesResolvidas(chartData);
     } catch (error) {
-      console.error('Erro ao buscar atividades resolvidas:', error);
+      console.error('[JIRA ERROR] Erro ao buscar atividades resolvidas:', error);
+      console.error('[JIRA ERROR] Response:', error.response?.data);
+      console.error('[JIRA ERROR] Status:', error.response?.status);
+
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        setErrorResolvidas('Token de autenticação Jira inválido ou expirado. Reconfigure nas configurações.');
+      } else {
+        setErrorResolvidas(`Erro ao carregar dados: ${error.response?.data?.error || error.message}`);
+      }
+
       setAtividadesResolvidas([]);
     } finally {
       setLoadingResolvidas(false);
@@ -126,6 +187,7 @@ function JiraPage() {
   // Buscar criado vs resolvido
   const fetchCriadoVsResolvido = useCallback(async () => {
     setLoadingCriadoVsResolvido(true);
+    setErrorCriadoVsResolvido(null);
     try {
       const params = buildParams();
       const response = await apiClient.get(`/jira/metrics/created-vs-resolved/?${params}`);
@@ -139,7 +201,16 @@ function JiraPage() {
       }));
       setCriadoVsResolvido(chartData);
     } catch (error) {
-      console.error('Erro ao buscar criado vs resolvido:', error);
+      console.error('[JIRA ERROR] Erro ao buscar criado vs resolvido:', error);
+      console.error('[JIRA ERROR] Response:', error.response?.data);
+      console.error('[JIRA ERROR] Status:', error.response?.status);
+
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        setErrorCriadoVsResolvido('Token de autenticação Jira inválido ou expirado. Reconfigure nas configurações.');
+      } else {
+        setErrorCriadoVsResolvido(`Erro ao carregar dados: ${error.response?.data?.error || error.message}`);
+      }
+
       setCriadoVsResolvido([]);
     } finally {
       setLoadingCriadoVsResolvido(false);
@@ -149,6 +220,7 @@ function JiraPage() {
   // Buscar por status
   const fetchByStatus = useCallback(async () => {
     setLoadingStatus(true);
+    setErrorStatus(null);
     try {
       const params = buildParams();
       const response = await apiClient.get(`/jira/metrics/by-status/?${params}`);
@@ -161,7 +233,16 @@ function JiraPage() {
       }));
       setStatusData(panelData);
     } catch (error) {
-      console.error('Erro ao buscar por status:', error);
+      console.error('[JIRA ERROR] Erro ao buscar por status:', error);
+      console.error('[JIRA ERROR] Response:', error.response?.data);
+      console.error('[JIRA ERROR] Status:', error.response?.status);
+
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        setErrorStatus('Token de autenticação Jira inválido ou expirado. Reconfigure nas configurações.');
+      } else {
+        setErrorStatus(`Erro ao carregar dados: ${error.response?.data?.error || error.message}`);
+      }
+
       setStatusData([]);
     } finally {
       setLoadingStatus(false);
@@ -172,10 +253,12 @@ function JiraPage() {
   const fetchTimesheet = useCallback(async () => {
     if (selectedUser === 'all') {
       setTimesheetData(null);
+      setErrorTimesheet(null);
       return;
     }
 
     setLoadingTimesheet(true);
+    setErrorTimesheet(null);
     try {
       const params = buildParams();
       const response = await apiClient.get(`/jira/metrics/timesheet/?${params}`);
@@ -186,13 +269,22 @@ function JiraPage() {
         total_hours: rawData.total_hours || 0,
         issues: (rawData.worklogs || []).map(wl => ({
           key: wl.issue_key,
-          summary: wl.comment || wl.issue_key,
+          summary: wl.summary || wl.issue_key,
           hours: wl.time_spent_hours || 0
         }))
       };
       setTimesheetData(panelData);
     } catch (error) {
-      console.error('Erro ao buscar timesheet:', error);
+      console.error('[JIRA ERROR] Erro ao buscar timesheet:', error);
+      console.error('[JIRA ERROR] Response:', error.response?.data);
+      console.error('[JIRA ERROR] Status:', error.response?.status);
+
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        setErrorTimesheet('Token de autenticação Jira inválido ou expirado. Reconfigure nas configurações.');
+      } else {
+        setErrorTimesheet(`Erro ao carregar dados: ${error.response?.data?.error || error.message}`);
+      }
+
       setTimesheetData({ total_hours: 0, issues: [] });
     } finally {
       setLoadingTimesheet(false);
@@ -202,6 +294,7 @@ function JiraPage() {
   // Buscar lead time
   const fetchLeadTime = useCallback(async () => {
     setLoadingLeadTime(true);
+    setErrorLeadTime(null);
     try {
       const params = buildParams();
       const response = await apiClient.get(`/jira/lead-time/?${params}`);
@@ -219,7 +312,16 @@ function JiraPage() {
       }));
       setLeadTimeData(tableData);
     } catch (error) {
-      console.error('Erro ao buscar lead time:', error);
+      console.error('[JIRA ERROR] Erro ao buscar lead time:', error);
+      console.error('[JIRA ERROR] Response:', error.response?.data);
+      console.error('[JIRA ERROR] Status:', error.response?.status);
+
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        setErrorLeadTime('Token de autenticação Jira inválido ou expirado. Reconfigure nas configurações.');
+      } else {
+        setErrorLeadTime(`Erro ao carregar dados: ${error.response?.data?.error || error.message}`);
+      }
+
       setLeadTimeData([]);
     } finally {
       setLoadingLeadTime(false);
@@ -273,6 +375,27 @@ function JiraPage() {
     fetchLeadTime();
   };
 
+  // Diagnóstico manual
+  const handleDiagnostico = async () => {
+    try {
+      const response = await apiClient.get('/jira/config/diagnostico/');
+      console.log('[JIRA DIAGNÓSTICO COMPLETO]', response.data);
+
+      const { status, checks } = response.data;
+      console.group('🔍 DIAGNÓSTICO JIRA');
+      console.log('Status geral:', status);
+      console.log('Variáveis de ambiente:', checks.env_vars);
+      console.log('Configuração banco:', checks.config_banco);
+      console.log('Conexão Jira:', checks.conexao_jira);
+      console.groupEnd();
+
+      alert(`Diagnóstico executado!\n\nStatus: ${status}\n\nVeja detalhes no console (F12)`);
+    } catch (error) {
+      console.error('[JIRA] Erro ao executar diagnóstico:', error);
+      alert('Erro ao executar diagnóstico. Veja console para detalhes.');
+    }
+  };
+
   if (loadingConfig) {
     return (
       <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
@@ -307,10 +430,16 @@ function JiraPage() {
             Análise de atividades e performance do time
           </p>
         </div>
-        <Button onClick={handleRefreshAll} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Atualizar Tudo
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleDiagnostico} variant="outline" size="sm">
+            <Activity className="h-4 w-4 mr-2" />
+            Diagnóstico
+          </Button>
+          <Button onClick={handleRefreshAll} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar Tudo
+          </Button>
+        </div>
       </div>
 
       {/* Filtros Globais */}
@@ -352,18 +481,46 @@ function JiraPage() {
         </TabsList>
 
         <TabsContent value="resolvidas" className="space-y-4">
+          {errorResolvidas && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errorResolvidas}</AlertDescription>
+            </Alert>
+          )}
           <AtividadesResolvidasChart data={atividadesResolvidas} loading={loadingResolvidas} />
         </TabsContent>
 
         <TabsContent value="criado-vs-resolvido" className="space-y-4">
+          {errorCriadoVsResolvido && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errorCriadoVsResolvido}</AlertDescription>
+            </Alert>
+          )}
           <CriadoVsResolvidoChart data={criadoVsResolvido} loading={loadingCriadoVsResolvido} />
         </TabsContent>
 
         <TabsContent value="status" className="space-y-4">
-          <StatusCardsPanel data={statusData} loading={loadingStatus} />
+          {errorStatus && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errorStatus}</AlertDescription>
+            </Alert>
+          )}
+          <StatusCardsPanel
+            data={statusData}
+            loading={loadingStatus}
+            filters={{ period, dateRange, selectedBoard, selectedUser }}
+          />
         </TabsContent>
 
         <TabsContent value="timesheet" className="space-y-4">
+          {errorTimesheet && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errorTimesheet}</AlertDescription>
+            </Alert>
+          )}
           <TimesheetPanel
             data={timesheetData}
             loading={loadingTimesheet}
@@ -372,6 +529,12 @@ function JiraPage() {
         </TabsContent>
 
         <TabsContent value="lead-time" className="space-y-4">
+          {errorLeadTime && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errorLeadTime}</AlertDescription>
+            </Alert>
+          )}
           <LeadTimeTable data={leadTimeData} loading={loadingLeadTime} />
         </TabsContent>
       </Tabs>

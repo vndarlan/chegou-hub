@@ -3,15 +3,54 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { Badge } from '../../../components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import { IssueListModal } from './IssueListModal';
+import apiClient from '../../../utils/axios';
 
-export function StatusCardsPanel({ data, loading }) {
+export function StatusCardsPanel({ data, loading, filters }) {
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [loadingIssues, setLoadingIssues] = useState(false);
   const statusList = Array.isArray(data) ? data : [];
 
-  const handleCardClick = (status) => {
+  const handleCardClick = async (status) => {
     setSelectedStatus(status);
+    setLoadingIssues(true);
     setModalOpen(true);
+
+    try {
+      const params = new URLSearchParams();
+      params.append('status', status.name);
+
+      // Adicionar filtros globais
+      if (filters?.period && filters.period !== 'custom') {
+        params.append('period', filters.period);
+      } else if (filters?.dateRange?.from && filters?.dateRange?.to) {
+        params.append('start_date', filters.dateRange.from.toISOString().split('T')[0]);
+        params.append('end_date', filters.dateRange.to.toISOString().split('T')[0]);
+      }
+
+      if (filters?.selectedBoard !== 'all') {
+        params.append('board_id', filters.selectedBoard);
+      }
+
+      if (filters?.selectedUser !== 'all') {
+        params.append('assignee', filters.selectedUser);
+      }
+
+      const response = await apiClient.get(`/jira/issues/?${params}`);
+
+      setSelectedStatus({
+        ...status,
+        issues: response.data.data || []
+      });
+    } catch (error) {
+      console.error('[JIRA] Erro ao buscar issues:', error);
+      setSelectedStatus({
+        ...status,
+        issues: []
+      });
+    } finally {
+      setLoadingIssues(false);
+    }
   };
 
   if (loading) {

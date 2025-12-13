@@ -265,6 +265,7 @@ class JiraMetricsService:
 
             for issue in issues:
                 issue_key = issue.get('key')
+                issue_summary = issue.get('fields', {}).get('summary', issue_key)  # Capturar summary da issue
                 worklogs = self.client.get_worklog(issue_key)
 
                 for wl in worklogs:
@@ -272,6 +273,7 @@ class JiraMetricsService:
                         total_seconds += wl['time_spent_seconds']
                         worklogs_detail.append({
                             'issue_key': issue_key,
+                            'summary': issue_summary,  # Adicionar summary real da issue
                             'time_spent_seconds': wl['time_spent_seconds'],
                             'time_spent_hours': round(wl['time_spent_seconds'] / 3600, 2),
                             'started': wl['started'],

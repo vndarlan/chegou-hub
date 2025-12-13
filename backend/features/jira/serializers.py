@@ -115,6 +115,7 @@ class JiraByStatusSerializer(serializers.Serializer):
 class JiraWorklogSerializer(serializers.Serializer):
     """Serializer para worklog"""
     issue_key = serializers.CharField()
+    summary = serializers.CharField()
     time_spent_seconds = serializers.IntegerField()
     time_spent_hours = serializers.FloatField()
     started = serializers.DateTimeField()
@@ -132,6 +133,7 @@ class JiraLeadTimeBreakdownSerializer(serializers.Serializer):
     """Serializer para breakdown de lead time"""
     issue_key = serializers.CharField()
     summary = serializers.CharField()
+    assignee = serializers.CharField(allow_null=True, required=False)
     created = serializers.DateTimeField()
     resolved = serializers.DateTimeField()
     total_days = serializers.FloatField()
