@@ -165,6 +165,57 @@ class JiraConfigViewSet(viewsets.ModelViewSet):
 
         return Response(diagnostico)
 
+    def list(self, request):
+        """
+        Lista configuração efetiva do Jira.
+
+        Retorna a configuração que está sendo usada pelo JiraClient,
+        mesclando variáveis de ambiente (prioridade) e banco de dados (fallback).
+        """
+        import os
+
+        try:
+            # Verificar variáveis de ambiente (prioridade 1)
+            env_email = os.environ.get('JIRA_EMAIL')
+            env_token = os.environ.get('JIRA_API_TOKEN')
+            env_url = os.environ.get('JIRA_BASE_URL')
+            env_project = os.environ.get('JIRA_PROJECT_KEY')
+
+            # Se todas as env vars estão disponíveis, usar elas
+            if all([env_email, env_token, env_url, env_project]):
+                config_data = {
+                    'id': 0,  # ID fictício para indicar que vem de env vars
+                    'jira_url': env_url,
+                    'jira_email': env_email,
+                    'jira_project_key': env_project,
+                    'ativo': True,
+                    'ultima_sincronizacao': None,
+                    'criado_em': None,
+                    'atualizado_em': None,
+                }
+                logger.info("[JIRA] Retornando configuração das variáveis de ambiente")
+                return Response(config_data)
+
+            # Prioridade 2: Buscar do banco de dados
+            config = JiraConfig.objects.filter(ativo=True).first()
+
+            if not config:
+                return Response({
+                    'detail': 'Nenhuma configuração Jira encontrada. Configure as variáveis de ambiente ou crie uma configuração no banco.'
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            # Usar serializer padrão para retornar dados do banco
+            serializer = self.get_serializer(config)
+            logger.info("[JIRA] Retornando configuração do banco de dados")
+            return Response(serializer.data)
+
+        except Exception as e:
+            logger.error(f"[JIRA] Erro ao buscar configuração efetiva: {str(e)}")
+            return Response(
+                {'detail': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 class JiraUsersViewSet(viewsets.ViewSet):
     """ViewSet para usuários Jira"""
