@@ -248,7 +248,7 @@ class JiraClient:
 
     def search_issues(self, jql: str, fields: List[str] = None, max_results: int = 100) -> List[Dict]:
         """
-        Busca issues usando JQL (nova API /search/jql)
+        Busca issues usando JQL (POST /search com JQL no body)
 
         Args:
             jql: Query JQL
@@ -259,10 +259,10 @@ class JiraClient:
             fields = ['summary', 'status', 'assignee', 'created', 'updated', 'resolutiondate']
 
         try:
-            # Nova API: /rest/api/3/search/jql (migração obrigatória desde 2024)
+            # POST /search com JQL no body (Jira Cloud REST API v3)
             response = self._make_request(
                 'POST',
-                'search/jql',
+                'search',
                 json={
                     'jql': jql,
                     'fields': fields,
@@ -281,7 +281,7 @@ class JiraClient:
         """
         Busca TODAS as issues usando paginação automática
 
-        Usa POST /rest/api/3/search/jql com startAt para paginação
+        Usa POST /rest/api/3/search com startAt para paginação
 
         Args:
             jql: Query JQL
@@ -299,10 +299,10 @@ class JiraClient:
 
         try:
             while True:
-                # POST /search/jql com startAt no body (API migrada desde 2024)
+                # POST /search com JQL no body (Jira Cloud REST API v3)
                 response = self._make_request(
                     'POST',
-                    'search/jql',
+                    'search',
                     json={
                         'jql': jql,
                         'fields': fields,
