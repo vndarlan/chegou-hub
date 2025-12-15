@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.urls import path
 from django.shortcuts import redirect, get_object_or_404
 from django.http import HttpResponseRedirect
+from unfold.admin import ModelAdmin, TabularInline
 from .models import Organization, OrganizationMember, OrganizationInvite, UserModulePermission, MODULES
 
 
@@ -15,7 +16,7 @@ from .models import Organization, OrganizationMember, OrganizationInvite, UserMo
 # ORGANIZAÇÕES
 # ============================================================================
 
-class OrganizationMemberInline(admin.TabularInline):
+class OrganizationMemberInline(TabularInline):
     """Inline para membros da organização"""
     model = OrganizationMember
     extra = 0
@@ -24,7 +25,7 @@ class OrganizationMemberInline(admin.TabularInline):
     autocomplete_fields = ('user',)
 
 
-class OrganizationInviteInline(admin.TabularInline):
+class OrganizationInviteInline(TabularInline):
     """Inline para convites pendentes"""
     model = OrganizationInvite
     extra = 0
@@ -37,7 +38,7 @@ class OrganizationInviteInline(admin.TabularInline):
 
 
 @admin.register(Organization)
-class OrganizationAdmin(admin.ModelAdmin):
+class OrganizationAdmin(ModelAdmin):
     """Admin para Organizações (Workspaces)"""
     list_display = ('nome', 'get_status_badge', 'plano', 'get_total_membros', 'limite_membros', 'get_limite_status', 'ativo', 'criado_em')
     list_filter = ('status', 'plano', 'ativo', 'criado_em')
@@ -92,7 +93,7 @@ class OrganizationAdmin(admin.ModelAdmin):
     get_limite_atingido.short_description = 'Limite Atingido?'
 
 
-class UserModulePermissionInline(admin.TabularInline):
+class UserModulePermissionInline(TabularInline):
     """Inline para permissões de módulos"""
     model = UserModulePermission
     extra = 0
@@ -100,7 +101,7 @@ class UserModulePermissionInline(admin.TabularInline):
 
 
 @admin.register(OrganizationMember)
-class OrganizationMemberAdmin(admin.ModelAdmin):
+class OrganizationMemberAdmin(ModelAdmin):
     """Admin para Membros da Organização"""
     list_display = ('user', 'organization', 'role', 'get_role_badge', 'ativo', 'joined_at')
     list_filter = ('role', 'ativo', 'organization')
@@ -140,7 +141,7 @@ class OrganizationMemberAdmin(admin.ModelAdmin):
 
 
 @admin.register(OrganizationInvite)
-class OrganizationInviteAdmin(admin.ModelAdmin):
+class OrganizationInviteAdmin(ModelAdmin):
     """Admin para Convites de Organização"""
     list_display = ('email', 'organization', 'role', 'get_status_badge', 'expira_em', 'criado_em', 'get_aceitar_button')
     list_filter = ('status', 'role', 'organization', 'criado_em')
@@ -353,7 +354,7 @@ class OrganizationInviteAdmin(admin.ModelAdmin):
 
 
 @admin.register(UserModulePermission)
-class UserModulePermissionAdmin(admin.ModelAdmin):
+class UserModulePermissionAdmin(ModelAdmin):
     """Admin para Permissões de Módulos"""
     list_display = ('member', 'get_user', 'get_organization', 'module_key', 'get_module_name', 'ativo')
     list_filter = ('ativo', 'module_key', 'member__organization')
@@ -387,7 +388,8 @@ class UserModulePermissionAdmin(admin.ModelAdmin):
 # USUÁRIOS (Atualizado)
 # ============================================================================
 
-class UserAdmin(BaseUserAdmin):
+class UserAdmin(BaseUserAdmin, ModelAdmin):
+    """UserAdmin com herança múltipla: BaseUserAdmin + Unfold ModelAdmin"""
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'is_active', 'get_organizations')
     list_filter = ('is_active', 'is_staff', 'is_superuser')
     search_fields = ('username', 'first_name', 'last_name', 'email')

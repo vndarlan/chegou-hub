@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from unfold.admin import ModelAdmin, TabularInline
 from .models import (
     LogEntry, ProjetoIA, VersaoProjeto,
     # WhatsApp Business models
@@ -13,7 +14,7 @@ from .models import (
 
 # ===== ADMIN DE LOGS (EXISTENTE) =====
 @admin.register(LogEntry)
-class LogEntryAdmin(admin.ModelAdmin):
+class LogEntryAdmin(ModelAdmin):
     list_display = [
         'ferramenta', 'nivel', 'mensagem_resumida', 'pais', 
         'timestamp', 'resolvido', 'resolvido_por'
@@ -53,7 +54,7 @@ class LogEntryAdmin(admin.ModelAdmin):
 
 # ===== ADMIN DE PROJETOS DE IA =====
 
-class VersaoProjetoInline(admin.TabularInline):
+class VersaoProjetoInline(TabularInline):
     model = VersaoProjeto
     extra = 0
     readonly_fields = ['data_lancamento']
@@ -63,7 +64,7 @@ class VersaoProjetoInline(admin.TabularInline):
         return super().get_queryset(request).select_related('responsavel')
 
 @admin.register(ProjetoIA)
-class ProjetoIAAdmin(admin.ModelAdmin):
+class ProjetoIAAdmin(ModelAdmin):
     list_display = [
         'nome', 'status', 'tipo_projeto', 'departamento_atendido',
         'prioridade_badge', 'horas_breakdown', 'criado_por', 'versao_atual',
@@ -183,7 +184,7 @@ class ProjetoIAAdmin(admin.ModelAdmin):
         ).prefetch_related('criadores', 'dependencias')
 
 @admin.register(VersaoProjeto)
-class VersaoProjetoAdmin(admin.ModelAdmin):
+class VersaoProjetoAdmin(ModelAdmin):
     list_display = [
         'get_projeto_nome', 'versao', 'versao_anterior',
         'responsavel', 'data_lancamento'
@@ -217,7 +218,7 @@ class VersaoProjetoAdmin(admin.ModelAdmin):
 # ===== ADMIN DE WHATSAPP BUSINESS =====
 
 @admin.register(WhatsAppBusinessAccount)
-class WhatsAppBusinessAccountAdmin(admin.ModelAdmin):
+class WhatsAppBusinessAccountAdmin(ModelAdmin):
     list_display = [
         'nome', 'whatsapp_business_account_id', 'responsavel',
         'ativo', 'total_numeros', 'status_sincronizacao',
@@ -267,7 +268,7 @@ class WhatsAppBusinessAccountAdmin(admin.ModelAdmin):
     status_sincronizacao.short_description = 'Status Sync'
 
 
-class QualityAlertInline(admin.TabularInline):
+class QualityAlertInline(TabularInline):
     model = QualityAlert
     extra = 0
     readonly_fields = ['criado_em', 'usuario_que_visualizou', 'data_visualizacao']
@@ -280,7 +281,7 @@ class QualityAlertInline(admin.TabularInline):
 
 
 @admin.register(WhatsAppPhoneNumber)
-class WhatsAppPhoneNumberAdmin(admin.ModelAdmin):
+class WhatsAppPhoneNumberAdmin(ModelAdmin):
     list_display = [
         'display_phone_number', 'verified_name', 'whatsapp_business_account',
         'quality_badge', 'limit_badge', 'status_badge',
@@ -375,7 +376,7 @@ class WhatsAppPhoneNumberAdmin(admin.ModelAdmin):
 
 
 @admin.register(QualityHistory)
-class QualityHistoryAdmin(admin.ModelAdmin):
+class QualityHistoryAdmin(ModelAdmin):
     list_display = [
         'phone_number_display', 'quality_rating', 'messaging_limit_tier', 
         'status', 'mudancas_icons', 'capturado_em'
@@ -427,7 +428,7 @@ class QualityHistoryAdmin(admin.ModelAdmin):
 
 
 @admin.register(QualityAlert)
-class QualityAlertAdmin(admin.ModelAdmin):
+class QualityAlertAdmin(ModelAdmin):
     list_display = [
         'titulo', 'phone_number_display', 'alert_type', 'priority_badge',
         'visualizado', 'resolvido', 'criado_em'
@@ -500,7 +501,7 @@ class QualityAlertAdmin(admin.ModelAdmin):
 # ===== ADMIN DE NICOCHAT =====
 
 @admin.register(NicochatWorkspace)
-class NicochatWorkspaceAdmin(admin.ModelAdmin):
+class NicochatWorkspaceAdmin(ModelAdmin):
     list_display = [
         'nome', 'usuario', 'limite_contatos', 'ativo', 'criado_em', 'atualizado_em'
     ]

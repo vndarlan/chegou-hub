@@ -2,11 +2,12 @@ import os
 from django.contrib import admin
 from django.utils.html import format_html
 from django.contrib import messages
+from unfold.admin import ModelAdmin
 from .models import Feedback
 
 
 @admin.register(Feedback)
-class FeedbackAdmin(admin.ModelAdmin):
+class FeedbackAdmin(ModelAdmin):
     list_display = ['titulo', 'categoria', 'prioridade', 'status', 'usuario', 'data_criacao', 'status_imagem', 'aparece_em_notificacoes']
     list_filter = ['categoria', 'prioridade', 'status', 'data_criacao']
     search_fields = ['titulo', 'descricao', 'usuario__username']

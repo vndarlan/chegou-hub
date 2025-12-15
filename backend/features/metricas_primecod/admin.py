@@ -1,4 +1,5 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline
 from .models import (
     AnalisePrimeCOD,
     StatusMappingPrimeCOD,
@@ -9,7 +10,7 @@ from .models import (
 )
 
 @admin.register(AnalisePrimeCOD)
-class AnalisePrimeCODAdmin(admin.ModelAdmin):
+class AnalisePrimeCODAdmin(ModelAdmin):
     list_display = ('nome', 'tipo', 'criado_por', 'criado_em', 'atualizado_em')
     list_filter = ('tipo', 'criado_em', 'criado_por')
     search_fields = ('nome', 'descricao')
@@ -32,7 +33,7 @@ class AnalisePrimeCODAdmin(admin.ModelAdmin):
     )
 
 @admin.register(StatusMappingPrimeCOD)
-class StatusMappingPrimeCODAdmin(admin.ModelAdmin):
+class StatusMappingPrimeCODAdmin(ModelAdmin):
     list_display = ('categoria', 'status_original', 'status_mapeado', 'ativo', 'criado_em')
     list_filter = ('categoria', 'ativo', 'criado_em')
     search_fields = ('status_original', 'status_mapeado')
@@ -41,7 +42,7 @@ class StatusMappingPrimeCODAdmin(admin.ModelAdmin):
 
 
 @admin.register(PrimeCODCatalogProduct)
-class PrimeCODCatalogProductAdmin(admin.ModelAdmin):
+class PrimeCODCatalogProductAdmin(ModelAdmin):
     list_display = (
         'sku', 'name', 'quantity', 'stock_label',
         'price', 'cost', 'profit_margin_display',
@@ -79,7 +80,7 @@ class PrimeCODCatalogProductAdmin(admin.ModelAdmin):
     profit_margin_display.admin_order_field = 'price'
 
 
-class PrimeCODCatalogSnapshotInline(admin.TabularInline):
+class PrimeCODCatalogSnapshotInline(TabularInline):
     model = PrimeCODCatalogSnapshot
     extra = 0
     readonly_fields = ('snapshot_date', 'quantity', 'total_units_sold', 'created_at')
@@ -90,7 +91,7 @@ class PrimeCODCatalogSnapshotInline(admin.TabularInline):
 
 
 @admin.register(PrimeCODCatalogSnapshot)
-class PrimeCODCatalogSnapshotAdmin(admin.ModelAdmin):
+class PrimeCODCatalogSnapshotAdmin(ModelAdmin):
     list_display = (
         'product', 'snapshot_date', 'quantity',
         'total_units_sold', 'quantity_delta', 'units_sold_delta'
@@ -120,7 +121,7 @@ class PrimeCODCatalogSnapshotAdmin(admin.ModelAdmin):
 
 
 @admin.register(PrimeCODConfig)
-class PrimeCODConfigAdmin(admin.ModelAdmin):
+class PrimeCODConfigAdmin(ModelAdmin):
     list_display = ('id', 'is_active', 'updated_by', 'updated_at')
     readonly_fields = ('created_at', 'updated_at')
 
@@ -144,7 +145,7 @@ class PrimeCODConfigAdmin(admin.ModelAdmin):
 
 
 @admin.register(CatalogSyncLog)
-class CatalogSyncLogAdmin(admin.ModelAdmin):
+class CatalogSyncLogAdmin(ModelAdmin):
     list_display = (
         'id', 'started_at', 'status', 'duration_display',
         'products_created', 'products_updated', 'products_error', 'snapshots_created'

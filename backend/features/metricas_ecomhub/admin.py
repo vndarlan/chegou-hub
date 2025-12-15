@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from unfold.admin import ModelAdmin, TabularInline
 from .models import (
     AnaliseEcomhub, PedidoStatusAtual, HistoricoStatus,
     ConfiguracaoStatusTracking, EcomhubOrder, EcomhubStatusHistory, EcomhubAlertConfig
@@ -10,7 +11,7 @@ from .models import (
 
 
 @admin.register(AnaliseEcomhub)
-class AnaliseEcomhubAdmin(admin.ModelAdmin):
+class AnaliseEcomhubAdmin(ModelAdmin):
     list_display = ('nome', 'tipo_metrica', 'criado_por', 'criado_em', 'atualizado_em')
     list_filter = ('tipo_metrica', 'criado_em', 'criado_por')
     search_fields = ('nome', 'descricao')
@@ -35,7 +36,7 @@ class AnaliseEcomhubAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related('criado_por')
 
 
-class HistoricoStatusInline(admin.TabularInline):
+class HistoricoStatusInline(TabularInline):
     """Inline para histórico de status dentro de PedidoStatusAtual"""
     model = HistoricoStatus
     extra = 0
@@ -48,7 +49,7 @@ class HistoricoStatusInline(admin.TabularInline):
 
 
 @admin.register(PedidoStatusAtual)
-class PedidoStatusAtualAdmin(admin.ModelAdmin):
+class PedidoStatusAtualAdmin(ModelAdmin):
     list_display = (
         'pedido_id', 'status_atual', 'customer_name', 'pais', 
         'tempo_no_status_dias', 'nivel_alerta_colorido', 'data_criacao', 'updated_at'
@@ -132,7 +133,7 @@ class PedidoStatusAtualAdmin(admin.ModelAdmin):
 
 
 @admin.register(HistoricoStatus)
-class HistoricoStatusAdmin(admin.ModelAdmin):
+class HistoricoStatusAdmin(ModelAdmin):
     list_display = (
         'pedido_link', 'status_anterior', 'status_novo', 
         'data_mudanca', 'tempo_no_status_anterior_dias', 'created_at'
@@ -173,7 +174,7 @@ class HistoricoStatusAdmin(admin.ModelAdmin):
 
 
 @admin.register(ConfiguracaoStatusTracking)
-class ConfiguracaoStatusTrackingAdmin(admin.ModelAdmin):
+class ConfiguracaoStatusTrackingAdmin(ModelAdmin):
     list_display = (
         'id', 'limite_amarelo_padrao', 'limite_vermelho_padrao', 
         'limite_critico_padrao', 'intervalo_sincronizacao', 
@@ -219,7 +220,7 @@ from .models import EcomhubStore
 
 
 @admin.register(EcomhubStore)
-class EcomhubStoreAdmin(admin.ModelAdmin):
+class EcomhubStoreAdmin(ModelAdmin):
     list_display = ['name', 'country_name', 'is_active', 'last_sync', 'created_at']
     list_filter = ['is_active', 'country_name']
     search_fields = ['name', 'token', 'store_id']
@@ -252,7 +253,7 @@ class EcomhubStoreAdmin(admin.ModelAdmin):
 # ===========================================
 
 @admin.register(EcomhubOrder)
-class EcomhubOrderAdmin(admin.ModelAdmin):
+class EcomhubOrderAdmin(ModelAdmin):
     list_display = ['order_id', 'store', 'country_name', 'status', 'customer_name',
                     'alert_level', 'time_in_status_hours', 'date']
     list_filter = ['status', 'alert_level', 'country_name', 'store']
@@ -285,7 +286,7 @@ class EcomhubOrderAdmin(admin.ModelAdmin):
 
 
 @admin.register(EcomhubStatusHistory)
-class EcomhubStatusHistoryAdmin(admin.ModelAdmin):
+class EcomhubStatusHistoryAdmin(ModelAdmin):
     list_display = ['order', 'status_from', 'status_to', 'changed_at', 'duration_in_previous_status_hours']
     list_filter = ['status_from', 'status_to', 'changed_at']
     search_fields = ['order__order_id', 'order__customer_name']
@@ -294,7 +295,7 @@ class EcomhubStatusHistoryAdmin(admin.ModelAdmin):
 
 
 @admin.register(EcomhubAlertConfig)
-class EcomhubAlertConfigAdmin(admin.ModelAdmin):
+class EcomhubAlertConfigAdmin(ModelAdmin):
     list_display = ['status', 'yellow_threshold_hours', 'red_threshold_hours',
                     'critical_threshold_hours', 'updated_at']
     list_filter = ['status']
@@ -319,7 +320,7 @@ from .models import EfetividadeAnaliseV2
 
 
 @admin.register(EfetividadeAnaliseV2)
-class EfetividadeAnaliseV2Admin(admin.ModelAdmin):
+class EfetividadeAnaliseV2Admin(ModelAdmin):
     """Admin para análises de efetividade V2 (API direta)"""
 
     list_display = [

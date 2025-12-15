@@ -1,9 +1,10 @@
 # backend/features/metricas_dropi/admin.py
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 from .models import AnaliseDropi, DropiToken
 
 @admin.register(DropiToken)
-class DropiTokenAdmin(admin.ModelAdmin):
+class DropiTokenAdmin(ModelAdmin):
     list_display = ('pais', 'is_valid', 'expires_at', 'updated_at')
     list_filter = ('pais', 'expires_at')
     readonly_fields = ('created_at', 'updated_at')
@@ -15,7 +16,7 @@ class DropiTokenAdmin(admin.ModelAdmin):
     is_valid.short_description = 'Token Válido'
 
 @admin.register(AnaliseDropi)
-class AnaliseDropiAdmin(admin.ModelAdmin):
+class AnaliseDropiAdmin(ModelAdmin):
     list_display = ('nome', 'pais', 'data_inicio', 'data_fim', 'total_pedidos', 'criado_por', 'criado_em')
     list_filter = ('pais', 'data_inicio', 'data_fim', 'criado_em', 'criado_por')
     search_fields = ('nome', 'descricao')

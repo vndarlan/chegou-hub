@@ -1,16 +1,17 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 from .models import ApiProvider, ApiKey, UsageRecord, CostRecord, DataSync
 
 
 @admin.register(ApiProvider)
-class ApiProviderAdmin(admin.ModelAdmin):
+class ApiProviderAdmin(ModelAdmin):
     list_display = ['name', 'is_active', 'created_at']
     list_filter = ['is_active', 'created_at']
     search_fields = ['name']
 
 
 @admin.register(ApiKey)
-class ApiKeyAdmin(admin.ModelAdmin):
+class ApiKeyAdmin(ModelAdmin):
     list_display = ['name', 'provider', 'key_id', 'is_active', 'created_at']
     list_filter = ['provider', 'is_active', 'created_at']
     search_fields = ['name', 'key_id', 'description']
@@ -18,7 +19,7 @@ class ApiKeyAdmin(admin.ModelAdmin):
 
 
 @admin.register(UsageRecord)
-class UsageRecordAdmin(admin.ModelAdmin):
+class UsageRecordAdmin(ModelAdmin):
     list_display = ['api_key', 'date', 'model_name', 'total_requests', 'total_tokens', 'is_batch']
     list_filter = ['date', 'model_name', 'is_batch', 'api_key__provider']
     search_fields = ['api_key__name', 'model_name', 'project_id']
@@ -31,7 +32,7 @@ class UsageRecordAdmin(admin.ModelAdmin):
 
 
 @admin.register(CostRecord)
-class CostRecordAdmin(admin.ModelAdmin):
+class CostRecordAdmin(ModelAdmin):
     list_display = ['api_key', 'date', 'model_name', 'total_cost', 'currency']
     list_filter = ['date', 'model_name', 'currency', 'api_key__provider']
     search_fields = ['api_key__name', 'model_name', 'project_id']
@@ -44,7 +45,7 @@ class CostRecordAdmin(admin.ModelAdmin):
 
 
 @admin.register(DataSync)
-class DataSyncAdmin(admin.ModelAdmin):
+class DataSyncAdmin(ModelAdmin):
     list_display = ['provider', 'last_sync_date', 'last_sync_timestamp', 'sync_status']
     list_filter = ['sync_status', 'provider', 'last_sync_date']
     search_fields = ['provider__name', 'error_message']

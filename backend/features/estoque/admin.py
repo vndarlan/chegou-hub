@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from unfold.admin import ModelAdmin, TabularInline
 from .models import (
     ProdutoEstoque, MovimentacaoEstoque,
     # Modelos de produtos compartilhados
@@ -12,7 +13,7 @@ from .models import (
 
 
 @admin.register(ProdutoEstoque)
-class ProdutoEstoqueAdmin(admin.ModelAdmin):
+class ProdutoEstoqueAdmin(ModelAdmin):
     list_display = [
         'sku', 'nome', 'fornecedor', 'loja_config', 'estoque_atual', 
         'estoque_minimo', 'status_estoque', 'sync_status', 
@@ -116,7 +117,7 @@ class ProdutoEstoqueAdmin(admin.ModelAdmin):
     desabilitar_sync.short_description = "Desabilitar sincronização Shopify"
 
 
-class MovimentacaoEstoqueInline(admin.TabularInline):
+class MovimentacaoEstoqueInline(TabularInline):
     model = MovimentacaoEstoque
     extra = 0
     readonly_fields = ['data_movimentacao', 'estoque_anterior', 'estoque_posterior', 'valor_total']
@@ -130,7 +131,7 @@ class MovimentacaoEstoqueInline(admin.TabularInline):
 
 
 @admin.register(MovimentacaoEstoque)
-class MovimentacaoEstoqueAdmin(admin.ModelAdmin):
+class MovimentacaoEstoqueAdmin(ModelAdmin):
     list_display = [
         'produto', 'tipo_movimento', 'quantidade', 'estoque_anterior',
         'estoque_posterior', 'data_movimentacao', 'usuario', 'pedido_shopify_id'
@@ -190,20 +191,20 @@ ProdutoEstoqueAdmin.inlines = [MovimentacaoEstoqueInline]
 
 # ======= ADMIN PARA PRODUTOS COMPARTILHADOS =======
 
-class ProdutoSKUInline(admin.TabularInline):
+class ProdutoSKUInline(TabularInline):
     model = ProdutoSKU
     extra = 1
     fields = ['sku', 'descricao_variacao', 'ativo']
 
 
-class ProdutoLojaInline(admin.TabularInline):
+class ProdutoLojaInline(TabularInline):
     model = ProdutoLoja
     extra = 0
     fields = ['loja', 'shopify_product_id', 'shopify_variant_id', 'preco_venda', 'sync_shopify_enabled', 'ativo']
     readonly_fields = ['shopify_product_id', 'shopify_variant_id', 'ultima_sincronizacao']
 
 
-class MovimentacaoEstoqueCompartilhadoInline(admin.TabularInline):
+class MovimentacaoEstoqueCompartilhadoInline(TabularInline):
     model = MovimentacaoEstoqueCompartilhado
     extra = 0
     readonly_fields = ['data_movimentacao', 'estoque_anterior', 'estoque_posterior', 'valor_total']
@@ -217,7 +218,7 @@ class MovimentacaoEstoqueCompartilhadoInline(admin.TabularInline):
 
 
 @admin.register(Produto)
-class ProdutoAdmin(admin.ModelAdmin):
+class ProdutoAdmin(ModelAdmin):
     list_display = [
         'nome', 'fornecedor', 'estoque_compartilhado', 'estoque_minimo',
         'status_estoque_compartilhado', 'total_skus', 'total_lojas_conectadas',
@@ -313,7 +314,7 @@ class ProdutoAdmin(admin.ModelAdmin):
 
 
 @admin.register(ProdutoSKU)
-class ProdutoSKUAdmin(admin.ModelAdmin):
+class ProdutoSKUAdmin(ModelAdmin):
     list_display = ['sku', 'produto', 'descricao_variacao', 'ativo', 'data_criacao']
     list_filter = ['ativo', 'produto__fornecedor', 'data_criacao']
     search_fields = ['sku', 'produto__nome', 'descricao_variacao']
@@ -334,7 +335,7 @@ class ProdutoSKUAdmin(admin.ModelAdmin):
 
 
 @admin.register(ProdutoLoja)
-class ProdutoLojaAdmin(admin.ModelAdmin):
+class ProdutoLojaAdmin(ModelAdmin):
     list_display = [
         'produto', 'loja', 'shopify_product_id', 'shopify_variant_id',
         'preco_venda', 'sync_status_compartilhado', 'ativo'
@@ -386,7 +387,7 @@ class ProdutoLojaAdmin(admin.ModelAdmin):
 
 
 @admin.register(MovimentacaoEstoqueCompartilhado)
-class MovimentacaoEstoqueCompartilhadoAdmin(admin.ModelAdmin):
+class MovimentacaoEstoqueCompartilhadoAdmin(ModelAdmin):
     list_display = [
         'produto', 'tipo_movimento', 'quantidade', 'estoque_anterior',
         'estoque_posterior', 'loja_origem', 'data_movimentacao', 'usuario'

@@ -1,9 +1,10 @@
 # backend/features/tutoriais/admin.py
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline
 from .models import CategoriaAula, Aula
 
 
-class AulaInline(admin.TabularInline):
+class AulaInline(TabularInline):
     """Inline para gerenciar aulas dentro da categoria"""
     model = Aula
     extra = 0
@@ -13,7 +14,7 @@ class AulaInline(admin.TabularInline):
 
 
 @admin.register(CategoriaAula)
-class CategoriaAulaAdmin(admin.ModelAdmin):
+class CategoriaAulaAdmin(ModelAdmin):
     """Admin para gerenciar categorias de aulas"""
 
     list_display = [
@@ -53,7 +54,7 @@ class CategoriaAulaAdmin(admin.ModelAdmin):
 
 
 @admin.register(Aula)
-class AulaAdmin(admin.ModelAdmin):
+class AulaAdmin(ModelAdmin):
     """Admin para gerenciar aulas individuais"""
 
     list_display = [

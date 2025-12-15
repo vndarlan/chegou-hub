@@ -1,8 +1,9 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 from .models import ManagedCalendar
 
 @admin.register(ManagedCalendar)
-class ManagedCalendarAdmin(admin.ModelAdmin):
+class ManagedCalendarAdmin(ModelAdmin):
     list_display = ('name', 'get_iframe_preview', 'added_at')
     search_fields = ('name', 'iframe_code')
     list_filter = ('added_at',)
