@@ -45,10 +45,10 @@ class JiraMetricsService:
         try:
             # Construir JQL
             jql_parts = [f"project = {self.client.project_key}"]
-            jql_parts.append("status = Done")
+            jql_parts.append("statusCategory in (Done)")
 
-            # Filtro de período (usa 'resolutiondate' pois estamos buscando atividades resolvidas)
-            period_jql = self.client._build_period_jql(period, start_date, end_date, field='resolutiondate')
+            # Filtro de período (usa 'updated' porque resolutiondate pode estar vazio)
+            period_jql = self.client._build_period_jql(period, start_date, end_date, field='updated')
             jql_parts.append(f"({period_jql})")
 
             # Filtro de assignee
@@ -63,9 +63,11 @@ class JiraMetricsService:
                     jql_parts.append(f"Sprint in ({sprint_list})")
 
             jql = " AND ".join(jql_parts)
+            logger.info(f"[JIRA] Executando JQL para resolvidos: {jql}")
 
             # Buscar issues (com paginação para garantir todos os resultados)
-            issues = self.client.search_issues_paginated(jql, fields=['assignee', 'resolutiondate'])
+            issues = self.client.search_issues_paginated(jql, fields=['assignee', 'updated'])
+            logger.info(f"[JIRA] Encontradas {len(issues)} issues resolvidas")
 
             # Agrupar por assignee
             by_assignee = defaultdict(int)
@@ -126,10 +128,10 @@ class JiraMetricsService:
             jql_created = f"{jql_base} AND ({period_jql})"
             issues_created = self.client.search_issues_paginated(jql_created, fields=['created', 'assignee'])
 
-            # Buscar issues resolvidas (usa 'resolutiondate' para filtrar por data de resolução, com paginação)
-            resolved_period_jql = self.client._build_period_jql(period, start_date, end_date, field='resolutiondate')
-            jql_resolved = f"{jql_base} AND status = Done AND ({resolved_period_jql})"
-            issues_resolved = self.client.search_issues_paginated(jql_resolved, fields=['resolutiondate', 'assignee'])
+            # Buscar issues resolvidas (usa 'updated' porque resolutiondate pode estar vazio, com paginação)
+            resolved_period_jql = self.client._build_period_jql(period, start_date, end_date, field='updated')
+            jql_resolved = f"{jql_base} AND statusCategory in (Done) AND ({resolved_period_jql})"
+            issues_resolved = self.client.search_issues_paginated(jql_resolved, fields=['updated', 'assignee'])
 
             # Agrupar por usuário
             by_user = defaultdict(lambda: {'created': 0, 'resolved': 0})
