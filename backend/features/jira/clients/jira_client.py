@@ -248,45 +248,52 @@ class JiraClient:
 
     def search_issues(self, jql: str, fields: List[str] = None, max_results: int = 100) -> List[Dict]:
         """
-        Busca issues usando JQL (POST /search com JQL no body)
+        Busca issues usando JQL (POST /search/jql)
+
+        IMPORTANTE: Este método retorna apenas a primeira página (até max_results).
+        Para buscar TODAS as issues, use search_issues_paginated().
 
         Args:
             jql: Query JQL
             fields: Lista de campos para retornar
-            max_results: Máximo de resultados
+            max_results: Máximo de resultados (até 100)
+
+        Returns:
+            Lista de issues (primeira página apenas)
         """
         if fields is None:
             fields = ['summary', 'status', 'assignee', 'created', 'updated', 'resolutiondate']
 
         try:
-            # POST /search com JQL no body (Jira Cloud REST API v3)
+            # POST /search/jql com JQL no body (Jira Cloud REST API v3 - migração obrigatória desde 2025)
+            # Ref: https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-search/
             response = self._make_request(
                 'POST',
-                'search',
+                'search/jql',
                 json={
                     'jql': jql,
                     'fields': fields,
-                    'maxResults': max_results,
+                    'maxResults': min(max_results, 100),
                 }
             )
             data = response.json()
-
             return data.get('issues', [])
 
         except Exception as e:
             logger.error(f"[JIRA] Erro ao buscar issues: {str(e)}")
             raise JiraAPIError(f"Erro ao buscar issues: {str(e)}")
 
-    def search_issues_paginated(self, jql: str, fields: List[str] = None, max_results: int = 1000) -> List[Dict]:
+    def search_issues_paginated(self, jql: str, fields: List[str] = None, max_results: int = 100) -> List[Dict]:
         """
-        Busca TODAS as issues usando paginação automática
+        Busca TODAS as issues usando paginação automática com nextPageToken
 
-        Usa POST /rest/api/3/search com startAt para paginação
+        MUDANÇA IMPORTANTE: Nova API usa nextPageToken ao invés de startAt
+        Ref: https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-search/
 
         Args:
             jql: Query JQL
             fields: Lista de campos para retornar
-            max_results: Tamanho da página (padrão 1000, máximo por request)
+            max_results: Tamanho da página (recomendado: 50-100, máximo: 100)
 
         Returns:
             Lista completa de issues (sem limite)
@@ -295,34 +302,43 @@ class JiraClient:
             fields = ['summary', 'status', 'assignee', 'created', 'updated', 'resolutiondate']
 
         all_issues = []
-        start_at = 0
+        next_page_token = None
 
         try:
             while True:
-                # POST /search com JQL no body (Jira Cloud REST API v3)
+                # Construir payload
+                payload = {
+                    'jql': jql,
+                    'fields': fields,
+                    'maxResults': min(max_results, 100),  # Limite máximo de 100
+                }
+
+                # Adicionar token se não for a primeira página
+                if next_page_token:
+                    payload['nextPageToken'] = next_page_token
+
+                # POST /search/jql com JQL no body (Jira Cloud REST API v3 - migração obrigatória desde 2025)
+                # Ref: https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-search/
                 response = self._make_request(
                     'POST',
-                    'search',
-                    json={
-                        'jql': jql,
-                        'fields': fields,
-                        'startAt': start_at,
-                        'maxResults': max_results,
-                    }
+                    'search/jql',
+                    json=payload
                 )
                 data = response.json()
 
+                # Adicionar issues da página atual
                 issues = data.get('issues', [])
                 all_issues.extend(issues)
 
-                # Verificar se há mais páginas
-                total = data.get('total', 0)
-                if start_at + len(issues) >= total:
+                logger.info(f"[JIRA] Página retornou {len(issues)} issues (total acumulado: {len(all_issues)})")
+
+                # Verificar se há próxima página
+                next_page_token = data.get('nextPageToken')
+                if not next_page_token:
+                    # Sem token = última página
                     break
 
-                start_at += max_results
-
-            logger.info(f"[JIRA] Buscadas {len(all_issues)} issues no total")
+            logger.info(f"[JIRA] Busca paginada concluída: {len(all_issues)} issues no total")
             return all_issues
 
         except Exception as e:
