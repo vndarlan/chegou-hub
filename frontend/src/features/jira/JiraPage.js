@@ -169,13 +169,14 @@ function JiraPage() {
       setAtividadesResolvidas(chartData);
     } catch (error) {
       console.error('[JIRA ERROR] Erro ao buscar atividades resolvidas:', error);
-      console.error('[JIRA ERROR] Response:', error.response?.data);
+      console.error('[JIRA ERROR] Response:', JSON.stringify(error.response?.data, null, 2));
       console.error('[JIRA ERROR] Status:', error.response?.status);
 
       if (error.response?.status === 401 || error.response?.status === 403) {
         setErrorResolvidas('Token de autenticação Jira inválido ou expirado. Reconfigure nas configurações.');
       } else {
-        setErrorResolvidas(`Erro ao carregar dados: ${error.response?.data?.error || error.message}`);
+        const errorMsg = error.response?.data?.error || error.response?.data?.detail || error.response?.data?.message || error.message;
+        setErrorResolvidas(`Erro ao carregar dados: ${errorMsg}`);
       }
 
       setAtividadesResolvidas([]);
@@ -202,13 +203,14 @@ function JiraPage() {
       setCriadoVsResolvido(chartData);
     } catch (error) {
       console.error('[JIRA ERROR] Erro ao buscar criado vs resolvido:', error);
-      console.error('[JIRA ERROR] Response:', error.response?.data);
+      console.error('[JIRA ERROR] Response:', JSON.stringify(error.response?.data, null, 2));
       console.error('[JIRA ERROR] Status:', error.response?.status);
 
       if (error.response?.status === 401 || error.response?.status === 403) {
         setErrorCriadoVsResolvido('Token de autenticação Jira inválido ou expirado. Reconfigure nas configurações.');
       } else {
-        setErrorCriadoVsResolvido(`Erro ao carregar dados: ${error.response?.data?.error || error.message}`);
+        const errorMsg = error.response?.data?.error || error.response?.data?.detail || error.response?.data?.message || error.message;
+        setErrorCriadoVsResolvido(`Erro ao carregar dados: ${errorMsg}`);
       }
 
       setCriadoVsResolvido([]);
@@ -234,13 +236,14 @@ function JiraPage() {
       setStatusData(panelData);
     } catch (error) {
       console.error('[JIRA ERROR] Erro ao buscar por status:', error);
-      console.error('[JIRA ERROR] Response:', error.response?.data);
+      console.error('[JIRA ERROR] Response:', JSON.stringify(error.response?.data, null, 2));
       console.error('[JIRA ERROR] Status:', error.response?.status);
 
       if (error.response?.status === 401 || error.response?.status === 403) {
         setErrorStatus('Token de autenticação Jira inválido ou expirado. Reconfigure nas configurações.');
       } else {
-        setErrorStatus(`Erro ao carregar dados: ${error.response?.data?.error || error.message}`);
+        const errorMsg = error.response?.data?.error || error.response?.data?.detail || error.response?.data?.message || error.message;
+        setErrorStatus(`Erro ao carregar dados: ${errorMsg}`);
       }
 
       setStatusData([]);
@@ -276,13 +279,14 @@ function JiraPage() {
       setTimesheetData(panelData);
     } catch (error) {
       console.error('[JIRA ERROR] Erro ao buscar timesheet:', error);
-      console.error('[JIRA ERROR] Response:', error.response?.data);
+      console.error('[JIRA ERROR] Response:', JSON.stringify(error.response?.data, null, 2));
       console.error('[JIRA ERROR] Status:', error.response?.status);
 
       if (error.response?.status === 401 || error.response?.status === 403) {
         setErrorTimesheet('Token de autenticação Jira inválido ou expirado. Reconfigure nas configurações.');
       } else {
-        setErrorTimesheet(`Erro ao carregar dados: ${error.response?.data?.error || error.message}`);
+        const errorMsg = error.response?.data?.error || error.response?.data?.detail || error.response?.data?.message || error.message;
+        setErrorTimesheet(`Erro ao carregar dados: ${errorMsg}`);
       }
 
       setTimesheetData({ total_hours: 0, issues: [] });
@@ -313,13 +317,14 @@ function JiraPage() {
       setLeadTimeData(tableData);
     } catch (error) {
       console.error('[JIRA ERROR] Erro ao buscar lead time:', error);
-      console.error('[JIRA ERROR] Response:', error.response?.data);
+      console.error('[JIRA ERROR] Response:', JSON.stringify(error.response?.data, null, 2));
       console.error('[JIRA ERROR] Status:', error.response?.status);
 
       if (error.response?.status === 401 || error.response?.status === 403) {
         setErrorLeadTime('Token de autenticação Jira inválido ou expirado. Reconfigure nas configurações.');
       } else {
-        setErrorLeadTime(`Erro ao carregar dados: ${error.response?.data?.error || error.message}`);
+        const errorMsg = error.response?.data?.error || error.response?.data?.detail || error.response?.data?.message || error.message;
+        setErrorLeadTime(`Erro ao carregar dados: ${errorMsg}`);
       }
 
       setLeadTimeData([]);
