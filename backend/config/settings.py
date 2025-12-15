@@ -886,17 +886,9 @@ WEBSOCKET_CLOSE_TIMEOUT = 10  # Timeout para fechar conexões em segundos
 
 # ======================== CONFIGURAÇÃO DJANGO UNFOLD (ADMIN CUSTOMIZADO) ========================
 
-# === CORREÇÃO DEFINITIVA: RuntimeError: populate() isn't reentrant ===
-# Problema: Imports de reverse_lazy, gettext_lazy e static no topo do arquivo
-# causavam inicialização dupla do Django durante collectstatic.
-# Solução: Função helper _lazy_reverse() que faz reverse sem importar Django no topo.
-# Resultado: collectstatic funciona sem erros ✅
-def _lazy_reverse(viewname):
-    """Retorna uma função que faz reverse_lazy de forma lazy, evitando imports prematuros"""
-    def _reverse(request=None):
-        from django.urls import reverse
-        return reverse(viewname)
-    return _reverse
+# Imports necessários para configuração do Unfold
+from django.urls import reverse_lazy
+from django.templatetags.static import static
 
 UNFOLD = {
     "SITE_TITLE": "Chegou Hub Admin",
@@ -909,33 +901,44 @@ UNFOLD = {
     "SHOW_HISTORY": True,  # Mostrar histórico de alterações
     "SHOW_VIEW_ON_SITE": True,  # Botão "Ver no site"
 
-    # Cores EXATAS do Chegou Hub Frontend (de globals.css)
-    # Convertidas CORRETAMENTE de HSL para RGB
+    # Cores do Chegou Hub Frontend - Convertidas para OKLCH
+    # Espaço de cores OKLCH oferece melhor perceptibilidade e gradientes mais suaves
     "COLORS": {
         "primary": {
-            "50": "255 250 245",
-            "100": "255 244 235",
-            "200": "254 233 215",
-            "300": "254 220 186",
-            "400": "253 186 116",
-            "500": "249 116 21",     # hsl(25, 95%, 53%) = RGB CORRETO
-            "600": "230 107 0",
-            "700": "194 85 0",
-            "800": "163 71 0",
-            "900": "122 53 0",
-            "950": "82 36 0",
+            "50": "oklch(98.5% 0.01 40.85)",
+            "100": "oklch(96.5% 0.025 40.85)",
+            "200": "oklch(92.5% 0.05 40.85)",
+            "300": "oklch(85.5% 0.09 40.85)",
+            "400": "oklch(76.5% 0.14 40.85)",
+            "500": "oklch(68.9% 0.18 40.85)",
+            "600": "oklch(61.2% 0.165 40.85)",
+            "700": "oklch(52.8% 0.145 40.85)",
+            "800": "oklch(45.2% 0.125 40.85)",
+            "900": "oklch(38.5% 0.105 40.85)",
+            "950": "oklch(28.2% 0.08 40.85)",
         },
-        # Tema CLARO - globals.css :root
+        "base": {
+            "50": "oklch(98.5% 0.002 240)",
+            "100": "oklch(96.7% 0.003 240)",
+            "200": "oklch(92.8% 0.006 240)",
+            "300": "oklch(87.2% 0.01 240)",
+            "400": "oklch(70.7% 0.022 240)",
+            "500": "oklch(55.1% 0.027 240)",
+            "600": "oklch(44.6% 0.03 240)",
+            "700": "oklch(37.3% 0.034 240)",
+            "800": "oklch(27.8% 0.033 240)",
+            "900": "oklch(21% 0.034 240)",
+            "950": "oklch(13% 0.028 240)",
+        },
         "font": {
-            "subtle": "113 113 122",     # hsl(240, 3.8%, 46.1%)
-            "default": "8 8 10",         # hsl(240, 10%, 3.9%)
-            "brand": "249 116 21",       # hsl(25, 95%, 53%)
+            "subtle": "oklch(58.5% 0.015 240)",
+            "default": "oklch(13% 0.028 240)",
+            "brand": "oklch(68.9% 0.18 40.85)",
         },
-        # Tema ESCURO - globals.css .dark
         "font-dark": {
-            "subtle": "161 161 169",     # hsl(240, 5%, 64.9%)
-            "default": "249 249 249",    # hsl(0, 0%, 98%)
-            "brand": "249 116 21",       # hsl(25, 95%, 53%)
+            "subtle": "oklch(70.5% 0.012 240)",
+            "default": "oklch(98.5% 0.002 0)",
+            "brand": "oklch(68.9% 0.18 40.85)",
         },
     },
 
@@ -951,12 +954,12 @@ UNFOLD = {
                     {
                         "title": "Usuários",
                         "icon": "person",
-                        "link": _lazy_reverse("admin:auth_user_changelist"),
+                        "link": lambda request: reverse_lazy("admin:auth_user_changelist"),
                     },
                     {
                         "title": "Grupos",
                         "icon": "group",
-                        "link": _lazy_reverse("admin:auth_group_changelist"),
+                        "link": lambda request: reverse_lazy("admin:auth_group_changelist"),
                     },
                 ],
             },
@@ -972,15 +975,15 @@ UNFOLD = {
                         "items": [
                             {
                                 "title": "Projetos IA",
-                                "link": _lazy_reverse("admin:ia_projetoia_changelist"),
+                                "link": lambda request: reverse_lazy("admin:ia_projetoia_changelist"),
                             },
                             {
                                 "title": "Logs de Erros",
-                                "link": _lazy_reverse("admin:ia_logentry_changelist"),
+                                "link": lambda request: reverse_lazy("admin:ia_logentry_changelist"),
                             },
                             {
                                 "title": "WhatsApp Business",
-                                "link": _lazy_reverse("admin:ia_whatsappbusinessaccount_changelist"),
+                                "link": lambda request: reverse_lazy("admin:ia_whatsappbusinessaccount_changelist"),
                             },
                         ],
                     },
@@ -991,11 +994,11 @@ UNFOLD = {
                         "items": [
                             {
                                 "title": "Shopify Config",
-                                "link": _lazy_reverse("admin:processamento_shopifyconfig_changelist"),
+                                "link": lambda request: reverse_lazy("admin:processamento_shopifyconfig_changelist"),
                             },
                             {
                                 "title": "Processamento",
-                                "link": _lazy_reverse("admin:processamento_processamentolog_changelist"),
+                                "link": lambda request: reverse_lazy("admin:processamento_processamentolog_changelist"),
                             },
                         ],
                     },
@@ -1006,15 +1009,15 @@ UNFOLD = {
                         "items": [
                             {
                                 "title": "Produtos",
-                                "link": _lazy_reverse("admin:estoque_produtoestoque_changelist"),
+                                "link": lambda request: reverse_lazy("admin:estoque_produtoestoque_changelist"),
                             },
                             {
                                 "title": "Movimentações",
-                                "link": _lazy_reverse("admin:estoque_movimentacaoestoque_changelist"),
+                                "link": lambda request: reverse_lazy("admin:estoque_movimentacaoestoque_changelist"),
                             },
                             {
                                 "title": "Alertas",
-                                "link": _lazy_reverse("admin:estoque_alertaestoque_changelist"),
+                                "link": lambda request: reverse_lazy("admin:estoque_alertaestoque_changelist"),
                             },
                         ],
                     },
@@ -1032,19 +1035,19 @@ UNFOLD = {
                         "items": [
                             {
                                 "title": "N1 Itália",
-                                "link": _lazy_reverse("admin:metricas_n1italia_analisen1italia_changelist"),
+                                "link": lambda request: reverse_lazy("admin:metricas_n1italia_analisen1italia_changelist"),
                             },
                             {
                                 "title": "Dropi",
-                                "link": _lazy_reverse("admin:metricas_dropi_analisedropi_changelist"),
+                                "link": lambda request: reverse_lazy("admin:metricas_dropi_analisedropi_changelist"),
                             },
                             {
                                 "title": "EcomHub",
-                                "link": _lazy_reverse("admin:metricas_ecomhub_analiseecomhub_changelist"),
+                                "link": lambda request: reverse_lazy("admin:metricas_ecomhub_analiseecomhub_changelist"),
                             },
                             {
                                 "title": "PrimeCOD",
-                                "link": _lazy_reverse("admin:metricas_primecod_analiseprimecod_changelist"),
+                                "link": lambda request: reverse_lazy("admin:metricas_primecod_analiseprimecod_changelist"),
                             },
                         ],
                     },
@@ -1055,15 +1058,15 @@ UNFOLD = {
                         "items": [
                             {
                                 "title": "Providers",
-                                "link": _lazy_reverse("admin:api_monitoring_apiprovider_changelist"),
+                                "link": lambda request: reverse_lazy("admin:api_monitoring_apiprovider_changelist"),
                             },
                             {
                                 "title": "API Keys",
-                                "link": _lazy_reverse("admin:api_monitoring_apikey_changelist"),
+                                "link": lambda request: reverse_lazy("admin:api_monitoring_apikey_changelist"),
                             },
                             {
                                 "title": "Usage Records",
-                                "link": _lazy_reverse("admin:api_monitoring_usagerecord_changelist"),
+                                "link": lambda request: reverse_lazy("admin:api_monitoring_usagerecord_changelist"),
                             },
                         ],
                     },
@@ -1076,7 +1079,7 @@ UNFOLD = {
                     {
                         "title": "Feedbacks",
                         "icon": "feedback",
-                        "link": _lazy_reverse("admin:feedback_feedback_changelist"),
+                        "link": lambda request: reverse_lazy("admin:feedback_feedback_changelist"),
                     },
                 ],
             },
@@ -1085,7 +1088,7 @@ UNFOLD = {
 
     # Estilos customizados (cores do ChegouHub)
     "STYLES": [
-        # lambda request: f"{STATIC_URL}css/unfold_custom.css",  # Desabilitado: arquivo não existe
+        lambda request: static("css/unfold_custom.css"),
     ],
 
     # Scripts customizados
