@@ -273,14 +273,15 @@ class JiraMetricsService:
                 else:
                     date_start = date_end - timedelta(days=30)  # Default 30 dias
 
-            # JQL base - buscar TODAS as issues do assignee (sem filtro de data)
-            # porque o worklog pode estar em issues antigas
-            jql = f"project = {self.client.project_key} AND assignee = '{assignee}'"
+            # JQL base - buscar issues recentes do assignee para evitar rate limit
+            # Usa 'updated' para pegar issues que podem ter worklog recente
+            period_jql = self.client._build_period_jql(period, start_date, end_date, field='updated')
+            jql = f"project = {self.client.project_key} AND assignee = '{assignee}' AND ({period_jql})"
             logger.info(f"[JIRA] Executando JQL para timesheet: {jql}")
 
             # Buscar issues (com paginação para garantir todos os resultados)
             issues = self.client.search_issues_paginated(jql, fields=['summary'])
-            logger.info(f"[JIRA] Encontradas {len(issues)} issues do assignee")
+            logger.info(f"[JIRA] Encontradas {len(issues)} issues do assignee para processar worklogs")
 
             # Buscar worklog de cada issue e filtrar por data
             total_seconds = 0
