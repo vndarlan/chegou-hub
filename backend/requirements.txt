@@ -53,6 +53,3 @@ ShopifyAPI>=12.0.0
 # Django Channels para WebSockets em tempo real
 channels>=4.1.0
 channels-redis>=4.2.0
-
-# Django Unfold para admin moderno e customizado
-django-unfold==0.67.0

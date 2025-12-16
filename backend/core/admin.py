@@ -408,6 +408,6 @@ admin.site.register(User, UserAdmin)
 # CUSTOMIZAÇÃO DO SITE ADMIN
 # ============================================================================
 
-admin.site.site_header = 'ChegouHub - Administração'
-admin.site.site_title = 'ChegouHub Admin'
-admin.site.index_title = 'Gerenciamento de Organizações e Usuários'
+admin.site.site_header = 'Chegou Hub Admin'
+admin.site.site_title = 'Chegou Hub Admin'
+admin.site.index_title = 'Painel de Controle'

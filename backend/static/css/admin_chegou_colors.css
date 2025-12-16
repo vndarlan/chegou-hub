@@ -80,3 +80,63 @@ table thead th.sorted {
 ::-webkit-scrollbar-thumb:hover {
     background-color: rgba(255, 122, 0, 0.5);
 }
+
+/* REMOVER AZUL - FORÇAR LARANJA */
+
+/* Cabeçalhos de seções */
+.module h2,
+.module caption {
+    background: var(--chegou-primary-light) !important;
+    color: var(--chegou-primary-hover) !important;
+}
+
+/* Títulos de fieldsets */
+.aligned label,
+fieldset h2 {
+    color: var(--chegou-primary-hover) !important;
+}
+
+/* Botões "Adicionar" */
+.addlink,
+.add-row a {
+    color: var(--chegou-primary) !important;
+}
+
+.addlink:hover,
+.add-row a:hover {
+    color: var(--chegou-primary-hover) !important;
+}
+
+/* Ações da tabela */
+.row-actions a {
+    color: var(--chegou-primary) !important;
+}
+
+/* Remover azul padrão do Django */
+.object-tools a {
+    background: var(--chegou-primary) !important;
+    color: white !important;
+}
+
+.object-tools a:hover {
+    background: var(--chegou-primary-hover) !important;
+}
+
+/* Django breadcrumbs home link */
+.breadcrumbs a:first-child {
+    color: var(--chegou-primary) !important;
+}
+
+/* Filtros laterais */
+#changelist-filter h2,
+#changelist-filter h3 {
+    color: var(--chegou-primary-hover) !important;
+}
+
+#changelist-filter a {
+    color: var(--chegou-primary) !important;
+}
+
+#changelist-filter a:hover {
+    color: var(--chegou-primary-hover) !important;
+}

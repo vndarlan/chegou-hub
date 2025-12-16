@@ -1,12 +1,11 @@
 # backend/features/metricas_n1italia/admin.py
 from django.contrib import admin
 from django.utils.html import format_html
-from unfold.admin import ModelAdmin
 from .models import AnaliseN1Italia
 
 
 @admin.register(AnaliseN1Italia)
-class AnaliseN1ItaliaAdmin(ModelAdmin):
+class AnaliseN1ItaliaAdmin(admin.ModelAdmin):
     """Admin interface para Análises N1 Itália"""
 
     list_display = (

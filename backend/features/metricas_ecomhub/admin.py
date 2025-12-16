@@ -3,7 +3,6 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from unfold.admin import ModelAdmin, TabularInline
 from .models import (
     AnaliseEcomhub, PedidoStatusAtual, HistoricoStatus,
     ConfiguracaoStatusTracking, EcomhubOrder, EcomhubStatusHistory, EcomhubAlertConfig
@@ -11,7 +10,7 @@ from .models import (
 
 
 @admin.register(AnaliseEcomhub)
-class AnaliseEcomhubAdmin(ModelAdmin):
+class AnaliseEcomhubAdmin(admin.ModelAdmin):
     list_display = ('nome', 'tipo_metrica', 'criado_por', 'criado_em', 'atualizado_em')
     list_filter = ('tipo_metrica', 'criado_em', 'criado_por')
     search_fields = ('nome', 'descricao')
@@ -36,7 +35,7 @@ class AnaliseEcomhubAdmin(ModelAdmin):
         return super().get_queryset(request).select_related('criado_por')
 
 
-class HistoricoStatusInline(TabularInline):
+class HistoricoStatusInline(admin.TabularInline):
     """Inline para histórico de status dentro de PedidoStatusAtual"""
     model = HistoricoStatus
     extra = 0
@@ -49,7 +48,7 @@ class HistoricoStatusInline(TabularInline):
 
 
 @admin.register(PedidoStatusAtual)
-class PedidoStatusAtualAdmin(ModelAdmin):
+class PedidoStatusAtualAdmin(admin.ModelAdmin):
     list_display = (
         'pedido_id', 'status_atual', 'customer_name', 'pais', 
         'tempo_no_status_dias', 'nivel_alerta_colorido', 'data_criacao', 'updated_at'
@@ -133,7 +132,7 @@ class PedidoStatusAtualAdmin(ModelAdmin):
 
 
 @admin.register(HistoricoStatus)
-class HistoricoStatusAdmin(ModelAdmin):
+class HistoricoStatusAdmin(admin.ModelAdmin):
     list_display = (
         'pedido_link', 'status_anterior', 'status_novo', 
         'data_mudanca', 'tempo_no_status_anterior_dias', 'created_at'
@@ -174,7 +173,7 @@ class HistoricoStatusAdmin(ModelAdmin):
 
 
 @admin.register(ConfiguracaoStatusTracking)
-class ConfiguracaoStatusTrackingAdmin(ModelAdmin):
+class ConfiguracaoStatusTrackingAdmin(admin.ModelAdmin):
     list_display = (
         'id', 'limite_amarelo_padrao', 'limite_vermelho_padrao', 
         'limite_critico_padrao', 'intervalo_sincronizacao', 
@@ -210,17 +209,12 @@ class ConfiguracaoStatusTrackingAdmin(ModelAdmin):
         return False
 
 
-# Customizações no admin
-admin.site.site_header = "ECOMHUB Status Tracking Admin"
-admin.site.site_title = "ECOMHUB Admin"
-admin.site.index_title = "Painel de Controle - Status Tracking"
-
 # Admin para gerenciamento de lojas ECOMHUB
 from .models import EcomhubStore
 
 
 @admin.register(EcomhubStore)
-class EcomhubStoreAdmin(ModelAdmin):
+class EcomhubStoreAdmin(admin.ModelAdmin):
     list_display = ['name', 'country_name', 'is_active', 'last_sync', 'created_at']
     list_filter = ['is_active', 'country_name']
     search_fields = ['name', 'token', 'store_id']
@@ -253,7 +247,7 @@ class EcomhubStoreAdmin(ModelAdmin):
 # ===========================================
 
 @admin.register(EcomhubOrder)
-class EcomhubOrderAdmin(ModelAdmin):
+class EcomhubOrderAdmin(admin.ModelAdmin):
     list_display = ['order_id', 'store', 'country_name', 'status', 'customer_name',
                     'alert_level', 'time_in_status_hours', 'date']
     list_filter = ['status', 'alert_level', 'country_name', 'store']
@@ -286,7 +280,7 @@ class EcomhubOrderAdmin(ModelAdmin):
 
 
 @admin.register(EcomhubStatusHistory)
-class EcomhubStatusHistoryAdmin(ModelAdmin):
+class EcomhubStatusHistoryAdmin(admin.ModelAdmin):
     list_display = ['order', 'status_from', 'status_to', 'changed_at', 'duration_in_previous_status_hours']
     list_filter = ['status_from', 'status_to', 'changed_at']
     search_fields = ['order__order_id', 'order__customer_name']
@@ -295,7 +289,7 @@ class EcomhubStatusHistoryAdmin(ModelAdmin):
 
 
 @admin.register(EcomhubAlertConfig)
-class EcomhubAlertConfigAdmin(ModelAdmin):
+class EcomhubAlertConfigAdmin(admin.ModelAdmin):
     list_display = ['status', 'yellow_threshold_hours', 'red_threshold_hours',
                     'critical_threshold_hours', 'updated_at']
     list_filter = ['status']
@@ -320,7 +314,7 @@ from .models import EfetividadeAnaliseV2
 
 
 @admin.register(EfetividadeAnaliseV2)
-class EfetividadeAnaliseV2Admin(ModelAdmin):
+class EfetividadeAnaliseV2Admin(admin.ModelAdmin):
     """Admin para análises de efetividade V2 (API direta)"""
 
     list_display = [

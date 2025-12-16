@@ -1,11 +1,10 @@
 # backend/features/jira/admin.py
 from django.contrib import admin
-from unfold.admin import ModelAdmin
 from .models import JiraConfig
 
 
 @admin.register(JiraConfig)
-class JiraConfigAdmin(ModelAdmin):
+class JiraConfigAdmin(admin.ModelAdmin):
     """Admin para configurações Jira"""
 
     list_display = [
