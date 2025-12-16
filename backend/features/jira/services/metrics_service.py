@@ -285,34 +285,43 @@ class JiraMetricsService:
 
             # Buscar worklog de cada issue e filtrar por data
             total_seconds = 0
-            worklogs_detail = []
+            issues_aggregated = {}  # Agregar por issue_key
 
             for issue in issues:
                 issue_key = issue.get('key')
                 issue_summary = issue.get('fields', {}).get('summary', issue_key)
                 worklogs = self.client.get_worklog(issue_key)
 
+                issue_total_seconds = 0
                 for wl in worklogs:
                     if wl['author_id'] == assignee:
                         # Filtrar worklogs por data
                         worklog_date = datetime.fromisoformat(wl['started'].replace('Z', '+00:00'))
                         if date_start <= worklog_date.replace(tzinfo=None) <= date_end:
+                            issue_total_seconds += wl['time_spent_seconds']
                             total_seconds += wl['time_spent_seconds']
-                            worklogs_detail.append({
-                                'issue_key': issue_key,
-                                'summary': issue_summary,
-                                'time_spent_seconds': wl['time_spent_seconds'],
-                                'time_spent_hours': round(wl['time_spent_seconds'] / 3600, 2),
-                                'started': wl['started'],
-                                'comment': wl['comment'],
-                            })
+
+                # Adicionar issue apenas se tiver worklogs no período
+                if issue_total_seconds > 0:
+                    issues_aggregated[issue_key] = {
+                        'key': issue_key,
+                        'summary': issue_summary,
+                        'hours': round(issue_total_seconds / 3600, 2),
+                    }
+
+            # Converter para lista ordenada por horas (decrescente)
+            issues_list = sorted(
+                issues_aggregated.values(),
+                key=lambda x: x['hours'],
+                reverse=True
+            )
 
             return {
                 'status': 'success',
                 'data': {
                     'total_seconds': total_seconds,
                     'total_hours': round(total_seconds / 3600, 2),
-                    'worklogs': worklogs_detail,
+                    'issues': issues_list,
                 },
                 'period': period,
             }
