@@ -1088,6 +1088,8 @@ UNFOLD = {
 
     # Estilos customizados (cores do ChegouHub)
     "STYLES": [
+        lambda request: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap",
+        lambda request: "https://fonts.googleapis.com/icon?family=Material+Icons",
         lambda request: static("css/unfold_custom.css"),
     ],
 
