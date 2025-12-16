@@ -251,36 +251,60 @@ class JiraMetricsService:
             end_date: Data fim (para period=custom)
         """
         try:
-            # JQL base
-            jql = f"project = {self.client.project_key} AND assignee = '{assignee}'"
+            from datetime import datetime, timedelta
 
-            # Filtro de período
-            period_jql = self.client._build_period_jql(period, start_date, end_date)
-            jql += f" AND ({period_jql})"
+            # Calcular range de datas para filtrar worklogs
+            if period == 'custom' and start_date and end_date:
+                date_start = datetime.fromisoformat(start_date)
+                date_end = datetime.fromisoformat(end_date)
+            else:
+                # Usar período padrão (converter dias em datetime)
+                date_end = datetime.now()
+                if period == '15d':
+                    date_start = date_end - timedelta(days=15)
+                elif period == '30d':
+                    date_start = date_end - timedelta(days=30)
+                elif period == '45d':
+                    date_start = date_end - timedelta(days=45)
+                elif period == '3m':
+                    date_start = date_end - timedelta(days=90)
+                elif period == '6m':
+                    date_start = date_end - timedelta(days=180)
+                else:
+                    date_start = date_end - timedelta(days=30)  # Default 30 dias
+
+            # JQL base - buscar TODAS as issues do assignee (sem filtro de data)
+            # porque o worklog pode estar em issues antigas
+            jql = f"project = {self.client.project_key} AND assignee = '{assignee}'"
+            logger.info(f"[JIRA] Executando JQL para timesheet: {jql}")
 
             # Buscar issues (com paginação para garantir todos os resultados)
             issues = self.client.search_issues_paginated(jql, fields=['summary'])
+            logger.info(f"[JIRA] Encontradas {len(issues)} issues do assignee")
 
-            # Buscar worklog de cada issue
+            # Buscar worklog de cada issue e filtrar por data
             total_seconds = 0
             worklogs_detail = []
 
             for issue in issues:
                 issue_key = issue.get('key')
-                issue_summary = issue.get('fields', {}).get('summary', issue_key)  # Capturar summary da issue
+                issue_summary = issue.get('fields', {}).get('summary', issue_key)
                 worklogs = self.client.get_worklog(issue_key)
 
                 for wl in worklogs:
                     if wl['author_id'] == assignee:
-                        total_seconds += wl['time_spent_seconds']
-                        worklogs_detail.append({
-                            'issue_key': issue_key,
-                            'summary': issue_summary,  # Adicionar summary real da issue
-                            'time_spent_seconds': wl['time_spent_seconds'],
-                            'time_spent_hours': round(wl['time_spent_seconds'] / 3600, 2),
-                            'started': wl['started'],
-                            'comment': wl['comment'],
-                        })
+                        # Filtrar worklogs por data
+                        worklog_date = datetime.fromisoformat(wl['started'].replace('Z', '+00:00'))
+                        if date_start <= worklog_date.replace(tzinfo=None) <= date_end:
+                            total_seconds += wl['time_spent_seconds']
+                            worklogs_detail.append({
+                                'issue_key': issue_key,
+                                'summary': issue_summary,
+                                'time_spent_seconds': wl['time_spent_seconds'],
+                                'time_spent_hours': round(wl['time_spent_seconds'] / 3600, 2),
+                                'started': wl['started'],
+                                'comment': wl['comment'],
+                            })
 
             return {
                 'status': 'success',
