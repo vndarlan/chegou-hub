@@ -265,16 +265,12 @@ function JiraPage() {
     try {
       const params = buildParams();
       const response = await apiClient.get(`/jira/metrics/timesheet/?${params}`);
-      // Backend retorna {status, data: {total_seconds, total_hours, worklogs}, period}
+      // Backend retorna {status, data: {total_seconds, total_hours, issues}, period}
       // Panel espera {total_hours, issues: [{key, summary, hours}]}
       const rawData = response.data?.data || {};
       const panelData = {
         total_hours: rawData.total_hours || 0,
-        issues: (rawData.worklogs || []).map(wl => ({
-          key: wl.issue_key,
-          summary: wl.summary || wl.issue_key,
-          hours: wl.time_spent_hours || 0
-        }))
+        issues: rawData.issues || []  // Backend já retorna no formato correto
       };
       setTimesheetData(panelData);
     } catch (error) {
