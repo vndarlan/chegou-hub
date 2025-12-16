@@ -1,0 +1,82 @@
+/* Chegou Hub Admin - Cores Minimalistas */
+:root {
+    --chegou-primary: #FF7A00;
+    --chegou-primary-hover: #E66D00;
+    --chegou-primary-light: #FFE5CC;
+}
+
+/* HEADER LARANJA */
+#header {
+    background: var(--chegou-primary) !important;
+    color: white !important;
+}
+
+#header a,
+#branding h1,
+#branding h1 a {
+    color: white !important;
+}
+
+/* BOTÕES PRIMÁRIOS */
+.button,
+input[type="submit"],
+.submit-row input {
+    background: var(--chegou-primary) !important;
+    border-color: var(--chegou-primary-hover) !important;
+}
+
+.button:hover,
+input[type="submit"]:hover {
+    background: var(--chegou-primary-hover) !important;
+}
+
+/* LINKS */
+a,
+a:link,
+a:visited {
+    color: var(--chegou-primary) !important;
+}
+
+a:hover,
+a:focus {
+    color: var(--chegou-primary-hover) !important;
+}
+
+/* BREADCRUMBS */
+div.breadcrumbs a {
+    color: var(--chegou-primary) !important;
+}
+
+/* OBJETOS SELECIONADOS */
+.selected {
+    background: var(--chegou-primary-light) !important;
+    border-color: var(--chegou-primary) !important;
+}
+
+/* INPUTS FOCUS */
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--chegou-primary) !important;
+}
+
+/* PAGINAÇÃO */
+.paginator .this-page {
+    background: var(--chegou-primary) !important;
+    color: white !important;
+}
+
+/* TABELAS */
+table thead th.sorted {
+    background: var(--chegou-primary-light) !important;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 122, 0, 0.3);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 122, 0, 0.5);
+}

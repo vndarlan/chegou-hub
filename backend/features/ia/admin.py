@@ -3,7 +3,6 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from unfold.admin import ModelAdmin, TabularInline
 from .models import (
     LogEntry, ProjetoIA, VersaoProjeto,
     # WhatsApp Business models
@@ -14,7 +13,7 @@ from .models import (
 
 # ===== ADMIN DE LOGS (EXISTENTE) =====
 @admin.register(LogEntry)
-class LogEntryAdmin(ModelAdmin):
+class LogEntryAdmin(admin.ModelAdmin):
     list_display = [
         'ferramenta', 'nivel', 'mensagem_resumida', 'pais', 
         'timestamp', 'resolvido', 'resolvido_por'
@@ -54,17 +53,17 @@ class LogEntryAdmin(ModelAdmin):
 
 # ===== ADMIN DE PROJETOS DE IA =====
 
-class VersaoProjetoInline(TabularInline):
+class VersaoProjetoInline(admin.TabularInline):
     model = VersaoProjeto
     extra = 0
     readonly_fields = ['data_lancamento']
     fields = ['versao', 'versao_anterior', 'motivo_mudanca', 'responsavel', 'data_lancamento']
-    
+
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('responsavel')
 
 @admin.register(ProjetoIA)
-class ProjetoIAAdmin(ModelAdmin):
+class ProjetoIAAdmin(admin.ModelAdmin):
     list_display = [
         'nome', 'status', 'tipo_projeto', 'departamento_atendido',
         'prioridade_badge', 'horas_breakdown', 'criado_por', 'versao_atual',
@@ -184,7 +183,7 @@ class ProjetoIAAdmin(ModelAdmin):
         ).prefetch_related('criadores', 'dependencias')
 
 @admin.register(VersaoProjeto)
-class VersaoProjetoAdmin(ModelAdmin):
+class VersaoProjetoAdmin(admin.ModelAdmin):
     list_display = [
         'get_projeto_nome', 'versao', 'versao_anterior',
         'responsavel', 'data_lancamento'
@@ -218,7 +217,7 @@ class VersaoProjetoAdmin(ModelAdmin):
 # ===== ADMIN DE WHATSAPP BUSINESS =====
 
 @admin.register(WhatsAppBusinessAccount)
-class WhatsAppBusinessAccountAdmin(ModelAdmin):
+class WhatsAppBusinessAccountAdmin(admin.ModelAdmin):
     list_display = [
         'nome', 'whatsapp_business_account_id', 'responsavel',
         'ativo', 'total_numeros', 'status_sincronizacao',
@@ -268,12 +267,12 @@ class WhatsAppBusinessAccountAdmin(ModelAdmin):
     status_sincronizacao.short_description = 'Status Sync'
 
 
-class QualityAlertInline(TabularInline):
+class QualityAlertInline(admin.TabularInline):
     model = QualityAlert
     extra = 0
     readonly_fields = ['criado_em', 'usuario_que_visualizou', 'data_visualizacao']
     fields = ['alert_type', 'priority', 'titulo', 'resolvido', 'usuario_que_resolveu', 'criado_em']
-    
+
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
             'usuario_que_visualizou', 'usuario_que_resolveu'
@@ -281,7 +280,7 @@ class QualityAlertInline(TabularInline):
 
 
 @admin.register(WhatsAppPhoneNumber)
-class WhatsAppPhoneNumberAdmin(ModelAdmin):
+class WhatsAppPhoneNumberAdmin(admin.ModelAdmin):
     list_display = [
         'display_phone_number', 'verified_name', 'whatsapp_business_account',
         'quality_badge', 'limit_badge', 'status_badge',
@@ -376,7 +375,7 @@ class WhatsAppPhoneNumberAdmin(ModelAdmin):
 
 
 @admin.register(QualityHistory)
-class QualityHistoryAdmin(ModelAdmin):
+class QualityHistoryAdmin(admin.ModelAdmin):
     list_display = [
         'phone_number_display', 'quality_rating', 'messaging_limit_tier', 
         'status', 'mudancas_icons', 'capturado_em'
@@ -428,7 +427,7 @@ class QualityHistoryAdmin(ModelAdmin):
 
 
 @admin.register(QualityAlert)
-class QualityAlertAdmin(ModelAdmin):
+class QualityAlertAdmin(admin.ModelAdmin):
     list_display = [
         'titulo', 'phone_number_display', 'alert_type', 'priority_badge',
         'visualizado', 'resolvido', 'criado_em'
@@ -501,7 +500,7 @@ class QualityAlertAdmin(ModelAdmin):
 # ===== ADMIN DE NICOCHAT =====
 
 @admin.register(NicochatWorkspace)
-class NicochatWorkspaceAdmin(ModelAdmin):
+class NicochatWorkspaceAdmin(admin.ModelAdmin):
     list_display = [
         'nome', 'usuario', 'limite_contatos', 'ativo', 'criado_em', 'atualizado_em'
     ]

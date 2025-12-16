@@ -2,7 +2,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
-from unfold.admin import ModelAdmin
 from .models import (
     ShopifyConfig, ProcessamentoLog,
     IPDetectionStatistics, IPDetectionDebugLog, IPDetectionAlert,
@@ -10,14 +9,14 @@ from .models import (
 )
 
 @admin.register(ShopifyConfig)
-class ShopifyConfigAdmin(ModelAdmin):
+class ShopifyConfigAdmin(admin.ModelAdmin):
     list_display = ['nome_loja', 'shop_url', 'user', 'ativo', 'data_criacao']
     list_filter = ['ativo', 'data_criacao']
     search_fields = ['nome_loja', 'shop_url', 'user__username']
     readonly_fields = ['data_criacao', 'data_atualizacao']
 
 @admin.register(ProcessamentoLog)
-class ProcessamentoLogAdmin(ModelAdmin):
+class ProcessamentoLogAdmin(admin.ModelAdmin):
     list_display = ['user', 'config__nome_loja', 'tipo', 'status', 'pedidos_encontrados', 'pedidos_cancelados', 'data_execucao']
     list_filter = ['tipo', 'status', 'data_execucao', 'config__nome_loja']
     search_fields = ['user__username', 'config__nome_loja']
@@ -29,7 +28,7 @@ class ProcessamentoLogAdmin(ModelAdmin):
 # ===== ADMIN DOS NOVOS MODELOS DE LOGGING ESTRUTURADO =====
 
 @admin.register(IPDetectionStatistics)
-class IPDetectionStatisticsAdmin(ModelAdmin):
+class IPDetectionStatisticsAdmin(admin.ModelAdmin):
     list_display = [
         'config', 'data_referencia', 'total_pedidos_processados',
         'pedidos_com_ip_detectado', 'taxa_sucesso_geral', 'tempo_medio_deteccao_ms',
@@ -92,7 +91,7 @@ class IPDetectionStatisticsAdmin(ModelAdmin):
         return False
 
 @admin.register(IPDetectionDebugLog)
-class IPDetectionDebugLogAdmin(ModelAdmin):
+class IPDetectionDebugLogAdmin(admin.ModelAdmin):
     list_display = [
         'timestamp', 'config', 'nivel', 'categoria', 'titulo',
         'order_id', 'ip_detectado', 'metodo_deteccao', 
@@ -146,7 +145,7 @@ class IPDetectionDebugLogAdmin(ModelAdmin):
         return False
 
 @admin.register(IPDetectionAlert)
-class IPDetectionAlertAdmin(ModelAdmin):
+class IPDetectionAlertAdmin(admin.ModelAdmin):
     list_display = [
         'config', 'tipo_alerta', 'severidade', 'status', 'titulo',
         'valor_detectado', 'threshold_configurado', 'primeira_ocorrencia',
@@ -233,7 +232,7 @@ class IPDetectionAlertAdmin(ModelAdmin):
 # ===== ADMIN DOS MODELOS DE IPs RESOLVIDOS E EM OBSERVAÇÃO =====
 
 @admin.register(ResolvedIP)
-class ResolvedIPAdmin(ModelAdmin):
+class ResolvedIPAdmin(admin.ModelAdmin):
     list_display = [
         'ip_address', 'config', 'resolved_by', 'resolved_at',
         'total_orders_at_resolution', 'unique_customers_at_resolution'
@@ -269,7 +268,7 @@ class ResolvedIPAdmin(ModelAdmin):
 
 
 @admin.register(ObservedIP)
-class ObservedIPAdmin(ModelAdmin):
+class ObservedIPAdmin(admin.ModelAdmin):
     list_display = [
         'ip_address', 'config', 'observed_by', 'observed_at',
         'total_orders_at_observation', 'unique_customers_at_observation'

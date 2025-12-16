@@ -1,0 +1,29 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | Chegou Hub{% endblock %}
+
+{% block branding %}
+<div id="site-name">
+    <a href="{% url 'admin:index' %}">
+        🚀 Chegou Hub Admin
+    </a>
+</div>
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static 'css/admin_chegou_colors.css' %}">
+<style>
+    #header {
+        background: #FF7A00 !important;
+    }
+
+    #site-name a {
+        color: white !important;
+        font-weight: 600;
+        font-size: 18px;
+        text-decoration: none;
+    }
+</style>
+{% endblock %}
