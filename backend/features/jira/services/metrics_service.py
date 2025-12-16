@@ -287,19 +287,30 @@ class JiraMetricsService:
             total_seconds = 0
             issues_aggregated = {}  # Agregar por issue_key
 
+            logger.info(f"[JIRA] Processando {len(issues)} issues para worklogs")
+            logger.info(f"[JIRA] Período: {date_start} até {date_end}")
+
             for issue in issues:
                 issue_key = issue.get('key')
                 issue_summary = issue.get('fields', {}).get('summary', issue_key)
                 worklogs = self.client.get_worklog(issue_key)
 
                 issue_total_seconds = 0
+                logger.debug(f"[JIRA] Issue {issue_key}: {len(worklogs)} worklogs encontrados")
+
                 for wl in worklogs:
                     if wl['author_id'] == assignee:
                         # Filtrar worklogs por data
                         worklog_date = datetime.fromisoformat(wl['started'].replace('Z', '+00:00'))
-                        if date_start <= worklog_date.replace(tzinfo=None) <= date_end:
+                        worklog_date_naive = worklog_date.replace(tzinfo=None)
+
+                        logger.debug(f"[JIRA] Worklog {issue_key}: {wl['time_spent_seconds']}s em {worklog_date_naive}")
+                        logger.debug(f"[JIRA] Range: {date_start} <= {worklog_date_naive} <= {date_end} = {date_start <= worklog_date_naive <= date_end}")
+
+                        if date_start <= worklog_date_naive <= date_end:
                             issue_total_seconds += wl['time_spent_seconds']
                             total_seconds += wl['time_spent_seconds']
+                            logger.debug(f"[JIRA] ✓ Worklog incluído: {wl['time_spent_seconds']}s")
 
                 # Adicionar issue apenas se tiver worklogs no período
                 if issue_total_seconds > 0:
@@ -308,6 +319,9 @@ class JiraMetricsService:
                         'summary': issue_summary,
                         'hours': round(issue_total_seconds / 3600, 2),
                     }
+                    logger.info(f"[JIRA] Issue {issue_key} adicionada: {round(issue_total_seconds / 3600, 2)}h")
+                else:
+                    logger.debug(f"[JIRA] Issue {issue_key} ignorada: 0h no período")
 
             # Converter para lista ordenada por horas (decrescente)
             issues_list = sorted(
