@@ -5,6 +5,13 @@ Todas as mudanças deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+
+O que foi feito e vai na nova versao: 
+- Retirada do chat flutuante tira duvidas, que começou a ser desenvolvido e percebi que nao vai fazer sentido
+- ajuste do botao "administracao" agora direcinando corretamente para o backend certo de acordo com a minha url frontend sendo a de teste ou oficial
+
+
+
 ## [v1.10.0] - 28/11/2025
 
 ### ✨ Novidades
