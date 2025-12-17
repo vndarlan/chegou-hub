@@ -137,8 +137,8 @@ class JiraMetricsService:
             # Filtro de período
             period_jql = self.client._build_period_jql(period, start_date, end_date)
 
-            # Buscar issues criadas com status BACKLOG (com paginação)
-            jql_created = f"{jql_base} AND status = 'BACKLOG' AND ({period_jql})"
+            # Buscar issues criadas (todos os status, com paginação)
+            jql_created = f"{jql_base} AND ({period_jql})"
             logger.info(f"[JIRA CRIADO VS RESOLVIDO] JQL criados: {jql_created}")
             issues_created = self.client.search_issues_paginated(jql_created, fields=['created', 'assignee', 'status'])
             logger.info(f"[JIRA CRIADO VS RESOLVIDO] Issues criadas: {len(issues_created)}")
