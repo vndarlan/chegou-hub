@@ -143,9 +143,8 @@ class JiraMetricsService:
             issues_created = self.client.search_issues_paginated(jql_created, fields=['created', 'assignee', 'status'])
             logger.info(f"[JIRA CRIADO VS RESOLVIDO] Issues criadas: {len(issues_created)}")
 
-            # Buscar issues resolvidas com status CONCLUÍDO (usa 'updated' porque resolutiondate pode estar vazio, com paginação)
-            resolved_period_jql = self.client._build_period_jql(period, start_date, end_date, field='updated')
-            jql_resolved = f"{jql_base} AND status = 'CONCLUÍDO' AND ({resolved_period_jql})"
+            # Buscar issues resolvidas com status CONCLUÍDO (usa 'created' igual ao 'Por Status', com paginação)
+            jql_resolved = f"{jql_base} AND status = 'CONCLUÍDO' AND ({period_jql})"
             logger.info(f"[JIRA CRIADO VS RESOLVIDO] JQL resolvidos: {jql_resolved}")
             issues_resolved = self.client.search_issues_paginated(jql_resolved, fields=['updated', 'assignee', 'status'])
             logger.info(f"[JIRA CRIADO VS RESOLVIDO] Issues resolvidas: {len(issues_resolved)}")
