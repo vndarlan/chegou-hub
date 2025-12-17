@@ -1,5 +1,5 @@
-import React from 'react';
-import { ExternalLink } from 'lucide-react';
+import React, { useState } from 'react';
+import { ExternalLink, ChevronDown, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { Badge } from '../../../components/ui/badge';
@@ -31,6 +31,19 @@ const formatDuration = (hours) => {
 export function LeadTimeTable({ data, loading }) {
   // Garantir que issues seja sempre um array
   const issues = Array.isArray(data) ? data : [];
+
+  // Estado para controlar linhas expandidas
+  const [expandedRows, setExpandedRows] = useState(new Set());
+
+  const toggleRow = (key) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(key)) {
+      newExpanded.delete(key);
+    } else {
+      newExpanded.add(key);
+    }
+    setExpandedRows(newExpanded);
+  };
 
   if (loading) {
     return (
@@ -64,6 +77,7 @@ export function LeadTimeTable({ data, loading }) {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12"></TableHead>
                   <TableHead className="w-32">Chave</TableHead>
                   <TableHead>Título</TableHead>
                   <TableHead className="w-40">Responsável</TableHead>
@@ -74,32 +88,70 @@ export function LeadTimeTable({ data, loading }) {
               </TableHeader>
               <TableBody>
                 {issues.map((issue) => (
-                  <TableRow key={issue.key}>
-                    <TableCell>
-                      <a
-                        href={`${JIRA_BASE_URL}${issue.key}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-primary hover:underline"
-                      >
-                        {issue.key}
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </TableCell>
-                    <TableCell className="font-medium max-w-xs truncate" title={issue.summary}>
-                      {issue.summary}
-                    </TableCell>
-                    <TableCell>{issue.assignee || 'Não atribuído'}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDate(issue.created)}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDate(issue.resolved)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant="secondary">{formatDuration(issue.lead_time_hours)}</Badge>
-                    </TableCell>
-                  </TableRow>
+                  <React.Fragment key={issue.key}>
+                    {/* Linha principal */}
+                    <TableRow>
+                      <TableCell>
+                        <button
+                          onClick={() => toggleRow(issue.key)}
+                          className="hover:bg-muted p-1 rounded transition-colors"
+                          title="Expandir para ver tempo por coluna"
+                        >
+                          {expandedRows.has(issue.key) ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </button>
+                      </TableCell>
+                      <TableCell>
+                        <a
+                          href={`${JIRA_BASE_URL}${issue.key}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-primary hover:underline"
+                        >
+                          {issue.key}
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </TableCell>
+                      <TableCell className="font-medium max-w-xs truncate" title={issue.summary}>
+                        {issue.summary}
+                      </TableCell>
+                      <TableCell>{issue.assignee || 'Não atribuído'}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {formatDate(issue.created)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {formatDate(issue.resolved)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant="secondary">{formatDuration(issue.lead_time_hours)}</Badge>
+                      </TableCell>
+                    </TableRow>
+
+                    {/* Linha de breakdown expandida */}
+                    {expandedRows.has(issue.key) && issue.breakdown && Object.keys(issue.breakdown).length > 0 && (
+                      <TableRow className="bg-muted/50">
+                        <TableCell colSpan={7} className="p-4">
+                          <div className="space-y-2">
+                            <h4 className="font-semibold text-sm">Tempo por coluna do fluxo:</h4>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                              {Object.entries(issue.breakdown).map(([status, days]) => (
+                                <div
+                                  key={status}
+                                  className="flex justify-between items-center bg-background p-2 rounded border"
+                                >
+                                  <span className="text-sm font-medium">{status}</span>
+                                  <Badge variant="outline">{formatDuration(days * 24)}</Badge>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
                 ))}
               </TableBody>
             </Table>

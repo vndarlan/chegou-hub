@@ -308,7 +308,8 @@ function JiraPage() {
         assignee: item.assignee || 'Não atribuído',
         created: item.created,
         resolved: item.resolved,
-        lead_time_hours: (item.total_days || 0) * 24
+        lead_time_hours: (item.total_days || 0) * 24,
+        breakdown: item.breakdown || {}  // Adicionar breakdown por coluna
       }));
       setLeadTimeData(tableData);
     } catch (error) {
