@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Calendar } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { Label } from '../../../components/ui/label';
-import { DateRangePicker } from '../../../components/ui/date-range-picker';
 
 const PERIOD_OPTIONS = [
   { value: 'current_week', label: 'Semana Atual' },
@@ -34,12 +33,33 @@ export function JiraPeriodFilter({ period, onPeriodChange, dateRange, onDateRang
       </Select>
 
       {period === 'custom' && (
-        <div className="mt-2">
-          <DateRangePicker
-            dateRange={dateRange}
-            onDateRangeChange={onDateRangeChange}
-            placeholder="Selecione o período..."
-          />
+        <div className="mt-2 space-y-2">
+          <div className="space-y-1">
+            <Label htmlFor="start-date" className="text-xs">Data Início</Label>
+            <input
+              id="start-date"
+              type="date"
+              value={dateRange?.from ? dateRange.from.toISOString().split('T')[0] : ''}
+              onChange={(e) => {
+                const newDate = e.target.value ? new Date(e.target.value + 'T00:00:00') : null;
+                onDateRangeChange({ ...dateRange, from: newDate });
+              }}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="end-date" className="text-xs">Data Fim</Label>
+            <input
+              id="end-date"
+              type="date"
+              value={dateRange?.to ? dateRange.to.toISOString().split('T')[0] : ''}
+              onChange={(e) => {
+                const newDate = e.target.value ? new Date(e.target.value + 'T00:00:00') : null;
+                onDateRangeChange({ ...dateRange, to: newDate });
+              }}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+            />
+          </div>
         </div>
       )}
     </div>

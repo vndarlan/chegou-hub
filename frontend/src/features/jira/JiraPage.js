@@ -1,6 +1,6 @@
 // frontend/src/features/jira/JiraPage.js - Métricas Jira
 import React, { useState, useEffect, useCallback } from 'react';
-import { BarChart3, AlertCircle, Loader2, RefreshCw, Activity } from 'lucide-react';
+import { BarChart3, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import apiClient from '../../utils/axios';
 
 // shadcn/ui components
@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 
 // Componentes customizados
 import { JiraPeriodFilter } from './components/JiraPeriodFilter';
-import { JiraBoardFilter } from './components/JiraBoardFilter';
 import { JiraUserFilter } from './components/JiraUserFilter';
 import { AtividadesResolvidasChart } from './components/AtividadesResolvidasChart';
 import { CriadoVsResolvidoChart } from './components/CriadoVsResolvidoChart';
@@ -22,7 +21,6 @@ import { LeadTimeTable } from './components/LeadTimeTable';
 function JiraPage() {
   // Estados de configuração
   const [config, setConfig] = useState(null);
-  const [boards, setBoards] = useState([]);
   const [users, setUsers] = useState([]);
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [configError, setConfigError] = useState(null);
@@ -30,7 +28,6 @@ function JiraPage() {
   // Estados de filtros
   const [period, setPeriod] = useState('30d');
   const [dateRange, setDateRange] = useState(null);
-  const [selectedBoard, setSelectedBoard] = useState('all');
   const [selectedUser, setSelectedUser] = useState('all');
 
   // Estados de dados
@@ -62,19 +59,16 @@ function JiraPage() {
       setLoadingConfig(true);
       setConfigError(null);
       try {
-        const [configRes, boardsRes, usersRes] = await Promise.all([
+        const [configRes, usersRes] = await Promise.all([
           apiClient.get('/jira/config/'),
-          apiClient.get('/jira/boards/'),
           apiClient.get('/jira/users/'),
         ]);
 
         setConfig(configRes.data);
-        setBoards(boardsRes.data);
         setUsers(usersRes.data);
 
         // DIAGNÓSTICO: Logging detalhado
         console.log('[JIRA DEBUG] Config recebida:', configRes.data);
-        console.log('[JIRA DEBUG] Boards recebidas:', boardsRes.data);
         console.log('[JIRA DEBUG] Users recebidos:', usersRes.data);
 
         // Validar configuração
@@ -141,16 +135,12 @@ function JiraPage() {
       params.append('period', period);
     }
 
-    if (selectedBoard !== 'all') {
-      params.append('board_id', selectedBoard);
-    }
-
     if (selectedUser !== 'all') {
       params.append('assignee', selectedUser);
     }
 
     return params;
-  }, [period, dateRange, selectedBoard, selectedUser]);
+  }, [period, dateRange, selectedUser]);
 
   // Buscar atividades resolvidas
   const fetchAtividadesResolvidas = useCallback(async () => {
@@ -357,7 +347,6 @@ function JiraPage() {
     activeTab,
     period,
     dateRange,
-    selectedBoard,
     selectedUser,
     loadingConfig,
     configError,
@@ -375,27 +364,6 @@ function JiraPage() {
     fetchByStatus();
     fetchTimesheet();
     fetchLeadTime();
-  };
-
-  // Diagnóstico manual
-  const handleDiagnostico = async () => {
-    try {
-      const response = await apiClient.get('/jira/config/diagnostico/');
-      console.log('[JIRA DIAGNÓSTICO COMPLETO]', response.data);
-
-      const { status, checks } = response.data;
-      console.group('🔍 DIAGNÓSTICO JIRA');
-      console.log('Status geral:', status);
-      console.log('Variáveis de ambiente:', checks.env_vars);
-      console.log('Configuração banco:', checks.config_banco);
-      console.log('Conexão Jira:', checks.conexao_jira);
-      console.groupEnd();
-
-      alert(`Diagnóstico executado!\n\nStatus: ${status}\n\nVeja detalhes no console (F12)`);
-    } catch (error) {
-      console.error('[JIRA] Erro ao executar diagnóstico:', error);
-      alert('Erro ao executar diagnóstico. Veja console para detalhes.');
-    }
   };
 
   if (loadingConfig) {
@@ -432,16 +400,10 @@ function JiraPage() {
             Análise de atividades e performance do time
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={handleDiagnostico} variant="outline" size="sm">
-            <Activity className="h-4 w-4 mr-2" />
-            Diagnóstico
-          </Button>
-          <Button onClick={handleRefreshAll} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar Tudo
-          </Button>
-        </div>
+        <Button onClick={handleRefreshAll} variant="outline" size="sm">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Atualizar Tudo
+        </Button>
       </div>
 
       {/* Filtros Globais */}
@@ -451,17 +413,12 @@ function JiraPage() {
           <CardDescription>Selecione os critérios para análise</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <JiraPeriodFilter
               period={period}
               onPeriodChange={setPeriod}
               dateRange={dateRange}
               onDateRangeChange={setDateRange}
-            />
-            <JiraBoardFilter
-              board={selectedBoard}
-              onBoardChange={setSelectedBoard}
-              boards={boards}
             />
             <JiraUserFilter
               user={selectedUser}
@@ -512,7 +469,7 @@ function JiraPage() {
           <StatusCardsPanel
             data={statusData}
             loading={loadingStatus}
-            filters={{ period, dateRange, selectedBoard, selectedUser }}
+            filters={{ period, dateRange, selectedUser }}
           />
         </TabsContent>
 

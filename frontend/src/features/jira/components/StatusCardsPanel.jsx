@@ -28,10 +28,6 @@ export function StatusCardsPanel({ data, loading, filters }) {
         params.append('end_date', filters.dateRange.to.toISOString().split('T')[0]);
       }
 
-      if (filters?.selectedBoard !== 'all') {
-        params.append('board_id', filters.selectedBoard);
-      }
-
       if (filters?.selectedUser !== 'all') {
         params.append('assignee', filters.selectedUser);
       }
