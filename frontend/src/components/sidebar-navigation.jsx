@@ -27,6 +27,7 @@ import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Avatar, AvatarFallback } from './ui';
 import { useTheme } from './theme-provider';
+import { getAdminUrl } from '../utils/getAdminUrl';
 
 const sidebarItems = [
   {
@@ -113,10 +114,10 @@ export function SidebarNavigation({
         icon: IconLock,
         label: 'ADMIN',
         items: [
-          { 
-            label: 'Acessar', 
-            path: 'https://chegou-hubb-production.up.railway.app/admin/',
-            external: true 
+          {
+            label: 'Acessar',
+            path: getAdminUrl(),
+            external: true
           },
         ]
       });

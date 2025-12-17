@@ -53,6 +53,7 @@ import {
   useSidebar,
 } from './ui/sidebar'
 import { useTheme } from './theme-provider'
+import { getAdminUrl } from '../utils/getAdminUrl'
 
 export function AppSidebar({
   userName = "Usuário",
@@ -395,7 +396,7 @@ export function AppSidebar({
                 size="lg"
               >
                 <a
-                  href="https://chegou-hubb-production.up.railway.app/admin/"
+                  href={getAdminUrl()}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-semibold"
