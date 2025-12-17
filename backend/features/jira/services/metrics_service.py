@@ -134,22 +134,19 @@ class JiraMetricsService:
                     sprint_list = ','.join(str(sid) for sid in sprint_ids)
                     jql_base += f" AND Sprint in ({sprint_list})"
 
-            # Filtro de período para CRIADAS (usa campo 'created')
-            period_jql_created = self.client._build_period_jql(period, start_date, end_date, field='created')
-
-            # Filtro de período para RESOLVIDAS (usa campo 'statuscategorychangedate')
-            period_jql_resolved = self.client._build_period_jql(period, start_date, end_date, field='statuscategorychangedate')
+            # Filtro de período (usa campo 'created' para ambos - consistente com "Por Status")
+            period_jql = self.client._build_period_jql(period, start_date, end_date, field='created')
 
             # Buscar issues criadas (todos os status, com paginação)
-            jql_created = f"{jql_base} AND ({period_jql_created})"
+            jql_created = f"{jql_base} AND ({period_jql})"
             logger.info(f"[JIRA CRIADO VS RESOLVIDO] JQL criados: {jql_created}")
             issues_created = self.client.search_issues_paginated(jql_created, fields=['created', 'assignee', 'status'])
             logger.info(f"[JIRA CRIADO VS RESOLVIDO] Issues criadas: {len(issues_created)}")
 
-            # Buscar issues resolvidas com statusCategory Done (usa 'statuscategorychangedate' para filtrar por período de resolução)
-            jql_resolved = f"{jql_base} AND statusCategory = \"Done\" AND ({period_jql_resolved})"
+            # Buscar issues criadas no período E resolvidas (statusCategory Done) - mesma base do "Por Status"
+            jql_resolved = f"{jql_base} AND ({period_jql}) AND statusCategory = \"Done\""
             logger.info(f"[JIRA CRIADO VS RESOLVIDO] JQL resolvidos: {jql_resolved}")
-            issues_resolved = self.client.search_issues_paginated(jql_resolved, fields=['statuscategorychangedate', 'assignee', 'status'])
+            issues_resolved = self.client.search_issues_paginated(jql_resolved, fields=['created', 'assignee', 'status'])
             logger.info(f"[JIRA CRIADO VS RESOLVIDO] Issues resolvidas: {len(issues_resolved)}")
 
             # Log dos status encontrados (para debug)
