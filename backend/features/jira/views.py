@@ -320,6 +320,7 @@ class JiraMetricsViewSet(viewsets.ViewSet):
             # Parâmetros
             period = request.query_params.get('period', '30d')
             board_id = request.query_params.get('board')
+            assignee = request.query_params.get('assignee')
             start_date = request.query_params.get('start_date')
             end_date = request.query_params.get('end_date')
 
@@ -332,6 +333,7 @@ class JiraMetricsViewSet(viewsets.ViewSet):
             result = service.get_created_vs_resolved(
                 period=period,
                 board_id=board_id,
+                assignee=assignee,
                 start_date=start_date,
                 end_date=end_date
             )

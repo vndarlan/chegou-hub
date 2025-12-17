@@ -67,7 +67,7 @@ class JiraLeadTimeService:
         try:
             # Construir JQL
             jql_parts = [f"project = {self.client.project_key}"]
-            jql_parts.append("status = Done")
+            jql_parts.append("status = 'CONCLUÍDO'")
 
             # Filtro de período
             period_jql = self.client._build_period_jql(period, start_date, end_date)
@@ -79,8 +79,10 @@ class JiraLeadTimeService:
 
             jql = " AND ".join(jql_parts)
 
-            # Buscar issues
-            issues = self.client.search_issues(jql, fields=['created', 'resolutiondate', 'assignee', 'summary'])
+            # Buscar issues (com paginação)
+            logger.info(f"[JIRA LEAD TIME] JQL executado: {jql}")
+            issues = self.client.search_issues_paginated(jql, fields=['created', 'resolutiondate', 'assignee', 'summary', 'status', 'updated'])
+            logger.info(f"[JIRA LEAD TIME] Issues encontradas: {len(issues)}")
 
             # Calcular lead time para cada issue
             lead_times = []
@@ -153,8 +155,15 @@ class JiraLeadTimeService:
             created = fields.get('created')
             resolved = fields.get('resolutiondate')
 
-            if not created or not resolved:
+            # Se não tem data de criação, não dá pra calcular
+            if not created:
                 return None
+
+            # Se não tem resolutiondate, tentar usar updated como fallback
+            if not resolved:
+                resolved = fields.get('updated')
+                if not resolved:
+                    return None
 
             # Datas como datetime
             created_dt = datetime.fromisoformat(created.replace('Z', '+00:00'))
