@@ -68,15 +68,17 @@ class JiraLeadTimeService:
             # Construir JQL
             jql_parts = [f"project = {self.client.project_key}"]
 
-            # Filtro de período usando resolutiondate
+            # Filtrar apenas issues concluídas (statusCategory Done)
+            jql_parts.append("statusCategory in (Done)")
+
+            # Filtro de período usando 'updated' (resolutiondate pode estar vazio)
             period_jql = self.client._build_period_jql(
                 period,
                 start_date,
                 end_date,
-                field='resolutiondate'  # Filtrar por data de resolução, não por status atual
+                field='updated'  # Usa 'updated' porque resolutiondate pode estar vazio
             )
             jql_parts.append(f"({period_jql})")
-            jql_parts.append("resolution IS NOT EMPTY")  # Garantir que a issue foi resolvida
 
             # Filtro de assignee
             if assignee:
