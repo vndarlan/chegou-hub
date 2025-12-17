@@ -128,7 +128,7 @@ export function AppSidebar({
       moduleKey: "mapa",
     },
     {
-      title: "Jira",
+      title: "Métricas Jira",
       url: "/gestao/jira",
       icon: BarChart3,
       isActive: location.pathname === "/gestao/jira",

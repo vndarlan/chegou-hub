@@ -1,10 +1,9 @@
 // frontend/src/features/jira/JiraPage.js - Métricas Jira
-import React, { useState, useEffect, useCallback } from 'react';
-import { BarChart3, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import apiClient from '../../utils/axios';
 
 // shadcn/ui components
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
@@ -394,40 +393,29 @@ function JiraPage() {
     <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
       {/* Cabeçalho */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Métricas Jira</h1>
-          <p className="text-muted-foreground">
-            Análise de atividades e performance do time
-          </p>
-        </div>
+        <p className="text-muted-foreground">
+          Análise de atividades e performance do time
+        </p>
         <Button onClick={handleRefreshAll} variant="outline" size="sm">
           <RefreshCw className="h-4 w-4 mr-2" />
           Atualizar Tudo
         </Button>
       </div>
 
-      {/* Filtros Globais */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-          <CardDescription>Selecione os critérios para análise</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            <JiraPeriodFilter
-              period={period}
-              onPeriodChange={setPeriod}
-              dateRange={dateRange}
-              onDateRangeChange={setDateRange}
-            />
-            <JiraUserFilter
-              user={selectedUser}
-              onUserChange={setSelectedUser}
-              users={users}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Filtros */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <JiraPeriodFilter
+          period={period}
+          onPeriodChange={setPeriod}
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+        />
+        <JiraUserFilter
+          user={selectedUser}
+          onUserChange={setSelectedUser}
+          users={users}
+        />
+      </div>
 
       {/* Tabs com Métricas */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
