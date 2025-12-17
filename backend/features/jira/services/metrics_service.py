@@ -149,6 +149,11 @@ class JiraMetricsService:
             issues_resolved = self.client.search_issues_paginated(jql_resolved, fields=['updated', 'assignee', 'status'])
             logger.info(f"[JIRA CRIADO VS RESOLVIDO] Issues resolvidas: {len(issues_resolved)}")
 
+            # Log dos status encontrados (para debug)
+            if len(issues_resolved) > 0:
+                status_sample = [issue.get('fields', {}).get('status', {}).get('name') for issue in issues_resolved[:3]]
+                logger.info(f"[JIRA CRIADO VS RESOLVIDO] Sample de status encontrados: {status_sample}")
+
             # Agrupar por usuário
             by_user = defaultdict(lambda: {'created': 0, 'resolved': 0})
 
