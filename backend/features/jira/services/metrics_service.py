@@ -147,7 +147,7 @@ class JiraMetricsService:
             logger.info(f"[JIRA CRIADO VS RESOLVIDO] Issues criadas: {len(issues_created)}")
 
             # Buscar issues resolvidas com statusCategory Done (usa 'resolutiondate' para filtrar por período de resolução)
-            jql_resolved = f"{jql_base} AND statusCategory = Done AND ({period_jql_resolved})"
+            jql_resolved = f"{jql_base} AND statusCategory = \"Done\" AND ({period_jql_resolved})"
             logger.info(f"[JIRA CRIADO VS RESOLVIDO] JQL resolvidos: {jql_resolved}")
             issues_resolved = self.client.search_issues_paginated(jql_resolved, fields=['resolved', 'resolutiondate', 'assignee', 'status'])
             logger.info(f"[JIRA CRIADO VS RESOLVIDO] Issues resolvidas: {len(issues_resolved)}")

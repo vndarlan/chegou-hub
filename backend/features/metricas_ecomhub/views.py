@@ -915,8 +915,7 @@ class EcomhubOrderViewSet(viewsets.ReadOnlyModelViewSet):
         POST /api/metricas/ecomhub/orders/sync/
         Aciona sincronização manual de pedidos
 
-        Autenticação: Via middleware N8NAuthMiddleware (header X-API-Key)
-        Não requer autenticação DRF (usuário logado)
+        Autenticação: Endpoint público (pode ser protegido futuramente)
         """
         try:
             logger.info("Sincronização manual iniciada via API")

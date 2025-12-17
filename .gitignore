@@ -20,4 +20,14 @@ db.sqlite3
 staticfiles/
 *.log
 .DS_Store
+
+# Claude Code settings (podem conter tokens sensíveis)
+.claude/settings.local.json
+
+# Arquivos de backup
+*.backup
+
+# Arquivos temporários
+nul
+
 # Adicione outras coisas que não devem ir para o Git

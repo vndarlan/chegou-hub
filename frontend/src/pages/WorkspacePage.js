@@ -45,7 +45,6 @@ import PerfilPage from './PerfilPage';
 import ConfiguracoesOrganizacao from './ConfiguracoesOrganizacao';
 import FeedbackButton from '../components/FeedbackButton';
 import FeedbackNotificationButton from '../components/FeedbackNotificationButton';
-import SimpleN8nWidget from '../components/SimpleN8nWidget';
 
 // Mapeamento de breadcrumbs atualizado
 const breadcrumbMap = {
@@ -408,9 +407,6 @@ function WorkspacePage({ setIsLoggedIn }) {
             </Routes>
           </main>
         </SidebarInset>
-
-        {/* N8n Chat Widget - assistente IA SEMPRE VISÍVEL */}
-        <SimpleN8nWidget />
       </div>
     </SidebarProvider>
   );

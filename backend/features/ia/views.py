@@ -887,7 +887,7 @@ def verificar_permissoes(request):
 @permission_classes([IsAuthenticated])  # CORREÇÃO CRÍTICA: Requires authentication
 def criar_log_publico(request):
     """
-    Endpoint para Nicochat e N8N enviarem logs - REQUER AUTENTICAÇÃO
+    Endpoint para Nicochat enviarem logs - REQUER AUTENTICAÇÃO
     CORREÇÃO: Removido acesso público por questões de segurança
     """
     serializer = CriarLogSerializer(data=request.data)

@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from django.http import JsonResponse
 from django.views.generic import TemplateView
 from django.views.static import serve
-from core.views_debug import DebugCorsView, N8nConnectivityTestView
+from core.views_debug import DebugCorsView
 from django.utils import timezone
 import os
 
@@ -55,7 +55,6 @@ urlpatterns = [
     path('mapa/', include('features.mapa.urls')),
     path('health/', simple_health, name='simple_health'),
     path('api/debug/cors/', DebugCorsView.as_view(), name='debug_cors'),
-    path('api/debug/n8n/', N8nConnectivityTestView.as_view(), name='debug_n8n'),
     path('api/', include('core.urls')),
     
     # URLs das Funcionalidades Existentes
