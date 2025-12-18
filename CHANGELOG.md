@@ -5,12 +5,37 @@ Todas as mudanças deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [v1.11.0] - 18/12/2024
 
-O que foi feito e vai na nova versao: 
-- Retirada do chat flutuante tira duvidas, que começou a ser desenvolvido e percebi que nao vai fazer sentido
-- ajuste do botao "administracao" agora direcinando corretamente para o backend certo de acordo com a minha url frontend sendo a de teste ou oficial
+### ✨ Novidades
 
+#### 🚨 PÁGINA COMPLETAMENTE NOVA
 
+- **[📊 Métricas Jira - NOVA PÁGINA]** Sistema completo de análise de performance do time com integração direta à API Jira Cloud, oferecendo 5 painéis especializados de métricas com filtros avançados e visualizações interativas:
+
+  **Painéis de Métricas:**
+  - **📈 Atividades Resolvidas** - Ranking de tarefas concluídas por pessoa com gráfico de barras
+  - **📊 Criado vs Resolvido** - Análise comparativa de issues criadas e resolvidas ao longo do tempo
+  - **📋 Por Status** - Distribuição de tarefas por status com modal de detalhes e lista completa de issues
+  - **⏱️ Timesheet** - Registro de horas trabalhadas por issue (visível apenas ao selecionar um usuário específico)
+  - **⚡ Lead Time** - Tempo de ciclo detalhado com breakdown por coluna, paginação de 10 itens e expansão de detalhes
+
+  **Filtros e Recursos:**
+  - Sistema de filtros por período (semana atual, semana passada, últimos 15/30/45 dias, 3/6 meses ou personalizado)
+  - Filtro por responsável (todos os usuários ou específico)
+  - Diagnóstico automático de problemas de configuração
+  - Links diretos para issues no Jira
+  - Paginação inteligente e modal de detalhes expandível
+  - Rate limiting otimizado (50ms entre requisições)
+  - Suporte a múltiplos workflows com cálculo preciso de lead time
+
+### 🗑️ Remoções
+
+- **[Interface]** Removido chat flutuante de "Tire Dúvidas" - componente em desenvolvimento inicial que não se adequou à proposta do sistema
+
+### 🐛 Correções
+
+- **[Administração]** Corrigido botão "Administração" que agora direciona corretamente para o backend apropriado de acordo com a URL do frontend (ambiente de teste ou produção)
 
 ## [v1.10.0] - 28/11/2025
 
