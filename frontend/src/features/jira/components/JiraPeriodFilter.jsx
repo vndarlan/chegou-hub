@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Calendar } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { Label } from '../../../components/ui/label';
+import { DateRangeDisplay } from './DateRangeDisplay';
+import { calculateDateRange } from '../utils/dateCalculations';
 
 const PERIOD_OPTIONS = [
   { value: 'current_week', label: 'Semana Atual' },
@@ -16,6 +18,9 @@ const PERIOD_OPTIONS = [
 ];
 
 export function JiraPeriodFilter({ period, onPeriodChange, dateRange, onDateRangeChange }) {
+  // Calcular range de datas
+  const calculatedRange = calculateDateRange(period, dateRange);
+
   return (
     <div className="space-y-2">
       <Label htmlFor="period-select">Período</Label>
@@ -32,6 +37,10 @@ export function JiraPeriodFilter({ period, onPeriodChange, dateRange, onDateRang
         </SelectContent>
       </Select>
 
+      {calculatedRange && (
+        <DateRangeDisplay dateLabel={calculatedRange.label} />
+      )}
+
       {period === 'custom' && (
         <div className="mt-2 space-y-2">
           <div className="space-y-1">
@@ -42,7 +51,10 @@ export function JiraPeriodFilter({ period, onPeriodChange, dateRange, onDateRang
               value={dateRange?.from ? dateRange.from.toISOString().split('T')[0] : ''}
               onChange={(e) => {
                 const newDate = e.target.value ? new Date(e.target.value + 'T00:00:00') : null;
-                onDateRangeChange({ ...dateRange, from: newDate });
+                onDateRangeChange({
+                  from: newDate,
+                  to: dateRange?.to || null
+                });
               }}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
             />
@@ -55,7 +67,10 @@ export function JiraPeriodFilter({ period, onPeriodChange, dateRange, onDateRang
               value={dateRange?.to ? dateRange.to.toISOString().split('T')[0] : ''}
               onChange={(e) => {
                 const newDate = e.target.value ? new Date(e.target.value + 'T00:00:00') : null;
-                onDateRangeChange({ ...dateRange, to: newDate });
+                onDateRangeChange({
+                  from: dateRange?.from || null,
+                  to: newDate
+                });
               }}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
             />

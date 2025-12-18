@@ -26,7 +26,7 @@ function JiraPage() {
 
   // Estados de filtros
   const [period, setPeriod] = useState('30d');
-  const [dateRange, setDateRange] = useState(null);
+  const [dateRange, setDateRange] = useState({ from: null, to: null });
   const [selectedUser, setSelectedUser] = useState('all');
 
   // Estados de dados
@@ -123,13 +123,24 @@ function JiraPage() {
     fetchConfig();
   }, []);
 
+  // Inicializar dateRange quando period='custom'
+  useEffect(() => {
+    if (period === 'custom' && (!dateRange || dateRange === null)) {
+      setDateRange({ from: null, to: null });
+    }
+  }, [period, dateRange]);
+
   // Construir params para API
   const buildParams = useCallback(() => {
     const params = new URLSearchParams();
 
-    if (period === 'custom' && dateRange?.from && dateRange?.to) {
-      params.append('start_date', dateRange.from.toISOString().split('T')[0]);
-      params.append('end_date', dateRange.to.toISOString().split('T')[0]);
+    if (period === 'custom') {
+      if (dateRange?.from && dateRange?.to) {
+        params.append('start_date', dateRange.from.toISOString().split('T')[0]);
+        params.append('end_date', dateRange.to.toISOString().split('T')[0]);
+      } else {
+        return null; // Não faz requisição se datas incompletas
+      }
     } else {
       params.append('period', period);
     }
@@ -147,6 +158,14 @@ function JiraPage() {
     setErrorResolvidas(null);
     try {
       const params = buildParams();
+
+      if (!params) {
+        setErrorResolvidas('Selecione as datas de início e fim para o período personalizado');
+        setAtividadesResolvidas([]);
+        setLoadingResolvidas(false);
+        return;
+      }
+
       const response = await apiClient.get(`/jira/metrics/resolved/?${params}`);
       // Backend retorna {status, data: [{assignee, count}], total, period}
       // Chart espera [{name, count}]
@@ -180,6 +199,14 @@ function JiraPage() {
     setErrorCriadoVsResolvido(null);
     try {
       const params = buildParams();
+
+      if (!params) {
+        setErrorCriadoVsResolvido('Selecione as datas de início e fim para o período personalizado');
+        setCriadoVsResolvido([]);
+        setLoadingCriadoVsResolvido(false);
+        return;
+      }
+
       const response = await apiClient.get(`/jira/metrics/created-vs-resolved/?${params}`);
       // Backend retorna {status, data: [{user, created, resolved, delta}], period}
       // Chart espera [{period, created, resolved}]
@@ -214,6 +241,14 @@ function JiraPage() {
     setErrorStatus(null);
     try {
       const params = buildParams();
+
+      if (!params) {
+        setErrorStatus('Selecione as datas de início e fim para o período personalizado');
+        setStatusData([]);
+        setLoadingStatus(false);
+        return;
+      }
+
       const response = await apiClient.get(`/jira/metrics/by-status/?${params}`);
       // Backend retorna {status: 'success', data: [{status, count}], total}
       // Panel espera [{name, count}]
@@ -253,6 +288,14 @@ function JiraPage() {
     setErrorTimesheet(null);
     try {
       const params = buildParams();
+
+      if (!params) {
+        setErrorTimesheet('Selecione as datas de início e fim para o período personalizado');
+        setTimesheetData({ total_hours: 0, issues: [] });
+        setLoadingTimesheet(false);
+        return;
+      }
+
       const response = await apiClient.get(`/jira/metrics/timesheet/?${params}`);
       // Backend retorna {status, data: {total_seconds, total_hours, issues}, period}
       // Panel espera {total_hours, issues: [{key, summary, hours}]}
@@ -286,6 +329,14 @@ function JiraPage() {
     setErrorLeadTime(null);
     try {
       const params = buildParams();
+
+      if (!params) {
+        setErrorLeadTime('Selecione as datas de início e fim para o período personalizado');
+        setLeadTimeData([]);
+        setLoadingLeadTime(false);
+        return;
+      }
+
       const response = await apiClient.get(`/jira/lead-time/?${params}`);
       // Backend retorna {status, data: {average_total_days, average_by_column, issues_analyzed, details}, period}
       // Table espera array de issues: [{key, summary, assignee, created, resolved, lead_time_hours}]
