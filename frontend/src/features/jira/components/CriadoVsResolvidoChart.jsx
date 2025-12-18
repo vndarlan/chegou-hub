@@ -53,12 +53,19 @@ export function CriadoVsResolvidoChart({ data, loading }) {
               color: "#10b981",
             },
           }}
-          className="h-[400px]"
+          className="h-[450px]"
         >
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 70 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="period" />
+              <XAxis
+                dataKey="period"
+                angle={-45}
+                textAnchor="end"
+                height={60}
+                interval={0}
+                tick={{ fontSize: 12 }}
+              />
               <YAxis />
               <Tooltip />
               <Legend />
