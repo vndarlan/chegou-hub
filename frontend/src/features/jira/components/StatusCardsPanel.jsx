@@ -21,11 +21,24 @@ export function StatusCardsPanel({ data, loading, filters }) {
       params.append('status', status.name);
 
       // Adicionar filtros globais
-      if (filters?.period && filters.period !== 'custom') {
+      if (filters?.period === 'custom') {
+        // Período personalizado: requer datas
+        if (filters?.dateRange?.from && filters?.dateRange?.to) {
+          params.append('start_date', filters.dateRange.from.toISOString().split('T')[0]);
+          params.append('end_date', filters.dateRange.to.toISOString().split('T')[0]);
+        } else {
+          // Datas incompletas: não faz requisição
+          console.warn('[JIRA] Período personalizado com datas incompletas');
+          setSelectedStatus({
+            ...status,
+            issues: []
+          });
+          setLoadingIssues(false);
+          return;
+        }
+      } else if (filters?.period) {
+        // Período predefinido
         params.append('period', filters.period);
-      } else if (filters?.dateRange?.from && filters?.dateRange?.to) {
-        params.append('start_date', filters.dateRange.from.toISOString().split('T')[0]);
-        params.append('end_date', filters.dateRange.to.toISOString().split('T')[0]);
       }
 
       if (filters?.selectedUser !== 'all') {
@@ -40,6 +53,7 @@ export function StatusCardsPanel({ data, loading, filters }) {
       });
     } catch (error) {
       console.error('[JIRA] Erro ao buscar issues:', error);
+      console.error('[JIRA] Response:', error.response?.data);
       setSelectedStatus({
         ...status,
         issues: []
