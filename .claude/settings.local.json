@@ -78,7 +78,8 @@
       "Bash(tasklist:*)",
       "Bash(pip show:*)",
       "Bash(del SimpleN8nWidget.jsx N8nChatWidget.jsx N8nChatWidgetProduction.jsx N8nChatWidgetDebug.jsx N8nTestWidget.jsx N8nChatWidget.css)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(git show:*)"
     ],
     "deny": [],
     "ask": [],
