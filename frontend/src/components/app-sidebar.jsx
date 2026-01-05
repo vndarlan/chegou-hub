@@ -239,6 +239,12 @@ export function AppSidebar({
               moduleKey: "primecod_efetividade",
             },
             {
+              title: "Pedidos",
+              url: "/fornecedores/europa/primecod/pedidos",
+              isActive: location.pathname.includes('/fornecedores/europa/primecod/pedidos'),
+              moduleKey: "primecod_pedidos",
+            },
+            {
               title: "Catálogo",
               url: "/fornecedores/europa/primecod/catalogo",
               isActive: location.pathname.includes('/fornecedores/europa/primecod/catalogo'),

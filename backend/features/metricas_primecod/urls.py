@@ -15,7 +15,8 @@ from .views import (
     salvar_primecod_config,
     get_last_sync,
     get_scheduler_status,
-    get_product_history
+    get_product_history,
+    buscar_pedidos_primecod
 )
 
 router = DefaultRouter()
@@ -47,6 +48,9 @@ urlpatterns = [
     # Endpoint de Status do Scheduler
     path('catalog/scheduler-status/', get_scheduler_status, name='catalog_scheduler_status'),
 
-    # Endpoint de Histórico de Produto
+    # Endpoint de Historico de Produto
     path('catalog/<int:product_id>/history/', get_product_history, name='product_history'),
+
+    # Endpoint de Busca de Pedidos em Tempo Real
+    path('pedidos/buscar/', buscar_pedidos_primecod, name='buscar_pedidos_primecod'),
 ]

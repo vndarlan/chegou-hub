@@ -247,6 +247,7 @@ MODULES = [
     {'key': 'ecomhub_config', 'name': 'ECOMHUB - Configurações', 'group': 'FORNECEDORES > EUROPA'},
     {'key': 'n1_efetividade', 'name': 'N1 - Efetividade', 'group': 'FORNECEDORES > EUROPA'},
     {'key': 'primecod_efetividade', 'name': 'PRIMECOD - Efetividade', 'group': 'FORNECEDORES > EUROPA'},
+    {'key': 'primecod_pedidos', 'name': 'PRIMECOD - Pedidos', 'group': 'FORNECEDORES > EUROPA'},
 
     # FORNECEDORES - LATAM
     {'key': 'dropi_efetividade', 'name': 'DROPI - Efetividade', 'group': 'FORNECEDORES > LATAM'},

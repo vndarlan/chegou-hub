@@ -29,6 +29,7 @@ import OpenAIAnalytics from '../features/ia/OpenAIAnalytics';
 import PrimecodPage from '../features/metricas/PrimecodPage';
 import PrimecodConfigPage from '../features/metricas/PrimecodConfigPage';
 import PrimeCODCatalogoPage from '../features/metricas/PrimeCODCatalogoPage';
+import PrimeCODPedidosPage from '../features/metricas/PrimeCODPedidosPage';
 import EcomhubPage from '../features/metricas/EcomhubPage';
 import EcomhubEfetividadeV2Page from '../features/metricas/EcomhubEfetividadeV2Page';
 import EcomhubPedidosPage from '../features/metricas/EcomhubPedidosPage';
@@ -113,6 +114,12 @@ const breadcrumbMap = {
     { label: 'EUROPA', href: '#' },
     { label: 'PRIMECOD', href: '#' },
     { label: 'Configurações' }
+  ],
+  '/fornecedores/europa/primecod/pedidos': [
+    { label: 'FORNECEDORES', href: '#' },
+    { label: 'EUROPA', href: '#' },
+    { label: 'PRIMECOD', href: '#' },
+    { label: 'Pedidos' }
   ],
 
   // FORNECEDORES > LATAM
@@ -311,6 +318,11 @@ function WorkspacePage({ setIsLoggedIn }) {
               <Route path="fornecedores/europa/primecod/configuracoes" element={
                 <ProtectedRoute moduleKey="primecod_config">
                   <PrimecodConfigPage />
+                </ProtectedRoute>
+              } />
+              <Route path="fornecedores/europa/primecod/pedidos" element={
+                <ProtectedRoute moduleKey="primecod_pedidos">
+                  <AdminRoute><PrimeCODPedidosPage /></AdminRoute>
                 </ProtectedRoute>
               } />
 

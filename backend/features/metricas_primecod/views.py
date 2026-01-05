@@ -1305,6 +1305,52 @@ def get_product_history(request, product_id):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+@require_primecod_token
+def buscar_pedidos_primecod(request):
+    """
+    Busca pedidos da API PrimeCOD em tempo real.
+    POST /api/metricas/primecod/pedidos/buscar/
+    Body: { data_inicio, data_fim, country_id? }
+    """
+    data_inicio = request.data.get('data_inicio')
+    data_fim = request.data.get('data_fim')
+    country_id = request.data.get('country_id')
+
+    logger.info(f"[BUSCAR_PEDIDOS] Usuario: {request.user.username}")
+    logger.info(f"[BUSCAR_PEDIDOS] Parametros: data_inicio={data_inicio}, data_fim={data_fim}, country_id={country_id}")
+
+    try:
+        client = PrimeCODClient()
+        pedidos = client.buscar_orders_paginado(
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+            country_id=country_id
+        )
+
+        logger.info(f"[BUSCAR_PEDIDOS] Busca concluida: {len(pedidos)} pedidos encontrados")
+
+        return Response({
+            'status': 'success',
+            'pedidos': pedidos,
+            'total': len(pedidos),
+            'message': f'{len(pedidos)} pedidos encontrados'
+        })
+    except PrimeCODAPIError as e:
+        logger.error(f"[BUSCAR_PEDIDOS] Erro PrimeCOD API: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': str(e)
+        }, status=status.HTTP_502_BAD_GATEWAY)
+    except Exception as e:
+        logger.error(f"[BUSCAR_PEDIDOS] Erro inesperado: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def get_scheduler_status(request):

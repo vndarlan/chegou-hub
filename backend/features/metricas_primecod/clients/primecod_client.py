@@ -1232,6 +1232,74 @@ class PrimeCODClient:
             'status': 'success'
         }
     
+    def buscar_orders_paginado(self, data_inicio=None, data_fim=None, country_id=None, max_paginas=100):
+        """
+        Busca todos os pedidos da API PrimeCOD com paginacao automatica.
+        Filtra por periodo e pais localmente (API nao suporta filtros).
+
+        Args:
+            data_inicio: Data inicial no formato 'YYYY-MM-DD'
+            data_fim: Data final no formato 'YYYY-MM-DD'
+            country_id: ID do pais para filtrar (opcional)
+            max_paginas: Numero maximo de paginas a buscar (padrao: 100)
+
+        Returns:
+            Lista de pedidos filtrados
+        """
+        all_orders = []
+        pagina = 1
+
+        logger.info(f"[BUSCAR_PAGINADO] Iniciando busca paginada: data_inicio={data_inicio}, data_fim={data_fim}, country_id={country_id}")
+
+        while pagina <= max_paginas:
+            try:
+                response = self.session.post(
+                    f"{self.base_url}/orders?page={pagina}",
+                    json={},
+                    timeout=30
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                orders = data.get('data', [])
+                if not orders:
+                    logger.info(f"[BUSCAR_PAGINADO] Pagina {pagina} vazia - finalizando busca")
+                    break
+
+                for order in orders:
+                    # Filtrar por data se especificado
+                    if data_inicio or data_fim:
+                        created_at = order.get('created_at', '')
+                        if created_at:
+                            order_date = created_at[:10]  # YYYY-MM-DD
+                            if data_inicio and order_date < data_inicio:
+                                continue
+                            if data_fim and order_date > data_fim:
+                                continue
+
+                    # Filtrar por pais se especificado
+                    if country_id:
+                        order_country_id = order.get('country_id')
+                        if order_country_id != int(country_id):
+                            continue
+
+                    all_orders.append(order)
+
+                # Verificar se chegou na ultima pagina
+                if pagina >= data.get('last_page', 1):
+                    logger.info(f"[BUSCAR_PAGINADO] Ultima pagina alcancada: {pagina}")
+                    break
+
+                pagina += 1
+                time.sleep(0.05)  # Rate limiting
+
+            except Exception as e:
+                logger.error(f"[BUSCAR_PAGINADO] Erro na pagina {pagina}: {str(e)}")
+                break
+
+        logger.info(f"[BUSCAR_PAGINADO] Busca finalizada: {len(all_orders)} pedidos encontrados em {pagina} paginas")
+        return all_orders
+
     def test_connection(self) -> Dict:
         """Testa conectividade com API PrimeCOD"""
         try:
