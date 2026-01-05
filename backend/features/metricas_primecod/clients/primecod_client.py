@@ -1297,7 +1297,14 @@ class PrimeCODClient:
                 logger.error(f"[BUSCAR_PAGINADO] Erro na pagina {pagina}: {str(e)}")
                 break
 
+        # Contar pedidos por país para debug
+        paises_count = {}
+        for order in all_orders:
+            country_name = order.get('country', {}).get('name', 'N/A')
+            paises_count[country_name] = paises_count.get(country_name, 0) + 1
+
         logger.info(f"[BUSCAR_PAGINADO] Busca finalizada: {len(all_orders)} pedidos encontrados em {pagina} paginas")
+        logger.info(f"[BUSCAR_PAGINADO] Distribuição por país: {paises_count}")
         return all_orders
 
     def test_connection(self) -> Dict:
