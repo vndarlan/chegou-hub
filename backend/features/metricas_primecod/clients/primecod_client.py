@@ -1266,6 +1266,12 @@ class PrimeCODClient:
                     logger.info(f"[BUSCAR_PAGINADO] Pagina {pagina} vazia - finalizando busca")
                     break
 
+                logger.info(f"[BUSCAR_PAGINADO] Pagina {pagina}: {len(orders)} pedidos recebidos da API")
+
+                pedidos_antes_filtro = len(orders)
+                pedidos_filtrados_data = 0
+                pedidos_filtrados_pais = 0
+
                 for order in orders:
                     # Filtrar por data se especificado
                     if data_inicio or data_fim:
@@ -1273,17 +1279,24 @@ class PrimeCODClient:
                         if created_at:
                             order_date = created_at[:10]  # YYYY-MM-DD
                             if data_inicio and order_date < data_inicio:
+                                pedidos_filtrados_data += 1
+                                logger.debug(f"[FILTRO_DATA] Removido: data={order_date} < inicio={data_inicio}")
                                 continue
                             if data_fim and order_date > data_fim:
+                                pedidos_filtrados_data += 1
+                                logger.debug(f"[FILTRO_DATA] Removido: data={order_date} > fim={data_fim}")
                                 continue
 
                     # Filtrar por pais se especificado
                     if country_id:
                         order_country_id = order.get('country_id')
                         if order_country_id != int(country_id):
+                            pedidos_filtrados_pais += 1
                             continue
 
                     all_orders.append(order)
+
+                logger.info(f"[BUSCAR_PAGINADO] Pagina {pagina}: {pedidos_antes_filtro} recebidos, {pedidos_filtrados_data} filtrados por data, {pedidos_filtrados_pais} filtrados por país, {len(orders) - pedidos_filtrados_data - pedidos_filtrados_pais} adicionados")
 
                 # Verificar se chegou na ultima pagina
                 if pagina >= data.get('last_page', 1):
