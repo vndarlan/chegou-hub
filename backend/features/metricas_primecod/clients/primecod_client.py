@@ -1251,11 +1251,20 @@ class PrimeCODClient:
 
         logger.info(f"[BUSCAR_PAGINADO] Iniciando busca paginada: data_inicio={data_inicio}, data_fim={data_fim}, country_id={country_id}")
 
+        # Construir payload com filtros
+        payload = {}
+        if data_inicio and data_fim:
+            payload['dates_range'] = [data_inicio, data_fim]
+        if country_id:
+            payload['country_id'] = int(country_id)
+
+        logger.info(f"[BUSCAR_PAGINADO] Payload da API: {payload}")
+
         while pagina <= max_paginas:
             try:
                 response = self.session.post(
                     f"{self.base_url}/orders?page={pagina}",
-                    json={},
+                    json=payload,
                     timeout=30
                 )
                 response.raise_for_status()
@@ -1266,37 +1275,11 @@ class PrimeCODClient:
                     logger.info(f"[BUSCAR_PAGINADO] Pagina {pagina} vazia - finalizando busca")
                     break
 
-                logger.info(f"[BUSCAR_PAGINADO] Pagina {pagina}: {len(orders)} pedidos recebidos da API")
-
-                pedidos_antes_filtro = len(orders)
-                pedidos_filtrados_data = 0
-                pedidos_filtrados_pais = 0
-
+                # A API já filtra por data e país, então basta adicionar os pedidos
                 for order in orders:
-                    # Filtrar por data se especificado
-                    if data_inicio or data_fim:
-                        created_at = order.get('created_at', '')
-                        if created_at:
-                            order_date = created_at[:10]  # YYYY-MM-DD
-                            if data_inicio and order_date < data_inicio:
-                                pedidos_filtrados_data += 1
-                                logger.debug(f"[FILTRO_DATA] Removido: data={order_date} < inicio={data_inicio}")
-                                continue
-                            if data_fim and order_date > data_fim:
-                                pedidos_filtrados_data += 1
-                                logger.debug(f"[FILTRO_DATA] Removido: data={order_date} > fim={data_fim}")
-                                continue
-
-                    # Filtrar por pais se especificado
-                    if country_id:
-                        order_country_id = order.get('country_id')
-                        if order_country_id != int(country_id):
-                            pedidos_filtrados_pais += 1
-                            continue
-
                     all_orders.append(order)
 
-                logger.info(f"[BUSCAR_PAGINADO] Pagina {pagina}: {pedidos_antes_filtro} recebidos, {pedidos_filtrados_data} filtrados por data, {pedidos_filtrados_pais} filtrados por país, {len(orders) - pedidos_filtrados_data - pedidos_filtrados_pais} adicionados")
+                logger.info(f"[BUSCAR_PAGINADO] Pagina {pagina}: {len(orders)} pedidos adicionados (API já filtrou)")
 
                 # Verificar se chegou na ultima pagina
                 if pagina >= data.get('last_page', 1):
