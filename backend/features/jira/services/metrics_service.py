@@ -275,24 +275,13 @@ class JiraMetricsService:
             from datetime import datetime, timedelta
 
             # Calcular range de datas para filtrar worklogs
-            if period == 'custom' and start_date and end_date:
-                date_start = datetime.fromisoformat(start_date)
-                date_end = datetime.fromisoformat(end_date)
-            else:
-                # Usar período padrão (converter dias em datetime)
-                date_end = datetime.now()
-                if period == '15d':
-                    date_start = date_end - timedelta(days=15)
-                elif period == '30d':
-                    date_start = date_end - timedelta(days=30)
-                elif period == '45d':
-                    date_start = date_end - timedelta(days=45)
-                elif period == '3m':
-                    date_start = date_end - timedelta(days=90)
-                elif period == '6m':
-                    date_start = date_end - timedelta(days=180)
-                else:
-                    date_start = date_end - timedelta(days=30)  # Default 30 dias
+            # IMPORTANTE: Usa mesma lógica do _build_period_jql para garantir sincronização
+            date_start, date_end = self._calculate_date_range(period, start_date, end_date)
+
+            # Log detalhado para debug
+            logger.info(f"[JIRA TIMESHEET] Período solicitado: {period}")
+            logger.info(f"[JIRA TIMESHEET] Range calculado: {date_start.date()} até {date_end.date()}")
+            logger.info(f"[JIRA TIMESHEET] Total de {(date_end - date_start).days} dias no período")
 
             # JQL base - buscar issues recentes do assignee para evitar rate limit
             # Usa 'updated' para pegar issues que podem ter worklog recente
@@ -308,8 +297,7 @@ class JiraMetricsService:
             total_seconds = 0
             issues_aggregated = {}  # Agregar por issue_key
 
-            logger.info(f"[JIRA] Processando {len(issues)} issues para worklogs")
-            logger.info(f"[JIRA] Período: {date_start} até {date_end}")
+            logger.info(f"[JIRA TIMESHEET] Processando {len(issues)} issues para worklogs")
 
             for issue in issues:
                 issue_key = issue.get('key')
@@ -373,3 +361,78 @@ class JiraMetricsService:
         """Retorna chave da semana no formato 'YYYY-Www'"""
         dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
         return dt.strftime('%Y-W%U')
+
+    @staticmethod
+    def _calculate_date_range(period: str, start_date: str = None, end_date: str = None) -> tuple:
+        """
+        Calcula range de datas para um período específico
+
+        Este método garante que o filtro de worklogs use o mesmo período que o JQL.
+        Implementa a mesma lógica do _build_period_jql() do JiraClient.
+
+        Args:
+            period: Período (current_week, last_week, 2_weeks_ago, 15d, 30d, 45d, 3m, 6m, custom)
+            start_date: Data início ISO (para period=custom)
+            end_date: Data fim ISO (para period=custom)
+
+        Returns:
+            Tupla (date_start: datetime, date_end: datetime)
+
+        Raises:
+            ValueError: Se período inválido ou custom sem datas
+        """
+        today = datetime.now()
+        today_date = today.date()
+
+        if period == 'custom':
+            if not start_date or not end_date:
+                raise ValueError("Período 'custom' requer start_date e end_date")
+            return (
+                datetime.fromisoformat(start_date),
+                datetime.fromisoformat(end_date)
+            )
+
+        elif period == 'current_week':
+            # Semana atual (segunda a domingo)
+            days_since_monday = today_date.weekday()
+            start = today_date - timedelta(days=days_since_monday)
+            end = today_date + timedelta(days=(6 - days_since_monday))
+            return (
+                datetime.combine(start, datetime.min.time()),
+                datetime.combine(end, datetime.max.time())
+            )
+
+        elif period == 'last_week':
+            # Semana passada (segunda a domingo)
+            days_since_monday = today_date.weekday()
+            last_week_monday = today_date - timedelta(days=days_since_monday + 7)
+            last_week_sunday = last_week_monday + timedelta(days=6)
+            return (
+                datetime.combine(last_week_monday, datetime.min.time()),
+                datetime.combine(last_week_sunday, datetime.max.time())
+            )
+
+        elif period == '2_weeks_ago':
+            # Duas semanas atrás (segunda a domingo)
+            days_since_monday = today_date.weekday()
+            two_weeks_monday = today_date - timedelta(days=days_since_monday + 14)
+            two_weeks_sunday = two_weeks_monday + timedelta(days=6)
+            return (
+                datetime.combine(two_weeks_monday, datetime.min.time()),
+                datetime.combine(two_weeks_sunday, datetime.max.time())
+            )
+
+        elif period.endswith('d'):
+            # Dias (15d, 30d, 45d)
+            days = int(period[:-1])
+            start = today - timedelta(days=days)
+            return (start, today)
+
+        elif period.endswith('m'):
+            # Meses (3m, 6m)
+            months = int(period[:-1])
+            start = today - timedelta(days=months * 30)
+            return (start, today)
+
+        else:
+            raise ValueError(f"Período inválido: {period}")
