@@ -1,6 +1,6 @@
 // frontend/src/features/planejamento_semanal/PlanejamentoSemanalPage.js
 import { useState, useEffect, useCallback } from 'react';
-import { AlertCircle, Loader2, RefreshCw, Save, Calendar } from 'lucide-react';
+import { AlertCircle, Loader2, RefreshCw, Save, Calendar, Search } from 'lucide-react';
 import apiClient from '../../utils/axios';
 
 // shadcn/ui components
@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/button';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
 
 // Componentes customizados
 import { UserSelector } from './components/UserSelector';
@@ -24,6 +25,7 @@ function PlanejamentoSemanalPage() {
   const [issuesDisponiveis, setIssuesDisponiveis] = useState({});
   const [selectedIssues, setSelectedIssues] = useState([]);
   const [loadingIssues, setLoadingIssues] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Estados de planejamento
   const [planejamentoAtual, setPlanejamentoAtual] = useState(null);
@@ -72,7 +74,7 @@ function PlanejamentoSemanalPage() {
   }, []);
 
   // Buscar issues disponiveis quando usuario muda
-  const fetchIssuesDisponiveis = useCallback(async (accountId) => {
+  const fetchIssuesDisponiveis = useCallback(async (accountId, search = '') => {
     if (!accountId) {
       setIssuesDisponiveis({});
       return;
@@ -81,8 +83,12 @@ function PlanejamentoSemanalPage() {
     setLoadingIssues(true);
     setError(null);
     try {
+      const params = { jira_account_id: accountId };
+      if (search.trim()) {
+        params.search = search.trim();
+      }
       const response = await apiClient.get('/planejamento-semanal/issues-disponiveis/', {
-        params: { jira_account_id: accountId }
+        params
       });
       setIssuesDisponiveis(response.data?.issues_by_status || {});
     } catch (err) {
@@ -93,6 +99,21 @@ function PlanejamentoSemanalPage() {
       setLoadingIssues(false);
     }
   }, []);
+
+  // Handler para pesquisar
+  const handleSearch = () => {
+    if (selectedUser) {
+      fetchIssuesDisponiveis(selectedUser, searchQuery);
+    }
+  };
+
+  // Handler para limpar pesquisa
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    if (selectedUser) {
+      fetchIssuesDisponiveis(selectedUser, '');
+    }
+  };
 
   // Buscar planejamento atual do usuario
   const fetchPlanejamentoAtual = useCallback(async (accountId) => {
@@ -234,6 +255,7 @@ function PlanejamentoSemanalPage() {
   const handleUserChange = (accountId) => {
     setSelectedUser(accountId);
     setSelectedIssuesData({});
+    setSearchQuery('');
     setError(null);
     setSuccessMessage(null);
   };
@@ -323,6 +345,28 @@ function PlanejamentoSemanalPage() {
               {/* Seletor de Issues */}
               {selectedUser && (
                 <>
+                  {/* Campo de Pesquisa */}
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Pesquisar por código (ex: CHEGOU-123) ou título..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                        className="pl-9"
+                      />
+                    </div>
+                    <Button onClick={handleSearch} variant="secondary" disabled={loadingIssues}>
+                      {loadingIssues ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    </Button>
+                    {searchQuery && (
+                      <Button onClick={handleClearSearch} variant="outline" size="sm">
+                        Limpar
+                      </Button>
+                    )}
+                  </div>
+
                   {loadingIssues || loadingPlanejamento ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

@@ -246,11 +246,21 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
                 "Review"
             ]
             status_jql = '", "'.join(status_list)
+
+            # Filtro de pesquisa (opcional)
+            search_query = request.query_params.get('search', '').strip()
+            search_filter = ''
+            if search_query:
+                # Busca por key ou texto no summary
+                search_filter = f' AND (summary ~ "{search_query}" OR key = "{search_query.upper()}")'
+
             jql = (
                 f'project = {client.project_key} '
                 f'AND assignee = "{jira_account_id}" '
                 f'AND status IN ("{status_jql}") '
-                f'ORDER BY status ASC, priority DESC, created DESC'
+                f'AND issuetype NOT IN (Sub-task, Subtarefa, "Sub-tarefa")'  # Excluir subtarefas
+                f'{search_filter}'
+                f' ORDER BY status ASC, priority DESC, created DESC'
             )
 
             # Buscar issues
