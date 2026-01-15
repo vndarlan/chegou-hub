@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AlertCircle, Loader2, RefreshCw, Save, Calendar, Search } from 'lucide-react';
 import apiClient from '../../utils/axios';
+import { useOrganization } from '../../hooks/useOrganization';
 
 // shadcn/ui components
 import { Button } from '../../components/ui/button';
@@ -14,8 +15,18 @@ import { Input } from '../../components/ui/input';
 import { UserSelector } from './components/UserSelector';
 import { IssueSelector } from './components/IssueSelector';
 import { DashboardGrid } from './components/DashboardGrid';
+import { WeekSelector } from './components/WeekSelector';
 
 function PlanejamentoSemanalPage() {
+  // Hook de organizacao para verificar permissoes
+  const { isAdmin } = useOrganization();
+
+  // Estados de semanas
+  const [semanas, setSemanas] = useState([]);
+  const [selectedSemana, setSelectedSemana] = useState(null);
+  const [loadingSemanas, setLoadingSemanas] = useState(true);
+  const [creatingSemana, setCreatingSemana] = useState(false);
+
   // Estados de usuarios
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -24,6 +35,7 @@ function PlanejamentoSemanalPage() {
   // Estados de issues
   const [issuesDisponiveis, setIssuesDisponiveis] = useState({});
   const [selectedIssues, setSelectedIssues] = useState([]);
+  const [selectedIssuesData, setSelectedIssuesData] = useState({});
   const [loadingIssues, setLoadingIssues] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -43,16 +55,90 @@ function PlanejamentoSemanalPage() {
   // Tab ativa
   const [activeTab, setActiveTab] = useState('meu-planejamento');
 
-  // Calcular semana atual
-  const getSemanaAtual = () => {
-    const now = new Date();
-    const startOfYear = new Date(now.getFullYear(), 0, 1);
-    const days = Math.floor((now - startOfYear) / (24 * 60 * 60 * 1000));
-    const weekNumber = Math.ceil((days + startOfYear.getDay() + 1) / 7);
-    return `${now.getFullYear()}-W${String(weekNumber).padStart(2, '0')}`;
+  // Formatar label da semana para exibicao
+  const formatSemanaLabel = (semana) => {
+    if (!semana) return '-';
+    if (semana.label) return semana.label;
+    if (semana.data_inicio && semana.data_fim) {
+      const inicio = new Date(semana.data_inicio + 'T00:00:00').toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit'
+      });
+      const fim = new Date(semana.data_fim + 'T00:00:00').toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit'
+      });
+      return `${inicio} - ${fim}`;
+    }
+    return '-';
   };
 
-  const semanaAtual = getSemanaAtual();
+  // Buscar lista de semanas disponiveis
+  const fetchSemanas = useCallback(async () => {
+    setLoadingSemanas(true);
+    try {
+      const response = await apiClient.get('/planejamento-semanal/semanas/');
+      const semanasData = response.data?.semanas || [];
+      setSemanas(semanasData);
+
+      // Selecionar a primeira semana (mais recente) se nenhuma selecionada
+      setSelectedSemana(prev => {
+        if (semanasData.length > 0 && !prev) {
+          return semanasData[0];
+        }
+        return prev;
+      });
+    } catch (err) {
+      console.error('Erro ao buscar semanas:', err);
+      setError('Erro ao carregar lista de semanas.');
+    } finally {
+      setLoadingSemanas(false);
+    }
+  }, []);
+
+  // Criar nova semana (apenas admins)
+  const handleCriarSemana = async () => {
+    setCreatingSemana(true);
+    setError(null);
+    try {
+      const response = await apiClient.post('/planejamento-semanal/criar-semana/');
+      const novaSemana = response.data?.semana;
+
+      if (novaSemana) {
+        // Adicionar nova semana no inicio da lista
+        setSemanas(prev => [novaSemana, ...prev]);
+        setSelectedSemana(novaSemana);
+        setSuccessMessage('Nova semana criada com sucesso!');
+        setTimeout(() => setSuccessMessage(null), 3000);
+      }
+    } catch (err) {
+      console.error('Erro ao criar semana:', err);
+      if (err.response?.status === 409) {
+        setError('Ja existe uma semana para esse periodo.');
+      } else if (err.response?.status === 403) {
+        setError('Apenas administradores podem criar novas semanas.');
+      } else {
+        setError(err.response?.data?.error || 'Erro ao criar nova semana.');
+      }
+    } finally {
+      setCreatingSemana(false);
+    }
+  };
+
+  // Handler para mudanca de semana
+  const handleSemanaChange = (semana) => {
+    setSelectedSemana(semana);
+    // Limpar dados ao trocar de semana
+    setPlanejamentoAtual(null);
+    setSelectedIssues([]);
+    setSelectedIssuesData({});
+    setDashboardData(null);
+  };
+
+  // Buscar semanas na inicializacao
+  useEffect(() => {
+    fetchSemanas();
+  }, [fetchSemanas]);
 
   // Buscar usuarios do Jira
   useEffect(() => {
@@ -115,8 +201,8 @@ function PlanejamentoSemanalPage() {
     }
   };
 
-  // Buscar planejamento atual do usuario
-  const fetchPlanejamentoAtual = useCallback(async (accountId) => {
+  // Buscar planejamento do usuario para a semana selecionada
+  const fetchPlanejamentoAtual = useCallback(async (accountId, semanaId) => {
     if (!accountId) {
       setPlanejamentoAtual(null);
       setSelectedIssues([]);
@@ -125,10 +211,15 @@ function PlanejamentoSemanalPage() {
 
     setLoadingPlanejamento(true);
     try {
+      const params = { jira_account_id: accountId };
+      if (semanaId) {
+        params.semana_id = semanaId;
+      }
+
       const response = await apiClient.get('/planejamento-semanal/semana-atual/', {
-        params: { jira_account_id: accountId }
+        params
       });
-      const planejamento = response.data;
+      const planejamento = response.data?.planejamento;
       setPlanejamentoAtual(planejamento);
 
       // Carregar issues ja selecionadas
@@ -146,11 +237,18 @@ function PlanejamentoSemanalPage() {
     }
   }, []);
 
-  // Buscar dashboard da equipe
-  const fetchDashboard = useCallback(async () => {
+  // Buscar dashboard da equipe para a semana selecionada
+  const fetchDashboard = useCallback(async (semanaId) => {
     setLoadingDashboard(true);
     try {
-      const response = await apiClient.get('/planejamento-semanal/dashboard/');
+      const params = {};
+      if (semanaId) {
+        params.semana_id = semanaId;
+      }
+
+      const response = await apiClient.get('/planejamento-semanal/dashboard/', {
+        params
+      });
       setDashboardData(response.data);
     } catch (err) {
       console.error('Erro ao buscar dashboard:', err);
@@ -160,9 +258,12 @@ function PlanejamentoSemanalPage() {
     }
   }, []);
 
-  // Quando usuario muda, buscar issues e planejamento
+  // Quando usuario ou semana muda, buscar issues e planejamento
   useEffect(() => {
-    if (selectedUser) {
+    if (selectedUser && selectedSemana) {
+      fetchIssuesDisponiveis(selectedUser);
+      fetchPlanejamentoAtual(selectedUser, selectedSemana.id);
+    } else if (selectedUser && !selectedSemana) {
       fetchIssuesDisponiveis(selectedUser);
       fetchPlanejamentoAtual(selectedUser);
     } else {
@@ -170,17 +271,14 @@ function PlanejamentoSemanalPage() {
       setPlanejamentoAtual(null);
       setSelectedIssues([]);
     }
-  }, [selectedUser, fetchIssuesDisponiveis, fetchPlanejamentoAtual]);
+  }, [selectedUser, selectedSemana, fetchIssuesDisponiveis, fetchPlanejamentoAtual]);
 
-  // Buscar dashboard quando tab muda
+  // Buscar dashboard quando tab muda ou semana muda
   useEffect(() => {
-    if (activeTab === 'dashboard') {
-      fetchDashboard();
+    if (activeTab === 'dashboard' && selectedSemana) {
+      fetchDashboard(selectedSemana.id);
     }
-  }, [activeTab, fetchDashboard]);
-
-  // Estado para guardar dados completos das issues selecionadas
-  const [selectedIssuesData, setSelectedIssuesData] = useState({});
+  }, [activeTab, selectedSemana, fetchDashboard]);
 
   // Toggle issue selecionada
   const handleToggleIssue = (issueKey, checked, issueData) => {
@@ -230,16 +328,23 @@ function PlanejamentoSemanalPage() {
         };
       });
 
-      await apiClient.post('/planejamento-semanal/salvar/', {
+      const payload = {
         jira_account_id: selectedUser,
         jira_display_name: displayName,
         itens: itens
-      });
+      };
+
+      // Adicionar semana_id se tiver semana selecionada
+      if (selectedSemana?.id) {
+        payload.semana_id = selectedSemana.id;
+      }
+
+      await apiClient.post('/planejamento-semanal/salvar/', payload);
 
       setSuccessMessage('Planejamento salvo com sucesso!');
 
       // Atualizar planejamento atual
-      await fetchPlanejamentoAtual(selectedUser);
+      await fetchPlanejamentoAtual(selectedUser, selectedSemana?.id);
 
       // Limpar mensagem apos 3 segundos
       setTimeout(() => setSuccessMessage(null), 3000);
@@ -262,21 +367,24 @@ function PlanejamentoSemanalPage() {
 
   // Refresh dados
   const handleRefresh = () => {
+    fetchSemanas();
     if (activeTab === 'meu-planejamento' && selectedUser) {
       fetchIssuesDisponiveis(selectedUser);
-      fetchPlanejamentoAtual(selectedUser);
+      fetchPlanejamentoAtual(selectedUser, selectedSemana?.id);
     } else if (activeTab === 'dashboard') {
-      fetchDashboard();
+      fetchDashboard(selectedSemana?.id);
     }
   };
 
-  if (loadingUsers) {
+  if (loadingUsers || loadingSemanas) {
     return (
       <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
         <div className="flex h-32 items-center justify-center">
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm text-muted-foreground">Carregando usuarios...</span>
+            <span className="text-sm text-muted-foreground">
+              {loadingSemanas ? 'Carregando semanas...' : 'Carregando usuarios...'}
+            </span>
           </div>
         </div>
       </div>
@@ -286,20 +394,31 @@ function PlanejamentoSemanalPage() {
   return (
     <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
       {/* Cabecalho */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Calendar className="h-6 w-6 text-primary" />
           <div>
             <h2 className="text-lg font-semibold">Planejamento Semanal</h2>
             <p className="text-sm text-muted-foreground">
-              Semana atual: {semanaAtual}
+              Semana: {formatSemanaLabel(selectedSemana)}
             </p>
           </div>
         </div>
-        <Button onClick={handleRefresh} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-3">
+          <WeekSelector
+            semanas={semanas}
+            selectedSemana={selectedSemana}
+            onSemanaChange={handleSemanaChange}
+            onNovaSemana={isAdmin ? handleCriarSemana : null}
+            isAdmin={isAdmin}
+            loading={loadingSemanas}
+            creating={creatingSemana}
+          />
+          <Button onClick={handleRefresh} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {/* Mensagens de erro/sucesso */}

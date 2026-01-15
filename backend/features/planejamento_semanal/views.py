@@ -6,6 +6,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
 
+from datetime import timedelta
+from django.utils import timezone
 from .models import SemanaReferencia, PlanejamentoSemanal, ItemPlanejamento
 from .serializers import (
     SemanaReferenciaSerializer,
@@ -28,10 +30,12 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='semana-atual')
     def semana_atual(self, request):
         """
-        GET /api/planejamento-semanal/semana_atual/?jira_account_id=xxx
-        Retorna o planejamento da semana atual para um usuario Jira especifico.
+        GET /api/planejamento-semanal/semana-atual/?jira_account_id=xxx&semana_id=1
+        Retorna o planejamento de uma semana para um usuario Jira especifico.
+        Se semana_id nao for informado, usa a semana atual.
         """
         jira_account_id = request.query_params.get('jira_account_id')
+        semana_id = request.query_params.get('semana_id')
 
         if not jira_account_id:
             return Response(
@@ -40,8 +44,17 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
             )
 
         try:
-            # Obter ou criar semana atual
-            semana = SemanaReferencia.get_or_create_current_week()
+            # Obter semana especifica ou atual
+            if semana_id:
+                try:
+                    semana = SemanaReferencia.objects.get(id=semana_id)
+                except SemanaReferencia.DoesNotExist:
+                    return Response(
+                        {'error': 'Semana nao encontrada'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+            else:
+                semana = SemanaReferencia.get_or_create_current_week()
 
             # Buscar planejamento existente
             planejamento = PlanejamentoSemanal.objects.filter(
@@ -328,6 +341,59 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
             logger.error(f"Erro ao listar semanas: {str(e)}")
             return Response(
                 {'error': f'Erro ao listar semanas: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['post'], url_path='criar-semana')
+    def criar_semana(self, request):
+        """
+        POST /api/planejamento-semanal/criar-semana/
+        Cria uma nova semana de planejamento (apenas admins/superusers).
+        A nova semana inicia na proxima segunda-feira.
+        """
+        # Verificar se usuario e admin ou superuser
+        if not request.user.is_staff and not request.user.is_superuser:
+            return Response(
+                {'error': 'Apenas administradores podem criar novas semanas'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            # Calcular proxima segunda-feira
+            hoje = timezone.now().date()
+            dias_ate_segunda = (7 - hoje.weekday()) % 7
+            if dias_ate_segunda == 0:
+                dias_ate_segunda = 7  # Se hoje e segunda, pegar a proxima
+
+            proxima_segunda = hoje + timedelta(days=dias_ate_segunda)
+            proxima_domingo = proxima_segunda + timedelta(days=6)
+
+            # Verificar se ja existe semana para essa data
+            semana_existente = SemanaReferencia.objects.filter(
+                data_inicio=proxima_segunda
+            ).first()
+
+            if semana_existente:
+                return Response({
+                    'error': 'Ja existe uma semana para esse periodo',
+                    'semana': SemanaReferenciaSerializer(semana_existente).data
+                }, status=status.HTTP_409_CONFLICT)
+
+            # Criar nova semana
+            nova_semana = SemanaReferencia.objects.create(
+                data_inicio=proxima_segunda,
+                data_fim=proxima_domingo
+            )
+
+            return Response({
+                'message': 'Nova semana criada com sucesso',
+                'semana': SemanaReferenciaSerializer(nova_semana).data
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            logger.error(f"Erro ao criar semana: {str(e)}")
+            return Response(
+                {'error': f'Erro ao criar semana: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
