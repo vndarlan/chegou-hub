@@ -24,6 +24,7 @@ import AgendaPage from '../features/agenda/AgendaPage';
 import MapaPage from '../features/mapa/MapaPage';
 import JiraPage from '../features/jira/JiraPage';
 import PlanejamentoSemanalPage from '../features/planejamento_semanal/PlanejamentoSemanalPage';
+import DashboardPage from '../features/planejamento_semanal/DashboardPage';
 import ProjetoDashboard from '../features/ia/ProjetoDashboard';
 import LogsPage from '../features/ia/LogsPage';
 import OpenAIAnalytics from '../features/ia/OpenAIAnalytics';
@@ -60,9 +61,15 @@ const breadcrumbMap = {
   '/gestao/agenda': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Agenda da Empresa' }],
   '/gestao/mapa': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Mapa de Atuação' }],
   '/gestao/jira': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Jira' }],
-  '/gestao/planejamento-semanal': [
+  '/gestao/planejamento-semanal/configurar': [
     { label: 'GESTÃO EMPRESARIAL', href: '#' },
-    { label: 'Planejamento Semanal' }
+    { label: 'Planejamento Semanal', href: '#' },
+    { label: 'Configurar Semana' }
+  ],
+  '/gestao/planejamento-semanal/dashboard': [
+    { label: 'GESTÃO EMPRESARIAL', href: '#' },
+    { label: 'Planejamento Semanal', href: '#' },
+    { label: 'Dashboard' }
   ],
 
   // FORNECEDORES > EUROPA
@@ -278,9 +285,14 @@ function WorkspacePage({ setIsLoggedIn }) {
                   <JiraPage />
                 </ProtectedRoute>
               } />
-              <Route path="gestao/planejamento-semanal" element={
+              <Route path="gestao/planejamento-semanal/configurar" element={
                 <ProtectedRoute moduleKey="planejamento_semanal">
                   <PlanejamentoSemanalPage />
+                </ProtectedRoute>
+              } />
+              <Route path="gestao/planejamento-semanal/dashboard" element={
+                <ProtectedRoute moduleKey="planejamento_semanal">
+                  <DashboardPage />
                 </ProtectedRoute>
               } />
 

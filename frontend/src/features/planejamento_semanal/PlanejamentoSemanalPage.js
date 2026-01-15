@@ -7,14 +7,12 @@ import { useOrganization } from '../../hooks/useOrganization';
 // shadcn/ui components
 import { Button } from '../../components/ui/button';
 import { Alert, AlertDescription } from '../../components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 
 // Componentes customizados
 import { UserSelector } from './components/UserSelector';
 import { IssueSelector } from './components/IssueSelector';
-import { DashboardGrid } from './components/DashboardGrid';
 import { WeekSelector } from './components/WeekSelector';
 
 function PlanejamentoSemanalPage() {
@@ -45,16 +43,9 @@ function PlanejamentoSemanalPage() {
   const [loadingPlanejamento, setLoadingPlanejamento] = useState(false);
   const [savingPlanejamento, setSavingPlanejamento] = useState(false);
 
-  // Estados de dashboard
-  const [dashboardData, setDashboardData] = useState(null);
-  const [loadingDashboard, setLoadingDashboard] = useState(false);
-
   // Estados de erro
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
-
-  // Tab ativa
-  const [activeTab, setActiveTab] = useState('meu-planejamento');
 
   // Formatar label da semana para exibicao
   const formatSemanaLabel = (semana) => {
@@ -168,7 +159,6 @@ function PlanejamentoSemanalPage() {
     setPlanejamentoAtual(null);
     setSelectedIssues([]);
     setSelectedIssuesData({});
-    setDashboardData(null);
   };
 
   // Buscar semanas na inicializacao
@@ -273,27 +263,6 @@ function PlanejamentoSemanalPage() {
     }
   }, []);
 
-  // Buscar dashboard da equipe para a semana selecionada
-  const fetchDashboard = useCallback(async (semanaId) => {
-    setLoadingDashboard(true);
-    try {
-      const params = {};
-      if (semanaId) {
-        params.semana_id = semanaId;
-      }
-
-      const response = await apiClient.get('/planejamento-semanal/dashboard/', {
-        params
-      });
-      setDashboardData(response.data);
-    } catch (err) {
-      console.error('Erro ao buscar dashboard:', err);
-      setDashboardData(null);
-    } finally {
-      setLoadingDashboard(false);
-    }
-  }, []);
-
   // Quando usuario ou semana muda, buscar issues e planejamento
   useEffect(() => {
     if (selectedUser && selectedSemana) {
@@ -308,13 +277,6 @@ function PlanejamentoSemanalPage() {
       setSelectedIssues([]);
     }
   }, [selectedUser, selectedSemana, fetchIssuesDisponiveis, fetchPlanejamentoAtual]);
-
-  // Buscar dashboard quando tab muda ou semana muda
-  useEffect(() => {
-    if (activeTab === 'dashboard' && selectedSemana) {
-      fetchDashboard(selectedSemana.id);
-    }
-  }, [activeTab, selectedSemana, fetchDashboard]);
 
   // Toggle issue selecionada
   const handleToggleIssue = (issueKey, checked, issueData) => {
@@ -404,11 +366,9 @@ function PlanejamentoSemanalPage() {
   // Refresh dados
   const handleRefresh = () => {
     fetchSemanas();
-    if (activeTab === 'meu-planejamento' && selectedUser) {
+    if (selectedUser) {
       fetchIssuesDisponiveis(selectedUser);
       fetchPlanejamentoAtual(selectedUser, selectedSemana?.id);
-    } else if (activeTab === 'dashboard') {
-      fetchDashboard(selectedSemana?.id);
     }
   };
 
@@ -434,7 +394,7 @@ function PlanejamentoSemanalPage() {
         <div className="flex items-center gap-3">
           <Calendar className="h-6 w-6 text-primary" />
           <div>
-            <h2 className="text-lg font-semibold">Planejamento Semanal</h2>
+            <h2 className="text-lg font-semibold">Configurar Semana</h2>
             <p className="text-sm text-muted-foreground">
               Semana: {formatSemanaLabel(selectedSemana)}
             </p>
@@ -475,106 +435,85 @@ function PlanejamentoSemanalPage() {
         </Alert>
       )}
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="meu-planejamento">Meu Planejamento</TabsTrigger>
-          <TabsTrigger value="dashboard">Dashboard da Equipe</TabsTrigger>
-        </TabsList>
+      {/* Card de Configuracao */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Configurar Planejamento</CardTitle>
+          <CardDescription>
+            Selecione o usuario e as issues que serao trabalhadas nesta semana.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Seletor de Usuario */}
+          <UserSelector
+            users={users}
+            selectedUser={selectedUser}
+            onUserChange={handleUserChange}
+          />
 
-        {/* Tab: Meu Planejamento */}
-        <TabsContent value="meu-planejamento" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Configurar Planejamento</CardTitle>
-              <CardDescription>
-                Selecione o usuario e as issues que serao trabalhadas nesta semana.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Seletor de Usuario */}
-              <UserSelector
-                users={users}
-                selectedUser={selectedUser}
-                onUserChange={handleUserChange}
-              />
+          {/* Seletor de Issues */}
+          {selectedUser && (
+            <>
+              {/* Campo de Pesquisa */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Pesquisar por código (ex: CHEGOU-123) ou título..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    className="pl-9"
+                  />
+                </div>
+                <Button onClick={handleSearch} variant="secondary" disabled={loadingIssues}>
+                  {loadingIssues ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                </Button>
+                {searchQuery && (
+                  <Button onClick={handleClearSearch} variant="outline" size="sm">
+                    Limpar
+                  </Button>
+                )}
+              </div>
 
-              {/* Seletor de Issues */}
-              {selectedUser && (
-                <>
-                  {/* Campo de Pesquisa */}
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Pesquisar por código (ex: CHEGOU-123) ou título..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                        className="pl-9"
-                      />
-                    </div>
-                    <Button onClick={handleSearch} variant="secondary" disabled={loadingIssues}>
-                      {loadingIssues ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                    </Button>
-                    {searchQuery && (
-                      <Button onClick={handleClearSearch} variant="outline" size="sm">
-                        Limpar
-                      </Button>
-                    )}
-                  </div>
-
-                  {loadingIssues || loadingPlanejamento ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : (
-                    <IssueSelector
-                      issuesByStatus={issuesDisponiveis}
-                      selectedIssues={selectedIssues}
-                      onToggleIssue={handleToggleIssue}
-                    />
-                  )}
-
-                  {/* Botao Salvar */}
-                  <div className="flex justify-end">
-                    <Button
-                      onClick={handleSalvar}
-                      disabled={savingPlanejamento}
-                    >
-                      {savingPlanejamento ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Salvando...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="h-4 w-4 mr-2" />
-                          {selectedIssues.length === 0
-                            ? 'Limpar Planejamento'
-                            : `Salvar Planejamento (${selectedIssues.length} ${selectedIssues.length === 1 ? 'item' : 'itens'})`
-                          }
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </>
+              {loadingIssues || loadingPlanejamento ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <IssueSelector
+                  issuesByStatus={issuesDisponiveis}
+                  selectedIssues={selectedIssues}
+                  onToggleIssue={handleToggleIssue}
+                />
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        {/* Tab: Dashboard da Equipe */}
-        <TabsContent value="dashboard" className="space-y-4">
-          {loadingDashboard ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <DashboardGrid data={dashboardData} users={users} />
+              {/* Botao Salvar */}
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleSalvar}
+                  disabled={savingPlanejamento}
+                >
+                  {savingPlanejamento ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      {selectedIssues.length === 0
+                        ? 'Limpar Planejamento'
+                        : `Salvar Planejamento (${selectedIssues.length} ${selectedIssues.length === 1 ? 'item' : 'itens'})`
+                      }
+                    </>
+                  )}
+                </Button>
+              </div>
+            </>
           )}
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 }
