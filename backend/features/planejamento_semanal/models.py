@@ -7,15 +7,15 @@ from datetime import date, timedelta
 class SemanaReferencia(models.Model):
     """
     Representa uma semana de referencia para planejamento.
-    Sempre comeca na segunda-feira e termina no domingo.
+    Sempre comeca no domingo e termina no sabado.
     """
     data_inicio = models.DateField(
-        verbose_name="Data Inicio (Segunda)",
-        help_text="Primeiro dia da semana (segunda-feira)"
+        verbose_name="Data Inicio (Domingo)",
+        help_text="Primeiro dia da semana (domingo)"
     )
     data_fim = models.DateField(
-        verbose_name="Data Fim (Domingo)",
-        help_text="Ultimo dia da semana (domingo)"
+        verbose_name="Data Fim (Sabado)",
+        help_text="Ultimo dia da semana (sabado)"
     )
     criado_em = models.DateTimeField(
         auto_now_add=True,
@@ -35,17 +35,19 @@ class SemanaReferencia(models.Model):
     def get_or_create_current_week(cls):
         """
         Retorna a semana atual ou cria se nao existir.
-        A semana sempre comeca na segunda-feira.
+        A semana sempre comeca no domingo e termina no sabado.
         """
         today = date.today()
-        # Calcular a segunda-feira da semana atual
-        days_since_monday = today.weekday()  # 0 = segunda, 6 = domingo
-        monday = today - timedelta(days=days_since_monday)
-        sunday = monday + timedelta(days=6)
+        # Calcular o domingo da semana atual
+        # weekday(): 0=segunda, 1=terca, ..., 6=domingo
+        # Convertemos para: 0=domingo, 1=segunda, ..., 6=sabado
+        days_since_sunday = (today.weekday() + 1) % 7
+        sunday_start = today - timedelta(days=days_since_sunday)
+        saturday_end = sunday_start + timedelta(days=6)
 
         semana, created = cls.objects.get_or_create(
-            data_inicio=monday,
-            data_fim=sunday
+            data_inicio=sunday_start,
+            data_fim=saturday_end
         )
         return semana
 
@@ -53,14 +55,16 @@ class SemanaReferencia(models.Model):
     def get_week_for_date(cls, target_date: date):
         """
         Retorna a semana para uma data especifica ou cria se nao existir.
+        A semana sempre comeca no domingo e termina no sabado.
         """
-        days_since_monday = target_date.weekday()
-        monday = target_date - timedelta(days=days_since_monday)
-        sunday = monday + timedelta(days=6)
+        # Calcular o domingo da semana para a data especifica
+        days_since_sunday = (target_date.weekday() + 1) % 7
+        sunday_start = target_date - timedelta(days=days_since_sunday)
+        saturday_end = sunday_start + timedelta(days=6)
 
         semana, created = cls.objects.get_or_create(
-            data_inicio=monday,
-            data_fim=sunday
+            data_inicio=sunday_start,
+            data_fim=saturday_end
         )
         return semana
 

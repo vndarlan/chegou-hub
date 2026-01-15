@@ -26,6 +26,7 @@ function PlanejamentoSemanalPage() {
   const [selectedSemana, setSelectedSemana] = useState(null);
   const [loadingSemanas, setLoadingSemanas] = useState(true);
   const [creatingSemana, setCreatingSemana] = useState(false);
+  const [deletingSemana, setDeletingSemana] = useState(false);
 
   // Estados de usuarios
   const [users, setUsers] = useState([]);
@@ -122,6 +123,41 @@ function PlanejamentoSemanalPage() {
       }
     } finally {
       setCreatingSemana(false);
+    }
+  };
+
+  // Deletar semana (apenas admins)
+  const handleDeletarSemana = async () => {
+    if (!selectedSemana) return;
+
+    // Confirmar antes de deletar
+    if (!window.confirm(`Tem certeza que deseja deletar a semana ${formatSemanaLabel(selectedSemana)}? Todos os planejamentos desta semana serao perdidos.`)) {
+      return;
+    }
+
+    setDeletingSemana(true);
+    setError(null);
+    try {
+      await apiClient.delete(`/planejamento-semanal/deletar-semana/?semana_id=${selectedSemana.id}`);
+
+      // Remover semana da lista
+      setSemanas(prev => prev.filter(s => s.id !== selectedSemana.id));
+
+      // Selecionar proxima semana disponivel
+      const semanasRestantes = semanas.filter(s => s.id !== selectedSemana.id);
+      setSelectedSemana(semanasRestantes.length > 0 ? semanasRestantes[0] : null);
+
+      setSuccessMessage('Semana deletada com sucesso!');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      console.error('Erro ao deletar semana:', err);
+      if (err.response?.status === 403) {
+        setError('Apenas administradores podem deletar semanas.');
+      } else {
+        setError(err.response?.data?.error || 'Erro ao deletar semana.');
+      }
+    } finally {
+      setDeletingSemana(false);
     }
   };
 
@@ -410,9 +446,11 @@ function PlanejamentoSemanalPage() {
             selectedSemana={selectedSemana}
             onSemanaChange={handleSemanaChange}
             onNovaSemana={isAdmin ? handleCriarSemana : null}
+            onDeletarSemana={isAdmin ? handleDeletarSemana : null}
             isAdmin={isAdmin}
             loading={loadingSemanas}
             creating={creatingSemana}
+            deleting={deletingSemana}
           />
           <Button onClick={handleRefresh} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -502,7 +540,7 @@ function PlanejamentoSemanalPage() {
                   <div className="flex justify-end">
                     <Button
                       onClick={handleSalvar}
-                      disabled={savingPlanejamento || selectedIssues.length === 0}
+                      disabled={savingPlanejamento}
                     >
                       {savingPlanejamento ? (
                         <>
@@ -512,7 +550,10 @@ function PlanejamentoSemanalPage() {
                       ) : (
                         <>
                           <Save className="h-4 w-4 mr-2" />
-                          Salvar Planejamento ({selectedIssues.length} {selectedIssues.length === 1 ? 'item' : 'itens'})
+                          {selectedIssues.length === 0
+                            ? 'Limpar Planejamento'
+                            : `Salvar Planejamento (${selectedIssues.length} ${selectedIssues.length === 1 ? 'item' : 'itens'})`
+                          }
                         </>
                       )}
                     </Button>

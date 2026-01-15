@@ -349,7 +349,7 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
         """
         POST /api/planejamento-semanal/criar-semana/
         Cria uma nova semana de planejamento (apenas admins/superusers).
-        A nova semana inicia na proxima segunda-feira.
+        A nova semana inicia no proximo domingo.
         """
         # Verificar se usuario e admin ou superuser
         if not request.user.is_staff and not request.user.is_superuser:
@@ -359,18 +359,21 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
             )
 
         try:
-            # Calcular proxima segunda-feira
+            # Calcular proximo domingo
+            # weekday(): 0=segunda, ..., 6=domingo
             hoje = timezone.now().date()
-            dias_ate_segunda = (7 - hoje.weekday()) % 7
-            if dias_ate_segunda == 0:
-                dias_ate_segunda = 7  # Se hoje e segunda, pegar a proxima
+            dias_ate_domingo = (6 - hoje.weekday()) % 7
+            if dias_ate_domingo == 0 and hoje.weekday() != 6:
+                dias_ate_domingo = 7  # Se nao e domingo, pegar o proximo
+            if hoje.weekday() == 6:
+                dias_ate_domingo = 7  # Se hoje e domingo, pegar o proximo
 
-            proxima_segunda = hoje + timedelta(days=dias_ate_segunda)
-            proxima_domingo = proxima_segunda + timedelta(days=6)
+            proximo_domingo = hoje + timedelta(days=dias_ate_domingo)
+            proximo_sabado = proximo_domingo + timedelta(days=6)
 
             # Verificar se ja existe semana para essa data
             semana_existente = SemanaReferencia.objects.filter(
-                data_inicio=proxima_segunda
+                data_inicio=proximo_domingo
             ).first()
 
             if semana_existente:
@@ -381,8 +384,8 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
 
             # Criar nova semana
             nova_semana = SemanaReferencia.objects.create(
-                data_inicio=proxima_segunda,
-                data_fim=proxima_domingo
+                data_inicio=proximo_domingo,
+                data_fim=proximo_sabado
             )
 
             return Response({
@@ -456,5 +459,41 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
             logger.error(f"Erro ao atualizar item: {str(e)}")
             return Response(
                 {'error': f'Erro ao atualizar item: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['delete'], url_path='deletar-semana')
+    def deletar_semana(self, request):
+        """
+        DELETE /api/planejamento-semanal/deletar-semana/?semana_id=1
+        Deleta uma semana e todos os planejamentos associados (apenas admins).
+        """
+        # Verificar se usuario e admin ou superuser
+        if not request.user.is_staff and not request.user.is_superuser:
+            return Response(
+                {'error': 'Apenas administradores podem deletar semanas'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        semana_id = request.query_params.get('semana_id')
+        if not semana_id:
+            return Response(
+                {'error': 'semana_id e obrigatorio'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            semana = SemanaReferencia.objects.get(id=semana_id)
+            semana.delete()  # CASCADE vai deletar planejamentos e itens
+            return Response({'message': 'Semana deletada com sucesso'})
+        except SemanaReferencia.DoesNotExist:
+            return Response(
+                {'error': 'Semana nao encontrada'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Erro ao deletar semana: {str(e)}")
+            return Response(
+                {'error': f'Erro ao deletar semana: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

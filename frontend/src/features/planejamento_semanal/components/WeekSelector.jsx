@@ -1,5 +1,5 @@
 // frontend/src/features/planejamento_semanal/components/WeekSelector.jsx
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import {
   Select,
@@ -11,23 +11,27 @@ import {
 import { Badge } from '../../../components/ui/badge';
 
 /**
- * Componente para selecionar semana e criar novas semanas (admin only)
+ * Componente para selecionar semana e criar/deletar semanas (admin only)
  * @param {Array} semanas - Lista de semanas disponiveis
  * @param {Object} selectedSemana - Semana selecionada
  * @param {Function} onSemanaChange - Callback quando semana muda
  * @param {Function} onNovaSemana - Callback para criar nova semana (null se nao for admin)
+ * @param {Function} onDeletarSemana - Callback para deletar semana (null se nao for admin)
  * @param {boolean} isAdmin - Se o usuario e admin
  * @param {boolean} loading - Se esta carregando
  * @param {boolean} creating - Se esta criando nova semana
+ * @param {boolean} deleting - Se esta deletando semana
  */
 export function WeekSelector({
   semanas = [],
   selectedSemana,
   onSemanaChange,
   onNovaSemana,
+  onDeletarSemana,
   isAdmin = false,
   loading = false,
-  creating = false
+  creating = false,
+  deleting = false
 }) {
   // Formatar label da semana
   const formatSemanaLabel = (semana) => {
@@ -123,6 +127,28 @@ export function WeekSelector({
             <>
               <Plus className="h-4 w-4 mr-2" />
               Nova Semana
+            </>
+          )}
+        </Button>
+      )}
+
+      {isAdmin && onDeletarSemana && selectedSemana && (
+        <Button
+          onClick={onDeletarSemana}
+          variant="outline"
+          size="sm"
+          disabled={deleting}
+          className="text-destructive hover:text-destructive"
+        >
+          {deleting ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Deletando...
+            </>
+          ) : (
+            <>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Deletar Semana
             </>
           )}
         </Button>
