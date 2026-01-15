@@ -283,10 +283,10 @@ class JiraMetricsService:
             logger.info(f"[JIRA TIMESHEET] Range calculado: {date_start.date()} até {date_end.date()}")
             logger.info(f"[JIRA TIMESHEET] Total de {(date_end - date_start).days} dias no período")
 
-            # JQL base - buscar TODAS as issues do assignee
-            # Não filtra por período aqui, pois o campo 'updated' não é atualizado ao adicionar worklog
-            # O filtro de data é aplicado apenas nos worklogs
-            jql = f"project = {self.client.project_key} AND assignee = '{assignee}'"
+            # JQL base - buscar issues do assignee com margem de 6 meses
+            # Usa período amplo pois 'updated' nem sempre é atualizado ao adicionar worklog
+            # O filtro preciso de data é aplicado nos worklogs
+            jql = f"project = {self.client.project_key} AND assignee = '{assignee}' AND updated >= -180d"
             logger.info(f"[JIRA] Executando JQL para timesheet: {jql}")
 
             # Buscar issues (com paginação para garantir todos os resultados)
