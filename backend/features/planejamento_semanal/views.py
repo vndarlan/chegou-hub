@@ -348,8 +348,8 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
     def criar_semana(self, request):
         """
         POST /api/planejamento-semanal/criar-semana/
-        Cria uma nova semana de planejamento (apenas admins/superusers).
-        A nova semana inicia no proximo domingo.
+        Cria a semana atual de planejamento (apenas admins/superusers).
+        A semana inicia no domingo e termina no sabado.
         """
         # Verificar se usuario e admin ou superuser
         if not request.user.is_staff and not request.user.is_superuser:
@@ -359,21 +359,17 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
             )
 
         try:
-            # Calcular proximo domingo
+            # Calcular o domingo da semana atual
             # weekday(): 0=segunda, ..., 6=domingo
+            # Convertemos para: 0=domingo, 1=segunda, ..., 6=sabado
             hoje = timezone.now().date()
-            dias_ate_domingo = (6 - hoje.weekday()) % 7
-            if dias_ate_domingo == 0 and hoje.weekday() != 6:
-                dias_ate_domingo = 7  # Se nao e domingo, pegar o proximo
-            if hoje.weekday() == 6:
-                dias_ate_domingo = 7  # Se hoje e domingo, pegar o proximo
-
-            proximo_domingo = hoje + timedelta(days=dias_ate_domingo)
-            proximo_sabado = proximo_domingo + timedelta(days=6)
+            days_since_sunday = (hoje.weekday() + 1) % 7
+            domingo_atual = hoje - timedelta(days=days_since_sunday)
+            sabado_atual = domingo_atual + timedelta(days=6)
 
             # Verificar se ja existe semana para essa data
             semana_existente = SemanaReferencia.objects.filter(
-                data_inicio=proximo_domingo
+                data_inicio=domingo_atual
             ).first()
 
             if semana_existente:
@@ -384,8 +380,8 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
 
             # Criar nova semana
             nova_semana = SemanaReferencia.objects.create(
-                data_inicio=proximo_domingo,
-                data_fim=proximo_sabado
+                data_inicio=domingo_atual,
+                data_fim=sabado_atual
             )
 
             return Response({
