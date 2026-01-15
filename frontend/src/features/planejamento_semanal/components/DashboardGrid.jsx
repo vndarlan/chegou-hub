@@ -28,6 +28,19 @@ export function DashboardGrid({ data }) {
   const { semana, planejamentos = [], total_itens = 0, total_concluidos = 0 } = data;
   const progressPercent = total_itens > 0 ? Math.round((total_concluidos / total_itens) * 100) : 0;
 
+  // Formatar label da semana
+  const getSemanaLabel = () => {
+    if (!semana) return '-';
+    if (typeof semana === 'string') return semana;
+    if (semana.label) return semana.label;
+    if (semana.data_inicio && semana.data_fim) {
+      const inicio = new Date(semana.data_inicio).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      const fim = new Date(semana.data_fim).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      return `${inicio} - ${fim}`;
+    }
+    return '-';
+  };
+
   const getInitials = (name) => {
     if (!name) return '?';
     return name
@@ -48,7 +61,7 @@ export function DashboardGrid({ data }) {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{semana || '-'}</div>
+            <div className="text-2xl font-bold">{getSemanaLabel()}</div>
           </CardContent>
         </Card>
 
@@ -97,22 +110,26 @@ export function DashboardGrid({ data }) {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {planejamentos.map((planejamento) => {
-            const { usuario, itens = [], total: totalItens = 0, concluidos = 0 } = planejamento;
+            // Suportar ambos os formatos de dados
+            const nome = planejamento.jira_display_name || planejamento.usuario?.nome || 'Usuario';
+            const accountId = planejamento.jira_account_id || planejamento.usuario?.account_id;
+            const itens = planejamento.itens || [];
+            const totalItens = itens.length;
+            const concluidos = itens.filter(i => i.concluido).length;
             const userProgress = totalItens > 0 ? Math.round((concluidos / totalItens) * 100) : 0;
 
             return (
-              <Card key={usuario?.account_id || usuario?.nome}>
+              <Card key={accountId || planejamento.id}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={usuario?.avatar_url} alt={usuario?.nome} />
                       <AvatarFallback>
-                        {getInitials(usuario?.nome)}
+                        {getInitials(nome)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <CardTitle className="text-base truncate">
-                        {usuario?.nome || 'Usuario'}
+                        {nome}
                       </CardTitle>
                       <div className="flex items-center gap-2 mt-1">
                         <Badge variant={userProgress === 100 ? 'default' : 'secondary'} className="text-xs">
@@ -131,7 +148,7 @@ export function DashboardGrid({ data }) {
                     <div className="space-y-2">
                       {itens.map((item) => (
                         <div
-                          key={item.issue_key}
+                          key={item.issue_key || item.id}
                           className={`flex items-start gap-2 p-2 rounded-md text-sm ${
                             item.concluido
                               ? 'bg-green-50 dark:bg-green-950/20'
@@ -156,7 +173,7 @@ export function DashboardGrid({ data }) {
                             <p className={`text-xs truncate ${
                               item.concluido ? 'text-muted-foreground line-through' : 'text-foreground'
                             }`}>
-                              {item.summary}
+                              {item.issue_summary || item.summary}
                             </p>
                           </div>
                         </div>

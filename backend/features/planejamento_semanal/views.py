@@ -229,12 +229,28 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
             client = JiraClient()
 
             # Construir JQL para buscar issues do usuario nos status desejados
-            # Status comuns: Backlog, Priorizado, Em Andamento, To Do, In Progress
+            # Inclui todos os status de planejamento (exclui apenas Concluido/Done)
+            status_list = [
+                "Backlog",
+                "Refinamento",
+                "Em Refinamento",
+                "Priorizado",
+                "Em Andamento",
+                "Em Desenvolvimento",
+                "Período de Teste",
+                "Validação",
+                "To Do",
+                "In Progress",
+                "A Fazer",
+                "Em Revisão",
+                "Review"
+            ]
+            status_jql = '", "'.join(status_list)
             jql = (
                 f'project = {client.project_key} '
                 f'AND assignee = "{jira_account_id}" '
-                f'AND status IN ("Backlog", "Priorizado", "Em Andamento", "To Do", "In Progress", "A Fazer") '
-                f'ORDER BY priority DESC, created DESC'
+                f'AND status IN ("{status_jql}") '
+                f'ORDER BY status ASC, priority DESC, created DESC'
             )
 
             # Buscar issues

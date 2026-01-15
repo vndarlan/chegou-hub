@@ -14,12 +14,49 @@ const JIRA_BASE_URL = 'https://grupochegou.atlassian.net/browse/';
  * @param {Function} onToggleIssue - Callback quando issue e marcada/desmarcada
  */
 export function IssueSelector({ issuesByStatus = {}, selectedIssues = [], onToggleIssue }) {
-  const statusOrder = ['Backlog', 'Priorizado', 'Em Andamento'];
+  // Ordem de exibição dos status (do mais inicial ao mais avançado)
+  const statusOrder = [
+    'Backlog',
+    'Refinamento',
+    'Em Refinamento',
+    'Priorizado',
+    'To Do',
+    'A Fazer',
+    'Em Andamento',
+    'Em Desenvolvimento',
+    'In Progress',
+    'Período de Teste',
+    'Validação',
+    'Em Revisão',
+    'Review'
+  ];
+
   const statusColors = {
     'Backlog': 'secondary',
+    'Refinamento': 'outline',
+    'Em Refinamento': 'outline',
     'Priorizado': 'default',
+    'To Do': 'secondary',
+    'A Fazer': 'secondary',
     'Em Andamento': 'destructive',
+    'Em Desenvolvimento': 'destructive',
+    'In Progress': 'destructive',
+    'Período de Teste': 'default',
+    'Validação': 'default',
+    'Em Revisão': 'outline',
+    'Review': 'outline'
   };
+
+  // Ordenar os status recebidos conforme statusOrder
+  const sortedStatuses = Object.keys(issuesByStatus).sort((a, b) => {
+    const indexA = statusOrder.indexOf(a);
+    const indexB = statusOrder.indexOf(b);
+    // Se não está na lista, vai pro final
+    if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  });
 
   const totalIssues = Object.values(issuesByStatus).reduce((acc, issues) => acc + issues.length, 0);
 
@@ -48,7 +85,7 @@ export function IssueSelector({ issuesByStatus = {}, selectedIssues = [], onTogg
       <CardContent>
         <ScrollArea className="h-[400px] pr-4">
           <div className="space-y-6">
-            {statusOrder.map((status) => {
+            {sortedStatuses.map((status) => {
               const issues = issuesByStatus[status] || [];
               if (issues.length === 0) return null;
 
