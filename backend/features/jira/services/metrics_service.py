@@ -283,10 +283,10 @@ class JiraMetricsService:
             logger.info(f"[JIRA TIMESHEET] Range calculado: {date_start.date()} até {date_end.date()}")
             logger.info(f"[JIRA TIMESHEET] Total de {(date_end - date_start).days} dias no período")
 
-            # JQL base - buscar issues recentes do assignee para evitar rate limit
-            # Usa 'updated' para pegar issues que podem ter worklog recente
-            period_jql = self.client._build_period_jql(period, start_date, end_date, field='updated')
-            jql = f"project = {self.client.project_key} AND assignee = '{assignee}' AND ({period_jql})"
+            # JQL base - buscar TODAS as issues do assignee
+            # Não filtra por período aqui, pois o campo 'updated' não é atualizado ao adicionar worklog
+            # O filtro de data é aplicado apenas nos worklogs
+            jql = f"project = {self.client.project_key} AND assignee = '{assignee}'"
             logger.info(f"[JIRA] Executando JQL para timesheet: {jql}")
 
             # Buscar issues (com paginação para garantir todos os resultados)
