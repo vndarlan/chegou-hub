@@ -571,7 +571,7 @@ function PlanejamentoSemanalPage() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <DashboardGrid data={dashboardData} />
+            <DashboardGrid data={dashboardData} users={users} />
           )}
         </TabsContent>
       </Tabs>

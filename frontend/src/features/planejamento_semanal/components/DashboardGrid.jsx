@@ -11,8 +11,9 @@ const JIRA_BASE_URL = 'https://grupochegou.atlassian.net/browse/';
 /**
  * Grid de cards mostrando planejamento por pessoa
  * @param {Object} data - Dados do dashboard { semana, planejamentos, total_itens, total_concluidos }
+ * @param {Array} users - Lista de usuarios do Jira para buscar fotos
  */
-export function DashboardGrid({ data }) {
+export function DashboardGrid({ data, users = [] }) {
   if (!data) {
     return (
       <Card>
@@ -49,6 +50,12 @@ export function DashboardGrid({ data }) {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  // Buscar foto do usuario pelo account_id
+  const getUserAvatar = (accountId) => {
+    const user = users.find(u => u.account_id === accountId);
+    return user?.avatar_url || null;
   };
 
   return (
@@ -118,11 +125,14 @@ export function DashboardGrid({ data }) {
             const concluidos = itens.filter(i => i.concluido).length;
             const userProgress = totalItens > 0 ? Math.round((concluidos / totalItens) * 100) : 0;
 
+            const avatarUrl = getUserAvatar(accountId);
+
             return (
               <Card key={accountId || planejamento.id}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
+                      {avatarUrl && <AvatarImage src={avatarUrl} alt={nome} />}
                       <AvatarFallback>
                         {getInitials(nome)}
                       </AvatarFallback>
