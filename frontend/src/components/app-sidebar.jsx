@@ -8,6 +8,7 @@ import {
   Moon,
   Sun,
   Calendar,
+  CalendarCheck,
   Map,
   BookOpen,
   Globe2,
@@ -133,6 +134,13 @@ export function AppSidebar({
       icon: BarChart3,
       isActive: location.pathname === "/gestao/jira",
       moduleKey: "jira",
+    },
+    {
+      title: "Planejamento Semanal",
+      url: "/gestao/planejamento-semanal",
+      icon: CalendarCheck,
+      isActive: location.pathname === "/gestao/planejamento-semanal",
+      moduleKey: "planejamento_semanal",
     },
   ];
 

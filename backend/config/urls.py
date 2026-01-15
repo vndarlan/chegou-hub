@@ -90,6 +90,9 @@ urlpatterns = [
 
     # URLs do Jira
     path('api/jira/', include('features.jira.urls')),
+
+    # URLs do Planejamento Semanal
+    path('api/planejamento-semanal/', include('features.planejamento_semanal.urls')),
 ]
 
 # Servir arquivos de media

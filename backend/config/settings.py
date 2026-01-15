@@ -117,6 +117,8 @@ INSTALLED_APPS = [
     # Integração Jira
     'features.jira.apps.JiraConfig',
 
+    # Planejamento Semanal
+    'features.planejamento_semanal.apps.PlanejamentoSemanalConfig',
 
     # Cloudinary para storage de imagens
     'cloudinary_storage',

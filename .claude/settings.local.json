@@ -79,7 +79,10 @@
       "Bash(pip show:*)",
       "Bash(del SimpleN8nWidget.jsx N8nChatWidget.jsx N8nChatWidgetProduction.jsx N8nChatWidgetDebug.jsx N8nTestWidget.jsx N8nChatWidget.css)",
       "Bash(test:*)",
-      "Bash(git show:*)"
+      "Bash(git show:*)",
+      "Bash(py manage.py makemigrations planejamento_semanal)",
+      "Bash(.venvScriptsactivate)",
+      "Bash(source venv/Scripts/activate)"
     ],
     "deny": [],
     "ask": [],

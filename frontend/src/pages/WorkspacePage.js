@@ -23,6 +23,7 @@ import apiClient from '../utils/axios';
 import AgendaPage from '../features/agenda/AgendaPage';
 import MapaPage from '../features/mapa/MapaPage';
 import JiraPage from '../features/jira/JiraPage';
+import PlanejamentoSemanalPage from '../features/planejamento_semanal/PlanejamentoSemanalPage';
 import ProjetoDashboard from '../features/ia/ProjetoDashboard';
 import LogsPage from '../features/ia/LogsPage';
 import OpenAIAnalytics from '../features/ia/OpenAIAnalytics';
@@ -59,6 +60,10 @@ const breadcrumbMap = {
   '/gestao/agenda': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Agenda da Empresa' }],
   '/gestao/mapa': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Mapa de Atuação' }],
   '/gestao/jira': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Jira' }],
+  '/gestao/planejamento-semanal': [
+    { label: 'GESTÃO EMPRESARIAL', href: '#' },
+    { label: 'Planejamento Semanal' }
+  ],
 
   // FORNECEDORES > EUROPA
   '/fornecedores/europa/ecomhub/efetividade': [
@@ -271,6 +276,11 @@ function WorkspacePage({ setIsLoggedIn }) {
               <Route path="gestao/jira" element={
                 <ProtectedRoute moduleKey="jira">
                   <JiraPage />
+                </ProtectedRoute>
+              } />
+              <Route path="gestao/planejamento-semanal" element={
+                <ProtectedRoute moduleKey="planejamento_semanal">
+                  <PlanejamentoSemanalPage />
                 </ProtectedRoute>
               } />
 
