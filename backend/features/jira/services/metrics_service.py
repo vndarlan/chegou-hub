@@ -393,33 +393,33 @@ class JiraMetricsService:
             )
 
         elif period == 'current_week':
-            # Semana atual (segunda a domingo)
-            days_since_monday = today_date.weekday()
-            start = today_date - timedelta(days=days_since_monday)
-            end = today_date + timedelta(days=(6 - days_since_monday))
+            # Semana atual (domingo a sábado)
+            days_since_sunday = (today_date.weekday() + 1) % 7
+            start = today_date - timedelta(days=days_since_sunday)
+            end = start + timedelta(days=6)
             return (
                 datetime.combine(start, datetime.min.time()),
                 datetime.combine(end, datetime.max.time())
             )
 
         elif period == 'last_week':
-            # Semana passada (segunda a domingo)
-            days_since_monday = today_date.weekday()
-            last_week_monday = today_date - timedelta(days=days_since_monday + 7)
-            last_week_sunday = last_week_monday + timedelta(days=6)
+            # Semana passada (domingo a sábado)
+            days_since_sunday = (today_date.weekday() + 1) % 7
+            last_week_sunday = today_date - timedelta(days=days_since_sunday + 7)
+            last_week_saturday = last_week_sunday + timedelta(days=6)
             return (
-                datetime.combine(last_week_monday, datetime.min.time()),
-                datetime.combine(last_week_sunday, datetime.max.time())
+                datetime.combine(last_week_sunday, datetime.min.time()),
+                datetime.combine(last_week_saturday, datetime.max.time())
             )
 
         elif period == '2_weeks_ago':
-            # Duas semanas atrás (segunda a domingo)
-            days_since_monday = today_date.weekday()
-            two_weeks_monday = today_date - timedelta(days=days_since_monday + 14)
-            two_weeks_sunday = two_weeks_monday + timedelta(days=6)
+            # Duas semanas atrás (domingo a sábado)
+            days_since_sunday = (today_date.weekday() + 1) % 7
+            two_weeks_sunday = today_date - timedelta(days=days_since_sunday + 14)
+            two_weeks_saturday = two_weeks_sunday + timedelta(days=6)
             return (
-                datetime.combine(two_weeks_monday, datetime.min.time()),
-                datetime.combine(two_weeks_sunday, datetime.max.time())
+                datetime.combine(two_weeks_sunday, datetime.min.time()),
+                datetime.combine(two_weeks_saturday, datetime.max.time())
             )
 
         elif period.endswith('d'):
