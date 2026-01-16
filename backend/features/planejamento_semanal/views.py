@@ -255,12 +255,19 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
                 "Em Andamento",
                 "Em Desenvolvimento",
                 "Período de Teste",
+                "PERÍODO DE TESTE",
+                "Periodo de Teste",
                 "Validação",
+                "VALIDAÇÃO",
+                "Validacao",
                 "To Do",
                 "In Progress",
                 "A Fazer",
                 "Em Revisão",
-                "Review"
+                "Review",
+                "Testing",
+                "Em Teste",
+                "QA"
             ]
             status_jql = '", "'.join(status_list)
 

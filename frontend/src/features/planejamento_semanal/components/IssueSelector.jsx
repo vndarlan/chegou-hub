@@ -128,10 +128,18 @@ export function IssueSelector({
     'Em Andamento',
     'Em Desenvolvimento',
     'In Progress',
+    'Período de Teste',
+    'PERÍODO DE TESTE',
     'Periodo de Teste',
+    'Validação',
+    'VALIDAÇÃO',
     'Validacao',
+    'Em Revisão',
     'Em Revisao',
-    'Review'
+    'Review',
+    'Testing',
+    'Em Teste',
+    'QA'
   ];
 
   const statusColors = {
@@ -144,10 +152,18 @@ export function IssueSelector({
     'Em Andamento': 'destructive',
     'Em Desenvolvimento': 'destructive',
     'In Progress': 'destructive',
+    'Período de Teste': 'default',
+    'PERÍODO DE TESTE': 'default',
     'Periodo de Teste': 'default',
+    'Validação': 'default',
+    'VALIDAÇÃO': 'default',
     'Validacao': 'default',
+    'Em Revisão': 'outline',
     'Em Revisao': 'outline',
-    'Review': 'outline'
+    'Review': 'outline',
+    'Testing': 'default',
+    'Em Teste': 'default',
+    'QA': 'default'
   };
 
   // Ordenar os status recebidos conforme statusOrder
