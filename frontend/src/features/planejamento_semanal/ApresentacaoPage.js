@@ -1,7 +1,6 @@
 // frontend/src/features/planejamento_semanal/ApresentacaoPage.js
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
-import apiClient from '../../utils/axios';
 
 // shadcn/ui components
 import { Button } from '../../components/ui/button';
@@ -14,30 +13,10 @@ import SlideFim from './components/SlideFim';
 
 function ApresentacaoPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [semanaAtual, setSemanaAtual] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef(null);
 
   const totalSlides = 4;
-
-  // Buscar semana atual
-  useEffect(() => {
-    const fetchSemanaAtual = async () => {
-      try {
-        const response = await apiClient.get('/planejamento-semanal/semanas/');
-        const semanas = response.data?.semanas || [];
-        if (semanas.length > 0) {
-          // Pegar a primeira (mais recente) ou a que tem is_current_week
-          const current = semanas.find(s => s.is_current_week) || semanas[0];
-          setSemanaAtual(current);
-        }
-      } catch (err) {
-        console.error('Erro ao buscar semana:', err);
-      }
-    };
-
-    fetchSemanaAtual();
-  }, []);
 
   // Navegacao
   const nextSlide = useCallback(() => {
@@ -124,7 +103,7 @@ function ApresentacaoPage() {
       case 1:
         return <SlideMapa />;
       case 2:
-        return <SlideDashboard semanaId={semanaAtual?.id} />;
+        return <SlideDashboard />;
       case 3:
         return <SlideFim />;
       default:

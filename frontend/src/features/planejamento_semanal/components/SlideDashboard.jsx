@@ -7,31 +7,38 @@ import { DashboardGrid } from './DashboardGrid';
 
 /**
  * Slide do Dashboard para apresentacao
+ * Sempre busca e mostra a semana atual (is_current_week)
  * Reutiliza o DashboardGrid existente
- * @param {number} semanaId - ID da semana para buscar dados
  */
-export function SlideDashboard({ semanaId }) {
+export function SlideDashboard() {
   const [dashboardData, setDashboardData] = useState(null);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Buscar dados do dashboard e usuarios
+  // Buscar semana atual e dados do dashboard
   useEffect(() => {
     const fetchData = async () => {
-      if (!semanaId) {
-        setError('Nenhuma semana selecionada');
-        setLoading(false);
-        return;
-      }
-
       try {
         setLoading(true);
         setError(null);
 
-        // Buscar dados em paralelo
+        // Primeiro buscar a semana atual
+        const semanasResponse = await apiClient.get('/planejamento-semanal/semanas/');
+        const semanas = semanasResponse.data?.semanas || [];
+
+        if (semanas.length === 0) {
+          setError('Nenhuma semana cadastrada');
+          setLoading(false);
+          return;
+        }
+
+        // Pegar a semana atual (is_current_week) ou a mais recente
+        const semanaAtual = semanas.find(s => s.is_current_week) || semanas[0];
+
+        // Buscar dados do dashboard e usuarios em paralelo
         const [dashboardResponse, usersResponse] = await Promise.all([
-          apiClient.get(`/planejamento-semanal/dashboard/?semana_id=${semanaId}`),
+          apiClient.get(`/planejamento-semanal/dashboard/?semana_id=${semanaAtual.id}`),
           apiClient.get('/jira/users/')
         ]);
 
@@ -47,7 +54,7 @@ export function SlideDashboard({ semanaId }) {
     };
 
     fetchData();
-  }, [semanaId]);
+  }, []);
 
   if (loading) {
     return (
