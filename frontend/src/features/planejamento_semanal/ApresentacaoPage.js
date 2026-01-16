@@ -99,20 +99,20 @@ function ApresentacaoPage() {
   const renderSlide = () => {
     switch (currentSlide) {
       case 0:
-        return <SlideWelcome />;
+        return <SlideWelcome isFullscreen={isFullscreen} />;
       case 1:
         return <SlideMapa />;
       case 2:
         return <SlideDashboard />;
       case 3:
-        return <SlideFim />;
+        return <SlideFim isFullscreen={isFullscreen} />;
       default:
-        return <SlideWelcome />;
+        return <SlideWelcome isFullscreen={isFullscreen} />;
     }
   };
 
   // Nomes dos slides para os indicadores
-  const slideNames = ['Inicio', 'Mapa', 'Dashboard', 'Fim'];
+  const slideNames = ['Início', 'Overview', 'Dashboard', 'Fim'];
 
   return (
     <div

@@ -1,6 +1,6 @@
 # backend/features/planejamento_semanal/admin.py
 from django.contrib import admin
-from .models import SemanaReferencia, PlanejamentoSemanal, ItemPlanejamento
+from .models import SemanaReferencia, PlanejamentoSemanal, ItemPlanejamento, ConfiguracaoApresentacao
 
 
 class ItemPlanejamentoInline(admin.TabularInline):
@@ -117,3 +117,18 @@ class ItemPlanejamentoAdmin(admin.ModelAdmin):
     def planejamento_info(self, obj):
         return f"{obj.planejamento.jira_display_name} - {obj.planejamento.semana}"
     planejamento_info.short_description = "Planejamento"
+
+
+@admin.register(ConfiguracaoApresentacao)
+class ConfiguracaoApresentacaoAdmin(admin.ModelAdmin):
+    """Admin para configuracao da apresentacao"""
+    list_display = ['id', 'titulo_welcome', 'atualizado_por', 'atualizado_em']
+    readonly_fields = ['atualizado_em', 'atualizado_por']
+
+    def has_add_permission(self, request):
+        # So permite um registro (singleton)
+        return not ConfiguracaoApresentacao.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        # Nao permite deletar
+        return False

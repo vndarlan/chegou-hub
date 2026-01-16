@@ -11,8 +11,9 @@ import { ScrollArea } from '../../../components/ui/scroll-area';
  * Slide final para apresentacao
  * Exibe "FIM" centralizado com area para avisos importantes
  * Avisos sao salvos no banco de dados
+ * @param {boolean} isFullscreen - Se true, esconde controles de edicao
  */
-export function SlideFim() {
+export function SlideFim({ isFullscreen = false }) {
   const [avisos, setAvisos] = useState([]);
   const [novoAviso, setNovoAviso] = useState('');
   const [loading, setLoading] = useState(true);
@@ -132,19 +133,21 @@ export function SlideFim() {
                         </p>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDeletarAviso(aviso.id)}
-                      disabled={deletingId === aviso.id}
-                    >
-                      {deletingId === aviso.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
+                    {!isFullscreen && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeletarAviso(aviso.id)}
+                        disabled={deletingId === aviso.id}
+                      >
+                        {deletingId === aviso.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -155,30 +158,32 @@ export function SlideFim() {
             </p>
           )}
 
-          {/* Adicionar novo aviso */}
-          <div className="pt-2 border-t space-y-3">
-            <Textarea
-              placeholder="Digite um novo aviso... (Ctrl+Enter para salvar)"
-              value={novoAviso}
-              onChange={(e) => setNovoAviso(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="min-h-[80px] resize-none text-sm"
-            />
-            <div className="flex justify-end">
-              <Button
-                onClick={handleSalvarAviso}
-                disabled={saving || !novoAviso.trim()}
-                size="sm"
-              >
-                {saving ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Plus className="h-4 w-4 mr-2" />
-                )}
-                Adicionar Aviso
-              </Button>
+          {/* Adicionar novo aviso - apenas fora do fullscreen */}
+          {!isFullscreen && (
+            <div className="pt-2 border-t space-y-3">
+              <Textarea
+                placeholder="Digite um novo aviso... (Ctrl+Enter para salvar)"
+                value={novoAviso}
+                onChange={(e) => setNovoAviso(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="min-h-[80px] resize-none text-sm"
+              />
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleSalvarAviso}
+                  disabled={saving || !novoAviso.trim()}
+                  size="sm"
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4 mr-2" />
+                  )}
+                  Adicionar Aviso
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>

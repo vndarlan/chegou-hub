@@ -8,14 +8,15 @@ from django.db import transaction
 
 from datetime import timedelta
 from django.utils import timezone
-from .models import SemanaReferencia, PlanejamentoSemanal, ItemPlanejamento, AvisoImportante
+from .models import SemanaReferencia, PlanejamentoSemanal, ItemPlanejamento, AvisoImportante, ConfiguracaoApresentacao
 from .serializers import (
     SemanaReferenciaSerializer,
     PlanejamentoSemanalSerializer,
     PlanejamentoSemanalCreateSerializer,
     DashboardSemanalSerializer,
     IssueJiraSerializer,
-    AvisoImportanteSerializer
+    AvisoImportanteSerializer,
+    ConfiguracaoApresentacaoSerializer
 )
 from features.jira.clients.jira_client import JiraClient, JiraAPIError
 
@@ -684,5 +685,50 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
             logger.error(f"Erro ao deletar aviso: {str(e)}")
             return Response(
                 {'error': f'Erro ao deletar aviso: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    # ==================== CONFIGURACAO DA APRESENTACAO ====================
+
+    @action(detail=False, methods=['get', 'post'], url_path='config-apresentacao')
+    def config_apresentacao(self, request):
+        """
+        GET /api/planejamento-semanal/config-apresentacao/
+        Retorna a configuracao atual da apresentacao.
+
+        POST /api/planejamento-semanal/config-apresentacao/
+        Atualiza a configuracao da apresentacao.
+
+        Body:
+        {
+            "titulo_welcome": "Novo titulo de boas-vindas"
+        }
+        """
+        try:
+            config = ConfiguracaoApresentacao.get_config()
+
+            if request.method == 'GET':
+                serializer = ConfiguracaoApresentacaoSerializer(config)
+                return Response(serializer.data)
+
+            elif request.method == 'POST':
+                titulo_welcome = request.data.get('titulo_welcome')
+
+                if titulo_welcome is not None:
+                    config.titulo_welcome = titulo_welcome
+
+                config.atualizado_por = request.user
+                config.save()
+
+                serializer = ConfiguracaoApresentacaoSerializer(config)
+                return Response({
+                    'message': 'Configuracao atualizada com sucesso',
+                    'config': serializer.data
+                })
+
+        except Exception as e:
+            logger.error(f"Erro ao processar configuracao da apresentacao: {str(e)}")
+            return Response(
+                {'error': f'Erro ao processar configuracao: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

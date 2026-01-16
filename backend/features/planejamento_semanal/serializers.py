@@ -1,6 +1,6 @@
 # backend/features/planejamento_semanal/serializers.py
 from rest_framework import serializers
-from .models import SemanaReferencia, PlanejamentoSemanal, ItemPlanejamento, AvisoImportante, TEMPO_ESTIMADO_CHOICES
+from .models import SemanaReferencia, PlanejamentoSemanal, ItemPlanejamento, AvisoImportante, ConfiguracaoApresentacao, TEMPO_ESTIMADO_CHOICES
 
 
 class SemanaReferenciaSerializer(serializers.ModelSerializer):
@@ -150,4 +150,19 @@ class AvisoImportanteSerializer(serializers.ModelSerializer):
     def get_criado_por_nome(self, obj):
         if obj.criado_por:
             return obj.criado_por.get_full_name() or obj.criado_por.username
+        return None
+
+
+class ConfiguracaoApresentacaoSerializer(serializers.ModelSerializer):
+    """Serializer para configuracao da apresentacao"""
+    atualizado_por_nome = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ConfiguracaoApresentacao
+        fields = ['id', 'titulo_welcome', 'atualizado_em', 'atualizado_por_nome']
+        read_only_fields = ['id', 'atualizado_em', 'atualizado_por_nome']
+
+    def get_atualizado_por_nome(self, obj):
+        if obj.atualizado_por:
+            return obj.atualizado_por.get_full_name() or obj.atualizado_por.username
         return None

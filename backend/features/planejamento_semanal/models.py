@@ -1,5 +1,6 @@
 # backend/features/planejamento_semanal/models.py
 from django.db import models
+from django.conf import settings
 from django.contrib.auth.models import User
 from datetime import date, timedelta
 
@@ -261,3 +262,37 @@ class AvisoImportante(models.Model):
 
     def __str__(self):
         return self.texto[:50]
+
+
+class ConfiguracaoApresentacao(models.Model):
+    """Configuracoes editaveis da apresentacao"""
+    titulo_welcome = models.CharField(
+        max_length=100,
+        default='Bem-vindo',
+        verbose_name='Titulo de boas-vindas'
+    )
+    atualizado_em = models.DateTimeField(
+        auto_now=True,
+        verbose_name='Atualizado em'
+    )
+    atualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='configuracoes_apresentacao',
+        verbose_name='Atualizado por'
+    )
+
+    class Meta:
+        verbose_name = 'Configuracao da Apresentacao'
+        verbose_name_plural = 'Configuracoes da Apresentacao'
+
+    def __str__(self):
+        return f"Configuracao - {self.titulo_welcome}"
+
+    @classmethod
+    def get_config(cls):
+        """Retorna a configuracao singleton, criando se nao existir"""
+        config, _ = cls.objects.get_or_create(pk=1)
+        return config

@@ -385,6 +385,11 @@ export function SlideMapa() {
 
   return (
     <div className="h-full w-full bg-background p-4 flex flex-col overflow-hidden">
+      {/* Titulo */}
+      <h1 className="text-3xl font-bold text-center text-foreground mb-4">
+        Overview Operação
+      </h1>
+
       {/* Notificacao */}
       {notification && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[10000]">
