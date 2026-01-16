@@ -139,6 +139,15 @@ class PlanejamentoSemanal(models.Model):
         return round((self.itens_concluidos / total) * 100, 1)
 
 
+TEMPO_ESTIMADO_CHOICES = [
+    ('PP', 'PP - Ate 1h'),
+    ('P', 'P - 1h a 4h'),
+    ('M', 'M - 4h a 8h'),
+    ('G', 'G - 8h a 24h'),
+    ('GG', 'GG - Ate 40h'),
+]
+
+
 class ItemPlanejamento(models.Model):
     """
     Item individual de um planejamento semanal (issue do Jira).
@@ -184,6 +193,23 @@ class ItemPlanejamento(models.Model):
         default=0,
         verbose_name="Ordem",
         help_text="Ordem de exibicao do item"
+    )
+    tempo_estimado = models.CharField(
+        max_length=2,
+        choices=TEMPO_ESTIMADO_CHOICES,
+        default='M',
+        verbose_name="Tempo Estimado",
+        help_text="Estimativa de tempo para conclusao"
+    )
+    mais_de_uma_semana = models.BooleanField(
+        default=False,
+        verbose_name="Mais de uma semana",
+        help_text="Se o item levara mais de uma semana para ser concluido"
+    )
+    is_rotina = models.BooleanField(
+        default=False,
+        verbose_name="E Rotina",
+        help_text="Se o item e uma tarefa de rotina"
     )
     criado_em = models.DateTimeField(
         auto_now_add=True,

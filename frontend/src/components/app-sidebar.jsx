@@ -153,6 +153,12 @@ export function AppSidebar({
           isActive: location.pathname === "/gestao/planejamento-semanal/dashboard",
           moduleKey: "planejamento_semanal",
         },
+        {
+          title: "Apresentacao",
+          url: "/gestao/planejamento-semanal/apresentacao",
+          isActive: location.pathname === "/gestao/planejamento-semanal/apresentacao",
+          moduleKey: "planejamento_semanal",
+        },
       ],
     },
   ];

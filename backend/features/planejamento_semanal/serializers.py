@@ -1,6 +1,6 @@
 # backend/features/planejamento_semanal/serializers.py
 from rest_framework import serializers
-from .models import SemanaReferencia, PlanejamentoSemanal, ItemPlanejamento
+from .models import SemanaReferencia, PlanejamentoSemanal, ItemPlanejamento, TEMPO_ESTIMADO_CHOICES
 
 
 class SemanaReferenciaSerializer(serializers.ModelSerializer):
@@ -31,6 +31,7 @@ class ItemPlanejamentoSerializer(serializers.ModelSerializer):
         source='get_prioridade_display',
         read_only=True
     )
+    tempo_estimado_display = serializers.SerializerMethodField()
 
     class Meta:
         model = ItemPlanejamento
@@ -43,10 +44,18 @@ class ItemPlanejamentoSerializer(serializers.ModelSerializer):
             'prioridade_display',
             'concluido',
             'ordem',
+            'tempo_estimado',
+            'tempo_estimado_display',
+            'mais_de_uma_semana',
+            'is_rotina',
             'criado_em',
             'atualizado_em'
         ]
         read_only_fields = ['id', 'criado_em', 'atualizado_em']
+
+    def get_tempo_estimado_display(self, obj):
+        """Retorna o display do tempo estimado"""
+        return obj.get_tempo_estimado_display()
 
 
 class PlanejamentoSemanalSerializer(serializers.ModelSerializer):
@@ -86,6 +95,13 @@ class ItemPlanejamentoCreateSerializer(serializers.Serializer):
     )
     concluido = serializers.BooleanField(default=False)
     ordem = serializers.IntegerField(default=0, required=False)
+    tempo_estimado = serializers.ChoiceField(
+        choices=TEMPO_ESTIMADO_CHOICES,
+        default='M',
+        required=False
+    )
+    mais_de_uma_semana = serializers.BooleanField(default=False, required=False)
+    is_rotina = serializers.BooleanField(default=False, required=False)
 
 
 class PlanejamentoSemanalCreateSerializer(serializers.Serializer):

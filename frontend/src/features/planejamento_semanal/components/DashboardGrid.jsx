@@ -1,5 +1,5 @@
 // frontend/src/features/planejamento_semanal/components/DashboardGrid.jsx
-import { CheckCircle2, Clock, Users, ListTodo, ExternalLink } from 'lucide-react';
+import { CheckCircle2, Clock, Users, ListTodo, ExternalLink, Flag, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Progress } from '../../../components/ui/progress';
@@ -7,6 +7,22 @@ import { Avatar, AvatarImage, AvatarFallback } from '../../../components/ui/avat
 import { ScrollArea } from '../../../components/ui/scroll-area';
 
 const JIRA_BASE_URL = 'https://grupochegou.atlassian.net/browse/';
+
+// Mapeamento de cores por tempo estimado
+const TEMPO_COLORS = {
+  'PP': 'bg-gray-100 dark:bg-gray-800/50',
+  'P': 'bg-yellow-100 dark:bg-yellow-900/30',
+  'M': 'bg-yellow-200 dark:bg-yellow-800/40',
+  'G': 'bg-orange-200 dark:bg-orange-800/40',
+  'GG': 'bg-red-200 dark:bg-red-800/40',
+};
+
+// Retorna a cor de fundo baseada no status e tempo estimado
+const getItemBgColor = (item) => {
+  if (item.concluido) return 'bg-green-50 dark:bg-green-950/20';
+  const tempo = item.tempo_estimado || 'M';
+  return TEMPO_COLORS[tempo] || 'bg-muted/50';
+};
 
 /**
  * Grid de cards mostrando planejamento por pessoa
@@ -159,11 +175,7 @@ export function DashboardGrid({ data, users = [] }) {
                       {itens.map((item) => (
                         <div
                           key={item.issue_key || item.id}
-                          className={`flex items-start gap-2 p-2 rounded-md text-sm ${
-                            item.concluido
-                              ? 'bg-green-50 dark:bg-green-950/20'
-                              : 'bg-muted/50'
-                          }`}
+                          className={`flex items-start gap-2 p-2 rounded-md text-sm ${getItemBgColor(item)}`}
                         >
                           {item.concluido ? (
                             <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
@@ -171,15 +183,23 @@ export function DashboardGrid({ data, users = [] }) {
                             <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/30 mt-0.5 shrink-0" />
                           )}
                           <div className="flex-1 min-w-0">
-                            <a
-                              href={`${JIRA_BASE_URL}${item.issue_key}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-medium text-primary hover:underline flex items-center gap-1"
-                            >
-                              {item.issue_key}
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
+                            <div className="flex items-center gap-1">
+                              <a
+                                href={`${JIRA_BASE_URL}${item.issue_key}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-medium text-primary hover:underline flex items-center gap-1"
+                              >
+                                {item.issue_key}
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                              {item.mais_de_uma_semana && (
+                                <Flag className="h-3.5 w-3.5 text-red-500 shrink-0" title="Mais de uma semana" />
+                              )}
+                              {item.is_rotina && (
+                                <RefreshCw className="h-3.5 w-3.5 text-blue-500 shrink-0" title="Rotina" />
+                              )}
+                            </div>
                             <p className={`text-xs truncate ${
                               item.concluido ? 'text-muted-foreground line-through' : 'text-foreground'
                             }`}>

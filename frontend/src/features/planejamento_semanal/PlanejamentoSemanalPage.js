@@ -35,6 +35,7 @@ function PlanejamentoSemanalPage() {
   const [issuesDisponiveis, setIssuesDisponiveis] = useState({});
   const [selectedIssues, setSelectedIssues] = useState([]);
   const [selectedIssuesData, setSelectedIssuesData] = useState({});
+  const [issueOptions, setIssueOptions] = useState({});
   const [loadingIssues, setLoadingIssues] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -159,6 +160,7 @@ function PlanejamentoSemanalPage() {
     setPlanejamentoAtual(null);
     setSelectedIssues([]);
     setSelectedIssuesData({});
+    setIssueOptions({});
   };
 
   // Buscar semanas na inicializacao
@@ -232,6 +234,7 @@ function PlanejamentoSemanalPage() {
     if (!accountId) {
       setPlanejamentoAtual(null);
       setSelectedIssues([]);
+      setIssueOptions({});
       return;
     }
 
@@ -248,16 +251,29 @@ function PlanejamentoSemanalPage() {
       const planejamento = response.data?.planejamento;
       setPlanejamentoAtual(planejamento);
 
-      // Carregar issues ja selecionadas
+      // Carregar issues ja selecionadas e suas opcoes
       if (planejamento?.itens) {
         setSelectedIssues(planejamento.itens.map(item => item.issue_key));
+
+        // Carregar opcoes existentes dos itens
+        const loadedOptions = {};
+        planejamento.itens.forEach(item => {
+          loadedOptions[item.issue_key] = {
+            timeSize: item.tempo_estimado || 'M',
+            moreThanOneWeek: item.mais_de_uma_semana || false,
+            isRoutine: item.is_rotina || false
+          };
+        });
+        setIssueOptions(loadedOptions);
       } else {
         setSelectedIssues([]);
+        setIssueOptions({});
       }
     } catch (err) {
       console.error('Erro ao buscar planejamento:', err);
       setPlanejamentoAtual(null);
       setSelectedIssues([]);
+      setIssueOptions({});
     } finally {
       setLoadingPlanejamento(false);
     }
@@ -295,9 +311,23 @@ function PlanejamentoSemanalPage() {
           delete newData[issueKey];
           return newData;
         });
+        // Remover opcoes da issue
+        setIssueOptions(prevOptions => {
+          const newOptions = { ...prevOptions };
+          delete newOptions[issueKey];
+          return newOptions;
+        });
         return prev.filter(key => key !== issueKey);
       }
     });
+  };
+
+  // Handler para mudanca de opcoes de uma issue
+  const handleIssueOptionChange = (issueKey, options) => {
+    setIssueOptions(prev => ({
+      ...prev,
+      [issueKey]: options
+    }));
   };
 
   // Salvar planejamento
@@ -319,10 +349,14 @@ function PlanejamentoSemanalPage() {
       // Formatar itens no formato esperado pelo backend
       const itens = selectedIssues.map(issueKey => {
         const issueData = selectedIssuesData[issueKey] || {};
+        const options = issueOptions[issueKey] || {};
         return {
           issue_key: issueKey,
           issue_summary: issueData.summary || '',
-          issue_status: issueData.status || ''
+          issue_status: issueData.status || '',
+          tempo_estimado: options.timeSize || 'M',
+          mais_de_uma_semana: options.moreThanOneWeek || false,
+          is_rotina: options.isRoutine || false
         };
       });
 
@@ -358,6 +392,7 @@ function PlanejamentoSemanalPage() {
   const handleUserChange = (accountId) => {
     setSelectedUser(accountId);
     setSelectedIssuesData({});
+    setIssueOptions({});
     setSearchQuery('');
     setError(null);
     setSuccessMessage(null);
@@ -485,6 +520,8 @@ function PlanejamentoSemanalPage() {
                   issuesByStatus={issuesDisponiveis}
                   selectedIssues={selectedIssues}
                   onToggleIssue={handleToggleIssue}
+                  issueOptions={issueOptions}
+                  onIssueOptionChange={handleIssueOptionChange}
                 />
               )}
 

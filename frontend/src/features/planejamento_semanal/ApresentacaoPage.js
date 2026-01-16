@@ -1,0 +1,231 @@
+// frontend/src/features/planejamento_semanal/ApresentacaoPage.js
+import { useState, useEffect, useCallback } from 'react';
+import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
+import apiClient from '../../utils/axios';
+
+// shadcn/ui components
+import { Button } from '../../components/ui/button';
+
+// Componentes de slides
+import SlideWelcome from './components/SlideWelcome';
+import SlideMapa from './components/SlideMapa';
+import SlideDashboard from './components/SlideDashboard';
+import SlideFim from './components/SlideFim';
+
+function ApresentacaoPage() {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [semanaAtual, setSemanaAtual] = useState(null);
+  const [avisos, setAvisos] = useState('');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const totalSlides = 4;
+
+  // Buscar semana atual
+  useEffect(() => {
+    const fetchSemanaAtual = async () => {
+      try {
+        const response = await apiClient.get('/planejamento-semanal/semanas/');
+        const semanas = response.data?.semanas || [];
+        if (semanas.length > 0) {
+          // Pegar a primeira (mais recente) ou a que tem is_current_week
+          const current = semanas.find(s => s.is_current_week) || semanas[0];
+          setSemanaAtual(current);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar semana:', err);
+      }
+    };
+
+    fetchSemanaAtual();
+  }, []);
+
+  // Navegacao
+  const nextSlide = useCallback(() => {
+    setCurrentSlide((prev) => (prev < totalSlides - 1 ? prev + 1 : prev));
+  }, []);
+
+  const prevSlide = useCallback(() => {
+    setCurrentSlide((prev) => (prev > 0 ? prev - 1 : prev));
+  }, []);
+
+  const goToSlide = useCallback((index) => {
+    setCurrentSlide(index);
+  }, []);
+
+  // Navegacao por teclas
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ignorar se estiver digitando em um textarea
+      if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
+        return;
+      }
+
+      switch (e.key) {
+        case 'ArrowRight':
+        case ' ':
+          e.preventDefault();
+          nextSlide();
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          prevSlide();
+          break;
+        case 'f':
+        case 'F':
+          toggleFullscreen();
+          break;
+        case 'Escape':
+          if (isFullscreen) {
+            exitFullscreen();
+          }
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [nextSlide, prevSlide, isFullscreen]);
+
+  // Fullscreen
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+
+  const exitFullscreen = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+
+  // Detectar mudanca de fullscreen externa (ESC)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  // Renderizar slide atual
+  const renderSlide = () => {
+    switch (currentSlide) {
+      case 0:
+        return <SlideWelcome />;
+      case 1:
+        return <SlideMapa />;
+      case 2:
+        return <SlideDashboard semanaId={semanaAtual?.id} />;
+      case 3:
+        return <SlideFim avisos={avisos} onAvisosChange={setAvisos} />;
+      default:
+        return <SlideWelcome />;
+    }
+  };
+
+  // Nomes dos slides para os indicadores
+  const slideNames = ['Inicio', 'Mapa', 'Dashboard', 'Fim'];
+
+  return (
+    <div className="relative h-[calc(100vh-4rem)] w-full bg-background overflow-hidden">
+      {/* Container do slide */}
+      <div className="h-full w-full">
+        {renderSlide()}
+      </div>
+
+      {/* Controles de navegacao */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-background/80 backdrop-blur-sm rounded-full px-6 py-3 shadow-lg border">
+        {/* Botao anterior */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={prevSlide}
+          disabled={currentSlide === 0}
+          className="rounded-full"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+
+        {/* Indicadores de slide */}
+        <div className="flex items-center gap-2">
+          {slideNames.map((name, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                currentSlide === index
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+
+        {/* Botao proximo */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={nextSlide}
+          disabled={currentSlide === totalSlides - 1}
+          className="rounded-full"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </Button>
+
+        {/* Contador */}
+        <span className="text-sm text-muted-foreground ml-2">
+          {currentSlide + 1} / {totalSlides}
+        </span>
+
+        {/* Fullscreen */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleFullscreen}
+          className="rounded-full ml-2"
+          title={isFullscreen ? 'Sair da tela cheia (F)' : 'Tela cheia (F)'}
+        >
+          {isFullscreen ? (
+            <Minimize2 className="h-4 w-4" />
+          ) : (
+            <Maximize2 className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+
+      {/* Setas laterais (para telas maiores) */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={prevSlide}
+        disabled={currentSlide === 0}
+        className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-background/60 backdrop-blur-sm shadow-md hover:bg-background/80 h-12 w-12 hidden lg:flex"
+      >
+        <ChevronLeft className="h-6 w-6" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={nextSlide}
+        disabled={currentSlide === totalSlides - 1}
+        className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-background/60 backdrop-blur-sm shadow-md hover:bg-background/80 h-12 w-12 hidden lg:flex"
+      >
+        <ChevronRight className="h-6 w-6" />
+      </Button>
+    </div>
+  );
+}
+
+export default ApresentacaoPage;
