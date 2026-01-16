@@ -116,7 +116,8 @@ class PlanejamentoSemanal(models.Model):
         verbose_name = "Planejamento Semanal"
         verbose_name_plural = "Planejamentos Semanais"
         ordering = ['-semana__data_inicio', 'jira_display_name']
-        unique_together = ['usuario', 'semana', 'jira_account_id']
+        # Cada usuario Jira so pode ter um planejamento por semana
+        unique_together = ['semana', 'jira_account_id']
 
     def __str__(self):
         return f"{self.jira_display_name} - {self.semana}"
