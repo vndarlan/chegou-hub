@@ -12,7 +12,7 @@ const JIRA_BASE_URL = 'https://grupochegou.atlassian.net/browse/';
 
 // Mapeamento de times e seus membros (nomes conforme Jira)
 const TIMES = {
-  'IA & Automações': ['Vinicius Darlan Henriques Miranda', 'Murillo Ribeiro'],
+  'IA & Automações': ['Vinicius Darlan', 'Vinícius Darlan', 'Murillo Ribeiro'],
   'Gestão': ['Nathalia Rocha'],
   'Operacional': ['andersonbarbosachegou', 'Marcos Alberto Belisario', 'Matheus ribeiro', 'Murillo Ribeiro'],
   'Suporte': ['Igor Vaz Santos Magalhães', 'Ricardo Machado'],
