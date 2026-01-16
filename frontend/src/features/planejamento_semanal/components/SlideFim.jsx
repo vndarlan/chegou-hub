@@ -24,9 +24,18 @@ export function SlideFim() {
     try {
       setLoading(true);
       const response = await apiClient.get('/planejamento-semanal/avisos/');
-      setAvisos(response.data || []);
+      // Garantir que sempre temos um array
+      const data = response.data;
+      if (Array.isArray(data)) {
+        setAvisos(data);
+      } else if (data?.avisos && Array.isArray(data.avisos)) {
+        setAvisos(data.avisos);
+      } else {
+        setAvisos([]);
+      }
     } catch (err) {
       console.error('Erro ao buscar avisos:', err);
+      setAvisos([]);
     } finally {
       setLoading(false);
     }
@@ -46,12 +55,8 @@ export function SlideFim() {
         texto: novoAviso.trim()
       });
 
-      if (response.data?.aviso) {
-        setAvisos(prev => [...prev, response.data.aviso]);
-      } else {
-        // Recarregar lista se resposta diferente
-        await fetchAvisos();
-      }
+      // Recarregar lista para garantir consistência
+      await fetchAvisos();
       setNovoAviso('');
     } catch (err) {
       console.error('Erro ao salvar aviso:', err);
