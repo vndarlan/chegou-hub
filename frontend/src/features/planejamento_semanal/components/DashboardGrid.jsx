@@ -27,7 +27,8 @@ const STATUS_GROUPS = {
   'Backlog': ['Backlog', 'To Do', 'A Fazer', 'Priorizado'],
   'Refinamento': ['Refinamento', 'Em Refinamento'],
   'Em Andamento': ['Em Andamento', 'Em Desenvolvimento', 'In Progress'],
-  'Validação': ['Validação', 'Validando', 'VALIDANDO', 'Período de Teste', 'Testando', 'TESTANDO', 'Em Teste', 'Testing', 'QA', 'Em Revisão', 'Review'],
+  'Testando': ['Testando', 'TESTANDO', 'Período de Teste', 'Em Teste', 'Testing', 'QA'],
+  'Validando': ['Validando', 'VALIDANDO', 'Validação', 'Em Revisão', 'Review'],
   'Concluído': ['Done', 'Concluído', 'Concluido']
 };
 
@@ -36,7 +37,8 @@ const GROUP_CONFIG = {
   'Backlog': { color: 'bg-gray-100 dark:bg-gray-800', textColor: 'text-gray-700 dark:text-gray-300', dot: 'bg-gray-400' },
   'Refinamento': { color: 'bg-yellow-100 dark:bg-yellow-900/30', textColor: 'text-yellow-700 dark:text-yellow-300', dot: 'bg-yellow-500' },
   'Em Andamento': { color: 'bg-blue-100 dark:bg-blue-900/30', textColor: 'text-blue-700 dark:text-blue-300', dot: 'bg-blue-500' },
-  'Validação': { color: 'bg-purple-100 dark:bg-purple-900/30', textColor: 'text-purple-700 dark:text-purple-300', dot: 'bg-purple-500' },
+  'Testando': { color: 'bg-orange-100 dark:bg-orange-900/30', textColor: 'text-orange-700 dark:text-orange-300', dot: 'bg-orange-500' },
+  'Validando': { color: 'bg-purple-100 dark:bg-purple-900/30', textColor: 'text-purple-700 dark:text-purple-300', dot: 'bg-purple-500' },
   'Concluído': { color: 'bg-green-100 dark:bg-green-900/30', textColor: 'text-green-700 dark:text-green-300', dot: 'bg-green-500' }
 };
 
@@ -71,7 +73,7 @@ const groupItemsByStatus = (itens) => {
 
   // Ordenar grupos na ordem definida
   const orderedGroups = {};
-  const groupOrder = ['Backlog', 'Refinamento', 'Em Andamento', 'Validação', 'Concluído'];
+  const groupOrder = ['Backlog', 'Refinamento', 'Em Andamento', 'Testando', 'Validando', 'Concluído'];
   groupOrder.forEach(group => {
     if (groups[group] && groups[group].length > 0) {
       orderedGroups[group] = groups[group];
