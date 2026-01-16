@@ -1,6 +1,6 @@
 // frontend/src/features/planejamento_semanal/PlanejamentoSemanalPage.js
 import { useState, useEffect, useCallback } from 'react';
-import { AlertCircle, Loader2, RefreshCw, Save, Calendar, Search } from 'lucide-react';
+import { AlertCircle, Loader2, RefreshCw, Save, Search } from 'lucide-react';
 import apiClient from '../../utils/axios';
 import { useOrganization } from '../../hooks/useOrganization';
 
@@ -255,18 +255,27 @@ function PlanejamentoSemanalPage() {
       if (planejamento?.itens) {
         setSelectedIssues(planejamento.itens.map(item => item.issue_key));
 
-        // Carregar opcoes existentes dos itens
+        // Carregar dados das issues e opcoes existentes
+        const loadedIssuesData = {};
         const loadedOptions = {};
         planejamento.itens.forEach(item => {
+          // Dados da issue para salvamento
+          loadedIssuesData[item.issue_key] = {
+            summary: item.issue_summary,
+            status: item.issue_status
+          };
+          // Opcoes da issue
           loadedOptions[item.issue_key] = {
             timeSize: item.tempo_estimado || 'M',
             moreThanOneWeek: item.mais_de_uma_semana || false,
             isRoutine: item.is_rotina || false
           };
         });
+        setSelectedIssuesData(loadedIssuesData);
         setIssueOptions(loadedOptions);
       } else {
         setSelectedIssues([]);
+        setSelectedIssuesData({});
         setIssueOptions({});
       }
     } catch (err) {
@@ -426,16 +435,7 @@ function PlanejamentoSemanalPage() {
     <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
       {/* Cabecalho */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Calendar className="h-6 w-6 text-primary" />
-          <div>
-            <h2 className="text-lg font-semibold">Configurar Semana</h2>
-            <p className="text-sm text-muted-foreground">
-              Semana: {formatSemanaLabel(selectedSemana)}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-1">
           <WeekSelector
             semanas={semanas}
             selectedSemana={selectedSemana}
@@ -446,12 +446,13 @@ function PlanejamentoSemanalPage() {
             loading={loadingSemanas}
             creating={creatingSemana}
             deleting={deletingSemana}
+            className="min-w-[280px]"
           />
-          <Button onClick={handleRefresh} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar
-          </Button>
         </div>
+        <Button onClick={handleRefresh} variant="outline" size="sm">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Atualizar
+        </Button>
       </div>
 
       {/* Mensagens de erro/sucesso */}

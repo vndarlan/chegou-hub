@@ -31,7 +31,8 @@ export function WeekSelector({
   isAdmin = false,
   loading = false,
   creating = false,
-  deleting = false
+  deleting = false,
+  className = ''
 }) {
   // Formatar label da semana
   const formatSemanaLabel = (semana) => {
@@ -67,7 +68,7 @@ export function WeekSelector({
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div className={`flex items-center gap-3 ${className}`}>
       <Select
         value={selectedSemana?.id?.toString() || ''}
         onValueChange={(value) => {
@@ -75,7 +76,7 @@ export function WeekSelector({
           if (semana) onSemanaChange(semana);
         }}
       >
-        <SelectTrigger className="w-[200px]">
+        <SelectTrigger className="w-[280px]">
           <SelectValue placeholder="Selecione uma semana">
             {selectedSemana && (
               <div className="flex items-center gap-2">
