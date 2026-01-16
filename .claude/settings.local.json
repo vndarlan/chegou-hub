@@ -86,7 +86,8 @@
       "Bash(py manage.py makemigrations planejamento_semanal --name add_tempo_estimado_fields)",
       "Bash(\"c:\\\\Users\\\\Vinic\\\\OneDrive\\\\Documentos\\\\Programação\\\\chegou-hub\\\\backend\\\\venv\\\\Scripts\\\\python.exe\" \"c:\\\\Users\\\\Vinic\\\\OneDrive\\\\Documentos\\\\Programação\\\\chegou-hub\\\\backend\\\\manage.py\" makemigrations:*)",
       "Bash(git status:*)",
-      "Bash(\"c:\\\\Users\\\\Vinic\\\\OneDrive\\\\Documentos\\\\Programação\\\\chegou-hub\\\\backend\\\\venv\\\\Scripts\\\\python.exe\" \"c:\\\\Users\\\\Vinic\\\\OneDrive\\\\Documentos\\\\Programação\\\\chegou-hub\\\\backend\\\\manage.py\" migrate:*)"
+      "Bash(\"c:\\\\Users\\\\Vinic\\\\OneDrive\\\\Documentos\\\\Programação\\\\chegou-hub\\\\backend\\\\venv\\\\Scripts\\\\python.exe\" \"c:\\\\Users\\\\Vinic\\\\OneDrive\\\\Documentos\\\\Programação\\\\chegou-hub\\\\backend\\\\manage.py\" migrate:*)",
+      "Bash(py manage.py makemigrations planejamento_semanal --name add_configuracao_apresentacao)"
     ],
     "deny": [],
     "ask": [],

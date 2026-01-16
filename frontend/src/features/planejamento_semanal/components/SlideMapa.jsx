@@ -186,15 +186,25 @@ export function SlideMapa() {
       return;
     }
 
-    // Usar primeiro status da lista como padrão
-    const defaultStatus = statusList.length > 0 ? statusList[0].id.toString() : null;
-    if (!defaultStatus) {
-      setNotification({ type: 'error', message: 'Nenhum status disponivel.' });
-      return;
-    }
-
     setAddLoading(true);
     try {
+      // Buscar status se a lista estiver vazia
+      let defaultStatus = statusList.length > 0 ? statusList[0].id.toString() : null;
+
+      if (!defaultStatus) {
+        const statusResponse = await apiClient.get('/status/');
+        if (statusResponse.data && statusResponse.data.length > 0) {
+          setStatusList(statusResponse.data);
+          defaultStatus = statusResponse.data[0].id.toString();
+        }
+      }
+
+      if (!defaultStatus) {
+        setNotification({ type: 'error', message: 'Nenhum status disponivel no sistema.' });
+        setAddLoading(false);
+        return;
+      }
+
       // Garantir que temos um token CSRF valido
       await apiClient.get('/current-state/');
 
