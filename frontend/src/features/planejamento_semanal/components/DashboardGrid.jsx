@@ -1,6 +1,6 @@
 // frontend/src/features/planejamento_semanal/components/DashboardGrid.jsx
 import { useState, useMemo } from 'react';
-import { CheckCircle2, Clock, Users, ListTodo, ExternalLink, Flag, RefreshCw, Filter, Calendar } from 'lucide-react';
+import { CheckCircle2, Clock, Users, ListTodo, ExternalLink, Flag, RefreshCw, Filter, Calendar, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Progress } from '../../../components/ui/progress';
@@ -10,11 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 
 const JIRA_BASE_URL = 'https://grupochegou.atlassian.net/browse/';
 
-// Mapeamento de times e seus membros
+// Mapeamento de times e seus membros (nomes conforme Jira)
 const TIMES = {
   'IA & Automações': ['Vinicius Darlan Henriques Miranda', 'Murillo Ribeiro'],
   'Gestão': ['Nathalia Rocha'],
-  'Operacional': ['Matheus ribeiro', 'andersonbarbosachegou', 'Marcos Alberto Belisario', 'Murillo Ribeiro'],
+  'Operacional': ['andersonbarbosachegou', 'Marcos Alberto Belisario', 'Matheus ribeiro', 'Murillo Ribeiro'],
   'Suporte': ['Igor Vaz Santos Magalhães', 'Ricardo Machado'],
   'Tráfego e Criativos': ['Matheus Silva']
 };
@@ -111,17 +111,34 @@ const getGridClasses = (count) => {
  */
 export function DashboardGrid({ data, users = [] }) {
   const [selectedTime, setSelectedTime] = useState('Todos');
+  const [selectedPessoa, setSelectedPessoa] = useState('Todas');
 
   const { semana, planejamentos = [] } = data || {};
 
-  // Filtrar planejamentos
+  // Lista de pessoas disponíveis (extraída dos planejamentos, sem ignorados)
+  const pessoasDisponiveis = useMemo(() => {
+    const pessoas = (planejamentos || [])
+      .map(p => p.jira_display_name || p.usuario?.nome || '')
+      .filter(nome => nome && !deveIgnorar(nome))
+      .sort((a, b) => a.localeCompare(b));
+    return [...new Set(pessoas)];
+  }, [planejamentos]);
+
+  // Filtrar planejamentos por time e pessoa
   const planejamentosFiltrados = useMemo(() => {
     return (planejamentos || []).filter(p => {
       const nome = p.jira_display_name || p.usuario?.nome || '';
       if (deveIgnorar(nome)) return false;
-      return pertenceAoTime(nome, selectedTime);
+
+      // Filtro por time
+      if (!pertenceAoTime(nome, selectedTime)) return false;
+
+      // Filtro por pessoa
+      if (selectedPessoa !== 'Todas' && nome !== selectedPessoa) return false;
+
+      return true;
     });
-  }, [planejamentos, selectedTime]);
+  }, [planejamentos, selectedTime, selectedPessoa]);
 
   // Calcular totais
   const { totalItensFiltrados, totalConcluidosFiltrados, progressPercent } = useMemo(() => {
@@ -193,20 +210,41 @@ export function DashboardGrid({ data, users = [] }) {
           </div>
         </div>
 
-        {/* Filtro */}
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <Select value={selectedTime} onValueChange={setSelectedTime}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filtrar por time" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Todos">Todos os times</SelectItem>
-              {Object.keys(TIMES).map(time => (
-                <SelectItem key={time} value={time}>{time}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Filtros */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Filtro por Time */}
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <Select value={selectedTime} onValueChange={(v) => { setSelectedTime(v); setSelectedPessoa('Todas'); }}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Time" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todos">Todos os times</SelectItem>
+                {Object.keys(TIMES).map(time => (
+                  <SelectItem key={time} value={time}>{time}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Filtro por Pessoa */}
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <Select value={selectedPessoa} onValueChange={setSelectedPessoa}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Pessoa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todas">Todas as pessoas</SelectItem>
+                {pessoasDisponiveis.map(pessoa => (
+                  <SelectItem key={pessoa} value={pessoa}>
+                    {pessoa.split(' ').slice(0, 2).join(' ')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -225,7 +263,8 @@ export function DashboardGrid({ data, users = [] }) {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
             <p className="text-muted-foreground text-center">
-              Nenhum planejamento encontrado {selectedTime !== 'Todos' ? `para o time ${selectedTime}` : 'para esta semana'}.
+              Nenhum planejamento encontrado
+              {selectedPessoa !== 'Todas' ? ` para ${selectedPessoa.split(' ')[0]}` : selectedTime !== 'Todos' ? ` para o time ${selectedTime}` : ' para esta semana'}.
             </p>
           </CardContent>
         </Card>
