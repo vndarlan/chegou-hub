@@ -279,6 +279,10 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
                 "REVIEW",
                 "Testing",
                 "TESTING",
+                "Testando",
+                "TESTANDO",
+                "Validando",
+                "VALIDANDO",
                 "Em Teste",
                 "EM TESTE",
                 "QA"

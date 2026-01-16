@@ -27,7 +27,7 @@ const STATUS_GROUPS = {
   'Backlog': ['Backlog', 'To Do', 'A Fazer', 'Priorizado'],
   'Refinamento': ['Refinamento', 'Em Refinamento'],
   'Em Andamento': ['Em Andamento', 'Em Desenvolvimento', 'In Progress'],
-  'Validação': ['Validação', 'Período de Teste', 'Em Teste', 'Testing', 'QA', 'Em Revisão', 'Review'],
+  'Validação': ['Validação', 'Validando', 'VALIDANDO', 'Período de Teste', 'Testando', 'TESTANDO', 'Em Teste', 'Testing', 'QA', 'Em Revisão', 'Review'],
   'Concluído': ['Done', 'Concluído', 'Concluido']
 };
 
