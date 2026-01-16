@@ -36,7 +36,6 @@ const sidebarItems = [
     label: 'HOME',
     items: [
       { label: 'Agenda da Empresa', path: '/workspace/agenda' },
-      { label: 'Mapa de Atuação', path: '/workspace/mapa' },
     ]
   },
   {

@@ -9,7 +9,6 @@ import {
   Sun,
   Calendar,
   CalendarCheck,
-  Map,
   BookOpen,
   Globe2,
   MapPin,
@@ -120,13 +119,6 @@ export function AppSidebar({
       icon: Calendar,
       isActive: location.pathname === "/gestao/agenda",
       moduleKey: "agenda",
-    },
-    {
-      title: "Mapa de Atuação",
-      url: "/gestao/mapa",
-      icon: Map,
-      isActive: location.pathname === "/gestao/mapa",
-      moduleKey: "mapa",
     },
     {
       title: "Métricas Jira",

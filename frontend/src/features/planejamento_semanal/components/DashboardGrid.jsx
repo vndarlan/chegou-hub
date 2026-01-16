@@ -1,6 +1,6 @@
 // frontend/src/features/planejamento_semanal/components/DashboardGrid.jsx
-import { useState } from 'react';
-import { CheckCircle2, Clock, Users, ListTodo, ExternalLink, Flag, RefreshCw, Filter } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { CheckCircle2, Clock, Users, ListTodo, ExternalLink, Flag, RefreshCw, Filter, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Progress } from '../../../components/ui/progress';
@@ -32,14 +32,14 @@ const STATUS_GROUPS = {
   'Concluído': ['Done', 'Concluído', 'Concluido']
 };
 
-// Configuração visual por grupo
+// Configuração visual por grupo - cores mais vibrantes
 const GROUP_CONFIG = {
-  'Backlog': { color: 'bg-gray-100 dark:bg-gray-800', textColor: 'text-gray-700 dark:text-gray-300', dot: 'bg-gray-400' },
-  'Refinamento': { color: 'bg-yellow-100 dark:bg-yellow-900/30', textColor: 'text-yellow-700 dark:text-yellow-300', dot: 'bg-yellow-500' },
-  'Em Andamento': { color: 'bg-blue-100 dark:bg-blue-900/30', textColor: 'text-blue-700 dark:text-blue-300', dot: 'bg-blue-500' },
-  'Testando': { color: 'bg-orange-100 dark:bg-orange-900/30', textColor: 'text-orange-700 dark:text-orange-300', dot: 'bg-orange-500' },
-  'Validando': { color: 'bg-purple-100 dark:bg-purple-900/30', textColor: 'text-purple-700 dark:text-purple-300', dot: 'bg-purple-500' },
-  'Concluído': { color: 'bg-green-100 dark:bg-green-900/30', textColor: 'text-green-700 dark:text-green-300', dot: 'bg-green-500' }
+  'Backlog': { color: 'bg-slate-200 dark:bg-slate-700', textColor: 'text-slate-800 dark:text-slate-200', dot: 'bg-slate-500' },
+  'Refinamento': { color: 'bg-amber-200 dark:bg-amber-800/50', textColor: 'text-amber-800 dark:text-amber-200', dot: 'bg-amber-500' },
+  'Em Andamento': { color: 'bg-blue-200 dark:bg-blue-800/50', textColor: 'text-blue-800 dark:text-blue-200', dot: 'bg-blue-500' },
+  'Testando': { color: 'bg-orange-200 dark:bg-orange-800/50', textColor: 'text-orange-800 dark:text-orange-200', dot: 'bg-orange-500' },
+  'Validando': { color: 'bg-violet-200 dark:bg-violet-800/50', textColor: 'text-violet-800 dark:text-violet-200', dot: 'bg-violet-500' },
+  'Concluído': { color: 'bg-emerald-200 dark:bg-emerald-800/50', textColor: 'text-emerald-800 dark:text-emerald-200', dot: 'bg-emerald-500' }
 };
 
 // Função para obter o grupo de um status
@@ -49,7 +49,7 @@ const getStatusGroup = (status) => {
       return group;
     }
   }
-  return 'Backlog'; // default
+  return 'Backlog';
 };
 
 // Função para agrupar itens por status
@@ -57,7 +57,6 @@ const groupItemsByStatus = (itens) => {
   const groups = {};
 
   itens.forEach(item => {
-    // Determinar o grupo baseado no status ou se está concluído
     let group;
     if (item.concluido) {
       group = 'Concluído';
@@ -71,7 +70,6 @@ const groupItemsByStatus = (itens) => {
     groups[group].push(item);
   });
 
-  // Ordenar grupos na ordem definida
   const orderedGroups = {};
   const groupOrder = ['Backlog', 'Refinamento', 'Em Andamento', 'Testando', 'Validando', 'Concluído'];
   groupOrder.forEach(group => {
@@ -100,42 +98,43 @@ const deveIgnorar = (nome) => {
   );
 };
 
+// Determina classes do grid baseado na quantidade de pessoas
+const getGridClasses = (count) => {
+  if (count === 1) return 'grid-cols-1 max-w-2xl mx-auto';
+  if (count === 2) return 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto';
+  if (count === 3) return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
+  return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+};
+
 /**
  * Grid de cards mostrando planejamento por pessoa
- * @param {Object} data - Dados do dashboard { semana, planejamentos, total_itens, total_concluidos }
- * @param {Array} users - Lista de usuarios do Jira para buscar fotos
  */
 export function DashboardGrid({ data, users = [] }) {
   const [selectedTime, setSelectedTime] = useState('Todos');
 
-  if (!data) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <p className="text-muted-foreground">
-            Carregando dados do dashboard...
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
+  const { semana, planejamentos = [] } = data || {};
 
-  const { semana, planejamentos = [], total_itens = 0, total_concluidos = 0 } = data;
+  // Filtrar planejamentos
+  const planejamentosFiltrados = useMemo(() => {
+    return (planejamentos || []).filter(p => {
+      const nome = p.jira_display_name || p.usuario?.nome || '';
+      if (deveIgnorar(nome)) return false;
+      return pertenceAoTime(nome, selectedTime);
+    });
+  }, [planejamentos, selectedTime]);
 
-  // Filtrar planejamentos pelo time selecionado e remover ignorados
-  const planejamentosFiltrados = planejamentos.filter(p => {
-    const nome = p.jira_display_name || p.usuario?.nome || '';
-    if (deveIgnorar(nome)) return false;
-    return pertenceAoTime(nome, selectedTime);
-  });
-
-  // Recalcular totais baseado nos filtrados
-  const totalItensFiltrados = planejamentosFiltrados.reduce((acc, p) => acc + (p.itens?.length || 0), 0);
-  const totalConcluidosFiltrados = planejamentosFiltrados.reduce((acc, p) => {
-    return acc + (p.itens?.filter(i => i.concluido)?.length || 0);
-  }, 0);
-
-  const progressPercent = totalItensFiltrados > 0 ? Math.round((totalConcluidosFiltrados / totalItensFiltrados) * 100) : 0;
+  // Calcular totais
+  const { totalItensFiltrados, totalConcluidosFiltrados, progressPercent } = useMemo(() => {
+    const total = planejamentosFiltrados.reduce((acc, p) => acc + (p.itens?.length || 0), 0);
+    const concluidos = planejamentosFiltrados.reduce((acc, p) => {
+      return acc + (p.itens?.filter(i => i.concluido)?.length || 0);
+    }, 0);
+    return {
+      totalItensFiltrados: total,
+      totalConcluidosFiltrados: concluidos,
+      progressPercent: total > 0 ? Math.round((concluidos / total) * 100) : 0
+    };
+  }, [planejamentosFiltrados]);
 
   // Formatar label da semana
   const getSemanaLabel = () => {
@@ -152,179 +151,197 @@ export function DashboardGrid({ data, users = [] }) {
 
   const getInitials = (name) => {
     if (!name) return '?';
-    return name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+    return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  // Buscar foto do usuario pelo account_id
   const getUserAvatar = (accountId) => {
     const user = users.find(u => u.account_id === accountId);
     return user?.avatar_url || null;
   };
 
+  if (!data) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <p className="text-muted-foreground">Carregando dados do dashboard...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Filtro de Time */}
-      <div className="flex items-center justify-end gap-2">
-        <Filter className="h-4 w-4 text-muted-foreground" />
-        <Select value={selectedTime} onValueChange={setSelectedTime}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Filtrar por time" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Todos">Todos</SelectItem>
-            {Object.keys(TIMES).map(time => (
-              <SelectItem key={time} value={time}>{time}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Header Compacto - Resumo + Filtro */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-muted/30 rounded-lg border">
+        {/* Métricas em linha */}
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold">{getSemanaLabel()}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span><strong>{planejamentosFiltrados.length}</strong> membros</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <ListTodo className="h-4 w-4 text-muted-foreground" />
+            <span><strong>{totalItensFiltrados}</strong> itens</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+              {totalConcluidosFiltrados} ({progressPercent}%)
+            </span>
+          </div>
+        </div>
+
+        {/* Filtro */}
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={selectedTime} onValueChange={setSelectedTime}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filtrar por time" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Todos">Todos os times</SelectItem>
+              {Object.keys(TIMES).map(time => (
+                <SelectItem key={time} value={time}>{time}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Cards de Resumo */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Semana</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{getSemanaLabel()}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Membros</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{planejamentosFiltrados.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Itens</CardTitle>
-            <ListTodo className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalItensFiltrados}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Concluidos</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{totalConcluidosFiltrados}</div>
-            <Progress value={progressPercent} className="mt-2" />
-            <p className="text-xs text-muted-foreground mt-1">{progressPercent}% concluido</p>
-          </CardContent>
-        </Card>
+      {/* Barra de Progresso Geral */}
+      <div className="space-y-2">
+        <div className="flex justify-between text-sm">
+          <span className="text-muted-foreground">Progresso geral</span>
+          <span className="font-medium">{progressPercent}%</span>
+        </div>
+        <Progress value={progressPercent} className="h-3" />
       </div>
 
       {/* Grid de Pessoas */}
       {planejamentosFiltrados.length === 0 ? (
-        <Card>
-          <CardContent className="flex items-center justify-center py-8">
-            <p className="text-muted-foreground">
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <p className="text-muted-foreground text-center">
               Nenhum planejamento encontrado {selectedTime !== 'Todos' ? `para o time ${selectedTime}` : 'para esta semana'}.
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+        <div className={`grid gap-6 ${getGridClasses(planejamentosFiltrados.length)}`}>
           {planejamentosFiltrados.map((planejamento, index) => {
-            // Suportar ambos os formatos de dados
             const nome = planejamento.jira_display_name || planejamento.usuario?.nome || 'Usuario';
             const accountId = planejamento.jira_account_id || planejamento.usuario?.account_id;
             const itens = planejamento.itens || [];
             const totalItens = itens.length;
             const concluidos = itens.filter(i => i.concluido).length;
             const userProgress = totalItens > 0 ? Math.round((concluidos / totalItens) * 100) : 0;
-
             const avatarUrl = getUserAvatar(accountId);
-
-            // Agrupar itens por status
             const groupedItems = groupItemsByStatus(itens);
 
+            // Cor da borda baseada no progresso
+            const borderColor = userProgress === 100
+              ? 'border-emerald-400'
+              : userProgress >= 50
+                ? 'border-blue-400'
+                : 'border-muted';
+
             return (
-              <Card key={accountId || planejamento.id || `planejamento-${index}`}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
+              <Card
+                key={accountId || planejamento.id || `planejamento-${index}`}
+                className={`overflow-hidden border-t-4 ${borderColor} transition-shadow hover:shadow-lg`}
+              >
+                {/* Header com Avatar Grande e Progresso */}
+                <CardHeader className="pb-4 bg-gradient-to-b from-muted/50 to-transparent">
+                  <div className="flex items-start gap-4">
+                    <Avatar className="h-14 w-14 ring-2 ring-background shadow-md">
                       {avatarUrl && <AvatarImage src={avatarUrl} alt={nome} />}
-                      <AvatarFallback>
+                      <AvatarFallback className="text-lg bg-primary text-primary-foreground">
                         {getInitials(nome)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-base truncate">
+                      <CardTitle className="text-lg truncate mb-2">
                         {nome}
                       </CardTitle>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant={userProgress === 100 ? 'default' : 'secondary'} className="text-xs">
-                          {concluidos}/{totalItens}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {userProgress}%
-                        </span>
+                      {/* Barra de progresso maior e mais visível */}
+                      <div className="space-y-1">
+                        <Progress
+                          value={userProgress}
+                          className="h-3"
+                        />
+                        <div className="flex justify-between items-center">
+                          <Badge
+                            variant={userProgress === 100 ? 'default' : 'secondary'}
+                            className={`text-xs ${userProgress === 100 ? 'bg-emerald-500' : ''}`}
+                          >
+                            {concluidos}/{totalItens} concluídos
+                          </Badge>
+                          <span className={`text-sm font-bold ${
+                            userProgress === 100
+                              ? 'text-emerald-600'
+                              : userProgress >= 50
+                                ? 'text-blue-600'
+                                : 'text-muted-foreground'
+                          }`}>
+                            {userProgress}%
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <Progress value={userProgress} className="mt-2" />
                 </CardHeader>
+
                 <CardContent className="pt-0">
-                  <ScrollArea className="h-[280px]">
-                    <div className="space-y-4">
+                  <ScrollArea className="h-[300px] pr-3">
+                    <div className="space-y-3">
                       {Object.entries(groupedItems).map(([group, items]) => {
                         const config = GROUP_CONFIG[group];
                         return (
-                          <div key={group} className="space-y-1">
-                            {/* Header do grupo de status */}
-                            <div className={`flex items-center gap-2 px-2 py-1 rounded-md ${config.color}`}>
-                              <div className={`h-2.5 w-2.5 rounded-full ${config.dot}`} />
-                              <span className={`text-sm font-medium ${config.textColor}`}>
-                                {group} ({items.length})
+                          <div key={group} className="space-y-1.5">
+                            {/* Header do grupo - mais destacado */}
+                            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${config.color}`}>
+                              <div className={`h-3 w-3 rounded-full ${config.dot} ring-2 ring-white dark:ring-gray-800`} />
+                              <span className={`text-sm font-semibold ${config.textColor}`}>
+                                {group}
                               </span>
+                              <Badge variant="outline" className="ml-auto text-xs">
+                                {items.length}
+                              </Badge>
                             </div>
 
-                            {/* Lista de issues do grupo */}
-                            <div className="pl-2 border-l-2 border-muted ml-1 space-y-1">
-                              {items.map((item, index) => (
+                            {/* Lista de issues */}
+                            <div className="pl-3 space-y-1">
+                              {items.map((item, idx) => (
                                 <div
                                   key={item.issue_key || item.id}
-                                  className="flex items-start gap-2 py-1 px-2 text-sm hover:bg-muted/50 rounded-sm"
+                                  className="flex items-start gap-2 py-1.5 px-2 text-sm hover:bg-muted/50 rounded-md transition-colors"
                                 >
-                                  <span className="text-muted-foreground text-xs mt-0.5">
-                                    {index === items.length - 1 ? '└' : '├'}
+                                  <span className="text-muted-foreground text-xs mt-1 font-mono">
+                                    {idx === items.length - 1 ? '└' : '├'}
                                   </span>
                                   <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
                                       <a
                                         href={`${JIRA_BASE_URL}${item.issue_key}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="font-medium text-primary hover:underline flex items-center gap-1"
+                                        className="font-medium text-primary hover:underline inline-flex items-center gap-1"
                                       >
                                         {item.issue_key}
-                                        <ExternalLink className="h-3 w-3" />
+                                        <ExternalLink className="h-3 w-3 opacity-50" />
                                       </a>
                                       {item.mais_de_uma_semana && (
-                                        <Flag className="h-3.5 w-3.5 text-red-500 shrink-0" title="Mais de uma semana" />
+                                        <Flag className="h-3.5 w-3.5 text-red-500" title="Mais de uma semana" />
                                       )}
                                       {item.is_rotina && (
-                                        <RefreshCw className="h-3.5 w-3.5 text-blue-500 shrink-0" title="Rotina" />
+                                        <RefreshCw className="h-3.5 w-3.5 text-blue-500" title="Rotina" />
                                       )}
                                     </div>
-                                    <p className={`text-xs truncate ${
-                                      item.concluido ? 'text-muted-foreground line-through' : 'text-foreground'
+                                    <p className={`text-xs leading-relaxed ${
+                                      item.concluido ? 'text-muted-foreground line-through' : 'text-foreground/80'
                                     }`}>
                                       {item.issue_summary || item.summary}
                                     </p>

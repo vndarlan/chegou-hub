@@ -52,7 +52,6 @@ const getMainLinksMockdata = (isAdmin = false) => {
 const linksBySection = {
   home: [
     { label: 'Agenda da Empresa', link: '/workspace/agenda' },
-    { label: 'Mapa de Atuação', link: '/workspace/mapa' },
   ],
   ia: [
     { label: 'Projetos', link: '/workspace/projetos' },

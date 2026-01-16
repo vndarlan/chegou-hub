@@ -21,7 +21,6 @@ import apiClient from '../utils/axios';
 
 // Importar as páginas
 import AgendaPage from '../features/agenda/AgendaPage';
-import MapaPage from '../features/mapa/MapaPage';
 import JiraPage from '../features/jira/JiraPage';
 import PlanejamentoSemanalPage from '../features/planejamento_semanal/PlanejamentoSemanalPage';
 import DashboardPage from '../features/planejamento_semanal/DashboardPage';
@@ -60,7 +59,6 @@ const breadcrumbMap = {
 
   // GESTÃO EMPRESARIAL
   '/gestao/agenda': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Agenda da Empresa' }],
-  '/gestao/mapa': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Mapa de Atuação' }],
   '/gestao/jira': [{ label: 'GESTÃO EMPRESARIAL', href: '#' }, { label: 'Jira' }],
   '/gestao/planejamento-semanal/configurar': [
     { label: 'GESTÃO EMPRESARIAL', href: '#' },
@@ -281,11 +279,6 @@ function WorkspacePage({ setIsLoggedIn }) {
                   <AgendaPage />
                 </ProtectedRoute>
               } />
-              <Route path="gestao/mapa" element={
-                <ProtectedRoute moduleKey="mapa">
-                  <MapaPage />
-                </ProtectedRoute>
-              } />
               <Route path="gestao/jira" element={
                 <ProtectedRoute moduleKey="jira">
                   <JiraPage />
@@ -423,7 +416,6 @@ function WorkspacePage({ setIsLoggedIn }) {
 
               {/* REDIRECTS - Rotas antigas para novas */}
               <Route path="agenda" element={<Navigate to="/gestao/agenda" replace />} />
-              <Route path="mapa" element={<Navigate to="/gestao/mapa" replace />} />
               <Route path="metricas/ecomhub" element={<Navigate to="/fornecedores/europa/ecomhub/efetividade" replace />} />
               <Route path="metricas/ecomhub-v2" element={<Navigate to="/fornecedores/europa/ecomhub/efetividade-v2" replace />} />
               <Route path="status/ecomhub" element={<Navigate to="/fornecedores/europa/ecomhub/status" replace />} />
