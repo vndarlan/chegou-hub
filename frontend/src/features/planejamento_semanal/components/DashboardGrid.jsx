@@ -22,52 +22,6 @@ const TIMES = {
 // Pessoas para ignorar no dashboard
 const IGNORAR = ['João Bento Coelho'];
 
-// Mapeamento de cores por status
-const STATUS_CONFIG = {
-  // Backlog / To Do - Cinza
-  'Backlog': { color: 'bg-gray-100 dark:bg-gray-800', textColor: 'text-gray-700 dark:text-gray-300', dot: 'bg-gray-400' },
-  'To Do': { color: 'bg-gray-100 dark:bg-gray-800', textColor: 'text-gray-700 dark:text-gray-300', dot: 'bg-gray-400' },
-  'A Fazer': { color: 'bg-gray-100 dark:bg-gray-800', textColor: 'text-gray-700 dark:text-gray-300', dot: 'bg-gray-400' },
-  'Priorizado': { color: 'bg-gray-100 dark:bg-gray-800', textColor: 'text-gray-700 dark:text-gray-300', dot: 'bg-gray-400' },
-
-  // Refinamento - Amarelo
-  'Refinamento': { color: 'bg-yellow-100 dark:bg-yellow-900/30', textColor: 'text-yellow-700 dark:text-yellow-300', dot: 'bg-yellow-500' },
-  'Em Refinamento': { color: 'bg-yellow-100 dark:bg-yellow-900/30', textColor: 'text-yellow-700 dark:text-yellow-300', dot: 'bg-yellow-500' },
-
-  // Em Andamento - Azul
-  'Em Andamento': { color: 'bg-blue-100 dark:bg-blue-900/30', textColor: 'text-blue-700 dark:text-blue-300', dot: 'bg-blue-500' },
-  'Em Desenvolvimento': { color: 'bg-blue-100 dark:bg-blue-900/30', textColor: 'text-blue-700 dark:text-blue-300', dot: 'bg-blue-500' },
-  'In Progress': { color: 'bg-blue-100 dark:bg-blue-900/30', textColor: 'text-blue-700 dark:text-blue-300', dot: 'bg-blue-500' },
-
-  // Validação / Teste - Roxo
-  'Validação': { color: 'bg-purple-100 dark:bg-purple-900/30', textColor: 'text-purple-700 dark:text-purple-300', dot: 'bg-purple-500' },
-  'Período de Teste': { color: 'bg-purple-100 dark:bg-purple-900/30', textColor: 'text-purple-700 dark:text-purple-300', dot: 'bg-purple-500' },
-  'Em Teste': { color: 'bg-purple-100 dark:bg-purple-900/30', textColor: 'text-purple-700 dark:text-purple-300', dot: 'bg-purple-500' },
-  'Testing': { color: 'bg-purple-100 dark:bg-purple-900/30', textColor: 'text-purple-700 dark:text-purple-300', dot: 'bg-purple-500' },
-  'QA': { color: 'bg-purple-100 dark:bg-purple-900/30', textColor: 'text-purple-700 dark:text-purple-300', dot: 'bg-purple-500' },
-  'Em Revisão': { color: 'bg-purple-100 dark:bg-purple-900/30', textColor: 'text-purple-700 dark:text-purple-300', dot: 'bg-purple-500' },
-  'Review': { color: 'bg-purple-100 dark:bg-purple-900/30', textColor: 'text-purple-700 dark:text-purple-300', dot: 'bg-purple-500' },
-
-  // Concluído - Verde
-  'Done': { color: 'bg-green-100 dark:bg-green-900/30', textColor: 'text-green-700 dark:text-green-300', dot: 'bg-green-500' },
-  'Concluído': { color: 'bg-green-100 dark:bg-green-900/30', textColor: 'text-green-700 dark:text-green-300', dot: 'bg-green-500' },
-  'Concluido': { color: 'bg-green-100 dark:bg-green-900/30', textColor: 'text-green-700 dark:text-green-300', dot: 'bg-green-500' },
-};
-
-// Ordem de exibição dos status (agrupados)
-const STATUS_ORDER = [
-  // Backlog
-  'Backlog', 'To Do', 'A Fazer', 'Priorizado',
-  // Refinamento
-  'Refinamento', 'Em Refinamento',
-  // Em Andamento
-  'Em Andamento', 'Em Desenvolvimento', 'In Progress',
-  // Validação
-  'Validação', 'Período de Teste', 'Em Teste', 'Testing', 'QA', 'Em Revisão', 'Review',
-  // Concluído
-  'Done', 'Concluído', 'Concluido'
-];
-
 // Agrupa status em categorias para exibição
 const STATUS_GROUPS = {
   'Backlog': ['Backlog', 'To Do', 'A Fazer', 'Priorizado'],
@@ -287,7 +241,7 @@ export function DashboardGrid({ data, users = [] }) {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {planejamentosFiltrados.map((planejamento) => {
+          {planejamentosFiltrados.map((planejamento, index) => {
             // Suportar ambos os formatos de dados
             const nome = planejamento.jira_display_name || planejamento.usuario?.nome || 'Usuario';
             const accountId = planejamento.jira_account_id || planejamento.usuario?.account_id;
@@ -302,7 +256,7 @@ export function DashboardGrid({ data, users = [] }) {
             const groupedItems = groupItemsByStatus(itens);
 
             return (
-              <Card key={accountId || planejamento.id}>
+              <Card key={accountId || planejamento.id || `planejamento-${index}`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
