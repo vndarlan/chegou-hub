@@ -8,13 +8,14 @@ from django.db import transaction
 
 from datetime import timedelta
 from django.utils import timezone
-from .models import SemanaReferencia, PlanejamentoSemanal, ItemPlanejamento
+from .models import SemanaReferencia, PlanejamentoSemanal, ItemPlanejamento, AvisoImportante
 from .serializers import (
     SemanaReferenciaSerializer,
     PlanejamentoSemanalSerializer,
     PlanejamentoSemanalCreateSerializer,
     DashboardSemanalSerializer,
-    IssueJiraSerializer
+    IssueJiraSerializer,
+    AvisoImportanteSerializer
 )
 from features.jira.clients.jira_client import JiraClient, JiraAPIError
 
@@ -494,5 +495,94 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
             logger.error(f"Erro ao deletar semana: {str(e)}")
             return Response(
                 {'error': f'Erro ao deletar semana: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    # ==================== AVISOS IMPORTANTES ====================
+
+    @action(detail=False, methods=['get'], url_path='avisos')
+    def listar_avisos(self, request):
+        """
+        GET /api/planejamento-semanal/avisos/
+        Lista todos os avisos importantes.
+        """
+        try:
+            avisos = AvisoImportante.objects.all()
+            serializer = AvisoImportanteSerializer(avisos, many=True)
+            return Response({'avisos': serializer.data})
+
+        except Exception as e:
+            logger.error(f"Erro ao listar avisos: {str(e)}")
+            return Response(
+                {'error': f'Erro ao listar avisos: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['post'], url_path='avisos/criar')
+    def criar_aviso(self, request):
+        """
+        POST /api/planejamento-semanal/avisos/criar/
+        Cria um novo aviso importante.
+
+        Body:
+        {
+            "texto": "Conteudo do aviso",
+            "ordem": 0  // opcional
+        }
+        """
+        texto = request.data.get('texto')
+        if not texto:
+            return Response(
+                {'error': 'texto e obrigatorio'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            aviso = AvisoImportante.objects.create(
+                texto=texto,
+                criado_por=request.user,
+                ordem=request.data.get('ordem', 0)
+            )
+
+            serializer = AvisoImportanteSerializer(aviso)
+            return Response({
+                'message': 'Aviso criado com sucesso',
+                'aviso': serializer.data
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            logger.error(f"Erro ao criar aviso: {str(e)}")
+            return Response(
+                {'error': f'Erro ao criar aviso: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['delete'], url_path='avisos/deletar')
+    def deletar_aviso(self, request):
+        """
+        DELETE /api/planejamento-semanal/avisos/deletar/?id=X
+        Deleta um aviso importante.
+        """
+        aviso_id = request.query_params.get('id')
+        if not aviso_id:
+            return Response(
+                {'error': 'id e obrigatorio'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            aviso = AvisoImportante.objects.get(id=aviso_id)
+            aviso.delete()
+            return Response({'message': 'Aviso deletado com sucesso'})
+
+        except AvisoImportante.DoesNotExist:
+            return Response(
+                {'error': 'Aviso nao encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Erro ao deletar aviso: {str(e)}")
+            return Response(
+                {'error': f'Erro ao deletar aviso: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

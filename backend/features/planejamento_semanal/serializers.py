@@ -1,6 +1,6 @@
 # backend/features/planejamento_semanal/serializers.py
 from rest_framework import serializers
-from .models import SemanaReferencia, PlanejamentoSemanal, ItemPlanejamento, TEMPO_ESTIMADO_CHOICES
+from .models import SemanaReferencia, PlanejamentoSemanal, ItemPlanejamento, AvisoImportante, TEMPO_ESTIMADO_CHOICES
 
 
 class SemanaReferenciaSerializer(serializers.ModelSerializer):
@@ -136,3 +136,18 @@ class IssueJiraSerializer(serializers.Serializer):
     assignee_name = serializers.CharField(allow_null=True)
     priority = serializers.CharField(allow_null=True)
     issue_type = serializers.CharField(allow_null=True)
+
+
+class AvisoImportanteSerializer(serializers.ModelSerializer):
+    """Serializer para aviso importante"""
+    criado_por_nome = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AvisoImportante
+        fields = ['id', 'texto', 'criado_por_nome', 'criado_em', 'ordem']
+        read_only_fields = ['id', 'criado_por_nome', 'criado_em']
+
+    def get_criado_por_nome(self, obj):
+        if obj.criado_por:
+            return obj.criado_por.get_full_name() or obj.criado_por.username
+        return None

@@ -15,7 +15,6 @@ import SlideFim from './components/SlideFim';
 function ApresentacaoPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [semanaAtual, setSemanaAtual] = useState(null);
-  const [avisos, setAvisos] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const totalSlides = 4;
@@ -126,7 +125,7 @@ function ApresentacaoPage() {
       case 2:
         return <SlideDashboard semanaId={semanaAtual?.id} />;
       case 3:
-        return <SlideFim avisos={avisos} onAvisosChange={setAvisos} />;
+        return <SlideFim />;
       default:
         return <SlideWelcome />;
     }

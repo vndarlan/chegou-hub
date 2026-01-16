@@ -229,3 +229,35 @@ class ItemPlanejamento(models.Model):
     def __str__(self):
         status = "Concluido" if self.concluido else "Pendente"
         return f"{self.issue_key} - {status}"
+
+
+class AvisoImportante(models.Model):
+    """Avisos importantes para a apresentacao"""
+    texto = models.TextField(
+        verbose_name="Texto do Aviso",
+        help_text="Conteudo do aviso importante"
+    )
+    criado_por = models.ForeignKey(
+        'auth.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='avisos_criados',
+        verbose_name="Criado por"
+    )
+    criado_em = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Criado em"
+    )
+    ordem = models.IntegerField(
+        default=0,
+        verbose_name="Ordem",
+        help_text="Ordem de exibicao do aviso"
+    )
+
+    class Meta:
+        ordering = ['ordem', '-criado_em']
+        verbose_name = 'Aviso Importante'
+        verbose_name_plural = 'Avisos Importantes'
+
+    def __str__(self):
+        return self.texto[:50]
