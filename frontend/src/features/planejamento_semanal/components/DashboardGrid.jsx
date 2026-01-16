@@ -28,8 +28,8 @@ const STATUS_GROUPS = {
   'Refinamento': ['Refinamento', 'Em Refinamento'],
   'Em Andamento': ['Em Andamento', 'Em Desenvolvimento', 'In Progress'],
   'Testando': ['Testando', 'TESTANDO', 'Período de Teste', 'Em Teste', 'Testing', 'QA'],
-  'Validando': ['Validando', 'VALIDANDO', 'Validação', 'Em Revisão', 'Review'],
-  'Concluído': ['Done', 'Concluído', 'Concluido']
+  'Validando': ['Validando', 'VALIDANDO', 'Validação'],
+  'Concluído': ['Done', 'Concluído', 'Concluido', 'Para Revisão', 'PARA REVISÃO', 'Em Revisão', 'EM REVISÃO', 'Review', 'REVIEW', 'Revisão', 'REVISÃO']
 };
 
 // Configuração visual por grupo - cores mais vibrantes

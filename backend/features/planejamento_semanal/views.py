@@ -175,11 +175,78 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    # Status que indicam conclusão da atividade
+    COMPLETED_STATUSES = [
+        'concluído', 'concluido', 'done',
+        'para revisão', 'para revisao',
+        'revisão', 'revisao', 'review',
+        'em revisão', 'em revisao',
+    ]
+
+    def _is_completed_status(self, status_name):
+        """Verifica se o status indica conclusão"""
+        if not status_name:
+            return False
+        return status_name.lower().strip() in self.COMPLETED_STATUSES
+
+    def _sync_items_with_jira(self, planejamentos):
+        """
+        Sincroniza status dos itens com Jira.
+        Busca status atual de todas as issues em batch e atualiza no banco.
+        """
+        # Coletar todos os itens e suas keys
+        all_items = []
+        issue_keys = []
+        for planejamento in planejamentos:
+            for item in planejamento.itens.all():
+                all_items.append(item)
+                issue_keys.append(item.issue_key)
+
+        if not issue_keys:
+            return
+
+        try:
+            # Buscar status atual de todas as issues no Jira (batch)
+            client = JiraClient()
+            keys_str = ', '.join([f'"{k}"' for k in issue_keys])
+            jql = f'key IN ({keys_str})'
+
+            issues = client.search_issues(
+                jql=jql,
+                fields=['status'],
+                max_results=100
+            )
+
+            # Criar mapa key -> status
+            status_map = {}
+            for issue in issues:
+                key = issue.get('key')
+                status_name = issue.get('fields', {}).get('status', {}).get('name', '')
+                status_map[key] = status_name
+
+            # Atualizar cada item
+            for item in all_items:
+                novo_status = status_map.get(item.issue_key)
+                if novo_status:
+                    status_changed = item.issue_status != novo_status
+                    is_completed = self._is_completed_status(novo_status)
+
+                    # Só salva se algo mudou
+                    if status_changed or item.concluido != is_completed:
+                        item.issue_status = novo_status
+                        item.concluido = is_completed
+                        item.save(update_fields=['issue_status', 'concluido'])
+
+        except Exception as e:
+            logger.warning(f"Falha ao sincronizar com Jira: {str(e)}")
+            # Continua mesmo se Jira falhar - mostra dados do cache
+
     @action(detail=False, methods=['get'])
     def dashboard(self, request):
         """
         GET /api/planejamento-semanal/dashboard/?semana_id=1
         Retorna todos os planejamentos da semana (dashboard geral).
+        Sincroniza status com Jira antes de retornar.
         """
         semana_id = request.query_params.get('semana_id')
 
@@ -197,6 +264,14 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
                 semana = SemanaReferencia.get_or_create_current_week()
 
             # Buscar todos os planejamentos da semana
+            planejamentos = PlanejamentoSemanal.objects.filter(
+                semana=semana
+            ).prefetch_related('itens')
+
+            # Sincronizar status com Jira (atualiza issue_status e concluido)
+            self._sync_items_with_jira(planejamentos)
+
+            # Recarregar para pegar valores atualizados
             planejamentos = PlanejamentoSemanal.objects.filter(
                 semana=semana
             ).prefetch_related('itens')
