@@ -25,6 +25,7 @@ import MapaPage from '../features/mapa/MapaPage';
 import JiraPage from '../features/jira/JiraPage';
 import PlanejamentoSemanalPage from '../features/planejamento_semanal/PlanejamentoSemanalPage';
 import DashboardPage from '../features/planejamento_semanal/DashboardPage';
+import ApresentacaoPage from '../features/planejamento_semanal/ApresentacaoPage';
 import ProjetoDashboard from '../features/ia/ProjetoDashboard';
 import LogsPage from '../features/ia/LogsPage';
 import OpenAIAnalytics from '../features/ia/OpenAIAnalytics';
@@ -70,6 +71,11 @@ const breadcrumbMap = {
     { label: 'GESTÃO EMPRESARIAL', href: '#' },
     { label: 'Planejamento Semanal', href: '#' },
     { label: 'Dashboard' }
+  ],
+  '/gestao/planejamento-semanal/apresentacao': [
+    { label: 'GESTÃO EMPRESARIAL', href: '#' },
+    { label: 'Planejamento Semanal', href: '#' },
+    { label: 'Apresentacao' }
   ],
 
   // FORNECEDORES > EUROPA
@@ -293,6 +299,11 @@ function WorkspacePage({ setIsLoggedIn }) {
               <Route path="gestao/planejamento-semanal/dashboard" element={
                 <ProtectedRoute moduleKey="planejamento_semanal">
                   <DashboardPage />
+                </ProtectedRoute>
+              } />
+              <Route path="gestao/planejamento-semanal/apresentacao" element={
+                <ProtectedRoute moduleKey="planejamento_semanal">
+                  <ApresentacaoPage />
                 </ProtectedRoute>
               } />
 
