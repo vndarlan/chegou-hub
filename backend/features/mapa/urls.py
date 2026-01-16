@@ -13,4 +13,5 @@ urlpatterns = [
     path('available-countries/', views.available_countries, name='available-countries'),
     path('add-pais/', views.add_pais_simple, name='add-pais-simple'),
     path('debug-user/', views.debug_user_info, name='debug-user'),
+    path('status-list/', views.status_list, name='status-list'),
 ]

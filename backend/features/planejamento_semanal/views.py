@@ -128,15 +128,24 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
                 else:
                     semana = SemanaReferencia.get_or_create_current_week()
 
-                # Obter ou criar planejamento
-                planejamento, created = PlanejamentoSemanal.objects.get_or_create(
-                    usuario=request.user,
+                # Buscar planejamento existente por semana + jira_account_id
+                # Permite que qualquer usuario com acesso edite o planejamento
+                planejamento = PlanejamentoSemanal.objects.filter(
                     semana=semana,
-                    jira_account_id=data['jira_account_id'],
-                    defaults={
-                        'jira_display_name': data['jira_display_name']
-                    }
-                )
+                    jira_account_id=data['jira_account_id']
+                ).first()
+
+                if planejamento:
+                    created = False
+                else:
+                    # Criar novo planejamento
+                    planejamento = PlanejamentoSemanal.objects.create(
+                        usuario=request.user,
+                        semana=semana,
+                        jira_account_id=data['jira_account_id'],
+                        jira_display_name=data['jira_display_name']
+                    )
+                    created = True
 
                 # Atualizar nome se mudou
                 if not created and planejamento.jira_display_name != data['jira_display_name']:

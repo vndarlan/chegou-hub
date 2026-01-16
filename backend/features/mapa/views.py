@@ -122,6 +122,22 @@ def check_mapa_permissions(request):
     })
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def status_list(request):
+    """Lista todos os StatusPais para usuários autenticados"""
+    status_paises = StatusPais.objects.all()
+    data = [
+        {
+            'id': status.id,
+            'nome': status.nome,
+            'descricao': status.descricao,
+            'cor_hex': status.cor_hex
+        }
+        for status in status_paises
+    ]
+    return Response(data)
+
+@api_view(['GET'])
 @permission_classes([AllowAny])
 def available_countries(request):
     """Lista completa de países do mundo"""

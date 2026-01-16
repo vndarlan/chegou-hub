@@ -219,7 +219,7 @@ export function DashboardGrid({ data, users = [] }) {
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="Time" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[10001]">
                 <SelectItem value="Todos">Todos os times</SelectItem>
                 {Object.keys(TIMES).map(time => (
                   <SelectItem key={time} value={time}>{time}</SelectItem>
@@ -235,7 +235,7 @@ export function DashboardGrid({ data, users = [] }) {
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Pessoa" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[10001]">
                 <SelectItem value="Todas">Todas as pessoas</SelectItem>
                 {pessoasDisponiveis.map(pessoa => (
                   <SelectItem key={pessoa} value={pessoa}>

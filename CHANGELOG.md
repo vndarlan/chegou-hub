@@ -5,6 +5,19 @@ Todas as mudanças deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [v1.12.0] - 16/01/2026
+
+### ✨ Novidades
+
+- **[📅 Planejamento Semanal - NOVA ESTRUTURA]** 3 novas páginas especializadas para gestão de planejamento semanal:
+  - **Configurar Semana** - Configuração e definição das atividades da semana
+  - **Dashboard** - Painel de acompanhamento e visualização do planejamento
+  - **Apresentação** - Visualização para apresentação do planejamento
+
+### 🐛 Correções
+
+- **[📊 Métricas Jira]** Corrigido painel de Timesheet que não estava puxando o tempo corretamente
+
 ## [v1.11.0] - 18/12/2024
 
 ### ✨ Novidades
