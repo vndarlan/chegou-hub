@@ -120,7 +120,6 @@ export function SlideMapa() {
   const [availableCountries, setAvailableCountries] = useState([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState(null);
-  const [selectedStatus, setSelectedStatus] = useState(null);
   const [addLoading, setAddLoading] = useState(false);
   const [notification, setNotification] = useState(null);
 
@@ -182,8 +181,15 @@ export function SlideMapa() {
 
   // Adicionar pais
   const handleAddCountry = async () => {
-    if (!selectedCountry || !selectedStatus) {
-      setNotification({ type: 'error', message: 'Selecione pais e status.' });
+    if (!selectedCountry) {
+      setNotification({ type: 'error', message: 'Selecione um pais.' });
+      return;
+    }
+
+    // Usar primeiro status da lista como padrão
+    const defaultStatus = statusList.length > 0 ? statusList[0].id.toString() : null;
+    if (!defaultStatus) {
+      setNotification({ type: 'error', message: 'Nenhum status disponivel.' });
       return;
     }
 
@@ -197,7 +203,7 @@ export function SlideMapa() {
       await apiClient.post('/add-pais/', {
         nome_display: selectedCountry.nome_display,
         nome_geojson: selectedCountry.nome_geojson,
-        status: selectedStatus,
+        status: defaultStatus,
         latitude: coordinates[0],
         longitude: coordinates[1],
         ativo: true
@@ -206,7 +212,6 @@ export function SlideMapa() {
       setNotification({ type: 'success', message: `${selectedCountry.nome_display} adicionado com sucesso!` });
       setAddModalOpen(false);
       setSelectedCountry(null);
-      setSelectedStatus(null);
 
       // Recarregar dados
       window.location.reload();
@@ -464,7 +469,7 @@ export function SlideMapa() {
                 Adicionar Pais
               </h3>
               <p className="text-sm text-muted-foreground">
-                Selecione um pais e seu status para adicionar ao mapa
+                Selecione um pais para adicionar ao mapa
               </p>
             </div>
 
@@ -487,22 +492,6 @@ export function SlideMapa() {
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="status-select" className="text-foreground">Status</Label>
-                <Select value={selectedStatus || ""} onValueChange={setSelectedStatus}>
-                  <SelectTrigger id="status-select" className="bg-background border-border text-foreground">
-                    <SelectValue placeholder="Selecione o status" className="text-muted-foreground" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border-border z-[10001]">
-                    {statusList.map(s => (
-                      <SelectItem key={s.id} value={s.id.toString()} className="text-foreground hover:bg-accent hover:text-accent-foreground">
-                        {s.descricao}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
             <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
@@ -515,7 +504,7 @@ export function SlideMapa() {
               </Button>
               <Button
                 onClick={handleAddCountry}
-                disabled={!selectedCountry || !selectedStatus || addLoading}
+                disabled={!selectedCountry || addLoading}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 {addLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
