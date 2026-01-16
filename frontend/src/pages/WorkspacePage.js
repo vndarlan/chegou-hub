@@ -285,17 +285,17 @@ function WorkspacePage({ setIsLoggedIn }) {
                 </ProtectedRoute>
               } />
               <Route path="gestao/planejamento-semanal/configurar" element={
-                <ProtectedRoute moduleKey="planejamento_semanal">
+                <ProtectedRoute moduleKey="planejamento_configurar">
                   <PlanejamentoSemanalPage />
                 </ProtectedRoute>
               } />
               <Route path="gestao/planejamento-semanal/dashboard" element={
-                <ProtectedRoute moduleKey="planejamento_semanal">
+                <ProtectedRoute moduleKey="planejamento_dashboard">
                   <DashboardPage />
                 </ProtectedRoute>
               } />
               <Route path="gestao/planejamento-semanal/apresentacao" element={
-                <ProtectedRoute moduleKey="planejamento_semanal">
+                <ProtectedRoute moduleKey="planejamento_apresentacao">
                   <ApresentacaoPage />
                 </ProtectedRoute>
               } />
