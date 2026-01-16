@@ -166,23 +166,20 @@ export function DashboardGrid({ data, users = [] }) {
 
   return (
     <div className="space-y-6">
-      {/* Header com Filtro */}
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold">Dashboard do Time</h2>
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <Select value={selectedTime} onValueChange={setSelectedTime}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filtrar por time" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Todos">Todos</SelectItem>
-              {Object.keys(TIMES).map(time => (
-                <SelectItem key={time} value={time}>{time}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Filtro de Time */}
+      <div className="flex items-center justify-end gap-2">
+        <Filter className="h-4 w-4 text-muted-foreground" />
+        <Select value={selectedTime} onValueChange={setSelectedTime}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Filtrar por time" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Todos">Todos</SelectItem>
+            {Object.keys(TIMES).map(time => (
+              <SelectItem key={time} value={time}>{time}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Cards de Resumo */}
@@ -240,7 +237,7 @@ export function DashboardGrid({ data, users = [] }) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {planejamentosFiltrados.map((planejamento, index) => {
             // Suportar ambos os formatos de dados
             const nome = planejamento.jira_display_name || planejamento.usuario?.nome || 'Usuario';
