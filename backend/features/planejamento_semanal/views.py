@@ -153,7 +153,10 @@ class PlanejamentoSemanalViewSet(viewsets.ViewSet):
                         issue_status=item_data['issue_status'],
                         prioridade=item_data.get('prioridade', ItemPlanejamento.Prioridade.MEDIA),
                         concluido=item_data.get('concluido', False),
-                        ordem=item_data.get('ordem', idx)
+                        ordem=item_data.get('ordem', idx),
+                        tempo_estimado=item_data.get('tempo_estimado', 'M'),
+                        mais_de_uma_semana=item_data.get('mais_de_uma_semana', False),
+                        is_rotina=item_data.get('is_rotina', False)
                     )
 
                 # Retornar planejamento atualizado
