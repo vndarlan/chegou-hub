@@ -136,14 +136,15 @@ function ApresentacaoPage() {
   const slideNames = ['Inicio', 'Mapa', 'Dashboard', 'Fim'];
 
   return (
-    <div className="relative h-[calc(100vh-4rem)] w-full bg-background overflow-hidden">
+    <div className={`relative w-full bg-background overflow-hidden ${isFullscreen ? 'h-screen' : 'h-[calc(100vh-4rem)]'}`}>
       {/* Container do slide */}
       <div className="h-full w-full">
         {renderSlide()}
       </div>
 
-      {/* Controles de navegacao */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-background/80 backdrop-blur-sm rounded-full px-6 py-3 shadow-lg border">
+      {/* Controles de navegacao - escondidos em fullscreen */}
+      {!isFullscreen && (
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-background/80 backdrop-blur-sm rounded-full px-6 py-3 shadow-lg border z-50">
         {/* Botao anterior */}
         <Button
           variant="ghost"
@@ -203,27 +204,32 @@ function ApresentacaoPage() {
           )}
         </Button>
       </div>
+      )}
 
-      {/* Setas laterais (para telas maiores) */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={prevSlide}
-        disabled={currentSlide === 0}
-        className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-background/60 backdrop-blur-sm shadow-md hover:bg-background/80 h-12 w-12 hidden lg:flex"
-      >
-        <ChevronLeft className="h-6 w-6" />
-      </Button>
+      {/* Setas laterais (para telas maiores) - escondidas em fullscreen */}
+      {!isFullscreen && (
+        <>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={prevSlide}
+            disabled={currentSlide === 0}
+            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-background/60 backdrop-blur-sm shadow-md hover:bg-background/80 h-12 w-12 hidden lg:flex z-50"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </Button>
 
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={nextSlide}
-        disabled={currentSlide === totalSlides - 1}
-        className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-background/60 backdrop-blur-sm shadow-md hover:bg-background/80 h-12 w-12 hidden lg:flex"
-      >
-        <ChevronRight className="h-6 w-6" />
-      </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={nextSlide}
+            disabled={currentSlide === totalSlides - 1}
+            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-background/60 backdrop-blur-sm shadow-md hover:bg-background/80 h-12 w-12 hidden lg:flex z-50"
+          >
+            <ChevronRight className="h-6 w-6" />
+          </Button>
+        </>
+      )}
     </div>
   );
 }

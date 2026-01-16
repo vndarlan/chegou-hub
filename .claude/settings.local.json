@@ -82,7 +82,10 @@
       "Bash(git show:*)",
       "Bash(py manage.py makemigrations planejamento_semanal)",
       "Bash(.venvScriptsactivate)",
-      "Bash(source venv/Scripts/activate)"
+      "Bash(source venv/Scripts/activate)",
+      "Bash(py manage.py makemigrations planejamento_semanal --name add_tempo_estimado_fields)",
+      "Bash(\"c:\\\\Users\\\\Vinic\\\\OneDrive\\\\Documentos\\\\Programação\\\\chegou-hub\\\\backend\\\\venv\\\\Scripts\\\\python.exe\" \"c:\\\\Users\\\\Vinic\\\\OneDrive\\\\Documentos\\\\Programação\\\\chegou-hub\\\\backend\\\\manage.py\" makemigrations:*)",
+      "Bash(git status:*)"
     ],
     "deny": [],
     "ask": [],

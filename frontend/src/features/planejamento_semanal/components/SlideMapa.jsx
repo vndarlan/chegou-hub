@@ -213,12 +213,12 @@ export function SlideMapa() {
   }
 
   return (
-    <div className="h-full w-full bg-background p-4 flex flex-col">
+    <div className="h-full w-full bg-background p-4 flex flex-col overflow-hidden">
       {/* Mapa + Legenda */}
       <div className="flex gap-4 flex-1 min-h-0">
         {/* Mapa */}
-        <Card className="flex-1 overflow-hidden">
-          <div className="h-full w-full relative z-10">
+        <Card className="flex-1 overflow-hidden isolate">
+          <div className="h-full w-full relative z-0">
             <MapContainer
               center={[20, -30]}
               zoom={2.5}
@@ -251,7 +251,7 @@ export function SlideMapa() {
       </div>
 
       {/* Listas de paises em grid */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 mt-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 mt-4 relative z-10">
         <CountryLists />
       </div>
     </div>
