@@ -3,16 +3,16 @@ import { useState, useEffect } from 'react';
 import { Calendar, Save, Loader2, Pencil, X } from 'lucide-react';
 import apiClient from '../../../utils/axios';
 import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
+import { Textarea } from '../../../components/ui/textarea';
 
 /**
  * Slide de boas-vindas para apresentacao
- * Titulo editavel (salvo no backend) + subtitulo fixo
+ * Titulo fixo + texto editavel (salvo no backend)
  * @param {boolean} isFullscreen - Se true, esconde controles de edicao
  */
 export function SlideWelcome({ isFullscreen = false }) {
-  const [titulo, setTitulo] = useState('Bem-vindo');
-  const [tituloOriginal, setTituloOriginal] = useState('Bem-vindo');
+  const [texto, setTexto] = useState('Bem-vindo');
+  const [textoOriginal, setTextoOriginal] = useState('Bem-vindo');
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -22,9 +22,9 @@ export function SlideWelcome({ isFullscreen = false }) {
     const fetchConfig = async () => {
       try {
         const response = await apiClient.get('/planejamento-semanal/config-apresentacao/');
-        const tituloFromApi = response.data.titulo_welcome || 'Bem-vindo';
-        setTitulo(tituloFromApi);
-        setTituloOriginal(tituloFromApi);
+        const textoFromApi = response.data.titulo_welcome || 'Bem-vindo';
+        setTexto(textoFromApi);
+        setTextoOriginal(textoFromApi);
       } catch (err) {
         console.log('Erro ao buscar configuracao:', err);
       } finally {
@@ -36,8 +36,8 @@ export function SlideWelcome({ isFullscreen = false }) {
 
   // Salvar configuracao
   const handleSave = async () => {
-    if (!titulo.trim()) {
-      setTitulo(tituloOriginal);
+    if (!texto.trim()) {
+      setTexto(textoOriginal);
       setIsEditing(false);
       return;
     }
@@ -45,13 +45,13 @@ export function SlideWelcome({ isFullscreen = false }) {
     setSaving(true);
     try {
       await apiClient.post('/planejamento-semanal/config-apresentacao/', {
-        titulo_welcome: titulo.trim()
+        titulo_welcome: texto.trim()
       });
-      setTituloOriginal(titulo.trim());
+      setTextoOriginal(texto.trim());
       setIsEditing(false);
     } catch (err) {
       console.error('Erro ao salvar:', err);
-      setTitulo(tituloOriginal);
+      setTexto(textoOriginal);
     } finally {
       setSaving(false);
     }
@@ -59,13 +59,13 @@ export function SlideWelcome({ isFullscreen = false }) {
 
   // Cancelar edicao
   const handleCancel = () => {
-    setTitulo(tituloOriginal);
+    setTexto(textoOriginal);
     setIsEditing(false);
   };
 
-  // Salvar com Enter
+  // Salvar com Ctrl+Enter
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSave();
     } else if (e.key === 'Escape') {
@@ -75,62 +75,65 @@ export function SlideWelcome({ isFullscreen = false }) {
 
   return (
     <div className="h-full w-full flex flex-col items-center justify-center bg-gradient-to-br from-background to-muted">
-      <div className="text-center space-y-6">
+      <div className="text-center space-y-8 max-w-3xl px-8">
         <Calendar className="h-20 w-20 mx-auto text-primary" />
 
-        {/* Titulo editavel */}
+        {/* Titulo fixo */}
+        <h1 className="text-6xl font-bold text-primary tracking-tight">
+          Planejamento Semanal
+        </h1>
+
+        {/* Texto editavel */}
         {isEditing && !isFullscreen ? (
-          <div className="flex items-center justify-center gap-2">
-            <Input
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
+          <div className="space-y-3">
+            <Textarea
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="text-4xl font-bold text-center w-80 h-16"
+              className="text-xl text-center min-h-[120px] resize-none"
+              placeholder="Digite uma mensagem de boas-vindas... (Ctrl+Enter para salvar)"
               autoFocus
             />
-            <Button
-              size="icon"
-              onClick={handleSave}
-              disabled={saving}
-              className="h-12 w-12"
-            >
-              {saving ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Save className="h-5 w-5" />
-              )}
-            </Button>
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={handleCancel}
-              className="h-12 w-12"
-            >
-              <X className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                size="sm"
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Salvar
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleCancel}
+                size="sm"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancelar
+              </Button>
+            </div>
           </div>
         ) : (
-          <div className="flex items-center justify-center gap-3">
-            <h1 className="text-6xl font-bold text-foreground tracking-tight">
-              {loading ? '...' : titulo}
-            </h1>
+          <div className="relative group">
+            <p className="text-2xl text-foreground/80 whitespace-pre-wrap leading-relaxed">
+              {loading ? '...' : texto}
+            </p>
             {!isFullscreen && !loading && (
               <Button
                 size="icon"
                 variant="ghost"
                 onClick={() => setIsEditing(true)}
-                className="h-10 w-10 opacity-50 hover:opacity-100"
+                className="absolute -right-12 top-1/2 -translate-y-1/2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <Pencil className="h-5 w-5" />
+                <Pencil className="h-4 w-4" />
               </Button>
             )}
           </div>
         )}
-
-        {/* Subtitulo fixo */}
-        <h2 className="text-4xl font-semibold text-primary">
-          Planejamento Semanal
-        </h2>
       </div>
     </div>
   );
