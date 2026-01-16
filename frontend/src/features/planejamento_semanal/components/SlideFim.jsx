@@ -95,7 +95,7 @@ export function SlideFim() {
           FIM
         </h1>
         <p className="text-lg text-muted-foreground mt-3">
-          Obrigado pela atencao
+          Obrigado pela atenção
         </p>
       </div>
 

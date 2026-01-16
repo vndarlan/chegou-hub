@@ -75,7 +75,7 @@ const breadcrumbMap = {
   '/gestao/planejamento-semanal/apresentacao': [
     { label: 'GESTÃO EMPRESARIAL', href: '#' },
     { label: 'Planejamento Semanal', href: '#' },
-    { label: 'Apresentacao' }
+    { label: 'Apresentação' }
   ],
 
   // FORNECEDORES > EUROPA
