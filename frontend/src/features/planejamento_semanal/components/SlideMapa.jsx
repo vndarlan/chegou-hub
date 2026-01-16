@@ -193,7 +193,7 @@ export function SlideMapa() {
 
       if (!defaultStatus) {
         // Usar endpoint sem restricao de grupos
-        const statusResponse = await apiClient.get('/mapa/status-list/');
+        const statusResponse = await apiClient.get('/status-list/');
         if (statusResponse.data && statusResponse.data.length > 0) {
           setStatusList(statusResponse.data);
           defaultStatus = statusResponse.data[0].id.toString();
