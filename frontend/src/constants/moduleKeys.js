@@ -7,6 +7,9 @@ export const ROUTE_TO_MODULE = {
   // GESTÃO EMPRESARIAL
   '/gestao/agenda': 'agenda',
   '/gestao/jira': 'jira',
+  '/gestao/planejamento-semanal/configurar': 'planejamento_configurar',
+  '/gestao/planejamento-semanal/dashboard': 'planejamento_dashboard',
+  '/gestao/planejamento-semanal/apresentacao': 'planejamento_apresentacao',
 
   // IA & PROJETOS
   '/interno/projetos': 'ia_projetos',

@@ -235,7 +235,9 @@ MODULES = [
     # GESTÃO EMPRESARIAL
     {'key': 'agenda', 'name': 'Agenda da Empresa', 'group': 'GESTÃO EMPRESARIAL'},
     {'key': 'jira', 'name': 'Métricas Jira', 'group': 'GESTÃO EMPRESARIAL'},
-    {'key': 'planejamento_semanal', 'name': 'Planejamento Semanal', 'group': 'GESTÃO EMPRESARIAL'},
+    {'key': 'planejamento_configurar', 'name': 'Planejamento - Configurar Semana', 'group': 'GESTÃO EMPRESARIAL'},
+    {'key': 'planejamento_dashboard', 'name': 'Planejamento - Dashboard', 'group': 'GESTÃO EMPRESARIAL'},
+    {'key': 'planejamento_apresentacao', 'name': 'Planejamento - Apresentação', 'group': 'GESTÃO EMPRESARIAL'},
     {'key': 'ia_projetos', 'name': 'IA - Projetos', 'group': 'GESTÃO EMPRESARIAL'},
     {'key': 'ia_logs', 'name': 'IA - Logs de Erros', 'group': 'GESTÃO EMPRESARIAL'},
     {'key': 'ia_openai', 'name': 'IA - OpenAI Analytics', 'group': 'GESTÃO EMPRESARIAL'},

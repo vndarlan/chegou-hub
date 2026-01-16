@@ -131,25 +131,24 @@ export function AppSidebar({
       title: "Planejamento Semanal",
       icon: CalendarCheck,
       isActive: location.pathname.includes('/gestao/planejamento-semanal'),
-      moduleKey: "planejamento_semanal",
       items: [
         {
           title: "Configurar Semana",
           url: "/gestao/planejamento-semanal/configurar",
           isActive: location.pathname === "/gestao/planejamento-semanal/configurar",
-          moduleKey: "planejamento_semanal",
+          moduleKey: "planejamento_configurar",
         },
         {
           title: "Dashboard",
           url: "/gestao/planejamento-semanal/dashboard",
           isActive: location.pathname === "/gestao/planejamento-semanal/dashboard",
-          moduleKey: "planejamento_semanal",
+          moduleKey: "planejamento_dashboard",
         },
         {
           title: "Apresentação",
           url: "/gestao/planejamento-semanal/apresentacao",
           isActive: location.pathname === "/gestao/planejamento-semanal/apresentacao",
-          moduleKey: "planejamento_semanal",
+          moduleKey: "planejamento_apresentacao",
         },
       ],
     },
