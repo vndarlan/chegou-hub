@@ -476,7 +476,7 @@ function PlanejamentoSemanalPage() {
         <CardHeader>
           <CardTitle>Configurar Planejamento</CardTitle>
           <CardDescription>
-            Selecione o usuario e as issues que serao trabalhadas nesta semana.
+            Selecione o usuário e as atividades que serão trabalhadas nesta semana.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

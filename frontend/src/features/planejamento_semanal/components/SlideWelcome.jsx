@@ -16,9 +16,6 @@ export function SlideWelcome() {
         <h2 className="text-4xl font-semibold text-primary">
           Planejamento Semanal
         </h2>
-        <p className="text-xl text-muted-foreground mt-8">
-          Reuniao de Gestao
-        </p>
       </div>
     </div>
   );
