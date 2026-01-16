@@ -1,5 +1,5 @@
 // frontend/src/features/planejamento_semanal/ApresentacaoPage.js
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import apiClient from '../../utils/axios';
 
@@ -16,6 +16,7 @@ function ApresentacaoPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [semanaAtual, setSemanaAtual] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef(null);
 
   const totalSlides = 4;
 
@@ -87,12 +88,12 @@ function ApresentacaoPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [nextSlide, prevSlide, isFullscreen]);
 
-  // Fullscreen
+  // Fullscreen - usar o container da apresentacao
   const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
+    if (!document.fullscreenElement && containerRef.current) {
+      containerRef.current.requestFullscreen();
       setIsFullscreen(true);
-    } else {
+    } else if (document.fullscreenElement) {
       document.exitFullscreen();
       setIsFullscreen(false);
     }
@@ -135,7 +136,10 @@ function ApresentacaoPage() {
   const slideNames = ['Inicio', 'Mapa', 'Dashboard', 'Fim'];
 
   return (
-    <div className={`relative w-full bg-background overflow-hidden ${isFullscreen ? 'h-screen' : 'h-[calc(100vh-4rem)]'}`}>
+    <div
+      ref={containerRef}
+      className={`relative w-full bg-background overflow-hidden ${isFullscreen ? 'h-screen' : 'h-[calc(100vh-4rem)]'}`}
+    >
       {/* Container do slide */}
       <div className="h-full w-full">
         {renderSlide()}
