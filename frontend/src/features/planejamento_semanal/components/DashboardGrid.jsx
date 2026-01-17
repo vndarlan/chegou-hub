@@ -210,44 +210,42 @@ export function DashboardGrid({ data, users = [], isFullscreen = false }) {
           </div>
         </div>
 
-        {/* Filtros - escondidos em fullscreen */}
-        {!isFullscreen && (
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Filtro por Time */}
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <Select value={selectedTime} onValueChange={(v) => { setSelectedTime(v); setSelectedPessoa('Todas'); }}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Time" />
-                </SelectTrigger>
-                <SelectContent className="z-[10001]">
-                  <SelectItem value="Todos">Todos os times</SelectItem>
-                  {Object.keys(TIMES).map(time => (
-                    <SelectItem key={time} value={time}>{time}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Filtro por Pessoa */}
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <Select value={selectedPessoa} onValueChange={setSelectedPessoa}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Pessoa" />
-                </SelectTrigger>
-                <SelectContent className="z-[10001]">
-                  <SelectItem value="Todas">Todas as pessoas</SelectItem>
-                  {pessoasDisponiveis.map(pessoa => (
-                    <SelectItem key={pessoa} value={pessoa}>
-                      {pessoa.split(' ').slice(0, 2).join(' ')}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Filtros */}
+        <div className="flex flex-wrap items-center gap-3 relative z-[10000]">
+          {/* Filtro por Time */}
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <Select value={selectedTime} onValueChange={(v) => { setSelectedTime(v); setSelectedPessoa('Todas'); }}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Time" />
+              </SelectTrigger>
+              <SelectContent className="z-[10001]">
+                <SelectItem value="Todos">Todos os times</SelectItem>
+                {Object.keys(TIMES).map(time => (
+                  <SelectItem key={time} value={time}>{time}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        )}
+
+          {/* Filtro por Pessoa */}
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <Select value={selectedPessoa} onValueChange={setSelectedPessoa}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Pessoa" />
+              </SelectTrigger>
+              <SelectContent className="z-[10001]">
+                <SelectItem value="Todas">Todas as pessoas</SelectItem>
+                {pessoasDisponiveis.map(pessoa => (
+                  <SelectItem key={pessoa} value={pessoa}>
+                    {pessoa.split(' ').slice(0, 2).join(' ')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       {/* Barra de Progresso Geral */}
@@ -381,7 +379,14 @@ export function DashboardGrid({ data, users = [], isFullscreen = false }) {
                                         <RefreshCw className="h-3.5 w-3.5 text-blue-500" title="Rotina" />
                                       )}
                                       {item.tempo_estimado && (
-                                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+                                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                                          item.tempo_estimado === 'PP' ? 'bg-gray-300 text-gray-700' :
+                                          item.tempo_estimado === 'P' ? 'bg-yellow-200 text-yellow-800' :
+                                          item.tempo_estimado === 'M' ? 'bg-yellow-300 text-yellow-900' :
+                                          item.tempo_estimado === 'G' ? 'bg-orange-300 text-orange-900' :
+                                          item.tempo_estimado === 'GG' ? 'bg-red-300 text-red-900' :
+                                          'bg-gray-200 text-gray-700'
+                                        }`}>
                                           {item.tempo_estimado}
                                         </span>
                                       )}
