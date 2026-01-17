@@ -128,12 +128,12 @@ def status_list(request):
     status_paises = StatusPais.objects.all()
     data = [
         {
-            'id': status.id,
-            'nome': status.nome,
-            'descricao': status.descricao,
-            'cor_hex': status.cor_hex
+            'id': s.id,
+            'nome': s.nome,
+            'descricao': s.descricao,
+            'cor_hex': s.cor_hex
         }
-        for status in status_paises
+        for s in status_paises
     ]
     return Response(data)
 
