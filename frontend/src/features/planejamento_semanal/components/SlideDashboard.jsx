@@ -10,7 +10,7 @@ import { DashboardGrid } from './DashboardGrid';
  * Sempre busca e mostra a semana atual (is_current_week)
  * Reutiliza o DashboardGrid existente
  */
-export function SlideDashboard() {
+export function SlideDashboard({ isFullscreen = false }) {
   const [dashboardData, setDashboardData] = useState(null);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -80,7 +80,7 @@ export function SlideDashboard() {
 
   return (
     <div className="h-full w-full bg-background p-6 overflow-auto">
-      <DashboardGrid data={dashboardData} users={users} />
+      <DashboardGrid data={dashboardData} users={users} isFullscreen={isFullscreen} />
     </div>
   );
 }

@@ -103,7 +103,7 @@ function ApresentacaoPage() {
       case 1:
         return <SlideMapa />;
       case 2:
-        return <SlideDashboard />;
+        return <SlideDashboard isFullscreen={isFullscreen} />;
       case 3:
         return <SlideFim isFullscreen={isFullscreen} />;
       default:
